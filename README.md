@@ -1,0 +1,79 @@
+# grip
+
+GRIP is an R package for large graph drawing using the GRIP algorithm (Graph dRawing with Intelligent Placement). It supports 2D and 3D layouts and provides two force engines (`mish_v5`, `mish_v6`) and two initial placement strategies (`barycenter`, `circle`).
+
+**Installation (local dev)**  
+```r
+devtools::load_all()
+```
+
+**Basic Usage**
+```r
+library(grip)
+
+edges <- cbind(1:9, 2:10)
+coords <- grip.layout(edges, n = 10, dim = 2,
+                      engine = "mish_v5",
+                      placement = "barycenter",
+                      rounds = 5, final_rounds = 3,
+                      num_init = 5, num_nbrs = 6,
+                      seed = 1)
+grip.plot(coords, edges)
+```
+
+**2D Examples**  
+Circle placement is only used in 2D.  
+```r
+edges_cycle <- rbind(cbind(1:11, 2:12), c(12, 1))
+coords <- grip.layout(edges_cycle, n = 12, dim = 2,
+                      engine = "mish_v5",
+                      placement = "circle",
+                      rounds = 5, final_rounds = 3,
+                      num_init = 5, num_nbrs = 6,
+                      seed = 2)
+plot(coords[, 1], coords[, 2], asp = 1, pch = 16, cex = 0.7)
+```
+
+**Adjacency List + Weights**  
+If you keep graphs as `(adj.list, weight.list)`, you can pass them directly.  
+`weight_list` is optional; omit it to use all weights as 1.
+```r
+adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
+weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+coords <- grip.layout(adj_list = adj_list,
+                      weight_list = weight_list,
+                      n = 4,
+                      dim = 2,
+                      engine = "mish_v5",
+                      placement = "barycenter",
+                      rounds = 4, final_rounds = 2,
+                      num_init = 3, num_nbrs = 3,
+                      seed = 12)
+grip.plot(coords)
+```
+
+**3D Examples**  
+```r
+edges_mesh <- function(h, w = h) {
+  idx <- function(i, j) (i - 1L) * w + j
+  edges <- list()
+  for (i in seq_len(h)) for (j in seq_len(w)) {
+    v <- idx(i, j)
+    if (i < h) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
+    if (j < w) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L))
+  }
+  do.call(rbind, edges)
+}
+
+edges <- edges_mesh(4, 4)
+coords <- grip.layout(edges, n = 16, dim = 3,
+                      engine = "mish_v6",
+                      placement = "barycenter",
+                      rounds = 5, final_rounds = 3,
+                      num_init = 5, num_nbrs = 7,
+                      seed = 3)
+head(coords)
+```
+
+**More Examples**  
+See the vignette `GRIP Layout Examples` for mesh, cylinder, torus, and Sierpinski examples in 2D and 3D.

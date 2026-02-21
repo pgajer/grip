@@ -1,0 +1,36 @@
+CC = /usr/bin/clang
+CXX = /usr/bin/clang++
+SDK_PATH = $(shell xcrun --show-sdk-path)
+TIFF_PATH = /usr/local/Cellar/libtiff/4.6.0
+
+COMMON_FLAGS = -Wall -pedantic -Wno-deprecated-declarations -Wno-macro-redefined -g -isysroot $(SDK_PATH)
+//COMMON_FLAGS = -Wall -pedantic -Wno-deprecated-declarations -Wno-macro-redefined -isysroot $(SDK_PATH)
+CFLAGS = $(COMMON_FLAGS) -std=c17
+CXXFLAGS = $(COMMON_FLAGS) -std=c++17 -Wno-vla-extension
+
+DEFINES = -DGL_SILENCE_DEPRECATION
+
+INCLUDES = -I$(SDK_PATH)/System/Library/Frameworks/OpenGL.framework/Headers \
+           -I$(SDK_PATH)/System/Library/Frameworks/GLUT.framework/Headers \
+           -I$(TIFF_PATH)/include \
+           -I.
+
+LIBS = -lz -lm -framework GLUT -framework OpenGL -framework AGL -L$(TIFF_PATH)/lib -ltiff
+
+CPP_SRCS = main_cpp11.cpp DrawGraph.cpp Graph.cpp MesaPlot.cpp MishEngineV5.cpp MishEngineV6.cpp
+C_SRCS = trackball.c
+OBJS = $(CPP_SRCS:.cpp=.o) $(C_SRCS:.c=.o)
+
+main: $(OBJS)
+	$(CXX) $(CXXFLAGS) $(DEFINES) $(OBJS) -o $@ $(LIBS)
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(DEFINES) $(INCLUDES) -c $< -o $@
+
+clean:
+	rm -rf *.o main *~
+
+.PHONY: clean

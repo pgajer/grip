@@ -1,0 +1,19 @@
+Package: grip
+Type: Package
+Title: Graph dRawing with Intelligent Placement (GRIP)
+Version: 0.1.0
+Authors@R:
+    person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
+Author: Pawel Gajer [aut, cre]
+Maintainer: Pawel Gajer <pgajer@gmail.com>
+Description: Implements the GRIP algorithm for drawing large graphs using
+    multi-scale, force-directed placement in 2D and 3D.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports: Rcpp
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown, rgl
+LinkingTo: Rcpp
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+RoxygenNote: 7.3.3

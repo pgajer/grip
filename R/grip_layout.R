@@ -1,0 +1,347 @@
+#' Compute a GRIP layout
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for undirected graphs.
+#' @param weight_list Optional parallel list of edge weights (edge lengths).
+#'   If NULL, all edges are treated as weight 1. All weights must be finite
+#'   and strictly positive.
+#' @param edge_weights Optional vector of edge weights for \code{edges}. All
+#'   weights must be finite and strictly positive.
+#' @param dim Layout dimension (2 or 3). Default is 3.
+#' @param engine Layout engine to use.
+#' @param placement Initial placement strategy. "circle" is only used for 2D.
+#' @param rounds Initial rounds for refinement.
+#' @param final_rounds Final rounds for refinement.
+#' @param num_init Number of initial vertices in the coarsest level.
+#' @param num_nbrs Number of neighbors for local refinement.
+#' @param r Local temperature parameter r.
+#' @param s Local temperature parameter s.
+#' @param tinit_factor Initial temperature factor.
+#' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
+#' @param disconnected How to handle disconnected graphs:
+#'   \code{"components"} (default) lays out each connected component separately
+#'   and packs them into one coordinate matrix; \code{"error"} stops with an error.
+#' @return A numeric matrix with `n` rows and `dim` columns.
+#' @export
+grip.layout <- function(edges = NULL,
+                        n = NULL,
+                        adj_list = NULL,
+                        weight_list = NULL,
+                        edge_weights = NULL,
+                        dim = 3,
+                        engine = c("mish_v5", "mish_v6"),
+                        placement = c("barycenter", "circle"),
+                        rounds = 20,
+                        final_rounds = 25,
+                        num_init = 36,
+                        num_nbrs = 10,
+                        r = 0.15,
+                        s = 3.0,
+                        tinit_factor = 6,
+                        seed = 6,
+                        disconnected = c("components", "error")) {
+  engine <- match.arg(engine)
+  placement <- match.arg(placement)
+  disconnected <- match.arg(disconnected)
+
+  build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
+    edges <- as.matrix(edges)
+    if (!is.numeric(edges) || ncol(edges) != 2) {
+      stop("edges must be a two-column integer matrix of 1-based vertex ids")
+    }
+    edges <- matrix(as.integer(edges), ncol = 2)
+    if (any(!is.finite(edges))) {
+      stop("edges must contain finite integer vertex ids")
+    }
+    if (any(edges <= 0L | edges > n)) {
+      stop("edges must be 1-based and within [1, n]")
+    }
+
+    use.weights <- !is.null(edge_weights)
+    if (use.weights) {
+      if (length(edge_weights) != nrow(edges)) {
+        stop("edge_weights length must match number of edges")
+      }
+      if (!is.numeric(edge_weights)) {
+        stop("edge_weights must be a numeric vector")
+      }
+      bad <- which(!is.finite(edge_weights) | edge_weights <= 0)
+      if (length(bad) > 0L) {
+        i <- bad[[1L]]
+        stop(sprintf(
+          "edge_weights must contain finite values > 0; first invalid at edge_weights[%d] = %s",
+          i,
+          format(edge_weights[i], digits = 16)
+        ))
+      }
+      edge_weights <- as.double(edge_weights)
+    }
+
+    out.adj <- vector("list", n)
+    out.w <- if (use.weights) vector("list", n) else NULL
+    if (nrow(edges) == 0L) {
+      return(list(adj_list = out.adj, weight_list = out.w))
+    }
+
+    for (i in seq_len(nrow(edges))) {
+      u <- edges[i, 1L]
+      v <- edges[i, 2L]
+      if (u == v) next
+      out.adj[[u]] <- c(out.adj[[u]], v)
+      out.adj[[v]] <- c(out.adj[[v]], u)
+      if (use.weights) {
+        w <- edge_weights[[i]]
+        out.w[[u]] <- c(out.w[[u]], w)
+        out.w[[v]] <- c(out.w[[v]], w)
+      }
+    }
+
+    list(adj_list = out.adj, weight_list = out.w)
+  }
+
+  connected.components <- function(adj_list, n) {
+    comp <- integer(n)
+    cid <- 0L
+    for (v in seq_len(n)) {
+      if (comp[[v]] != 0L) next
+      cid <- cid + 1L
+      q <- integer(n)
+      head <- 1L
+      tail <- 1L
+      q[[tail]] <- v
+      comp[[v]] <- cid
+      while (head <= tail) {
+        x <- q[[head]]
+        head <- head + 1L
+        nb <- adj_list[[x]]
+        if (length(nb) == 0L) next
+        for (u in nb) {
+          if (comp[[u]] == 0L) {
+            tail <- tail + 1L
+            q[[tail]] <- u
+            comp[[u]] <- cid
+          }
+        }
+      }
+    }
+    comp
+  }
+
+  induce.subgraph <- function(adj_list, weight_list, vertices, n) {
+    vertices <- as.integer(vertices)
+    in.comp <- rep(FALSE, n)
+    in.comp[vertices] <- TRUE
+    map <- integer(n)
+    map[vertices] <- seq_along(vertices)
+    sub.adj <- vector("list", length(vertices))
+    use.weights <- !is.null(weight_list)
+    sub.w <- if (use.weights) vector("list", length(vertices)) else NULL
+
+    for (i in seq_along(vertices)) {
+      v <- vertices[[i]]
+      nb <- as.integer(adj_list[[v]])
+      if (length(nb) == 0L) {
+        sub.adj[[i]] <- integer(0)
+        if (use.weights) sub.w[[i]] <- numeric(0)
+        next
+      }
+      keep <- in.comp[nb]
+      nb.keep <- nb[keep]
+      sub.adj[[i]] <- as.integer(map[nb.keep])
+      if (use.weights) {
+        sub.w[[i]] <- as.double(weight_list[[v]][keep])
+      }
+    }
+
+    list(adj_list = sub.adj, weight_list = sub.w)
+  }
+
+  layout.adj <- function(adj_list, weight_list, n) {
+    grip_layout_adj_cpp(adj_list = adj_list,
+                        weight_list = weight_list,
+                        n = n,
+                        dim = dim,
+                        engine = engine,
+                        placement = placement,
+                        rounds = as.integer(rounds),
+                        final_rounds = as.integer(final_rounds),
+                        num_init = as.integer(num_init),
+                        num_nbrs = as.integer(num_nbrs),
+                        r = as.double(r),
+                        s = as.double(s),
+                        tinit_factor = as.integer(tinit_factor),
+                        seed = seed)
+  }
+
+  pack.component.layouts <- function(layouts, comp, n, dim) {
+    comp.ids <- sort(unique(comp))
+    out <- matrix(NA_real_, nrow = n, ncol = dim)
+    if (length(comp.ids) == 1L) {
+      out[,] <- as.matrix(layouts[[1L]])
+      return(out)
+    }
+
+    centered <- vector("list", length(layouts))
+    radii <- rep(1.0, length(layouts))
+    for (k in seq_along(layouts)) {
+      z <- as.matrix(layouts[[k]])
+      ctr <- colMeans(z)
+      zc <- sweep(z, 2L, ctr, "-")
+      centered[[k]] <- zc
+      if (nrow(zc) > 0L) {
+        rr <- sqrt(rowSums(zc * zc))
+        rmax <- max(rr, na.rm = TRUE)
+        if (is.finite(rmax) && rmax > 0) radii[[k]] <- as.double(rmax)
+      }
+    }
+
+    ord <- order(vapply(comp.ids, function(id) sum(comp == id), integer(1L)), decreasing = TRUE)
+    gap <- stats::median(radii, na.rm = TRUE)
+    if (!is.finite(gap) || gap <= 0) gap <- 1.0
+    gap <- gap * 1.5
+
+    x.offset <- 0.0
+    prev.r <- 0.0
+    for (kk in seq_along(ord)) {
+      idx <- ord[[kk]]
+      cid <- comp.ids[[idx]]
+      rows <- which(comp == cid)
+      if (kk == 1L) {
+        x.offset <- 0.0
+      } else {
+        x.offset <- x.offset + prev.r + radii[[idx]] + gap
+      }
+      shift <- rep(0.0, dim)
+      shift[[1L]] <- x.offset
+      out[rows, ] <- sweep(centered[[idx]], 2L, shift, "+")
+      prev.r <- radii[[idx]]
+    }
+    out
+  }
+
+  if (!is.null(adj_list)) {
+    if (!is.list(adj_list)) stop("adj_list must be a list of integer vectors")
+    if (is.null(n)) n <- length(adj_list)
+    if (!is.numeric(n) || length(n) != 1L) {
+      stop("n must be a single numeric value")
+    }
+    n <- as.integer(n)
+    if (n <= 0L) stop("n must be positive")
+    if (length(adj_list) != n) {
+      stop("adj_list length must match n")
+    }
+
+    adj_list <- lapply(adj_list, function(v) {
+      if (!is.numeric(v)) stop("adj_list entries must be numeric/integer vectors")
+      v <- as.integer(v)
+      if (any(!is.finite(v))) stop("adj_list entries must be finite")
+      if (any(v <= 0L | v > n)) stop("adj_list must be 1-based and within [1, n]")
+      v
+    })
+
+    if (!is.null(weight_list)) {
+      if (!is.list(weight_list) || length(weight_list) != n) {
+        stop("weight_list must be a list parallel to adj_list")
+      }
+      for (i in seq_len(n)) {
+        wi <- weight_list[[i]]
+        if (!is.numeric(wi)) {
+          stop(sprintf("weight_list[[%d]] must be a numeric vector", i))
+        }
+        if (length(wi) != length(adj_list[[i]])) {
+          stop(sprintf("weight_list[[%d]] must be parallel to adj_list[[%d]]", i, i))
+        }
+        bad <- which(!is.finite(wi) | wi <= 0)
+        if (length(bad) > 0L) {
+          j <- bad[[1L]]
+          stop(sprintf(
+            "weight_list must contain finite values > 0; first invalid at weight_list[[%d]][%d] = %s",
+            i,
+            j,
+            format(wi[j], digits = 16)
+          ))
+        }
+        weight_list[[i]] <- as.double(wi)
+      }
+    }
+  } else {
+    if (is.null(edges)) {
+      stop("provide either edges or adj_list/weight_list")
+    }
+    if (!is.numeric(n) || length(n) != 1L) {
+      stop("n must be a single numeric value")
+    }
+    n <- as.integer(n)
+    if (n <= 0L) stop("n must be positive")
+    if (!is.null(edge_weights)) {
+      if (length(edge_weights) != nrow(edges)) {
+        stop("edge_weights length must match number of edges")
+      }
+      if (!is.numeric(edge_weights)) {
+        stop("edge_weights must be a numeric vector")
+      }
+      bad <- which(!is.finite(edge_weights) | edge_weights <= 0)
+      if (length(bad) > 0L) {
+        i <- bad[[1L]]
+        stop(sprintf(
+          "edge_weights must contain finite values > 0; first invalid at edge_weights[%d] = %s",
+          i,
+          format(edge_weights[i], digits = 16)
+        ))
+      }
+    }
+
+    converted <- build.adj.from.edges(edges = edges, n = n, edge_weights = edge_weights)
+    adj_list <- converted$adj_list
+    weight_list <- converted$weight_list
+  }
+  if (!is.numeric(dim) || !(dim %in% c(2, 3))) {
+    stop("dim must be 2 or 3")
+  }
+  dim <- as.integer(dim)
+  if (!is.null(seed)) seed <- as.integer(seed)
+  if (placement == "circle" && dim != 2) {
+    warning("circle placement is only used for 2D; falling back to barycenter")
+  }
+
+  comp <- connected.components(adj_list = adj_list, n = n)
+  n.comp <- length(unique(comp))
+
+  if (n.comp == 1L) {
+    return(layout.adj(adj_list = adj_list, weight_list = weight_list, n = n))
+  }
+
+  if (identical(disconnected, "error")) {
+    stop(sprintf(
+      "Input graph has %d connected components; grip C++ engine assumes connected graphs. Use disconnected = 'components' to lay out each component safely.",
+      n.comp
+    ))
+  }
+
+  warning(
+    sprintf(
+      "Input graph has %d connected components; laying out components separately to avoid disconnected-graph instability.",
+      n.comp
+    ),
+    call. = FALSE
+  )
+
+  comp.ids <- sort(unique(comp))
+  layouts <- vector("list", length(comp.ids))
+  for (k in seq_along(comp.ids)) {
+    rows <- which(comp == comp.ids[[k]])
+    sub <- induce.subgraph(
+      adj_list = adj_list,
+      weight_list = weight_list,
+      vertices = rows,
+      n = n
+    )
+    layouts[[k]] <- layout.adj(
+      adj_list = sub$adj_list,
+      weight_list = sub$weight_list,
+      n = length(rows)
+    )
+  }
+  pack.component.layouts(layouts = layouts, comp = comp, n = n, dim = dim)
+}

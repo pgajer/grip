@@ -1,0 +1,254 @@
+# GRIP: Graph Drawing with Intelligent Placement
+
+GRIP is a C++ library for large graph visualization. It implements the large graph drawing algorithm described in the following papers:
+
+1. Gajer, P., Goodrich, M. T., & Kobourov, S. G. (2000). A fast multi-dimensional algorithm for drawing large graphs. In Graph Drawing'00 Conference Proceedings (pp. 211-221).
+2. Gajer, P., & Kobourov, S. G. (2004). GRIP: Graph drawing with intelligent placement. Journal of Graph Algorithms and Applications, 6(3), 203-224.
+
+## Features
+
+- Fast drawing of large graphs
+- Ability to embed a graph in Euclidean space of arbitrary dimension
+- Hierarchical drawing process
+- Implementation of both Kamada-Kawai and Fruchterman-Reingold Algorithms
+
+## Installation
+
+### macOS
+
+To install on macOS, run:
+
+```
+make
+```
+
+### Linux
+
+To install on Linux, run:
+
+```
+make -f Makefile_lx
+```
+
+For easier modification of the code on Linux, you can create a symbolic link:
+
+```
+rm Makefile
+ln -s Makefile_lx Makefile
+```
+
+## Code Overview
+
+This implementation is an adaptation of the original 2000 GRIP code to the C++11 standard, offering improved performance and modern C++ features.
+
+## Examples and Usage
+
+The GRIP library offers a wide range of graph types and configuration options. Here's a comprehensive guide to using the library:
+
+### Available Graph Types
+
+The library supports the following graph types:
+
+1. complete
+2. random
+3. path
+4. cycle
+5. hypercube
+6. cylinder
+7. torus
+8. mesh
+9. twistedtorus
+10. tree
+11. meshX
+12. meshT
+13. meshTX
+14. sierpinski
+15. read_graph (for reading from a file)
+
+### Command-Line Options
+
+- `-#`: Number of vertices
+- `-r`: Initial number of rounds
+- `-R`: Final number of rounds
+- `-n`: Number of iterations
+- `-i`: Number of initial vertices
+- `-b`: Number of neighbors
+- `-c`: Enable/disable color (0 or 1)
+- `-S`: S parameter (float)
+- `-T`: T parameter
+- `-d`: Dimension (2D, 3D, or 4D)
+- `-k`: Engine type (mish_v5 or mish_v6)
+- `-e`: Edge parameter
+- `-w`: Window width
+- `-t`: Initial temperature factor
+- `-g`: Graph type (see list above)
+- `-s`: Slow parameter
+- `-P`: Additional parameter
+- `-p`: Print to file (optional filename)
+- `-D`: Display parameter (0 for calculation only, 1 for display)
+
+### Example Commands
+
+1. Complete graph:
+   ```
+   ./main -g complete -# 100 -r 20 -R 10 -d 3 -k mish_v5
+   ```
+
+2. Random graph:
+   ```
+   ./main -g random -# 500 -T 4 -r 30 -R 15 -d 3 -k mish_v6
+   ```
+
+3. Torus:
+   ```
+   ./main -g torus -# 100 -T 50 -r 25 -R 20 -d 3 -k mish_v5
+   ```
+
+4. Tree:
+   ```
+   ./main -g tree -# 200 -T 3 -r 30 -R 30 -d 3 -k mish_v6
+   zsh: segmentation fault (core dumped)  main -g tree -# 200 -T 3 -r 30 -R 30 -d 3 -k mish_v6 -D 0
+   
+   main -g tree -# 200 -T 3 -r 30 -R 30 -d 3 -k mish_v5 -D 0
+   zsh: segmentation fault (core dumped)  main -g tree -# 200 -T 3 -r 30 -R 30 -d 3 -k mish_v5 -D 0
+
+   ```
+
+5. Mesh:
+   ```
+   ./main -g mesh -# 400 -r 15 -R 15 -d 3 -k mish_v5
+   ```
+
+6. 4D Hypercube:
+   ```
+   ./main -g hypercube -# 16 -r 20 -R 20 -d 4 -k mish_v5
+
+main(78022,0x7ff84799adc0) malloc: *** error for object 0x9000000000000000: pointer being freed was not allocated
+main(78022,0x7ff84799adc0) malloc: *** set a breakpoint in malloc_error_break to debug
+
+   ```
+
+7. Sierpinski Graph:
+   ```
+   ./main -g sierpinski -# 243 -T 5 -r 25 -R 20 -d 3 -k mish_v6
+   gets stuck 
+   ```
+
+8. Reading from a file:
+   ```
+   ./main -g read_graph -f your_graph_file.iwb -r 30 -R 30 -d 3 -k mish_v5
+   ```
+
+### Additional Features
+
+1. **File Input**: You can read graph data from a file using the `read_graph` option with `-g` flag.
+
+2. **Display Options**: Use `-D 0` for displaying the final result  or `-D 1` for displaying the full hierarchy of graph approximations of the final graph.
+
+3. **Color**: Enable color with `-c 1` or disable with `-c 0`.
+
+4. **Window Size**: Adjust the display window size with `-w` flag.
+
+5. **Engine Types**: Choose between two engine types:
+   - `mish_v5`: Standard engine
+   - `mish_v6`: Engine with attractive/repulsive forces based on Fruchterman and Reingold's algorithm
+
+6. **Dimension**: Set the dimension of the graph drawing with `-d` flag (2, 3, or 4).
+
+7. **Performance Measurement**: The library measures and outputs the elapsed time for graph calculations when using `-D 0`.
+
+### Tips for Usage
+
+1. Experiment with different values for `-r` (initial rounds) and `-R` (final rounds) to balance between speed and quality of the drawing.
+
+2. For large graphs, consider using `-D 0` first to calculate the layout, then use `-D 1` to display it.
+
+3. The `-T` parameter is particularly important for graphs like torus, cylinder, and tree, as it affects their structure.
+
+4. When reading from a file, ensure your graph file is in the correct format (IWB format).
+
+5. For complex graphs, increasing the number of rounds (`-r` and `-R`) and the number of initial vertices (`-i`) can improve the quality of the drawing at the cost of longer computation time.
+
+## Parameter Choices
+
+The quality of the graph drawing can be significantly affected by the choice of parameters. Here are some tips:
+
+1. Rounds (`-r` and `-R`): 
+   - `-r` sets the initial number of rounds
+   - `-R` sets the final number of rounds
+   - For small graphs, use larger values (e.g., `-r 30 -R 30`)
+   - For larger graphs, smaller values often suffice (e.g., `-r 15 -R 15`)
+
+2. Neighbor Factor:
+   - This affects the number of vertices considered in local beautification procedures
+   - It's set to 2 by default, but experimenting with different values may improve results for specific graphs
+
+3. Dimension (`-d`):
+   - Use `-d 3` for 3D drawings
+   - Use `-d 4` for 4D drawings (only available with `-k mish_v5`)
+
+4. Engine (`-k`):
+   - `mish_v5` is the standard engine
+   - `mish_v6` implements attractive/repulsive forces based on Fruchterman and Reingold's algorithm, which can produce nicer drawings for certain graph types (e.g., trees)
+
+5. Iterations (`-i`):
+   - Increasing this value can sometimes resolve crashes (e.g., use `-i 10` instead of `-i 3`)
+
+## Known Issues
+
+1. Segmentation Fault: Some combinations of parameters may cause crashes, particularly with small values of `-i`. If you encounter a segmentation fault, try increasing the value of `-i`.
+
+2. Graph Growth: In `mish_engine_v6()`, the graph may grow rapidly in the final phase due to repulsive forces. Use the 'b' key to adjust the view if needed.
+
+3. 4D Projection: When using 4D drawing (`-d 4`), the resulting 3D projection may appear flat. You can experiment with different projection vectors by modifying the `nProjVect` in the `MesaPlot.cpp` constructor.
+
+
+## License
+
+GNU General Public License (GPL)
+
+## Contributing
+
+We welcome contributions to the GRIP library! Here's how you can contribute:
+
+### Reporting Issues
+
+- Use the GitHub issue tracker to report bugs or suggest features.
+- Before creating a new issue, please check if a similar issue already exists.
+- Provide as much detail as possible: steps to reproduce the issue, error messages, your environment, etc.
+
+### Submitting Pull Requests
+
+1. Fork the repository and create your branch from `main`.
+2. If you've added code that should be tested, add tests.
+3. Ensure your code follows the existing style to maintain consistency.
+4. Update the documentation if you've made significant changes.
+5. Write a clear and descriptive commit message.
+6. Submit a pull request with a comprehensive description of the changes.
+
+### Code Style
+
+- Follow the existing code style in the project.
+- Use meaningful variable and function names.
+- Comment your code where necessary, especially for complex algorithms.
+
+### Development Setup
+
+[Add any specific instructions for setting up the development environment]
+
+### Testing
+
+- Run existing tests before submitting your changes.
+- Add new tests for new features or bug fixes.
+
+We appreciate all contributions, whether it's code, documentation, bug reports, or feature suggestions!
+
+## Contact
+
+For questions, suggestions, or discussions about GRIP:
+
+1. Please [open an issue](https://github.com/pgajer/GRIP/issues) on GitHub for bug reports, feature requests, or general questions.
+2. For more direct communication, you can reach the maintainer through [GitHub Discussions](https://github.com/pgajer/GRIP/discussions) (if enabled for your repository).
+
+For private inquiries, you can contact the maintainer via:
+- [Your GitHub profile](https://github.com/pgajer)

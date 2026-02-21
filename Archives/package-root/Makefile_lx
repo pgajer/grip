@@ -1,0 +1,17 @@
+CC = g++
+CFLAGS = -Wall -I/usr/X11R6/include -L/usr/X11R6/lib -O3 # -pg #-O3
+LIBS =  -ltiff -lGLU -lGL -lXmu -lXi -lm -lglut
+SRCS =   main.cpp DrawGraph.cpp Graph.cpp MesaPlot.cpp \
+MishEngineV5.cpp MishEngineV6.cpp trackball.c # String.cpp #
+OBJS =	$(SRCS:.cpp=.o)
+
+main: $(OBJS) 
+	$(CC) $(CFLAGS) $(OBJS) -o $@  $(LIBS)
+.cpp.o : 
+	$(CC) $(CFLAGS) -c $<
+clean:
+	rm -rf *.o *~ 
+cleanO:
+	rm -rf *.o  
+
+
