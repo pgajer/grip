@@ -16,3 +16,7 @@ src/*.so
 src/*.dylib
 src/*.dll
 src/*.a
+
+# Legacy archive build artifacts
+Archives/package-root/*.o
+Archives/package-root/main
