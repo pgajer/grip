@@ -300,13 +300,4 @@ Point<T> operator*(U constant, const Point<T>& p) {
     return p * constant;
 }
 
-template<typename T, typename U>
-Point<T> operator/(const Point<T>& p, U constant) {
-    Point<T> result(p);
-    for (size_t i = 0; i < p.dim; ++i) {
-        result.coord[i] /= constant;
-    }
-    return result;
-}
-
 #endif
