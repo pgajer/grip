@@ -84,10 +84,10 @@ library(grip)
 | `r`, `s`       | Local temperature schedule parameters (adaptive cooling). |
 | `seed`         | RNG seed for reproducibility. |
 
-The examples below use small values for `rounds`, `final_rounds`, `num_init`,
-and `num_nbrs` so that they run quickly inside the vignette. For production
-use, the defaults (`rounds = 20`, `final_rounds = 25`, `num_init = 36`,
-`num_nbrs = 10`) generally produce better results.
+The examples below use `rounds = 25` and `final_rounds = 25` for good layout
+quality. The remaining parameters (`num_init`, `num_nbrs`) are kept small
+since the example graphs are small; for larger graphs the defaults
+(`num_init = 36`, `num_nbrs = 10`) generally work well.
 
 ## Helper functions
 
@@ -215,7 +215,7 @@ edges <- edges_path(12)
 coords <- grip.layout(edges, n = 12, dim = 2,
                       engine = "mish_v5",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
                       seed = 1)
 grip.plot(coords, edges, main = "Path (2D)", pch = 16, cex = 0.6)
@@ -230,7 +230,7 @@ edges <- edges_cycle(16)
 coords <- grip.layout(edges, n = 16, dim = 2,
                       engine = "mish_v5",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
                       seed = 2)
 grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
@@ -246,7 +246,7 @@ edges <- edges_mesh(5, 5)
 coords <- grip.layout(edges, n = 25, dim = 2,
                       engine = "mish_v6",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
                       seed = 3)
 grip.plot(coords, edges, main = "Mesh (2D)", pch = 16, cex = 0.6)
@@ -264,7 +264,7 @@ n <- max(edges)
 coords <- grip.layout(edges, n = n, dim = 2,
                       engine = "mish_v5",
                       placement = "circle",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
                       seed = 4)
 grip.plot(coords, edges, main = "Sierpinski (2D, circle placement)", pch = 16, cex = 0.6)
@@ -288,7 +288,7 @@ edges <- edges_mesh(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
                       engine = "mish_v5",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
                       seed = 5)
 head(coords)
@@ -313,7 +313,7 @@ coords <- grip.layout(adj_list = adj_list,
                       dim = 2,
                       engine = "mish_v5",
                       placement = "barycenter",
-                      rounds = 4, final_rounds = 2,
+                      rounds = 25, final_rounds = 25,
                       num_init = 3, num_nbrs = 3,
                       seed = 12)
 grip.plot(coords, main = "Adjacency list input (2D)")
@@ -329,7 +329,7 @@ edges <- edges_cylinder(4, 6)
 coords <- grip.layout(edges, n = 24, dim = 3,
                       engine = "mish_v5",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
                       seed = 6)
 head(coords)
@@ -345,7 +345,7 @@ edges <- edges_torus(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
                       engine = "mish_v6",
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 3,
+                      rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
                       seed = 7)
 head(coords)
