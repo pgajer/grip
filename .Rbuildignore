@@ -29,6 +29,7 @@
 ^doc$
 ^Meta$
 ^\\.claude$
+^\\.github$
 ^\\.\\.Rcheck$
 ^.*\\.Rcheck$
 ^grip_.*\\.tar\\.gz$
