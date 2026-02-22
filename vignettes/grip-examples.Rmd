@@ -1,8 +1,8 @@
 ---
-title: "GRIP Layout Examples"
+title: "GRIP: Graph dRawing with Intelligent Placement"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{GRIP Layout Examples}
+  %\VignetteIndexEntry{GRIP: Graph dRawing with Intelligent Placement}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,17 +11,88 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-**Overview**  
-This vignette demonstrates `grip.layout()` on common graph families inspired by
-the legacy GRIP examples. We show both 2D and 3D layouts and include small
-parameter settings so the examples run quickly.
+## Introduction
+
+Visualizing large graphs is a fundamental problem in network analysis,
+bioinformatics, social-network research, and many other fields. *Force-directed*
+methods are among the most popular approaches: they model the graph as a
+physical system where edges act as springs pulling connected vertices together,
+while all vertex pairs exert repulsive forces to prevent overlap. The layout is
+obtained by minimizing the total energy of this system. Classical algorithms
+such as Kamada--Kawai (1989) and Fruchterman--Reingold (1991) produce
+aesthetically pleasing drawings, but their running time grows quickly with
+graph size---Kamada--Kawai, for instance, is $O(n^3)$ per iteration---making
+them impractical for graphs with more than a few thousand vertices.
+
+GRIP (Graph dRawing with Intelligent Placement) addresses this scalability
+bottleneck. The algorithm was introduced in two companion papers:
+
+1. Gajer, P., Goodrich, M.T., and Kobourov, S.G. (2004). A multi-dimensional
+   approach to force-directed layouts of large graphs. *Computational Geometry:
+   Theory and Applications*, 29(1):3--18.
+   (Preliminary version in *Proc. 8th Symposium on Graph Drawing*, 2000.)
+
+2. Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
+   Placement. *Journal of Graph Algorithms and Applications*, 6(3):203--224.
+
+The key observation behind GRIP is that force-directed refinement converges much
+faster when vertices start close to their final positions. GRIP therefore
+combines three ideas into a single multi-scale pipeline:
+
+1. **Maximal Independent Set Filtration (MISF).** The vertex set is decomposed
+   into a nested sequence $V = V_0 \supset V_1 \supset \cdots \supset V_k$,
+   where each $V_i$ is a maximal independent set of the subgraph induced by
+   $V_{i-1}$ with the additional constraint that the graph distance between any
+   two vertices in $V_i$ is at least $2^{i-1}+1$. The coarsest level $V_k$
+   contains only a small number of vertices that are spread far apart in the
+   graph.
+
+2. **Intelligent placement.** At each level, newly introduced vertices are
+   placed at an initial position computed from the already-positioned neighbors
+   (barycenter of nearby vertices, or along a circle in 2D). Because these
+   neighbors are already well separated, the initial position is typically close
+   to optimal.
+
+3. **Fast force-directed refinement.** Each vertex is refined using only a
+   small, local neighborhood of graph-distance neighbors (controlled by the
+   `num_nbrs` parameter). This makes the per-vertex cost constant on average,
+   yielding near-linear overall running time. Two engine variants are provided:
+   `mish_v5` uses Kamada--Kawai-style spring forces, while `mish_v6` adds
+   Fruchterman--Reingold-style repulsive forces for improved spacing.
+
+The result is an algorithm that draws graphs with tens of thousands of
+vertices in seconds, using negligible memory, while producing layouts that are
+competitive in quality with the much slower classical methods.
+
+## Quick start
 
 ```{r}
 library(grip)
 ```
 
-**Helper Functions**  
-We define small helpers to generate edge lists for the examples.
+## Parameter overview
+
+| Parameter      | Meaning |
+|:---------------|:--------|
+| `dim`          | Layout dimension (2 or 3). |
+| `engine`       | Force engine: `"mish_v5"` (spring-only) or `"mish_v6"` (spring + repulsive). |
+| `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
+| `rounds`       | Refinement rounds at coarse levels. |
+| `final_rounds` | Refinement rounds at the finest level. |
+| `num_init`     | Number of initial vertices at the coarsest filtration level. |
+| `num_nbrs`     | Number of graph-distance neighbors used during refinement. |
+| `r`, `s`       | Local temperature schedule parameters (adaptive cooling). |
+| `seed`         | RNG seed for reproducibility. |
+
+The examples below use small values for `rounds`, `final_rounds`, `num_init`,
+and `num_nbrs` so that they run quickly inside the vignette. For production
+use, the defaults (`rounds = 20`, `final_rounds = 25`, `num_init = 36`,
+`num_nbrs = 10`) generally produce better results.
+
+## Helper functions
+
+We define small helpers to generate edge lists for several standard graph
+families.
 
 ```{r}
 edges_path <- function(n) {
@@ -127,8 +198,17 @@ edges_sierpinski <- function(level = 2) {
 }
 ```
 
-**2D Examples**  
-Circle placement is available only in 2D.
+## 2D layout examples
+
+The examples below lay out several common graph families in two dimensions.
+The `"circle"` placement strategy, which arranges initial vertices along a
+circle before refinement, is available only in 2D; the default `"barycenter"`
+strategy works in both 2D and 3D.
+
+### Path graph
+
+A simple path on 12 vertices. The algorithm should recover a (roughly) linear
+arrangement.
 
 ```{r}
 edges <- edges_path(12)
@@ -141,6 +221,10 @@ coords <- grip.layout(edges, n = 12, dim = 2,
 grip.plot(coords, edges, main = "Path (2D)", pch = 16, cex = 0.6)
 ```
 
+### Cycle graph
+
+A cycle on 16 vertices. A good layout should approximate a regular polygon.
+
 ```{r}
 edges <- edges_cycle(16)
 coords <- grip.layout(edges, n = 16, dim = 2,
@@ -152,6 +236,11 @@ coords <- grip.layout(edges, n = 16, dim = 2,
 grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
 ```
 
+### Mesh (grid) graph
+
+A 5 x 5 grid graph. This uses the `mish_v6` engine, which adds repulsive
+forces and can produce more uniform spacing on regular lattices.
+
 ```{r}
 edges <- edges_mesh(5, 5)
 coords <- grip.layout(edges, n = 25, dim = 2,
@@ -162,6 +251,12 @@ coords <- grip.layout(edges, n = 25, dim = 2,
                       seed = 3)
 grip.plot(coords, edges, main = "Mesh (2D)", pch = 16, cex = 0.6)
 ```
+
+### Sierpinski triangle
+
+The level-2 Sierpinski triangle graph has a fractal structure that is a
+useful stress test for layout algorithms. Here we use the `"circle"`
+placement strategy.
 
 ```{r}
 edges <- edges_sierpinski(2)
@@ -175,9 +270,18 @@ coords <- grip.layout(edges, n = n, dim = 2,
 grip.plot(coords, edges, main = "Sierpinski (2D, circle placement)", pch = 16, cex = 0.6)
 ```
 
-**3D Examples**  
-The layout output is a numeric matrix with 3 columns. Plotting is optional and
-depends on your preferred 3D library.
+## 3D layout examples
+
+Setting `dim = 3` produces a layout in three-dimensional space. The output is a
+numeric matrix with three columns. GRIP was designed from the outset as a
+multi-dimensional algorithm---the original papers showed that working in higher
+dimensions and then projecting can sometimes yield smoother, more symmetric
+drawings.
+
+For interactive 3D viewing, the **rgl** package can be used (see the optional
+plotting snippet at the end of this section).
+
+### 3D mesh
 
 ```{r}
 edges <- edges_mesh(4, 4)
@@ -190,9 +294,15 @@ coords <- grip.layout(edges, n = 16, dim = 3,
 head(coords)
 ```
 
-**Adjacency List + Weights**  
-If your data comes as an adjacency list with parallel edge weights, you can
-pass it directly. `weight_list` is optional; omit it to treat all weights as 1.
+## Adjacency list and weighted edges
+
+In addition to the edge-list interface, `grip.layout()` accepts an adjacency
+list with an optional parallel list of edge weights. This is convenient when
+your graph is already stored in adjacency-list form. Edge weights are
+interpreted as desired edge lengths: a larger weight means the algorithm will
+try to place the two endpoints farther apart.
+
+`weight_list` is optional; omit it to treat all edges as having unit length.
 
 ```{r}
 adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
@@ -209,6 +319,11 @@ coords <- grip.layout(adj_list = adj_list,
 grip.plot(coords, main = "Adjacency list input (2D)")
 ```
 
+### 3D cylinder
+
+A cylinder graph wraps the horizontal axis of a grid into a cycle, producing
+a surface that should curve into a tube-like shape in 3D.
+
 ```{r}
 edges <- edges_cylinder(4, 6)
 coords <- grip.layout(edges, n = 24, dim = 3,
@@ -219,6 +334,11 @@ coords <- grip.layout(edges, n = 24, dim = 3,
                       seed = 6)
 head(coords)
 ```
+
+### 3D torus
+
+A torus wraps both axes of a grid into cycles. In 3D, the algorithm should
+recover the characteristic doughnut shape.
 
 ```{r}
 edges <- edges_torus(4, 4)
@@ -238,3 +358,21 @@ if (requireNamespace("rgl", quietly = TRUE)) {
               size = 4, col = "steelblue")
 }
 ```
+
+## References
+
+1. Gajer, P., Goodrich, M.T., and Kobourov, S.G. (2004). A multi-dimensional
+   approach to force-directed layouts of large graphs. *Computational Geometry:
+   Theory and Applications*, 29(1):3--18.
+   doi:[10.1016/j.comgeo.2004.03.014](https://doi.org/10.1016/j.comgeo.2004.03.014).
+
+2. Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
+   Placement. *Journal of Graph Algorithms and Applications*, 6(3):203--224.
+   doi:[10.7155/jgaa.00052](https://doi.org/10.7155/jgaa.00052).
+
+3. Kamada, T. and Kawai, S. (1989). An algorithm for drawing general
+   undirected graphs. *Information Processing Letters*, 31(1):7--15.
+
+4. Fruchterman, T.M.J. and Reingold, E.M. (1991). Graph drawing by
+   force-directed placement. *Software: Practice and Experience*,
+   21(11):1129--1164.
