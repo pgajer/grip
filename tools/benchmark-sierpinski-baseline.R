@@ -526,94 +526,109 @@ write_summary_markdown <- function(raw_metrics, summary_metrics, pdf_paths, path
   utils::write.table(lines, file = path, row.names = FALSE, col.names = FALSE, quote = FALSE)
 }
 
-graphs <- build_graph_specs()
-raw_metrics <- do.call(
-  rbind,
-  lapply(graphs, function(spec) {
+run_sierpinski_baseline <- function() {
+  graphs <- build_graph_specs()
+  raw_metrics <- do.call(
+    rbind,
+    lapply(graphs, function(spec) {
+      cfg <- baseline_profile[[spec$family]]
+      do.call(
+        rbind,
+        lapply(cfg$seeds, function(seed) run_one_layout(spec, cfg, seed))
+      )
+    })
+  )
+
+  raw_metrics <- raw_metrics[order(raw_metrics$family, raw_metrics$level, raw_metrics$seed), , drop = FALSE]
+
+  summary_metrics <- do.call(
+    rbind,
+    lapply(split(raw_metrics, paste(raw_metrics$family, raw_metrics$level, sep = "-")), function(df) {
+      best_idx <- which.min(df$procrustes_rmse)
+      data.frame(
+        family = df$family[[1L]],
+        level = df$level[[1L]],
+        vertices = df$vertices[[1L]],
+        n_seeds = nrow(df),
+        procrustes_rmse_mean = mean(df$procrustes_rmse),
+        procrustes_rmse_sd = stats::sd(df$procrustes_rmse),
+        edge_length_cv_mean = mean(df$edge_length_cv),
+        edge_length_cv_sd = stats::sd(df$edge_length_cv),
+        sampled_stress_mean = mean(df$sampled_stress),
+        sampled_stress_sd = stats::sd(df$sampled_stress),
+        sampled_nonedge_sep_ratio_mean = mean(df$sampled_nonedge_sep_ratio),
+        sampled_nonedge_sep_ratio_sd = stats::sd(df$sampled_nonedge_sep_ratio),
+        best_seed = df$seed[[best_idx]],
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+
+  pdf_paths <- character()
+  for (spec in graphs) {
+    rows <- raw_metrics$family == spec$family & raw_metrics$level == spec$level
+    group <- raw_metrics[rows, , drop = FALSE]
+    best_seed <- group$seed[[which.min(group$procrustes_rmse)]]
     cfg <- baseline_profile[[spec$family]]
-    do.call(
-      rbind,
-      lapply(cfg$seeds, function(seed) run_one_layout(spec, cfg, seed))
+    coords <- grip.layout(
+      edges = spec$edges,
+      n = max(spec$edges),
+      dim = 2,
+      placement = cfg$placement,
+      rounds = cfg$rounds,
+      final_rounds = cfg$final_rounds,
+      num_init = cfg$num_init,
+      num_nbrs = cfg$num_nbrs,
+      r = cfg$r,
+      s = cfg$s,
+      repulsion_factor = cfg$repulsion_factor,
+      seed = best_seed
     )
-  })
-)
-
-raw_metrics <- raw_metrics[order(raw_metrics$family, raw_metrics$level, raw_metrics$seed), , drop = FALSE]
-
-summary_metrics <- do.call(
-  rbind,
-  lapply(split(raw_metrics, paste(raw_metrics$family, raw_metrics$level, sep = "-")), function(df) {
-    best_idx <- which.min(df$procrustes_rmse)
-    data.frame(
-      family = df$family[[1L]],
-      level = df$level[[1L]],
-      vertices = df$vertices[[1L]],
-      n_seeds = nrow(df),
-      procrustes_rmse_mean = mean(df$procrustes_rmse),
-      procrustes_rmse_sd = stats::sd(df$procrustes_rmse),
-      edge_length_cv_mean = mean(df$edge_length_cv),
-      edge_length_cv_sd = stats::sd(df$edge_length_cv),
-      sampled_stress_mean = mean(df$sampled_stress),
-      sampled_stress_sd = stats::sd(df$sampled_stress),
-      sampled_nonedge_sep_ratio_mean = mean(df$sampled_nonedge_sep_ratio),
-      sampled_nonedge_sep_ratio_sd = stats::sd(df$sampled_nonedge_sep_ratio),
-      best_seed = df$seed[[best_idx]],
-      stringsAsFactors = FALSE
+    pdf_path <- file.path(
+      pdf_dir,
+      sprintf("sierpinski-%s-level-%d-baseline-best-seed-%d.pdf",
+              spec$family, spec$level, best_seed)
     )
-  })
-)
+    subtitle <- sprintf(
+      "best seed=%d, rounds=%d, final_rounds=%d, num_nbrs=%d, r=%.2f, s=%.1f, repulsion_factor=%.2f",
+      best_seed, cfg$rounds, cfg$final_rounds, cfg$num_nbrs, cfg$r, cfg$s,
+      cfg$repulsion_factor
+    )
+    write_compare_pdf(
+      pdf_path,
+      canonical_coords = spec$canonical,
+      layout_coords = coords,
+      edges = spec$edges,
+      title_text = sprintf("Sierpinski %s level %d", spec$family, spec$level),
+      subtitle_text = subtitle
+    )
+    pdf_paths <- c(pdf_paths, pdf_path)
+  }
 
-pdf_paths <- character()
-for (spec in graphs) {
-  rows <- raw_metrics$family == spec$family & raw_metrics$level == spec$level
-  group <- raw_metrics[rows, , drop = FALSE]
-  best_seed <- group$seed[[which.min(group$procrustes_rmse)]]
-  cfg <- baseline_profile[[spec$family]]
-  coords <- grip.layout(
-    edges = spec$edges,
-    n = max(spec$edges),
-    dim = 2,
-    placement = cfg$placement,
-    rounds = cfg$rounds,
-    final_rounds = cfg$final_rounds,
-    num_init = cfg$num_init,
-    num_nbrs = cfg$num_nbrs,
-    r = cfg$r,
-    s = cfg$s,
-    repulsion_factor = cfg$repulsion_factor,
-    seed = best_seed
-  )
-  pdf_path <- file.path(
-    pdf_dir,
-    sprintf("sierpinski-%s-level-%d-baseline-best-seed-%d.pdf",
-            spec$family, spec$level, best_seed)
-  )
-  subtitle <- sprintf(
-    "best seed=%d, rounds=%d, final_rounds=%d, num_nbrs=%d, r=%.2f, s=%.1f, repulsion_factor=%.2f",
-    best_seed, cfg$rounds, cfg$final_rounds, cfg$num_nbrs, cfg$r, cfg$s,
-    cfg$repulsion_factor
-  )
-  write_compare_pdf(
-    pdf_path,
-    canonical_coords = spec$canonical,
-    layout_coords = coords,
-    edges = spec$edges,
-    title_text = sprintf("Sierpinski %s level %d", spec$family, spec$level),
-    subtitle_text = subtitle
-  )
-  pdf_paths <- c(pdf_paths, pdf_path)
+  csv_path <- file.path(tmp_dir, "sierpinski-baseline-raw-metrics.csv")
+  summary_csv_path <- file.path(tmp_dir, "sierpinski-baseline-summary-metrics.csv")
+  summary_md_path <- file.path(tmp_dir, "sierpinski-baseline-summary.md")
+
+  utils::write.csv(raw_metrics, csv_path, row.names = FALSE)
+  utils::write.csv(summary_metrics, summary_csv_path, row.names = FALSE)
+  write_summary_markdown(raw_metrics, summary_metrics, pdf_paths, summary_md_path)
+  render_pdf_previews(pdf_paths, preview_dir)
+
+  message(sprintf("Raw metrics written to %s", csv_path))
+  message(sprintf("Summary metrics written to %s", summary_csv_path))
+  message(sprintf("Markdown summary written to %s", summary_md_path))
+  message(sprintf("Comparison PDFs written to %s", pdf_dir))
+
+  invisible(list(
+    raw_metrics = raw_metrics,
+    summary_metrics = summary_metrics,
+    pdf_paths = pdf_paths,
+    csv_path = csv_path,
+    summary_csv_path = summary_csv_path,
+    summary_md_path = summary_md_path
+  ))
 }
 
-csv_path <- file.path(tmp_dir, "sierpinski-baseline-raw-metrics.csv")
-summary_csv_path <- file.path(tmp_dir, "sierpinski-baseline-summary-metrics.csv")
-summary_md_path <- file.path(tmp_dir, "sierpinski-baseline-summary.md")
-
-utils::write.csv(raw_metrics, csv_path, row.names = FALSE)
-utils::write.csv(summary_metrics, summary_csv_path, row.names = FALSE)
-write_summary_markdown(raw_metrics, summary_metrics, pdf_paths, summary_md_path)
-render_pdf_previews(pdf_paths, preview_dir)
-
-message(sprintf("Raw metrics written to %s", csv_path))
-message(sprintf("Summary metrics written to %s", summary_csv_path))
-message(sprintf("Markdown summary written to %s", summary_md_path))
-message(sprintf("Comparison PDFs written to %s", pdf_dir))
+if (sys.nframe() == 0L) {
+  run_sierpinski_baseline()
+}
