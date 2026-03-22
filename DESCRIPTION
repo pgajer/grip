@@ -7,7 +7,12 @@ Authors@R:
 Author: Pawel Gajer [aut, cre]
 Maintainer: Pawel Gajer <pgajer@gmail.com>
 Description: Implements the GRIP algorithm for drawing large graphs using
-    multi-scale, force-directed placement in 2D and 3D.
+    a multiscale force-directed method in 2D and 3D. Supports edge-list
+    and adjacency-list inputs, optional positive edge weights,
+    disconnected-component packing, and a lightweight plotting helper.
+    Based on Gajer and Kobourov (2002) <doi:10.7155/jgaa.00052> and
+    Gajer, Goodrich and Kobourov (2004)
+    <doi:10.1016/j.comgeo.2004.03.014>.
 License: GPL (>= 3)
 Encoding: UTF-8
 Imports: Rcpp

@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-fast check-examples check-dir install rchk
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -43,6 +43,9 @@ build-log: clean document
 check: build
 	R CMD check --as-cran $(TARBALL)
 
+check-clean: build
+	env R_MAKEVARS_USER=/dev/null R CMD check --as-cran $(TARBALL)
+
 check-fast: build
 	R CMD check --as-cran --no-examples --no-tests --no-manual $(TARBALL)
 
@@ -57,3 +60,9 @@ install: build
 
 rchk:
 	@tools/check_rchk.sh
+
+winbuilder-release: build
+	Rscript tools/check-win-builder.R release
+
+winbuilder-devel: build
+	Rscript tools/check-win-builder.R devel

@@ -70,3 +70,35 @@ A numeric matrix with `n` rows and `dim` columns.
 \description{
 Compute a GRIP layout
 }
+\examples{
+edges <- cbind(1:5, 2:6)
+coords <- grip.layout(edges, n = 6, dim = 2,
+                      engine = "mish_v5",
+                      placement = "barycenter",
+                      rounds = 5, final_rounds = 5,
+                      num_init = 3, num_nbrs = 4,
+                      seed = 1)
+round(coords, 3)
+
+adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
+weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+grip.layout(adj_list = adj_list,
+            weight_list = weight_list,
+            n = 4,
+            dim = 2,
+            engine = "mish_v5",
+            placement = "barycenter",
+            rounds = 4, final_rounds = 4,
+            num_init = 3, num_nbrs = 3,
+            seed = 12)
+}
+\references{
+Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
+Placement. \emph{Journal of Graph Algorithms and Applications}, 6(3),
+203--224. doi:10.7155/jgaa.00052.
+
+Gajer, P., Goodrich, M.T. and Kobourov, S.G. (2004). A multi-dimensional
+approach to force-directed layouts of large graphs.
+\emph{Computational Geometry}, 29(1), 3--18.
+doi:10.1016/j.comgeo.2004.03.014.
+}

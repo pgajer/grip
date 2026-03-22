@@ -6,6 +6,7 @@
 
 # R build/check artifacts
 *.Rcheck/
+.claude/
 .Rproj.user/
 .Rhistory
 .RData

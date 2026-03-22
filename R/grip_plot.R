@@ -4,6 +4,15 @@
 #' @param edges Optional two-column matrix of edges (1-based vertex ids).
 #' @param ... Additional parameters passed to the plotting function.
 #' @return NULL (called for side effects).
+#' @examples
+#' edges <- cbind(1:5, 2:6)
+#' coords <- grip.layout(edges, n = 6, dim = 2,
+#'                       engine = "mish_v5",
+#'                       placement = "barycenter",
+#'                       rounds = 5, final_rounds = 5,
+#'                       num_init = 3, num_nbrs = 4,
+#'                       seed = 1)
+#' grip.plot(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
 #' @importFrom graphics segments
 #' @export
 grip.plot <- function(coords, edges = NULL, ...) {
