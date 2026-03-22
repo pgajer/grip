@@ -36,4 +36,7 @@
 ^cran-comments\.md$
 ^CRAN-SUBMISSION-CHECKLIST\.md$
 ^tools$
+^dev$
+^output$
+^tmp$
 ^src/symbols\.rds$

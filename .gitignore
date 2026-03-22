@@ -10,6 +10,11 @@
 .Rproj.user/
 .Rhistory
 .RData
+output/
+tmp/
+dev/manual/figures/
+dev/manual/pdf/
+dev/manual/tmp/
 
 # Compiled artifacts
 src/*.o
