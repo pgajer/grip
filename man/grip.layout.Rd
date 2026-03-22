@@ -19,6 +19,7 @@ grip.layout(
   num_nbrs = 10,
   r = 0.15,
   s = 3,
+  repulsion_factor = 1,
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -60,6 +61,10 @@ refinement at each filtration level.}
 
 \item{s}{Non-negative boost factor applied when successive displacements have
 a consistent direction.}
+
+\item{repulsion_factor}{Non-negative multiplier applied to GRIP's
+finest-level repulsive force scale. \code{1} keeps the historical
+repulsion strength; \code{0} disables that repulsive term.}
 
 \item{tinit_factor}{Initial temperature factor.}
 

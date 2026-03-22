@@ -67,6 +67,23 @@ test_that("r and s change the layout with a fixed seed", {
   expect_gt(max(abs(coords_cool - coords_adaptive)), 1e-6)
 })
 
+test_that("repulsion_factor changes the layout with a fixed seed", {
+  edges <- edges.mesh(5, 5)
+  coords_none <- grip.layout(edges, n = 25, dim = 2,
+                             placement = "barycenter",
+                             rounds = 8, final_rounds = 8,
+                             num_init = 6, num_nbrs = 8,
+                             repulsion_factor = 0,
+                             seed = 29)
+  coords_more <- grip.layout(edges, n = 25, dim = 2,
+                             placement = "barycenter",
+                             rounds = 8, final_rounds = 8,
+                             num_init = 6, num_nbrs = 8,
+                             repulsion_factor = 2,
+                             seed = 29)
+  expect_gt(max(abs(coords_none - coords_more)), 1e-6)
+})
+
 test_that("legacy mish_v5 maps to the single engine", {
   edges <- edges.cycle(15)
   coords_v5 <- NULL
@@ -110,6 +127,10 @@ test_that("invalid tuning parameters are rejected", {
   expect_error(
     grip.layout(edges, n = 10, dim = 2, s = -1, seed = 1),
     "s must be >= 0"
+  )
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, repulsion_factor = -0.1, seed = 1),
+    "repulsion_factor must be >= 0"
   )
 })
 

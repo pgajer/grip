@@ -123,4 +123,42 @@ test_that("trace validates tuning parameters", {
                       seed = 123),
     "num_nbrs must be a positive integer"
   )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      repulsion_factor = -0.1,
+                      trace = "round",
+                      seed = 123),
+    "repulsion_factor must be >= 0"
+  )
+})
+
+test_that("trace repulsion_factor changes the final layout with a fixed seed", {
+  edges <- edges.mesh(5, 5)
+  tr_none <- grip.layout.trace(edges = edges,
+                               n = 25,
+                               dim = 2,
+                               placement = "barycenter",
+                               rounds = 8,
+                               final_rounds = 8,
+                               num_init = 6,
+                               num_nbrs = 8,
+                               repulsion_factor = 0,
+                               trace = "level",
+                               trace.every = 1,
+                               seed = 29)
+  tr_more <- grip.layout.trace(edges = edges,
+                               n = 25,
+                               dim = 2,
+                               placement = "barycenter",
+                               rounds = 8,
+                               final_rounds = 8,
+                               num_init = 6,
+                               num_nbrs = 8,
+                               repulsion_factor = 2,
+                               trace = "level",
+                               trace.every = 1,
+                               seed = 29)
+  expect_gt(max(abs(tr_none$final - tr_more$final)), 1e-6)
 })

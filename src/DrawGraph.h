@@ -47,6 +47,7 @@ class DrawGraph
               size_tt _numOfNbrs   ,
               coord_t _r             ,  //parameters of update_Local_Temp_v3()
               coord_t _s             ,
+              coord_t _repulsionFactor,
               size_tt _placementMode,
               bool _displayPar     );
     

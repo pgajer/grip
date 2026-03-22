@@ -179,7 +179,7 @@ grip.normalize.engine <- function(engine, fn = "grip.layout") {
   stop("engine must be 'mish_v6'")
 }
 
-grip.validate.tuning.inputs <- function(num_nbrs, r, s) {
+grip.validate.tuning.inputs <- function(num_nbrs, r, s, repulsion_factor) {
   if (!is.numeric(num_nbrs) || length(num_nbrs) != 1L || !is.finite(num_nbrs)) {
     stop("num_nbrs must be a single finite numeric value")
   }
@@ -207,7 +207,21 @@ grip.validate.tuning.inputs <- function(num_nbrs, r, s) {
     stop("s must be >= 0")
   }
 
-  list(num_nbrs = num_nbrs, r = r, s = s)
+  if (!is.numeric(repulsion_factor) || length(repulsion_factor) != 1L ||
+      !is.finite(repulsion_factor)) {
+    stop("repulsion_factor must be a single finite numeric value")
+  }
+  repulsion_factor <- as.double(repulsion_factor)
+  if (repulsion_factor < 0) {
+    stop("repulsion_factor must be >= 0")
+  }
+
+  list(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
 }
 
 grip.validate.layout.inputs <- function(edges = NULL,
@@ -337,6 +351,9 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param r Main local temperature adaptation rate in \code{[0, 1]}.
 #' @param s Non-negative boost factor applied when successive displacements have
 #'   a consistent direction.
+#' @param repulsion_factor Non-negative multiplier applied to GRIP's
+#'   finest-level repulsive force scale. \code{1} keeps the historical
+#'   repulsion strength; \code{0} disables that repulsive term.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -386,6 +403,7 @@ grip.layout <- function(edges = NULL,
                         num_nbrs = 10,
                         r = 0.15,
                         s = 3.0,
+                        repulsion_factor = 1.0,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
@@ -408,10 +426,16 @@ grip.layout <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
-  tuning <- grip.validate.tuning.inputs(num_nbrs = num_nbrs, r = r, s = s)
+  tuning <- grip.validate.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
+  repulsion_factor <- tuning$repulsion_factor
 
   layout.adj <- function(adj_list, weight_list, n) {
     grip_layout_adj_cpp(adj_list = adj_list,
@@ -426,6 +450,7 @@ grip.layout <- function(edges = NULL,
                         num_nbrs = num_nbrs,
                         r = r,
                         s = s,
+                        repulsion_factor = repulsion_factor,
                         tinit_factor = as.integer(tinit_factor),
                         seed = seed)
   }
@@ -512,6 +537,7 @@ grip.layout.trace <- function(edges = NULL,
                               num_nbrs = 10,
                               r = 0.15,
                               s = 3.0,
+                              repulsion_factor = 1.0,
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
@@ -543,10 +569,16 @@ grip.layout.trace <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
-  tuning <- grip.validate.tuning.inputs(num_nbrs = num_nbrs, r = r, s = s)
+  tuning <- grip.validate.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
+  repulsion_factor <- tuning$repulsion_factor
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -570,6 +602,7 @@ grip.layout.trace <- function(edges = NULL,
     num_nbrs = num_nbrs,
     r = r,
     s = s,
+    repulsion_factor = repulsion_factor,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,
     trace = trace,

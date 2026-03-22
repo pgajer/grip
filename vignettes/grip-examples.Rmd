@@ -83,6 +83,7 @@ library(grip)
 | `num_init`     | Number of initial vertices at the coarsest filtration level. |
 | `num_nbrs`     | Maximum number of graph-distance neighbors retained during refinement. |
 | `r`, `s`       | Adaptive local temperature parameters used in the main iterative refinement. |
+| `repulsion_factor` | Non-negative multiplier on the finest-level repulsive force term. |
 | `seed`         | RNG seed for reproducibility. |
 
 The examples below use `rounds = 25` and `final_rounds = 25` for good layout

@@ -25,6 +25,7 @@ baseline_profile <- list(
     num_nbrs = 9L,
     r = 0.15,
     s = 3.0,
+    repulsion_factor = 1.0,
     seeds = 1:3
   ),
   carpet = list(
@@ -35,6 +36,7 @@ baseline_profile <- list(
     num_nbrs = 12L,
     r = 0.15,
     s = 3.0,
+    repulsion_factor = 1.0,
     seeds = 1:3
   )
 )
@@ -445,6 +447,7 @@ run_one_layout <- function(spec, cfg, seed) {
     num_nbrs = cfg$num_nbrs,
     r = cfg$r,
     s = cfg$s,
+    repulsion_factor = cfg$repulsion_factor,
     seed = seed
   )
   elapsed <- proc.time()[["elapsed"]] - started
@@ -464,6 +467,7 @@ run_one_layout <- function(spec, cfg, seed) {
     num_nbrs = cfg$num_nbrs,
     r = cfg$r,
     s = cfg$s,
+    repulsion_factor = cfg$repulsion_factor,
     procrustes_rmse = aligned$rmse,
     edge_length_cv = edge_stats$cv,
     median_edge_length = edge_stats$median,
@@ -485,8 +489,8 @@ write_summary_markdown <- function(raw_metrics, summary_metrics, pdf_paths, path
     "# Sierpinski Baseline",
     "",
     "Baseline profile:",
-    "- Triangle: placement=`circle`, rounds=`64`, final_rounds=`128`, num_init=`7`, num_nbrs=`9`, r=`0.15`, s=`3.0`, seeds=`1:3`",
-    "- Carpet: placement=`barycenter`, rounds=`64`, final_rounds=`128`, num_init=`24`, num_nbrs=`12`, r=`0.15`, s=`3.0`, seeds=`1:3`",
+    "- Triangle: placement=`circle`, rounds=`64`, final_rounds=`128`, num_init=`7`, num_nbrs=`9`, r=`0.15`, s=`3.0`, repulsion_factor=`1.0`, seeds=`1:3`",
+    "- Carpet: placement=`barycenter`, rounds=`64`, final_rounds=`128`, num_init=`24`, num_nbrs=`12`, r=`0.15`, s=`3.0`, repulsion_factor=`1.0`, seeds=`1:3`",
     "",
     "Summary by family/level:",
     "",
@@ -576,6 +580,7 @@ for (spec in graphs) {
     num_nbrs = cfg$num_nbrs,
     r = cfg$r,
     s = cfg$s,
+    repulsion_factor = cfg$repulsion_factor,
     seed = best_seed
   )
   pdf_path <- file.path(
@@ -584,8 +589,9 @@ for (spec in graphs) {
             spec$family, spec$level, best_seed)
   )
   subtitle <- sprintf(
-    "best seed=%d, rounds=%d, final_rounds=%d, num_nbrs=%d, r=%.2f, s=%.1f",
-    best_seed, cfg$rounds, cfg$final_rounds, cfg$num_nbrs, cfg$r, cfg$s
+    "best seed=%d, rounds=%d, final_rounds=%d, num_nbrs=%d, r=%.2f, s=%.1f, repulsion_factor=%.2f",
+    best_seed, cfg$rounds, cfg$final_rounds, cfg$num_nbrs, cfg$r, cfg$s,
+    cfg$repulsion_factor
   )
   write_compare_pdf(
     pdf_path,

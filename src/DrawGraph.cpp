@@ -22,6 +22,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _numOfNbrs ,
                      coord_t _r           ,  //parameters of update_Local_Temp_v3()
                      coord_t _s           ,
+                     coord_t _repulsionFactor,
                      size_tt _placementMode,
                      bool _displayPar   )
 : createList(false),
@@ -43,7 +44,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
   placementMode((_placementMode == PLACEMENT_CIRCLE)
                     ? PLACEMENT_CIRCLE
                     : PLACEMENT_BARYCENTER),
-  fedge2(0.05 * edge2),
+  fedge2(_repulsionFactor * 0.05 * edge2),
   traceMode(TRACE_NONE),
   traceEvery(1),
   traceLevelIndex(0)

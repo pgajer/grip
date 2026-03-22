@@ -11,8 +11,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // grip_layout_cpp
-Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges, Rcpp::Nullable<Rcpp::NumericVector> edge_weights, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, int tinit_factor, Rcpp::Nullable<int> seed);
-RcppExport SEXP _grip_grip_layout_cpp(SEXP edgesSEXP, SEXP edge_weightsSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
+Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges, Rcpp::Nullable<Rcpp::NumericVector> edge_weights, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_layout_cpp(SEXP edgesSEXP, SEXP edge_weightsSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -28,15 +28,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
     Rcpp::traits::input_parameter< double >::type r(rSEXP);
     Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
     Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_cpp(edges, edge_weights, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed));
+    rcpp_result_gen = Rcpp::wrap(grip_layout_cpp(edges, edge_weights, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed));
     return rcpp_result_gen;
 END_RCPP
 }
 // grip_layout_adj_cpp
-Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, int tinit_factor, Rcpp::Nullable<int> seed);
-RcppExport SEXP _grip_grip_layout_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
+Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_layout_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -52,15 +53,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
     Rcpp::traits::input_parameter< double >::type r(rSEXP);
     Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
     Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_adj_cpp(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed));
+    rcpp_result_gen = Rcpp::wrap(grip_layout_adj_cpp(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed));
     return rcpp_result_gen;
 END_RCPP
 }
 // grip_layout_trace_adj_cpp
-Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
-RcppExport SEXP _grip_grip_layout_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
+Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
+RcppExport SEXP _grip_grip_layout_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -76,19 +78,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
     Rcpp::traits::input_parameter< double >::type r(rSEXP);
     Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
     Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< std::string >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< int >::type trace_every(trace_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_trace_adj_cpp(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed, trace, trace_every));
+    rcpp_result_gen = Rcpp::wrap(grip_layout_trace_adj_cpp(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed, trace, trace_every));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
-    {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
-    {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
+    {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 15},
+    {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 15},
+    {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 17},
     {NULL, NULL, 0}
 };
 

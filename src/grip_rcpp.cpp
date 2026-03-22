@@ -14,7 +14,10 @@ void validate_engine_arg(const std::string &engine)
         Rcpp::stop("engine must be 'mish_v6'");
 }
 
-void validate_tuning_args(int num_nbrs, double r, double s)
+void validate_tuning_args(int num_nbrs,
+                          double r,
+                          double s,
+                          double repulsion_factor)
 {
     if(num_nbrs <= 0)
         Rcpp::stop("num_nbrs must be a positive integer");
@@ -22,6 +25,8 @@ void validate_tuning_args(int num_nbrs, double r, double s)
         Rcpp::stop("r must be finite and in [0, 1]");
     if(!std::isfinite(s) || s < 0.0)
         Rcpp::stop("s must be finite and >= 0");
+    if(!std::isfinite(repulsion_factor) || repulsion_factor < 0.0)
+        Rcpp::stop("repulsion_factor must be finite and >= 0");
 }
 
 } // namespace
@@ -39,6 +44,7 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
                                     int num_nbrs,
                                     double r,
                                     double s,
+                                    double repulsion_factor,
                                     int tinit_factor,
                                     Rcpp::Nullable<int> seed)
 {
@@ -51,7 +57,7 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
 
     if(num_init <= 0)
         num_init = 1;
-    validate_tuning_args(num_nbrs, r, s);
+    validate_tuning_args(num_nbrs, r, s, repulsion_factor);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -108,6 +114,7 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
                  static_cast<size_tt>(num_nbrs),
                  r,
                  s,
+                 repulsion_factor,
                  placement_mode,
                  false);
 
@@ -137,6 +144,7 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
                                         int num_nbrs,
                                         double r,
                                         double s,
+                                        double repulsion_factor,
                                         int tinit_factor,
                                         Rcpp::Nullable<int> seed)
 {
@@ -156,7 +164,7 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
 
     if(num_init <= 0)
         num_init = 1;
-    validate_tuning_args(num_nbrs, r, s);
+    validate_tuning_args(num_nbrs, r, s, repulsion_factor);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -215,6 +223,7 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
                  static_cast<size_tt>(num_nbrs),
                  r,
                  s,
+                 repulsion_factor,
                  placement_mode,
                  false);
 
@@ -244,6 +253,7 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
                                      int num_nbrs,
                                      double r,
                                      double s,
+                                     double repulsion_factor,
                                      int tinit_factor,
                                      Rcpp::Nullable<int> seed,
                                      std::string trace,
@@ -270,7 +280,7 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
 
     if(num_init <= 0)
         num_init = 1;
-    validate_tuning_args(num_nbrs, r, s);
+    validate_tuning_args(num_nbrs, r, s, repulsion_factor);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -329,6 +339,7 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
                  static_cast<size_tt>(num_nbrs),
                  r,
                  s,
+                 repulsion_factor,
                  placement_mode,
                  false);
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
