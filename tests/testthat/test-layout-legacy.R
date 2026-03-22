@@ -1,5 +1,5 @@
 test_that("mesh example runs", {
-  edges <- edges_mesh(5, 5)
+  edges <- edges.mesh(5, 5)
   coords <- grip.layout(edges, n = 25, dim = 3,
                         engine = "mish_v5",
                         placement = "barycenter",
@@ -11,7 +11,7 @@ test_that("mesh example runs", {
 })
 
 test_that("cylinder example runs", {
-  edges <- edges_cylinder(4, 6)
+  edges <- edges.cylinder(4, 6)
   coords <- grip.layout(edges, n = 24, dim = 3,
                         engine = "mish_v5",
                         placement = "barycenter",
@@ -23,7 +23,7 @@ test_that("cylinder example runs", {
 })
 
 test_that("torus example runs", {
-  edges <- edges_torus(4, 4)
+  edges <- edges.torus(4, 4)
   coords <- grip.layout(edges, n = 16, dim = 3,
                         engine = "mish_v6",
                         placement = "barycenter",
@@ -35,7 +35,7 @@ test_that("torus example runs", {
 })
 
 test_that("sierpinski example runs", {
-  edges <- edges_sierpinski_triangle(2)
+  edges <- edges.sierpinski.triangle(2)
   n <- max(edges)
   coords <- grip.layout(edges, n = n, dim = 2,
                         engine = "mish_v5",

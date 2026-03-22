@@ -1,5 +1,5 @@
 test_that("round trace returns frames, metadata, and inactive NA rows", {
-  edges <- edges_path(8)
+  edges <- edges.path(8)
   tr <- grip.layout.trace(edges = edges,
                           n = 8,
                           dim = 2,
@@ -33,7 +33,7 @@ test_that("round trace returns frames, metadata, and inactive NA rows", {
 })
 
 test_that("level trace thins level-start snapshots and keeps endpoints", {
-  edges <- edges_cycle(12)
+  edges <- edges.cycle(12)
   tr_dense <- grip.layout.trace(edges = edges,
                                 n = 12,
                                 dim = 2,

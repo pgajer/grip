@@ -1,5 +1,5 @@
 test_that("basic layout returns finite matrix", {
-  edges <- edges_path(10)
+  edges <- edges.path(10)
   coords <- grip.layout(edges, n = 10, dim = 2,
                         engine = "mish_v5",
                         placement = "barycenter",
@@ -11,7 +11,7 @@ test_that("basic layout returns finite matrix", {
 })
 
 test_that("vignette path example returns finite coordinates", {
-  edges <- edges_path(12)
+  edges <- edges.path(12)
   coords <- grip.layout(edges, n = 12, dim = 2,
                         engine = "mish_v5",
                         placement = "barycenter",
@@ -23,7 +23,7 @@ test_that("vignette path example returns finite coordinates", {
 })
 
 test_that("seeded runs are deterministic", {
-  edges <- edges_cycle(12)
+  edges <- edges.cycle(12)
   coords1 <- grip.layout(edges, n = 12, dim = 2,
                          engine = "mish_v5",
                          placement = "barycenter",
@@ -40,7 +40,7 @@ test_that("seeded runs are deterministic", {
 })
 
 test_that("mish_v6 runs and returns expected shape", {
-  edges <- edges_cycle(15)
+  edges <- edges.cycle(15)
   coords <- grip.layout(edges, n = 15, dim = 2,
                         engine = "mish_v6",
                         placement = "barycenter",
@@ -52,7 +52,7 @@ test_that("mish_v6 runs and returns expected shape", {
 })
 
 test_that("circle placement works in 2D", {
-  edges <- edges_path(8)
+  edges <- edges.path(8)
   coords <- grip.layout(edges, n = 8, dim = 2,
                         engine = "mish_v5",
                         placement = "circle",
@@ -64,7 +64,7 @@ test_that("circle placement works in 2D", {
 })
 
 test_that("circle placement falls back in 3D with warning", {
-  edges <- edges_mesh(4, 4)
+  edges <- edges.mesh(4, 4)
   expect_warning({
     coords <- grip.layout(edges, n = 16, dim = 3,
                           engine = "mish_v5",
@@ -78,7 +78,7 @@ test_that("circle placement falls back in 3D with warning", {
 })
 
 test_that("tree example runs", {
-  edges <- edges_kary_tree(k = 2, depth = 2)
+  edges <- edges.kary.tree(k = 2, depth = 2)
   n <- max(edges)
   coords <- grip.layout(edges, n = n, dim = 2,
                         engine = "mish_v6",

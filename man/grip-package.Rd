@@ -10,8 +10,11 @@ Fast multiscale graph layouts in 2D and 3D.
 }
 \details{
 The package provides \code{\link{grip.layout}()} to compute graph layouts
-from edge lists or adjacency lists, and \code{\link{grip.plot}()} for quick
-visual inspection of the resulting coordinates.
+from edge lists or adjacency lists, \code{\link{grip.plot}()} for quick
+visual inspection of the resulting coordinates, and convenience graph
+generators such as \code{\link{edges.path}()},
+\code{\link{edges.sierpinski.triangle}()}, and
+\code{\link{edges.sierpinski.tetrahedron}()}.
 }
 \references{
 Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent

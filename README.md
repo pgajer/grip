@@ -33,6 +33,10 @@ Rscript tools/generate-readme-assets.R
 devtools::load_all()
 ```
 
+Convenience edge-list generators such as `edges.cycle()`, `edges.mesh()`,
+`edges.sierpinski.triangle()`, and `edges.sierpinski.tetrahedron()` are
+exported by the package.
+
 **Basic Usage**
 ```r
 library(grip)
@@ -50,8 +54,8 @@ grip.plot(coords, edges)
 **2D Examples**  
 Circle placement is only used in 2D.  
 ```r
-edges_cycle <- rbind(cbind(1:11, 2:12), c(12, 1))
-coords <- grip.layout(edges_cycle, n = 12, dim = 2,
+edges <- edges.cycle(12)
+coords <- grip.layout(edges, n = 12, dim = 2,
                       engine = "mish_v5",
                       placement = "circle",
                       rounds = 5, final_rounds = 3,
@@ -80,18 +84,7 @@ grip.plot(coords)
 
 **3D Examples**  
 ```r
-edges_mesh <- function(h, w = h) {
-  idx <- function(i, j) (i - 1L) * w + j
-  edges <- list()
-  for (i in seq_len(h)) for (j in seq_len(w)) {
-    v <- idx(i, j)
-    if (i < h) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
-    if (j < w) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L))
-  }
-  do.call(rbind, edges)
-}
-
-edges <- edges_mesh(4, 4)
+edges <- edges.mesh(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
                       engine = "mish_v6",
                       placement = "barycenter",
