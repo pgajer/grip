@@ -156,6 +156,29 @@ grip.pack.component.layouts <- function(layouts, comp, n, dim) {
   out
 }
 
+grip.normalize.engine <- function(engine, fn = "grip.layout") {
+  if (is.null(engine)) {
+    return("mish_v6")
+  }
+  if (!is.character(engine) || length(engine) != 1L || is.na(engine)) {
+    stop("engine must be a single character value")
+  }
+  if (identical(engine, "mish_v6")) {
+    return(engine)
+  }
+  if (identical(engine, "mish_v5")) {
+    warning(
+      sprintf(
+        "%s() now uses a single GRIP engine; engine = 'mish_v5' is deprecated and mapped to 'mish_v6'.",
+        fn
+      ),
+      call. = FALSE
+    )
+    return("mish_v6")
+  }
+  stop("engine must be 'mish_v6'")
+}
+
 grip.validate.layout.inputs <- function(edges = NULL,
                                         n = NULL,
                                         adj_list = NULL,
@@ -270,7 +293,10 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param edge_weights Optional vector of edge weights for \code{edges}. All
 #'   weights must be finite and strictly positive.
 #' @param dim Layout dimension (2 or 3). Default is 3.
-#' @param engine Layout engine to use.
+#' @param engine Deprecated legacy engine selector. The package now uses a
+#'   single GRIP engine. `engine = "mish_v6"` is the supported value;
+#'   `engine = "mish_v5"` is accepted for compatibility and mapped to
+#'   `"mish_v6"` with a warning.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
@@ -296,7 +322,6 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @examples
 #' edges <- cbind(1:5, 2:6)
 #' coords <- grip.layout(edges, n = 6, dim = 2,
-#'                       engine = "mish_v5",
 #'                       placement = "barycenter",
 #'                       rounds = 5, final_rounds = 5,
 #'                       num_init = 3, num_nbrs = 4,
@@ -309,7 +334,6 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'             weight_list = weight_list,
 #'             n = 4,
 #'             dim = 2,
-#'             engine = "mish_v5",
 #'             placement = "barycenter",
 #'             rounds = 4, final_rounds = 4,
 #'             num_init = 3, num_nbrs = 3,
@@ -321,7 +345,7 @@ grip.layout <- function(edges = NULL,
                         weight_list = NULL,
                         edge_weights = NULL,
                         dim = 3,
-                        engine = c("mish_v5", "mish_v6"),
+                        engine = "mish_v6",
                         placement = c("barycenter", "circle"),
                         rounds = 20,
                         final_rounds = 25,
@@ -332,7 +356,7 @@ grip.layout <- function(edges = NULL,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
-  engine <- match.arg(engine)
+  engine <- grip.normalize.engine(engine, fn = "grip.layout")
   placement <- match.arg(placement)
   disconnected <- match.arg(disconnected)
 
@@ -429,7 +453,6 @@ grip.layout <- function(edges = NULL,
 #' @examples
 #' edges <- cbind(1:5, 2:6)
 #' tr <- grip.layout.trace(edges, n = 6, dim = 2,
-#'                         engine = "mish_v5",
 #'                         placement = "barycenter",
 #'                         rounds = 3, final_rounds = 2,
 #'                         num_init = 3, num_nbrs = 4,
@@ -444,7 +467,7 @@ grip.layout.trace <- function(edges = NULL,
                               weight_list = NULL,
                               edge_weights = NULL,
                               dim = 3,
-                              engine = c("mish_v5", "mish_v6"),
+                              engine = "mish_v6",
                               placement = c("barycenter", "circle"),
                               rounds = 20,
                               final_rounds = 25,
@@ -456,7 +479,7 @@ grip.layout.trace <- function(edges = NULL,
                               seed = 6,
                               trace = c("round", "level"),
                               trace.every = 1) {
-  engine <- match.arg(engine)
+  engine <- grip.normalize.engine(engine, fn = "grip.layout.trace")
   placement <- match.arg(placement)
   trace <- match.arg(trace)
 

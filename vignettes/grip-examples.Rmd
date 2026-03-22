@@ -56,9 +56,10 @@ combines three ideas into a single multi-scale pipeline:
 3. **Fast force-directed refinement.** Each vertex is refined using only a
    small, local neighborhood of graph-distance neighbors (controlled by the
    `num_nbrs` parameter). This makes the per-vertex cost constant on average,
-   yielding near-linear overall running time. Two engine variants are provided:
-   `mish_v5` uses Kamada--Kawai-style spring forces, while `mish_v6` adds
-   Fruchterman--Reingold-style repulsive forces for improved spacing.
+   yielding near-linear overall running time. The current package exposes a
+   single GRIP engine, using local Kamada--Kawai refinement on coarse
+   filtration levels and a Fruchterman--Reingold-style attractive/repulsive
+   update on the finest level.
 
 The result is an algorithm that draws graphs with tens of thousands of
 vertices in seconds, using negligible memory, while producing layouts that are
@@ -75,7 +76,7 @@ library(grip)
 | Parameter      | Meaning |
 |:---------------|:--------|
 | `dim`          | Layout dimension (2 or 3). |
-| `engine`       | Force engine: `"mish_v5"` (spring-only) or `"mish_v6"` (spring + repulsive). |
+| `engine`       | Deprecated legacy selector; retained only for compatibility and mapped to the current engine. |
 | `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
 | `rounds`       | Refinement rounds at coarse levels. |
 | `final_rounds` | Refinement rounds at the finest level. |
@@ -112,7 +113,6 @@ arrangement.
 ```{r}
 edges <- edges.path(12)
 coords <- grip.layout(edges, n = 12, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
@@ -127,7 +127,6 @@ A cycle on 16 vertices. A good layout should approximate a regular polygon.
 ```{r}
 edges <- edges.cycle(16)
 coords <- grip.layout(edges, n = 16, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
@@ -137,13 +136,12 @@ grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
 
 ### Mesh (grid) graph
 
-A 5 x 5 grid graph. This uses the `mish_v6` engine, which adds repulsive
-forces and can produce more uniform spacing on regular lattices.
+A 5 x 5 grid graph. The single current engine tends to produce more uniform
+spacing on regular lattices than the older documented variants.
 
 ```{r}
 edges <- edges.mesh(5, 5)
 coords <- grip.layout(edges, n = 25, dim = 2,
-                      engine = "mish_v6",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
@@ -161,7 +159,6 @@ placement strategy.
 edges <- edges.sierpinski.triangle(2)
 n <- max(edges)
 coords <- grip.layout(edges, n = n, dim = 2,
-                      engine = "mish_v5",
                       placement = "circle",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
@@ -185,7 +182,6 @@ plotting snippet at the end of this section).
 ```{r}
 edges <- edges.mesh(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
@@ -210,7 +206,6 @@ coords <- grip.layout(adj_list = adj_list,
                       weight_list = weight_list,
                       n = 4,
                       dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 3, num_nbrs = 3,
@@ -226,7 +221,6 @@ a surface that should curve into a tube-like shape in 3D.
 ```{r}
 edges <- edges.cylinder(4, 6)
 coords <- grip.layout(edges, n = 24, dim = 3,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
@@ -242,7 +236,6 @@ recover the characteristic doughnut shape.
 ```{r}
 edges <- edges.torus(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
-                      engine = "mish_v6",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,

@@ -9,7 +9,6 @@ library(grip)
 ## -----------------------------------------------------------------------------
 edges <- edges.path(12)
 coords <- grip.layout(edges, n = 12, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
@@ -20,7 +19,6 @@ grip.plot(coords, edges, main = "Path (2D)", pch = 16, cex = 0.6)
 ## -----------------------------------------------------------------------------
 edges <- edges.cycle(16)
 coords <- grip.layout(edges, n = 16, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 6,
@@ -31,7 +29,6 @@ grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
 ## -----------------------------------------------------------------------------
 edges <- edges.mesh(5, 5)
 coords <- grip.layout(edges, n = 25, dim = 2,
-                      engine = "mish_v6",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
@@ -43,7 +40,6 @@ grip.plot(coords, edges, main = "Mesh (2D)", pch = 16, cex = 0.6)
 edges <- edges.sierpinski.triangle(2)
 n <- max(edges)
 coords <- grip.layout(edges, n = n, dim = 2,
-                      engine = "mish_v5",
                       placement = "circle",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
@@ -54,7 +50,6 @@ grip.plot(coords, edges, main = "Sierpinski (2D, circle placement)", pch = 16, c
 ## -----------------------------------------------------------------------------
 edges <- edges.mesh(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
@@ -69,7 +64,6 @@ coords <- grip.layout(adj_list = adj_list,
                       weight_list = weight_list,
                       n = 4,
                       dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 3, num_nbrs = 3,
@@ -80,7 +74,6 @@ grip.plot(coords, main = "Adjacency list input (2D)")
 ## -----------------------------------------------------------------------------
 edges <- edges.cylinder(4, 6)
 coords <- grip.layout(edges, n = 24, dim = 3,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 6, num_nbrs = 8,
@@ -91,7 +84,6 @@ head(coords)
 ## -----------------------------------------------------------------------------
 edges <- edges.torus(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
-                      engine = "mish_v6",
                       placement = "barycenter",
                       rounds = 25, final_rounds = 25,
                       num_init = 5, num_nbrs = 7,
@@ -105,4 +97,3 @@ head(coords)
 #   rgl::plot3d(coords[, 1], coords[, 2], coords[, 3],
 #               size = 4, col = "steelblue")
 # }
-

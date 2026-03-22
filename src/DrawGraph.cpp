@@ -8,9 +8,6 @@
 #include <vector>
 #include <limits>
 
-#define MISH_ENG_v5          12
-#define MISH_ENG_v6          13
-
 //**************************************************************
 //
 //      class constructor
@@ -21,7 +18,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _rounds    ,
                      size_tt _finalRounds,
                      size_tt _tinit_factor,
-                     size_tt _engf      ,
                      size_tt _numOfInitVert,
                      size_tt _numOfNbrs ,
                      coord_t _r           ,  //parameters of update_Local_Temp_v3()
@@ -44,7 +40,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
   r(_r), s(_s),
   listSwitch(true),
   displayPar(_displayPar),
-  engf(_engf),
   placementMode((_placementMode == PLACEMENT_CIRCLE)
                     ? PLACEMENT_CIRCLE
                     : PLACEMENT_BARYCENTER),
@@ -79,7 +74,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
     numOfInitVert = std::min(numOfInitVert, numOfVert);
 
     //
-    // mish_engine_v5() and mish_engine_v6()
+    // GRIP engine state
     //
 
     AvgDeg = 0;  // USED ONLY FOR STATISTICS

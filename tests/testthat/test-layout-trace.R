@@ -3,7 +3,6 @@ test_that("round trace returns frames, metadata, and inactive NA rows", {
   tr <- grip.layout.trace(edges = edges,
                           n = 8,
                           dim = 2,
-                          engine = "mish_v5",
                           placement = "barycenter",
                           rounds = 4,
                           final_rounds = 3,
@@ -37,7 +36,6 @@ test_that("level trace thins level-start snapshots and keeps endpoints", {
   tr_dense <- grip.layout.trace(edges = edges,
                                 n = 12,
                                 dim = 2,
-                                engine = "mish_v6",
                                 placement = "barycenter",
                                 rounds = 5,
                                 final_rounds = 3,
@@ -49,7 +47,6 @@ test_that("level trace thins level-start snapshots and keeps endpoints", {
   tr_sparse <- grip.layout.trace(edges = edges,
                                  n = 12,
                                  dim = 2,
-                                 engine = "mish_v6",
                                  placement = "barycenter",
                                  rounds = 5,
                                  final_rounds = 3,
@@ -82,4 +79,35 @@ test_that("trace rejects disconnected graphs for now", {
                       seed = 7),
     "currently supports only connected graphs"
   )
+})
+
+test_that("trace warns and maps legacy mish_v5 to mish_v6", {
+  edges <- edges.path(8)
+  tr_v5 <- NULL
+  expect_warning({
+    tr_v5 <- grip.layout.trace(edges = edges,
+                               n = 8,
+                               dim = 2,
+                               engine = "mish_v5",
+                               rounds = 4,
+                               final_rounds = 3,
+                               num_init = 3,
+                               num_nbrs = 4,
+                               trace = "level",
+                               trace.every = 1,
+                               seed = 123)
+  }, "deprecated and mapped")
+  tr_v6 <- grip.layout.trace(edges = edges,
+                             n = 8,
+                             dim = 2,
+                             engine = "mish_v6",
+                             rounds = 4,
+                             final_rounds = 3,
+                             num_init = 3,
+                             num_nbrs = 4,
+                             trace = "level",
+                             trace.every = 1,
+                             seed = 123)
+  expect_identical(tr_v5$final, tr_v6$final)
+  expect_identical(tr_v5$meta, tr_v6$meta)
 })

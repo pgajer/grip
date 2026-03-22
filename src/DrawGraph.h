@@ -30,7 +30,7 @@ using size_tt = uint32_t;
 //**************************************************************
 //
 //	Class name : DrawGraph - compact version
-//      only with mish_engine versions 5 and 6
+//      for the GRIP layout engine
 //
 //**************************************************************
 class DrawGraph 
@@ -43,7 +43,6 @@ class DrawGraph
               size_tt _rounds      ,
               size_tt _finalRounds ,
               size_tt _tinit_factor,
-              size_tt _engf        ,
               size_tt _numOfInitVert,
               size_tt _numOfNbrs   ,
               coord_t _r             ,  //parameters of update_Local_Temp_v3()
@@ -56,7 +55,7 @@ class DrawGraph
     //
     // ENGINES
     //
-    //----- mish_engine_v5 --------------//
+    //----- shared machinery and legacy entry point --------------//
     void mish_engine_v5();
     size_tt bfs_me_init_v2(size_tt root);
     void bfs_me_v4(size_tt root);
@@ -78,9 +77,9 @@ class DrawGraph
     void update_Local_Temp_v2( size_tt vert );
     void update_Local_Temp_v3( size_tt vert, coord_t r, coord_t s );
     
-    //----- mish_engine_v6 --------------//    
-    void mish_engine_v6(); // version utilizing repulsive forces
-    // FR_spring() is used in mish_engine_v6() and utilizes
+    //----- GRIP engine --------------//
+    void mish_engine_v6();
+    // FR_spring() is used in the current GRIP engine and utilizes
     // attractive/repulsive force schedule
     void FR_spring(const size_tt root,
                    size_tt *rootNbrsLayer,
@@ -174,7 +173,6 @@ private:
     coord_t r, s;                           // parameters of update_Local_Temp_v3()
     bool listSwitch;
     bool displayPar;
-    size_tt engf;
     size_tt placementMode;
     coord_t fedge2;
     size_tt misfLevel;

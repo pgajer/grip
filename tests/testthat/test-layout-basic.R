@@ -1,7 +1,6 @@
 test_that("basic layout returns finite matrix", {
   edges <- edges.path(10)
   coords <- grip.layout(edges, n = 10, dim = 2,
-                        engine = "mish_v5",
                         placement = "barycenter",
                         rounds = 5, final_rounds = 3,
                         num_init = 5, num_nbrs = 6,
@@ -13,7 +12,6 @@ test_that("basic layout returns finite matrix", {
 test_that("vignette path example returns finite coordinates", {
   edges <- edges.path(12)
   coords <- grip.layout(edges, n = 12, dim = 2,
-                        engine = "mish_v5",
                         placement = "barycenter",
                         rounds = 25, final_rounds = 25,
                         num_init = 5, num_nbrs = 6,
@@ -25,13 +23,11 @@ test_that("vignette path example returns finite coordinates", {
 test_that("seeded runs are deterministic", {
   edges <- edges.cycle(12)
   coords1 <- grip.layout(edges, n = 12, dim = 2,
-                         engine = "mish_v5",
                          placement = "barycenter",
                          rounds = 4, final_rounds = 2,
                          num_init = 4, num_nbrs = 5,
                          seed = 42)
   coords2 <- grip.layout(edges, n = 12, dim = 2,
-                         engine = "mish_v5",
                          placement = "barycenter",
                          rounds = 4, final_rounds = 2,
                          num_init = 4, num_nbrs = 5,
@@ -39,22 +35,39 @@ test_that("seeded runs are deterministic", {
   expect_identical(coords1, coords2)
 })
 
-test_that("mish_v6 runs and returns expected shape", {
+test_that("legacy mish_v5 maps to the single engine", {
   edges <- edges.cycle(15)
-  coords <- grip.layout(edges, n = 15, dim = 2,
-                        engine = "mish_v6",
-                        placement = "barycenter",
-                        rounds = 5, final_rounds = 3,
-                        num_init = 5, num_nbrs = 6,
-                        seed = 7)
-  expect_equal(dim(coords), c(15, 2))
-  expect_true(all(is.finite(coords)))
+  coords_v5 <- NULL
+  expect_warning({
+    coords_v5 <- grip.layout(edges, n = 15, dim = 2,
+                             engine = "mish_v5",
+                             placement = "barycenter",
+                             rounds = 5, final_rounds = 3,
+                             num_init = 5, num_nbrs = 6,
+                             seed = 7)
+  }, "deprecated and mapped")
+  coords_v6 <- grip.layout(edges, n = 15, dim = 2,
+                           engine = "mish_v6",
+                           placement = "barycenter",
+                           rounds = 5, final_rounds = 3,
+                           num_init = 5, num_nbrs = 6,
+                           seed = 7)
+  expect_equal(dim(coords_v5), c(15, 2))
+  expect_true(all(is.finite(coords_v5)))
+  expect_identical(coords_v5, coords_v6)
+})
+
+test_that("invalid engine values are rejected", {
+  edges <- edges.cycle(10)
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, engine = "bogus", seed = 1),
+    "engine must be 'mish_v6'"
+  )
 })
 
 test_that("circle placement works in 2D", {
   edges <- edges.path(8)
   coords <- grip.layout(edges, n = 8, dim = 2,
-                        engine = "mish_v5",
                         placement = "circle",
                         rounds = 4, final_rounds = 2,
                         num_init = 4, num_nbrs = 5,
@@ -67,7 +80,6 @@ test_that("circle placement falls back in 3D with warning", {
   edges <- edges.mesh(4, 4)
   expect_warning({
     coords <- grip.layout(edges, n = 16, dim = 3,
-                          engine = "mish_v5",
                           placement = "circle",
                           rounds = 4, final_rounds = 2,
                           num_init = 5, num_nbrs = 6,
@@ -81,7 +93,6 @@ test_that("tree example runs", {
   edges <- edges.kary.tree(k = 2, depth = 2)
   n <- max(edges)
   coords <- grip.layout(edges, n = n, dim = 2,
-                        engine = "mish_v6",
                         placement = "barycenter",
                         rounds = 4, final_rounds = 2,
                         num_init = 4, num_nbrs = 5,
@@ -97,7 +108,6 @@ test_that("adj_list + weight_list input works", {
                         weight_list = weight_list,
                         n = 4,
                         dim = 2,
-                        engine = "mish_v5",
                         placement = "barycenter",
                         rounds = 4, final_rounds = 2,
                         num_init = 3, num_nbrs = 3,
@@ -111,7 +121,6 @@ test_that("adj_list input works without weights", {
   coords <- grip.layout(adj_list = adj_list,
                         n = 4,
                         dim = 2,
-                        engine = "mish_v5",
                         placement = "barycenter",
                         rounds = 4, final_rounds = 2,
                         num_init = 3, num_nbrs = 3,
@@ -129,7 +138,6 @@ test_that("disconnected graph defaults to safe component layouts", {
     coords <- grip.layout(edges = edges,
                           n = 10,
                           dim = 3,
-                          engine = "mish_v5",
                           placement = "barycenter",
                           rounds = 4,
                           final_rounds = 2,
@@ -172,7 +180,6 @@ test_that("disconnected adj_list + weights is handled safely", {
                           weight_list = weight_list,
                           n = 5,
                           dim = 2,
-                          engine = "mish_v6",
                           placement = "barycenter",
                           rounds = 4,
                           final_rounds = 2,

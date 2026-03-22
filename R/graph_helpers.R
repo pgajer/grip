@@ -168,7 +168,6 @@ edges.kary.tree <- function(k = 2, depth = 2) {
 #' edges <- edges.sierpinski.triangle(2)
 #' n <- max(edges)
 #' coords <- grip.layout(edges, n = n, dim = 2,
-#'                       engine = "mish_v5",
 #'                       placement = "circle",
 #'                       seed = 1)
 #' grip.plot(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)

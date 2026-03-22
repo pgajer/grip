@@ -1,6 +1,6 @@
 # grip
 
-GRIP is an R package for large graph drawing using the GRIP algorithm (Graph dRawing with Intelligent Placement). It supports 2D and 3D layouts and provides two force engines (`mish_v5`, `mish_v6`) and two initial placement strategies (`barycenter`, `circle`).
+GRIP is an R package for large graph drawing using the GRIP algorithm (Graph dRawing with Intelligent Placement). It supports 2D and 3D layouts and provides one GRIP engine with two initial placement strategies (`barycenter`, `circle`).
 
 ## Gallery
 
@@ -43,7 +43,6 @@ library(grip)
 
 edges <- cbind(1:9, 2:10)
 coords <- grip.layout(edges, n = 10, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 5, final_rounds = 3,
                       num_init = 5, num_nbrs = 6,
@@ -56,7 +55,6 @@ Circle placement is only used in 2D.
 ```r
 edges <- edges.cycle(12)
 coords <- grip.layout(edges, n = 12, dim = 2,
-                      engine = "mish_v5",
                       placement = "circle",
                       rounds = 5, final_rounds = 3,
                       num_init = 5, num_nbrs = 6,
@@ -74,7 +72,6 @@ coords <- grip.layout(adj_list = adj_list,
                       weight_list = weight_list,
                       n = 4,
                       dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 4, final_rounds = 2,
                       num_init = 3, num_nbrs = 3,
@@ -86,7 +83,6 @@ grip.plot(coords)
 ```r
 edges <- edges.mesh(4, 4)
 coords <- grip.layout(edges, n = 16, dim = 3,
-                      engine = "mish_v6",
                       placement = "barycenter",
                       rounds = 5, final_rounds = 3,
                       num_init = 5, num_nbrs = 7,

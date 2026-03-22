@@ -11,7 +11,7 @@ grip.layout.trace(
   weight_list = NULL,
   edge_weights = NULL,
   dim = 3,
-  engine = c("mish_v5", "mish_v6"),
+  engine = "mish_v6",
   placement = c("barycenter", "circle"),
   rounds = 20,
   final_rounds = 25,
@@ -41,7 +41,10 @@ weights must be finite and strictly positive.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
 
-\item{engine}{Layout engine to use.}
+\item{engine}{Deprecated legacy engine selector. The package now uses a
+single GRIP engine. `engine = "mish_v6"` is the supported value;
+`engine = "mish_v5"` is accepted for compatibility and mapped to
+`"mish_v6"` with a warning.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
 
@@ -84,7 +87,6 @@ Compute a GRIP layout trace
 \examples{
 edges <- cbind(1:5, 2:6)
 tr <- grip.layout.trace(edges, n = 6, dim = 2,
-                        engine = "mish_v5",
                         placement = "barycenter",
                         rounds = 3, final_rounds = 2,
                         num_init = 3, num_nbrs = 4,

@@ -22,7 +22,6 @@ Quick plot for GRIP layouts
 \examples{
 edges <- cbind(1:5, 2:6)
 coords <- grip.layout(edges, n = 6, dim = 2,
-                      engine = "mish_v5",
                       placement = "barycenter",
                       rounds = 5, final_rounds = 5,
                       num_init = 3, num_nbrs = 4,
