@@ -9,3 +9,7 @@ grip_layout_adj_cpp <- function(adj_list, weight_list, n, dim, engine, placement
     .Call(`_grip_grip_layout_adj_cpp`, adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed)
 }
 
+grip_layout_trace_adj_cpp <- function(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed, trace, trace_every) {
+    .Call(`_grip_grip_layout_trace_adj_cpp`, adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed, trace, trace_every)
+}
+

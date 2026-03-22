@@ -9,6 +9,8 @@
 #include <queue>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "Point.h"
 #include "Graph.h"
@@ -21,6 +23,9 @@ using size_tt = uint32_t;
 #define ROUND_L(a) ((a)>0 ? (unsigned long)((a)+0.5) : -(unsigned long)(0.5-(a)))
 #define PLACEMENT_BARYCENTER 0
 #define PLACEMENT_CIRCLE 1
+#define TRACE_NONE 0
+#define TRACE_ROUND 1
+#define TRACE_LEVEL 2
 
 //**************************************************************
 //
@@ -94,6 +99,13 @@ class DrawGraph
     size_tt get_Diam() const { return diam; }
     size_tt get_NumOfVert() const { return numOfVert; }
     Point<> *get_Pos() const { return pos; }
+    void configure_trace(size_tt mode, size_tt every);
+    const std::vector<std::vector<double>> &get_trace_frames() const { return traceFrames; }
+    const std::vector<std::string> &get_trace_phases() const { return tracePhases; }
+    const std::vector<int> &get_trace_level_indices() const { return traceLevelIndices; }
+    const std::vector<int> &get_trace_misf_levels() const { return traceMisfLevels; }
+    const std::vector<int> &get_trace_rounds() const { return traceRounds; }
+    const std::vector<int> &get_trace_active_counts() const { return traceActiveCounts; }
     coord_t get_Edge(){ return edge; }
     coord_t get_Edge2(){ return edge2; }
     size_tt get_inv(size_tt vert){return inv[vert];}
@@ -165,9 +177,18 @@ private:
     size_tt engf;
     size_tt placementMode;
     coord_t fedge2;
-    size_tt misfLevel;    
+    size_tt misfLevel;
     size_tt initMishHeight;
     Point<> vect;    // an auxiliary vector holding vert1 - vert2
+    size_tt traceMode;
+    size_tt traceEvery;
+    size_tt traceLevelIndex;
+    std::vector<std::vector<double>> traceFrames;
+    std::vector<std::string> tracePhases;
+    std::vector<int> traceLevelIndices;
+    std::vector<int> traceMisfLevels;
+    std::vector<int> traceRounds;
+    std::vector<int> traceActiveCounts;
 
     //
     // SUPPORTING FUNCTIONS
@@ -267,6 +288,12 @@ private:
     Point<> initial_position_circle(const size_tt *closeVert,
                                     const size_tt *closeVertDist,
                                     size_tt count);
+    void capture_trace_snapshot(const char *phase,
+                                size_tt activeCount,
+                                size_tt roundInLevel);
+    void trace_begin_level(size_tt activeCount);
+    void trace_after_round(size_tt activeCount, size_tt roundInLevel);
+    void trace_finalize(size_tt activeCount, size_tt roundInLevel);
     
     // log to the base 2
     int ilog(int n){

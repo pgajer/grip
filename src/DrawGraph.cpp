@@ -3,6 +3,7 @@
 // April 1, 2000 - moved all changes info to the file changes
 //
 #include "DrawGraph.h"
+#include <algorithm>
 #include <stdexcept>
 #include <vector>
 #include <limits>
@@ -47,7 +48,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
   placementMode((_placementMode == PLACEMENT_CIRCLE)
                     ? PLACEMENT_CIRCLE
                     : PLACEMENT_BARYCENTER),
-  fedge2(0.05 * edge2)
+  fedge2(0.05 * edge2),
+  traceMode(TRACE_NONE),
+  traceEvery(1),
+  traceLevelIndex(0)
 {
 #define DEBUG 0
     if( dim != 2 && dim != 3 )
@@ -216,6 +220,78 @@ DrawGraph::DrawGraph(const Graph &_graph,
 #if DEBUG    
     debug("Leaving constructor\n");
 #endif
+}
+
+void DrawGraph::configure_trace(size_tt mode, size_tt every)
+{
+    traceMode = mode;
+    traceEvery = std::max<size_tt>(1, every);
+    traceLevelIndex = 0;
+    traceFrames.clear();
+    tracePhases.clear();
+    traceLevelIndices.clear();
+    traceMisfLevels.clear();
+    traceRounds.clear();
+    traceActiveCounts.clear();
+}
+
+void DrawGraph::capture_trace_snapshot(const char *phase,
+                                       size_tt activeCount,
+                                       size_tt roundInLevel)
+{
+    if(traceMode == TRACE_NONE)
+        return;
+
+    activeCount = std::min(activeCount, numOfVert);
+
+    std::vector<double> frame(numOfVert * dim,
+                              std::numeric_limits<double>::quiet_NaN());
+    for(size_tt i = 0; i < activeCount; i++){
+        size_tt vert = mish[i];
+        frame[vert] = pos[vert].getX();
+        if(dim > 1)
+            frame[vert + numOfVert] = pos[vert].getY();
+        if(dim > 2)
+            frame[vert + 2 * numOfVert] = pos[vert].getZ();
+    }
+
+    traceFrames.push_back(std::move(frame));
+    tracePhases.emplace_back(phase);
+    traceLevelIndices.push_back(static_cast<int>(traceLevelIndex));
+    traceMisfLevels.push_back(static_cast<int>(misfLevel));
+    traceRounds.push_back(static_cast<int>(roundInLevel));
+    traceActiveCounts.push_back(static_cast<int>(activeCount));
+}
+
+void DrawGraph::trace_begin_level(size_tt activeCount)
+{
+    if(traceMode == TRACE_NONE)
+        return;
+
+    traceLevelIndex++;
+    if(traceMode == TRACE_ROUND ||
+       traceLevelIndex == 1 ||
+       ((traceLevelIndex - 1) % traceEvery == 0)){
+        capture_trace_snapshot(traceLevelIndex == 1 ? "init" : "level_start",
+                               activeCount,
+                               0);
+    }
+}
+
+void DrawGraph::trace_after_round(size_tt activeCount, size_tt roundInLevel)
+{
+    if(traceMode != TRACE_ROUND)
+        return;
+    if(traceEvery > 1 && roundInLevel % traceEvery != 0)
+        return;
+    capture_trace_snapshot("round", activeCount, roundInLevel);
+}
+
+void DrawGraph::trace_finalize(size_tt activeCount, size_tt roundInLevel)
+{
+    if(traceMode == TRACE_NONE)
+        return;
+    capture_trace_snapshot("final", activeCount, roundInLevel);
 }
 
 //**************************************************************

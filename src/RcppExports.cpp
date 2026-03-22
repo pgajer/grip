@@ -58,10 +58,37 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_layout_trace_adj_cpp
+Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string engine, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
+RcppExport SEXP _grip_grip_layout_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP engineSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type adj_list(adj_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type weight_list(weight_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type dim(dimSEXP);
+    Rcpp::traits::input_parameter< std::string >::type engine(engineSEXP);
+    Rcpp::traits::input_parameter< std::string >::type placement(placementSEXP);
+    Rcpp::traits::input_parameter< int >::type rounds(roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type final_rounds(final_roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
+    Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
+    Rcpp::traits::input_parameter< double >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< std::string >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< int >::type trace_every(trace_everySEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_trace_adj_cpp(adj_list, weight_list, n, dim, engine, placement, rounds, final_rounds, num_init, num_nbrs, r, s, tinit_factor, seed, trace, trace_every));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
+    {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {NULL, NULL, 0}
 };
 

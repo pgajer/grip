@@ -54,7 +54,7 @@ edges_torus <- function(h, w = h) {
   do.call(rbind, edges)
 }
 
-edges_sierpinski <- function(level = 2) {
+edges_sierpinski_triangle <- function(level = 2) {
   stopifnot(level >= 0)
 
   merge_nodes <- function(edges, from, to) {
@@ -132,7 +132,7 @@ coords <- grip.layout(edges, n = 25, dim = 2,
                       seed = 3)
 grip.plot(coords, edges)
 
-edges <- edges_sierpinski(2)
+edges <- edges_sierpinski_triangle(2)
 n <- max(edges)
 coords <- grip.layout(edges, n = n, dim = 2,
                       engine = "mish_v5",

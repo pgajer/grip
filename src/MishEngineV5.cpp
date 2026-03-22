@@ -65,6 +65,7 @@ void DrawGraph::mish_engine_v5()
     bool firstRound = true;
     size_tt current_size = numOfInitVert; // Current size of the active vertex set
     size_tt round_counter = 0;            // Counter for the current round
+    size_tt trace_round_in_level = 0;     // Completed rounds in the current level
     bool loop = true;
 
 #if DEBUG_mish_engine_v5
@@ -104,6 +105,8 @@ void DrawGraph::mish_engine_v5()
             baricenter /= (coord_t)numOfInitVert;
             for(size_tt i = 0; i < current_size; i++)
                 pos[mish[i]] -= baricenter;
+            trace_round_in_level = 0;
+            trace_begin_level(current_size);
 
         } else if ( round_counter == rounds ){
             // Prepare for the next MISF level
@@ -132,6 +135,8 @@ void DrawGraph::mish_engine_v5()
             // Perform BFS for new vertices
             for(size_tt i = prevSize; i < current_size; i++)
                 bfs_me_v4(mish[i]);
+            trace_round_in_level = 0;
+            trace_begin_level(current_size);
         }
 
         // Perform force-directed layout if not creating a list and within round limit
@@ -153,8 +158,12 @@ void DrawGraph::mish_engine_v5()
             }
             for(size_tt i = 0; i < current_size; i++)
                 pos[mish[i]] += disp[mish[i]];
+            trace_round_in_level = round_counter;
+            trace_after_round(current_size, trace_round_in_level);
         }
     }
+
+    trace_finalize(current_size, trace_round_in_level);
 
     // Handle list creation flag
     if( loop && listSwitch ) {

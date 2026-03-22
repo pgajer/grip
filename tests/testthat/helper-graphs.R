@@ -51,7 +51,7 @@ edges_torus <- function(h, w = h) {
   do.call(rbind, edges)
 }
 
-edges_sierpinski <- function(level = 2) {
+edges_sierpinski_triangle <- function(level = 2) {
   stopifnot(level >= 0)
 
   merge_nodes <- function(edges, from, to) {

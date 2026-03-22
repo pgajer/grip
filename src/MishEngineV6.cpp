@@ -15,6 +15,7 @@ void DrawGraph::mish_engine_v6()
     bool firstRound = true;
     size_tt csize = numOfInitVert;
     size_tt ctr = 0;
+    size_tt trace_round_in_level = 0;
     bool loop = true;
     
     while( loop && prevSize != csize ){
@@ -34,6 +35,8 @@ void DrawGraph::mish_engine_v6()
             baricenter = center /(coord_t)numOfInitVert;
             for(size_tt i = 0; i < csize; i++)
                 pos[mish[i]] -= baricenter;
+            trace_round_in_level = 0;
+            trace_begin_level(csize);
             
             debug("csize="<< numOfInitVert
                   << ", rounds=" << rounds);
@@ -65,6 +68,8 @@ void DrawGraph::mish_engine_v6()
         
             for(size_tt i = prevSize; i < csize; i++)
                 bfs_me_v4(mish[i]);
+            trace_round_in_level = 0;
+            trace_begin_level(csize);
             
             debug("csize="<< csize
                   <<", nbr["<<misfLevel<<"]="<< nbr[misfLevel]
@@ -92,8 +97,12 @@ void DrawGraph::mish_engine_v6()
             }
             for(size_tt i = 0; i < csize; i++)
                 pos[mish[i]] += disp[mish[i]];
+            trace_round_in_level = ctr;
+            trace_after_round(csize, trace_round_in_level);
         }// end of if( !createList
     } // end of while( loop && prevSize != ...
+
+    trace_finalize(csize, trace_round_in_level);
     
     if( loop && listSwitch ) {
         createList = true;

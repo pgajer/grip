@@ -35,7 +35,7 @@ test_that("torus example runs", {
 })
 
 test_that("sierpinski example runs", {
-  edges <- edges_sierpinski(2)
+  edges <- edges_sierpinski_triangle(2)
   n <- max(edges)
   coords <- grip.layout(edges, n = n, dim = 2,
                         engine = "mish_v5",
