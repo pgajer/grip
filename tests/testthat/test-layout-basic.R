@@ -35,6 +35,38 @@ test_that("seeded runs are deterministic", {
   expect_identical(coords1, coords2)
 })
 
+test_that("num_nbrs changes the layout with a fixed seed", {
+  edges <- edges.mesh(5, 5)
+  coords_small <- grip.layout(edges, n = 25, dim = 2,
+                              placement = "barycenter",
+                              rounds = 8, final_rounds = 8,
+                              num_init = 6, num_nbrs = 2,
+                              seed = 19)
+  coords_large <- grip.layout(edges, n = 25, dim = 2,
+                              placement = "barycenter",
+                              rounds = 8, final_rounds = 8,
+                              num_init = 6, num_nbrs = 10,
+                              seed = 19)
+  expect_gt(max(abs(coords_small - coords_large)), 1e-6)
+})
+
+test_that("r and s change the layout with a fixed seed", {
+  edges <- edges.mesh(5, 5)
+  coords_cool <- grip.layout(edges, n = 25, dim = 2,
+                             placement = "barycenter",
+                             rounds = 8, final_rounds = 8,
+                             num_init = 6, num_nbrs = 8,
+                             r = 0.00, s = 0.00,
+                             seed = 23)
+  coords_adaptive <- grip.layout(edges, n = 25, dim = 2,
+                                 placement = "barycenter",
+                                 rounds = 8, final_rounds = 8,
+                                 num_init = 6, num_nbrs = 8,
+                                 r = 0.30, s = 6.00,
+                                 seed = 23)
+  expect_gt(max(abs(coords_cool - coords_adaptive)), 1e-6)
+})
+
 test_that("legacy mish_v5 maps to the single engine", {
   edges <- edges.cycle(15)
   coords_v5 <- NULL
@@ -62,6 +94,22 @@ test_that("invalid engine values are rejected", {
   expect_error(
     grip.layout(edges, n = 10, dim = 2, engine = "bogus", seed = 1),
     "engine must be 'mish_v6'"
+  )
+})
+
+test_that("invalid tuning parameters are rejected", {
+  edges <- edges.cycle(10)
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, num_nbrs = 0, seed = 1),
+    "num_nbrs must be a positive integer"
+  )
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, r = -0.1, seed = 1),
+    "r must be in \\[0, 1\\]"
+  )
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, s = -1, seed = 1),
+    "s must be >= 0"
   )
 })
 

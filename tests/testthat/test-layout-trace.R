@@ -111,3 +111,16 @@ test_that("trace warns and maps legacy mish_v5 to mish_v6", {
   expect_identical(tr_v5$final, tr_v6$final)
   expect_identical(tr_v5$meta, tr_v6$meta)
 })
+
+test_that("trace validates tuning parameters", {
+  edges <- edges.path(8)
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      num_nbrs = 0,
+                      trace = "round",
+                      seed = 123),
+    "num_nbrs must be a positive integer"
+  )
+})

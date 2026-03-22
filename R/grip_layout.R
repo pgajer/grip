@@ -179,6 +179,37 @@ grip.normalize.engine <- function(engine, fn = "grip.layout") {
   stop("engine must be 'mish_v6'")
 }
 
+grip.validate.tuning.inputs <- function(num_nbrs, r, s) {
+  if (!is.numeric(num_nbrs) || length(num_nbrs) != 1L || !is.finite(num_nbrs)) {
+    stop("num_nbrs must be a single finite numeric value")
+  }
+  if (abs(num_nbrs - round(num_nbrs)) > sqrt(.Machine$double.eps)) {
+    stop("num_nbrs must be a positive integer")
+  }
+  num_nbrs <- as.integer(round(num_nbrs))
+  if (is.na(num_nbrs) || num_nbrs <= 0L) {
+    stop("num_nbrs must be a positive integer")
+  }
+
+  if (!is.numeric(r) || length(r) != 1L || !is.finite(r)) {
+    stop("r must be a single finite numeric value")
+  }
+  r <- as.double(r)
+  if (r < 0 || r > 1) {
+    stop("r must be in [0, 1]")
+  }
+
+  if (!is.numeric(s) || length(s) != 1L || !is.finite(s)) {
+    stop("s must be a single finite numeric value")
+  }
+  s <- as.double(s)
+  if (s < 0) {
+    stop("s must be >= 0")
+  }
+
+  list(num_nbrs = num_nbrs, r = r, s = s)
+}
+
 grip.validate.layout.inputs <- function(edges = NULL,
                                         n = NULL,
                                         adj_list = NULL,
@@ -301,9 +332,11 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
 #' @param num_init Number of initial vertices in the coarsest level.
-#' @param num_nbrs Number of neighbors for local refinement.
-#' @param r Local temperature parameter r.
-#' @param s Local temperature parameter s.
+#' @param num_nbrs Maximum number of graph-distance neighbors retained for local
+#'   refinement at each filtration level.
+#' @param r Main local temperature adaptation rate in \code{[0, 1]}.
+#' @param s Non-negative boost factor applied when successive displacements have
+#'   a consistent direction.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -375,6 +408,10 @@ grip.layout <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  tuning <- grip.validate.tuning.inputs(num_nbrs = num_nbrs, r = r, s = s)
+  num_nbrs <- tuning$num_nbrs
+  r <- tuning$r
+  s <- tuning$s
 
   layout.adj <- function(adj_list, weight_list, n) {
     grip_layout_adj_cpp(adj_list = adj_list,
@@ -386,9 +423,9 @@ grip.layout <- function(edges = NULL,
                         rounds = as.integer(rounds),
                         final_rounds = as.integer(final_rounds),
                         num_init = as.integer(num_init),
-                        num_nbrs = as.integer(num_nbrs),
-                        r = as.double(r),
-                        s = as.double(s),
+                        num_nbrs = num_nbrs,
+                        r = r,
+                        s = s,
                         tinit_factor = as.integer(tinit_factor),
                         seed = seed)
   }
@@ -506,6 +543,10 @@ grip.layout.trace <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  tuning <- grip.validate.tuning.inputs(num_nbrs = num_nbrs, r = r, s = s)
+  num_nbrs <- tuning$num_nbrs
+  r <- tuning$r
+  s <- tuning$s
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -526,9 +567,9 @@ grip.layout.trace <- function(edges = NULL,
     rounds = as.integer(rounds),
     final_rounds = as.integer(final_rounds),
     num_init = as.integer(num_init),
-    num_nbrs = as.integer(num_nbrs),
-    r = as.double(r),
-    s = as.double(s),
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,
     trace = trace,

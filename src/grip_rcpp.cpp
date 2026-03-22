@@ -14,6 +14,16 @@ void validate_engine_arg(const std::string &engine)
         Rcpp::stop("engine must be 'mish_v6'");
 }
 
+void validate_tuning_args(int num_nbrs, double r, double s)
+{
+    if(num_nbrs <= 0)
+        Rcpp::stop("num_nbrs must be a positive integer");
+    if(!std::isfinite(r) || r < 0.0 || r > 1.0)
+        Rcpp::stop("r must be finite and in [0, 1]");
+    if(!std::isfinite(s) || s < 0.0)
+        Rcpp::stop("s must be finite and >= 0");
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -41,8 +51,7 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
 
     if(num_init <= 0)
         num_init = 1;
-    if(num_nbrs <= 0)
-        num_nbrs = 1;
+    validate_tuning_args(num_nbrs, r, s);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -147,8 +156,7 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
 
     if(num_init <= 0)
         num_init = 1;
-    if(num_nbrs <= 0)
-        num_nbrs = 1;
+    validate_tuning_args(num_nbrs, r, s);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -262,8 +270,7 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
 
     if(num_init <= 0)
         num_init = 1;
-    if(num_nbrs <= 0)
-        num_nbrs = 1;
+    validate_tuning_args(num_nbrs, r, s);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)

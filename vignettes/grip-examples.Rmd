@@ -81,8 +81,8 @@ library(grip)
 | `rounds`       | Refinement rounds at coarse levels. |
 | `final_rounds` | Refinement rounds at the finest level. |
 | `num_init`     | Number of initial vertices at the coarsest filtration level. |
-| `num_nbrs`     | Number of graph-distance neighbors used during refinement. |
-| `r`, `s`       | Local temperature schedule parameters (adaptive cooling). |
+| `num_nbrs`     | Maximum number of graph-distance neighbors retained during refinement. |
+| `r`, `s`       | Adaptive local temperature parameters used in the main iterative refinement. |
 | `seed`         | RNG seed for reproducibility. |
 
 The examples below use `rounds = 25` and `final_rounds = 25` for good layout

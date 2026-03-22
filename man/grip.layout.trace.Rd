@@ -54,11 +54,13 @@ single GRIP engine. `engine = "mish_v6"` is the supported value;
 
 \item{num_init}{Number of initial vertices in the coarsest level.}
 
-\item{num_nbrs}{Number of neighbors for local refinement.}
+\item{num_nbrs}{Maximum number of graph-distance neighbors retained for local
+refinement at each filtration level.}
 
-\item{r}{Local temperature parameter r.}
+\item{r}{Main local temperature adaptation rate in \code{[0, 1]}.}
 
-\item{s}{Local temperature parameter s.}
+\item{s}{Non-negative boost factor applied when successive displacements have
+a consistent direction.}
 
 \item{tinit_factor}{Initial temperature factor.}
 

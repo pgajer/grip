@@ -170,7 +170,7 @@ private:
     size_tt diam;                         // graph's diameter
     size_tt numOfInitVert;
     size_tt numOfNbrs;
-    coord_t r, s;                           // parameters of update_Local_Temp_v3()
+    coord_t r, s; // parameters of the main local temperature schedule
     bool listSwitch;
     bool displayPar;
     size_tt placementMode;

@@ -262,8 +262,6 @@ void DrawGraph::update_Local_Temp_v2( size_tt vert )
     if( normOldDisp != 0 && normNewDisp != 0 ){
         coord_t scalProd = disp[vert] * oldDisp[vert];
         coord_t cos = scalProd/(normOldDisp * normNewDisp);
-        coord_t r = 0.15;
-        coord_t s = 3.0;
         if( old_cos[vert] * cos > 0 )
             temp += (coord_t)(temp * s * cos * r);
         else

@@ -144,28 +144,15 @@ DrawGraph::DrawGraph(const Graph &_graph,
         
     //debug("smallLevel="<<smallLevel);
 
-    // compute the number of vertices nbr[i] for local beautification
-    // at level i, for each i.
+    // numOfNbrs directly controls the retained local graph-distance
+    // neighborhood size used by the refinement routines.
     nbr       = new size_tt[log_2_n];
     itr = 0;
-    //float nbrFactor = 2; // affects the size of nbr[i]s
     while( itr < log_2_n && misfSize[itr] ){
-        if( itr >= smallLevel )
-            nbr[itr] = std::max(misfSize[itr]-1, numOfInitVert-1);
-        else{
-            nbr[itr] = std::min((unsigned long)(sched(itr,0,2,10000,1) *
-                                           maxCxty/misfSize[itr]),
-                           (unsigned long)(misfSize[itr]-1));
-//          nbr[itr] = std::min((unsigned long)( nbrFactor * maxCxty/misfSize[itr]),
-//                           (unsigned long)(misfSize[itr]-1));
-        }
+        size_tt available = misfSize[itr] > 0 ? misfSize[itr] - 1 : 0;
+        nbr[itr] = std::min(numOfNbrs, available);
         itr++;
     }
-
-    // some simple nbr[] tune up
-    nbr[0] = std::min(2*nbr[0], numOfVert-1);
-//          if(misfLevel)
-//              nbr[1] *= 2;
 
 #if 0
     std::cout << "<DrawGraph.cpp>["<<__LINE__<<"] nbr:       ";
