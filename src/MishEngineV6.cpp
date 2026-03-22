@@ -145,6 +145,9 @@ void DrawGraph::FR_spring(const size_tt vert,
     size_tt locNbr = 2*nbr[misfLayer];
     for(size_tt i = 0; i < locNbr; i += 2){
         overt = *ptr++;
+        size_tt graphDist = *ptr++;
+        if(!graphDist || overt >= numOfVert || overt == vert)
+            continue;
 //      for( size_t overt = 0; overt < numOfVert; overt++)
 //          if(  overt != vert ){
         vect.set_to_zero();

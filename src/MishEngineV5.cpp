@@ -192,7 +192,7 @@ size_tt DrawGraph::bfs_me_init_v2(size_tt root)
     for(size_tt i=0; i <= vertDepth[root]; i++){
         // 1 slot for vertex and 1 (the next one)
         // for its distance from the root
-        nbrs[root][i] = new size_tt[2*nbr[i]];
+        nbrs[root][i] = new size_tt[2*nbr[i]]();
         nbrCounter[i] = 0;
     }
 
@@ -257,7 +257,7 @@ void DrawGraph::bfs_me_v4(size_tt root)
     for(size_tt i=0; i <= vertDepth[root]; i++){
         // 1 slot for vertex and 1 (the next one)
         // for its distance from the root
-        nbrs[root][i] = new size_tt[2*nbr[i]];
+        nbrs[root][i] = new size_tt[2*nbr[i]]();
         nbrCounter[i] = 0;
     }
     
@@ -348,7 +348,7 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
         overt = *ptr++;
         dist2 = (double)(*ptr) * (*ptr);
         ptr++;
-        if(!dist2)
+        if(!dist2 || overt >= numOfVert || overt == vert)
             continue;
         vect.set_to_zero();
         vect += pos[overt];
@@ -505,6 +505,9 @@ void DrawGraph::FR_spring_v2(const size_tt vert,
     size_tt locNbr = 2*nbr[misfLayer];
     for(size_tt i = 0; i < locNbr; i += 2){
         overt = *ptr++;
+        size_tt graphDist = *ptr++;
+        if(!graphDist || overt >= numOfVert || overt == vert)
+            continue;
         vect.set_to_zero();
         vect += pos[vert];
         vect -= pos[overt];

@@ -10,6 +10,18 @@ test_that("basic layout returns finite matrix", {
   expect_true(all(is.finite(coords)))
 })
 
+test_that("vignette path example returns finite coordinates", {
+  edges <- edges_path(12)
+  coords <- grip.layout(edges, n = 12, dim = 2,
+                        engine = "mish_v5",
+                        placement = "barycenter",
+                        rounds = 25, final_rounds = 25,
+                        num_init = 5, num_nbrs = 6,
+                        seed = 1)
+  expect_equal(dim(coords), c(12, 2))
+  expect_true(all(is.finite(coords)))
+})
+
 test_that("seeded runs are deterministic", {
   edges <- edges_cycle(12)
   coords1 <- grip.layout(edges, n = 12, dim = 2,
