@@ -53,6 +53,11 @@ For tree-like graphs, `preset = "tree"` applies a tuned profile for more
 symmetric force-directed tree layouts, validated on binary trees of depths `5`
 and `6`, while still letting any explicit tuning arguments override the preset.
 
+For real-world graphs without a canonical embedding, use
+`grip.score.layout()` to measure a single layout and `grip.compare.layouts()`
+to compare defaults, presets, or custom tuning profiles across multiple seeds.
+See the vignette `Choosing Layouts for Real Data` for a worked example.
+
 **Basic Usage**
 ```r
 library(grip)

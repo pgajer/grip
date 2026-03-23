@@ -10,10 +10,11 @@ Fast multiscale graph layouts in 2D and 3D.
 }
 \details{
 The package provides \code{\link{grip.layout}()} to compute graph layouts
-from edge lists or adjacency lists, \code{\link{grip.plot}()} for quick
-visual inspection of the resulting coordinates, and convenience graph
-generators such as \code{\link{edges.path}()},
-\code{\link{edges.sierpinski.triangle}()}, and
+from edge lists or adjacency lists, \code{\link{grip.score.layout}()} and
+\code{\link{grip.compare.layouts}()} to evaluate layouts on real-world
+graphs, \code{\link{grip.plot}()} for quick visual inspection of the
+resulting coordinates, and convenience graph generators such as
+\code{\link{edges.path}()}, \code{\link{edges.sierpinski.triangle}()}, and
 \code{\link{edges.sierpinski.tetrahedron}()}.
 }
 \references{

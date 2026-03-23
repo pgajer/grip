@@ -1,0 +1,196 @@
+---
+title: "Choosing Layouts for Real Data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choosing Layouts for Real Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5)
+```
+
+## Why scoring helps
+
+For real-world graphs there is usually no canonical embedding, so layout choice
+cannot rely on a direct geometric error like Procrustes RMSE. In practice, the
+most useful workflow is:
+
+1. try the default layout plus one or two structurally plausible presets,
+2. compare them across several seeds, and
+3. inspect a small set of quality metrics before choosing a final plot.
+
+The `grip` package provides two helpers for this:
+
+- `grip.score.layout()` scores one realized layout,
+- `grip.compare.layouts()` compares several presets or parameter sets across seeds.
+
+The examples below use two small real-world benchmark networks bundled with the
+package under `inst/extdata/`.
+
+```{r}
+library(grip)
+```
+
+```{r}
+read.edge.csv <- function(file.name) {
+  candidates <- c(
+    system.file("extdata", file.name, package = "grip"),
+    file.path("inst", "extdata", file.name),
+    file.path("..", "inst", "extdata", file.name)
+  )
+  path <- candidates[file.exists(candidates)][1L]
+  if (!length(path) || is.na(path) || !nzchar(path)) {
+    stop("could not locate ", file.name)
+  }
+  as.matrix(utils::read.csv(path))
+}
+
+compact.summary <- function(x) {
+  keep <- c(
+    "candidate",
+    "score.composite",
+    "sampled.stress.mean",
+    "edge.length.cv.mean",
+    "sampled.nonedge.sep.ratio.mean",
+    "stability.procrustes.mean",
+    "edge.crossings.mean"
+  )
+  x[, keep]
+}
+```
+
+## Scoring one layout
+
+As a first example, we score a `preset = "tree"` layout of the Krackhardt kite
+social network, a classic small organizational-network benchmark.
+
+```{r}
+kite.edges <- read.edge.csv("krackhardt-kite-edges.csv")
+kite.n <- max(kite.edges)
+
+kite.coords <- grip.layout(
+  kite.edges,
+  n = kite.n,
+  dim = 2,
+  preset = "tree",
+  seed = 1
+)
+
+kite.score <- grip.score.layout(
+  coords = kite.coords,
+  edges = kite.edges,
+  n = kite.n,
+  edge.crossings = "always"
+)
+
+knitr::kable(kite.score, digits = 3)
+```
+
+```{r}
+grip.plot(kite.coords, kite.edges, main = "Krackhardt kite with preset = 'tree'",
+          pch = 16, cex = 1)
+```
+
+Interpretation:
+
+- lower `sampled.stress` means Euclidean distances better track graph distances,
+- lower `edge.length.cv` means adjacent vertices are drawn more uniformly,
+- higher `sampled.nonedge.sep.ratio` means less clutter,
+- lower `edge.crossings` is usually preferable in 2D.
+
+## Comparing presets across seeds
+
+The Zachary karate club friendship network is a good example of a real graph
+where there is no obviously correct preset ahead of time.
+
+```{r}
+karate.edges <- read.edge.csv("karate-club-edges.csv")
+karate.n <- max(karate.edges)
+
+karate.compare <- grip.compare.layouts(
+  edges = karate.edges,
+  n = karate.n,
+  dim = 2,
+  candidates = c("default", "tree", "mesh"),
+  seeds = 1:3,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "always",
+  return.layouts = TRUE
+)
+
+knitr::kable(compact.summary(karate.compare$summary), digits = 3)
+```
+
+The `score.composite` column is a rank-based summary of the available metrics,
+so lower values are better. It is meant to help shortlist candidates rather
+than replace visual judgment.
+
+```{r}
+best.karate <- karate.compare$summary$candidate[[1L]]
+best.seed <- karate.compare$runs$seed[
+  karate.compare$runs$candidate == best.karate &
+    karate.compare$runs$status == "ok"
+][[1L]]
+
+best.karate.coords <- karate.compare$layouts[[best.karate]][[as.character(best.seed)]]
+
+grip.plot(best.karate.coords, karate.edges,
+          main = paste("Karate club best candidate:", best.karate),
+          pch = 16, cex = 0.8)
+```
+
+## Comparing presets with a custom candidate
+
+You can mix presets and explicit parameter lists in the same comparison.
+
+```{r}
+kite.compare <- grip.compare.layouts(
+  edges = kite.edges,
+  n = kite.n,
+  dim = 2,
+  candidates = list(
+    default = NULL,
+    tree = "tree",
+    tree.long = list(preset = "tree", final_rounds = 224)
+  ),
+  seeds = 1:3,
+  sample.size.stress = 800L,
+  sample.size.nonedge = 1500L,
+  edge.crossings = "always"
+)
+
+knitr::kable(compact.summary(kite.compare$summary), digits = 3)
+```
+
+## Using external metadata
+
+If you have known communities or other node labels, pass them through the
+`clusters` argument. `grip.score.layout()` and `grip.compare.layouts()` will
+then report `cluster.separation`, which is higher when groups are more cleanly
+separated in the layout.
+
+```r
+club.labels <- c(...)  # one label per vertex
+
+grip.score.layout(
+  coords = best.karate.coords,
+  edges = karate.edges,
+  n = karate.n,
+  clusters = club.labels
+)
+```
+
+## Practical guidance
+
+For real-world data, a good default workflow is:
+
+1. Start with the default layout plus one or two structurally plausible presets.
+2. Compare them across several seeds with `grip.compare.layouts()`.
+3. Use `sampled.stress`, `edge.length.cv`, and `sampled.nonedge.sep.ratio` as
+   the main generic metrics.
+4. In 2D, include `edge.crossings` when readability matters.
+5. If you have node metadata, add `cluster.separation`.
+6. Inspect the top one or two candidates visually before making a final choice.
