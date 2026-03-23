@@ -1,6 +1,6 @@
 # grip
 
-GRIP is an R package for large graph drawing using the GRIP algorithm (Graph dRawing with Intelligent Placement). It supports 2D and 3D layouts and provides one GRIP engine with two initial placement strategies (`barycenter`, `circle`).
+GRIP is an R package for large graph drawing using the GRIP algorithm (Graph dRawing with Intelligent Placement). It supports 2D and 3D layouts with two initial placement strategies (`barycenter`, `circle`).
 
 ## Gallery
 

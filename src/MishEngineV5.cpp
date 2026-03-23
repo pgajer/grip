@@ -1,13 +1,6 @@
-// mish_engine_v5() and the supporting routines
+// Shared support routines for the GRIP layout engine
 
 #include "DrawGraph.h"
-
-// Legacy compatibility entry point. The package now exposes a single GRIP
-// engine, so v5 delegates to the current v6 implementation.
-void DrawGraph::mish_engine_v5()
-{
-    mish_engine_v6();
-}
 
 
 //****************************************************************

@@ -117,36 +117,6 @@ test_that("explicit tuning args override the carpet preset", {
   expect_identical(coords_preset, coords_explicit)
 })
 
-test_that("legacy mish_v5 maps to the single engine", {
-  edges <- edges.cycle(15)
-  coords_v5 <- NULL
-  expect_warning({
-    coords_v5 <- grip.layout(edges, n = 15, dim = 2,
-                             engine = "mish_v5",
-                             placement = "barycenter",
-                             rounds = 5, final_rounds = 3,
-                             num_init = 5, num_nbrs = 6,
-                             seed = 7)
-  }, "deprecated and mapped")
-  coords_v6 <- grip.layout(edges, n = 15, dim = 2,
-                           engine = "mish_v6",
-                           placement = "barycenter",
-                           rounds = 5, final_rounds = 3,
-                           num_init = 5, num_nbrs = 6,
-                           seed = 7)
-  expect_equal(dim(coords_v5), c(15, 2))
-  expect_true(all(is.finite(coords_v5)))
-  expect_identical(coords_v5, coords_v6)
-})
-
-test_that("invalid engine values are rejected", {
-  edges <- edges.cycle(10)
-  expect_error(
-    grip.layout(edges, n = 10, dim = 2, engine = "bogus", seed = 1),
-    "engine must be 'mish_v6'"
-  )
-})
-
 test_that("invalid tuning parameters are rejected", {
   edges <- edges.cycle(10)
   expect_error(

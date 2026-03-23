@@ -156,29 +156,6 @@ grip.pack.component.layouts <- function(layouts, comp, n, dim) {
   out
 }
 
-grip.normalize.engine <- function(engine, fn = "grip.layout") {
-  if (is.null(engine)) {
-    return("mish_v6")
-  }
-  if (!is.character(engine) || length(engine) != 1L || is.na(engine)) {
-    stop("engine must be a single character value")
-  }
-  if (identical(engine, "mish_v6")) {
-    return(engine)
-  }
-  if (identical(engine, "mish_v5")) {
-    warning(
-      sprintf(
-        "%s() now uses a single GRIP engine; engine = 'mish_v5' is deprecated and mapped to 'mish_v6'.",
-        fn
-      ),
-      call. = FALSE
-    )
-    return("mish_v6")
-  }
-  stop("engine must be 'mish_v6'")
-}
-
 grip.normalize.preset <- function(preset, fn = "grip.layout") {
   if (is.null(preset)) {
     return(NULL)
@@ -416,10 +393,6 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param edge_weights Optional vector of edge weights for \code{edges}. All
 #'   weights must be finite and strictly positive.
 #' @param dim Layout dimension (2 or 3). Default is 3.
-#' @param engine Deprecated legacy engine selector. The package now uses a
-#'   single GRIP engine. `engine = "mish_v6"` is the supported value;
-#'   `engine = "mish_v5"` is accepted for compatibility and mapped to
-#'   `"mish_v6"` with a warning.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
 #' @param preset Optional tuning preset. \code{NULL} uses the standard defaults.
 #'   \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
@@ -477,7 +450,6 @@ grip.layout <- function(edges = NULL,
                         weight_list = NULL,
                         edge_weights = NULL,
                         dim = 3,
-                        engine = "mish_v6",
                         placement = c("barycenter", "circle"),
                         preset = NULL,
                         rounds = 20,
@@ -499,7 +471,6 @@ grip.layout <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  engine <- grip.normalize.engine(engine, fn = "grip.layout")
   preset <- grip.normalize.preset(preset, fn = "grip.layout")
   resolved <- grip.resolve.preset(
     preset = preset,
@@ -562,7 +533,6 @@ grip.layout <- function(edges = NULL,
                         weight_list = weight_list,
                         n = n,
                         dim = dim,
-                        engine = engine,
                         placement = placement,
                         rounds = as.integer(rounds),
                         final_rounds = as.integer(final_rounds),
@@ -584,7 +554,7 @@ grip.layout <- function(edges = NULL,
 
   if (identical(disconnected, "error")) {
     stop(sprintf(
-      "Input graph has %d connected components; grip C++ engine assumes connected graphs. Use disconnected = 'components' to lay out each component safely.",
+      "Input graph has %d connected components; the GRIP layout core assumes connected graphs. Use disconnected = 'components' to lay out each component safely.",
       n.comp
     ))
   }
@@ -649,7 +619,6 @@ grip.layout.trace <- function(edges = NULL,
                               weight_list = NULL,
                               edge_weights = NULL,
                               dim = 3,
-                              engine = "mish_v6",
                               placement = c("barycenter", "circle"),
                               preset = NULL,
                               rounds = 20,
@@ -672,7 +641,6 @@ grip.layout.trace <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  engine <- grip.normalize.engine(engine, fn = "grip.layout.trace")
   preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
   resolved <- grip.resolve.preset(
     preset = preset,
@@ -752,7 +720,6 @@ grip.layout.trace <- function(edges = NULL,
     weight_list = weight_list,
     n = n,
     dim = dim,
-    engine = engine,
     placement = placement,
     rounds = as.integer(rounds),
     final_rounds = as.integer(final_rounds),

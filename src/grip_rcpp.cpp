@@ -8,12 +8,6 @@
 
 namespace {
 
-void validate_engine_arg(const std::string &engine)
-{
-    if(engine != "mish_v6" && engine != "mish_v5")
-        Rcpp::stop("engine must be 'mish_v6'");
-}
-
 void validate_tuning_args(int num_nbrs,
                           double r,
                           double s,
@@ -36,7 +30,6 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
                                     Rcpp::Nullable<Rcpp::NumericVector> edge_weights,
                                     int n,
                                     int dim,
-                                    std::string engine,
                                     std::string placement,
                                     int rounds,
                                     int final_rounds,
@@ -101,7 +94,6 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
     graph.sfast_Rand(seed_val);
     graph.from_edge_list(static_cast<size_tt>(n), edge_list, weights_ptr);
 
-    validate_engine_arg(engine);
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
 
@@ -118,7 +110,7 @@ Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges,
                  placement_mode,
                  false);
 
-    dg.mish_engine_v6();
+    dg.mish_engine();
 
     Rcpp::NumericMatrix out(n, dim);
     Point<> *pos = dg.get_Pos();
@@ -136,7 +128,6 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
                                         Rcpp::Nullable<Rcpp::List> weight_list,
                                         int n,
                                         int dim,
-                                        std::string engine,
                                         std::string placement,
                                         int rounds,
                                         int final_rounds,
@@ -210,7 +201,6 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
     graph.sfast_Rand(seed_val);
     graph.from_adj_list(static_cast<size_tt>(n), adj, useWeights ? &weights : nullptr);
 
-    validate_engine_arg(engine);
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
 
@@ -227,7 +217,7 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
                  placement_mode,
                  false);
 
-    dg.mish_engine_v6();
+    dg.mish_engine();
 
     Rcpp::NumericMatrix out(n, dim);
     Point<> *pos = dg.get_Pos();
@@ -245,7 +235,6 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
                                      Rcpp::Nullable<Rcpp::List> weight_list,
                                      int n,
                                      int dim,
-                                     std::string engine,
                                      std::string placement,
                                      int rounds,
                                      int final_rounds,
@@ -326,7 +315,6 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
     graph.sfast_Rand(seed_val);
     graph.from_adj_list(static_cast<size_tt>(n), adj, useWeights ? &weights : nullptr);
 
-    validate_engine_arg(engine);
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
 
@@ -345,7 +333,7 @@ Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
                        static_cast<size_tt>(trace_every));
 
-    dg.mish_engine_v6();
+    dg.mish_engine();
 
     Rcpp::NumericMatrix out(n, dim);
     Point<> *pos = dg.get_Pos();

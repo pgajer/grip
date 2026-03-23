@@ -56,10 +56,10 @@ combines three ideas into a single multi-scale pipeline:
 3. **Fast force-directed refinement.** Each vertex is refined using only a
    small, local neighborhood of graph-distance neighbors (controlled by the
    `num_nbrs` parameter). This makes the per-vertex cost constant on average,
-   yielding near-linear overall running time. The current package exposes a
-   single GRIP engine, using local Kamada--Kawai refinement on coarse
-   filtration levels and a Fruchterman--Reingold-style attractive/repulsive
-   update on the finest level.
+   yielding near-linear overall running time. The current package uses a
+   single GRIP layout implementation, with local Kamada--Kawai refinement on
+   coarse filtration levels and a Fruchterman--Reingold-style
+   attractive/repulsive update on the finest level.
 
 The result is an algorithm that draws graphs with tens of thousands of
 vertices in seconds, using negligible memory, while producing layouts that are
@@ -76,7 +76,6 @@ library(grip)
 | Parameter      | Meaning |
 |:---------------|:--------|
 | `dim`          | Layout dimension (2 or 3). |
-| `engine`       | Deprecated legacy selector; retained only for compatibility and mapped to the current engine. |
 | `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
 | `preset`       | Optional tuning preset. `"carpet"` fills in omitted tuning args for carpet-like graphs. |
 | `rounds`       | Refinement rounds at coarse levels. |
@@ -141,8 +140,8 @@ grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
 
 ### Mesh (grid) graph
 
-A 5 x 5 grid graph. The single current engine tends to produce more uniform
-spacing on regular lattices than the older documented variants.
+A 5 x 5 grid graph. The current layout implementation tends to produce more
+uniform spacing on regular lattices than the older documented variants.
 
 ```{r}
 edges <- edges.mesh(5, 5)

@@ -28,6 +28,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
 : createList(false),
   graph(_graph),
   dim(_dim),
+  rounds(_rounds),
   initRounds(_rounds),
   finalRounds(_finalRounds),
   numOfVert(_graph.get_numOfVert()),
@@ -67,6 +68,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
     deg          = new size_tt[numOfVert];
         
     for(size_tt vert=0; vert < numOfVert; vert++){
+        disp[ vert ].set_to_zero();
+        oldDisp[ vert ].set_to_zero();
+        dispNorm[ vert ] = 0;
+        oldDispNorm[ vert ] = 0;
         heat[ vert ] = tinit;
         old_cos[vert] = 1;
         deg[vert] = graph.adjList[0][vert];

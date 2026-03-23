@@ -81,37 +81,6 @@ test_that("trace rejects disconnected graphs for now", {
   )
 })
 
-test_that("trace warns and maps legacy mish_v5 to mish_v6", {
-  edges <- edges.path(8)
-  tr_v5 <- NULL
-  expect_warning({
-    tr_v5 <- grip.layout.trace(edges = edges,
-                               n = 8,
-                               dim = 2,
-                               engine = "mish_v5",
-                               rounds = 4,
-                               final_rounds = 3,
-                               num_init = 3,
-                               num_nbrs = 4,
-                               trace = "level",
-                               trace.every = 1,
-                               seed = 123)
-  }, "deprecated and mapped")
-  tr_v6 <- grip.layout.trace(edges = edges,
-                             n = 8,
-                             dim = 2,
-                             engine = "mish_v6",
-                             rounds = 4,
-                             final_rounds = 3,
-                             num_init = 3,
-                             num_nbrs = 4,
-                             trace = "level",
-                             trace.every = 1,
-                             seed = 123)
-  expect_identical(tr_v5$final, tr_v6$final)
-  expect_identical(tr_v5$meta, tr_v6$meta)
-})
-
 test_that("trace validates tuning parameters", {
   edges <- edges.path(8)
   expect_error(

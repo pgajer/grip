@@ -54,10 +54,8 @@ class DrawGraph
     ~DrawGraph();
 
     //
-    // ENGINES
+    // GRIP layout core
     //
-    //----- shared machinery and legacy entry point --------------//
-    void mish_engine_v5();
     size_tt bfs_me_init_v2(size_tt root);
     void bfs_me_v4(size_tt root);
     void bfs_cmisf(size_tt root,
@@ -78,9 +76,8 @@ class DrawGraph
     void update_Local_Temp_v2( size_tt vert );
     void update_Local_Temp_v3( size_tt vert, coord_t r, coord_t s );
     
-    //----- GRIP engine --------------//
-    void mish_engine_v6();
-    // FR_spring() is used in the current GRIP engine and utilizes
+    void mish_engine();
+    // FR_spring() is used in the GRIP layout core and utilizes
     // attractive/repulsive force schedule
     void FR_spring(const size_tt root,
                    size_tt *rootNbrsLayer,
@@ -155,7 +152,7 @@ private:
     //
     size_tt *mish;               // maximal independent set hierarchy
     size_tt *inv;                // "inverse" of mish
-    size_tt *misfSize;  // mish_engine_v5 analogue of mishSize
+    size_tt *misfSize;  // filtration sizes used by the GRIP layout core
     size_tt log_2_n;    // log_2(n)
     size_tt *vertDepth; // array of depths of vertices
     float AvgDeg;

@@ -11,7 +11,6 @@ grip.layout.trace(
   weight_list = NULL,
   edge_weights = NULL,
   dim = 3,
-  engine = "mish_v6",
   placement = c("barycenter", "circle"),
   preset = NULL,
   rounds = 20,
@@ -42,11 +41,6 @@ and strictly positive.}
 weights must be finite and strictly positive.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
-
-\item{engine}{Deprecated legacy engine selector. The package now uses a
-single GRIP engine. `engine = "mish_v6"` is the supported value;
-`engine = "mish_v5"` is accepted for compatibility and mapped to
-`"mish_v6"` with a warning.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
 

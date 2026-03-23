@@ -1,16 +1,16 @@
-// mish_engine_v6() and the supporting routines
+// GRIP layout engine and the supporting routines
 
 #include "DrawGraph.h"
 
 //**************************************************************
 //
-//	mish_engine_v6()
+//	mish_engine()
 //
 //      this is a version fo mish_engine which utilizes repulsive
 //      forces
 //
 //**************************************************************
-void DrawGraph::mish_engine_v6()
+void DrawGraph::mish_engine()
 {
     bool firstRound = true;
     size_tt csize = numOfInitVert;
