@@ -443,16 +443,18 @@ run_tetrahedron_diagnostics <- function(levels, seed) {
   invisible(pdfs)
 }
 
-pdfs <- character()
-if (family %in% c("triangle", "all")) {
-  pdfs <- c(pdfs, run_triangle_diagnostics(triangle_levels, seed))
-}
-if (family %in% c("tetrahedron", "all")) {
-  pdfs <- c(pdfs, run_tetrahedron_diagnostics(tetrahedron_levels, seed))
-}
+if (sys.nframe() == 0L) {
+  pdfs <- character()
+  if (family %in% c("triangle", "all")) {
+    pdfs <- c(pdfs, run_triangle_diagnostics(triangle_levels, seed))
+  }
+  if (family %in% c("tetrahedron", "all")) {
+    pdfs <- c(pdfs, run_tetrahedron_diagnostics(tetrahedron_levels, seed))
+  }
 
-if (length(pdfs) == 0L) {
-  stop("No diagnostics requested. Use family=triangle, family=tetrahedron, or family=all.")
-}
+  if (length(pdfs) == 0L) {
+    stop("No diagnostics requested. Use family=triangle, family=tetrahedron, or family=all.")
+  }
 
-cat(paste(pdfs, collapse = "\n"), "\n")
+  cat(paste(pdfs, collapse = "\n"), "\n")
+}
