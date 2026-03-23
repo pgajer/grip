@@ -15,10 +15,13 @@ search_space <- list(
 )
 
 score_weights <- c(
-  procrustes_rmse = 0.45,
-  edge_length_cv = 0.20,
-  sampled_stress = 0.20,
-  sampled_nonedge_sep_ratio = 0.15
+  procrustes_rmse = 0.20,
+  edge_length_cv = 0.10,
+  sampled_stress = 0.10,
+  sampled_nonedge_sep_ratio = 0.10,
+  torus_cross_section_circle_rmse = 0.20,
+  torus_major_cycle_angle_rmse = 0.15,
+  torus_minor_cycle_azimuth_sd = 0.15
 )
 
 candidate_fields <- c(
@@ -449,6 +452,81 @@ build_graph_specs_for_sizes <- function(sizes) {
   })
 }
 
+circular_diff <- function(a, b) {
+  atan2(sin(a - b), cos(a - b))
+}
+
+circular_sd <- function(theta) {
+  z <- mean(exp(1i * theta))
+  rbar <- Mod(z)
+  if (!is.finite(rbar) || rbar <= 1e-12) {
+    return(pi / sqrt(3))
+  }
+  sqrt(max(-2 * log(rbar), 0))
+}
+
+fit_circle_rmse <- function(x, y) {
+  if (length(x) < 3L || length(y) < 3L) {
+    return(NA_real_)
+  }
+  A <- cbind(2 * x, 2 * y, 1)
+  b <- x^2 + y^2
+  coef <- tryCatch(qr.solve(A, b), error = function(e) NULL)
+  if (is.null(coef)) {
+    return(NA_real_)
+  }
+  cx <- coef[[1L]]
+  cy <- coef[[2L]]
+  c0 <- coef[[3L]]
+  radius_sq <- c0 + cx^2 + cy^2
+  if (!is.finite(radius_sq) || radius_sq <= 0) {
+    return(NA_real_)
+  }
+  radius <- sqrt(radius_sq)
+  dist <- sqrt((x - cx)^2 + (y - cy)^2)
+  sqrt(mean((dist - radius)^2)) / radius
+}
+
+torus_metric_array <- function(aligned_coords, spec, variant) {
+  arr <- coords_to_grid_array(aligned_coords, spec$h, spec$w)
+  if (identical(variant, "swapped_cycles")) {
+    arr <- aperm(arr, c(2L, 1L, 3L))
+  }
+  arr
+}
+
+torus_shape_metrics <- function(aligned_coords, spec, variant) {
+  arr <- torus_metric_array(aligned_coords, spec, variant)
+  dims <- dim(arr)
+  n_minor <- dims[[1L]]
+  n_major <- dims[[2L]]
+
+  rho <- sqrt(aligned_coords[, 1L]^2 + aligned_coords[, 2L]^2)
+  z <- aligned_coords[, 3L]
+  cross_section_rmse <- fit_circle_rmse(rho, z)
+
+  ideal_step <- 2 * pi / n_major
+  major_cycle_rmse <- mean(vapply(seq_len(n_minor), function(i) {
+    phi <- atan2(arr[i, , 2L], arr[i, , 1L])
+    steps <- c(
+      abs(vapply(seq_len(n_major - 1L), function(j) circular_diff(phi[j + 1L], phi[j]), numeric(1L))),
+      abs(circular_diff(phi[1L], phi[n_major]))
+    )
+    sqrt(mean((steps - ideal_step)^2)) / ideal_step
+  }, numeric(1L)))
+
+  minor_cycle_azimuth_sd <- mean(vapply(seq_len(n_major), function(j) {
+    phi <- atan2(arr[, j, 2L], arr[, j, 1L])
+    circular_sd(phi)
+  }, numeric(1L)))
+
+  list(
+    torus_cross_section_circle_rmse = cross_section_rmse,
+    torus_major_cycle_angle_rmse = major_cycle_rmse,
+    torus_minor_cycle_azimuth_sd = minor_cycle_azimuth_sd
+  )
+}
+
 run_one_layout_torus <- function(spec, cfg, seed, stress_sample = 4000L, sep_sample = 8000L) {
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
@@ -470,6 +548,7 @@ run_one_layout_torus <- function(spec, cfg, seed, stress_sample = 4000L, sep_sam
   elapsed <- proc.time()[["elapsed"]] - started
   aligned <- best_torus_alignment(coords, spec)
   edge_stats <- edge_length_stats(coords, spec$edges)
+  shape <- torus_shape_metrics(aligned$aligned, spec, aligned$variant)
 
   data.frame(
     family = spec$family,
@@ -494,6 +573,9 @@ run_one_layout_torus <- function(spec, cfg, seed, stress_sample = 4000L, sep_sam
     sampled_nonedge_sep_ratio = sampled_nonedge_separation_ratio(
       coords, spec$edges, sample_size = sep_sample, rng_seed = 2000L + seed
     ),
+    torus_cross_section_circle_rmse = shape$torus_cross_section_circle_rmse,
+    torus_major_cycle_angle_rmse = shape$torus_major_cycle_angle_rmse,
+    torus_minor_cycle_azimuth_sd = shape$torus_minor_cycle_azimuth_sd,
     elapsed_sec = elapsed,
     align_variant = aligned$variant,
     align_shift = aligned$shift,
@@ -528,6 +610,9 @@ run_one_layout_safe <- function(spec, candidate, seed) {
         median_edge_length = NA_real_,
         sampled_stress = NA_real_,
         sampled_nonedge_sep_ratio = NA_real_,
+        torus_cross_section_circle_rmse = NA_real_,
+        torus_major_cycle_angle_rmse = NA_real_,
+        torus_minor_cycle_azimuth_sd = NA_real_,
         elapsed_sec = NA_real_,
         align_variant = "",
         align_shift = NA_integer_,
@@ -547,7 +632,9 @@ run_one_layout_safe <- function(spec, candidate, seed) {
     "vertices", "edges", "placement", "rounds", "final_rounds", "num_init",
     "num_nbrs", "r", "s", "repulsion_factor", "status", "error_message",
     "procrustes_rmse", "edge_length_cv", "median_edge_length", "sampled_stress",
-    "sampled_nonedge_sep_ratio", "elapsed_sec", "align_variant", "align_shift"
+    "sampled_nonedge_sep_ratio", "torus_cross_section_circle_rmse",
+    "torus_major_cycle_angle_rmse", "torus_minor_cycle_azimuth_sd",
+    "elapsed_sec", "align_variant", "align_shift"
   )]
 }
 
@@ -604,6 +691,12 @@ summarize_candidate_graphs <- function(raw_metrics) {
       sampled_stress_sd = if (nrow(good) > 1L) stats::sd(good$sampled_stress) else 0,
       sampled_nonedge_sep_ratio_mean = if (nrow(good) > 0L) mean(good$sampled_nonedge_sep_ratio) else NA_real_,
       sampled_nonedge_sep_ratio_sd = if (nrow(good) > 1L) stats::sd(good$sampled_nonedge_sep_ratio) else 0,
+      torus_cross_section_circle_rmse_mean = if (nrow(good) > 0L) mean(good$torus_cross_section_circle_rmse) else NA_real_,
+      torus_cross_section_circle_rmse_sd = if (nrow(good) > 1L) stats::sd(good$torus_cross_section_circle_rmse) else 0,
+      torus_major_cycle_angle_rmse_mean = if (nrow(good) > 0L) mean(good$torus_major_cycle_angle_rmse) else NA_real_,
+      torus_major_cycle_angle_rmse_sd = if (nrow(good) > 1L) stats::sd(good$torus_major_cycle_angle_rmse) else 0,
+      torus_minor_cycle_azimuth_sd_mean = if (nrow(good) > 0L) mean(good$torus_minor_cycle_azimuth_sd) else NA_real_,
+      torus_minor_cycle_azimuth_sd_sd = if (nrow(good) > 1L) stats::sd(good$torus_minor_cycle_azimuth_sd) else 0,
       elapsed_sec_mean = if (nrow(good) > 0L) mean(good$elapsed_sec) else NA_real_,
       best_seed = best_seed,
       best_align_variant = best_variant,
@@ -620,11 +713,17 @@ score_candidate_graphs <- function(graph_summary) {
     df$rank_edge_cv <- rank01(df$edge_length_cv_mean, higher_better = FALSE)
     df$rank_stress <- rank01(df$sampled_stress_mean, higher_better = FALSE)
     df$rank_sep <- rank01(df$sampled_nonedge_sep_ratio_mean, higher_better = TRUE)
+    df$rank_cross_section <- rank01(df$torus_cross_section_circle_rmse_mean, higher_better = FALSE)
+    df$rank_major_cycle <- rank01(df$torus_major_cycle_angle_rmse_mean, higher_better = FALSE)
+    df$rank_minor_cycle <- rank01(df$torus_minor_cycle_azimuth_sd_mean, higher_better = FALSE)
     df$score_graph <-
       score_weights[["procrustes_rmse"]] * df$rank_rmse +
       score_weights[["edge_length_cv"]] * df$rank_edge_cv +
       score_weights[["sampled_stress"]] * df$rank_stress +
-      score_weights[["sampled_nonedge_sep_ratio"]] * df$rank_sep
+      score_weights[["sampled_nonedge_sep_ratio"]] * df$rank_sep +
+      score_weights[["torus_cross_section_circle_rmse"]] * df$rank_cross_section +
+      score_weights[["torus_major_cycle_angle_rmse"]] * df$rank_major_cycle +
+      score_weights[["torus_minor_cycle_azimuth_sd"]] * df$rank_minor_cycle
     df$score_graph[!is.finite(df$procrustes_rmse_mean)] <- Inf
     df[order(df$score_graph, df$procrustes_rmse_mean), , drop = FALSE]
   })
@@ -654,6 +753,9 @@ summarize_family_rankings <- function(scored_graphs) {
       edge_length_cv_mean = mean(df$edge_length_cv_mean, na.rm = TRUE),
       sampled_stress_mean = mean(df$sampled_stress_mean, na.rm = TRUE),
       sampled_nonedge_sep_ratio_mean = mean(df$sampled_nonedge_sep_ratio_mean, na.rm = TRUE),
+      torus_cross_section_circle_rmse_mean = mean(df$torus_cross_section_circle_rmse_mean, na.rm = TRUE),
+      torus_major_cycle_angle_rmse_mean = mean(df$torus_major_cycle_angle_rmse_mean, na.rm = TRUE),
+      torus_minor_cycle_azimuth_sd_mean = mean(df$torus_minor_cycle_azimuth_sd_mean, na.rm = TRUE),
       stringsAsFactors = FALSE
     )
   }))
@@ -686,6 +788,12 @@ build_graph_comparison <- function(scored_graphs, comparison_candidate_id, basel
       tuned_stress = tuned_row$sampled_stress_mean[[1L]],
       baseline_sep = baseline_row$sampled_nonedge_sep_ratio_mean[[1L]],
       tuned_sep = tuned_row$sampled_nonedge_sep_ratio_mean[[1L]],
+      baseline_cross_section = baseline_row$torus_cross_section_circle_rmse_mean[[1L]],
+      tuned_cross_section = tuned_row$torus_cross_section_circle_rmse_mean[[1L]],
+      baseline_major_cycle = baseline_row$torus_major_cycle_angle_rmse_mean[[1L]],
+      tuned_major_cycle = tuned_row$torus_major_cycle_angle_rmse_mean[[1L]],
+      baseline_minor_cycle = baseline_row$torus_minor_cycle_azimuth_sd_mean[[1L]],
+      tuned_minor_cycle = tuned_row$torus_minor_cycle_azimuth_sd_mean[[1L]],
       stringsAsFactors = FALSE
     )
   }))
@@ -718,11 +826,14 @@ write_tuning_summary <- function(path,
     "",
     "Score definition (lower is better):",
     sprintf(
-      "- `score_graph = %.2f * rank(RMSE) + %.2f * rank(edge_length_cv) + %.2f * rank(sampled_stress) + %.2f * rank(-nonedge_sep)`",
+      "- `score_graph = %.2f * rank(RMSE) + %.2f * rank(edge_length_cv) + %.2f * rank(sampled_stress) + %.2f * rank(-nonedge_sep) + %.2f * rank(cross_section_circle_rmse) + %.2f * rank(major_cycle_angle_rmse) + %.2f * rank(minor_cycle_azimuth_sd)`",
       score_weights[["procrustes_rmse"]],
       score_weights[["edge_length_cv"]],
       score_weights[["sampled_stress"]],
-      score_weights[["sampled_nonedge_sep_ratio"]]
+      score_weights[["sampled_nonedge_sep_ratio"]],
+      score_weights[["torus_cross_section_circle_rmse"]],
+      score_weights[["torus_major_cycle_angle_rmse"]],
+      score_weights[["torus_minor_cycle_azimuth_sd"]]
     ),
     "",
     "Search space:",
@@ -742,21 +853,24 @@ write_tuning_summary <- function(path,
     "",
     "Top candidates:",
     "",
-    "| Candidate | Source | Mean score | RMSE | Edge CV | Stress | Non-edge sep |",
-    "| --- | --- | ---: | ---: | ---: | ---: | ---: |"
+    "| Candidate | Source | Mean score | RMSE | Edge CV | Stress | Non-edge sep | Cross-sec | Major-cycle | Minor-cycle |",
+    "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
   )
 
   for (i in seq_len(nrow(top_rows))) {
     row <- top_rows[i, ]
     lines <- c(lines, sprintf(
-      "| %s | %s | %s | %s | %s | %s | %s |",
+      "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |",
       row$candidate_id,
       row$candidate_source,
       format_num(row$score_mean, 4),
       format_num(row$procrustes_rmse_mean, 4),
       format_num(row$edge_length_cv_mean, 4),
       format_num(row$sampled_stress_mean, 4),
-      format_num(row$sampled_nonedge_sep_ratio_mean, 4)
+      format_num(row$sampled_nonedge_sep_ratio_mean, 4),
+      format_num(row$torus_cross_section_circle_rmse_mean, 4),
+      format_num(row$torus_major_cycle_angle_rmse_mean, 4),
+      format_num(row$torus_minor_cycle_azimuth_sd_mean, 4)
     ))
   }
 
@@ -772,11 +886,11 @@ write_tuning_summary <- function(path,
     ))
   }
 
-  lines <- c(lines, "", "Baseline vs comparison candidate:", "", "| Size | Baseline score | Tuned score | Baseline RMSE | Tuned RMSE | Baseline edge CV | Tuned edge CV | Baseline stress | Tuned stress | Baseline sep | Tuned sep |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+  lines <- c(lines, "", "Baseline vs comparison candidate:", "", "| Size | Baseline score | Tuned score | Baseline RMSE | Tuned RMSE | Baseline edge CV | Tuned edge CV | Baseline stress | Tuned stress | Baseline sep | Tuned sep | Baseline cross-sec | Tuned cross-sec | Baseline major | Tuned major | Baseline minor | Tuned minor |", "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (i in seq_len(nrow(graph_comparison))) {
     row <- graph_comparison[i, ]
     lines <- c(lines, sprintf(
-      "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |",
+      "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |",
       row$graph_label,
       format_num(row$baseline_score, 4),
       format_num(row$tuned_score, 4),
@@ -787,7 +901,13 @@ write_tuning_summary <- function(path,
       format_num(row$baseline_stress, 4),
       format_num(row$tuned_stress, 4),
       format_num(row$baseline_sep, 4),
-      format_num(row$tuned_sep, 4)
+      format_num(row$tuned_sep, 4),
+      format_num(row$baseline_cross_section, 4),
+      format_num(row$tuned_cross_section, 4),
+      format_num(row$baseline_major_cycle, 4),
+      format_num(row$tuned_major_cycle, 4),
+      format_num(row$baseline_minor_cycle, 4),
+      format_num(row$tuned_minor_cycle, 4)
     ))
   }
 

@@ -159,3 +159,59 @@ test_that("trace carpet preset matches the explicit carpet tuning profile", {
   expect_identical(tr_preset$final, tr_explicit$final)
   expect_identical(tr_preset$meta, tr_explicit$meta)
 })
+
+test_that("trace torus preset matches the explicit torus tuning profile", {
+  edges <- edges.torus(4, 4)
+  n <- max(edges)
+  tr_preset <- grip.layout.trace(edges = edges,
+                                 n = n,
+                                 dim = 3,
+                                 preset = "torus",
+                                 trace = "level",
+                                 trace.every = 1,
+                                 seed = 59)
+  tr_explicit <- grip.layout.trace(edges = edges,
+                                   n = n,
+                                   dim = 3,
+                                   placement = "barycenter",
+                                   rounds = 192,
+                                   final_rounds = 288,
+                                   num_init = 12,
+                                   num_nbrs = 28,
+                                   r = 0.05,
+                                   s = 7.5,
+                                   repulsion_factor = 0.75,
+                                   trace = "level",
+                                   trace.every = 1,
+                                   seed = 59)
+  expect_identical(tr_preset$final, tr_explicit$final)
+  expect_identical(tr_preset$meta, tr_explicit$meta)
+})
+
+test_that("trace tree preset matches the explicit tree tuning profile", {
+  edges <- edges.kary.tree(k = 2, depth = 4)
+  n <- max(edges)
+  tr_preset <- grip.layout.trace(edges = edges,
+                                 n = n,
+                                 dim = 2,
+                                 preset = "tree",
+                                 trace = "level",
+                                 trace.every = 1,
+                                 seed = 71)
+  tr_explicit <- grip.layout.trace(edges = edges,
+                                   n = n,
+                                   dim = 2,
+                                   placement = "circle",
+                                   rounds = 64,
+                                   final_rounds = 160,
+                                   num_init = 28,
+                                   num_nbrs = 8,
+                                   r = 0.05,
+                                   s = 7.5,
+                                   repulsion_factor = 0,
+                                   trace = "level",
+                                   trace.every = 1,
+                                   seed = 71)
+  expect_identical(tr_preset$final, tr_explicit$final)
+  expect_identical(tr_preset$meta, tr_explicit$meta)
+})

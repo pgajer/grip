@@ -77,7 +77,7 @@ library(grip)
 |:---------------|:--------|
 | `dim`          | Layout dimension (2 or 3). |
 | `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
-| `preset`       | Optional tuning preset. `"carpet"` fills in omitted tuning args for carpet-like graphs. |
+| `preset`       | Optional tuning preset. `"carpet"`, `"torus"`, and `"tree"` fill in omitted tuning args for those graph families. |
 | `rounds`       | Refinement rounds at coarse levels. |
 | `final_rounds` | Refinement rounds at the finest level. |
 | `num_init`     | Number of initial vertices at the coarsest filtration level. |
@@ -87,7 +87,11 @@ library(grip)
 | `seed`         | RNG seed for reproducibility. |
 
 The optional `preset = "carpet"` profile is tuned for Sierpinski-carpet-like
-graphs and was validated on levels 3 and 4.
+graphs and was validated on levels 3 and 4. The optional `preset = "torus"`
+profile is tuned for 3D torus layouts and was validated on torus sizes from
+8x8 through 20x20. The optional `preset = "tree"` profile is tuned for
+symmetry-focused force-directed layouts of tree-like graphs and was validated
+on binary trees of depths 5 and 6.
 
 The examples below use `rounds = 25` and `final_rounds = 25` for good layout
 quality. The remaining parameters (`num_init`, `num_nbrs`) are kept small

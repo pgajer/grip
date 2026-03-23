@@ -46,8 +46,12 @@ weights must be finite and strictly positive.}
 
 \item{preset}{Optional tuning preset. \code{NULL} uses the standard defaults.
 \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
-and validated on carpet levels 3 and 4, but only for tuning arguments
-that you did not supply explicitly.}
+and validated on carpet levels 3 and 4. \code{"torus"} applies a preset
+tuned for 3D torus layouts and validated on torus sizes from 8x8 through
+20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
+layouts of tree-like graphs and validated on binary trees of depths 5 and
+6. Presets only fill in tuning arguments that you did not supply
+explicitly.}
 
 \item{rounds}{Initial rounds for refinement.}
 

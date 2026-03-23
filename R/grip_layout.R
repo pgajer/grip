@@ -161,12 +161,12 @@ grip.normalize.preset <- function(preset, fn = "grip.layout") {
     return(NULL)
   }
   if (!is.character(preset) || length(preset) != 1L || is.na(preset)) {
-    stop("preset must be NULL or 'carpet'")
+    stop("preset must be NULL, 'carpet', 'torus', or 'tree'")
   }
-  if (identical(preset, "carpet")) {
+  if (preset %in% c("carpet", "torus", "tree")) {
     return(preset)
   }
-  stop("preset must be NULL or 'carpet'")
+  stop("preset must be NULL, 'carpet', 'torus', or 'tree'")
 }
 
 grip.carpet.preset.defaults <- function() {
@@ -179,6 +179,32 @@ grip.carpet.preset.defaults <- function() {
     r = 0.03,
     s = 6.0,
     repulsion_factor = 2.5
+  )
+}
+
+grip.torus.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 192L,
+    final_rounds = 288L,
+    num_init = 12L,
+    num_nbrs = 28L,
+    r = 0.05,
+    s = 7.5,
+    repulsion_factor = 0.75
+  )
+}
+
+grip.tree.preset.defaults <- function() {
+  list(
+    placement = "circle",
+    rounds = 64L,
+    final_rounds = 160L,
+    num_init = 28L,
+    num_nbrs = 8L,
+    r = 0.05,
+    s = 7.5,
+    repulsion_factor = 0.0
   )
 }
 
@@ -199,7 +225,7 @@ grip.resolve.preset <- function(preset,
                                 s_missing,
                                 repulsion_factor,
                                 repulsion_factor_missing) {
-  if (!identical(preset, "carpet")) {
+  if (is.null(preset)) {
     return(list(
       placement = placement,
       rounds = rounds,
@@ -212,7 +238,13 @@ grip.resolve.preset <- function(preset,
     ))
   }
 
-  defaults <- grip.carpet.preset.defaults()
+  defaults <- switch(
+    preset,
+    carpet = grip.carpet.preset.defaults(),
+    torus = grip.torus.preset.defaults(),
+    tree = grip.tree.preset.defaults(),
+    stop("unknown preset")
+  )
   if (placement_missing) placement <- defaults$placement
   if (rounds_missing) rounds <- defaults$rounds
   if (final_rounds_missing) final_rounds <- defaults$final_rounds
@@ -396,8 +428,12 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
 #' @param preset Optional tuning preset. \code{NULL} uses the standard defaults.
 #'   \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
-#'   and validated on carpet levels 3 and 4, but only for tuning arguments
-#'   that you did not supply explicitly.
+#'   and validated on carpet levels 3 and 4. \code{"torus"} applies a preset
+#'   tuned for 3D torus layouts and validated on torus sizes from 8x8 through
+#'   20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
+#'   layouts of tree-like graphs and validated on binary trees of depths 5 and
+#'   6. Presets only fill in tuning arguments that you did not supply
+#'   explicitly.
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
 #' @param num_init Number of initial vertices in the coarsest level.

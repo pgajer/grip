@@ -100,6 +100,38 @@ test_that("carpet preset matches the explicit carpet tuning profile", {
   expect_identical(coords_preset, coords_explicit)
 })
 
+test_that("torus preset matches the explicit torus tuning profile", {
+  edges <- edges.torus(4, 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 3,
+                               preset = "torus",
+                               seed = 47)
+  coords_explicit <- grip.layout(edges, n = n, dim = 3,
+                                 placement = "barycenter",
+                                 rounds = 192, final_rounds = 288,
+                                 num_init = 12, num_nbrs = 28,
+                                 r = 0.05, s = 7.5,
+                                 repulsion_factor = 0.75,
+                                 seed = 47)
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("tree preset matches the explicit tree tuning profile", {
+  edges <- edges.kary.tree(k = 2, depth = 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "tree",
+                               seed = 61)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "circle",
+                                 rounds = 64, final_rounds = 160,
+                                 num_init = 28, num_nbrs = 8,
+                                 r = 0.05, s = 7.5,
+                                 repulsion_factor = 0,
+                                 seed = 61)
+  expect_identical(coords_preset, coords_explicit)
+})
+
 test_that("explicit tuning args override the carpet preset", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
@@ -114,6 +146,40 @@ test_that("explicit tuning args override the carpet preset", {
                                  r = 0.03, s = 6.0,
                                  repulsion_factor = 1.75,
                                  seed = 43)
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("explicit tuning args override the torus preset", {
+  edges <- edges.torus(4, 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 3,
+                               preset = "torus",
+                               final_rounds = 320,
+                               seed = 53)
+  coords_explicit <- grip.layout(edges, n = n, dim = 3,
+                                 placement = "barycenter",
+                                 rounds = 192, final_rounds = 320,
+                                 num_init = 12, num_nbrs = 28,
+                                 r = 0.05, s = 7.5,
+                                 repulsion_factor = 0.75,
+                                 seed = 53)
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("explicit tuning args override the tree preset", {
+  edges <- edges.kary.tree(k = 2, depth = 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "tree",
+                               repulsion_factor = 0.5,
+                               seed = 67)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "circle",
+                                 rounds = 64, final_rounds = 160,
+                                 num_init = 28, num_nbrs = 8,
+                                 r = 0.05, s = 7.5,
+                                 repulsion_factor = 0.5,
+                                 seed = 67)
   expect_identical(coords_preset, coords_explicit)
 })
 
@@ -137,7 +203,7 @@ test_that("invalid tuning parameters are rejected", {
   )
   expect_error(
     grip.layout(edges, n = 10, dim = 2, preset = "bogus", seed = 1),
-    "preset must be NULL or 'carpet'"
+    "preset must be NULL, 'carpet', 'torus', or 'tree'"
   )
 })
 
