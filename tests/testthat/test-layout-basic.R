@@ -84,6 +84,39 @@ test_that("repulsion_factor changes the layout with a fixed seed", {
   expect_gt(max(abs(coords_none - coords_more)), 1e-6)
 })
 
+test_that("carpet preset matches the explicit carpet tuning profile", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "carpet",
+                               seed = 41)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "barycenter",
+                                 rounds = 160, final_rounds = 288,
+                                 num_init = 28, num_nbrs = 24,
+                                 r = 0.03, s = 6.0,
+                                 repulsion_factor = 2.5,
+                                 seed = 41)
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("explicit tuning args override the carpet preset", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "carpet",
+                               repulsion_factor = 1.75,
+                               seed = 43)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "barycenter",
+                                 rounds = 160, final_rounds = 288,
+                                 num_init = 28, num_nbrs = 24,
+                                 r = 0.03, s = 6.0,
+                                 repulsion_factor = 1.75,
+                                 seed = 43)
+  expect_identical(coords_preset, coords_explicit)
+})
+
 test_that("legacy mish_v5 maps to the single engine", {
   edges <- edges.cycle(15)
   coords_v5 <- NULL
@@ -131,6 +164,10 @@ test_that("invalid tuning parameters are rejected", {
   expect_error(
     grip.layout(edges, n = 10, dim = 2, repulsion_factor = -0.1, seed = 1),
     "repulsion_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout(edges, n = 10, dim = 2, preset = "bogus", seed = 1),
+    "preset must be NULL or 'carpet'"
   )
 })
 

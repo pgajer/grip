@@ -162,3 +162,31 @@ test_that("trace repulsion_factor changes the final layout with a fixed seed", {
                                seed = 29)
   expect_gt(max(abs(tr_none$final - tr_more$final)), 1e-6)
 })
+
+test_that("trace carpet preset matches the explicit carpet tuning profile", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  tr_preset <- grip.layout.trace(edges = edges,
+                                 n = n,
+                                 dim = 2,
+                                 preset = "carpet",
+                                 trace = "level",
+                                 trace.every = 1,
+                                 seed = 41)
+  tr_explicit <- grip.layout.trace(edges = edges,
+                                   n = n,
+                                   dim = 2,
+                                   placement = "barycenter",
+                                   rounds = 160,
+                                   final_rounds = 288,
+                                   num_init = 28,
+                                   num_nbrs = 24,
+                                   r = 0.03,
+                                   s = 6.0,
+                                   repulsion_factor = 2.5,
+                                   trace = "level",
+                                   trace.every = 1,
+                                   seed = 41)
+  expect_identical(tr_preset$final, tr_explicit$final)
+  expect_identical(tr_preset$meta, tr_explicit$meta)
+})

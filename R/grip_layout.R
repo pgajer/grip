@@ -179,6 +179,84 @@ grip.normalize.engine <- function(engine, fn = "grip.layout") {
   stop("engine must be 'mish_v6'")
 }
 
+grip.normalize.preset <- function(preset, fn = "grip.layout") {
+  if (is.null(preset)) {
+    return(NULL)
+  }
+  if (!is.character(preset) || length(preset) != 1L || is.na(preset)) {
+    stop("preset must be NULL or 'carpet'")
+  }
+  if (identical(preset, "carpet")) {
+    return(preset)
+  }
+  stop("preset must be NULL or 'carpet'")
+}
+
+grip.carpet.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 160L,
+    final_rounds = 288L,
+    num_init = 28L,
+    num_nbrs = 24L,
+    r = 0.03,
+    s = 6.0,
+    repulsion_factor = 2.5
+  )
+}
+
+grip.resolve.preset <- function(preset,
+                                placement,
+                                placement_missing,
+                                rounds,
+                                rounds_missing,
+                                final_rounds,
+                                final_rounds_missing,
+                                num_init,
+                                num_init_missing,
+                                num_nbrs,
+                                num_nbrs_missing,
+                                r,
+                                r_missing,
+                                s,
+                                s_missing,
+                                repulsion_factor,
+                                repulsion_factor_missing) {
+  if (!identical(preset, "carpet")) {
+    return(list(
+      placement = placement,
+      rounds = rounds,
+      final_rounds = final_rounds,
+      num_init = num_init,
+      num_nbrs = num_nbrs,
+      r = r,
+      s = s,
+      repulsion_factor = repulsion_factor
+    ))
+  }
+
+  defaults <- grip.carpet.preset.defaults()
+  if (placement_missing) placement <- defaults$placement
+  if (rounds_missing) rounds <- defaults$rounds
+  if (final_rounds_missing) final_rounds <- defaults$final_rounds
+  if (num_init_missing) num_init <- defaults$num_init
+  if (num_nbrs_missing) num_nbrs <- defaults$num_nbrs
+  if (r_missing) r <- defaults$r
+  if (s_missing) s <- defaults$s
+  if (repulsion_factor_missing) repulsion_factor <- defaults$repulsion_factor
+
+  list(
+    placement = placement,
+    rounds = rounds,
+    final_rounds = final_rounds,
+    num_init = num_init,
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
+}
+
 grip.validate.tuning.inputs <- function(num_nbrs, r, s, repulsion_factor) {
   if (!is.numeric(num_nbrs) || length(num_nbrs) != 1L || !is.finite(num_nbrs)) {
     stop("num_nbrs must be a single finite numeric value")
@@ -343,6 +421,10 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   `engine = "mish_v5"` is accepted for compatibility and mapped to
 #'   `"mish_v6"` with a warning.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
+#' @param preset Optional tuning preset. \code{NULL} uses the standard defaults.
+#'   \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
+#'   and validated on carpet levels 3 and 4, but only for tuning arguments
+#'   that you did not supply explicitly.
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
 #' @param num_init Number of initial vertices in the coarsest level.
@@ -397,6 +479,7 @@ grip.layout <- function(edges = NULL,
                         dim = 3,
                         engine = "mish_v6",
                         placement = c("barycenter", "circle"),
+                        preset = NULL,
                         rounds = 20,
                         final_rounds = 25,
                         num_init = 36,
@@ -407,7 +490,44 @@ grip.layout <- function(edges = NULL,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
+  placement_missing <- missing(placement)
+  rounds_missing <- missing(rounds)
+  final_rounds_missing <- missing(final_rounds)
+  num_init_missing <- missing(num_init)
+  num_nbrs_missing <- missing(num_nbrs)
+  r_missing <- missing(r)
+  s_missing <- missing(s)
+  repulsion_factor_missing <- missing(repulsion_factor)
+
   engine <- grip.normalize.engine(engine, fn = "grip.layout")
+  preset <- grip.normalize.preset(preset, fn = "grip.layout")
+  resolved <- grip.resolve.preset(
+    preset = preset,
+    placement = placement,
+    placement_missing = placement_missing,
+    rounds = rounds,
+    rounds_missing = rounds_missing,
+    final_rounds = final_rounds,
+    final_rounds_missing = final_rounds_missing,
+    num_init = num_init,
+    num_init_missing = num_init_missing,
+    num_nbrs = num_nbrs,
+    num_nbrs_missing = num_nbrs_missing,
+    r = r,
+    r_missing = r_missing,
+    s = s,
+    s_missing = s_missing,
+    repulsion_factor = repulsion_factor,
+    repulsion_factor_missing = repulsion_factor_missing
+  )
+  placement <- resolved$placement
+  rounds <- resolved$rounds
+  final_rounds <- resolved$final_rounds
+  num_init <- resolved$num_init
+  num_nbrs <- resolved$num_nbrs
+  r <- resolved$r
+  s <- resolved$s
+  repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   disconnected <- match.arg(disconnected)
 
@@ -531,6 +651,7 @@ grip.layout.trace <- function(edges = NULL,
                               dim = 3,
                               engine = "mish_v6",
                               placement = c("barycenter", "circle"),
+                              preset = NULL,
                               rounds = 20,
                               final_rounds = 25,
                               num_init = 36,
@@ -542,7 +663,44 @@ grip.layout.trace <- function(edges = NULL,
                               seed = 6,
                               trace = c("round", "level"),
                               trace.every = 1) {
+  placement_missing <- missing(placement)
+  rounds_missing <- missing(rounds)
+  final_rounds_missing <- missing(final_rounds)
+  num_init_missing <- missing(num_init)
+  num_nbrs_missing <- missing(num_nbrs)
+  r_missing <- missing(r)
+  s_missing <- missing(s)
+  repulsion_factor_missing <- missing(repulsion_factor)
+
   engine <- grip.normalize.engine(engine, fn = "grip.layout.trace")
+  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
+  resolved <- grip.resolve.preset(
+    preset = preset,
+    placement = placement,
+    placement_missing = placement_missing,
+    rounds = rounds,
+    rounds_missing = rounds_missing,
+    final_rounds = final_rounds,
+    final_rounds_missing = final_rounds_missing,
+    num_init = num_init,
+    num_init_missing = num_init_missing,
+    num_nbrs = num_nbrs,
+    num_nbrs_missing = num_nbrs_missing,
+    r = r,
+    r_missing = r_missing,
+    s = s,
+    s_missing = s_missing,
+    repulsion_factor = repulsion_factor,
+    repulsion_factor_missing = repulsion_factor_missing
+  )
+  placement <- resolved$placement
+  rounds <- resolved$rounds
+  final_rounds <- resolved$final_rounds
+  num_init <- resolved$num_init
+  num_nbrs <- resolved$num_nbrs
+  r <- resolved$r
+  s <- resolved$s
+  repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   trace <- match.arg(trace)
 

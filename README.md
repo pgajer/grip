@@ -37,6 +37,10 @@ Convenience edge-list generators such as `edges.cycle()`, `edges.mesh()`,
 `edges.sierpinski.triangle()`, and `edges.sierpinski.tetrahedron()` are
 exported by the package.
 
+For Sierpinski-carpet-like graphs, `preset = "carpet"` applies a tuned layout
+profile validated on level 3 and 4 carpets, while still letting any explicit
+tuning arguments override the preset.
+
 **Basic Usage**
 ```r
 library(grip)

@@ -13,6 +13,7 @@ grip.layout(
   dim = 3,
   engine = "mish_v6",
   placement = c("barycenter", "circle"),
+  preset = NULL,
   rounds = 20,
   final_rounds = 25,
   num_init = 36,
@@ -47,6 +48,11 @@ single GRIP engine. `engine = "mish_v6"` is the supported value;
 `"mish_v6"` with a warning.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
+
+\item{preset}{Optional tuning preset. \code{NULL} uses the standard defaults.
+\code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
+and validated on carpet levels 3 and 4, but only for tuning arguments
+that you did not supply explicitly.}
 
 \item{rounds}{Initial rounds for refinement.}
 

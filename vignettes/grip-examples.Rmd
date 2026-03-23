@@ -78,6 +78,7 @@ library(grip)
 | `dim`          | Layout dimension (2 or 3). |
 | `engine`       | Deprecated legacy selector; retained only for compatibility and mapped to the current engine. |
 | `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
+| `preset`       | Optional tuning preset. `"carpet"` fills in omitted tuning args for carpet-like graphs. |
 | `rounds`       | Refinement rounds at coarse levels. |
 | `final_rounds` | Refinement rounds at the finest level. |
 | `num_init`     | Number of initial vertices at the coarsest filtration level. |
@@ -85,6 +86,9 @@ library(grip)
 | `r`, `s`       | Adaptive local temperature parameters used in the main iterative refinement. |
 | `repulsion_factor` | Non-negative multiplier on the finest-level repulsive force term. |
 | `seed`         | RNG seed for reproducibility. |
+
+The optional `preset = "carpet"` profile is tuned for Sierpinski-carpet-like
+graphs and was validated on levels 3 and 4.
 
 The examples below use `rounds = 25` and `final_rounds = 25` for good layout
 quality. The remaining parameters (`num_init`, `num_nbrs`) are kept small
