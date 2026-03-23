@@ -41,6 +41,10 @@ For Sierpinski-carpet-like graphs, `preset = "carpet"` applies a tuned layout
 profile validated on level 3 and 4 carpets, while still letting any explicit
 tuning arguments override the preset.
 
+For rectangular lattice graphs, `preset = "mesh"` applies a tuned layout
+profile validated on `8x8` and `12x12` meshes, while still letting any
+explicit tuning arguments override the preset.
+
 For 3D torus layouts, `preset = "torus"` applies a tuned layout profile
 validated on torus sizes from `8x8` through `20x20`, while still letting any
 explicit tuning arguments override the preset.

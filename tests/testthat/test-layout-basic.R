@@ -100,6 +100,22 @@ test_that("carpet preset matches the explicit carpet tuning profile", {
   expect_identical(coords_preset, coords_explicit)
 })
 
+test_that("mesh preset matches the explicit mesh tuning profile", {
+  edges <- edges.mesh(4, 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "mesh",
+                               seed = 45)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "barycenter",
+                                 rounds = 128, final_rounds = 128,
+                                 num_init = 12, num_nbrs = 20,
+                                 r = 0.10, s = 4.5,
+                                 repulsion_factor = 1.5,
+                                 seed = 45)
+  expect_identical(coords_preset, coords_explicit)
+})
+
 test_that("torus preset matches the explicit torus tuning profile", {
   edges <- edges.torus(4, 4)
   n <- max(edges)
@@ -146,6 +162,23 @@ test_that("explicit tuning args override the carpet preset", {
                                  r = 0.03, s = 6.0,
                                  repulsion_factor = 1.75,
                                  seed = 43)
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("explicit tuning args override the mesh preset", {
+  edges <- edges.mesh(4, 4)
+  n <- max(edges)
+  coords_preset <- grip.layout(edges, n = n, dim = 2,
+                               preset = "mesh",
+                               repulsion_factor = 0.75,
+                               seed = 49)
+  coords_explicit <- grip.layout(edges, n = n, dim = 2,
+                                 placement = "barycenter",
+                                 rounds = 128, final_rounds = 128,
+                                 num_init = 12, num_nbrs = 20,
+                                 r = 0.10, s = 4.5,
+                                 repulsion_factor = 0.75,
+                                 seed = 49)
   expect_identical(coords_preset, coords_explicit)
 })
 
@@ -203,7 +236,7 @@ test_that("invalid tuning parameters are rejected", {
   )
   expect_error(
     grip.layout(edges, n = 10, dim = 2, preset = "bogus", seed = 1),
-    "preset must be NULL, 'carpet', 'torus', or 'tree'"
+    "preset must be NULL, 'carpet', 'mesh', 'torus', or 'tree'"
   )
 })
 

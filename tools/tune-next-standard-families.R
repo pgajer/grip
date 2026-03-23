@@ -16,6 +16,10 @@ candidate_fields_generic <- c(
   "num_nbrs", "r", "s", "repulsion_factor"
 )
 
+mesh_preset_profile <- function() {
+  get("grip.mesh.preset.defaults", envir = asNamespace("grip"))()
+}
+
 torus_preset_profile <- function() {
   get("grip.torus.preset.defaults", envir = asNamespace("grip"))()
 }
@@ -669,9 +673,12 @@ family_configs <- list(
     key = "mesh",
     broad_spec = build_mesh_spec(8, 8),
     validation_spec = build_mesh_spec(12, 12),
-    baseline_profile = default_profile(),
-    baseline_id = "mesh_default_baseline",
-    reference_profiles = list(mesh_carpet_reference = carpet_preset_profile()),
+    baseline_profile = mesh_preset_profile(),
+    baseline_id = "mesh_preset_baseline",
+    reference_profiles = list(
+      mesh_default_reference = default_profile(),
+      mesh_carpet_reference = carpet_preset_profile()
+    ),
     search_space = list(
       placement = c("barycenter", "circle"),
       rounds = c(32L, 64L, 96L, 128L, 160L),

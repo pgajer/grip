@@ -160,6 +160,34 @@ test_that("trace carpet preset matches the explicit carpet tuning profile", {
   expect_identical(tr_preset$meta, tr_explicit$meta)
 })
 
+test_that("trace mesh preset matches the explicit mesh tuning profile", {
+  edges <- edges.mesh(4, 4)
+  n <- max(edges)
+  tr_preset <- grip.layout.trace(edges = edges,
+                                 n = n,
+                                 dim = 2,
+                                 preset = "mesh",
+                                 trace = "level",
+                                 trace.every = 1,
+                                 seed = 51)
+  tr_explicit <- grip.layout.trace(edges = edges,
+                                   n = n,
+                                   dim = 2,
+                                   placement = "barycenter",
+                                   rounds = 128,
+                                   final_rounds = 128,
+                                   num_init = 12,
+                                   num_nbrs = 20,
+                                   r = 0.10,
+                                   s = 4.5,
+                                   repulsion_factor = 1.5,
+                                   trace = "level",
+                                   trace.every = 1,
+                                   seed = 51)
+  expect_identical(tr_preset$final, tr_explicit$final)
+  expect_identical(tr_preset$meta, tr_explicit$meta)
+})
+
 test_that("trace torus preset matches the explicit torus tuning profile", {
   edges <- edges.torus(4, 4)
   n <- max(edges)

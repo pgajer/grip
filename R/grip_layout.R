@@ -161,12 +161,12 @@ grip.normalize.preset <- function(preset, fn = "grip.layout") {
     return(NULL)
   }
   if (!is.character(preset) || length(preset) != 1L || is.na(preset)) {
-    stop("preset must be NULL, 'carpet', 'torus', or 'tree'")
+    stop("preset must be NULL, 'carpet', 'mesh', 'torus', or 'tree'")
   }
-  if (preset %in% c("carpet", "torus", "tree")) {
+  if (preset %in% c("carpet", "mesh", "torus", "tree")) {
     return(preset)
   }
-  stop("preset must be NULL, 'carpet', 'torus', or 'tree'")
+  stop("preset must be NULL, 'carpet', 'mesh', 'torus', or 'tree'")
 }
 
 grip.carpet.preset.defaults <- function() {
@@ -179,6 +179,19 @@ grip.carpet.preset.defaults <- function() {
     r = 0.03,
     s = 6.0,
     repulsion_factor = 2.5
+  )
+}
+
+grip.mesh.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 128L,
+    final_rounds = 128L,
+    num_init = 12L,
+    num_nbrs = 20L,
+    r = 0.10,
+    s = 4.5,
+    repulsion_factor = 1.5
   )
 }
 
@@ -241,6 +254,7 @@ grip.resolve.preset <- function(preset,
   defaults <- switch(
     preset,
     carpet = grip.carpet.preset.defaults(),
+    mesh = grip.mesh.preset.defaults(),
     torus = grip.torus.preset.defaults(),
     tree = grip.tree.preset.defaults(),
     stop("unknown preset")
@@ -428,12 +442,13 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
 #' @param preset Optional tuning preset. \code{NULL} uses the standard defaults.
 #'   \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
-#'   and validated on carpet levels 3 and 4. \code{"torus"} applies a preset
-#'   tuned for 3D torus layouts and validated on torus sizes from 8x8 through
-#'   20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
-#'   layouts of tree-like graphs and validated on binary trees of depths 5 and
-#'   6. Presets only fill in tuning arguments that you did not supply
-#'   explicitly.
+#'   and validated on carpet levels 3 and 4. \code{"mesh"} applies a preset
+#'   tuned for rectangular lattice graphs and validated on 8x8 and 12x12 mesh
+#'   layouts. \code{"torus"} applies a preset tuned for 3D torus layouts and
+#'   validated on torus sizes from 8x8 through 20x20. \code{"tree"} applies a
+#'   preset tuned for symmetric force-directed layouts of tree-like graphs and
+#'   validated on binary trees of depths 5 and 6. Presets only fill in tuning
+#'   arguments that you did not supply explicitly.
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
 #' @param num_init Number of initial vertices in the coarsest level.
