@@ -294,7 +294,7 @@ plot_2d_trace_gif <- function(path, trace_obj, edges, title_text,
   )
 }
 
-message("Computing requested mish_v6 trace animations...")
+message("Computing requested trace animations...")
 
 carpet4 <- edges_sierpinski_carpet(4)
 triangle5 <- edges_sierpinski_triangle(5)
@@ -302,7 +302,6 @@ triangle5 <- edges_sierpinski_triangle(5)
 carpet4_trace_2d <- grip.layout.trace(carpet4,
                                       n = max(carpet4),
                                       dim = 2,
-                                      engine = "mish_v6",
                                       placement = "barycenter",
                                       rounds = 128,
                                       final_rounds = 128,
@@ -315,7 +314,6 @@ carpet4_trace_2d <- grip.layout.trace(carpet4,
 triangle5_trace_2d <- grip.layout.trace(triangle5,
                                         n = max(triangle5),
                                         dim = 2,
-                                        engine = "mish_v6",
                                         placement = "circle",
                                         rounds = 128,
                                         final_rounds = 128,
@@ -326,17 +324,17 @@ triangle5_trace_2d <- grip.layout.trace(triangle5,
                                         seed = 25)
 
 carpet_info <- plot_2d_trace_gif(
-  file.path(fig_dir, "trace-sierpinski-carpet-level-4-2d-v6-112f.gif"),
+  file.path(fig_dir, "trace-sierpinski-carpet-level-4-2d-112f.gif"),
   carpet4_trace_2d,
   carpet4,
-  title_text = "Sierpinski Carpet (Level 4, 2D Trace, mish_v6)"
+  title_text = "Sierpinski Carpet (Level 4, 2D Trace)"
 )
 
 triangle_info <- plot_2d_trace_gif(
-  file.path(fig_dir, "trace-sierpinski-triangle-level-5-2d-v6-112f.gif"),
+  file.path(fig_dir, "trace-sierpinski-triangle-level-5-2d-112f.gif"),
   triangle5_trace_2d,
   triangle5,
-  title_text = "Sierpinski Triangle (Level 5, 2D Trace, mish_v6)"
+  title_text = "Sierpinski Triangle (Level 5, 2D Trace)"
 )
 
 message(sprintf(

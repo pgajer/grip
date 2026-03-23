@@ -203,12 +203,11 @@ write_compare_pdf <- function(path, left_coords, right_coords, edges,
   plot_layout_panel(right_coords, edges, right_title, subtitle_text, xlim = xlim, ylim = ylim)
 }
 
-compute_layout <- function(edges, engine, placement, rounds, final_rounds,
+compute_layout <- function(edges, placement, rounds, final_rounds,
                            num_init, num_nbrs, seed) {
   grip.layout(edges = edges,
               n = max(edges),
               dim = 2,
-              engine = engine,
               placement = placement,
               rounds = rounds,
               final_rounds = final_rounds,
@@ -222,66 +221,38 @@ message("Computing final 2D layouts for PDF export...")
 carpet4 <- edges_sierpinski_carpet(4)
 triangle4 <- edges_sierpinski_triangle(4)
 
-carpet128_v5 <- compute_layout(carpet4, "mish_v5", "barycenter", 128, 128, 24, 12, 24)
-carpet128_v6 <- compute_layout(carpet4, "mish_v6", "barycenter", 128, 128, 24, 12, 24)
-triangle128_v5 <- compute_layout(triangle4, "mish_v5", "circle", 128, 128, 7, 9, 25)
-triangle128_v6 <- compute_layout(triangle4, "mish_v6", "circle", 128, 128, 7, 9, 25)
+carpet128 <- compute_layout(carpet4, "barycenter", 128, 128, 24, 12, 24)
+triangle128 <- compute_layout(triangle4, "circle", 128, 128, 7, 9, 25)
 
-carpet256_v5 <- compute_layout(carpet4, "mish_v5", "barycenter", 256, 256, 24, 12, 24)
-carpet256_v6 <- compute_layout(carpet4, "mish_v6", "barycenter", 256, 256, 24, 12, 24)
-triangle256_v5 <- compute_layout(triangle4, "mish_v5", "circle", 256, 256, 7, 9, 25)
-triangle256_v6 <- compute_layout(triangle4, "mish_v6", "circle", 256, 256, 7, 9, 25)
+carpet256 <- compute_layout(carpet4, "barycenter", 256, 256, 24, 12, 24)
+triangle256 <- compute_layout(triangle4, "circle", 256, 256, 7, 9, 25)
 
-write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-128-mish-v5.pdf"),
-                 carpet128_v5, carpet4,
+write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-128.pdf"),
+                 carpet128, carpet4,
                  "Sierpinski Carpet Level 4",
-                 "engine=mish_v5, rounds=128, final_rounds=128")
-write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-128-mish-v6.pdf"),
-                 carpet128_v6, carpet4,
-                 "Sierpinski Carpet Level 4",
-                 "engine=mish_v6, rounds=128, final_rounds=128")
+                 "rounds=128, final_rounds=128")
 write_compare_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-128-compare.pdf"),
-                  carpet128_v5, carpet128_v6, carpet4,
-                  "mish_v5", "mish_v6",
-                  "rounds=128, final_rounds=128")
+                  carpet128, carpet256, carpet4,
+                  "128 rounds", "256 rounds",
+                  "current layout implementation")
 
-write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-128-mish-v5.pdf"),
-                 triangle128_v5, triangle4,
+write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-128.pdf"),
+                 triangle128, triangle4,
                  "Sierpinski Triangle Level 4",
-                 "engine=mish_v5, rounds=128, final_rounds=128")
-write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-128-mish-v6.pdf"),
-                 triangle128_v6, triangle4,
-                 "Sierpinski Triangle Level 4",
-                 "engine=mish_v6, rounds=128, final_rounds=128")
+                 "rounds=128, final_rounds=128")
 write_compare_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-128-compare.pdf"),
-                  triangle128_v5, triangle128_v6, triangle4,
-                  "mish_v5", "mish_v6",
-                  "rounds=128, final_rounds=128")
+                  triangle128, triangle256, triangle4,
+                  "128 rounds", "256 rounds",
+                  "current layout implementation")
 
-write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-256-mish-v5.pdf"),
-                 carpet256_v5, carpet4,
+write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-256.pdf"),
+                 carpet256, carpet4,
                  "Sierpinski Carpet Level 4",
-                 "engine=mish_v5, rounds=256, final_rounds=256")
-write_single_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-256-mish-v6.pdf"),
-                 carpet256_v6, carpet4,
-                 "Sierpinski Carpet Level 4",
-                 "engine=mish_v6, rounds=256, final_rounds=256")
-write_compare_pdf(file.path(pdf_dir, "sierpinski-carpet-level-4-final-256-compare.pdf"),
-                  carpet256_v5, carpet256_v6, carpet4,
-                  "mish_v5", "mish_v6",
-                  "rounds=256, final_rounds=256")
+                 "rounds=256, final_rounds=256")
 
-write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-256-mish-v5.pdf"),
-                 triangle256_v5, triangle4,
+write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-256.pdf"),
+                 triangle256, triangle4,
                  "Sierpinski Triangle Level 4",
-                 "engine=mish_v5, rounds=256, final_rounds=256")
-write_single_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-256-mish-v6.pdf"),
-                 triangle256_v6, triangle4,
-                 "Sierpinski Triangle Level 4",
-                 "engine=mish_v6, rounds=256, final_rounds=256")
-write_compare_pdf(file.path(pdf_dir, "sierpinski-triangle-level-4-final-256-compare.pdf"),
-                  triangle256_v5, triangle256_v6, triangle4,
-                  "mish_v5", "mish_v6",
-                  "rounds=256, final_rounds=256")
+                 "rounds=256, final_rounds=256")
 
 message(sprintf("PDF assets written to %s", pdf_dir))
