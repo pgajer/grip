@@ -148,6 +148,24 @@ test_that("tree preset matches the explicit tree tuning profile", {
   expect_identical(coords_preset, coords_explicit)
 })
 
+test_that("tree preset uses barycenter placement in 3D without warning", {
+  edges <- edges.kary.tree(k = 2, depth = 4)
+  n <- max(edges)
+  expect_no_warning({
+    coords_preset <- grip.layout(edges, n = n, dim = 3,
+                                 preset = "tree",
+                                 seed = 63)
+    coords_explicit <- grip.layout(edges, n = n, dim = 3,
+                                   placement = "barycenter",
+                                   rounds = 64, final_rounds = 160,
+                                   num_init = 28, num_nbrs = 8,
+                                   r = 0.05, s = 7.5,
+                                   repulsion_factor = 0,
+                                   seed = 63)
+    expect_identical(coords_preset, coords_explicit)
+  })
+})
+
 test_that("explicit tuning args override the carpet preset", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)

@@ -208,9 +208,9 @@ grip.torus.preset.defaults <- function() {
   )
 }
 
-grip.tree.preset.defaults <- function() {
+grip.tree.preset.defaults <- function(dim = 2L) {
   list(
-    placement = "circle",
+    placement = if (isTRUE(as.integer(dim) == 2L)) "circle" else "barycenter",
     rounds = 64L,
     final_rounds = 160L,
     num_init = 28L,
@@ -222,6 +222,7 @@ grip.tree.preset.defaults <- function() {
 }
 
 grip.resolve.preset <- function(preset,
+                                dim = 2L,
                                 placement,
                                 placement_missing,
                                 rounds,
@@ -256,7 +257,7 @@ grip.resolve.preset <- function(preset,
     carpet = grip.carpet.preset.defaults(),
     mesh = grip.mesh.preset.defaults(),
     torus = grip.torus.preset.defaults(),
-    tree = grip.tree.preset.defaults(),
+    tree = grip.tree.preset.defaults(dim = dim),
     stop("unknown preset")
   )
   if (placement_missing) placement <- defaults$placement
@@ -525,6 +526,7 @@ grip.layout <- function(edges = NULL,
   preset <- grip.normalize.preset(preset, fn = "grip.layout")
   resolved <- grip.resolve.preset(
     preset = preset,
+    dim = dim,
     placement = placement,
     placement_missing = placement_missing,
     rounds = rounds,
@@ -695,6 +697,7 @@ grip.layout.trace <- function(edges = NULL,
   preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
   resolved <- grip.resolve.preset(
     preset = preset,
+    dim = dim,
     placement = placement,
     placement_missing = placement_missing,
     rounds = rounds,

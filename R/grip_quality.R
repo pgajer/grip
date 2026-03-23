@@ -493,7 +493,7 @@ grip.expand.compare.search <- function(search) {
   out
 }
 
-grip.resolve.compare.candidate <- function(candidate) {
+grip.resolve.compare.candidate <- function(candidate, dim = 2L) {
   defaults <- list(
     placement = "barycenter",
     rounds = 20,
@@ -523,6 +523,7 @@ grip.resolve.compare.candidate <- function(candidate) {
 
   resolved <- grip.resolve.preset(
     preset = preset,
+    dim = dim,
     placement = if (placement.missing) defaults$placement else candidate$placement,
     placement_missing = placement.missing,
     rounds = if (rounds.missing) defaults$rounds else candidate$rounds,
@@ -882,7 +883,7 @@ grip.compare.layouts <- function(edges = NULL,
   idx <- 0L
 
   for (candidate.name in names(candidate.list)) {
-    resolved <- grip.resolve.compare.candidate(candidate.list[[candidate.name]])
+    resolved <- grip.resolve.compare.candidate(candidate.list[[candidate.name]], dim = dim)
     layouts.by.candidate[[candidate.name]] <- list()
     for (seed in seeds) {
       idx <- idx + 1L

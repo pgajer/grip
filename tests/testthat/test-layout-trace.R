@@ -243,3 +243,33 @@ test_that("trace tree preset matches the explicit tree tuning profile", {
   expect_identical(tr_preset$final, tr_explicit$final)
   expect_identical(tr_preset$meta, tr_explicit$meta)
 })
+
+test_that("trace tree preset uses barycenter placement in 3D without warning", {
+  edges <- edges.kary.tree(k = 2, depth = 4)
+  n <- max(edges)
+  expect_no_warning({
+    tr_preset <- grip.layout.trace(edges = edges,
+                                   n = n,
+                                   dim = 3,
+                                   preset = "tree",
+                                   trace = "level",
+                                   trace.every = 1,
+                                   seed = 73)
+    tr_explicit <- grip.layout.trace(edges = edges,
+                                     n = n,
+                                     dim = 3,
+                                     placement = "barycenter",
+                                     rounds = 64,
+                                     final_rounds = 160,
+                                     num_init = 28,
+                                     num_nbrs = 8,
+                                     r = 0.05,
+                                     s = 7.5,
+                                     repulsion_factor = 0,
+                                     trace = "level",
+                                     trace.every = 1,
+                                     seed = 73)
+    expect_identical(tr_preset$final, tr_explicit$final)
+    expect_identical(tr_preset$meta, tr_explicit$meta)
+  })
+})
