@@ -1,6 +1,7 @@
 ---
 title: "Choosing Layouts for Real Data"
 output: rmarkdown::html_vignette
+bibliography: grip-real-data.bib
 vignette: >
   %\VignetteIndexEntry{Choosing Layouts for Real Data}
   %\VignetteEngine{knitr::rmarkdown}
@@ -8,33 +9,44 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5.5
+)
 ```
 
-## Why scoring helps
+## Why comparison helps
 
-For real-world graphs there is usually no canonical embedding, so layout choice
-cannot rely on a direct geometric error like Procrustes RMSE. In practice, the
-most useful workflow is:
+Synthetic graphs sometimes come with a known target picture, so a layout can be
+judged against that target directly. Real-world graphs are different: there is
+usually no single correct picture waiting to be recovered. The practical goal is
+to choose a layout that is faithful to graph structure, visually uncluttered,
+and reasonably stable when the random seed changes.
 
-1. try the default layout plus one or two structurally plausible presets,
-2. compare them across several seeds, and
-3. inspect a small set of quality metrics before choosing a final plot.
+In practice, the most useful workflow is:
+
+- try the default layout plus one or two structurally plausible presets,
+- compare them in 3D across a few seeds, and
+- inspect a small set of quality metrics before choosing a final plot.
 
 The `grip` package provides two helpers for this:
 
-- `grip.score.layout()` scores one realized layout,
-- `grip.compare.layouts()` compares several presets or parameter sets across seeds.
+- `grip.score.layout()` is the low-level scoring function for one realized layout,
+- `grip.compare.layouts()` runs several candidates, including local parameter searches.
 
-The examples below use two small real-world benchmark networks bundled with the
-package under `inst/extdata/`.
+For small and medium graphs, seed effects are often smaller than the difference
+between obviously weak and obviously strong parameter settings. Even so, a few
+repeated runs are useful because they reveal brittle candidates that only look
+good for one lucky initialization.
 
 ```{r}
 library(grip)
 ```
 
 ```{r}
-read.edge.csv <- function(file.name) {
+read.extdata.csv <- function(file.name) {
   candidates <- c(
     system.file("extdata", file.name, package = "grip"),
     file.path("inst", "extdata", file.name),
@@ -44,153 +56,479 @@ read.edge.csv <- function(file.name) {
   if (!length(path) || is.na(path) || !nzchar(path)) {
     stop("could not locate ", file.name)
   }
-  as.matrix(utils::read.csv(path))
+  utils::read.csv(path, stringsAsFactors = FALSE)
+}
+
+read.edge.csv <- function(file.name) {
+  as.matrix(read.extdata.csv(file.name))
+}
+
+read.karate.club <- function() {
+  labels <- read.extdata.csv("karate-club-membership.csv")
+  labels <- labels[order(labels$vertex), , drop = FALSE]
+  labels$club
 }
 
 compact.summary <- function(x) {
-  keep <- c(
+  keep <- intersect(c(
     "candidate",
+    "preset",
+    "rounds",
+    "final.rounds",
+    "num.nbrs",
+    "repulsion.factor",
     "score.composite",
     "sampled.stress.mean",
     "edge.length.cv.mean",
     "sampled.nonedge.sep.ratio.mean",
     "stability.procrustes.mean",
-    "edge.crossings.mean"
+    "cluster.separation.mean"
+  ), names(x))
+  x[, keep, drop = FALSE]
+}
+
+candidate.from.summary <- function(row) {
+  row <- row[1, , drop = FALSE]
+  out <- list(
+    placement = row$placement[[1L]],
+    rounds = row$rounds[[1L]],
+    final_rounds = row$final.rounds[[1L]],
+    num_init = row$num.init[[1L]],
+    num_nbrs = row$num.nbrs[[1L]],
+    r = row$r[[1L]],
+    s = row$s[[1L]],
+    repulsion_factor = row$repulsion.factor[[1L]],
+    tinit_factor = row$tinit.factor[[1L]]
   )
-  x[, keep]
+  if (!is.na(row$preset[[1L]]) && nzchar(row$preset[[1L]])) {
+    out$preset <- row$preset[[1L]]
+  }
+  out
+}
+
+project.coords <- function(coords, azimuth = 35, elevation = 22) {
+  if (ncol(coords) == 2L) {
+    return(coords)
+  }
+  az <- azimuth * pi / 180
+  el <- elevation * pi / 180
+  rz <- matrix(c(
+    cos(az), -sin(az), 0,
+    sin(az),  cos(az), 0,
+    0,        0,       1
+  ), nrow = 3, byrow = TRUE)
+  rx <- matrix(c(
+    1, 0, 0,
+    0, cos(el), -sin(el),
+    0, sin(el),  cos(el)
+  ), nrow = 3, byrow = TRUE)
+  rotated <- coords %*% rz %*% rx
+  rotated[, 1:2, drop = FALSE]
+}
+
+plot.projected.graph <- function(coords,
+                                 edges,
+                                 main = "",
+                                 azimuth = 35,
+                                 elevation = 22,
+                                 vertex.col = "black",
+                                 edge.col = "gray80",
+                                 pch = 16,
+                                 cex = 0.8) {
+  xy <- project.coords(coords, azimuth = azimuth, elevation = elevation)
+  xlim <- range(xy[, 1])
+  ylim <- range(xy[, 2])
+  xpad <- 0.08 * diff(xlim)
+  ypad <- 0.08 * diff(ylim)
+  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
+  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
+
+  plot(
+    xy[, 1], xy[, 2],
+    type = "n",
+    asp = 1,
+    axes = FALSE,
+    xlab = "",
+    ylab = "",
+    xlim = xlim + c(-xpad, xpad),
+    ylim = ylim + c(-ypad, ypad),
+    main = main
+  )
+  if (!is.null(edges) && nrow(edges) > 0) {
+    apply(edges, 1, function(e) {
+      graphics::segments(
+        xy[e[1], 1], xy[e[1], 2],
+        xy[e[2], 1], xy[e[2], 2],
+        col = edge.col
+      )
+    })
+  }
+  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = vertex.col)
+}
+
+plot.layout.triptych <- function(layouts, edges, titles, vertex.cols = NULL) {
+  if (is.null(vertex.cols)) {
+    vertex.cols <- rep(list("black"), length(layouts))
+  }
+  op <- par(mfrow = c(1, length(layouts)), mar = c(1.2, 1.2, 3.2, 1.2))
+  on.exit(par(op), add = TRUE)
+  for (i in seq_along(layouts)) {
+    plot.projected.graph(
+      layouts[[i]],
+      edges = edges,
+      main = titles[[i]],
+      vertex.col = vertex.cols[[i]]
+    )
+  }
+}
+
+plot.layout.views <- function(coords, edges, title, vertex.col = "black") {
+  op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
+  on.exit(par(op), add = TRUE)
+  plot.projected.graph(coords, edges, main = paste(title, "\nview 1"),
+                       azimuth = 35, elevation = 22, vertex.col = vertex.col)
+  plot.projected.graph(coords, edges, main = paste(title, "\nview 2"),
+                       azimuth = -45, elevation = 28, vertex.col = vertex.col)
+}
+
+plot.search.slices <- function(summary.df, title.prefix = "") {
+  op <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
+  on.exit(par(op), add = TRUE)
+
+  palette.cols <- grDevices::hcl.colors(length(unique(summary.df$num.nbrs)), "Dark 3")
+  color.idx <- match(summary.df$num.nbrs, sort(unique(summary.df$num.nbrs)))
+
+  plot(
+    summary.df$repulsion.factor,
+    summary.df$sampled.stress.mean,
+    pch = 19,
+    col = palette.cols[color.idx],
+    xlab = "repulsion.factor",
+    ylab = "sampled.stress.mean",
+    main = paste(title.prefix, "stress")
+  )
+  legend(
+    "topright",
+    legend = paste("num.nbrs =", sort(unique(summary.df$num.nbrs))),
+    col = palette.cols,
+    pch = 19,
+    bty = "n",
+    cex = 0.8
+  )
+
+  plot(
+    summary.df$final.rounds,
+    summary.df$sampled.nonedge.sep.ratio.mean,
+    pch = 19,
+    col = palette.cols[color.idx],
+    xlab = "final.rounds",
+    ylab = "sampled.nonedge.sep.ratio.mean",
+    main = paste(title.prefix, "separation")
+  )
 }
 ```
 
-## Scoring one layout
+## Benchmark graphs used here
 
-As a first example, we score a `preset = "tree"` layout of the Krackhardt kite
-social network, a classic small organizational-network benchmark.
+This vignette uses two bundled benchmark networks:
 
-```{r}
-kite.edges <- read.edge.csv("krackhardt-kite-edges.csv")
-kite.n <- max(kite.edges)
-
-kite.coords <- grip.layout(
-  kite.edges,
-  n = kite.n,
-  dim = 2,
-  preset = "tree",
-  seed = 1
-)
-
-kite.score <- grip.score.layout(
-  coords = kite.coords,
-  edges = kite.edges,
-  n = kite.n,
-  edge.crossings = "always"
-)
-
-knitr::kable(kite.score, digits = 3)
-```
-
-```{r}
-grip.plot(kite.coords, kite.edges, main = "Krackhardt kite with preset = 'tree'",
-          pch = 16, cex = 1)
-```
-
-Interpretation:
-
-- lower `sampled.stress` means Euclidean distances better track graph distances,
-- lower `edge.length.cv` means adjacent vertices are drawn more uniformly,
-- higher `sampled.nonedge.sep.ratio` means less clutter,
-- lower `edge.crossings` is usually preferable in 2D.
-
-## Comparing presets across seeds
-
-The Zachary karate club friendship network is a good example of a real graph
-where there is no obviously correct preset ahead of time.
+- the Zachary karate club friendship network, a 34-person social network with a
+  known split into the `Mr. Hi` and `Officer` factions [@zachary1977],
+- the Krackhardt kite network, a 10-person organizational benchmark commonly
+  used to discuss centrality and informal structure [@krackhardt1990].
 
 ```{r}
 karate.edges <- read.edge.csv("karate-club-edges.csv")
 karate.n <- max(karate.edges)
+karate.club <- read.karate.club()
 
-karate.compare <- grip.compare.layouts(
+kite.edges <- read.edge.csv("krackhardt-kite-edges.csv")
+kite.n <- max(kite.edges)
+
+benchmark.info <- data.frame(
+  graph = c("Zachary karate club", "Krackhardt kite"),
+  n.vertices = c(karate.n, kite.n),
+  n.edges = c(nrow(karate.edges), nrow(kite.edges)),
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(benchmark.info)
+```
+
+## Shortlisting 3D presets on the karate club network
+
+For a real social network like the karate club graph, there is no obvious
+family-specific preset that must be correct ahead of time. A sensible first pass
+is to compare the generic default against one or two plausible alternatives and
+look for candidates that are both numerically strong and visually coherent.
+
+```{r}
+karate.presets <- grip.compare.layouts(
   edges = karate.edges,
   n = karate.n,
-  dim = 2,
+  dim = 3,
   candidates = c("default", "tree", "mesh"),
   seeds = 1:3,
   sample.size.stress = 1000L,
   sample.size.nonedge = 2000L,
-  edge.crossings = "always",
+  edge.crossings = "never",
   return.layouts = TRUE
 )
 
-knitr::kable(compact.summary(karate.compare$summary), digits = 3)
+knitr::kable(compact.summary(karate.presets$summary), digits = 3)
 ```
 
-The `score.composite` column is a rank-based summary of the available metrics,
-so lower values are better. It is meant to help shortlist candidates rather
-than replace visual judgment.
+```{r fig.width=10, fig.height=3.8}
+plot.layout.triptych(
+  layouts = list(
+    karate.presets$layouts$default[["1"]],
+    karate.presets$layouts$tree[["1"]],
+    karate.presets$layouts$mesh[["1"]]
+  ),
+  edges = karate.edges,
+  titles = c("default", "tree", "mesh")
+)
+```
+
+The summary table already gives a useful shortlist. The `score.composite` column
+is a rank-based aggregate across the available metrics, so it is best treated as
+a screening tool rather than as the final decision by itself.
+
+## Local parameter search around a promising candidate
+
+Once a preset looks plausible, the next step is not to stare harder at one
+picture. Instead, search a small parameter neighborhood and see how the quality
+metrics move. The search API below generates a grid of candidate settings around
+the leading preset from the first pass.
 
 ```{r}
-best.karate <- karate.compare$summary$candidate[[1L]]
-best.seed <- karate.compare$runs$seed[
-  karate.compare$runs$candidate == best.karate &
-    karate.compare$runs$status == "ok"
-][[1L]]
+karate.base <- karate.presets$summary[1, , drop = FALSE]
 
-best.karate.coords <- karate.compare$layouts[[best.karate]][[as.character(best.seed)]]
+karate.search <- list(
+  candidate.prefix = "karate.local",
+  placement = karate.base$placement[[1L]],
+  rounds = karate.base$rounds[[1L]],
+  final_rounds = sort(unique(as.integer(c(
+    max(32L, karate.base$final.rounds[[1L]] - 32L),
+    karate.base$final.rounds[[1L]],
+    karate.base$final.rounds[[1L]] + 32L
+  )))),
+  num_init = karate.base$num.init[[1L]],
+  num_nbrs = sort(unique(as.integer(c(
+    max(4L, karate.base$num.nbrs[[1L]] - 4L),
+    karate.base$num.nbrs[[1L]],
+    karate.base$num.nbrs[[1L]] + 4L
+  )))),
+  r = karate.base$r[[1L]],
+  s = karate.base$s[[1L]],
+  repulsion_factor = sort(unique(c(
+    max(0, karate.base$repulsion.factor[[1L]] - 0.5),
+    karate.base$repulsion.factor[[1L]],
+    karate.base$repulsion.factor[[1L]] + 0.5
+  )))
+)
+if (!is.na(karate.base$preset[[1L]]) && nzchar(karate.base$preset[[1L]])) {
+  karate.search$preset <- karate.base$preset[[1L]]
+}
 
-grip.plot(best.karate.coords, karate.edges,
-          main = paste("Karate club best candidate:", best.karate),
-          pch = 16, cex = 0.8)
+karate.local <- grip.compare.layouts(
+  edges = karate.edges,
+  n = karate.n,
+  dim = 3,
+  search = karate.search,
+  seeds = 1:2,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never",
+  return.layouts = TRUE
+)
+
+knitr::kable(head(compact.summary(karate.local$summary), 8L), digits = 3)
 ```
 
-## Comparing presets with a custom candidate
+```{r}
+plot.search.slices(karate.local$summary, title.prefix = "Karate local search")
+```
 
-You can mix presets and explicit parameter lists in the same comparison.
+These two plots are only slices through a multidimensional search, but they are
+still helpful. They show how the shortlisted settings move as `repulsion.factor`
+and `final.rounds` vary, while color indicates `num.nbrs`.
+
+```{r}
+karate.local.best <- karate.local$summary[1, , drop = FALSE]
+karate.local.best.seed <- karate.local$runs$seed[
+  karate.local$runs$candidate == karate.local.best$candidate[[1L]] &
+    karate.local$runs$status == "ok"
+][[1L]]
+karate.local.best.coords <- karate.local$layouts[[karate.local.best$candidate[[1L]]]][[as.character(karate.local.best.seed)]]
+```
+
+```{r fig.width=8, fig.height=4.2}
+plot.layout.views(
+  karate.local.best.coords,
+  karate.edges,
+  title = paste("Karate local-search winner:", karate.local.best$candidate[[1L]])
+)
+```
+
+### Reading the quality metrics
+
+The layout-quality metrics are meant to be simple heuristics rather than formal
+proofs that one picture is correct:
+
+- lower `sampled.stress` means graph distances and Euclidean distances are more
+  consistent, so vertices that are close in the graph tend to stay close in the layout,
+- lower `edge.length.cv` means adjacent vertices are drawn with more uniform edge lengths,
+- higher `sampled.nonedge.sep.ratio` means non-neighboring vertices have more breathing room,
+- lower `stability.procrustes.mean` means repeated runs give a more similar picture after alignment,
+- higher `cluster.separation` means known groups are more clearly separated,
+- `edge.crossings` matters mainly for 2D layouts, so it is not used in the 3D examples here.
+
+No single metric should dominate the decision. In practice, a good candidate is
+one that scores well on several of them at once and still looks interpretable.
+
+## Using external metadata: the observed karate-club split
+
+The karate data come with real external labels: the eventual split between the
+`Mr. Hi` and `Officer` factions reported in the original study [@zachary1977].
+Those labels can be passed through `clusters` so that `grip.compare.layouts()`
+also reports `cluster.separation`.
+
+```{r}
+karate.metadata <- grip.compare.layouts(
+  edges = karate.edges,
+  n = karate.n,
+  dim = 3,
+  candidates = list(
+    default = NULL,
+    tuned = candidate.from.summary(karate.local.best)
+  ),
+  clusters = karate.club,
+  seeds = 1:3,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never",
+  return.layouts = TRUE
+)
+
+knitr::kable(
+  karate.metadata$summary[, c(
+    "candidate",
+    "score.composite",
+    "sampled.stress.mean",
+    "sampled.nonedge.sep.ratio.mean",
+    "cluster.separation.mean"
+  )],
+  digits = 3
+)
+```
+
+```{r}
+karate.metadata.best <- karate.metadata$summary[1, , drop = FALSE]
+karate.metadata.best.seed <- karate.metadata$runs$seed[
+  karate.metadata$runs$candidate == karate.metadata.best$candidate[[1L]] &
+    karate.metadata$runs$status == "ok"
+][[1L]]
+karate.metadata.best.coords <- karate.metadata$layouts[[karate.metadata.best$candidate[[1L]]]][[as.character(karate.metadata.best.seed)]]
+karate.club.cols <- ifelse(karate.club == "Mr. Hi", "#1b9e77", "#d95f02")
+```
+
+```{r fig.width=8, fig.height=4.2}
+plot.layout.views(
+  karate.metadata.best.coords,
+  karate.edges,
+  title = paste("Karate best layout with metadata:", karate.metadata.best$candidate[[1L]]),
+  vertex.col = karate.club.cols
+)
+legend(
+  "bottomleft",
+  legend = c("Mr. Hi", "Officer"),
+  col = c("#1b9e77", "#d95f02"),
+  pch = 16,
+  bty = "n"
+)
+```
+
+This is where metadata become genuinely useful: if a layout already looks good
+geometrically, `cluster.separation` gives you one more way to ask whether known
+groups are being displayed clearly rather than mixed together.
+
+## A second example: the Krackhardt kite network
+
+The Krackhardt kite graph is small, but it is still a useful example because it
+has recognizable organizational structure and is fast enough for a targeted
+local search.
 
 ```{r}
 kite.compare <- grip.compare.layouts(
   edges = kite.edges,
   n = kite.n,
-  dim = 2,
-  candidates = list(
-    default = NULL,
-    tree = "tree",
-    tree.long = list(preset = "tree", final_rounds = 224)
+  dim = 3,
+  candidates = c("default", "tree"),
+  search = list(
+    candidate.prefix = "kite.tree.local",
+    preset = "tree",
+    final_rounds = c(128L, 160L, 192L),
+    num_nbrs = c(6L, 8L),
+    repulsion_factor = c(0.0, 0.5)
   ),
-  seeds = 1:3,
-  sample.size.stress = 800L,
-  sample.size.nonedge = 1500L,
-  edge.crossings = "always"
+  seeds = 1:2,
+  sample.size.stress = 400L,
+  sample.size.nonedge = 800L,
+  edge.crossings = "never",
+  return.layouts = TRUE
 )
 
-knitr::kable(compact.summary(kite.compare$summary), digits = 3)
+knitr::kable(head(compact.summary(kite.compare$summary), 8L), digits = 3)
 ```
 
-## Using external metadata
+```{r}
+kite.best <- kite.compare$summary[1, , drop = FALSE]
+kite.best.seed <- kite.compare$runs$seed[
+  kite.compare$runs$candidate == kite.best$candidate[[1L]] &
+    kite.compare$runs$status == "ok"
+][[1L]]
+kite.best.coords <- kite.compare$layouts[[kite.best$candidate[[1L]]]][[as.character(kite.best.seed)]]
+```
 
-If you have known communities or other node labels, pass them through the
-`clusters` argument. `grip.score.layout()` and `grip.compare.layouts()` will
-then report `cluster.separation`, which is higher when groups are more cleanly
-separated in the layout.
+```{r fig.width=8, fig.height=4.2}
+plot.layout.views(
+  kite.best.coords,
+  kite.edges,
+  title = paste("Krackhardt kite winner:", kite.best$candidate[[1L]])
+)
+```
 
-```r
-club.labels <- c(...)  # one label per vertex
+## When `grip.score.layout()` is useful directly
 
-grip.score.layout(
-  coords = best.karate.coords,
-  edges = karate.edges,
-  n = karate.n,
-  clusters = club.labels
+The main workflow for real data is usually `grip.compare.layouts()`, because
+layout quality only becomes meaningful once there is something to compare
+against. The lower-level `grip.score.layout()` function is still useful when you
+already have a chosen layout, perhaps from a cached run or from another package,
+and you want to report its metrics explicitly.
+
+```{r}
+knitr::kable(
+  grip.score.layout(
+    coords = karate.metadata.best.coords,
+    edges = karate.edges,
+    n = karate.n,
+    clusters = karate.club,
+    edge.crossings = "never"
+  ),
+  digits = 3
 )
 ```
 
 ## Practical guidance
 
-For real-world data, a good default workflow is:
+For real-world graphs, a good default workflow is:
 
-1. Start with the default layout plus one or two structurally plausible presets.
-2. Compare them across several seeds with `grip.compare.layouts()`.
-3. Use `sampled.stress`, `edge.length.cv`, and `sampled.nonedge.sep.ratio` as
-   the main generic metrics.
-4. In 2D, include `edge.crossings` when readability matters.
-5. If you have node metadata, add `cluster.separation`.
-6. Inspect the top one or two candidates visually before making a final choice.
+1. Start in 3D with the default layout plus one or two structurally plausible presets.
+2. Keep only the strongest one or two candidates after a short comparison across a few seeds.
+3. Run a small local search around the most promising candidate with `grip.compare.layouts(search = ...)`.
+4. Use `sampled.stress`, `edge.length.cv`, `sampled.nonedge.sep.ratio`, and `stability.procrustes.mean` as the main generic metrics.
+5. Add `cluster.separation` when you have real metadata such as communities, classes, or known splits.
+6. Use `grip.score.layout()` directly only when you already have a layout in hand and want to annotate it.
+
+## References

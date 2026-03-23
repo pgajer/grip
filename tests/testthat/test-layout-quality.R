@@ -97,3 +97,37 @@ test_that("grip.compare.layouts summarizes runs and seed stability", {
   expect_lt(mesh.row$score.composite[[1L]], default.row$score.composite[[1L]])
   expect_true(is.finite(mesh.row$stability.procrustes.mean[[1L]]))
 })
+
+test_that("grip.compare.layouts expands search grids into candidates", {
+  edges <- edges.mesh(4, 4)
+  cmp <- grip.compare.layouts(
+    edges = edges,
+    n = 16,
+    dim = 2,
+    search = list(
+      candidate.prefix = "mesh.search",
+      preset = "mesh",
+      final_rounds = c(96L, 128L),
+      num_nbrs = c(16L, 20L),
+      repulsion_factor = c(1.0, 1.5)
+    ),
+    seeds = 1
+  )
+
+  expect_equal(nrow(cmp$summary), 8L)
+  expect_true(all(grepl("^mesh.search", cmp$summary$candidate)))
+  expect_true(all(c(
+    "placement",
+    "rounds",
+    "final.rounds",
+    "num.init",
+    "num.nbrs",
+    "r",
+    "s",
+    "repulsion.factor",
+    "tinit.factor"
+  ) %in% names(cmp$summary)))
+  expect_true(all(sort(unique(cmp$summary$repulsion.factor)) == c(1.0, 1.5)))
+  expect_true(all(sort(unique(cmp$summary$num.nbrs)) == c(16L, 20L)))
+  expect_true(all(sort(unique(cmp$summary$final.rounds)) == c(96L, 128L)))
+})

@@ -12,6 +12,7 @@ grip.compare.layouts(
   edge_weights = NULL,
   dim = 2,
   candidates = c("default"),
+  search = NULL,
   clusters = NULL,
   seeds = 1:3,
   sample.size.stress = 2000L,
@@ -44,6 +45,14 @@ single preset name, or a named list of \code{\link{grip.layout}()}
 tuning arguments such as \code{preset}, \code{placement},
 \code{rounds}, or \code{repulsion_factor}.}
 
+\item{search}{Optional named list describing a grid search over layout
+settings. Any of \code{preset}, \code{placement}, \code{rounds},
+\code{final_rounds}, \code{num_init}, \code{num_nbrs}, \code{r},
+\code{s}, \code{repulsion_factor}, and \code{tinit_factor} may be supplied
+as vectors. All combinations are expanded into candidates. Special fields
+\code{candidate.prefix} and \code{include.base} control candidate naming
+and whether the all-first-values setting is guaranteed to appear.}
+
 \item{clusters}{Optional cluster or community labels used to compute
 \code{cluster.separation}.}
 
@@ -74,9 +83,10 @@ A list with \code{runs} and \code{summary} data frames and,
 }
 \description{
 \code{grip.compare.layouts()} computes layouts for several candidate presets
-or parameter lists, scores each run with \code{\link{grip.score.layout}()},
-and summarizes both quality metrics and seed-to-seed stability. This is
-useful for real-world datasets where no canonical embedding is known.
+or parameter lists, optionally expands a local parameter search, scores each
+run with \code{\link{grip.score.layout}()}, and summarizes both quality
+metrics and seed-to-seed stability. This is the main real-data workflow for
+graphs where no canonical embedding is known.
 }
 \examples{
 edges <- edges.mesh(6, 6)
@@ -88,4 +98,19 @@ cmp <- grip.compare.layouts(
   seeds = 1:2
 )
 cmp$summary
+
+search.cmp <- grip.compare.layouts(
+  edges = edges,
+  n = 36,
+  dim = 2,
+  search = list(
+    candidate.prefix = "mesh.search",
+    preset = "mesh",
+    final_rounds = c(96L, 128L),
+    num_nbrs = c(16L, 20L),
+    repulsion_factor = c(1.0, 1.5)
+  ),
+  seeds = 1:2
+)
+search.cmp$summary
 }

@@ -61,10 +61,12 @@ A one-row data frame with dot-delimited metric names.
 }
 \description{
 \code{grip.score.layout()} evaluates a realized layout without assuming a
-canonical embedding. It is intended for real-world graphs where visual
-quality is judged by graph-distance faithfulness, edge-length consistency,
-separation of non-neighbors, and optionally edge crossings or cluster
-separation.
+canonical embedding. It is the low-level scoring helper behind
+\code{\link{grip.compare.layouts}()} and is most useful when you already have
+one realized layout in hand, for example from a cached run or another graph
+drawing tool. For real-world graphs, quality is judged by graph-distance
+faithfulness, edge-length consistency, separation of non-neighbors, and
+optionally edge crossings or cluster separation.
 }
 \examples{
 edges <- edges.mesh(5, 5)

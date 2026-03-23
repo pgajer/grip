@@ -403,6 +403,96 @@ grip.normalize.compare.candidates <- function(candidates) {
   out
 }
 
+grip.compare.allowed.args <- function() {
+  c(
+    "placement", "preset", "rounds", "final_rounds", "num_init",
+    "num_nbrs", "r", "s", "repulsion_factor", "tinit_factor"
+  )
+}
+
+grip.expand.compare.search <- function(search) {
+  if (is.null(search)) {
+    return(list())
+  }
+  if (!is.list(search) || length(search) == 0L || is.null(names(search))) {
+    stop("search must be a named list")
+  }
+
+  search <- search[!vapply(search, is.null, logical(1L))]
+  if (length(search) == 0L) {
+    stop("search must contain at least one non-NULL field")
+  }
+
+  candidate.prefix <- if ("candidate.prefix" %in% names(search)) {
+    prefix <- search[["candidate.prefix"]]
+    if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix) || !nzchar(prefix)) {
+      stop("search$candidate.prefix must be a single non-empty character value")
+    }
+    prefix
+  } else {
+    "search"
+  }
+
+  include.base <- if ("include.base" %in% names(search)) {
+    include <- search[["include.base"]]
+    if (!is.logical(include) || length(include) != 1L || is.na(include)) {
+      stop("search$include.base must be TRUE or FALSE")
+    }
+    include
+  } else {
+    FALSE
+  }
+
+  tuning.names <- setdiff(names(search), c("candidate.prefix", "include.base"))
+  bad <- setdiff(tuning.names, grip.compare.allowed.args())
+  if (length(bad) > 0L) {
+    stop("search contains unsupported layout arguments: ", paste(bad, collapse = ", "))
+  }
+  if (length(tuning.names) == 0L) {
+    stop("search must contain at least one layout argument to vary or fix")
+  }
+
+  values <- search[tuning.names]
+  values <- lapply(values, function(x) {
+    if (length(x) == 0L) {
+      stop("search parameter vectors must be non-empty")
+    }
+    x
+  })
+
+  grid <- do.call(expand.grid, c(values, stringsAsFactors = FALSE, KEEP.OUT.ATTRS = FALSE))
+  if (include.base) {
+    base.row <- as.data.frame(lapply(values, function(x) x[[1L]]), stringsAsFactors = FALSE)
+    names(base.row) <- names(values)
+    grid <- unique(rbind(base.row, grid))
+  }
+
+  varying.names <- names(values)[vapply(values, function(x) length(unique(as.character(x))) > 1L, logical(1L))]
+  out <- vector("list", nrow(grid))
+  for (i in seq_len(nrow(grid))) {
+    args <- as.list(grid[i, , drop = FALSE])
+    args <- args[!vapply(args, function(x) length(x) == 1L && is.character(x) && is.na(x), logical(1L))]
+    out[[i]] <- args
+    if (length(varying.names) == 0L) {
+      names(out)[[i]] <- candidate.prefix
+    } else {
+      label.bits <- vapply(varying.names, function(name) {
+        value <- args[[name]]
+        value.txt <- gsub("[^[:alnum:]]+", "", as.character(value))
+        paste0(name, ".", value.txt)
+      }, character(1L))
+      names(out)[[i]] <- paste(c(candidate.prefix, label.bits), collapse = ".")
+    }
+  }
+
+  if (anyDuplicated(names(out))) {
+    seq.names <- sprintf("%s.%03d", candidate.prefix, seq_along(out))
+    names(out) <- seq.names
+  }
+
+  out
+}
+
 grip.resolve.compare.candidate <- function(candidate) {
   defaults <- list(
     placement = "barycenter",
@@ -486,6 +576,15 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
     out <- data.frame(
       candidate = df$candidate[[1L]],
       preset = if (all(is.na(df$preset) | df$preset == "")) NA_character_ else df$preset[[which.max(nzchar(df$preset))]],
+      placement = df$placement[[1L]],
+      rounds = df$rounds[[1L]],
+      final.rounds = df$final.rounds[[1L]],
+      num.init = df$num.init[[1L]],
+      num.nbrs = df$num.nbrs[[1L]],
+      r = df$r[[1L]],
+      s = df$s[[1L]],
+      repulsion.factor = df$repulsion.factor[[1L]],
+      tinit.factor = df$tinit.factor[[1L]],
       n.runs = nrow(df),
       n.ok = sum(ok),
       n.fail = sum(!ok),
@@ -544,10 +643,12 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
 #' Score a single layout using graph-aware quality heuristics
 #'
 #' \code{grip.score.layout()} evaluates a realized layout without assuming a
-#' canonical embedding. It is intended for real-world graphs where visual
-#' quality is judged by graph-distance faithfulness, edge-length consistency,
-#' separation of non-neighbors, and optionally edge crossings or cluster
-#' separation.
+#' canonical embedding. It is the low-level scoring helper behind
+#' \code{\link{grip.compare.layouts}()} and is most useful when you already have
+#' one realized layout in hand, for example from a cached run or another graph
+#' drawing tool. For real-world graphs, quality is judged by graph-distance
+#' faithfulness, edge-length consistency, separation of non-neighbors, and
+#' optionally edge crossings or cluster separation.
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
@@ -648,9 +749,10 @@ grip.score.layout <- function(coords,
 #' Compare multiple layout candidates across seeds
 #'
 #' \code{grip.compare.layouts()} computes layouts for several candidate presets
-#' or parameter lists, scores each run with \code{\link{grip.score.layout}()},
-#' and summarizes both quality metrics and seed-to-seed stability. This is
-#' useful for real-world datasets where no canonical embedding is known.
+#' or parameter lists, optionally expands a local parameter search, scores each
+#' run with \code{\link{grip.score.layout}()}, and summarizes both quality
+#' metrics and seed-to-seed stability. This is the main real-data workflow for
+#' graphs where no canonical embedding is known.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
@@ -665,6 +767,13 @@ grip.score.layout <- function(coords,
 #'   single preset name, or a named list of \code{\link{grip.layout}()}
 #'   tuning arguments such as \code{preset}, \code{placement},
 #'   \code{rounds}, or \code{repulsion_factor}.
+#' @param search Optional named list describing a grid search over layout
+#'   settings. Any of \code{preset}, \code{placement}, \code{rounds},
+#'   \code{final_rounds}, \code{num_init}, \code{num_nbrs}, \code{r},
+#'   \code{s}, \code{repulsion_factor}, and \code{tinit_factor} may be supplied
+#'   as vectors. All combinations are expanded into candidates. Special fields
+#'   \code{candidate.prefix} and \code{include.base} control candidate naming
+#'   and whether the all-first-values setting is guaranteed to appear.
 #' @param clusters Optional cluster or community labels used to compute
 #'   \code{cluster.separation}.
 #' @param seeds Integer seeds used for repeated runs.
@@ -693,6 +802,21 @@ grip.score.layout <- function(coords,
 #'   seeds = 1:2
 #' )
 #' cmp$summary
+#'
+#' search.cmp <- grip.compare.layouts(
+#'   edges = edges,
+#'   n = 36,
+#'   dim = 2,
+#'   search = list(
+#'     candidate.prefix = "mesh.search",
+#'     preset = "mesh",
+#'     final_rounds = c(96L, 128L),
+#'     num_nbrs = c(16L, 20L),
+#'     repulsion_factor = c(1.0, 1.5)
+#'   ),
+#'   seeds = 1:2
+#' )
+#' search.cmp$summary
 #' @export
 grip.compare.layouts <- function(edges = NULL,
                                  n = NULL,
@@ -701,6 +825,7 @@ grip.compare.layouts <- function(edges = NULL,
                                  edge_weights = NULL,
                                  dim = 2,
                                  candidates = c("default"),
+                                 search = NULL,
                                  clusters = NULL,
                                  seeds = 1:3,
                                  sample.size.stress = 2000L,
@@ -710,6 +835,7 @@ grip.compare.layouts <- function(edges = NULL,
                                  score.weights = grip.default.compare.score.weights(),
                                  return.layouts = FALSE,
                                  disconnected = c("components", "error")) {
+  candidates.missing <- missing(candidates)
   edge.crossings <- match.arg(edge.crossings)
   disconnected <- match.arg(disconnected)
   if (is.null(n) && !is.null(edges)) {
@@ -729,7 +855,21 @@ grip.compare.layouts <- function(edges = NULL,
   if (length(seeds) == 0L || any(is.na(seeds))) {
     stop("seeds must be a non-empty integer vector")
   }
-  candidate.list <- grip.normalize.compare.candidates(candidates)
+  explicit.candidates <- if (is.null(search) && candidates.missing) {
+    grip.normalize.compare.candidates(candidates)
+  } else if (!candidates.missing && !is.null(candidates)) {
+    grip.normalize.compare.candidates(candidates)
+  } else {
+    list()
+  }
+  search.candidates <- grip.expand.compare.search(search)
+  candidate.list <- c(explicit.candidates, search.candidates)
+  if (length(candidate.list) == 0L) {
+    stop("no layout candidates were generated")
+  }
+  if (anyDuplicated(names(candidate.list))) {
+    stop("candidate names must be unique after combining candidates and search")
+  }
   graph.args <- list(
     adj_list = validated$adj_list,
     weight_list = validated$weight_list,
