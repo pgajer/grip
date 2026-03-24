@@ -15,8 +15,18 @@ Description: Implements the GRIP algorithm for drawing large graphs using
     <doi:10.1016/j.comgeo.2004.03.014>.
 License: GPL (>= 3)
 Encoding: UTF-8
+Depends:
+    R (>= 3.5.0)
 Imports: Rcpp
-Suggests: testthat (>= 3.0.0), knitr, rmarkdown, rgl
+Suggests:
+    bslib,
+    DT,
+    htmltools,
+    knitr,
+    rmarkdown,
+    rgl,
+    shiny,
+    testthat (>= 3.0.0)
 LinkingTo: Rcpp
 Config/testthat/edition: 3
 VignetteBuilder: knitr

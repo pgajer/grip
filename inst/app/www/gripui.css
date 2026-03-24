@@ -1,0 +1,64 @@
+.gripui-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.gripui-brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.gripui-badge {
+  display: inline-block;
+  padding: 0.28rem 0.8rem;
+  border-radius: 999px;
+  background: #e8e1d4;
+  color: #17323a;
+  font-size: 0.85rem;
+}
+
+.gripui-project-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.gripui-project-subtitle {
+  color: #556b73;
+  margin-bottom: 0.35rem;
+}
+
+.gripui-project-summary,
+.gripui-selection-status,
+.gripui-muted {
+  color: #556b73;
+  margin-bottom: 0.2rem;
+}
+
+.gripui-selected-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.gripui-selected-candidate {
+  font-weight: 700;
+}
+
+.gripui-selected-meta {
+  color: #556b73;
+  font-size: 0.9rem;
+}
+
+.gripui-links {
+  padding-left: 1.1rem;
+  margin-bottom: 0;
+}
+
+.gripui-card .card-header {
+  font-weight: 700;
+}

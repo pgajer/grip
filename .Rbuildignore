@@ -1,4 +1,6 @@
 ^\.DS_Store$
+(^|/)\.DS_Store$
+(^|/)\.gitignore$
 ^Archives$
 ^papers$
 ^Makefile$
@@ -40,4 +42,5 @@
 ^output$
 ^tmp$
 ^src/symbols\.rds$
+^src/.*\.(o|so|dll|dylib)$
 ^data-raw$
