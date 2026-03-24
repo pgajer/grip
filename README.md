@@ -57,8 +57,9 @@ For real-world graphs without a canonical embedding, start with
 `grip.compare.layouts()` to compare defaults, presets, or a small local search
 over tuning profiles in 3D. Use `grip.score.layout()` when you already have one
 realized layout in hand and want to annotate it with quality metrics. See the
-vignette `Choosing Layouts for Real Data` for worked examples on benchmark
-social-network data and metadata-aware layout selection.
+vignettes `Choosing Layouts for Real Data` and `Selecting Layouts on the
+Coarsened HMP/U01 Graph` for worked examples on benchmark networks and a
+bundled real-world microbial graph.
 
 **Basic Usage**
 ```r

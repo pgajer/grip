@@ -1,0 +1,404 @@
+---
+title: "Selecting Layouts on the Coarsened HMP/U01 Graph"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Selecting Layouts on the Coarsened HMP/U01 Graph}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 9,
+  fig.height = 5.8
+)
+```
+
+## Why this graph is useful
+
+The package now ships a coarsened real-world graph derived from the giant
+connected component of the HMP+U01 16S amplicon iKNN graph. This is a useful
+layout-selection example because it is large enough to behave like a real
+analysis graph, but still small enough to bundle with the package and to inspect
+reproducibly.
+
+The bundled object is `hmp.u01.gc.coarse`. It contains:
+
+- a weighted undirected graph with `1828` coarse vertices,
+- aggregated labels including `cst` and `subcst`,
+- graph-level provenance describing the upstream `>=1%` relative-abundance +
+  PCA branch and the coarsening path from `6474` to `1828` vertices.
+
+```{r}
+library(grip)
+
+data(hmp.u01.gc.coarse)
+
+graph.info <- data.frame(
+  quantity = c(
+    "source dataset",
+    "representation",
+    "selected k",
+    "original giant-component vertices",
+    "coarsened vertices",
+    "weighted undirected edges"
+  ),
+  value = c(
+    hmp.u01.gc.coarse$graph_info$source_dataset,
+    hmp.u01.gc.coarse$graph_info$representation,
+    hmp.u01.gc.coarse$graph_info$selected_k,
+    hmp.u01.gc.coarse$graph_info$original_vertices,
+    hmp.u01.gc.coarse$graph_info$coarse_vertices,
+    hmp.u01.gc.coarse$graph_info$edge_count
+  ),
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(graph.info)
+```
+
+```{r}
+hmp.coarsening.rounds <- hmp.u01.gc.coarse$graph_info$coarsening_rounds
+knitr::kable(hmp.coarsening.rounds)
+```
+
+The raw bundled provenance files are also available under:
+
+```{r}
+system.file("extdata", "hmp_u01_gc_coarse", package = "grip")
+```
+
+## A lightweight real-data workflow
+
+For a graph like this there is no canonical embedding, so layout choice is a
+model-selection problem rather than a reconstruction problem. In practice the
+workflow is:
+
+1. shortlist a few plausible presets,
+2. compare them in 3D,
+3. run a small local search around the strongest region, and
+4. inspect intrinsic and label-aware metrics together.
+
+The full HMP/U01 search is too expensive to rebuild inside a CRAN vignette, so
+this vignette uses precomputed comparison results bundled with the package. That
+keeps the vignette fast while still showing an actual real-data workflow.
+
+```{r}
+read.hmp.vignette.results <- function() {
+  path <- system.file(
+    "extdata", "hmp_u01_gc_coarse", "vignette_results.rds",
+    package = "grip"
+  )
+  if (!nzchar(path)) {
+    stop("could not locate bundled vignette results")
+  }
+  readRDS(path)
+}
+
+hmp.results <- read.hmp.vignette.results()
+```
+
+## Projecting 3D layouts for static figures
+
+The layouts below are true 3D layouts. For a vignette page we need a static
+projection, so each panel shows a fixed 3D view rather than a 2D layout.
+
+```{r}
+project.coords <- function(coords, azimuth = 35, elevation = 22) {
+  az <- azimuth * pi / 180
+  el <- elevation * pi / 180
+  rz <- matrix(c(
+    cos(az), -sin(az), 0,
+    sin(az),  cos(az), 0,
+    0,        0,       1
+  ), nrow = 3, byrow = TRUE)
+  rx <- matrix(c(
+    1, 0, 0,
+    0, cos(el), -sin(el),
+    0, sin(el),  cos(el)
+  ), nrow = 3, byrow = TRUE)
+  rotated <- coords %*% rz %*% rx
+  rotated[, 1:2, drop = FALSE]
+}
+
+edge.matrix.from.adj <- function(adj.list) {
+  edges <- list()
+  idx <- 0L
+  for (u in seq_along(adj.list)) {
+    nbrs <- adj.list[[u]]
+    nbrs <- nbrs[nbrs > u]
+    if (!length(nbrs)) next
+    for (v in nbrs) {
+      idx <- idx + 1L
+      edges[[idx]] <- c(u, v)
+    }
+  }
+  do.call(rbind, edges)
+}
+
+plot.projected.graph <- function(coords,
+                                 edges,
+                                 main = "",
+                                 vertex.col = "black",
+                                 edge.col = "gray85",
+                                 azimuth = 35,
+                                 elevation = 22,
+                                 pch = 16,
+                                 cex = 0.55) {
+  xy <- project.coords(coords, azimuth = azimuth, elevation = elevation)
+  xlim <- range(xy[, 1])
+  ylim <- range(xy[, 2])
+  xpad <- 0.08 * diff(xlim)
+  ypad <- 0.08 * diff(ylim)
+  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
+  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
+
+  plot(
+    xy[, 1], xy[, 2],
+    type = "n",
+    asp = 1,
+    axes = FALSE,
+    xlab = "",
+    ylab = "",
+    xlim = xlim + c(-xpad, xpad),
+    ylim = ylim + c(-ypad, ypad),
+    main = main
+  )
+  apply(edges, 1, function(e) {
+    graphics::segments(
+      xy[e[1], 1], xy[e[1], 2],
+      xy[e[2], 1], xy[e[2], 2],
+      col = edge.col
+    )
+  })
+  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = vertex.col)
+}
+
+hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
+hmp.cst <- hmp.u01.gc.coarse$vertex_data$cst
+cst.levels <- sort(unique(hmp.cst))
+cst.cols <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"), cst.levels)
+hmp.cst.col <- cst.cols[hmp.cst]
+```
+
+## Step 1: shortlist a few presets
+
+The bundled preset comparison compared three candidates:
+
+- `default`
+- `tree`
+- `torus`
+
+The metrics below were computed with `grip.compare.layouts()` using the bundled
+graph and CST labels. Lower `sampled.stress.mean` and lower
+`score.composite` are better. Higher `cluster.separation.mean` is better.
+
+```{r}
+preset.summary <- hmp.results$preset_summary
+preset.keep <- c(
+  "candidate",
+  "sampled.stress.mean",
+  "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean",
+  "cluster.separation.mean",
+  "stability.procrustes.mean",
+  "score.composite"
+)
+knitr::kable(preset.summary[, preset.keep])
+```
+
+```{r fig.width=11, fig.height=4.4}
+op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2))
+on.exit(par(op), add = TRUE)
+
+plot.projected.graph(
+  hmp.results$layouts$preset$default,
+  hmp.edges,
+  main = "default",
+  vertex.col = hmp.cst.col
+)
+plot.projected.graph(
+  hmp.results$layouts$preset$tree,
+  hmp.edges,
+  main = "tree",
+  vertex.col = hmp.cst.col
+)
+plot.projected.graph(
+  hmp.results$layouts$preset$torus,
+  hmp.edges,
+  main = "torus",
+  vertex.col = hmp.cst.col
+)
+```
+
+On this graph, `tree` and `torus` both improve on `default`. That makes sense:
+the graph has a compact core with several arm-like extensions, so a purely
+generic layout is not the strongest prior.
+
+## Step 2: search a small neighborhood around the strongest region
+
+The next step is not to search the whole parameter space blindly. Instead, use a
+small local grid around the strongest preset family. For this graph the search
+was centered on 3D barycenter layouts with stronger refinement and moderate
+repulsion. The bundled search varies only:
+
+- `final.rounds` in `{224, 288}`
+- `repulsion.factor` in `{0.75, 1.25}`
+
+```{r}
+local.summary <- hmp.results$local_search_summary
+local.keep <- c(
+  "candidate",
+  "rounds",
+  "final.rounds",
+  "num.init",
+  "r",
+  "s",
+  "repulsion.factor",
+  "sampled.stress.mean",
+  "cluster.separation.mean",
+  "score.composite"
+)
+knitr::kable(head(local.summary[, local.keep], 8))
+```
+
+```{r fig.width=9, fig.height=4.5}
+op <- par(mfrow = c(1, 2), mar = c(4, 4, 2.2, 1))
+on.exit(par(op), add = TRUE)
+
+plot(
+  local.summary$repulsion.factor,
+  local.summary$sampled.stress.mean,
+  pch = 19,
+  col = grDevices::hcl.colors(nrow(local.summary), "Blues 3"),
+  xlab = "repulsion.factor",
+  ylab = "sampled.stress.mean",
+  main = "search candidates: stress"
+)
+text(
+  local.summary$repulsion.factor,
+  local.summary$sampled.stress.mean,
+  labels = local.summary$candidate,
+  pos = 4,
+  cex = 0.7
+)
+
+plot(
+  local.summary$repulsion.factor,
+  local.summary$cluster.separation.mean,
+  pch = 19,
+  col = grDevices::hcl.colors(nrow(local.summary), "Greens 3"),
+  xlab = "repulsion.factor",
+  ylab = "cluster.separation.mean",
+  main = "search candidates: CST separation"
+)
+text(
+  local.summary$repulsion.factor,
+  local.summary$cluster.separation.mean,
+  labels = local.summary$candidate,
+  pos = 4,
+  cex = 0.7
+)
+```
+
+The important lesson is that stronger repulsion does not automatically improve a
+real graph. On this example, the best local candidates sit in a moderate
+repulsion range rather than at the maximum tested value.
+
+```{r fig.width=11, fig.height=4.4}
+top.local <- hmp.results$top_local_candidates
+op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2))
+on.exit(par(op), add = TRUE)
+
+for (nm in top.local) {
+  plot.projected.graph(
+    hmp.results$layouts$local[[nm]],
+    hmp.edges,
+    main = nm,
+    vertex.col = hmp.cst.col
+  )
+}
+```
+
+## What the metrics mean in plain language
+
+- `sampled.stress.mean`: lower is better. It measures how well Euclidean
+  distances in the plot track graph distances.
+- `edge.length.cv.mean`: lower is better. It tells you whether neighboring
+  vertices are drawn with reasonably consistent edge lengths.
+- `sampled.nonedge.sep.ratio.mean`: higher is better. It penalizes clutter and
+  near-collisions.
+- `cluster.separation.mean`: higher is better when you have meaningful external
+  labels such as CST or subCST.
+- `stability.procrustes.mean`: lower is better. It tells you how much layouts
+  change across seeds.
+- `score.composite`: lower is better. It is a weighted summary of the metrics
+  above and is useful as a ranking aid, not as the only decision rule.
+
+For a graph like this, the choice is not about a single metric. The practical
+goal is to find a layout that is faithful enough globally, keeps clutter under
+control, and separates the biological labels in a way that remains visually
+interpretable.
+
+## How to rerun or expand the search
+
+The vignette uses precomputed HMP/U01 results to stay lightweight, but the
+comparison workflow is fully reproducible. A direct rerun looks like this:
+
+```{r eval=FALSE}
+cmp <- grip.compare.layouts(
+  adj_list = hmp.u01.gc.coarse$adj_list,
+  weight_list = hmp.u01.gc.coarse$weight_list,
+  n = length(hmp.u01.gc.coarse$adj_list),
+  dim = 3,
+  candidates = c("default", "tree", "torus"),
+  clusters = hmp.u01.gc.coarse$vertex_data$cst,
+  seeds = 1,
+  sample.size.stress = 1200,
+  sample.size.nonedge = 3000
+)
+cmp$summary
+```
+
+And a small local search around the stronger region looks like this:
+
+```{r eval=FALSE}
+search.cmp <- grip.compare.layouts(
+  adj_list = hmp.u01.gc.coarse$adj_list,
+  weight_list = hmp.u01.gc.coarse$weight_list,
+  n = length(hmp.u01.gc.coarse$adj_list),
+  dim = 3,
+  search = list(
+    candidate.prefix = "hmp.local",
+    placement = "barycenter",
+    rounds = 192L,
+    final_rounds = c(224L, 288L),
+    num_init = 30L,
+    num_nbrs = 10L,
+    r = 0.10,
+    s = 2.0,
+    repulsion_factor = c(0.75, 1.25)
+  ),
+  clusters = hmp.u01.gc.coarse$vertex_data$cst,
+  seeds = 1,
+  sample.size.stress = 1200,
+  sample.size.nonedge = 3000
+)
+search.cmp$summary
+```
+
+## Takeaway
+
+This coarsened HMP/U01 graph is a good example of how `grip` should be used on
+real data:
+
+- start with a few plausible presets in 3D,
+- use external labels when they are scientifically meaningful,
+- search locally around the strongest region rather than sweeping blindly,
+- and inspect both metrics and projected views before deciding on a final
+  layout.
+
+The bundled graph is intentionally realistic enough to show this workflow while
+still being small enough to ship with the package.

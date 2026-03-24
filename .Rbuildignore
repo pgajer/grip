@@ -40,3 +40,4 @@
 ^output$
 ^tmp$
 ^src/symbols\.rds$
+^data-raw$
