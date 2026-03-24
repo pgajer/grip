@@ -1,279 +1,385 @@
 ---
-title: "GRIP: Graph dRawing with Intelligent Placement"
+title: "GRIP Layout Examples"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{GRIP: Graph dRawing with Intelligent Placement}
+  %\VignetteIndexEntry{GRIP Layout Examples}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5.2
+)
+
+if (requireNamespace("rgl", quietly = TRUE)) {
+  options(rgl.useNULL = TRUE)
+  rgl::setupKnitr(autoprint = TRUE)
+}
 ```
 
-## Introduction
+## Why this vignette is different
 
-Visualizing large graphs is a fundamental problem in network analysis,
-bioinformatics, social-network research, and many other fields. *Force-directed*
-methods are among the most popular approaches: they model the graph as a
-physical system where edges act as springs pulling connected vertices together,
-while all vertex pairs exert repulsive forces to prevent overlap. The layout is
-obtained by minimizing the total energy of this system. Classical algorithms
-such as Kamada--Kawai (1989) and Fruchterman--Reingold (1991) produce
-aesthetically pleasing drawings, but their running time grows quickly with
-graph size---Kamada--Kawai, for instance, is $O(n^3)$ per iteration---making
-them impractical for graphs with more than a few thousand vertices.
+This vignette is a synthetic gallery rather than a minimal API reference. The
+goal is to show the graph families where the current package has been tuned and
+validated during development:
 
-GRIP (Graph dRawing with Intelligent Placement) addresses this scalability
-bottleneck. The algorithm was introduced in two companion papers:
+- `preset = "mesh"` for rectangular lattice graphs,
+- `preset = "carpet"` for Sierpinski-carpet-like graphs,
+- `preset = "tree"` for symmetric force-directed tree layouts,
+- `preset = "torus"` for 3D torus and cylinder layouts,
+- explicit tuned parameters for a 3D Sierpinski tetrahedron example.
 
-1. Gajer, P., Goodrich, M.T., and Kobourov, S.G. (2004). A multi-dimensional
-   approach to force-directed layouts of large graphs. *Computational Geometry:
-   Theory and Applications*, 29(1):3--18.
-   (Preliminary version in *Proc. 8th Symposium on Graph Drawing*, 2000.)
-
-2. Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
-   Placement. *Journal of Graph Algorithms and Applications*, 6(3):203--224.
-
-The key observation behind GRIP is that force-directed refinement converges much
-faster when vertices start close to their final positions. GRIP therefore
-combines three ideas into a single multi-scale pipeline:
-
-1. **Maximal Independent Set Filtration (MISF).** The vertex set is decomposed
-   into a nested sequence $V = V_0 \supset V_1 \supset \cdots \supset V_k$,
-   where each $V_i$ is a maximal independent set of the subgraph induced by
-   $V_{i-1}$ with the additional constraint that the graph distance between any
-   two vertices in $V_i$ is at least $2^{i-1}+1$. The coarsest level $V_k$
-   contains only a small number of vertices that are spread far apart in the
-   graph.
-
-2. **Intelligent placement.** At each level, newly introduced vertices are
-   placed at an initial position computed from the already-positioned neighbors
-   (barycenter of nearby vertices, or along a circle in 2D). Because these
-   neighbors are already well separated, the initial position is typically close
-   to optimal.
-
-3. **Fast force-directed refinement.** Each vertex is refined using only a
-   small, local neighborhood of graph-distance neighbors (controlled by the
-   `num_nbrs` parameter). This makes the per-vertex cost constant on average,
-   yielding near-linear overall running time. The current package uses a
-   single GRIP layout implementation, with local Kamada--Kawai refinement on
-   coarse filtration levels and a Fruchterman--Reingold-style
-   attractive/repulsive update on the finest level.
-
-The result is an algorithm that draws graphs with tens of thousands of
-vertices in seconds, using negligible memory, while producing layouts that are
-competitive in quality with the much slower classical methods.
-
-## Quick start
+For real-data workflows and layout scoring, see the separate vignettes
+`Choosing Layouts for Real Data` and `Selecting Layouts on the Coarsened
+HMP/U01 Graph`.
 
 ```{r}
 library(grip)
 ```
 
-## Parameter overview
+## Warm-up: even a cycle benefits from tuning
 
-| Parameter      | Meaning |
-|:---------------|:--------|
-| `dim`          | Layout dimension (2 or 3). |
-| `placement`    | Initial placement strategy: `"barycenter"` (default) or `"circle"` (2D only). |
-| `preset`       | Optional tuning preset. `"carpet"`, `"mesh"`, `"torus"`, and `"tree"` fill in omitted tuning args for those graph families. |
-| `rounds`       | Refinement rounds at coarse levels. |
-| `final_rounds` | Refinement rounds at the finest level. |
-| `num_init`     | Number of initial vertices at the coarsest filtration level. |
-| `num_nbrs`     | Maximum number of graph-distance neighbors retained during refinement. |
-| `r`, `s`       | Adaptive local temperature parameters used in the main iterative refinement. |
-| `repulsion_factor` | Non-negative multiplier on the finest-level repulsive force term. |
-| `seed`         | RNG seed for reproducibility. |
-
-The optional `preset = "carpet"` profile is tuned for Sierpinski-carpet-like
-graphs and was validated on levels 3 and 4. The optional `preset = "mesh"`
-profile is tuned for rectangular lattice graphs and was validated on 8x8 and
-12x12 meshes. The optional `preset = "torus"` profile is tuned for 3D torus
-layouts and was validated on torus sizes from 8x8 through 20x20. The optional
-`preset = "tree"` profile is tuned for symmetry-focused force-directed layouts
-of tree-like graphs and was validated on binary trees of depths 5 and 6.
-
-The examples below use `rounds = 25` and `final_rounds = 25` for good layout
-quality. The remaining parameters (`num_init`, `num_nbrs`) are kept small
-since the example graphs are small; for larger graphs the defaults
-(`num_init = 36`, `num_nbrs = 10`) generally work well.
-
-## Helper functions
-
-The package exports convenience edge-list generators for the families used
-below, including `edges.path()`, `edges.cycle()`, `edges.mesh()`,
-`edges.cylinder()`, `edges.torus()`, `edges.kary.tree()`,
-`edges.sierpinski.triangle()`, `edges.sierpinski.tetrahedron()`, and
-`edges.sierpinski.carpet()`.
-
-## 2D layout examples
-
-The examples below lay out several common graph families in two dimensions.
-The `"circle"` placement strategy, which arranges initial vertices along a
-circle before refinement, is available only in 2D; the default `"barycenter"`
-strategy works in both 2D and 3D.
-
-### Path graph
-
-A simple path on 12 vertices. The algorithm should recover a (roughly) linear
-arrangement.
+The core interface is still simple: pass an edge list and the number of
+vertices to `grip.layout()`. But this is also a nice place to show why the
+comparison tools matter. On an 18-cycle, the untuned default can be visibly far
+from a regular polygon, while a tiny local search around a more suitable
+initial placement almost solves the problem.
 
 ```{r}
-edges <- edges.path(12)
-coords <- grip.layout(edges, n = 12, dim = 2,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 5, num_nbrs = 6,
-                      seed = 1)
-grip.plot(coords, edges, main = "Path (2D)", pch = 16, cex = 0.6)
+edges <- edges.cycle(18)
+
+cycle.cmp <- grip.compare.layouts(
+  edges = edges,
+  n = 18,
+  dim = 2,
+  candidates = list(
+    default = list(),
+    circle = list(placement = "circle"),
+    circle_refined = list(
+      placement = "circle",
+      rounds = 64L,
+      final_rounds = 128L,
+      num_init = 6L,
+      num_nbrs = 8L,
+      r = 0.05,
+      s = 4.5,
+      repulsion_factor = 1.25
+    ),
+    bary_refined = list(
+      placement = "barycenter",
+      rounds = 64L,
+      final_rounds = 128L,
+      num_init = 6L,
+      num_nbrs = 8L,
+      r = 0.05,
+      s = 4.5,
+      repulsion_factor = 1.25
+    )
+  ),
+  seeds = 1:3,
+  return.layouts = TRUE
+)
+
+knitr::kable(cycle.cmp$summary[, c(
+  "candidate",
+  "sampled.stress.mean",
+  "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean",
+  "score.composite"
+)])
 ```
 
-### Cycle graph
+```{r fig.width=10.5, fig.height=4.2}
+cycle.best <- cycle.cmp$summary$candidate[[1L]]
+cycle.2d.default <- cycle.cmp$layouts$default[[1L]]
+cycle.2d.best <- cycle.cmp$layouts[[cycle.best]][[1L]]
 
-A cycle on 16 vertices. A good layout should approximate a regular polygon.
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
+on.exit(par(op), add = TRUE)
+
+grip.plot(cycle.2d.default, edges, main = "Cycle default", pch = 16, cex = 0.7)
+grip.plot(cycle.2d.best, edges, main = paste("Cycle tuned:", cycle.best), pch = 16, cex = 0.7)
+```
+
+## A small preset map
+
+| Family | Good starting point | What it tends to help with |
+|:--|:--|:--|
+| Rectangular grid or lattice | `preset = "mesh"` | More regular spacing and cleaner boundaries |
+| Fractal carpet-like graph | `preset = "carpet"` | Better separation of holes and recursive cells |
+| Tree-like graph | `preset = "tree"` | More symmetric branching structure |
+| 3D torus or cylinder-like graph | `preset = "torus"` | Cleaner tubular or toroidal geometry |
+| 3D tetrahedral Sierpinski graph | Explicit tuned parameters | Better simplex-like separation in 3D |
+
+## Plot helpers for 3D layouts
+
+The 3D examples below are shown as `rglwidget` widgets when the optional `rgl`
+package is available. That makes the vignette more faithful to the actual 3D
+geometry: you can rotate the layout rather than relying on a single static
+projection.
 
 ```{r}
-edges <- edges.cycle(16)
-coords <- grip.layout(edges, n = 16, dim = 2,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 5, num_nbrs = 6,
-                      seed = 2)
-grip.plot(coords, edges, main = "Cycle (2D)", pch = 16, cex = 0.6)
-```
+make.rglwidget.graph <- function(coords,
+                                 edges,
+                                 theta = 35,
+                                 phi = 22,
+                                 zoom = 0.8,
+                                 point.col = "#1F3B73",
+                                 edge.col = "gray80",
+                                 point.size = 5,
+                                 width = 800,
+                                 height = 520) {
+  if (!requireNamespace("rgl", quietly = TRUE)) {
+    return("Install the optional 'rgl' package to see the interactive 3D widget here.")
+  }
 
-### Mesh (grid) graph
+  rgl::open3d(useNULL = TRUE)
+  rgl::bg3d(color = "white")
 
-A 5 x 5 grid graph. The current layout implementation tends to produce more
-uniform spacing on regular lattices than the older documented variants.
+  apply(edges, 1, function(e) {
+    rgl::segments3d(
+      coords[e, 1],
+      coords[e, 2],
+      coords[e, 3],
+      color = edge.col
+    )
+  })
 
-```{r}
-edges <- edges.mesh(5, 5)
-coords <- grip.layout(edges, n = 25, dim = 2,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 6, num_nbrs = 8,
-                      seed = 3)
-grip.plot(coords, edges, main = "Mesh (2D)", pch = 16, cex = 0.6)
-```
+  rgl::points3d(
+    coords[, 1],
+    coords[, 2],
+    coords[, 3],
+    color = point.col,
+    size = point.size
+  )
 
-### Sierpinski triangle
+  rgl::view3d(theta = theta, phi = phi, zoom = zoom)
+  widget <- rgl::rglwidget(width = width, height = height)
+  rgl::close3d()
+  widget
+}
 
-The level-2 Sierpinski triangle graph has a fractal structure that is a
-useful stress test for layout algorithms. Here we use the `"circle"`
-placement strategy.
+plot.trace.frame <- function(coords, edges, main = "", pch = 16, cex = 0.55) {
+  active <- stats::complete.cases(coords[, 1:2, drop = FALSE])
+  xy <- coords[active, 1:2, drop = FALSE]
 
-```{r}
-edges <- edges.sierpinski.triangle(2)
-n <- max(edges)
-coords <- grip.layout(edges, n = n, dim = 2,
-                      placement = "circle",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 5, num_nbrs = 7,
-                      seed = 4)
-grip.plot(coords, edges, main = "Sierpinski (2D, circle placement)", pch = 16, cex = 0.6)
-```
+  xlim <- range(xy[, 1])
+  ylim <- range(xy[, 2])
+  xpad <- 0.08 * diff(xlim)
+  ypad <- 0.08 * diff(ylim)
+  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
+  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
 
-## 3D layout examples
+  plot(
+    xy[, 1], xy[, 2],
+    type = "n",
+    asp = 1,
+    axes = FALSE,
+    xlab = "",
+    ylab = "",
+    xlim = xlim + c(-xpad, xpad),
+    ylim = ylim + c(-ypad, ypad),
+    main = main
+  )
 
-Setting `dim = 3` produces a layout in three-dimensional space. The output is a
-numeric matrix with three columns. GRIP was designed from the outset as a
-multi-dimensional algorithm---the original papers showed that working in higher
-dimensions and then projecting can sometimes yield smoother, more symmetric
-drawings.
+  active.edges <- edges[active[edges[, 1]] & active[edges[, 2]], , drop = FALSE]
+  if (nrow(active.edges) > 0) {
+    apply(active.edges, 1, function(e) {
+      graphics::segments(
+        coords[e[1], 1], coords[e[1], 2],
+        coords[e[2], 1], coords[e[2], 2],
+        col = "gray80"
+      )
+    })
+  }
 
-For interactive 3D viewing, the **rgl** package can be used (see the optional
-plotting snippet at the end of this section).
-
-### 3D mesh
-
-```{r}
-edges <- edges.mesh(4, 4)
-coords <- grip.layout(edges, n = 16, dim = 3,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 5, num_nbrs = 7,
-                      seed = 5)
-head(coords)
-```
-
-## Adjacency list and weighted edges
-
-In addition to the edge-list interface, `grip.layout()` accepts an adjacency
-list with an optional parallel list of edge weights. This is convenient when
-your graph is already stored in adjacency-list form. Edge weights are
-interpreted as desired edge lengths: a larger weight means the algorithm will
-try to place the two endpoints farther apart.
-
-`weight_list` is optional; omit it to treat all edges as having unit length.
-
-```{r}
-adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
-weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
-coords <- grip.layout(adj_list = adj_list,
-                      weight_list = weight_list,
-                      n = 4,
-                      dim = 2,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 3, num_nbrs = 3,
-                      seed = 12)
-grip.plot(coords, main = "Adjacency list input (2D)")
-```
-
-### 3D cylinder
-
-A cylinder graph wraps the horizontal axis of a grid into a cycle, producing
-a surface that should curve into a tube-like shape in 3D.
-
-```{r}
-edges <- edges.cylinder(4, 6)
-coords <- grip.layout(edges, n = 24, dim = 3,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 6, num_nbrs = 8,
-                      seed = 6)
-head(coords)
-```
-
-### 3D torus
-
-A torus wraps both axes of a grid into cycles. In 3D, the algorithm should
-recover the characteristic doughnut shape.
-
-```{r}
-edges <- edges.torus(4, 4)
-coords <- grip.layout(edges, n = 16, dim = 3,
-                      placement = "barycenter",
-                      rounds = 25, final_rounds = 25,
-                      num_init = 5, num_nbrs = 7,
-                      seed = 7)
-head(coords)
-```
-
-```{r, eval=FALSE}
-# Optional 3D plotting (requires rgl)
-if (requireNamespace("rgl", quietly = TRUE)) {
-  rgl::plot3d(coords[, 1], coords[, 2], coords[, 3],
-              size = 4, col = "steelblue")
+  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = "black")
 }
 ```
 
-## References
+## Tuned 2D families
 
-1. Gajer, P., Goodrich, M.T., and Kobourov, S.G. (2004). A multi-dimensional
-   approach to force-directed layouts of large graphs. *Computational Geometry:
-   Theory and Applications*, 29(1):3--18.
-   [doi:10.1016/j.comgeo.2004.03.014](https://doi.org/10.1016/j.comgeo.2004.03.014).
+### Mesh
 
-2. Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
-   Placement. *Journal of Graph Algorithms and Applications*, 6(3):203--224.
-   [doi:10.7155/jgaa.00052](https://doi.org/10.7155/jgaa.00052).
+The mesh preset was tuned on regular lattice graphs. On a `10 x 10` mesh it
+produces visibly more uniform spacing than the generic defaults.
 
-3. Kamada, T. and Kawai, S. (1989). An algorithm for drawing general
-   undirected graphs. *Information Processing Letters*, 31(1):7--15.
+```{r fig.width=10.5, fig.height=4.2}
+edges <- edges.mesh(10, 10)
 
-4. Fruchterman, T.M.J. and Reingold, E.M. (1991). Graph drawing by
-   force-directed placement. *Software: Practice and Experience*,
-   21(11):1129--1164.
+mesh.2d.default <- grip.layout(edges, n = 100, dim = 2, seed = 11)
+mesh.2d.preset <- grip.layout(edges, n = 100, dim = 2, preset = "mesh", seed = 11)
+
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
+on.exit(par(op), add = TRUE)
+
+grip.plot(mesh.2d.default, edges, main = "Mesh default", pch = 16, cex = 0.45)
+grip.plot(mesh.2d.preset, edges, main = "Mesh preset", pch = 16, cex = 0.45)
+```
+
+### Sierpinski carpet
+
+The carpet preset was tuned on level 3 and 4 Sierpinski carpets. This family is
+a good stress test because it combines a dense recursive interior with large
+holes that should remain visually open.
+
+```{r fig.width=10.5, fig.height=4.2}
+edges <- edges.sierpinski.carpet(3)
+n <- max(edges)
+
+carpet.2d.default <- grip.layout(edges, n = n, dim = 2, seed = 12)
+carpet.2d.preset <- grip.layout(edges, n = n, dim = 2, preset = "carpet", seed = 12)
+
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
+on.exit(par(op), add = TRUE)
+
+grip.plot(carpet.2d.default, edges, main = "Carpet default", pch = 16, cex = 0.28)
+grip.plot(carpet.2d.preset, edges, main = "Carpet preset", pch = 16, cex = 0.28)
+```
+
+### Binary tree
+
+The tree preset was tuned to encourage more symmetric force-directed tree
+layouts. It is not a dendrogram layout; it is still a GRIP force-directed
+layout, just with a more tree-friendly parameter profile.
+
+```{r fig.width=10.5, fig.height=4.2}
+edges <- edges.kary.tree(2, 6)
+n <- max(edges)
+
+tree.2d.default <- grip.layout(edges, n = n, dim = 2, seed = 13)
+tree.2d.preset <- grip.layout(edges, n = n, dim = 2, preset = "tree", seed = 13)
+
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
+on.exit(par(op), add = TRUE)
+
+grip.plot(tree.2d.default, edges, main = "Tree default", pch = 16, cex = 0.45)
+grip.plot(tree.2d.preset, edges, main = "Tree preset", pch = 16, cex = 0.45)
+```
+
+## Tuned 3D families
+
+### Cylinder
+
+The torus preset was validated on torus graphs, but it also works well on
+cylinders. This makes a good interactive example because the tubular geometry
+is easy to inspect by rotation.
+
+```{r}
+edges <- edges.cylinder(8, 12)
+n <- max(edges)
+
+cylinder.3d.default <- grip.layout(edges, n = n, dim = 3, seed = 21)
+cylinder.3d.preset <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 21)
+```
+
+Default cylinder layout:
+
+```{r}
+make.rglwidget.graph(cylinder.3d.default, edges)
+```
+
+Tuned cylinder layout:
+
+```{r}
+make.rglwidget.graph(cylinder.3d.preset, edges)
+```
+
+### Sierpinski tetrahedron
+
+We do not currently expose a tetrahedron preset, but development tuning found a
+strong 3D parameter region for this family. The explicit parameter set below is
+the current best validated tetrahedron example in the package workflow.
+
+```{r}
+edges <- edges.sierpinski.tetrahedron(4)
+n <- max(edges)
+
+tetrahedron.3d.default <- grip.layout(edges, n = n, dim = 3, seed = 22)
+tetrahedron.3d.tuned <- grip.layout(
+  edges, n = n, dim = 3,
+  placement = "barycenter",
+  rounds = 128,
+  final_rounds = 192,
+  num_init = 12,
+  num_nbrs = 16,
+  r = 0.07,
+  s = 9.0,
+  repulsion_factor = 1.5,
+  seed = 22
+)
+```
+
+Default tetrahedron layout:
+
+```{r}
+make.rglwidget.graph(tetrahedron.3d.default, edges)
+```
+
+Tuned tetrahedron layout:
+
+```{r}
+make.rglwidget.graph(tetrahedron.3d.tuned, edges)
+```
+
+## Tracing a layout
+
+`grip.layout.trace()` records how the multiscale GRIP layout evolves. The trace
+is especially useful when you want to understand how new vertices enter the
+layout and how the later refinement stages clean up the geometry.
+
+```{r}
+edges <- edges.mesh(6, 6)
+mesh.2d.trace <- grip.layout.trace(
+  edges,
+  n = max(edges),
+  dim = 2,
+  preset = "mesh",
+  seed = 31,
+  trace = "level"
+)
+
+head(mesh.2d.trace$meta)
+```
+
+```{r fig.width=10.5, fig.height=8}
+frame.idx <- unique(c(
+  1L,
+  max(2L, floor(length(mesh.2d.trace$frames) / 3)),
+  max(3L, floor(2 * length(mesh.2d.trace$frames) / 3)),
+  length(mesh.2d.trace$frames)
+))
+
+frame.labels <- c(
+  "Coarsest start",
+  "Early refinement",
+  "Late refinement",
+  "Final layout"
+)
+
+op <- par(mfrow = c(2, 2), mar = c(1.2, 1.2, 3.0, 1.2))
+on.exit(par(op), add = TRUE)
+
+for (i in seq_along(frame.idx)) {
+  plot.trace.frame(
+    mesh.2d.trace$frames[[frame.idx[[i]]]],
+    # In early trace frames, only active vertices are shown.
+    edges,
+    main = frame.labels[[i]],
+    cex = 0.45
+  )
+}
+```
+
+## Where to go next
+
+This vignette shows the synthetic families where the current package has the
+strongest tuned examples. For real-data selection workflows:
+
+- use `grip.compare.layouts()` and `grip.score.layout()`,
+- compare defaults, presets, and small local searches in 3D,
+- then inspect the real-data vignettes for worked examples.
