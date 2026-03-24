@@ -45,8 +45,15 @@ good for one lucky initialization.
 library(grip)
 ```
 
+The helper functions below handle data loading and a few vignette-specific
+plotting arrangements. Projection and graph drawing rely on the exported
+functions `grip.plot()` (with `projection = "ortho"` for static figures) and
+`grip.project.3d()`.
+
 ```{r}
 read.extdata.csv <- function(file.name) {
+  ## system.file() works for an installed package; the fallback paths
+  ## handle vignette builds from a source checkout.
   candidates <- c(
     system.file("extdata", file.name, package = "grip"),
     file.path("inst", "extdata", file.name),
@@ -87,85 +94,6 @@ compact.summary <- function(x) {
   x[, keep, drop = FALSE]
 }
 
-candidate.from.summary <- function(row) {
-  row <- row[1, , drop = FALSE]
-  out <- list(
-    placement = row$placement[[1L]],
-    rounds = row$rounds[[1L]],
-    final_rounds = row$final.rounds[[1L]],
-    num_init = row$num.init[[1L]],
-    num_nbrs = row$num.nbrs[[1L]],
-    r = row$r[[1L]],
-    s = row$s[[1L]],
-    repulsion_factor = row$repulsion.factor[[1L]],
-    tinit_factor = row$tinit.factor[[1L]]
-  )
-  if (!is.na(row$preset[[1L]]) && nzchar(row$preset[[1L]])) {
-    out$preset <- row$preset[[1L]]
-  }
-  out
-}
-
-project.coords <- function(coords, azimuth = 35, elevation = 22) {
-  if (ncol(coords) == 2L) {
-    return(coords)
-  }
-  az <- azimuth * pi / 180
-  el <- elevation * pi / 180
-  rz <- matrix(c(
-    cos(az), -sin(az), 0,
-    sin(az),  cos(az), 0,
-    0,        0,       1
-  ), nrow = 3, byrow = TRUE)
-  rx <- matrix(c(
-    1, 0, 0,
-    0, cos(el), -sin(el),
-    0, sin(el),  cos(el)
-  ), nrow = 3, byrow = TRUE)
-  rotated <- coords %*% rz %*% rx
-  rotated[, 1:2, drop = FALSE]
-}
-
-plot.projected.graph <- function(coords,
-                                 edges,
-                                 main = "",
-                                 azimuth = 35,
-                                 elevation = 22,
-                                 vertex.col = "black",
-                                 edge.col = "gray80",
-                                 pch = 16,
-                                 cex = 0.8) {
-  xy <- project.coords(coords, azimuth = azimuth, elevation = elevation)
-  xlim <- range(xy[, 1])
-  ylim <- range(xy[, 2])
-  xpad <- 0.08 * diff(xlim)
-  ypad <- 0.08 * diff(ylim)
-  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
-  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
-
-  plot(
-    xy[, 1], xy[, 2],
-    type = "n",
-    asp = 1,
-    axes = FALSE,
-    xlab = "",
-    ylab = "",
-    xlim = xlim + c(-xpad, xpad),
-    ylim = ylim + c(-ypad, ypad),
-    main = main
-  )
-  if (!is.null(edges) && nrow(edges) > 0) {
-    apply(edges, 1, function(e) {
-      graphics::segments(
-        xy[e[1], 1], xy[e[1], 2],
-        xy[e[2], 1], xy[e[2], 2],
-        col = edge.col
-      )
-    })
-  }
-  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = vertex.col)
-}
-
 plot.layout.triptych <- function(layouts, edges, titles, vertex.cols = NULL) {
   if (is.null(vertex.cols)) {
     vertex.cols <- rep(list("black"), length(layouts))
@@ -173,22 +101,20 @@ plot.layout.triptych <- function(layouts, edges, titles, vertex.cols = NULL) {
   op <- par(mfrow = c(1, length(layouts)), mar = c(1.2, 1.2, 3.2, 1.2))
   on.exit(par(op), add = TRUE)
   for (i in seq_along(layouts)) {
-    plot.projected.graph(
-      layouts[[i]],
-      edges = edges,
-      main = titles[[i]],
-      vertex.col = vertex.cols[[i]]
-    )
+    grip.plot(layouts[[i]], edges, projection = "ortho",
+              vertex.col = vertex.cols[[i]], main = titles[[i]])
   }
 }
 
 plot.layout.views <- function(coords, edges, title, vertex.col = "black") {
   op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
   on.exit(par(op), add = TRUE)
-  plot.projected.graph(coords, edges, main = paste(title, "\nview 1"),
-                       azimuth = 35, elevation = 22, vertex.col = vertex.col)
-  plot.projected.graph(coords, edges, main = paste(title, "\nview 2"),
-                       azimuth = -45, elevation = 28, vertex.col = vertex.col)
+  grip.plot(coords, edges, projection = "ortho",
+            azimuth = 35, elevation = 22,
+            vertex.col = vertex.col, main = paste(title, "\nview 1"))
+  grip.plot(coords, edges, projection = "ortho",
+            azimuth = -45, elevation = 28,
+            vertex.col = vertex.col, main = paste(title, "\nview 2"))
 }
 
 plot.search.slices <- function(summary.df, title.prefix = "") {
@@ -401,7 +327,7 @@ karate.metadata <- grip.compare.layouts(
   dim = 3,
   candidates = list(
     default = NULL,
-    tuned = candidate.from.summary(karate.local.best)
+    tuned = grip.params.from.summary(karate.local.best)
   ),
   clusters = karate.club,
   seeds = 1:3,
@@ -499,6 +425,11 @@ plot.layout.views(
 )
 ```
 
+With only 10 vertices, the kite graph is small enough that seed effects can be
+relatively large. Even so, the comparison workflow still picks out a candidate
+that preserves the characteristic chain-like tail and the more densely connected
+upper clique.
+
 ## When `grip.score.layout()` is useful directly
 
 The main workflow for real data is usually `grip.compare.layouts()`, because
@@ -522,7 +453,8 @@ knitr::kable(
 
 ## Practical guidance
 
-For real-world graphs, a good default workflow is:
+To summarize the workflow demonstrated above, for real-world graphs a good
+default approach is:
 
 1. Start in 3D with the default layout plus one or two structurally plausible presets.
 2. Keep only the strongest one or two candidates after a short comparison across a few seeds.

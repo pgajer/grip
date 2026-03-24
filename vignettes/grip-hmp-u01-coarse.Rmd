@@ -59,6 +59,9 @@ graph.info <- data.frame(
 knitr::kable(graph.info)
 ```
 
+The coarsening history shows how the graph was reduced at each round, including
+the number of vertices retained and the matching ratio:
+
 ```{r}
 hmp.coarsening.rounds <- hmp.u01.gc.coarse$graph_info$coarsening_rounds
 knitr::kable(hmp.coarsening.rounds)
@@ -100,29 +103,14 @@ read.hmp.vignette.results <- function() {
 hmp.results <- read.hmp.vignette.results()
 ```
 
-## Projecting 3D layouts for static figures
+## Preparing the edge matrix and colour palette
 
-The layouts below are true 3D layouts. For a vignette page we need a static
-projection, so each panel shows a fixed 3D view rather than a 2D layout.
+The layouts below are true 3D layouts. For a vignette page we show them as
+static orthographic projections using `grip.plot(projection = "ortho")` and
+`grip.project.3d()`. The only local helper converts the bundled adjacency list
+into an edge matrix for plotting.
 
 ```{r}
-project.coords <- function(coords, azimuth = 35, elevation = 22) {
-  az <- azimuth * pi / 180
-  el <- elevation * pi / 180
-  rz <- matrix(c(
-    cos(az), -sin(az), 0,
-    sin(az),  cos(az), 0,
-    0,        0,       1
-  ), nrow = 3, byrow = TRUE)
-  rx <- matrix(c(
-    1, 0, 0,
-    0, cos(el), -sin(el),
-    0, sin(el),  cos(el)
-  ), nrow = 3, byrow = TRUE)
-  rotated <- coords %*% rz %*% rx
-  rotated[, 1:2, drop = FALSE]
-}
-
 edge.matrix.from.adj <- function(adj.list) {
   edges <- list()
   idx <- 0L
@@ -136,44 +124,6 @@ edge.matrix.from.adj <- function(adj.list) {
     }
   }
   do.call(rbind, edges)
-}
-
-plot.projected.graph <- function(coords,
-                                 edges,
-                                 main = "",
-                                 vertex.col = "black",
-                                 edge.col = "gray85",
-                                 azimuth = 35,
-                                 elevation = 22,
-                                 pch = 16,
-                                 cex = 0.55) {
-  xy <- project.coords(coords, azimuth = azimuth, elevation = elevation)
-  xlim <- range(xy[, 1])
-  ylim <- range(xy[, 2])
-  xpad <- 0.08 * diff(xlim)
-  ypad <- 0.08 * diff(ylim)
-  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
-  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
-
-  plot(
-    xy[, 1], xy[, 2],
-    type = "n",
-    asp = 1,
-    axes = FALSE,
-    xlab = "",
-    ylab = "",
-    xlim = xlim + c(-xpad, xpad),
-    ylim = ylim + c(-ypad, ypad),
-    main = main
-  )
-  apply(edges, 1, function(e) {
-    graphics::segments(
-      xy[e[1], 1], xy[e[1], 2],
-      xy[e[2], 1], xy[e[2], 2],
-      col = edge.col
-    )
-  })
-  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = vertex.col)
 }
 
 hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
@@ -213,24 +163,12 @@ knitr::kable(preset.summary[, preset.keep])
 op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2))
 on.exit(par(op), add = TRUE)
 
-plot.projected.graph(
-  hmp.results$layouts$preset$default,
-  hmp.edges,
-  main = "default",
-  vertex.col = hmp.cst.col
-)
-plot.projected.graph(
-  hmp.results$layouts$preset$tree,
-  hmp.edges,
-  main = "tree",
-  vertex.col = hmp.cst.col
-)
-plot.projected.graph(
-  hmp.results$layouts$preset$torus,
-  hmp.edges,
-  main = "torus",
-  vertex.col = hmp.cst.col
-)
+grip.plot(hmp.results$layouts$preset$default, hmp.edges,
+          projection = "ortho", vertex.col = hmp.cst.col, main = "default")
+grip.plot(hmp.results$layouts$preset$tree, hmp.edges,
+          projection = "ortho", vertex.col = hmp.cst.col, main = "tree")
+grip.plot(hmp.results$layouts$preset$torus, hmp.edges,
+          projection = "ortho", vertex.col = hmp.cst.col, main = "torus")
 ```
 
 On this graph, `tree` and `torus` both improve on `default`. That makes sense:
@@ -313,16 +251,20 @@ op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2))
 on.exit(par(op), add = TRUE)
 
 for (nm in top.local) {
-  plot.projected.graph(
-    hmp.results$layouts$local[[nm]],
-    hmp.edges,
-    main = nm,
-    vertex.col = hmp.cst.col
-  )
+  grip.plot(hmp.results$layouts$local[[nm]], hmp.edges,
+            projection = "ortho", vertex.col = hmp.cst.col, main = nm)
 }
 ```
 
+The top local candidates all show cleaner CST separation in the arms of the
+graph, with moderate repulsion producing the most balanced result across both
+stress and cluster separation.
+
 ## What the metrics mean in plain language
+
+For a fuller discussion of these metrics, see the `Choosing Layouts for Real
+Data` vignette. The brief summary below is included so that this vignette can
+be read on its own.
 
 - `sampled.stress.mean`: lower is better. It measures how well Euclidean
   distances in the plot track graph distances.
@@ -345,7 +287,10 @@ interpretable.
 ## How to rerun or expand the search
 
 The vignette uses precomputed HMP/U01 results to stay lightweight, but the
-comparison workflow is fully reproducible. A direct rerun looks like this:
+comparison workflow is fully reproducible. Note that these examples pass
+`adj_list` and `weight_list` directly rather than an edge matrix, since the
+bundled graph stores its structure in adjacency-list form. A direct rerun
+looks like this:
 
 ```{r eval=FALSE}
 cmp <- grip.compare.layouts(

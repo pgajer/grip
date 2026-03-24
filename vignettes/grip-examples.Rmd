@@ -128,8 +128,10 @@ the graph families they were tuned for.
 The 3D examples below are shown as `rglwidget` widgets when the optional `rgl`
 package is available. That makes the vignette more faithful to the actual 3D
 geometry: you can rotate the layout rather than relying on a single static
-projection. The two helper functions defined here are local to this vignette;
-for 2D plotting the package exports `grip.plot()`.
+projection. The `make.rglwidget.graph` helper below builds these widgets; the
+`plot.trace.frame` helper is used later for trace visualisation. Both are local
+to this vignette. For static 3D figures without `rgl`, use
+`grip.plot(projection = "ortho")` or `grip.project.3d()` instead.
 
 ```{r}
 make.rglwidget.graph <- function(coords,

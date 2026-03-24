@@ -4,20 +4,55 @@
 \alias{grip.plot}
 \title{Quick plot for GRIP layouts}
 \usage{
-grip.plot(coords, edges = NULL, ...)
+grip.plot(
+  coords,
+  edges = NULL,
+  projection = c("rgl", "ortho"),
+  azimuth = 35,
+  elevation = 22,
+  vertex.col = "black",
+  edge.col = "gray70",
+  ...
+)
 }
 \arguments{
 \item{coords}{Numeric matrix from \code{grip.layout()}.}
 
 \item{edges}{Optional two-column matrix of edges (1-based vertex ids).}
 
-\item{...}{Additional parameters passed to the plotting function.}
+\item{projection}{Character string controlling how 3D layouts are displayed:
+\code{"rgl"} (default) for an interactive \pkg{rgl} widget, or
+\code{"ortho"} for a static orthographic projection via base graphics.
+Ignored for 2D layouts.}
+
+\item{azimuth}{Rotation around the vertical axis in degrees. Only used when
+\code{projection = "ortho"}. Default 35.}
+
+\item{elevation}{Rotation around the horizontal axis in degrees. Only used
+when \code{projection = "ortho"}. Default 22.}
+
+\item{vertex.col}{Colour(s) for the vertices. Recycled to match the number
+of vertices. Default \code{"black"}.}
+
+\item{edge.col}{Colour for the edges. Default \code{"gray70"}.}
+
+\item{...}{Additional parameters passed to the underlying \code{plot()} or
+\code{rgl::plot3d()} call.}
 }
 \value{
 NULL (called for side effects).
 }
 \description{
-Quick plot for GRIP layouts
+For 2D layouts, draws vertices and edges using base graphics.
+For 3D layouts, the behaviour depends on the \code{projection} argument:
+\describe{
+  \item{\code{"rgl"} (default)}{Opens an interactive \pkg{rgl} scene when
+    that package is installed. Falls back to \code{"ortho"} with a warning
+    if \pkg{rgl} is not available.}
+  \item{\code{"ortho"}}{Projects the 3D coordinates to 2D with
+    \code{\link{grip.project.3d}} and draws them with base graphics, giving
+    a static figure suitable for vignettes and non-interactive reports.}
+}
 }
 \examples{
 edges <- cbind(1:5, 2:6)
