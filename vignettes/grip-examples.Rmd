@@ -93,6 +93,11 @@ knitr::kable(cycle.cmp$summary[, c(
 )])
 ```
 
+The composite score ranks the candidates from best to worst. Lower stress and
+lower edge-length CV are better; higher non-edge separation ratio is better.
+Even on this small graph, the refined candidates noticeably outperform the
+default.
+
 ```{r fig.width=10.5, fig.height=4.2}
 cycle.best <- cycle.cmp$summary$candidate[[1L]]
 cycle.2d.default <- cycle.cmp$layouts$default[[1L]]
@@ -107,6 +112,9 @@ grip.plot(cycle.2d.best, edges, main = paste("Cycle tuned:", cycle.best), pch = 
 
 ## A small preset map
 
+The table below summarizes the presets currently shipped with the package and
+the graph families they were tuned for.
+
 | Family | Good starting point | What it tends to help with |
 |:--|:--|:--|
 | Rectangular grid or lattice | `preset = "mesh"` | More regular spacing and cleaner boundaries |
@@ -120,7 +128,8 @@ grip.plot(cycle.2d.best, edges, main = paste("Cycle tuned:", cycle.best), pch = 
 The 3D examples below are shown as `rglwidget` widgets when the optional `rgl`
 package is available. That makes the vignette more faithful to the actual 3D
 geometry: you can rotate the layout rather than relying on a single static
-projection.
+projection. The two helper functions defined here are local to this vignette;
+for 2D plotting the package exports `grip.plot()`.
 
 ```{r}
 make.rglwidget.graph <- function(coords,
@@ -203,6 +212,9 @@ plot.trace.frame <- function(coords, edges, main = "", pch = 16, cex = 0.55) {
 
 ## Tuned 2D families
 
+Each subsection below generates a default layout and a preset layout for the
+same graph, plotted side by side so the difference is easy to spot.
+
 ### Mesh
 
 The mesh preset was tuned on regular lattice graphs. On a `10 x 10` mesh it
@@ -263,6 +275,10 @@ grip.plot(tree.2d.preset, edges, main = "Tree preset", pch = 16, cex = 0.45)
 
 ## Tuned 3D families
 
+The same default-versus-tuned comparison extends to three dimensions. Rotate the
+interactive widgets to appreciate how the tuned parameters recover the expected
+geometry.
+
 ### Cylinder
 
 The torus preset was validated on torus graphs, but it also works well on
@@ -276,6 +292,9 @@ n <- max(edges)
 cylinder.3d.default <- grip.layout(edges, n = n, dim = 3, seed = 21)
 cylinder.3d.preset <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 21)
 ```
+
+The default layout tends to flatten or twist the cylinder, while the torus
+preset recovers the expected tubular shape.
 
 Default cylinder layout:
 
@@ -314,6 +333,9 @@ tetrahedron.3d.tuned <- grip.layout(
 )
 ```
 
+Compare the default, which often collapses the four tetrahedral faces into a
+flatter shape, with the tuned version that opens up the simplex structure.
+
 Default tetrahedron layout:
 
 ```{r}
@@ -345,6 +367,11 @@ mesh.2d.trace <- grip.layout.trace(
 
 head(mesh.2d.trace$meta)
 ```
+
+The four panels below show the mesh layout at four stages of the multiscale
+process. The coarsest level places only a handful of representative vertices;
+successive refinement stages interpolate the remaining vertices and improve
+spacing until the full grid emerges.
 
 ```{r fig.width=10.5, fig.height=8}
 frame.idx <- unique(c(
@@ -378,7 +405,10 @@ for (i in seq_along(frame.idx)) {
 ## Where to go next
 
 This vignette shows the synthetic families where the current package has the
-strongest tuned examples. For real-data selection workflows:
+strongest tuned examples. The scoring metrics used throughout --- sampled
+stress, edge-length CV, and non-edge separation ratio --- are computed by
+`grip.score.layout()` and aggregated by `grip.compare.layouts()`. For
+real-data selection workflows:
 
 - use `grip.compare.layouts()` and `grip.score.layout()`,
 - compare defaults, presets, and small local searches in 3D,
