@@ -38,6 +38,7 @@
 ^cran-comments\.md$
 ^CRAN-SUBMISSION-CHECKLIST\.md$
 ^README\.html$
+^README\.Rmd$
 ^tools$
 ^dev$
 ^output$

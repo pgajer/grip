@@ -1,6 +1,7 @@
 /doc/
 /Meta/
 .DS_Store
+README.html
 *.tar.gz
 *.zip
 
