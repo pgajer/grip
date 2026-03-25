@@ -42,6 +42,8 @@ navbar:
           href: articles/grip-hmp-u01-coarse.html
         - text: Interactive Explorer
           href: articles/gripui-explorer.html
+        - text: "Comparing with Alternatives"
+          href: articles/grip-vs-alternatives.html
         - text: "---"
         - text: Gallery
           href: articles/gallery.html
