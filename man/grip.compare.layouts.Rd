@@ -89,6 +89,7 @@ metrics and seed-to-seed stability. This is the main real-data workflow for
 graphs where no canonical embedding is known.
 }
 \examples{
+\dontrun{
 edges <- edges.mesh(6, 6)
 cmp <- grip.compare.layouts(
   edges = edges,
@@ -113,4 +114,5 @@ search.cmp <- grip.compare.layouts(
   seeds = 1:2
 )
 search.cmp$summary
+}
 }

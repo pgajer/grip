@@ -13,6 +13,7 @@
 #'   \code{preset} (included only when the summary row records a non-empty
 #'   preset).
 #' @examples
+#' \dontrun{
 #' edges <- edges.mesh(6, 6)
 #' cmp <- grip.compare.layouts(edges, n = 36, dim = 2,
 #'                             candidates = c("default", "mesh"),
@@ -28,6 +29,7 @@
 #'                        s              = params$s,
 #'                        repulsion_factor = params$repulsion_factor,
 #'                        seed = 42)
+#' }
 #' @export
 grip.params.from.summary <- function(summary.row) {
   if (!is.data.frame(summary.row) || nrow(summary.row) == 0L) {

@@ -1,18 +1,18 @@
 Package: grip
 Type: Package
-Title: Graph dRawing with Intelligent Placement (GRIP)
+Title: Graph Drawing with Intelligent Placement (GRIP)
 Version: 0.1.0
 Authors@R:
     person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
 Description: Implements the GRIP algorithm for drawing large graphs using
-    a multiscale force-directed method in 2D and 3D. Supports edge-list
+    a multi-scale force-directed method in 2D and 3D. Supports edge-list
     and adjacency-list inputs, optional positive edge weights,
     disconnected-component packing, and a lightweight plotting helper.
     Based on Gajer and Kobourov (2002) <doi:10.7155/jgaa.00052> and
     Gajer, Goodrich and Kobourov (2004)
     <doi:10.1016/j.comgeo.2004.03.014>.
 License: GPL (>= 3)
-URL: https://github.com/pgajer/grip
+URL: https://pgajer.github.io/grip/, https://github.com/pgajer/grip
 BugReports: https://github.com/pgajer/grip/issues
 Encoding: UTF-8
 Depends:

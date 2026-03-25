@@ -46,3 +46,7 @@
 ^src/symbols\.rds$
 ^src/.*\.(o|so|dll|dylib)$
 ^data-raw$
+^CRAN-SUBMISSION$
+^_pkgdown\.yml$
+^pkgdown$
+^docs$
