@@ -82,8 +82,13 @@ set.seed(1); karate.kk      <- as_coord_matrix(layout_with_kk(karate.ig))
 set.seed(1); karate.drl     <- as_coord_matrix(layout_with_drl(karate.ig))
 set.seed(1); karate.stress  <- as_coord_matrix(layout_with_stress(karate.ig))
 karate.grip.default <- grip.layout(karate.edges, n = karate.n, dim = 2, seed = 1)
-karate.grip.tree    <- grip.layout(karate.edges, n = karate.n, dim = 2,
-                                    preset = "tree", seed = 1)
+## No preset matches this dense social network, so we use manually tuned
+## parameters: more rounds for convergence, moderate repulsion to spread
+## the dense core, and barycenter placement.
+karate.grip.tuned   <- grip.layout(karate.edges, n = karate.n, dim = 2,
+                                    rounds = 128, final_rounds = 192,
+                                    num_nbrs = 16, repulsion_factor = 2.0,
+                                    r = 0.05, s = 5.0, seed = 1)
 
 karate.scores <- rbind(
   cbind(method = "FR (igraph)",
@@ -101,8 +106,8 @@ karate.scores <- rbind(
   cbind(method = "grip default",
         score_layout(karate.grip.default, karate.edges, karate.n,
                      clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "grip tree preset",
-        score_layout(karate.grip.tree, karate.edges, karate.n,
+  cbind(method = "grip tuned",
+        score_layout(karate.grip.tuned, karate.edges, karate.n,
                      clusters = karate.clubs, edge.crossings = "always"))
 )
 
@@ -115,7 +120,7 @@ results$karate <- list(
     fr = karate.fr, kk = karate.kk, drl = karate.drl,
     stress = karate.stress,
     grip.default = karate.grip.default,
-    grip.tree = karate.grip.tree
+    grip.tuned = karate.grip.tuned
   )
 )
 
