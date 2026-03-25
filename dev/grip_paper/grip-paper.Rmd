@@ -1,0 +1,806 @@
+---
+title: "grip: Graph Drawing with Intelligent Placement in R"
+author:
+  - name: Pawel Gajer
+    affiliation: Independent Researcher
+    address: Maryland, USA
+    orcid: ~
+    email: pgajer@gmail.com
+abstract: >
+  The **grip** package brings the GRIP multiscale force-directed graph layout
+  algorithm to R, providing scalable 2D and 3D layouts for graphs ranging from
+  tens to thousands of vertices. The package offers a clean API built around a
+  single core function (`grip.layout()`), validated parameter presets for common
+  graph families, and---most distinctively---a principled layout quality scoring
+  framework (`grip.score.layout()`, `grip.compare.layouts()`) that supports
+  systematic parameter selection for real-world graphs where no ground-truth
+  embedding exists. The C++ core is accessed via Rcpp, and the package includes
+  graph generators, a plotting helper with 3D projection support, and a bundled
+  1,828-vertex microbial network from the Human Microbiome Project for
+  realistic worked examples. This article describes the algorithm, the package
+  design, the quality metrics, and demonstrates the full workflow on synthetic
+  and real-data examples.
+preamble: |
+  \usepackage{amsmath}
+date: "2026-03-25"
+date_received: ~
+journal:
+  firstpage: 1
+  lastpage: ~
+slug: gajer-grip
+bibliography: grip-paper.bib
+output:
+  rjtools::rjournal_article:
+    self_contained: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center",
+  out.width = "100%"
+)
+```
+
+# Introduction
+
+Visualizing graphs (networks) is a fundamental task in data analysis across
+disciplines---from social network analysis to systems biology to knowledge graph
+exploration. Force-directed layout algorithms, which model vertices as charged
+particles and edges as springs, are the most widely used family of methods for
+producing readable graph drawings. Classical algorithms such as
+Fruchterman--Reingold [@fruchterman1991] and Kamada--Kawai [@kamada1989] produce
+good layouts for small graphs but scale poorly: their $O(n^2)$ or $O(n^3)$
+per-iteration cost becomes prohibitive beyond a few hundred vertices.
+
+For the large graphs routinely encountered in biological networks, social media
+analysis, and knowledge graph construction, multiscale methods are needed. The
+GRIP algorithm [@gajer2002; @gajer2004] addresses this by building a hierarchy
+of progressively coarser vertex subsets using maximal independent set (MIS)
+filtrations, placing vertices coarse-to-fine, and refining with local
+force-directed iterations at each level. This yields near-linear time complexity
+in practice and produces high-quality layouts even for graphs with thousands of
+vertices.
+
+The **grip** package implements the GRIP algorithm in R with a C++ core
+accessed via Rcpp [@eddelbuettel2011]. Beyond the layout computation itself,
+the package makes three additional contributions. First, it ships validated
+parameter presets for common graph families (meshes, trees, fractal carpets,
+tori), so that users can obtain good layouts without manual tuning. Second, it
+provides a principled layout quality scoring framework with metrics including
+sampled stress, edge-length uniformity, non-edge separation, Procrustes
+stability, and optional cluster separation when external labels are available.
+Third, it offers a systematic comparison workflow
+(`grip.compare.layouts()`) that evaluates multiple candidate
+parameter settings across random seeds, enabling reproducible layout selection
+for real-world graphs where no ground-truth embedding is known.
+
+Several R packages provide graph layout capabilities. The **igraph** package
+[@csardi2006] offers implementations of Fruchterman--Reingold,
+Kamada--Kawai, and the distributed recursive layout (DrL) algorithm, among
+others. The **ggraph** package [@pedersen2024] provides a grammar-of-graphics
+layer for network visualization but delegates layout computation to igraph. The
+**graphlayouts** package [@schoch2024] implements stress-based layouts with
+pivot MDS initialization. The **visNetwork** package provides interactive
+JavaScript-based visualization. The **grip** package is complementary to these
+tools: it focuses specifically on the layout computation and quality assessment
+problem, and its scoring functions can evaluate layouts computed by any package.
+
+The author of this package (P. Gajer) is one of the original developers of the
+GRIP algorithm. This R implementation was motivated by the need for a
+well-tested, accessible version of GRIP within the R ecosystem, with the
+added tooling for quality assessment that was not part of the original
+publications.
+
+
+# Algorithm overview
+
+The GRIP algorithm produces graph layouts through a coarse-to-fine multiscale
+process. This section provides an intuitive overview; full algorithmic details
+are given in @gajer2002 and @gajer2004.
+
+## Maximal independent set filtration
+
+The algorithm begins by constructing a hierarchy of vertex subsets
+$V = V_0 \supset V_1 \supset \cdots \supset V_k$, where each $V_{i+1}$ is a
+maximal independent set (MIS) of the subgraph induced by $V_i$ in the
+graph-distance metric. The coarsest level $V_k$ contains only a small number
+of vertices (controlled by the `num_init` parameter), while the finest level
+$V_0$ is the full vertex set. This filtration ensures that vertices at each
+level are well-separated in the graph metric, providing a natural hierarchy
+for multiscale placement.
+
+## Coarse-to-fine placement
+
+Layout computation proceeds from the coarsest level to the finest. The
+vertices in $V_k$ are placed first using an initial arrangement (either
+random barycenter placement or circular placement in 2D, controlled by the
+`placement` parameter). Then, for each successive level $V_i$ ($i = k-1,
+\ldots, 0$), the newly introduced vertices are positioned based on their
+graph distances to already-placed neighbors using a local minimization of a
+distance-based energy function.
+
+## Local force-directed refinement
+
+After each level's vertices are placed, the algorithm performs local
+force-directed refinement iterations. At each iteration, every vertex
+experiences attractive forces from its graph neighbors (proportional to the
+discrepancy between the current Euclidean distance and the target graph
+distance) and optional repulsive forces from nearby non-neighbors. The
+displacement of each vertex is modulated by an adaptive local temperature
+that tracks whether the vertex is oscillating or moving consistently. The
+temperature update rule uses two parameters: `r` controls the cooling rate,
+and `s` provides a directional momentum boost when successive displacements
+are aligned. The number of refinement iterations at intermediate levels is
+set by `rounds`, while the final level uses `final_rounds` iterations for
+the most detailed refinement.
+
+The `repulsion_factor` parameter controls the strength of the repulsive term
+at the finest level. Setting it to zero disables repulsion entirely, which
+can be appropriate for tree-like graphs where repulsion tends to distort the
+natural branching structure.
+
+The `num_nbrs` parameter controls how many graph-distance neighbors are
+retained for the local force computation at each level. Larger values produce
+more globally faithful layouts at the cost of additional computation.
+
+## Computational complexity
+
+The MIS filtration construction is linear in the number of edges. At each
+level, the force computation involves only the local neighborhood of each
+vertex (bounded by `num_nbrs`), so the per-level cost is $O(n \cdot
+\texttt{num\_nbrs})$. With $O(\log n)$ levels in typical graphs, the overall
+complexity is $O(n \cdot \texttt{num\_nbrs} \cdot \texttt{rounds} \cdot \log
+n)$, which is near-linear in practice for bounded-degree graphs.
+
+## Multiscale trace
+
+The `grip.layout.trace()` function captures snapshots of the layout at
+intermediate stages of the multiscale process, which is useful for
+understanding how the algorithm operates and for creating animated
+visualizations. Figure \@ref(fig:trace) shows four stages of a mesh layout,
+from the initial coarse placement through progressive refinement to the
+final layout.
+
+```{r trace, fig.cap="Multiscale trace of a 6x6 mesh layout using the mesh preset. From left to right: coarsest initialization with a handful of representative vertices, early refinement introducing additional vertices, late refinement improving spacing, and the final converged layout.", fig.width=10, fig.height=2.8}
+library(grip)
+
+edges <- edges.mesh(6, 6)
+tr <- grip.layout.trace(
+  edges, n = 36, dim = 2,
+  preset = "mesh", seed = 31,
+  trace = "level"
+)
+
+frame.idx <- unique(c(
+  1L,
+  max(2L, floor(length(tr$frames) / 3)),
+  max(3L, floor(2 * length(tr$frames) / 3)),
+  length(tr$frames)
+))
+
+op <- par(mfrow = c(1, 4), mar = c(1, 1, 2.5, 1))
+labels <- c("Coarsest start", "Early refinement",
+            "Late refinement", "Final layout")
+for (i in seq_along(frame.idx)) {
+  coords <- tr$frames[[frame.idx[i]]]
+  active <- complete.cases(coords[, 1:2])
+  xy <- coords[active, 1:2, drop = FALSE]
+  active.edges <- edges[active[edges[, 1]] & active[edges[, 2]], , drop = FALSE]
+
+  xlim <- range(xy[, 1]); ylim <- range(xy[, 2])
+  xpad <- max(0.08 * diff(xlim), 0.2)
+  ypad <- max(0.08 * diff(ylim), 0.2)
+
+  plot(xy[, 1], xy[, 2], type = "n", asp = 1, axes = FALSE,
+       xlab = "", ylab = "",
+       xlim = xlim + c(-xpad, xpad),
+       ylim = ylim + c(-ypad, ypad),
+       main = labels[i])
+  if (nrow(active.edges) > 0)
+    segments(coords[active.edges[, 1], 1], coords[active.edges[, 1], 2],
+             coords[active.edges[, 2], 1], coords[active.edges[, 2], 2],
+             col = "gray80")
+  points(xy[, 1], xy[, 2], pch = 16, cex = 0.6)
+}
+par(op)
+```
+
+
+# Package design and API
+
+## Core layout function
+
+The primary function is `grip.layout()`, which accepts either an edge-list
+matrix or an adjacency list with optional edge weights:
+
+```{r}
+# Edge-list input: 8x8 mesh in 2D
+edges <- edges.mesh(8, 8)
+coords <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+```
+
+```{r}
+# Adjacency-list input with weights
+adj_list <- list(c(2L), c(1L, 3L), c(2L, 4L), c(3L))
+weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+coords <- grip.layout(adj_list = adj_list, weight_list = weight_list,
+                       n = 4, dim = 2, seed = 12)
+```
+
+The function returns an $n \times d$ numeric matrix of coordinates, where
+$d \in \{2, 3\}$. Key parameters include `dim` (layout dimension), `placement`
+(`"barycenter"` or `"circle"`), `rounds` and `final_rounds` (refinement
+iteration counts), `num_init` (vertices at the coarsest level), `num_nbrs`
+(local neighborhood size), `r` and `s` (temperature adaptation), and
+`repulsion_factor` (finest-level repulsion strength). The `seed` argument
+ensures reproducibility.
+
+Disconnected graphs are handled automatically by default
+(`disconnected = "components"`): each connected component is laid out
+independently and the results are packed into a single coordinate matrix
+with a gap-based arrangement.
+
+## Presets
+
+Presets are validated parameter bundles for common graph families. Each preset
+sets sensible defaults for the GRIP tuning parameters; any argument supplied
+explicitly by the user overrides the corresponding preset value. The package
+currently ships four presets:
+
+| Preset | Target family | Tuned on |
+|:---|:---|:---|
+| `"mesh"` | Rectangular grid/lattice | $8 \times 8$ and $12 \times 12$ meshes |
+| `"carpet"` | Sierpinski carpet | Level 3 and 4 carpets |
+| `"tree"` | Tree-like graph | Binary trees, depths 5--6 |
+| `"torus"` | 3D torus/cylinder | Torus sizes $8 \times 8$ through $20 \times 20$ |
+
+For instance, the mesh preset sets `placement = "barycenter"`,
+`rounds = 128`, `final_rounds = 128`, `num_init = 12`, `num_nbrs = 20`,
+`r = 0.10`, `s = 4.5`, and `repulsion_factor = 1.5`. The tree preset
+uses `placement = "circle"` in 2D and disables repulsion
+(`repulsion_factor = 0`), which is appropriate for branching structures.
+
+## Plotting
+
+The `grip.plot()` function provides a lightweight plotting helper. For 2D
+layouts, it draws vertices and edges using base graphics. For 3D layouts, it
+supports both interactive viewing via the optional **rgl** package
+(`projection = "rgl"`, the default) and static orthographic projection
+(`projection = "ortho"`) suitable for publications and vignettes.
+
+```{r mesh-plot, fig.cap="An 8x8 mesh laid out with the mesh preset in 2D.", fig.width=4.5, fig.height=4.5}
+edges <- edges.mesh(8, 8)
+coords <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+grip.plot(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh (mesh preset)")
+```
+
+The `grip.project.3d()` function applies an orthographic rotation defined by
+azimuth and elevation angles, returning a 2D projection matrix for custom
+plotting:
+
+```{r torus-plot, fig.cap="An 8x12 torus laid out in 3D with the torus preset, shown as a static orthographic projection.", fig.width=5, fig.height=4.5}
+edges <- edges.torus(8, 12)
+coords <- grip.layout(edges, n = max(edges), dim = 3,
+                       preset = "torus", seed = 3)
+grip.plot(coords, edges, projection = "ortho", main = "Torus (8x12)")
+```
+
+## Graph generators
+
+The package includes convenience functions for generating common graph
+families as two-column edge matrices: `edges.mesh()` (rectangular grid),
+`edges.cycle()`, `edges.path()`, `edges.kary.tree()` (k-ary tree),
+`edges.torus()`, `edges.cylinder()`, `edges.sierpinski.triangle()`,
+`edges.sierpinski.tetrahedron()`, and `edges.sierpinski.carpet()`. These are
+useful for benchmarking, testing, and examples.
+
+
+# Layout quality metrics {#sec:metrics}
+
+For real-world graphs---social networks, biological networks, knowledge
+graphs---there is typically no ground-truth embedding. Layout quality must be
+assessed through proxy metrics that capture different aspects of a good
+drawing. The **grip** package provides six such metrics, accessible through
+`grip.score.layout()` for individual layouts and aggregated by
+`grip.compare.layouts()` for systematic comparisons.
+
+## Sampled stress
+
+Stress measures how faithfully the Euclidean distances in the layout
+reproduce the graph-theoretic distances. For scalability, **grip** computes a
+sampled approximation: a random subset of vertex pairs is drawn, shortest-path
+distances are computed via BFS (unweighted) or Dijkstra's algorithm
+(weighted), and the normalized root-mean-square discrepancy between the
+(optimally scaled) Euclidean distances and graph distances is reported. Lower
+values indicate better fidelity. The sample size is controlled by
+`sample.size.stress` (default 2000 pairs).
+
+## Edge-length coefficient of variation
+
+This metric measures the uniformity of edge lengths in the layout. The
+coefficient of variation (standard deviation divided by the mean) of all edge
+lengths is computed. Lower values indicate that neighboring vertices are
+drawn with more consistent spacing, which generally improves readability.
+
+## Sampled non-edge separation ratio
+
+For a layout to be readable, non-neighboring vertices should not be drawn
+too close together. This metric samples random non-edge pairs, computes
+their Euclidean distances, and reports the ratio of the minimum sampled
+non-edge distance to the median edge length. Higher values indicate more
+breathing room between non-neighbors.
+
+## Edge crossings
+
+In 2D layouts, edge crossings reduce readability. **grip** counts exact edge
+crossings using a pairwise segment intersection test. Because this is
+$O(m^2)$ in the number of edges, it is computed automatically only for
+small graphs (controlled by `edge.crossings.max.edges`; default 1000 edges)
+and can be disabled entirely with `edge.crossings = "never"`.
+
+## Cluster separation
+
+When external labels are available (e.g., community memberships, biological
+classifications), cluster separation measures how well the layout separates
+known groups. It is defined as the ratio of the mean pairwise distance
+between cluster centroids to the mean within-cluster spread. Higher values
+indicate clearer visual separation of groups. This metric is reported only
+when `clusters` are supplied.
+
+## Procrustes stability
+
+A good layout should be reproducible: running the algorithm with different
+random seeds should yield geometrically similar results. Procrustes stability
+is assessed by computing layouts across multiple seeds, optimally aligning
+each pair using Procrustes analysis (rotation, reflection, and uniform
+scaling), and reporting the mean RMSE of the aligned coordinates. Lower
+values indicate greater stability.
+
+## Composite score
+
+The `grip.compare.layouts()` function computes a rank-based composite score
+across all available metrics, using configurable weights. The default weights
+emphasize stress (0.35), edge-length CV (0.20), non-edge separation (0.20),
+and Procrustes stability (0.15), with smaller weights for edge crossings
+(0.05) and cluster separation (0.05). The composite score is useful as a
+screening tool for shortlisting candidates but should not be treated as the
+sole basis for layout selection.
+
+## Scoring API
+
+Individual layouts are scored with `grip.score.layout()`:
+
+```{r}
+edges <- edges.mesh(5, 5)
+coords <- grip.layout(edges, n = 25, dim = 2, preset = "mesh", seed = 1)
+score <- grip.score.layout(coords, edges = edges, n = 25)
+knitr::kable(score, digits = 3)
+```
+
+Multiple candidates are compared with `grip.compare.layouts()`, which runs
+each candidate across multiple seeds, computes per-run scores, and aggregates
+them into a summary table with stability metrics:
+
+```{r}
+edges <- edges.mesh(6, 6)
+cmp <- grip.compare.layouts(
+  edges = edges, n = 36, dim = 2,
+  candidates = c("default", "mesh"),
+  seeds = 1:3
+)
+knitr::kable(
+  cmp$summary[, c("candidate", "score.composite",
+                   "sampled.stress.mean", "edge.length.cv.mean",
+                   "sampled.nonedge.sep.ratio.mean",
+                   "stability.procrustes.mean")],
+  digits = 3
+)
+```
+
+
+# Worked examples
+
+## Synthetic example: default versus preset
+
+To illustrate the value of presets, we compare the default GRIP parameters
+against the carpet preset on a level-3 Sierpinski carpet (512 vertices, 704
+edges). The carpet's recursive structure with large interior holes is
+challenging for generic parameters.
+
+```{r carpet-compare, fig.cap="Level-3 Sierpinski carpet with default parameters (left) and the carpet preset (right). The preset recovers the fractal hole structure more clearly.", fig.width=10, fig.height=4.5}
+edges <- edges.sierpinski.carpet(3)
+n <- max(edges)
+
+carpet.default <- grip.layout(edges, n = n, dim = 2, seed = 12)
+carpet.preset  <- grip.layout(edges, n = n, dim = 2, preset = "carpet", seed = 12)
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+grip.plot(carpet.default, edges, main = "Carpet default", pch = 16, cex = 0.3)
+grip.plot(carpet.preset, edges, main = "Carpet preset", pch = 16, cex = 0.3)
+par(op)
+```
+
+The quality metrics confirm the visual impression:
+
+```{r}
+carpet.cmp <- grip.compare.layouts(
+  edges = edges, n = n, dim = 2,
+  candidates = c("default", "carpet"),
+  seeds = 1:3
+)
+knitr::kable(
+  carpet.cmp$summary[, c("candidate", "score.composite",
+                          "sampled.stress.mean", "edge.length.cv.mean",
+                          "sampled.nonedge.sep.ratio.mean",
+                          "stability.procrustes.mean")],
+  digits = 3
+)
+```
+
+## Real-data example: Zachary karate club {#sec:karate}
+
+The Zachary karate club network [@zachary1977] is a 34-vertex social network
+with a known split into two factions. This example demonstrates the full
+comparison pipeline on a graph where the layout can be validated against
+meaningful external metadata.
+
+```{r}
+read.extdata.csv <- function(file.name) {
+  candidates <- c(
+    system.file("extdata", file.name, package = "grip"),
+    file.path("..", "inst", "extdata", file.name),
+    file.path("inst", "extdata", file.name)
+  )
+  path <- candidates[file.exists(candidates)][1L]
+  if (!length(path) || is.na(path) || !nzchar(path))
+    stop("could not locate ", file.name)
+  utils::read.csv(path, stringsAsFactors = FALSE)
+}
+
+karate.edges <- as.matrix(read.extdata.csv("karate-club-edges.csv"))
+karate.n <- max(karate.edges)
+labels.df <- read.extdata.csv("karate-club-membership.csv")
+karate.club <- labels.df$club[order(labels.df$vertex)]
+```
+
+### Step 1: shortlist presets
+
+We compare the default layout against the tree and mesh presets in 3D:
+
+```{r}
+karate.presets <- grip.compare.layouts(
+  edges = karate.edges, n = karate.n, dim = 3,
+  candidates = c("default", "tree", "mesh"),
+  seeds = 1:3,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never",
+  return.layouts = TRUE
+)
+knitr::kable(
+  karate.presets$summary[, c("candidate", "score.composite",
+    "sampled.stress.mean", "edge.length.cv.mean",
+    "sampled.nonedge.sep.ratio.mean",
+    "stability.procrustes.mean")],
+  digits = 3
+)
+```
+
+### Step 2: local parameter search
+
+Starting from the top-ranked preset, we search a small parameter neighborhood:
+
+```{r}
+karate.base <- karate.presets$summary[1, , drop = FALSE]
+karate.search <- list(
+  candidate.prefix = "karate.local",
+  placement = karate.base$placement[[1L]],
+  rounds = karate.base$rounds[[1L]],
+  final_rounds = sort(unique(as.integer(c(
+    max(32L, karate.base$final.rounds[[1L]] - 32L),
+    karate.base$final.rounds[[1L]],
+    karate.base$final.rounds[[1L]] + 32L
+  )))),
+  num_init = karate.base$num.init[[1L]],
+  num_nbrs = sort(unique(as.integer(c(
+    max(4L, karate.base$num.nbrs[[1L]] - 4L),
+    karate.base$num.nbrs[[1L]],
+    karate.base$num.nbrs[[1L]] + 4L
+  )))),
+  r = karate.base$r[[1L]],
+  s = karate.base$s[[1L]],
+  repulsion_factor = sort(unique(c(
+    max(0, karate.base$repulsion.factor[[1L]] - 0.5),
+    karate.base$repulsion.factor[[1L]],
+    karate.base$repulsion.factor[[1L]] + 0.5
+  )))
+)
+if (!is.na(karate.base$preset[[1L]]) && nzchar(karate.base$preset[[1L]]))
+  karate.search$preset <- karate.base$preset[[1L]]
+
+karate.local <- grip.compare.layouts(
+  edges = karate.edges, n = karate.n, dim = 3,
+  search = karate.search,
+  seeds = 1:2,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never",
+  return.layouts = TRUE
+)
+knitr::kable(
+  head(karate.local$summary[, c("candidate", "score.composite",
+    "sampled.stress.mean", "sampled.nonedge.sep.ratio.mean",
+    "stability.procrustes.mean")], 6),
+  digits = 3
+)
+```
+
+### Step 3: incorporate external metadata
+
+The karate data include faction labels. We re-compare the best local-search
+candidate against the default, now including `cluster.separation`:
+
+```{r}
+karate.local.best <- karate.local$summary[1, , drop = FALSE]
+karate.metadata <- grip.compare.layouts(
+  edges = karate.edges, n = karate.n, dim = 3,
+  candidates = list(
+    default = NULL,
+    tuned = grip.params.from.summary(karate.local.best)
+  ),
+  clusters = karate.club,
+  seeds = 1:3,
+  sample.size.stress = 1000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never",
+  return.layouts = TRUE
+)
+knitr::kable(
+  karate.metadata$summary[, c("candidate", "score.composite",
+    "sampled.stress.mean", "cluster.separation.mean")],
+  digits = 3
+)
+```
+
+```{r karate-final, fig.cap="Zachary karate club with the best tuned layout, colored by faction membership (green = Mr.\\ Hi, orange = Officer). Two orthographic views of the 3D layout.", fig.width=9, fig.height=4}
+best.row <- karate.metadata$summary[1, , drop = FALSE]
+best.seed <- karate.metadata$runs$seed[
+  karate.metadata$runs$candidate == best.row$candidate[[1L]] &
+    karate.metadata$runs$status == "ok"
+][[1L]]
+best.coords <- karate.metadata$layouts[[best.row$candidate[[1L]]]][[
+  as.character(best.seed)
+]]
+club.cols <- ifelse(karate.club == "Mr. Hi", "#1b9e77", "#d95f02")
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+grip.plot(best.coords, karate.edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          vertex.col = club.cols, main = "View 1")
+grip.plot(best.coords, karate.edges, projection = "ortho",
+          azimuth = -45, elevation = 28,
+          vertex.col = club.cols, main = "View 2")
+par(op)
+```
+
+## Scaled example: HMP microbial network {#sec:hmp}
+
+The package bundles a coarsened real-world graph derived from the Human
+Microbiome Project (HMP) 16S amplicon analysis. The original giant connected
+component contained 6,474 vertices from an iterative k-nearest-neighbor (iKNN)
+graph with $k=3$ built on a $\geq 1\%$ relative-abundance OTU table. Greedy
+graph coarsening in two rounds reduced this to 1,828 supernodes, preserving
+the large-scale topology including arm-like extensions corresponding to
+distinct community state types (CSTs).
+
+This dataset is large enough that interactive manual layout selection is
+impractical, making **grip**'s systematic comparison workflow especially
+valuable.
+
+```{r}
+data(hmp.u01.gc.coarse)
+cat("Vertices:", length(hmp.u01.gc.coarse$adj_list), "\n")
+cat("CST levels:", paste(sort(unique(hmp.u01.gc.coarse$vertex_data$cst)),
+                          collapse = ", "), "\n")
+```
+
+The full comparison pipeline (preset shortlisting followed by local search)
+takes several minutes on this graph, so the package bundles precomputed
+results for the vignette. The code to reproduce the comparison is shown with
+`eval=FALSE` and is fully documented in the package's HMP vignette.
+
+```{r eval=FALSE}
+# Preset shortlisting (not run in paper build)
+cmp <- grip.compare.layouts(
+  adj_list = hmp.u01.gc.coarse$adj_list,
+  weight_list = hmp.u01.gc.coarse$weight_list,
+  n = length(hmp.u01.gc.coarse$adj_list),
+  dim = 3,
+  candidates = c("default", "tree", "torus"),
+  clusters = hmp.u01.gc.coarse$vertex_data$cst,
+  seeds = 1,
+  sample.size.stress = 1200,
+  sample.size.nonedge = 3000
+)
+```
+
+```{r eval=FALSE}
+# Local search around strongest region (not run in paper build)
+search.cmp <- grip.compare.layouts(
+  adj_list = hmp.u01.gc.coarse$adj_list,
+  weight_list = hmp.u01.gc.coarse$weight_list,
+  n = length(hmp.u01.gc.coarse$adj_list),
+  dim = 3,
+  search = list(
+    candidate.prefix = "hmp.local",
+    placement = "barycenter",
+    rounds = 192L,
+    final_rounds = c(224L, 288L),
+    num_init = 30L,
+    num_nbrs = 10L,
+    r = 0.10, s = 2.0,
+    repulsion_factor = c(0.75, 1.25)
+  ),
+  clusters = hmp.u01.gc.coarse$vertex_data$cst,
+  seeds = 1,
+  sample.size.stress = 1200,
+  sample.size.nonedge = 3000
+)
+```
+
+The precomputed results show that the tree and torus presets both improve on
+the default for this graph, and that moderate repulsion (rather than maximum
+repulsion) produces the best balance between stress and CST cluster
+separation. The final layout colored by CST labels shows clear arm-like
+structures corresponding to distinct microbial community types.
+
+```{r hmp-layouts, fig.cap="Precomputed 3D layouts of the 1,828-vertex HMP microbial network colored by community state type (CST). Left: default parameters. Center: tree preset. Right: torus preset. The tree and torus presets both produce cleaner separation of the CST-associated arms.", fig.width=11, fig.height=4}
+hmp.results <- tryCatch({
+  path <- system.file("extdata", "hmp_u01_gc_coarse",
+                       "vignette_results.rds", package = "grip")
+  if (nzchar(path)) readRDS(path) else NULL
+}, error = function(e) NULL)
+
+if (!is.null(hmp.results)) {
+  edge.matrix.from.adj <- function(adj.list) {
+    edges <- list(); idx <- 0L
+    for (u in seq_along(adj.list)) {
+      nbrs <- adj.list[[u]][adj.list[[u]] > u]
+      for (v in nbrs) { idx <- idx + 1L; edges[[idx]] <- c(u, v) }
+    }
+    do.call(rbind, edges)
+  }
+  hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
+  hmp.cst <- hmp.u01.gc.coarse$vertex_data$cst
+  cst.levels <- sort(unique(hmp.cst))
+  cst.cols <- setNames(
+    grDevices::hcl.colors(length(cst.levels), "Dark 3"),
+    cst.levels
+  )
+  hmp.cst.col <- cst.cols[hmp.cst]
+
+  op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
+  grip.plot(hmp.results$layouts$preset$default, hmp.edges,
+            projection = "ortho", vertex.col = hmp.cst.col, main = "default")
+  grip.plot(hmp.results$layouts$preset$tree, hmp.edges,
+            projection = "ortho", vertex.col = hmp.cst.col, main = "tree")
+  grip.plot(hmp.results$layouts$preset$torus, hmp.edges,
+            projection = "ortho", vertex.col = hmp.cst.col, main = "torus")
+  par(op)
+} else {
+  message("HMP precomputed results not available; skipping figure.")
+}
+```
+
+
+# Comparison with existing tools {#sec:comparison}
+
+To provide context for **grip**'s performance, we compare it against three
+layout algorithms available in **igraph** [@csardi2006]: Fruchterman--Reingold
+(`layout_with_fr`), Kamada--Kawai (`layout_with_kk`), and DrL
+(`layout_with_drl`). We use `grip.score.layout()` to evaluate all layouts
+on the same quality metrics, ensuring a fair comparison.
+
+The comparison uses the Zachary karate club graph (34 vertices, 78 edges)
+in 2D. Note that **grip**'s quality metrics can evaluate any layout, not
+just those produced by **grip**.
+
+```{r eval=FALSE}
+# Comparison code (author should run and fill in actual numbers)
+library(igraph)
+g <- graph_from_edgelist(karate.edges, directed = FALSE)
+
+set.seed(42)
+fr.coords <- layout_with_fr(g)
+kk.coords <- layout_with_kk(g)
+drl.coords <- layout_with_drl(g)
+
+grip.default.coords <- grip.layout(karate.edges, n = karate.n,
+                                    dim = 2, seed = 42)
+grip.tuned.coords <- grip.layout(karate.edges, n = karate.n,
+                                  dim = 2,
+                                  preset = "mesh", seed = 42)
+
+score.all <- rbind(
+  cbind(method = "FR (igraph)",
+        grip.score.layout(fr.coords, edges = karate.edges, n = karate.n,
+                          clusters = karate.club)),
+  cbind(method = "KK (igraph)",
+        grip.score.layout(kk.coords, edges = karate.edges, n = karate.n,
+                          clusters = karate.club)),
+  cbind(method = "DrL (igraph)",
+        grip.score.layout(drl.coords, edges = karate.edges, n = karate.n,
+                          clusters = karate.club)),
+  cbind(method = "GRIP default",
+        grip.score.layout(grip.default.coords, edges = karate.edges,
+                          n = karate.n, clusters = karate.club)),
+  cbind(method = "GRIP tuned",
+        grip.score.layout(grip.tuned.coords, edges = karate.edges,
+                          n = karate.n, clusters = karate.club))
+)
+
+knitr::kable(
+  score.all[, c("method", "sampled.stress", "edge.length.cv",
+                "sampled.nonedge.sep.ratio", "cluster.separation",
+                "edge.crossings")],
+  digits = 3
+)
+```
+
+This comparison is intended to be illustrative rather than definitive.
+Different algorithms have different strengths: Kamada--Kawai often produces
+excellent stress-minimizing layouts for small graphs, Fruchterman--Reingold
+is widely used and fast, and DrL is designed for large graphs. The key
+advantage of **grip** is not that it dominates all others on every metric for
+every graph, but rather that it provides (a) near-linear scalability for
+large graphs via the multiscale approach, (b) 3D layout support, (c) a
+systematic comparison framework for parameter selection, and (d) quality
+metrics that can evaluate layouts from any source. In particular,
+`grip.score.layout()` can be used to assess igraph layouts, making **grip**
+complementary to existing tools.
+
+
+# Discussion and future work
+
+The **grip** package provides an accessible R implementation of the GRIP
+multiscale force-directed layout algorithm, complemented by validated
+parameter presets and a principled quality assessment framework. The
+combination of layout computation and quality scoring in a single package
+addresses a practical gap in the R ecosystem: for real-world graphs where no
+canonical embedding exists, choosing among layout options has historically
+been a visual and subjective process.
+
+Several limitations should be noted. The current set of four presets covers
+a finite range of graph topologies; real-world graphs may not resemble any of
+these families closely. The quality metrics are heuristic proxies for layout
+quality, not formal optimality guarantees. Very large graphs (100,000+
+vertices) may still require substantial computation time, as the current
+implementation does not exploit GPU parallelism. The edge crossing count is
+exact but scales quadratically in the number of edges, limiting its practical
+use to moderately sized graphs.
+
+Future development directions include additional presets (e.g., for
+scale-free networks and bipartite graphs), integration with Bioconductor
+graph classes for seamless use in genomics workflows, GPU-accelerated force
+computation for very large graphs, additional quality metrics such as angular
+resolution and neighborhood preservation, and potential automatic preset
+selection based on graph-structural features. A Shiny-based interactive
+explorer (**gripui**) is available as a companion package but is not the
+focus of this article.
+
+The package source code is available at
+\url{https://github.com/pgajer/grip} and is being prepared for CRAN
+submission.
+
+
+# Acknowledgments
+
+The GRIP algorithm was originally developed in collaboration with Stephen G.
+Kobourov and Michael T. Goodrich. The HMP microbial network data were derived
+from publicly available Human Microbiome Project resources.
+
+\bibliography{grip-paper}

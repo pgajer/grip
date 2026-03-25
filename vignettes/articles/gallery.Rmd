@@ -1,0 +1,288 @@
+---
+title: "Gallery"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.retina = 2,
+  fig.width = 10,
+  fig.height = 4
+)
+```
+
+**grip** produces high-quality graph layouts using a multiscale force-directed
+algorithm. This gallery shows what it can do --- each example includes the code
+that produced it.
+
+```{r}
+library(grip)
+```
+
+## 2D layouts
+
+### 8x8 mesh
+
+The `"mesh"` preset produces visibly more uniform spacing than the generic
+defaults on lattice graphs.
+
+```{r mesh, fig.width=10, fig.height=4}
+edges <- edges.mesh(8, 8)
+default <- grip.layout(edges, n = 64, dim = 2, seed = 1)
+tuned   <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(default, edges, main = "Default", pch = 16, cex = 0.5,
+          edge.col = "gray80")
+grip.plot(tuned, edges, main = "preset = \"mesh\"", pch = 16, cex = 0.5,
+          edge.col = "gray80")
+```
+
+### Level-3 Sierpinski carpet
+
+The carpet preset keeps the recursive holes open and the dense interior well
+separated.
+
+```{r carpet, fig.width=10, fig.height=4}
+edges <- edges.sierpinski.carpet(3)
+n <- max(edges)
+default <- grip.layout(edges, n = n, dim = 2, seed = 2)
+tuned   <- grip.layout(edges, n = n, dim = 2, preset = "carpet", seed = 2)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(default, edges, main = "Default", pch = 16, cex = 0.4,
+          edge.col = "gray85")
+grip.plot(tuned, edges, main = "preset = \"carpet\"", pch = 16, cex = 0.4,
+          edge.col = "gray85")
+```
+
+### Binary tree (depth 6)
+
+The tree preset encourages more symmetric branching structure in force-directed
+layouts.
+
+```{r tree, fig.width=10, fig.height=4}
+edges <- edges.kary.tree(2, 6)
+n <- max(edges)
+default <- grip.layout(edges, n = n, dim = 2, seed = 3)
+tuned   <- grip.layout(edges, n = n, dim = 2, preset = "tree", seed = 3)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(default, edges, main = "Default", pch = 16, cex = 0.5,
+          edge.col = "gray80")
+grip.plot(tuned, edges, main = "preset = \"tree\"", pch = 16, cex = 0.5,
+          edge.col = "gray80")
+```
+
+### 18-cycle
+
+A circle initial placement with refinement recovers a nearly regular polygon.
+
+```{r cycle, fig.width=10, fig.height=4}
+edges <- edges.cycle(18)
+default <- grip.layout(edges, n = 18, dim = 2, seed = 4)
+tuned   <- grip.layout(edges, n = 18, dim = 2,
+                        placement = "circle",
+                        rounds = 64L, final_rounds = 128L,
+                        num_init = 6L, num_nbrs = 8L,
+                        r = 0.05, s = 4.5,
+                        repulsion_factor = 1.25, seed = 4)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(default, edges, main = "Default", pch = 16, cex = 0.6,
+          edge.col = "gray80")
+grip.plot(tuned, edges, main = "Circle + refinement", pch = 16, cex = 0.6,
+          edge.col = "gray80")
+```
+
+## 3D layouts (static projections)
+
+The figures below use `grip.plot(projection = "ortho")` to show 3D layouts as
+static orthographic projections from two different viewing angles.
+
+### 8x12 cylinder
+
+The `"torus"` preset also works well on open cylinders, recovering the expected
+tubular shape.
+
+```{r cylinder, fig.width=10, fig.height=4}
+edges <- edges.cylinder(8, 12)
+n <- max(edges)
+coords <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 5)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          main = "Cylinder — view 1", vertex.col = "#1F3B73",
+          edge.col = "gray80")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = -55, elevation = 15,
+          main = "Cylinder — view 2", vertex.col = "#1F3B73",
+          edge.col = "gray80")
+```
+
+### Level-4 Sierpinski tetrahedron
+
+Explicit tuned parameters open up the simplex structure in 3D.
+
+```{r tetrahedron, fig.width=10, fig.height=4}
+edges <- edges.sierpinski.tetrahedron(4)
+n <- max(edges)
+coords <- grip.layout(edges, n = n, dim = 3,
+                       placement = "barycenter",
+                       rounds = 128, final_rounds = 192,
+                       num_init = 12, num_nbrs = 16,
+                       r = 0.07, s = 9.0,
+                       repulsion_factor = 1.5, seed = 6)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          main = "Tetrahedron — view 1", vertex.col = "#1F3B73",
+          edge.col = "gray85")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = -45, elevation = 35,
+          main = "Tetrahedron — view 2", vertex.col = "#1F3B73",
+          edge.col = "gray85")
+```
+
+### 8x8 torus
+
+The `"torus"` preset recovers the expected donut-like geometry.
+
+```{r torus, fig.width=10, fig.height=4}
+edges <- edges.torus(8, 8)
+n <- max(edges)
+coords <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 7)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          main = "Torus — view 1", vertex.col = "#1F3B73",
+          edge.col = "gray80")
+grip.plot(coords, edges, projection = "ortho",
+          azimuth = -60, elevation = 40,
+          main = "Torus — view 2", vertex.col = "#1F3B73",
+          edge.col = "gray80")
+```
+
+## Multiscale trace animations
+
+These animations show the multiscale refinement process. Starting from a coarse
+global placement, the algorithm iteratively introduces and refines vertices
+until the layout converges.
+
+### Sierpinski Carpet (Level 4)
+
+<img src="../../man/figures/readme-sierpinski-carpet-level-4-trace.gif"
+     alt="Animated Sierpinski carpet level 4 trace generated by grip"
+     style="max-width: 100%;" />
+
+### Sierpinski Triangle (Level 6)
+
+<img src="../../man/figures/readme-sierpinski-triangle-level-6-trace.gif"
+     alt="Animated Sierpinski triangle level 6 trace generated by grip"
+     style="max-width: 100%;" />
+
+## Real-data showcase
+
+### Zachary karate club
+
+The karate club network (34 vertices, 78 edges) is a classic social network
+benchmark. The 3D layout is colored by the known Mr. Hi / Officer faction split.
+
+```{r karate, fig.width=10, fig.height=4.5}
+karate.edges <- as.matrix(utils::read.csv(
+  system.file("extdata", "karate-club-edges.csv", package = "grip"),
+  stringsAsFactors = FALSE
+))
+karate.n <- max(karate.edges)
+
+karate.labels <- utils::read.csv(
+  system.file("extdata", "karate-club-membership.csv", package = "grip"),
+  stringsAsFactors = FALSE
+)
+karate.labels <- karate.labels[order(karate.labels$vertex), ]
+karate.club <- karate.labels$club
+karate.cols <- ifelse(karate.club == "Mr. Hi", "#1b9e77", "#d95f02")
+
+coords <- grip.layout(karate.edges, n = karate.n, dim = 3,
+                       preset = "tree", seed = 10)
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(coords, karate.edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          vertex.col = karate.cols, edge.col = "gray80",
+          main = "Karate club — view 1")
+grip.plot(coords, karate.edges, projection = "ortho",
+          azimuth = -45, elevation = 28,
+          vertex.col = karate.cols, edge.col = "gray80",
+          main = "Karate club — view 2")
+legend("bottomleft", legend = c("Mr. Hi", "Officer"),
+       col = c("#1b9e77", "#d95f02"), pch = 16, bty = "n", cex = 0.9)
+```
+
+### HMP microbial network (1,828 vertices)
+
+This coarsened microbial co-occurrence network from the Human Microbiome Project
+is the largest bundled example. The layout is colored by community state type
+(CST), using precomputed results to keep the gallery fast.
+
+```{r hmp, fig.width=10, fig.height=5}
+data(hmp.u01.gc.coarse)
+
+hmp.results <- readRDS(system.file(
+  "extdata", "hmp_u01_gc_coarse", "vignette_results.rds",
+  package = "grip"
+))
+
+edge.matrix.from.adj <- function(adj.list) {
+  edges <- list()
+  idx <- 0L
+  for (u in seq_along(adj.list)) {
+    nbrs <- adj.list[[u]]
+    nbrs <- nbrs[nbrs > u]
+    if (!length(nbrs)) next
+    for (v in nbrs) {
+      idx <- idx + 1L
+      edges[[idx]] <- c(u, v)
+    }
+  }
+  do.call(rbind, edges)
+}
+
+hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
+hmp.cst   <- hmp.u01.gc.coarse$vertex_data$cst
+cst.levels <- sort(unique(hmp.cst))
+cst.cols   <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"),
+                        cst.levels)
+hmp.cst.col <- cst.cols[hmp.cst]
+
+best.name <- hmp.results$top_local_candidates[[1L]]
+best.coords <- hmp.results$layouts$local[[best.name]]
+
+par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), bg = "white")
+grip.plot(best.coords, hmp.edges, projection = "ortho",
+          azimuth = 35, elevation = 22,
+          vertex.col = hmp.cst.col, edge.col = "gray85",
+          main = "HMP network — view 1")
+grip.plot(best.coords, hmp.edges, projection = "ortho",
+          azimuth = -50, elevation = 30,
+          vertex.col = hmp.cst.col, edge.col = "gray85",
+          main = "HMP network — view 2")
+legend("bottomleft", legend = cst.levels, col = cst.cols, pch = 16,
+       bty = "n", cex = 0.7, title = "CST")
+```
+
+## Learn more
+
+See the vignettes for full worked examples including quality metrics and
+parameter search workflows:
+
+- [GRIP Layout Examples](grip-examples.html) --- tuned layouts for synthetic
+  graph families
+- [Choosing Layouts for Real Data](grip-real-data.html) --- step-by-step
+  selection workflow with the Zachary and Krackhardt benchmarks
+- [HMP Microbial Network](grip-hmp-u01-coarse.html) --- layout selection on a
+  1,828-vertex biological network

@@ -218,6 +218,7 @@ gripui_validate_project <- function(project) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' edges <- edges.path(6)
 #' cmp <- grip.compare.layouts(edges = edges, n = 6, seeds = 1, return.layouts = TRUE)
 #' graph <- list(
@@ -225,6 +226,7 @@ gripui_validate_project <- function(project) {
 #' )
 #' project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 #' nrow(project$layouts)
+#' }
 gripui_project_from_compare <- function(compare_obj,
                                         graph = NULL,
                                         vertex_data = NULL,

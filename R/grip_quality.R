@@ -794,6 +794,7 @@ grip.score.layout <- function(coords,
 #' @return A list with \code{runs} and \code{summary} data frames and,
 #'   optionally, realized \code{layouts}.
 #' @examples
+#' \dontrun{
 #' edges <- edges.mesh(6, 6)
 #' cmp <- grip.compare.layouts(
 #'   edges = edges,
@@ -818,6 +819,7 @@ grip.score.layout <- function(coords,
 #'   seeds = 1:2
 #' )
 #' search.cmp$summary
+#' }
 #' @export
 grip.compare.layouts <- function(edges = NULL,
                                  n = NULL,

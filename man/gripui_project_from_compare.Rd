@@ -31,6 +31,7 @@ A `gripui_project`.
 Convert `grip.compare.layouts()` output into a `gripui_project`
 }
 \examples{
+\dontrun{
 edges <- edges.path(6)
 cmp <- grip.compare.layouts(edges = edges, n = 6, seeds = 1, return.layouts = TRUE)
 graph <- list(
@@ -38,4 +39,5 @@ graph <- list(
 )
 project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 nrow(project$layouts)
+}
 }

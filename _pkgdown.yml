@@ -1,0 +1,106 @@
+url: https://pgajer.github.io/grip/
+
+template:
+  bootstrap: 5
+  light-switch: true
+  bslib:
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+    danger: "#A6081A"
+
+home:
+  sidebar:
+    structure:
+      - links
+      - license
+      - community
+      - authors
+      - dev
+
+navbar:
+  structure:
+    left:
+      - intro
+      - reference
+      - articles
+      - changelog
+    right:
+      - github
+  components:
+    intro:
+      text: Get started
+      href: index.html
+    articles:
+      text: Articles
+      menu:
+        - text: Layout Examples
+          href: articles/grip-examples.html
+        - text: Choosing Layouts for Real Data
+          href: articles/grip-real-data.html
+        - text: HMP Microbial Network
+          href: articles/grip-hmp-u01-coarse.html
+        - text: Interactive Explorer
+          href: articles/gripui-explorer.html
+        - text: "---"
+        - text: Gallery
+          href: articles/gallery.html
+    changelog:
+      text: Changelog
+      href: news/index.html
+    github:
+      icon: fa-github
+      href: https://github.com/pgajer/grip
+      aria-label: GitHub
+
+reference:
+  - title: Layout computation
+    desc: Compute graph layouts using the multiscale GRIP algorithm.
+    contents:
+      - grip.layout
+      - grip.layout.trace
+
+  - title: Quality metrics
+    desc: Score and compare layouts across seeds and parameter settings.
+    contents:
+      - grip.score.layout
+      - grip.compare.layouts
+      - grip.params.from.summary
+
+  - title: Visualization
+    desc: Plot layouts in 2D and 3D.
+    contents:
+      - grip.plot
+      - grip.project.3d
+
+  - title: Graph generators
+    desc: Build common graph families as edge-list matrices.
+    contents:
+      - edges.mesh
+      - edges.cycle
+      - edges.path
+      - edges.cylinder
+      - edges.torus
+      - edges.kary.tree
+      - edges.sierpinski.triangle
+      - edges.sierpinski.tetrahedron
+      - edges.sierpinski.carpet
+
+  - title: Interactive explorer
+    desc: Shiny-based layout browser for interactive exploration.
+    contents:
+      - gripui_app
+      - run_gripui
+      - gripui_project
+      - gripui_project_from_compare
+      - gripui_project_from_dir
+      - gripui_validate_project
+
+  - title: Data
+    desc: Bundled datasets for examples and vignettes.
+    contents:
+      - hmp.u01.gc.coarse
+
+  - title: Package
+    contents:
+      - grip-package
