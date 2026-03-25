@@ -15,3 +15,14 @@ Invisibly returns `TRUE` when validation succeeds.
 \description{
 Validate a `gripui_project`
 }
+\examples{
+layouts <- data.frame(
+  candidate = "test.layout",
+  stage = "layout",
+  seed = 1L,
+  status = "ok",
+  stringsAsFactors = FALSE
+)
+project <- gripui_project(graph = NULL, layouts = layouts, title = "Validation example")
+gripui_validate_project(project)
+}

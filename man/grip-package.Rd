@@ -27,6 +27,14 @@ approach to force-directed layouts of large graphs.
 \emph{Computational Geometry}, 29(1), 3--18.
 doi:10.1016/j.comgeo.2004.03.014.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/pgajer/grip}
+  \item Report bugs at \url{https://github.com/pgajer/grip/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Pawel Gajer \email{pgajer@gmail.com}
 

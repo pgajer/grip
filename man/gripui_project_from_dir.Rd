@@ -25,3 +25,8 @@ A `gripui_project`.
 \description{
 Create a `gripui_project` from a directory of saved artifacts
 }
+\examples{
+\dontrun{
+project <- gripui_project_from_dir("/path/to/saved/outputs", title = "My project")
+}
+}
