@@ -14,11 +14,13 @@ CRAN-SUBMISSION
 .RData
 output/
 tmp/
+dev/blog/
 dev/grip_paper/
 dev/manual/figures/
 dev/manual/pdf/
 dev/manual/tmp/
 dev/prompts/
+dev/social/
 
 # Compiled artifacts
 src/*.o
