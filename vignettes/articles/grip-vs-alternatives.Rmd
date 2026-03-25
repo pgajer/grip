@@ -22,50 +22,59 @@ to declare a winner but to show where each tool does well and to illustrate how
 produced it. grip is complementary to igraph and graphlayouts, not a
 replacement.
 
-## Setup
+## Precomputed results
 
-```{r libraries, message=FALSE}
+The benchmarks in this article require igraph and graphlayouts, which are not
+grip dependencies. To keep the pkgdown build lightweight, all layouts, scores,
+and timing data are precomputed and bundled as an RDS file. The full
+reproduction script is at `inst/scripts/precompute-vs-alternatives.R` --- run
+it once in an R session that has all three packages installed, then rebuild the
+site.
+
+```{r load-results}
 library(grip)
-library(igraph)
-library(graphlayouts)
+
+res.path <- system.file(
+  "extdata", "vs_alternatives", "benchmark_results.rds",
+  package = "grip"
+)
+if (!nzchar(res.path)) {
+  stop(
+    "Precomputed benchmark results not found. ",
+    "Run inst/scripts/precompute-vs-alternatives.R first."
+  )
+}
+res <- readRDS(res.path)
 ```
 
-We define a helper that takes a coordinate matrix (from any source) and an edge
-list, then calls `grip.score.layout()` to return a standardized metrics row.
-This keeps the comparison code DRY and ensures every layout is scored
-identically.
+## Helpers
 
-```{r score-helper}
+The precompute script uses the same scoring helper shown below. Every layout ---
+from igraph, graphlayouts, or grip --- is scored with `grip.score.layout()`
+using identical sample sizes and seeds.
+
+```{r score-helper, eval=FALSE}
 score_layout <- function(coords, edges, n,
                          clusters = NULL,
                          edge.crossings = "auto",
                          sample.size.stress = 2000L,
                          sample.size.nonedge = 5000L) {
   grip.score.layout(
-    coords            = coords,
-    edges             = edges,
-    n                 = n,
-    clusters          = clusters,
+    coords              = coords,
+    edges               = edges,
+    n                   = n,
+    clusters            = clusters,
     sample.size.stress  = sample.size.stress,
     sample.size.nonedge = sample.size.nonedge,
-    stress.seed       = 42L,
-    nonedge.seed      = 42L,
-    edge.crossings    = edge.crossings
+    stress.seed         = 42L,
+    nonedge.seed        = 42L,
+    edge.crossings      = edge.crossings
   )
 }
 ```
 
-A second helper converts an igraph layout (which is already an n×2 or n×3
-matrix) into a plain numeric matrix, since some igraph methods return objects
-with extra attributes.
-
-```{r normalize-helper}
-as_coord_matrix <- function(layout_result) {
-  matrix(as.numeric(layout_result), ncol = ncol(layout_result))
-}
-```
-
-Finally, a plotting helper for consistent base-R panels across all methods.
+A plotting helper gives every panel a consistent look: base-R graphics, white
+background, `asp = 1`, no axis labels.
 
 ```{r plot-helper}
 plot_layout <- function(coords, edges, title,
@@ -84,80 +93,39 @@ plot_layout <- function(coords, edges, title,
 }
 ```
 
-## Benchmark 1: Zachary karate club (34 vertices, 78 edges)
+## Benchmark 1: Zachary karate club (`r res$karate$n` vertices, `r res$karate$m` edges)
 
 The Zachary karate club is a small, well-studied social network with known
 faction membership. It is small enough that all methods should perform well.
 
-```{r karate-setup}
-karate.edges <- as.matrix(utils::read.csv(
-  system.file("extdata", "karate-club-edges.csv", package = "grip"),
-  stringsAsFactors = FALSE
-))
-karate.n <- max(karate.edges)
-karate.m <- nrow(karate.edges)
+The code below shows how each layout was computed. The igraph layouts use
+`layout_with_fr()`, `layout_with_kk()`, `layout_with_drl()`, and graphlayouts
+uses `layout_with_stress()`. grip runs with default parameters and with
+`preset = "tree"`.
 
-karate.labels <- utils::read.csv(
-  system.file("extdata", "karate-club-membership.csv", package = "grip"),
-  stringsAsFactors = FALSE
-)
-karate.labels <- karate.labels[order(karate.labels$vertex), ]
-karate.clubs  <- karate.labels$club
+```{r karate-code, eval=FALSE}
+library(igraph)
+library(graphlayouts)
 
-cat(sprintf("Vertices: %d, Edges: %d\n", karate.n, karate.m))
-```
-
-Build an igraph object for the alternative layout functions.
-
-```{r karate-igraph}
 karate.ig <- graph_from_edgelist(karate.edges, directed = FALSE)
-```
 
-### Compute layouts
-
-```{r karate-layouts}
-set.seed(1)
-karate.fr  <- as_coord_matrix(layout_with_fr(karate.ig))
-set.seed(1)
-karate.kk  <- as_coord_matrix(layout_with_kk(karate.ig))
-set.seed(1)
-karate.drl <- as_coord_matrix(layout_with_drl(karate.ig))
-set.seed(1)
-karate.stress <- as_coord_matrix(layout_with_stress(karate.ig))
+set.seed(1); karate.fr      <- layout_with_fr(karate.ig)
+set.seed(1); karate.kk      <- layout_with_kk(karate.ig)
+set.seed(1); karate.drl     <- layout_with_drl(karate.ig)
+set.seed(1); karate.stress  <- layout_with_stress(karate.ig)
 
 karate.grip.default <- grip.layout(karate.edges, n = karate.n, dim = 2, seed = 1)
 karate.grip.tree    <- grip.layout(karate.edges, n = karate.n, dim = 2,
                                     preset = "tree", seed = 1)
 ```
 
-### Score all layouts
+### Quality metrics
 
-```{r karate-score}
-karate.results <- rbind(
-  cbind(method = "FR (igraph)",
-        score_layout(karate.fr, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "KK (igraph)",
-        score_layout(karate.kk, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "DrL (igraph)",
-        score_layout(karate.drl, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "Stress (graphlayouts)",
-        score_layout(karate.stress, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "grip default",
-        score_layout(karate.grip.default, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always")),
-  cbind(method = "grip tree preset",
-        score_layout(karate.grip.tree, karate.edges, karate.n,
-                     clusters = karate.clubs, edge.crossings = "always"))
-)
-
-karate.display <- karate.results[, c("method", "sampled.stress",
-                                      "edge.length.cv", "edge.crossings",
-                                      "sampled.nonedge.sep.ratio",
-                                      "cluster.separation")]
+```{r karate-table}
+karate.display <- res$karate$scores[, c("method", "sampled.stress",
+                                         "edge.length.cv", "edge.crossings",
+                                         "sampled.nonedge.sep.ratio",
+                                         "cluster.separation")]
 knitr::kable(karate.display, digits = 4, row.names = FALSE,
              caption = "Karate club: quality metrics (lower stress/CV/crossings is better; higher separation is better)")
 ```
@@ -165,14 +133,14 @@ knitr::kable(karate.display, digits = 4, row.names = FALSE,
 ### Visual comparison
 
 ```{r karate-plot, fig.width=12, fig.height=7.5}
+k <- res$karate
 par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-
-plot_layout(karate.fr,           karate.edges, "FR (igraph)",             cex = 0.6)
-plot_layout(karate.kk,           karate.edges, "KK (igraph)",             cex = 0.6)
-plot_layout(karate.drl,          karate.edges, "DrL (igraph)",            cex = 0.6)
-plot_layout(karate.stress,       karate.edges, "Stress (graphlayouts)",   cex = 0.6)
-plot_layout(karate.grip.default, karate.edges, "grip default",            cex = 0.6)
-plot_layout(karate.grip.tree,    karate.edges, "grip tree preset",        cex = 0.6)
+plot_layout(k$layouts$fr,           k$edges, "FR (igraph)",           cex = 0.6)
+plot_layout(k$layouts$kk,           k$edges, "KK (igraph)",           cex = 0.6)
+plot_layout(k$layouts$drl,          k$edges, "DrL (igraph)",          cex = 0.6)
+plot_layout(k$layouts$stress,       k$edges, "Stress (graphlayouts)", cex = 0.6)
+plot_layout(k$layouts$grip.default, k$edges, "grip default",          cex = 0.6)
+plot_layout(k$layouts$grip.tree,    k$edges, "grip tree preset",      cex = 0.6)
 ```
 
 On a graph this small, all methods produce readable layouts. Stress
@@ -180,61 +148,31 @@ minimization (from graphlayouts) and Kamada-Kawai typically achieve low stress
 values, which is expected given that they directly optimize a stress objective.
 grip's metrics help quantify differences that are difficult to see by eye.
 
-## Benchmark 2: 12×12 rectangular mesh (144 vertices, 264 edges)
+## Benchmark 2: 12×12 rectangular mesh (`r res$mesh$n` vertices, `r res$mesh$m` edges)
 
 A regular lattice is a structural benchmark: the ideal layout recovers the grid
 exactly, with uniform edge lengths and zero crossings.
 
-```{r mesh-setup}
+```{r mesh-code, eval=FALSE}
 mesh.edges <- edges.mesh(12, 12)
-mesh.n <- 12 * 12
-mesh.m <- nrow(mesh.edges)
-
-cat(sprintf("Vertices: %d, Edges: %d\n", mesh.n, mesh.m))
-```
-
-```{r mesh-igraph}
 mesh.ig <- graph_from_edgelist(mesh.edges, directed = FALSE)
-```
 
-### Compute layouts
-
-```{r mesh-layouts}
-set.seed(1)
-mesh.fr  <- as_coord_matrix(layout_with_fr(mesh.ig))
-set.seed(1)
-mesh.kk  <- as_coord_matrix(layout_with_kk(mesh.ig))
-set.seed(1)
-mesh.drl <- as_coord_matrix(layout_with_drl(mesh.ig))
-set.seed(1)
-mesh.stress <- as_coord_matrix(layout_with_stress(mesh.ig))
+set.seed(1); mesh.fr      <- layout_with_fr(mesh.ig)
+set.seed(1); mesh.kk      <- layout_with_kk(mesh.ig)
+set.seed(1); mesh.drl     <- layout_with_drl(mesh.ig)
+set.seed(1); mesh.stress  <- layout_with_stress(mesh.ig)
 
 mesh.grip.default <- grip.layout(mesh.edges, n = mesh.n, dim = 2, seed = 1)
 mesh.grip.mesh    <- grip.layout(mesh.edges, n = mesh.n, dim = 2,
                                   preset = "mesh", seed = 1)
 ```
 
-### Score all layouts
+### Quality metrics
 
-```{r mesh-score}
-mesh.results <- rbind(
-  cbind(method = "FR (igraph)",
-        score_layout(mesh.fr, mesh.edges, mesh.n, edge.crossings = "always")),
-  cbind(method = "KK (igraph)",
-        score_layout(mesh.kk, mesh.edges, mesh.n, edge.crossings = "always")),
-  cbind(method = "DrL (igraph)",
-        score_layout(mesh.drl, mesh.edges, mesh.n, edge.crossings = "always")),
-  cbind(method = "Stress (graphlayouts)",
-        score_layout(mesh.stress, mesh.edges, mesh.n, edge.crossings = "always")),
-  cbind(method = "grip default",
-        score_layout(mesh.grip.default, mesh.edges, mesh.n, edge.crossings = "always")),
-  cbind(method = "grip mesh preset",
-        score_layout(mesh.grip.mesh, mesh.edges, mesh.n, edge.crossings = "always"))
-)
-
-mesh.display <- mesh.results[, c("method", "sampled.stress",
-                                  "edge.length.cv", "edge.crossings",
-                                  "sampled.nonedge.sep.ratio")]
+```{r mesh-table}
+mesh.display <- res$mesh$scores[, c("method", "sampled.stress",
+                                     "edge.length.cv", "edge.crossings",
+                                     "sampled.nonedge.sep.ratio")]
 knitr::kable(mesh.display, digits = 4, row.names = FALSE,
              caption = "12x12 mesh: quality metrics")
 ```
@@ -242,14 +180,14 @@ knitr::kable(mesh.display, digits = 4, row.names = FALSE,
 ### Visual comparison
 
 ```{r mesh-plot, fig.width=12, fig.height=7.5}
+m <- res$mesh
 par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-
-plot_layout(mesh.fr,           mesh.edges, "FR (igraph)",           cex = 0.5)
-plot_layout(mesh.kk,           mesh.edges, "KK (igraph)",           cex = 0.5)
-plot_layout(mesh.drl,          mesh.edges, "DrL (igraph)",          cex = 0.5)
-plot_layout(mesh.stress,       mesh.edges, "Stress (graphlayouts)", cex = 0.5)
-plot_layout(mesh.grip.default, mesh.edges, "grip default",          cex = 0.5)
-plot_layout(mesh.grip.mesh,    mesh.edges, "grip mesh preset",      cex = 0.5)
+plot_layout(m$layouts$fr,           m$edges, "FR (igraph)",           cex = 0.5)
+plot_layout(m$layouts$kk,           m$edges, "KK (igraph)",           cex = 0.5)
+plot_layout(m$layouts$drl,          m$edges, "DrL (igraph)",          cex = 0.5)
+plot_layout(m$layouts$stress,       m$edges, "Stress (graphlayouts)", cex = 0.5)
+plot_layout(m$layouts$grip.default, m$edges, "grip default",          cex = 0.5)
+plot_layout(m$layouts$grip.mesh,    m$edges, "grip mesh preset",      cex = 0.5)
 ```
 
 On lattice graphs, stress minimization and Kamada-Kawai both tend to recover
@@ -257,79 +195,31 @@ near-perfect grids. grip's mesh preset is specifically tuned for this family and
 should produce very uniform edge lengths (low CV). Fruchterman-Reingold and DrL
 often introduce slight barrel distortion on regular meshes.
 
-## Benchmark 3: Level-4 Sierpinski carpet (~4,000+ vertices)
+## Benchmark 3: Level-4 Sierpinski carpet (`r res$carpet$n` vertices, `r res$carpet$m` edges)
 
 This fractal graph is large enough that algorithm scalability starts to matter.
 Edge-crossing computation is skipped (it would be extremely slow at this size).
 
-```{r carpet-setup}
+```{r carpet-code, eval=FALSE}
 carpet.edges <- edges.sierpinski.carpet(4)
-carpet.n <- max(carpet.edges)
-carpet.m <- nrow(carpet.edges)
-
-cat(sprintf("Vertices: %d, Edges: %d\n", carpet.n, carpet.m))
-```
-
-```{r carpet-igraph}
 carpet.ig <- graph_from_edgelist(carpet.edges, directed = FALSE)
+
+set.seed(1); carpet.fr      <- layout_with_fr(carpet.ig)
+set.seed(1); carpet.kk      <- layout_with_kk(carpet.ig)
+set.seed(1); carpet.drl     <- layout_with_drl(carpet.ig)
+set.seed(1); carpet.stress  <- layout_with_stress(carpet.ig)
+
+carpet.grip.default <- grip.layout(carpet.edges, n = carpet.n, dim = 2, seed = 1)
+carpet.grip.carpet  <- grip.layout(carpet.edges, n = carpet.n, dim = 2,
+                                    preset = "carpet", seed = 1)
 ```
 
-### Compute layouts with timing
+### Quality metrics
 
-```{r carpet-layouts}
-set.seed(1)
-carpet.time.fr <- system.time(
-  carpet.fr <- as_coord_matrix(layout_with_fr(carpet.ig))
-)
-set.seed(1)
-carpet.time.kk <- system.time(
-  carpet.kk <- as_coord_matrix(layout_with_kk(carpet.ig))
-)
-set.seed(1)
-carpet.time.drl <- system.time(
-  carpet.drl <- as_coord_matrix(layout_with_drl(carpet.ig))
-)
-set.seed(1)
-carpet.time.stress <- system.time(
-  carpet.stress <- as_coord_matrix(layout_with_stress(carpet.ig))
-)
-
-carpet.time.grip.default <- system.time(
-  carpet.grip.default <- grip.layout(carpet.edges, n = carpet.n, dim = 2, seed = 1)
-)
-carpet.time.grip.carpet <- system.time(
-  carpet.grip.carpet <- grip.layout(carpet.edges, n = carpet.n, dim = 2,
-                                     preset = "carpet", seed = 1)
-)
-```
-
-### Score all layouts
-
-```{r carpet-score}
-carpet.results <- rbind(
-  cbind(method = "FR (igraph)",
-        score_layout(carpet.fr, carpet.edges, carpet.n,
-                     edge.crossings = "never")),
-  cbind(method = "KK (igraph)",
-        score_layout(carpet.kk, carpet.edges, carpet.n,
-                     edge.crossings = "never")),
-  cbind(method = "DrL (igraph)",
-        score_layout(carpet.drl, carpet.edges, carpet.n,
-                     edge.crossings = "never")),
-  cbind(method = "Stress (graphlayouts)",
-        score_layout(carpet.stress, carpet.edges, carpet.n,
-                     edge.crossings = "never")),
-  cbind(method = "grip default",
-        score_layout(carpet.grip.default, carpet.edges, carpet.n,
-                     edge.crossings = "never")),
-  cbind(method = "grip carpet preset",
-        score_layout(carpet.grip.carpet, carpet.edges, carpet.n,
-                     edge.crossings = "never"))
-)
-
-carpet.display <- carpet.results[, c("method", "sampled.stress",
-                                      "edge.length.cv",
-                                      "sampled.nonedge.sep.ratio")]
+```{r carpet-table}
+carpet.display <- res$carpet$scores[, c("method", "sampled.stress",
+                                         "edge.length.cv",
+                                         "sampled.nonedge.sep.ratio")]
 knitr::kable(carpet.display, digits = 4, row.names = FALSE,
              caption = "Level-4 Sierpinski carpet: quality metrics (edge crossings skipped)")
 ```
@@ -340,31 +230,21 @@ Timing depends on hardware, so treat these numbers as relative rather than
 absolute. All benchmarks were run on the same machine in a single R session.
 
 ```{r carpet-timing}
-carpet.timing <- data.frame(
-  method = c("FR (igraph)", "KK (igraph)", "DrL (igraph)",
-             "Stress (graphlayouts)", "grip default", "grip carpet preset"),
-  elapsed.sec = c(carpet.time.fr[["elapsed"]],
-                  carpet.time.kk[["elapsed"]],
-                  carpet.time.drl[["elapsed"]],
-                  carpet.time.stress[["elapsed"]],
-                  carpet.time.grip.default[["elapsed"]],
-                  carpet.time.grip.carpet[["elapsed"]])
-)
-knitr::kable(carpet.timing, digits = 2, row.names = FALSE,
+knitr::kable(res$carpet$timing, digits = 2, row.names = FALSE,
              caption = "Level-4 Sierpinski carpet: elapsed time (seconds)")
 ```
 
 ### Visual comparison
 
 ```{r carpet-plot, fig.width=12, fig.height=7.5}
+c4 <- res$carpet
 par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-
-plot_layout(carpet.fr,           carpet.edges, "FR (igraph)",           cex = 0.3)
-plot_layout(carpet.kk,           carpet.edges, "KK (igraph)",           cex = 0.3)
-plot_layout(carpet.drl,          carpet.edges, "DrL (igraph)",          cex = 0.3)
-plot_layout(carpet.stress,       carpet.edges, "Stress (graphlayouts)", cex = 0.3)
-plot_layout(carpet.grip.default, carpet.edges, "grip default",          cex = 0.3)
-plot_layout(carpet.grip.carpet,  carpet.edges, "grip carpet preset",    cex = 0.3)
+plot_layout(c4$layouts$fr,           c4$edges, "FR (igraph)",           cex = 0.3)
+plot_layout(c4$layouts$kk,           c4$edges, "KK (igraph)",           cex = 0.3)
+plot_layout(c4$layouts$drl,          c4$edges, "DrL (igraph)",          cex = 0.3)
+plot_layout(c4$layouts$stress,       c4$edges, "Stress (graphlayouts)", cex = 0.3)
+plot_layout(c4$layouts$grip.default, c4$edges, "grip default",          cex = 0.3)
+plot_layout(c4$layouts$grip.carpet,  c4$edges, "grip carpet preset",    cex = 0.3)
 ```
 
 The Sierpinski carpet has a self-similar hole structure that is a strong test of
@@ -373,100 +253,37 @@ family and should preserve the recursive holes more clearly. On a graph of this
 size, Kamada-Kawai can be slow (its time complexity is O(n²)), while DrL and
 grip's multiscale approach are designed to handle larger graphs efficiently.
 
-## Benchmark 4: HMP microbial network (1,828 vertices)
+## Benchmark 4: HMP microbial network (`r res$hmp$n` vertices, `r res$hmp$m` edges)
 
 This real-world co-occurrence network from the Human Microbiome Project has
 community labels (CST), making it a good test of cluster separation. It is also
 weighted, though we use unweighted versions for igraph/graphlayouts layouts to
 keep the comparison straightforward. For grip, we pass the full weighted graph.
 
-```{r hmp-setup}
-data(hmp.u01.gc.coarse)
-
-hmp.adj   <- hmp.u01.gc.coarse$adj_list
-hmp.wt    <- hmp.u01.gc.coarse$weight_list
-hmp.n     <- length(hmp.adj)
-hmp.cst   <- hmp.u01.gc.coarse$vertex_data$cst
-
-## Build an edge matrix from the adjacency list
-edge.matrix.from.adj <- function(adj.list) {
-  edges <- list()
-  idx <- 0L
-  for (u in seq_along(adj.list)) {
-    nbrs <- adj.list[[u]]
-    nbrs <- nbrs[nbrs > u]
-    if (!length(nbrs)) next
-    for (v in nbrs) {
-      idx <- idx + 1L
-      edges[[idx]] <- c(u, v)
-    }
-  }
-  do.call(rbind, edges)
-}
-
-hmp.edges <- edge.matrix.from.adj(hmp.adj)
-hmp.m     <- nrow(hmp.edges)
-
-cat(sprintf("Vertices: %d, Edges: %d\n", hmp.n, hmp.m))
-```
-
-```{r hmp-igraph}
-hmp.ig <- graph_from_edgelist(hmp.edges, directed = FALSE)
-```
-
-### Compute layouts with timing
-
-Note: Kamada-Kawai can be very slow on a graph of this size. If it takes more
-than a few minutes on your machine, consider skipping it.
-
-```{r hmp-layouts}
-set.seed(1)
-hmp.time.fr <- system.time(
-  hmp.fr <- as_coord_matrix(layout_with_fr(hmp.ig))
-)
-set.seed(1)
-hmp.time.drl <- system.time(
-  hmp.drl <- as_coord_matrix(layout_with_drl(hmp.ig))
-)
-set.seed(1)
-hmp.time.stress <- system.time(
-  hmp.stress <- as_coord_matrix(layout_with_stress(hmp.ig))
-)
-
-hmp.time.grip.default <- system.time(
-  hmp.grip.default <- grip.layout(
-    adj_list = hmp.adj, weight_list = hmp.wt, n = hmp.n,
-    dim = 2, seed = 1
-  )
-)
-```
-
 We skip `layout_with_kk()` for this benchmark because its O(n²) per-iteration
-cost makes it impractical for a graph with 1,828 vertices and dense local
-connectivity. All other methods complete in a reasonable time.
+cost makes it impractical for a graph with `r res$hmp$n` vertices and dense
+local connectivity.
 
-### Score all layouts
+```{r hmp-code, eval=FALSE}
+data(hmp.u01.gc.coarse)
+hmp.ig <- graph_from_edgelist(hmp.edges, directed = FALSE)
 
-```{r hmp-score}
-hmp.results <- rbind(
-  cbind(method = "FR (igraph)",
-        score_layout(hmp.fr, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "DrL (igraph)",
-        score_layout(hmp.drl, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "Stress (graphlayouts)",
-        score_layout(hmp.stress, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "grip default",
-        score_layout(hmp.grip.default, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never"))
+set.seed(1); hmp.fr     <- layout_with_fr(hmp.ig)
+set.seed(1); hmp.drl    <- layout_with_drl(hmp.ig)
+set.seed(1); hmp.stress <- layout_with_stress(hmp.ig)
+
+hmp.grip.default <- grip.layout(
+  adj_list = hmp.adj, weight_list = hmp.wt, n = hmp.n, dim = 2, seed = 1
 )
+```
 
-hmp.display <- hmp.results[, c("method", "sampled.stress",
-                                "edge.length.cv",
-                                "sampled.nonedge.sep.ratio",
-                                "cluster.separation")]
+### Quality metrics
+
+```{r hmp-table}
+hmp.display <- res$hmp$scores[, c("method", "sampled.stress",
+                                   "edge.length.cv",
+                                   "sampled.nonedge.sep.ratio",
+                                   "cluster.separation")]
 knitr::kable(hmp.display, digits = 4, row.names = FALSE,
              caption = "HMP microbial network: quality metrics (edge crossings skipped)")
 ```
@@ -474,35 +291,27 @@ knitr::kable(hmp.display, digits = 4, row.names = FALSE,
 ### Timing
 
 ```{r hmp-timing}
-hmp.timing <- data.frame(
-  method = c("FR (igraph)", "DrL (igraph)",
-             "Stress (graphlayouts)", "grip default"),
-  elapsed.sec = c(hmp.time.fr[["elapsed"]],
-                  hmp.time.drl[["elapsed"]],
-                  hmp.time.stress[["elapsed"]],
-                  hmp.time.grip.default[["elapsed"]])
-)
-knitr::kable(hmp.timing, digits = 2, row.names = FALSE,
+knitr::kable(res$hmp$timing, digits = 2, row.names = FALSE,
              caption = "HMP microbial network: elapsed time (seconds)")
 ```
 
 ### Visual comparison
 
 ```{r hmp-plot, fig.width=10, fig.height=9}
-cst.levels <- sort(unique(hmp.cst))
+h <- res$hmp
+cst.levels <- sort(unique(h$cst))
 cst.cols   <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"),
                         cst.levels)
-hmp.cst.col <- cst.cols[hmp.cst]
+hmp.cst.col <- cst.cols[h$cst]
 
 par(mfrow = c(2, 2), mar = c(1, 1, 3, 1), bg = "white")
-
-plot_layout(hmp.fr,           hmp.edges, "FR (igraph)",
+plot_layout(h$layouts$fr,           h$edges, "FR (igraph)",
             vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(hmp.drl,          hmp.edges, "DrL (igraph)",
+plot_layout(h$layouts$drl,          h$edges, "DrL (igraph)",
             vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(hmp.stress,       hmp.edges, "Stress (graphlayouts)",
+plot_layout(h$layouts$stress,       h$edges, "Stress (graphlayouts)",
             vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(hmp.grip.default, hmp.edges, "grip default",
+plot_layout(h$layouts$grip.default, h$edges, "grip default",
             vertex.col = hmp.cst.col, cex = 0.4)
 
 legend("bottomleft", legend = cst.levels, col = cst.cols, pch = 16,
@@ -555,8 +364,22 @@ alongside your existing graph tools, use its presets when your graph matches a
 known family, and use its scoring functions to evaluate and compare layouts
 regardless of origin.
 
+## How to reproduce
+
+To regenerate the precomputed results from scratch:
+
+```{r reproduce, eval=FALSE}
+# In an R session with grip, igraph, and graphlayouts installed:
+source(system.file("scripts", "precompute-vs-alternatives.R", package = "grip"))
+```
+
+The script saves results to `inst/extdata/vs_alternatives/benchmark_results.rds`.
+After running it, rebuild the pkgdown site to update this page.
+
 ## Session info
 
-```{r session-info}
-sessionInfo()
+The benchmarks were computed in:
+
+```{r session-info-precomputed}
+res$session_info
 ```
