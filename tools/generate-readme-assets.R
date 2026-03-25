@@ -10,45 +10,11 @@ if (requireNamespace("devtools", quietly = TRUE)) {
   stop("Install 'devtools' or the 'grip' package to generate README assets.")
 }
 
-edges_cycle <- function(n) {
-  if (n < 2) {
-    return(matrix(integer(), ncol = 2))
-  }
-  rbind(cbind(seq_len(n - 1L), seq_len(n - 1L) + 1L), c(n, 1L))
+if (!requireNamespace("magick", quietly = TRUE)) {
+  stop("Package 'magick' is required to generate README GIF assets.")
 }
 
-edges_mesh <- function(h, w = h) {
-  stopifnot(h >= 1, w >= 1)
-  idx <- function(i, j) (i - 1L) * w + j
-  edges <- list()
-  for (i in seq_len(h)) {
-    for (j in seq_len(w)) {
-      v <- idx(i, j)
-      if (i < h) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
-      if (j < w) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L))
-    }
-  }
-  do.call(rbind, edges)
-}
-
-edges_grid3d <- function(nx, ny = nx, nz = nx) {
-  stopifnot(nx >= 1, ny >= 1, nz >= 1)
-  idx <- function(i, j, k) (k - 1L) * nx * ny + (i - 1L) * ny + j
-  edges <- list()
-  for (k in seq_len(nz)) {
-    for (i in seq_len(nx)) {
-      for (j in seq_len(ny)) {
-        v <- idx(i, j, k)
-        if (i < nx) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j, k))
-        if (j < ny) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L, k))
-        if (k < nz) edges[[length(edges) + 1L]] <- c(v, idx(i, j, k + 1L))
-      }
-    }
-  }
-  do.call(rbind, edges)
-}
-
-edges_sierpinski_carpet <- function(level) {
+build_sierpinski_carpet <- function(level) {
   stopifnot(level >= 0)
   side <- 3L^level
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
@@ -90,13 +56,18 @@ edges_sierpinski_carpet <- function(level) {
     }
   }
 
-  list(
-    edges = do.call(rbind, edges),
-    coords = coords
-  )
+  edges <- do.call(rbind, edges)
+  package_edges <- edges.sierpinski.carpet(level)
+  if (!identical(package_edges, edges)) {
+    stop(sprintf(
+      "Canonical carpet builder does not match package edges at level %d",
+      level
+    ))
+  }
+  list(edges = edges, coords = coords)
 }
 
-edges_sierpinski_triangle <- function(level) {
+build_sierpinski_triangle <- function(level) {
   stopifnot(level >= 0)
 
   merge_nodes <- function(edges, from, to) {
@@ -105,7 +76,7 @@ edges_sierpinski_triangle <- function(level) {
   }
 
   build <- function(k) {
-    if (k == 0) {
+    if (k == 0L) {
       coords <- rbind(
         c(0, 0),
         c(1, 0),
@@ -115,20 +86,24 @@ edges_sierpinski_triangle <- function(level) {
       return(list(edges = edges, coords = coords, corners = c(1L, 2L, 3L), n = 3L))
     }
 
-    left <- build(k - 1)
-    right <- build(k - 1)
-    top <- build(k - 1)
+    left <- build(k - 1L)
+    right <- build(k - 1L)
+    top <- build(k - 1L)
 
     left_coords <- left$coords / 2
-    right_coords <- right$coords / 2 + matrix(c(0.5, 0), nrow(right$coords), 2, byrow = TRUE)
-    top_coords <- top$coords / 2 + matrix(c(0.25, sqrt(3) / 4), nrow(top$coords), 2, byrow = TRUE)
+    right_coords <- right$coords / 2 +
+      matrix(c(0.5, 0), nrow(right$coords), 2, byrow = TRUE)
+    top_coords <- top$coords / 2 +
+      matrix(c(0.25, sqrt(3) / 4), nrow(top$coords), 2, byrow = TRUE)
 
     off1 <- left$n
     off2 <- left$n + right$n
 
-    edges <- rbind(left$edges,
-                   right$edges + off1,
-                   top$edges + off2)
+    edges <- rbind(
+      left$edges,
+      right$edges + off1,
+      top$edges + off2
+    )
     coords <- rbind(left_coords, right_coords, top_coords)
 
     L <- left$corners
@@ -142,369 +117,372 @@ edges_sierpinski_triangle <- function(level) {
     ids <- sort(unique(c(edges)))
     map <- seq_along(ids)
     names(map) <- ids
-    edges <- cbind(map[as.character(edges[, 1])],
-                   map[as.character(edges[, 2])])
+    edges <- cbind(map[as.character(edges[, 1])], map[as.character(edges[, 2])])
+    coords <- coords[ids, , drop = FALSE]
     edges <- t(apply(edges, 1, sort))
     edges <- unique(edges)
 
-    new_coords <- matrix(NA_real_, nrow = length(ids), ncol = 2)
-    for (i in seq_along(ids)) {
-      new_coords[i, ] <- coords[ids[i], ]
-    }
+    corners <- c(
+      map[as.character(L[1])],
+      map[as.character(R[2])],
+      map[as.character(T[3])]
+    )
 
-    corners <- c(map[as.character(L[1])],
-                 map[as.character(R[2])],
-                 map[as.character(T[3])])
-
-    list(edges = edges, coords = new_coords, corners = corners, n = length(ids))
+    list(edges = edges, coords = coords, corners = corners, n = length(ids))
   }
 
-  build(level)
+  out <- build(level)
+  package_edges <- edges.sierpinski.triangle(level)
+  if (!identical(package_edges, out$edges)) {
+    stop(sprintf(
+      "Canonical triangle builder does not match package edges at level %d",
+      level
+    ))
+  }
+  list(edges = out$edges, coords = out$coords, corners = out$corners)
 }
 
-normalize_coords <- function(coords) {
-  centered <- scale(coords, center = TRUE, scale = FALSE)
-  radius <- max(sqrt(rowSums(centered^2)))
+center_trace_frame <- function(coords) {
+  active <- stats::complete.cases(coords)
+  if (!any(active)) {
+    return(coords)
+  }
+  centered <- coords
+  centered[active, ] <- sweep(
+    coords[active, , drop = FALSE],
+    2L,
+    colMeans(coords[active, , drop = FALSE]),
+    "-"
+  )
+  centered
+}
+
+normalize_trace_frames <- function(frames) {
+  centered <- lapply(frames, center_trace_frame)
+  radius <- max(vapply(centered, function(z) {
+    active <- stats::complete.cases(z)
+    if (!any(active)) {
+      return(0)
+    }
+    max(sqrt(rowSums(z[active, , drop = FALSE]^2)))
+  }, numeric(1L)))
   if (!is.finite(radius) || radius <= 0) {
     return(centered)
   }
-  centered / radius
-}
-
-align_2d <- function(target, source) {
-  target_norm <- normalize_coords(target)
-  source_norm <- normalize_coords(source)
-  fit <- svd(t(source_norm) %*% target_norm)
-  rotation <- fit$u %*% t(fit$v)
-  source_norm %*% rotation
-}
-
-rotate_xyz <- function(coords, yaw = 0, pitch = 0, roll = 0) {
-  cy <- cos(yaw)
-  sy <- sin(yaw)
-  cp <- cos(pitch)
-  sp <- sin(pitch)
-  cr <- cos(roll)
-  sr <- sin(roll)
-
-  ry <- matrix(c(cy, 0, sy,
-                 0, 1, 0,
-                 -sy, 0, cy), nrow = 3, byrow = TRUE)
-  rx <- matrix(c(1, 0, 0,
-                 0, cp, -sp,
-                 0, sp, cp), nrow = 3, byrow = TRUE)
-  rz <- matrix(c(cr, -sr, 0,
-                 sr, cr, 0,
-                 0, 0, 1), nrow = 3, byrow = TRUE)
-
-  coords %*% ry %*% rx %*% rz
-}
-
-project_perspective <- function(coords, camera = 4.2) {
-  z_camera <- coords[, 3] + camera
-  scale <- camera / pmax(z_camera, 1e-6)
-  cbind(x = coords[, 1] * scale, y = coords[, 2] * scale, z = coords[, 3])
-}
-
-plot_2d_layout <- function(path) {
-  edges <- edges_cycle(18)
-  coords <- grip.layout(edges, n = 18, dim = 2,
-                        placement = "circle",
-                        rounds = 10, final_rounds = 10,
-                        num_init = 6, num_nbrs = 6,
-                        seed = 2)
-
-  x <- coords[, 1]
-  y <- coords[, 2]
-  xr <- range(x)
-  yr <- range(y)
-  xpad <- diff(xr) * 0.15
-  ypad <- diff(yr) * 0.15
-
-  png(path, width = 1200, height = 1200, res = 160, bg = "#f7f3ea")
-  on.exit(dev.off(), add = TRUE)
-  par(mar = c(0, 0, 2.6, 0), xaxs = "i", yaxs = "i")
-  plot(NA,
-       xlim = xr + c(-xpad, xpad),
-       ylim = yr + c(-ypad, ypad),
-       asp = 1,
-       axes = FALSE,
-       xlab = "",
-       ylab = "")
-  apply(edges, 1, function(e) {
-    segments(coords[e[1], 1], coords[e[1], 2],
-             coords[e[2], 1], coords[e[2], 2],
-             col = grDevices::adjustcolor("#0f3b5f", alpha.f = 0.34),
-             lwd = 2.7)
+  lapply(centered, function(z) {
+    active <- stats::complete.cases(z)
+    if (any(active)) {
+      z[active, ] <- z[active, , drop = FALSE] / radius
+    }
+    z
   })
-  points(coords[, 1], coords[, 2],
-         pch = 21,
-         bg = "#f05a28",
-         col = "#16324f",
-         cex = 4.2,
-         lwd = 1.5)
-  title("2D Cycle Layout", col.main = "#16324f", cex.main = 1.4)
 }
 
-draw_2d_frame <- function(path, coords, edges, title_text,
-                          width = 900, height = 900) {
-  xr <- range(coords[, 1])
-  yr <- range(coords[, 2])
-  xpad <- diff(xr) * 0.16
-  ypad <- diff(yr) * 0.16
-  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
-  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
+align_trace_frame_to_target <- function(coords, target_coords) {
+  active <- stats::complete.cases(coords) & stats::complete.cases(target_coords)
+  if (!any(active)) {
+    return(coords)
+  }
 
+  aligned <- coords
+  src <- coords[active, , drop = FALSE]
+  dst <- target_coords[active, , drop = FALSE]
+
+  src <- sweep(src, 2L, colMeans(src), "-")
+  dst <- sweep(dst, 2L, colMeans(dst), "-")
+
+  src_radius <- max(sqrt(rowSums(src^2)))
+  dst_radius <- max(sqrt(rowSums(dst^2)))
+  if (is.finite(src_radius) && src_radius > 0) {
+    src <- src / src_radius
+  }
+  if (is.finite(dst_radius) && dst_radius > 0) {
+    dst <- dst / dst_radius
+  }
+
+  if (sum(active) >= 2L) {
+    cross <- t(src) %*% dst
+    sv <- svd(cross)
+    rot <- sv$u %*% t(sv$v)
+    if (det(rot) < 0) {
+      fix <- diag(ncol(rot))
+      fix[ncol(fix), ncol(fix)] <- -1
+      rot <- sv$u %*% fix %*% t(sv$v)
+    }
+    src <- src %*% rot
+  }
+
+  aligned[active, ] <- src
+  aligned
+}
+
+align_trace_frames_to_target <- function(frames, target_coords) {
+  lapply(frames, align_trace_frame_to_target, target_coords = target_coords)
+}
+
+canonicalize_triangle_symmetry <- function(frames, target_coords, target_corners) {
+  if (is.null(target_coords) || is.null(target_corners) ||
+      length(target_corners) < 3L || length(frames) == 0L) {
+    return(frames)
+  }
+
+  final_frame <- frames[[length(frames)]]
+  active <- stats::complete.cases(final_frame) & stats::complete.cases(target_coords)
+  if (!any(active)) {
+    return(frames)
+  }
+  if (!all(stats::complete.cases(final_frame[target_corners, , drop = FALSE]))) {
+    return(frames)
+  }
+
+  normalize_coords_local <- function(coords) {
+    centered <- sweep(coords, 2L, colMeans(coords), "-")
+    radius <- max(sqrt(rowSums(centered^2)))
+    if (is.finite(radius) && radius > 0) {
+      centered <- centered / radius
+    }
+    centered
+  }
+
+  fit_orthogonal_transform <- function(src, dst) {
+    cross <- t(src) %*% dst
+    sv <- svd(cross)
+    sv$u %*% t(sv$v)
+  }
+
+  current_coords <- normalize_coords_local(final_frame[active, , drop = FALSE])
+  target_coords_norm <- normalize_coords_local(target_coords[active, , drop = FALSE])
+  current_corner_coords <- normalize_coords_local(final_frame[target_corners, , drop = FALSE])
+  target_corner_coords <- normalize_coords_local(target_coords[target_corners, , drop = FALSE])
+
+  perms <- rbind(
+    c(1L, 2L, 3L),
+    c(1L, 3L, 2L),
+    c(2L, 1L, 3L),
+    c(2L, 3L, 1L),
+    c(3L, 1L, 2L),
+    c(3L, 2L, 1L)
+  )
+
+  transforms <- lapply(seq_len(nrow(perms)), function(i) {
+    fit_orthogonal_transform(
+      current_corner_coords[perms[i, ], , drop = FALSE],
+      target_corner_coords
+    )
+  })
+
+  best_idx <- 1L
+  best_err <- Inf
+  for (i in seq_along(transforms)) {
+    transformed <- current_coords %*% transforms[[i]]
+    err <- sum((transformed - target_coords_norm)^2)
+    if (err < best_err) {
+      best_err <- err
+      best_idx <- i
+    }
+  }
+
+  transform <- transforms[[best_idx]]
+  lapply(frames, function(z) {
+    active <- stats::complete.cases(z)
+    if (any(active)) {
+      z[active, ] <- z[active, , drop = FALSE] %*% transform
+    }
+    z
+  })
+}
+
+subsample_trace <- function(trace_obj, motion_frames) {
+  total <- length(trace_obj$frames)
+  if (is.null(motion_frames) || motion_frames >= total) {
+    return(trace_obj)
+  }
+
+  idx <- floor(seq(0, total - 1L, length.out = motion_frames)) + 1L
+  idx <- pmax.int(1L, pmin.int(total, idx))
+  idx <- unique(idx)
+  if (length(idx) < motion_frames) {
+    extras <- setdiff(seq_len(total), idx)
+    idx <- sort(c(idx, extras[seq_len(motion_frames - length(idx))]))
+  }
+
+  list(
+    final = trace_obj$final,
+    frames = trace_obj$frames[idx],
+    meta = trace_obj$meta[idx, , drop = FALSE]
+  )
+}
+
+compute_2d_limits <- function(frames, pad_frac = 0.06, min_pad = 0.06) {
+  xs <- c()
+  ys <- c()
+  for (coords in frames) {
+    active <- stats::complete.cases(coords)
+    if (!any(active)) {
+      next
+    }
+    xs <- c(xs, coords[active, 1L])
+    ys <- c(ys, coords[active, 2L])
+  }
+  xr <- range(xs)
+  yr <- range(ys)
+  xpad <- max(diff(xr) * pad_frac, min_pad)
+  ypad <- max(diff(yr) * pad_frac, min_pad)
+  list(xlim = xr + c(-xpad, xpad), ylim = yr + c(-ypad, ypad))
+}
+
+edge_mask <- function(coords, edges) {
+  active <- stats::complete.cases(coords)
+  active[edges[, 1L]] & active[edges[, 2L]]
+}
+
+draw_readme_trace_frame <- function(path, coords, edges, xlim, ylim,
+                                    width = 1200, height = 1200) {
   n <- nrow(coords)
   node_cex <- if (n <= 80) {
-    1.5
+    1.65
   } else if (n <= 180) {
-    1.0
+    1.15
   } else if (n <= 600) {
-    0.56
+    0.62
   } else if (n <= 1500) {
-    0.34
+    0.32
   } else {
-    0.22
+    0.14
   }
   edge_lwd <- if (n <= 80) {
     2.0
   } else if (n <= 180) {
     1.35
   } else if (n <= 600) {
-    0.75
+    0.78
   } else if (n <= 1500) {
-    0.46
+    0.40
   } else {
-    0.30
+    0.17
   }
 
-  png(path, width = width, height = height, res = 160, bg = "#f7f3ea")
+  keep_edges <- edge_mask(coords, edges)
+  active <- stats::complete.cases(coords)
+
+  png(path, width = width, height = height, res = 180, bg = "#f7f3ea")
   on.exit(dev.off(), add = TRUE)
-  par(mar = c(0, 0, 2.4, 0), xaxs = "i", yaxs = "i")
-  plot(NA,
-       xlim = xr + c(-xpad, xpad),
-       ylim = yr + c(-ypad, ypad),
-       asp = 1,
-       axes = FALSE,
-       xlab = "",
-       ylab = "")
-  apply(edges, 1, function(e) {
-    segments(coords[e[1], 1], coords[e[1], 2],
-             coords[e[2], 1], coords[e[2], 2],
-             col = grDevices::adjustcolor("#0f3b5f", alpha.f = 0.22),
-             lwd = edge_lwd)
-  })
-  points(coords[, 1], coords[, 2],
-         pch = 21,
-         bg = "#f05a28",
-         col = "#16324f",
-         cex = node_cex,
-         lwd = 0.9)
-  title(title_text, col.main = "#16324f", cex.main = 1.3)
+  par(mar = c(0, 0, 0, 0), xaxs = "i", yaxs = "i")
+  plot(
+    NA,
+    xlim = xlim,
+    ylim = ylim,
+    asp = 1,
+    axes = FALSE,
+    xlab = "",
+    ylab = ""
+  )
+  if (any(keep_edges)) {
+    apply(edges[keep_edges, , drop = FALSE], 1, function(e) {
+      graphics::segments(
+        coords[e[1L], 1L], coords[e[1L], 2L],
+        coords[e[2L], 1L], coords[e[2L], 2L],
+        col = grDevices::adjustcolor("#0f3b5f", alpha.f = 0.18),
+        lwd = edge_lwd
+      )
+    })
+  }
+  if (any(active)) {
+    graphics::points(
+      coords[active, 1L], coords[active, 2L],
+      pch = 21,
+      bg = "#f05a28",
+      col = "#16324f",
+      cex = node_cex,
+      lwd = 0.75
+    )
+  }
 }
 
-plot_2d_morph_gif <- function(path, from_coords, to_coords, edges, title_text,
-                              width = 800, height = 800) {
-  if (!requireNamespace("magick", quietly = TRUE)) {
-    message("Skipping GIF generation: package 'magick' is not installed.")
-    return(invisible(FALSE))
+plot_readme_trace_gif <- function(path, trace_obj, edges,
+                                  width = 1200, height = 1200,
+                                  fps = 5, motion_frames = 112,
+                                  final_hold_sec = 8,
+                                  target_coords = NULL,
+                                  target_corners = NULL,
+                                  pad_frac = 0.06,
+                                  min_pad = 0.06) {
+  trace_obj <- subsample_trace(trace_obj, motion_frames = motion_frames)
+  frames <- trace_obj$frames
+  if (!is.null(target_coords)) {
+    frames <- align_trace_frames_to_target(frames, target_coords)
+    frames <- canonicalize_triangle_symmetry(frames, target_coords, target_corners)
   }
-
-  from_norm <- normalize_coords(from_coords)
-  to_norm <- align_2d(from_norm, to_coords)
-
-  frame_dir <- tempfile("grip-sierpinski-frames-")
+  frames <- normalize_trace_frames(frames)
+  limits <- compute_2d_limits(frames, pad_frac = pad_frac, min_pad = min_pad)
+  frame_dir <- tempfile("grip-readme-trace-")
   dir.create(frame_dir, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(frame_dir, recursive = TRUE, force = TRUE), add = TRUE)
 
-  phases <- c(rep(0, 2),
-              seq(0, 1, length.out = 7)[-1],
-              rep(1, 2),
-              seq(1, 0, length.out = 7)[-1],
-              rep(0, 2))
-  frame_paths <- file.path(frame_dir, sprintf("frame-%02d.png", seq_along(phases)))
-
-  for (i in seq_along(phases)) {
-    t <- 0.5 - 0.5 * cos(pi * phases[i])
-    coords <- (1 - t) * from_norm + t * to_norm
-    draw_2d_frame(frame_paths[i], coords, edges, title_text, width = width, height = height)
+  frame_paths <- file.path(frame_dir, sprintf("frame-%03d.png", seq_along(frames)))
+  for (i in seq_along(frames)) {
+    draw_readme_trace_frame(
+      frame_paths[i],
+      frames[[i]],
+      edges,
+      xlim = limits$xlim,
+      ylim = limits$ylim,
+      width = width,
+      height = height
+    )
   }
 
-  frames <- magick::image_read(frame_paths)
-  anim <- magick::image_animate(frames, fps = 10, optimize = TRUE)
+  hold_frames <- max(1L, as.integer(round(fps * final_hold_sec)))
+  frame_paths <- c(frame_paths, rep(tail(frame_paths, 1L), hold_frames))
+  anim <- magick::image_animate(
+    magick::image_read(frame_paths),
+    fps = fps,
+    optimize = TRUE
+  )
   magick::image_write(anim, path)
-  invisible(TRUE)
+  invisible(path)
 }
 
-draw_3d_projection <- function(path, coords, edges, yaw, pitch,
-                               title_text,
-                               width = 1200, height = 1200) {
-  rotated <- rotate_xyz(normalize_coords(coords), yaw = yaw, pitch = pitch)
-  projected <- project_perspective(rotated)
+carpet4 <- build_sierpinski_carpet(4)
+triangle6 <- build_sierpinski_triangle(6)
 
-  xr <- range(projected[, 1])
-  yr <- range(projected[, 2])
-  xpad <- diff(xr) * 0.18
-  ypad <- diff(yr) * 0.18
+carpet4_trace_2d <- grip.layout.trace(
+  carpet4$edges,
+  n = max(carpet4$edges),
+  dim = 2,
+  preset = "carpet",
+  trace = "round",
+  trace.every = 1,
+  seed = 24
+)
 
-  edge_depth <- rowMeans(matrix(rotated[as.vector(t(edges)), 3], ncol = 2))
-  edge_order <- order(edge_depth)
-  point_order <- order(rotated[, 3])
-  z_range <- range(rotated[, 3])
-  z_span <- diff(z_range)
-  if (!is.finite(z_span) || z_span == 0) {
-    z_span <- 1
-  }
-  point_level <- (rotated[, 3] - z_range[1]) / z_span
+# Match the diagnostic triangle panels by using the carpet preset and aligning
+# each trace frame to the canonical recursive triangle before rendering.
+triangle6_trace_2d <- grip.layout.trace(
+  triangle6$edges,
+  n = max(triangle6$edges),
+  dim = 2,
+  preset = "carpet",
+  trace = "round",
+  trace.every = 1,
+  seed = 1
+)
 
-  png(path, width = width, height = height, res = 160, bg = "#f7f3ea")
-  on.exit(dev.off(), add = TRUE)
-  par(mar = c(0, 0, 2.6, 0), xaxs = "i", yaxs = "i")
-  plot(NA,
-       xlim = xr + c(-xpad, xpad),
-       ylim = yr + c(-ypad, ypad),
-       asp = 1,
-       axes = FALSE,
-       xlab = "",
-       ylab = "")
+plot_readme_trace_gif(
+  "man/figures/readme-sierpinski-carpet-level-4-trace.gif",
+  carpet4_trace_2d,
+  carpet4$edges,
+  target_coords = carpet4$coords,
+  pad_frac = 0.025,
+  min_pad = 0.025
+)
 
-  for (idx in edge_order) {
-    e <- edges[idx, ]
-    alpha <- 0.14 + 0.42 * ((edge_depth[idx] - min(edge_depth)) /
-      max(diff(range(edge_depth)), 1e-6))
-    segments(projected[e[1], 1], projected[e[1], 2],
-             projected[e[2], 1], projected[e[2], 2],
-             col = grDevices::adjustcolor("#1f4d6b", alpha.f = alpha),
-             lwd = 2.5)
-  }
-
-  palette <- grDevices::colorRampPalette(c("#f7b267", "#f4845f", "#d1495b", "#7b2d26"))(100)
-  cols <- palette[pmax(1L, pmin(100L, floor(point_level * 99) + 1L))]
-  cex_vals <- 1.0 + 1.4 * point_level
-  points(projected[point_order, 1], projected[point_order, 2],
-         pch = 21,
-         bg = cols[point_order],
-         col = "#16324f",
-         cex = cex_vals[point_order],
-         lwd = 1.2)
-  title(title_text, col.main = "#16324f", cex.main = 1.4)
-}
-
-plot_3d_layout <- function(path) {
-  edges <- edges_grid3d(3, 3, 3)
-  coords <- grip.layout(edges, n = 27, dim = 3,
-                        placement = "barycenter",
-                        rounds = 12, final_rounds = 12,
-                        num_init = 6, num_nbrs = 7,
-                        seed = 3)
-  draw_3d_projection(path, coords, edges,
-                     yaw = 0.8, pitch = 0.7,
-                     title_text = "3D Lattice Layout")
-  invisible(list(coords = coords, edges = edges))
-}
-
-plot_3d_gif <- function(path, coords, edges) {
-  if (!requireNamespace("magick", quietly = TRUE)) {
-    message("Skipping GIF generation: package 'magick' is not installed.")
-    return(invisible(FALSE))
-  }
-
-  frame_dir <- tempfile("grip-readme-frames-")
-  dir.create(frame_dir, recursive = TRUE, showWarnings = FALSE)
-  on.exit(unlink(frame_dir, recursive = TRUE, force = TRUE), add = TRUE)
-
-  angles <- seq(0, 2 * pi, length.out = 25L)[-25L]
-  frame_paths <- file.path(frame_dir, sprintf("frame-%02d.png", seq_along(angles)))
-  for (i in seq_along(angles)) {
-    draw_3d_projection(frame_paths[i], coords, edges,
-                       yaw = angles[i], pitch = 0.62,
-                       title_text = "Animated 3D Rotation",
-                       width = 900, height = 900)
-  }
-
-  frames <- magick::image_read(frame_paths)
-  anim <- magick::image_animate(frames, fps = 10, optimize = TRUE)
-  magick::image_write(anim, path)
-  invisible(TRUE)
-}
-
-sierpinski2 <- edges_sierpinski_carpet(2)
-sierpinski2_layout <- grip.layout(sierpinski2$edges,
-                                  n = nrow(sierpinski2$coords),
-                                  dim = 2,
-                                  placement = "barycenter",
-                                  rounds = 12, final_rounds = 12,
-                                  num_init = 10, num_nbrs = 8,
-                                  seed = 22)
-
-sierpinski3 <- edges_sierpinski_carpet(3)
-sierpinski3_layout <- grip.layout(sierpinski3$edges,
-                                  n = nrow(sierpinski3$coords),
-                                  dim = 2,
-                                  placement = "barycenter",
-                                  rounds = 14, final_rounds = 14,
-                                  num_init = 18, num_nbrs = 10,
-                                  seed = 23)
-
-sierpinski4 <- edges_sierpinski_carpet(4)
-sierpinski4_layout <- grip.layout(sierpinski4$edges,
-                                  n = nrow(sierpinski4$coords),
-                                  dim = 2,
-                                  placement = "barycenter",
-                                  rounds = 16, final_rounds = 16,
-                                  num_init = 24, num_nbrs = 12,
-                                  seed = 24)
-
-sierpinski_triangle2 <- edges_sierpinski_triangle(2)
-sierpinski_triangle2_layout <- grip.layout(sierpinski_triangle2$edges,
-                                           n = nrow(sierpinski_triangle2$coords),
-                                           dim = 2,
-                                           placement = "circle",
-                                           rounds = 25, final_rounds = 25,
-                                           num_init = 5, num_nbrs = 7,
-                                           seed = 4)
-
-sierpinski_triangle3 <- edges_sierpinski_triangle(3)
-sierpinski_triangle3_layout <- grip.layout(sierpinski_triangle3$edges,
-                                           n = nrow(sierpinski_triangle3$coords),
-                                           dim = 2,
-                                           placement = "circle",
-                                           rounds = 28, final_rounds = 28,
-                                           num_init = 6, num_nbrs = 8,
-                                           seed = 24)
-
-sierpinski_triangle4 <- edges_sierpinski_triangle(4)
-sierpinski_triangle4_layout <- grip.layout(sierpinski_triangle4$edges,
-                                           n = nrow(sierpinski_triangle4$coords),
-                                           dim = 2,
-                                           placement = "circle",
-                                           rounds = 32, final_rounds = 32,
-                                           num_init = 7, num_nbrs = 9,
-                                           seed = 25)
-
-plot_2d_layout("man/figures/readme-layout-2d-cycle.png")
-mesh <- plot_3d_layout("man/figures/readme-layout-3d-mesh.png")
-plot_3d_gif("man/figures/readme-layout-3d-rotation.gif", mesh$coords, mesh$edges)
-plot_2d_morph_gif("man/figures/readme-sierpinski-carpet-level-2.gif",
-                  sierpinski2$coords, sierpinski2_layout, sierpinski2$edges,
-                  "Sierpinski Carpet (Level 2)")
-plot_2d_morph_gif("man/figures/readme-sierpinski-carpet-level-3.gif",
-                  sierpinski3$coords, sierpinski3_layout, sierpinski3$edges,
-                  "Sierpinski Carpet (Level 3)")
-plot_2d_morph_gif("man/figures/readme-sierpinski-carpet-level-4.gif",
-                  sierpinski4$coords, sierpinski4_layout, sierpinski4$edges,
-                  "Sierpinski Carpet (Level 4)",
-                  width = 900, height = 900)
-plot_2d_morph_gif("man/figures/readme-sierpinski-triangle-level-2.gif",
-                  sierpinski_triangle2$coords, sierpinski_triangle2_layout, sierpinski_triangle2$edges,
-                  "Sierpinski Triangle (Level 2)")
-plot_2d_morph_gif("man/figures/readme-sierpinski-triangle-level-3.gif",
-                  sierpinski_triangle3$coords, sierpinski_triangle3_layout, sierpinski_triangle3$edges,
-                  "Sierpinski Triangle (Level 3)")
-plot_2d_morph_gif("man/figures/readme-sierpinski-triangle-level-4.gif",
-                  sierpinski_triangle4$coords, sierpinski_triangle4_layout, sierpinski_triangle4$edges,
-                  "Sierpinski Triangle (Level 4)",
-                  width = 900, height = 900)
+plot_readme_trace_gif(
+  "man/figures/readme-sierpinski-triangle-level-6-trace.gif",
+  triangle6_trace_2d,
+  triangle6$edges,
+  target_coords = triangle6$coords,
+  target_corners = triangle6$corners
+)
 
 message("README assets written to man/figures/")

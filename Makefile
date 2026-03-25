@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install rchk winbuilder-release winbuilder-devel
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -57,6 +57,17 @@ check-dir:
 
 install: build
 	R CMD INSTALL $(TARBALL)
+
+readme-assets:
+	Rscript tools/generate-readme-assets.R
+
+readme-render:
+	Rscript tools/render-readme.R
+
+readme: readme-assets readme-render
+
+readme-html: readme-assets
+	Rscript tools/render-readme.R --html
 
 rchk:
 	@tools/check_rchk.sh
