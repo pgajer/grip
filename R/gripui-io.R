@@ -50,6 +50,12 @@ gripui_read_graph_rds <- function(path) {
   if (!is.list(obj)) {
     stop("graph RDS must contain a list")
   }
+  if (!gripui.is.graph.object(obj)) {
+    stop(
+      "graph RDS does not contain a recognized graph object (expected one of: ",
+      "adj_list, weight_list, vertex_data, graph_info)"
+    )
+  }
   obj
 }
 

@@ -197,7 +197,8 @@ gripui_validate_project <- function(project) {
 #' Convert `grip.compare.layouts()` output into a `gripui_project`
 #'
 #' @param compare_obj Result of `grip.compare.layouts()`.
-#' @param graph Optional graph object or named graph list.
+#' @param graph Optional graph object, named graph list, or path to a graph RDS.
+#'   Defaults to `NULL` when only catalog exploration is needed.
 #' @param vertex_data Optional vertex metadata added to `graph`.
 #' @param graph_info Optional graph-level metadata added to `graph`.
 #' @param title Optional project title.
@@ -214,7 +215,7 @@ gripui_validate_project <- function(project) {
 #' project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 #' nrow(project$layouts)
 gripui_project_from_compare <- function(compare_obj,
-                                        graph,
+                                        graph = NULL,
                                         vertex_data = NULL,
                                         graph_info = NULL,
                                         title = NULL) {

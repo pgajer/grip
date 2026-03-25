@@ -1,0 +1,242 @@
+---
+title: "Interactive Layout Exploration with gripui"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interactive Layout Exploration with gripui}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5.2
+)
+
+gripui_available <- all(vapply(
+  c("shiny", "bslib", "DT", "htmltools", "rgl"),
+  requireNamespace,
+  logical(1L),
+  quietly = TRUE
+))
+
+if (gripui_available && requireNamespace("rgl", quietly = TRUE)) {
+  options(rgl.useNULL = TRUE)
+  rgl::setupKnitr(autoprint = TRUE)
+}
+```
+
+## Overview
+
+The `gripui` module provides a Shiny-based explorer for comparing graph
+layouts produced by `grip.compare.layouts()` or assembled from on-disk
+artifacts. The interface combines a scatter-plot "landscape" of layout quality
+scores, a filterable catalog table, and an interactive 2D or 3D viewer for the
+selected layout.
+
+The public API consists of six functions:
+
+| Function | Purpose |
+|:--|:--|
+| `gripui_project()` | Build a project from an in-memory graph and a layouts data frame |
+| `gripui_project_from_compare()` | Convert `grip.compare.layouts()` output directly |
+| `gripui_project_from_dir()` | Assemble a project from saved artifacts on disk |
+| `gripui_validate_project()` | Check a project object for structural correctness |
+| `gripui_app()` | Build the Shiny app object (for embedding or testing) |
+| `run_gripui()` | Launch the Shiny app in a browser |
+
+All of these require the optional packages listed in `Suggests` (`shiny`,
+`bslib`, `DT`, `htmltools`, `rgl`). If any are missing, the functions stop
+with a clear message listing the missing packages.
+
+## Quick start: from `grip.compare.layouts()`
+
+The most common entry point is to run a layout comparison and then explore the
+results interactively. The example below uses a small mesh graph so the
+vignette builds quickly, but the same pattern works for graphs of any size.
+
+```{r compare-example}
+library(grip)
+
+edges <- edges.mesh(5, 5)
+n <- 25L
+
+cmp <- grip.compare.layouts(
+  edges = edges,
+  n = n,
+  dim = 2,
+  candidates = list(
+    default = list(),
+    tuned = list(
+      rounds = 40L,
+      final_rounds = 80L,
+      num_init = 4L,
+      num_nbrs = 6L,
+      r = 0.05,
+      s = 4.5
+    )
+  ),
+  seeds = 1:3,
+  return.layouts = TRUE
+)
+
+knitr::kable(
+  cmp$summary[, c("candidate", "sampled.stress.mean",
+                   "edge.length.cv.mean", "score.composite")],
+  digits = 4
+)
+```
+
+With the comparison result in hand, `gripui_project_from_compare()` wraps it
+into a project object that the Shiny app understands. Passing a graph enables
+edge drawing and vertex-data coloring in the viewer.
+
+```{r project-from-compare, eval=gripui_available}
+adj <- vector("list", n)
+for (i in seq_len(nrow(edges))) {
+  adj[[edges[i, 1L]]] <- c(adj[[edges[i, 1L]]], edges[i, 2L])
+  adj[[edges[i, 2L]]] <- c(adj[[edges[i, 2L]]], edges[i, 1L])
+}
+graph <- list(adj_list = lapply(adj, function(x) sort(unique(as.integer(x)))))
+
+project <- gripui_project_from_compare(
+  cmp,
+  graph = graph,
+  title = "5x5 mesh comparison"
+)
+project$meta$title
+nrow(project$layouts)
+```
+
+To launch the app you would call `run_gripui(project)`. Since vignettes
+cannot start a live Shiny session, the rest of this document illustrates the
+building blocks without calling `run_gripui()`.
+
+## Building a project by hand
+
+When layouts come from sources other than `grip.compare.layouts()` — for
+example from a custom pipeline or an external optimizer — you can build the
+project manually with `gripui_project()`.
+
+The `layouts` argument is a data frame with at least `candidate`, `stage`,
+`seed`, and `status` columns. Additional columns such as `coords_path`,
+`html_path`, and any numeric quality scores are picked up automatically.
+
+```{r manual-project, eval=gripui_available}
+layouts_df <- data.frame(
+  candidate = c("run_a", "run_b"),
+  stage     = c("layout", "layout"),
+  seed      = c(1L, 2L),
+  status    = c("ok", "ok"),
+  my_score  = c(0.42, 0.37),
+  stringsAsFactors = FALSE
+)
+
+manual_project <- gripui_project(
+  graph = NULL,
+  layouts = layouts_df,
+  title = "Manual example"
+)
+manual_project$meta$title
+names(manual_project$layouts)
+```
+
+The constructor normalizes column names, generates unique `layout_id` values,
+and marks each row as `interactive`, `artifact-only`, or `summary-only`
+depending on whether in-memory coordinates, on-disk coordinate files, or
+neither are available.
+
+## Validation
+
+`gripui_validate_project()` checks that the required columns are present, that
+`layout_id` values are unique, and that graph objects are structurally sound.
+It is called automatically by the constructor, but you can also call it
+explicitly after modifying a project.
+
+```{r validate, eval=gripui_available}
+gripui_validate_project(project)
+```
+
+If the graph is a named list of sub-graphs (for multi-stage projects), the
+validator also checks that every `graph_id` referenced in the layouts table
+resolves to a key in the graph list.
+
+## Loading a project from disk
+
+For larger projects where layout artifacts have been saved to a directory,
+`gripui_project_from_dir()` assembles the project by reading catalog TSVs,
+resolving relative paths, and attaching artifact manifests. This function
+currently recognizes two directory layouts:
+
+1. **Normalized bundle format** — a `catalog/layout_catalog.tsv` file with an
+   optional `graph/graph.rds` and `metadata/notes.md`.
+2. **HMP/U01 compatibility format** — stage-specific run tables
+   (`coarse_stage/coarse_stage_runs.tsv`, `full_stage1/full_stage1_runs.tsv`,
+   etc.) with optional visual manifests.
+
+```r
+# Not run — requires a directory of saved outputs
+project <- gripui_project_from_dir(
+  root = "/path/to/saved/outputs",
+  title = "My HMP project"
+)
+run_gripui(project)
+```
+
+## The gripui Shiny interface
+
+When launched, the app presents four panels:
+
+1. **Sidebar** — stage filters, candidate search, axis and color pickers, and
+   edge-display toggle.
+2. **Landscape scatter plot** — plots any two numeric columns from the catalog
+   against each other, colored by a third variable. Clicking a point selects
+   that layout.
+3. **Viewer** — an interactive 3D `rgl` widget or a 2D base-graphics plot
+   depending on the coordinate dimensionality, with optional edge overlay and
+   vertex coloring by any column in `vertex_data`.
+4. **Catalog table** — a searchable, sortable `DT` datatable. Clicking a row
+   selects that layout.
+
+The landscape and the table stay synchronized: selecting a layout in either
+panel highlights it in both.
+
+## Graph objects
+
+The `graph` argument accepted by the project constructors and the app is a
+list that may contain any combination of:
+
+| Field | Type | Purpose |
+|:--|:--|:--|
+| `adj_list` | list of integer vectors | Adjacency list for edge drawing |
+| `weight_list` | list of numeric vectors | Edge weights (same structure as `adj_list`) |
+| `vertex_data` | data frame | Per-vertex metadata for coloring |
+| `graph_info` | list | Graph-level metadata (currently informational) |
+
+For multi-stage projects where different stages use different graphs (e.g., a
+coarsened graph and the full graph), pass a named list of such graph objects.
+The `graph_id` column in the layouts table is then used to look up the correct
+sub-graph for each row.
+
+## Vertex coloring
+
+The viewer offers a "Viewer color" selector. The special value `"plain"` draws
+all vertices in a single color. Any column name from `vertex_data` enables
+data-driven coloring:
+
+- **Numeric columns** map to a sequential blue palette via
+  `grDevices::colorRampPalette()`. Non-finite values are drawn in gray.
+- **Categorical columns** map to `grDevices::hcl.colors()` with the "Dark 3"
+  palette. `NA` values are drawn in gray.
+
+## Tips for CRAN-compatible usage
+
+Because `gripui` depends on Shiny-ecosystem packages that are listed in
+`Suggests`, all the gripui functions guard their availability at runtime. If
+you write code that calls `gripui_app()` or `run_gripui()` in a context
+where those packages might not be installed (e.g., in a package that re-exports
+gripui functionality), wrap the call in a
+`if (requireNamespace("shiny", quietly = TRUE))` check or use `@examplesIf`
+in roxygen blocks, as the grip package itself does.

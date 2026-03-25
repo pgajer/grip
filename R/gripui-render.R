@@ -121,10 +121,10 @@ gripui.artifact.links <- function(row) {
       return(NULL)
     }
     shiny::tags$li(
-      shiny::tags$a(
-        href = paste0("file://", path),
-        target = "_blank",
-        label
+      shiny::tags$span(
+        class = "gripui-artifact-entry",
+        shiny::tags$span(class = "gripui-artifact-label", label),
+        shiny::tags$code(class = "gripui-artifact-path", path)
       )
     )
   }
@@ -236,7 +236,7 @@ gripui.render.layout.plot2d <- function(coords, graph = NULL, color_by = "plain"
   xpad <- max(diff(xlim) * 0.06, 1e-8)
   ypad <- max(diff(ylim) * 0.06, 1e-8)
 
-  plot(
+  graphics::plot(
     xx, yy,
     type = "n",
     asp = 1,
@@ -261,7 +261,7 @@ gripui.render.layout.plot2d <- function(coords, graph = NULL, color_by = "plain"
     }
   }
 
-  points(xx[keep], yy[keep], pch = 16, cex = 0.7, col = cols[keep])
+  graphics::points(xx[keep], yy[keep], pch = 16, cex = 0.7, col = cols[keep])
   invisible(NULL)
 }
 
@@ -318,6 +318,10 @@ gripui.landscape.colors <- function(values) {
     pal <- grDevices::colorRampPalette(c("#d8e2dc", "#1f3b73"))(100)
     out <- rep("#9ca3af", length(values))
     ok <- is.finite(values)
+    if (all(ok) && diff(rng) == 0) {
+      out[ok] <- pal[[75L]]
+      return(out)
+    }
     if (any(ok)) {
       scaled <- (values[ok] - rng[[1L]]) / max(diff(rng), .Machine$double.eps)
       idx <- pmax(1L, pmin(100L, floor(scaled * 99L) + 1L))

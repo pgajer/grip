@@ -219,7 +219,7 @@ gripui_server <- function(project) {
       }
       cols <- gripui.landscape.colors(color.values)
 
-      plot(
+      graphics::plot(
         x[keep],
         y[keep],
         pch = 19,
@@ -233,7 +233,7 @@ gripui_server <- function(project) {
       if (!is.null(selected.id) && selected.id %in% rows$layout_id) {
         i <- match(selected.id, rows$layout_id)
         if (!is.na(i) && keep[[i]]) {
-          points(
+          graphics::points(
             x[[i]],
             y[[i]],
             pch = 21,
@@ -313,7 +313,7 @@ gripui_server <- function(project) {
         return(rgl::rglwidgetOutput("layout_view_3d", width = "100%", height = "520px"))
       }
       if (is.matrix(coords) && ncol(coords) >= 2L) {
-        return(shiny::plotOutput("layout_view_2d", height = 520))
+        return(shiny::plotOutput("layout_view_2d", height = "520px"))
       }
       if (!is.null(image.path)) {
         return(shiny::tagList(

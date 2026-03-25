@@ -6,7 +6,7 @@
 \usage{
 gripui_project_from_compare(
   compare_obj,
-  graph,
+  graph = NULL,
   vertex_data = NULL,
   graph_info = NULL,
   title = NULL
@@ -15,7 +15,8 @@ gripui_project_from_compare(
 \arguments{
 \item{compare_obj}{Result of `grip.compare.layouts()`.}
 
-\item{graph}{Optional graph object or named graph list.}
+\item{graph}{Optional graph object, named graph list, or path to a graph RDS.
+Defaults to `NULL` when only catalog exploration is needed.}
 
 \item{vertex_data}{Optional vertex metadata added to `graph`.}
 

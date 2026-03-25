@@ -1,7 +1,3 @@
-gripui.is.empty.string <- function(x) {
-  is.character(x) && length(x) == 1L && !is.na(x) && !nzchar(trimws(x))
-}
-
 gripui.normalize.catalog.names <- function(x) {
   if (!is.data.frame(x)) {
     stop("x must be a data.frame")
@@ -74,8 +70,9 @@ gripui.row.bind.fill <- function(items) {
     }
     df[, cols, drop = FALSE]
   })
-  rownames(out[[1L]]) <- NULL
-  do.call(rbind, out)
+  result <- do.call(rbind, out)
+  rownames(result) <- NULL
+  result
 }
 
 gripui.first.nonempty.column <- function(df, choices) {

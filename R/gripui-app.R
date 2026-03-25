@@ -55,12 +55,9 @@ run_gripui <- function(project,
                        host = "127.0.0.1",
                        port = getOption("shiny.port"),
                        launch.browser = interactive()) {
-  gripui_validate_project(project)
-  old <- gripui.require.app.packages()
-  on.exit(options(rgl.useNULL = old), add = TRUE)
-
+  app <- gripui_app(project)
   shiny::runApp(
-    gripui_app(project),
+    app,
     host = host,
     port = port,
     launch.browser = launch.browser
