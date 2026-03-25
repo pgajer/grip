@@ -2,6 +2,7 @@
 /Meta/
 .DS_Store
 README.html
+CRAN-SUBMISSION
 *.tar.gz
 *.zip
 
