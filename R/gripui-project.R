@@ -149,6 +149,17 @@ gripui_project <- function(graph = NULL,
 #'
 #' @return Invisibly returns `TRUE` when validation succeeds.
 #' @export
+#'
+#' @examples
+#' layouts <- data.frame(
+#'   candidate = "test.layout",
+#'   stage = "layout",
+#'   seed = 1L,
+#'   status = "ok",
+#'   stringsAsFactors = FALSE
+#' )
+#' project <- gripui_project(graph = NULL, layouts = layouts, title = "Validation example")
+#' gripui_validate_project(project)
 gripui_validate_project <- function(project) {
   if (!is.list(project)) {
     stop("project must be a list")
@@ -394,6 +405,11 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
 #'
 #' @return A `gripui_project`.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' project <- gripui_project_from_dir("/path/to/saved/outputs", title = "My project")
+#' }
 gripui_project_from_dir <- function(root,
                                     graph = NULL,
                                     title = NULL,

@@ -4,8 +4,6 @@ Title: Graph dRawing with Intelligent Placement (GRIP)
 Version: 0.1.0
 Authors@R:
     person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
-Author: Pawel Gajer [aut, cre]
-Maintainer: Pawel Gajer <pgajer@gmail.com>
 Description: Implements the GRIP algorithm for drawing large graphs using
     a multiscale force-directed method in 2D and 3D. Supports edge-list
     and adjacency-list inputs, optional positive edge weights,
@@ -14,6 +12,8 @@ Description: Implements the GRIP algorithm for drawing large graphs using
     Gajer, Goodrich and Kobourov (2004)
     <doi:10.1016/j.comgeo.2004.03.014>.
 License: GPL (>= 3)
+URL: https://github.com/pgajer/grip
+BugReports: https://github.com/pgajer/grip/issues
 Encoding: UTF-8
 Depends:
     R (>= 3.5.0)

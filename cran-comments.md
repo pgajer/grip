@@ -5,13 +5,18 @@ algorithm for 2D and 3D graph layout.
 
 ## Test environments
 
-* macOS 26.3.1 (Apple Silicon), R 4.5.2
-* macOS 26.3.1 (Apple Silicon), R 4.5.2, clean user build flags via
-  `R_MAKEVARS_USER=/dev/null`
+* macOS Tahoe 26.3.1 (Apple Silicon), R 4.5.2
+* macOS Tahoe 26.3.1 (Apple Silicon), R 4.5.2, clean user compiler settings
+  via `R_MAKEVARS_USER=/dev/null`
 
 ## R CMD check results
 
 0 errors | 0 warnings | 2 notes
+
+The clean submission-style check was run with:
+
+* `env R_MAKEVARS_USER=/dev/null R CMD build .`
+* `env R_MAKEVARS_USER=/dev/null R CMD check --as-cran grip_0.1.0.tar.gz`
 
 ## Notes
 
@@ -22,8 +27,3 @@ algorithm for 2D and 3D graph layout.
    `Skipping checking HTML validation: 'tidy' doesn't look like recent enough HTML Tidy.`
 
    This is an environment-specific note rather than a package issue.
-
-## Additional checks
-
-* `urlchecker::url_check()` reports that all URLs are correct.
-* Package tests pass locally.
