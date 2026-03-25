@@ -101,7 +101,9 @@ faction membership. It is small enough that all methods should perform well.
 The code below shows how each layout was computed. The igraph layouts use
 `layout_with_fr()`, `layout_with_kk()`, `layout_with_drl()`, and graphlayouts
 uses `layout_with_stress()`. grip runs with default parameters and with
-`preset = "tree"`.
+manually tuned parameters. None of grip's presets (`mesh`, `carpet`, `torus`,
+`tree`) match this dense social network, so we tune by hand: more iterations
+for convergence and stronger repulsion to spread the dense core.
 
 ```{r karate-code, eval=FALSE}
 library(igraph)
@@ -115,8 +117,10 @@ set.seed(1); karate.drl     <- layout_with_drl(karate.ig)
 set.seed(1); karate.stress  <- layout_with_stress(karate.ig)
 
 karate.grip.default <- grip.layout(karate.edges, n = karate.n, dim = 2, seed = 1)
-karate.grip.tree    <- grip.layout(karate.edges, n = karate.n, dim = 2,
-                                    preset = "tree", seed = 1)
+karate.grip.tuned   <- grip.layout(karate.edges, n = karate.n, dim = 2,
+                                    rounds = 128, final_rounds = 192,
+                                    num_nbrs = 16, repulsion_factor = 2.0,
+                                    r = 0.05, s = 5.0, seed = 1)
 ```
 
 ### Quality metrics
@@ -140,13 +144,19 @@ plot_layout(k$layouts$kk,           k$edges, "KK (igraph)",           cex = 0.6)
 plot_layout(k$layouts$drl,          k$edges, "DrL (igraph)",          cex = 0.6)
 plot_layout(k$layouts$stress,       k$edges, "Stress (graphlayouts)", cex = 0.6)
 plot_layout(k$layouts$grip.default, k$edges, "grip default",          cex = 0.6)
-plot_layout(k$layouts$grip.tree,    k$edges, "grip tree preset",      cex = 0.6)
+plot_layout(k$layouts$grip.tuned,    k$edges, "grip tuned",      cex = 0.6)
 ```
 
-On a graph this small, all methods produce readable layouts. Stress
-minimization (from graphlayouts) and Kamada-Kawai typically achieve low stress
-values, which is expected given that they directly optimize a stress objective.
-grip's metrics help quantify differences that are difficult to see by eye.
+On a graph this small (34 vertices), grip's multiscale approach has very little
+coarsening hierarchy to work with, so it does not have a structural advantage
+over algorithms that operate at a single scale. Stress minimization (from
+graphlayouts) and Kamada-Kawai typically achieve low stress values here, which
+is expected given that they directly optimize a stress objective. The tuned grip
+layout uses stronger repulsion and more iterations to spread the dense core, but
+on a graph this small, general-purpose methods like FR and KK are hard to beat.
+This is an honest result: grip is designed for larger graphs, and its presets
+target specific graph families (meshes, carpets, trees) rather than small dense
+social networks.
 
 ## Benchmark 2: 12×12 rectangular mesh (`r res$mesh$n` vertices, `r res$mesh$m` edges)
 
