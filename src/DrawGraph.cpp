@@ -24,7 +24,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      coord_t _s           ,
                      coord_t _repulsionFactor,
                      size_tt _placementMode,
-                     bool _displayPar   )
+                     bool _displayPar   ,
+                     coord_t _coarseRepulsionFactor,
+                     size_tt _coarseRepulsionSample,
+                     size_tt _coarseRepulsionExactBelow)
 : createList(false),
   graph(_graph),
   dim(_dim),
@@ -46,6 +49,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
                     ? PLACEMENT_CIRCLE
                     : PLACEMENT_BARYCENTER),
   fedge2(_repulsionFactor * 0.05 * edge2),
+  coarseFedge2(_coarseRepulsionFactor * 0.05 * edge2),
+  coarseRepulsionSample(_coarseRepulsionSample),
+  coarseRepulsionExactBelow(_coarseRepulsionExactBelow),
+  activeVertCount(0),
   traceMode(TRACE_NONE),
   traceEvery(1),
   traceLevelIndex(0)

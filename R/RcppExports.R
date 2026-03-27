@@ -9,6 +9,10 @@ grip_layout_adj_cpp <- function(adj_list, weight_list, n, dim, placement, rounds
     .Call(`_grip_grip_layout_adj_cpp`, adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed)
 }
 
+grip_layout_globalrep_adj_cpp <- function(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, tinit_factor, seed) {
+    .Call(`_grip_grip_layout_globalrep_adj_cpp`, adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, tinit_factor, seed)
+}
+
 grip_layout_trace_adj_cpp <- function(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed, trace, trace_every) {
     .Call(`_grip_grip_layout_trace_adj_cpp`, adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed, trace, trace_every)
 }

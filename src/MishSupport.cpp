@@ -1,5 +1,7 @@
 // Shared support routines for the GRIP layout engine
 
+#include <algorithm>
+
 #include "DrawGraph.h"
 
 
@@ -160,6 +162,82 @@ void DrawGraph::bfs_me_v4(size_tt root)
 
 //**************************************************************
 //
+//    add_coarse_global_repulsion()
+//
+//    optional coarse-level repulsion over currently active vertices
+//
+//**************************************************************
+void DrawGraph::add_coarse_global_repulsion(const size_tt vert,
+                                            size_tt activeCount)
+{
+    if(coarseFedge2 <= 0 || activeCount <= 1 || coarseRepulsionSample == 0)
+        return;
+
+    size_tt population = activeCount - 1;
+    if(activeCount <= coarseRepulsionExactBelow ||
+       coarseRepulsionSample >= population){
+        add_coarse_global_repulsion_exact(vert, activeCount);
+        return;
+    }
+
+    add_coarse_global_repulsion_sampled(
+        vert,
+        activeCount,
+        std::min(coarseRepulsionSample, population)
+    );
+}
+
+void DrawGraph::add_coarse_global_repulsion_exact(const size_tt vert,
+                                                  size_tt activeCount)
+{
+    for(size_tt i = 0; i < activeCount; i++){
+        size_tt overt = mish[i];
+        if(overt == vert)
+            continue;
+        vect.set_to_zero();
+        vect += pos[vert];
+        vect -= pos[overt];
+        double norm2 = (double)vect.fnorm2();
+        if(!norm2)
+            continue;
+        vect *= (float)(coarseFedge2 / norm2);
+        disp[vert] += vect;
+    }
+}
+
+void DrawGraph::add_coarse_global_repulsion_sampled(const size_tt vert,
+                                                    size_tt activeCount,
+                                                    size_tt sampleCount)
+{
+    if(sampleCount == 0)
+        return;
+
+    std::vector<size_tt> sampled;
+    sampled.reserve(sampleCount);
+    while(sampled.size() < sampleCount){
+        size_tt overt = mish[graph.fast_Rand() % activeCount];
+        if(overt == vert)
+            continue;
+        if(std::find(sampled.begin(), sampled.end(), overt) != sampled.end())
+            continue;
+        sampled.push_back(overt);
+    }
+
+    double scale = (double)(activeCount - 1) / (double)sampleCount;
+    for(size_tt overt : sampled){
+        vect.set_to_zero();
+        vect += pos[vert];
+        vect -= pos[overt];
+        double norm2 = (double)vect.fnorm2();
+        if(!norm2)
+            continue;
+        vect *= (float)((coarseFedge2 * scale) / norm2);
+        disp[vert] += vect;
+    }
+}
+
+//**************************************************************
+//
 //    KK_spring_v4()
 //
 //    when misfLevel = 0 we use adjacent vertices for the force
@@ -192,6 +270,9 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
         vect *= (float)(norm2/(dist2 * edge2) - 1);
         disp[vert] += vect;
     }
+
+    if(misfLayer > 0 && activeVertCount > 1)
+        add_coarse_global_repulsion(vert, activeVertCount);
     
     coord_t norm = disp[vert].fnorm();
     dispNorm[vert] = ROUND_L(norm);

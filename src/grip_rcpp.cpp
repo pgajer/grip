@@ -23,6 +23,23 @@ void validate_tuning_args(int num_nbrs,
         Rcpp::stop("repulsion_factor must be finite and >= 0");
 }
 
+void validate_globalrep_tuning_args(int num_nbrs,
+                                    double r,
+                                    double s,
+                                    double repulsion_factor,
+                                    double coarse_repulsion_factor,
+                                    int coarse_repulsion_sample,
+                                    int coarse_repulsion_exact_below)
+{
+    validate_tuning_args(num_nbrs, r, s, repulsion_factor);
+    if(!std::isfinite(coarse_repulsion_factor) || coarse_repulsion_factor < 0.0)
+        Rcpp::stop("coarse_repulsion_factor must be finite and >= 0");
+    if(coarse_repulsion_sample <= 0)
+        Rcpp::stop("coarse_repulsion_sample must be a positive integer");
+    if(coarse_repulsion_exact_below <= 0)
+        Rcpp::stop("coarse_repulsion_exact_below must be a positive integer");
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -216,6 +233,126 @@ Rcpp::NumericMatrix grip_layout_adj_cpp(Rcpp::List adj_list,
                  repulsion_factor,
                  placement_mode,
                  false);
+
+    dg.mish_engine();
+
+    Rcpp::NumericMatrix out(n, dim);
+    Point<> *pos = dg.get_Pos();
+    for(int i = 0; i < n; i++){
+        out(i, 0) = pos[i].getX();
+        if(dim > 1) out(i, 1) = pos[i].getY();
+        if(dim > 2) out(i, 2) = pos[i].getZ();
+    }
+
+    return out;
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
+    Rcpp::List adj_list,
+    Rcpp::Nullable<Rcpp::List> weight_list,
+    int n,
+    int dim,
+    std::string placement,
+    int rounds,
+    int final_rounds,
+    int num_init,
+    int num_nbrs,
+    double r,
+    double s,
+    double repulsion_factor,
+    double coarse_repulsion_factor,
+    int coarse_repulsion_sample,
+    int coarse_repulsion_exact_below,
+    int tinit_factor,
+    Rcpp::Nullable<int> seed)
+{
+    if(dim != 2 && dim != 3)
+        Rcpp::stop("dim must be 2 or 3");
+    if(n <= 0)
+        Rcpp::stop("n must be positive");
+    if(adj_list.size() != n)
+        Rcpp::stop("adj_list length must match n");
+    bool useWeights = weight_list.isNotNull();
+    Rcpp::List weight_list_val;
+    if(useWeights){
+        weight_list_val = weight_list.get();
+        if(weight_list_val.size() != n)
+            Rcpp::stop("weight_list length must match n");
+    }
+
+    if(num_init <= 0)
+        num_init = 1;
+    validate_globalrep_tuning_args(num_nbrs,
+                                   r,
+                                   s,
+                                   repulsion_factor,
+                                   coarse_repulsion_factor,
+                                   coarse_repulsion_sample,
+                                   coarse_repulsion_exact_below);
+    if(rounds <= 0)
+        rounds = 1;
+    if(final_rounds <= 0)
+        final_rounds = 1;
+    if(tinit_factor <= 0)
+        tinit_factor = 1;
+
+    std::vector<std::vector<size_tt>> adj(n);
+    std::vector<std::vector<coord_t>> weights;
+    if(useWeights)
+        weights.resize(n);
+    for(int i = 0; i < n; i++){
+        Rcpp::IntegerVector neigh = adj_list[i];
+        adj[i].reserve(neigh.size());
+        Rcpp::NumericVector w;
+        if(useWeights){
+            w = weight_list_val[i];
+            if(neigh.size() != w.size())
+                Rcpp::stop("weight_list must be parallel to adj_list");
+            weights[i].reserve(w.size());
+        }
+        for(int j = 0; j < neigh.size(); j++){
+            int v = neigh[j];
+            if(v <= 0 || v > n)
+                Rcpp::stop("adj_list must be 1-based and within [1, n]");
+            adj[i].push_back(static_cast<size_tt>(v - 1));
+            if(useWeights){
+                double wj = w[j];
+                if(!std::isfinite(wj) || wj <= 0.0)
+                    Rcpp::stop("weight_list must contain finite values > 0; invalid value %.17g at weight_list[[%d]][%d]",
+                               wj,
+                               i + 1,
+                               j + 1);
+                weights[i].push_back(static_cast<coord_t>(wj));
+            }
+        }
+    }
+
+    Graph graph;
+    unsigned int seed_val = seed.isNotNull()
+        ? static_cast<unsigned int>(Rcpp::as<int>(seed))
+        : static_cast<unsigned int>(std::time(nullptr));
+    graph.sfast_Rand(seed_val);
+    graph.from_adj_list(static_cast<size_tt>(n), adj, useWeights ? &weights : nullptr);
+
+    size_tt placement_mode =
+        (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
+
+    DrawGraph dg(graph,
+                 static_cast<size_tt>(dim),
+                 static_cast<size_tt>(rounds),
+                 static_cast<size_tt>(final_rounds),
+                 static_cast<size_tt>(tinit_factor),
+                 static_cast<size_tt>(num_init),
+                 static_cast<size_tt>(num_nbrs),
+                 r,
+                 s,
+                 repulsion_factor,
+                 placement_mode,
+                 false,
+                 coarse_repulsion_factor,
+                 static_cast<size_tt>(coarse_repulsion_sample),
+                 static_cast<size_tt>(coarse_repulsion_exact_below));
 
     dg.mish_engine();
 
