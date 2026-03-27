@@ -7,6 +7,8 @@
 \alias{edges.mesh}
 \alias{edges.cylinder}
 \alias{edges.torus}
+\alias{edges.sphere}
+\alias{edges.cube}
 \alias{edges.kary.tree}
 \alias{edges.sierpinski.triangle}
 \alias{edges.sierpinski.tetrahedron}
@@ -23,6 +25,10 @@ edges.cylinder(h, w = h)
 
 edges.torus(h, w = h)
 
+edges.sphere(h, w = h)
+
+edges.cube(side = 2)
+
 edges.kary.tree(k = 2, depth = 2)
 
 edges.sierpinski.triangle(level = 2)
@@ -37,6 +43,8 @@ edges.sierpinski.carpet(level = 2)
 \item{h}{Number of rows.}
 
 \item{w}{Number of columns. Defaults to \code{h}.}
+
+\item{side}{Number of lattice points along each cube edge.}
 
 \item{k}{Branching factor.}
 
@@ -76,6 +84,12 @@ width \code{w}.
 
 \item \code{edges.torus()}: Toroidal grid graph with wrapped height and
 width.
+
+\item \code{edges.sphere()}: Sphere surface graph with \code{h} latitude
+levels (including the poles) and wrapped longitude \code{w}.
+
+\item \code{edges.cube()}: Cube surface graph on the boundary of a
+\code{side x side x side} lattice.
 
 \item \code{edges.kary.tree()}: Full \code{k}-ary tree of depth \code{depth}.
 

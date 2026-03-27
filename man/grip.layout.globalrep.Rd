@@ -13,16 +13,16 @@ grip.layout.globalrep(
   dim = 3,
   placement = c("barycenter", "circle"),
   preset = NULL,
-  rounds = 20,
-  final_rounds = 25,
-  num_init = 36,
-  num_nbrs = 10,
-  r = 0.15,
-  s = 3,
-  repulsion_factor = 1,
-  coarse_repulsion_factor = 0.2,
+  rounds = 160,
+  final_rounds = 384,
+  num_init = 24,
+  num_nbrs = 20,
+  r = 0.03,
+  s = 7.5,
+  repulsion_factor = 2.5,
+  coarse_repulsion_factor = 1.5,
   coarse_repulsion_sample = 16,
-  coarse_repulsion_exact_below = 128,
+  coarse_repulsion_exact_below = 64,
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -75,8 +75,9 @@ finest-level repulsive force scale. \code{1} keeps the historical
 repulsion strength; \code{0} disables that repulsive term.}
 
 \item{coarse_repulsion_factor}{Non-negative multiplier applied to the extra
-coarse-level active-set repulsion term. \code{0} recovers the current
-\code{\link{grip.layout}()} behavior.}
+coarse-level active-set repulsion term. \code{0} disables that extra term;
+when the remaining tuning arguments also match \code{\link{grip.layout}()},
+the result matches the current \code{\link{grip.layout}()} behavior.}
 
 \item{coarse_repulsion_sample}{Positive integer sample size used to
 approximate active-set-wide repulsion on larger coarse levels.}
@@ -101,7 +102,9 @@ This experimental variant keeps the standard GRIP multiscale pipeline, but
 adds an extra repulsive term on coarse MISF levels to help reduce foldovers.
 Coarse and intermediate levels still use local Kamada-Kawai refinement;
 the finest level keeps the existing Fruchterman-Reingold refinement used by
-\code{\link{grip.layout}()}.
+\code{\link{grip.layout}()}. With \code{preset = NULL}, the default
+global-repulsion profile is tuned for quality-first layouts and automatically
+tapers \code{final_rounds} on larger graphs.
 }
 \examples{
 edges <- edges.mesh(4, 4)

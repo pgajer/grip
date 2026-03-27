@@ -132,6 +132,72 @@ edges.torus <- function(h, w = h) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
+#' @describeIn graph_generators Sphere surface graph with \code{h} latitude
+#'   levels (including the poles) and wrapped longitude \code{w}.
+#' @export
+edges.sphere <- function(h, w = h) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  ring.count <- h - 2L
+  north <- 1L
+  south <- 2L + ring.count * w
+  idx <- function(i, j) 1L + (i - 1L) * w + j
+
+  edges <- list()
+  for (j in seq_len(w)) {
+    edges[[length(edges) + 1L]] <- c(north, idx(1L, j))
+  }
+  for (i in seq_len(ring.count)) {
+    for (j in seq_len(w)) {
+      v <- idx(i, j)
+      edges[[length(edges) + 1L]] <- c(v, idx(i, (j %% w) + 1L))
+      if (i < ring.count) {
+        edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
+      } else {
+        edges[[length(edges) + 1L]] <- c(v, south)
+      }
+    }
+  }
+  .normalize_undirected_edges(.bind_edges(edges))
+}
+
+#' @describeIn graph_generators Cube surface graph on the boundary of a
+#'   \code{side x side x side} lattice.
+#' @param side Number of lattice points along each cube edge.
+#' @export
+edges.cube <- function(side = 2) {
+  side <- .as_whole_number(side, "side", min = 2L)
+  grid <- expand.grid(
+    x = seq_len(side),
+    y = seq_len(side),
+    z = seq_len(side)
+  )
+  keep <- grid$x %in% c(1L, side) |
+    grid$y %in% c(1L, side) |
+    grid$z %in% c(1L, side)
+  points <- grid[keep, , drop = FALSE]
+  ids <- seq_len(nrow(points))
+  names(ids) <- paste(points$x, points$y, points$z, sep = ":")
+  dirs <- rbind(c(1L, 0L, 0L), c(0L, 1L, 0L), c(0L, 0L, 1L))
+
+  edges <- list()
+  for (i in seq_len(nrow(points))) {
+    p <- unlist(points[i, , drop = TRUE], use.names = FALSE)
+    for (k in seq_len(nrow(dirs))) {
+      q <- p + dirs[k, ]
+      if (any(q < 1L | q > side)) {
+        next
+      }
+      key <- paste(q[[1L]], q[[2L]], q[[3L]], sep = ":")
+      if (!key %in% names(ids)) {
+        next
+      }
+      edges[[length(edges) + 1L]] <- c(i, ids[[key]])
+    }
+  }
+  .normalize_undirected_edges(.bind_edges(edges))
+}
+
 #' @describeIn graph_generators Full \code{k}-ary tree of depth \code{depth}.
 #' @param k Branching factor.
 #' @param depth Number of levels below the root.

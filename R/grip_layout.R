@@ -221,6 +221,45 @@ grip.tree.preset.defaults <- function(dim = 2L) {
   )
 }
 
+grip.globalrep.default.final_rounds <- function(n) {
+  if (!is.numeric(n) || length(n) != 1L || !is.finite(n)) {
+    stop("n must be a single finite numeric value")
+  }
+  n <- as.integer(n)
+  if (is.na(n) || n <= 0L) {
+    stop("n must be a positive integer")
+  }
+  if (n <= 1000L) {
+    return(384L)
+  }
+  if (n <= 5000L) {
+    return(320L)
+  }
+  if (n <= 20000L) {
+    return(256L)
+  }
+  if (n <= 50000L) {
+    return(200L)
+  }
+  128L
+}
+
+grip.globalrep.base.defaults <- function(n = NULL) {
+  list(
+    placement = "barycenter",
+    rounds = 160L,
+    final_rounds = if (is.null(n)) 384L else grip.globalrep.default.final_rounds(n),
+    num_init = 24L,
+    num_nbrs = 20L,
+    r = 0.03,
+    s = 7.5,
+    repulsion_factor = 2.5,
+    coarse_repulsion_factor = 1.5,
+    coarse_repulsion_sample = 16L,
+    coarse_repulsion_exact_below = 64L
+  )
+}
+
 grip.resolve.preset <- function(preset,
                                 dim = 2L,
                                 placement,
@@ -497,12 +536,15 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' adds an extra repulsive term on coarse MISF levels to help reduce foldovers.
 #' Coarse and intermediate levels still use local Kamada-Kawai refinement;
 #' the finest level keeps the existing Fruchterman-Reingold refinement used by
-#' \code{\link{grip.layout}()}.
+#' \code{\link{grip.layout}()}. With \code{preset = NULL}, the default
+#' global-repulsion profile is tuned for quality-first layouts and automatically
+#' tapers \code{final_rounds} on larger graphs.
 #'
 #' @inheritParams grip.layout
 #' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
-#'   coarse-level active-set repulsion term. \code{0} recovers the current
-#'   \code{\link{grip.layout}()} behavior.
+#'   coarse-level active-set repulsion term. \code{0} disables that extra term;
+#'   when the remaining tuning arguments also match \code{\link{grip.layout}()},
+#'   the result matches the current \code{\link{grip.layout}()} behavior.
 #' @param coarse_repulsion_sample Positive integer sample size used to
 #'   approximate active-set-wide repulsion on larger coarse levels.
 #' @param coarse_repulsion_exact_below Positive integer threshold. When the
@@ -528,16 +570,16 @@ grip.layout.globalrep <- function(edges = NULL,
                                   dim = 3,
                                   placement = c("barycenter", "circle"),
                                   preset = NULL,
-                                  rounds = 20,
-                                  final_rounds = 25,
-                                  num_init = 36,
-                                  num_nbrs = 10,
-                                  r = 0.15,
-                                  s = 3.0,
-                                  repulsion_factor = 1.0,
-                                  coarse_repulsion_factor = 0.2,
+                                  rounds = 160,
+                                  final_rounds = 384,
+                                  num_init = 24,
+                                  num_nbrs = 20,
+                                  r = 0.03,
+                                  s = 7.5,
+                                  repulsion_factor = 2.5,
+                                  coarse_repulsion_factor = 1.5,
                                   coarse_repulsion_sample = 16,
-                                  coarse_repulsion_exact_below = 128,
+                                  coarse_repulsion_exact_below = 64,
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
@@ -597,6 +639,9 @@ grip.layout.globalrep <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  if (is.null(preset) && final_rounds_missing) {
+    final_rounds <- grip.globalrep.default.final_rounds(n)
+  }
   tuning <- grip.validate.globalrep.tuning.inputs(
     num_nbrs = num_nbrs,
     r = r,
