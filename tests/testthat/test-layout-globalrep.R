@@ -39,12 +39,14 @@ test_that("globalrep with zero coarse repulsion matches grip.layout", {
                              placement = "barycenter",
                              rounds = 8, final_rounds = 8,
                              num_init = 6, num_nbrs = 8,
+                             r = 0.15, s = 3.0,
                              repulsion_factor = 1.5,
                              seed = 29)
   coords_globalrep <- grip.layout.globalrep(edges, n = 25, dim = 2,
                                             placement = "barycenter",
                                             rounds = 8, final_rounds = 8,
                                             num_init = 6, num_nbrs = 8,
+                                            r = 0.15, s = 3.0,
                                             repulsion_factor = 1.5,
                                             coarse_repulsion_factor = 0,
                                             coarse_repulsion_sample = 8,
@@ -96,6 +98,51 @@ test_that("globalrep validates the new tuning parameters", {
   )
 })
 
+test_that("globalrep adaptive default final_rounds schedule is stable", {
+  expect_equal(grip:::grip.globalrep.default.final_rounds(1000L), 384L)
+  expect_equal(grip:::grip.globalrep.default.final_rounds(1001L), 320L)
+  expect_equal(grip:::grip.globalrep.default.final_rounds(5001L), 256L)
+  expect_equal(grip:::grip.globalrep.default.final_rounds(20001L), 200L)
+  expect_equal(grip:::grip.globalrep.default.final_rounds(50001L), 128L)
+})
+
+test_that("globalrep small-graph defaults match the new fixed candidate profile", {
+  edges <- edges.path(12)
+  coords_default <- grip.layout.globalrep(edges, n = 12, dim = 2, seed = 7)
+  coords_explicit <- grip.layout.globalrep(
+    edges, n = 12, dim = 2,
+    placement = "barycenter",
+    rounds = 160, final_rounds = 384,
+    num_init = 24, num_nbrs = 20,
+    r = 0.03, s = 7.5,
+    repulsion_factor = 2.5,
+    coarse_repulsion_factor = 1.5,
+    coarse_repulsion_sample = 16,
+    coarse_repulsion_exact_below = 64,
+    seed = 7
+  )
+  expect_identical(coords_default, coords_explicit)
+})
+
+test_that("globalrep larger-graph defaults taper final_rounds only", {
+  n <- 1001L
+  edges <- edges.path(n)
+  coords_default <- grip.layout.globalrep(edges, n = n, dim = 2, seed = 9)
+  coords_explicit <- grip.layout.globalrep(
+    edges, n = n, dim = 2,
+    placement = "barycenter",
+    rounds = 160, final_rounds = 320,
+    num_init = 24, num_nbrs = 20,
+    r = 0.03, s = 7.5,
+    repulsion_factor = 2.5,
+    coarse_repulsion_factor = 1.5,
+    coarse_repulsion_sample = 16,
+    coarse_repulsion_exact_below = 64,
+    seed = 9
+  )
+  expect_identical(coords_default, coords_explicit)
+})
+
 test_that("globalrep disconnected handling matches grip.layout when disabled", {
   edges <- rbind(
     cbind(1:2, 2:3),
@@ -107,6 +154,13 @@ test_that("globalrep disconnected handling matches grip.layout when disabled", {
   )
   expect_warning(
     coords_globalrep <- grip.layout.globalrep(edges, n = 7, dim = 2,
+                                              rounds = 20,
+                                              final_rounds = 25,
+                                              num_init = 36,
+                                              num_nbrs = 10,
+                                              r = 0.15,
+                                              s = 3.0,
+                                              repulsion_factor = 1.0,
                                               coarse_repulsion_factor = 0,
                                               coarse_repulsion_sample = 8,
                                               coarse_repulsion_exact_below = 32,

@@ -5,6 +5,8 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.mesh(3, 4),
     edges.cylinder(3, 4),
     edges.torus(3, 4),
+    edges.sphere(4, 5),
+    edges.cube(3),
     edges.kary.tree(2, 3),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
@@ -32,4 +34,16 @@ test_that("sierpinski carpet labels all occupied cells consecutively", {
   edges <- edges.sierpinski.carpet(4)
   expect_equal(max(edges), 4096L)
   expect_true(all(sort(unique(c(edges))) == seq_len(4096L)))
+})
+
+test_that("sphere graph labels intermediate latitude rings consecutively", {
+  edges <- edges.sphere(5, 8)
+  expect_equal(max(edges), 26L)
+  expect_true(all(sort(unique(c(edges))) == seq_len(26L)))
+})
+
+test_that("cube graph matches the cube-surface vertex count", {
+  edges <- edges.cube(4)
+  expect_equal(max(edges), 56L)
+  expect_true(all(sort(unique(c(edges))) == seq_len(56L)))
 })
