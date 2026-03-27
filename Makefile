@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render rchk winbuilder-release winbuilder-devel
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -68,6 +68,15 @@ readme: readme-assets readme-render
 
 readme-html: readme-assets
 	Rscript tools/render-readme.R --html
+
+paper-pdf:
+	Rscript tools/render-paper.R
+
+paper-html:
+	Rscript tools/render-paper.R --html-only --html
+
+paper-all:
+	Rscript tools/render-paper.R --all
 
 rchk:
 	@tools/check_rchk.sh
