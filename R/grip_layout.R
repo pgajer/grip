@@ -326,6 +326,68 @@ grip.validate.tuning.inputs <- function(num_nbrs, r, s, repulsion_factor) {
   )
 }
 
+grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
+                                                  r,
+                                                  s,
+                                                  repulsion_factor,
+                                                  coarse_repulsion_factor,
+                                                  coarse_repulsion_sample,
+                                                  coarse_repulsion_exact_below) {
+  tuning <- grip.validate.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
+
+  if (!is.numeric(coarse_repulsion_factor) ||
+      length(coarse_repulsion_factor) != 1L ||
+      !is.finite(coarse_repulsion_factor)) {
+    stop("coarse_repulsion_factor must be a single finite numeric value")
+  }
+  coarse_repulsion_factor <- as.double(coarse_repulsion_factor)
+  if (coarse_repulsion_factor < 0) {
+    stop("coarse_repulsion_factor must be >= 0")
+  }
+
+  if (!is.numeric(coarse_repulsion_sample) ||
+      length(coarse_repulsion_sample) != 1L ||
+      !is.finite(coarse_repulsion_sample)) {
+    stop("coarse_repulsion_sample must be a single finite numeric value")
+  }
+  if (abs(coarse_repulsion_sample - round(coarse_repulsion_sample)) >
+      sqrt(.Machine$double.eps)) {
+    stop("coarse_repulsion_sample must be a positive integer")
+  }
+  coarse_repulsion_sample <- as.integer(round(coarse_repulsion_sample))
+  if (is.na(coarse_repulsion_sample) || coarse_repulsion_sample <= 0L) {
+    stop("coarse_repulsion_sample must be a positive integer")
+  }
+
+  if (!is.numeric(coarse_repulsion_exact_below) ||
+      length(coarse_repulsion_exact_below) != 1L ||
+      !is.finite(coarse_repulsion_exact_below)) {
+    stop("coarse_repulsion_exact_below must be a single finite numeric value")
+  }
+  if (abs(coarse_repulsion_exact_below - round(coarse_repulsion_exact_below)) >
+      sqrt(.Machine$double.eps)) {
+    stop("coarse_repulsion_exact_below must be a positive integer")
+  }
+  coarse_repulsion_exact_below <- as.integer(round(coarse_repulsion_exact_below))
+  if (is.na(coarse_repulsion_exact_below) || coarse_repulsion_exact_below <= 0L) {
+    stop("coarse_repulsion_exact_below must be a positive integer")
+  }
+
+  c(
+    tuning,
+    list(
+      coarse_repulsion_factor = coarse_repulsion_factor,
+      coarse_repulsion_sample = coarse_repulsion_sample,
+      coarse_repulsion_exact_below = coarse_repulsion_exact_below
+    )
+  )
+}
+
 grip.validate.layout.inputs <- function(edges = NULL,
                                         n = NULL,
                                         adj_list = NULL,
@@ -427,6 +489,192 @@ grip.validate.layout.inputs <- function(edges = NULL,
     dim = dim,
     seed = seed
   )
+}
+
+#' Compute a GRIP layout with coarse global repulsion
+#'
+#' This experimental variant keeps the standard GRIP multiscale pipeline, but
+#' adds an extra repulsive term on coarse MISF levels to help reduce foldovers.
+#' Coarse and intermediate levels still use local Kamada-Kawai refinement;
+#' the finest level keeps the existing Fruchterman-Reingold refinement used by
+#' \code{\link{grip.layout}()}.
+#'
+#' @inheritParams grip.layout
+#' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
+#'   coarse-level active-set repulsion term. \code{0} recovers the current
+#'   \code{\link{grip.layout}()} behavior.
+#' @param coarse_repulsion_sample Positive integer sample size used to
+#'   approximate active-set-wide repulsion on larger coarse levels.
+#' @param coarse_repulsion_exact_below Positive integer threshold. When the
+#'   active set size is at most this value, the coarse repulsion is computed
+#'   exactly against all currently active vertices instead of being sampled.
+#' @return A numeric matrix with `n` rows and `dim` columns.
+#' @examples
+#' edges <- edges.mesh(4, 4)
+#' coords <- grip.layout.globalrep(edges, n = max(edges), dim = 2,
+#'                                 rounds = 8, final_rounds = 8,
+#'                                 num_init = 6, num_nbrs = 8,
+#'                                 coarse_repulsion_factor = 0.2,
+#'                                 coarse_repulsion_sample = 8,
+#'                                 coarse_repulsion_exact_below = 32,
+#'                                 seed = 1)
+#' round(coords, 3)
+#' @export
+grip.layout.globalrep <- function(edges = NULL,
+                                  n = NULL,
+                                  adj_list = NULL,
+                                  weight_list = NULL,
+                                  edge_weights = NULL,
+                                  dim = 3,
+                                  placement = c("barycenter", "circle"),
+                                  preset = NULL,
+                                  rounds = 20,
+                                  final_rounds = 25,
+                                  num_init = 36,
+                                  num_nbrs = 10,
+                                  r = 0.15,
+                                  s = 3.0,
+                                  repulsion_factor = 1.0,
+                                  coarse_repulsion_factor = 0.2,
+                                  coarse_repulsion_sample = 16,
+                                  coarse_repulsion_exact_below = 128,
+                                  tinit_factor = 6,
+                                  seed = 6,
+                                  disconnected = c("components", "error")) {
+  placement_missing <- missing(placement)
+  rounds_missing <- missing(rounds)
+  final_rounds_missing <- missing(final_rounds)
+  num_init_missing <- missing(num_init)
+  num_nbrs_missing <- missing(num_nbrs)
+  r_missing <- missing(r)
+  s_missing <- missing(s)
+  repulsion_factor_missing <- missing(repulsion_factor)
+
+  preset <- grip.normalize.preset(preset, fn = "grip.layout.globalrep")
+  resolved <- grip.resolve.preset(
+    preset = preset,
+    dim = dim,
+    placement = placement,
+    placement_missing = placement_missing,
+    rounds = rounds,
+    rounds_missing = rounds_missing,
+    final_rounds = final_rounds,
+    final_rounds_missing = final_rounds_missing,
+    num_init = num_init,
+    num_init_missing = num_init_missing,
+    num_nbrs = num_nbrs,
+    num_nbrs_missing = num_nbrs_missing,
+    r = r,
+    r_missing = r_missing,
+    s = s,
+    s_missing = s_missing,
+    repulsion_factor = repulsion_factor,
+    repulsion_factor_missing = repulsion_factor_missing
+  )
+  placement <- resolved$placement
+  rounds <- resolved$rounds
+  final_rounds <- resolved$final_rounds
+  num_init <- resolved$num_init
+  num_nbrs <- resolved$num_nbrs
+  r <- resolved$r
+  s <- resolved$s
+  repulsion_factor <- resolved$repulsion_factor
+  placement <- match.arg(placement)
+  disconnected <- match.arg(disconnected)
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = dim,
+    placement = placement,
+    seed = seed
+  )
+  adj_list <- validated$adj_list
+  weight_list <- validated$weight_list
+  n <- validated$n
+  dim <- validated$dim
+  seed <- validated$seed
+  tuning <- grip.validate.globalrep.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor,
+    coarse_repulsion_factor = coarse_repulsion_factor,
+    coarse_repulsion_sample = coarse_repulsion_sample,
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below
+  )
+  num_nbrs <- tuning$num_nbrs
+  r <- tuning$r
+  s <- tuning$s
+  repulsion_factor <- tuning$repulsion_factor
+  coarse_repulsion_factor <- tuning$coarse_repulsion_factor
+  coarse_repulsion_sample <- tuning$coarse_repulsion_sample
+  coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
+
+  layout.adj <- function(adj_list, weight_list, n) {
+    grip_layout_globalrep_adj_cpp(
+      adj_list = adj_list,
+      weight_list = weight_list,
+      n = n,
+      dim = dim,
+      placement = placement,
+      rounds = as.integer(rounds),
+      final_rounds = as.integer(final_rounds),
+      num_init = as.integer(num_init),
+      num_nbrs = num_nbrs,
+      r = r,
+      s = s,
+      repulsion_factor = repulsion_factor,
+      coarse_repulsion_factor = coarse_repulsion_factor,
+      coarse_repulsion_sample = coarse_repulsion_sample,
+      coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+      tinit_factor = as.integer(tinit_factor),
+      seed = seed
+    )
+  }
+
+  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  n.comp <- length(unique(comp))
+
+  if (n.comp == 1L) {
+    return(layout.adj(adj_list = adj_list, weight_list = weight_list, n = n))
+  }
+
+  if (identical(disconnected, "error")) {
+    stop(sprintf(
+      "Input graph has %d connected components; the GRIP layout core assumes connected graphs. Use disconnected = 'components' to lay out each component safely.",
+      n.comp
+    ))
+  }
+
+  warning(
+    sprintf(
+      "Input graph has %d connected components; laying out components separately to avoid disconnected-graph instability.",
+      n.comp
+    ),
+    call. = FALSE
+  )
+
+  comp.ids <- sort(unique(comp))
+  layouts <- vector("list", length(comp.ids))
+  for (k in seq_along(comp.ids)) {
+    rows <- which(comp == comp.ids[[k]])
+    sub <- grip.induce.subgraph(
+      adj_list = adj_list,
+      weight_list = weight_list,
+      vertices = rows,
+      n = n
+    )
+    layouts[[k]] <- layout.adj(
+      adj_list = sub$adj_list,
+      weight_list = sub$weight_list,
+      n = length(rows)
+    )
+  }
+  grip.pack.component.layouts(layouts = layouts, comp = comp, n = n, dim = dim)
 }
 
 #' Compute a GRIP layout

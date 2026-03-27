@@ -79,6 +79,7 @@ void DrawGraph::mish_engine()
 
     
         if( !createList && ctr++ < rounds ){
+            activeVertCount = csize;
             for(size_tt i = 0; i < csize; i++){
                 //perform local force-directed modifications
                 // rounds-ctr is used here as a destroyFlag

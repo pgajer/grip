@@ -58,6 +58,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_layout_globalrep_adj_cpp
+Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, int tinit_factor, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_layout_globalrep_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type adj_list(adj_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type weight_list(weight_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type dim(dimSEXP);
+    Rcpp::traits::input_parameter< std::string >::type placement(placementSEXP);
+    Rcpp::traits::input_parameter< int >::type rounds(roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type final_rounds(final_roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
+    Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
+    Rcpp::traits::input_parameter< double >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type coarse_repulsion_factor(coarse_repulsion_factorSEXP);
+    Rcpp::traits::input_parameter< int >::type coarse_repulsion_sample(coarse_repulsion_sampleSEXP);
+    Rcpp::traits::input_parameter< int >::type coarse_repulsion_exact_below(coarse_repulsion_exact_belowSEXP);
+    Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, tinit_factor, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_layout_trace_adj_cpp
 Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
 RcppExport SEXP _grip_grip_layout_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
@@ -88,6 +115,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
+    {"_grip_grip_layout_globalrep_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_adj_cpp, 17},
     {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {NULL, NULL, 0}
 };

@@ -30,6 +30,7 @@ doi:10.1016/j.comgeo.2004.03.014.
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://pgajer.github.io/grip/}
   \item \url{https://github.com/pgajer/grip}
   \item Report bugs at \url{https://github.com/pgajer/grip/issues}
 }

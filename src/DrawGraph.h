@@ -49,7 +49,10 @@ class DrawGraph
               coord_t _s             ,
               coord_t _repulsionFactor,
               size_tt _placementMode,
-              bool _displayPar     );
+              bool _displayPar     ,
+              coord_t _coarseRepulsionFactor = 0.0,
+              size_tt _coarseRepulsionSample = 0,
+              size_tt _coarseRepulsionExactBelow = 0);
     
     ~DrawGraph();
 
@@ -82,6 +85,13 @@ class DrawGraph
     void FR_spring(const size_tt root,
                    size_tt *rootNbrsLayer,
                    size_tt mishLayer);
+    void add_coarse_global_repulsion(const size_tt vert,
+                                     size_tt activeCount);
+    void add_coarse_global_repulsion_exact(const size_tt vert,
+                                           size_tt activeCount);
+    void add_coarse_global_repulsion_sampled(const size_tt vert,
+                                             size_tt activeCount,
+                                             size_tt sampleCount);
     
 
     // Generate a list of random positions of numOfVert points in dim
@@ -173,6 +183,10 @@ private:
     bool displayPar;
     size_tt placementMode;
     coord_t fedge2;
+    coord_t coarseFedge2;
+    size_tt coarseRepulsionSample;
+    size_tt coarseRepulsionExactBelow;
+    size_tt activeVertCount;
     size_tt misfLevel;
     size_tt initMishHeight;
     Point<> vect;    // an auxiliary vector holding vert1 - vert2
