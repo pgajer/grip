@@ -31,7 +31,7 @@ test_that("round trace returns frames, metadata, and inactive NA rows", {
   expect_equal(tr$frames[[length(tr$frames)]], tr$final)
 })
 
-test_that("grip.layout.trace is an alias of grip.layout.trace.legacy", {
+test_that("grip.layout.trace final matches grip.layout", {
   edges <- edges.path(8)
   tr_primary <- grip.layout.trace(edges = edges,
                                   n = 8,
@@ -39,14 +39,11 @@ test_that("grip.layout.trace is an alias of grip.layout.trace.legacy", {
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 41)
-  tr_legacy <- grip.layout.trace.legacy(edges = edges,
-                                        n = 8,
-                                        dim = 2,
-                                        trace = "level",
-                                        trace.every = 1,
-                                        seed = 41)
-  expect_identical(tr_primary$final, tr_legacy$final)
-  expect_identical(tr_primary$meta, tr_legacy$meta)
+  coords <- grip.layout(edges = edges,
+                        n = 8,
+                        dim = 2,
+                        seed = 41)
+  expect_identical(tr_primary$final, coords)
 })
 
 test_that("level trace thins level-start snapshots and keeps endpoints", {
@@ -118,6 +115,15 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "repulsion_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      coarse_repulsion_factor = -0.1,
+                      trace = "round",
+                      seed = 123),
+    "coarse_repulsion_factor must be >= 0"
   )
 })
 
