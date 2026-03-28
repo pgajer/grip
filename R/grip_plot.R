@@ -24,8 +24,8 @@
 #' @param vertex.col Colour(s) for the vertices. Recycled to match the number
 #'   of vertices. Default \code{"black"}.
 #' @param edge.col Colour for the edges. Default \code{"gray70"}.
-#' @param ... Additional parameters passed to the underlying \code{plot()} or
-#'   \code{rgl::plot3d()} call.
+#' @param ... Additional parameters passed to the underlying \code{plot()} call
+#'   for 2D layouts or the \pkg{rgl} 3D plotting call.
 #' @return NULL (called for side effects).
 #' @examples
 #' edges <- cbind(1:5, 2:6)

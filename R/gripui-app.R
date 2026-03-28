@@ -5,7 +5,7 @@
 #' @return A `shiny.appobj`.
 #' @export
 #'
-#' @examplesIf requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE)
+#' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
 #' graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
 #' layouts <- data.frame(
 #'   candidate = "toy.layout",
