@@ -36,8 +36,8 @@ of vertices. Default \code{"black"}.}
 
 \item{edge.col}{Colour for the edges. Default \code{"gray70"}.}
 
-\item{...}{Additional parameters passed to the underlying \code{plot()} or
-\code{rgl::plot3d()} call.}
+\item{...}{Additional parameters passed to the underlying \code{plot()} call
+for 2D layouts or the \pkg{rgl} 3D plotting call.}
 }
 \value{
 NULL (called for side effects).
