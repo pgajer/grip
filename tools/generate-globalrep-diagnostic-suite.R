@@ -93,7 +93,7 @@ compute_layout_metrics <- function(coords, spec, seed) {
 run_layout_profile <- function(spec, cfg, seed) {
   n <- max(spec$edges)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout.globalrep(
+  coords <- grip.layout(
     edges = spec$edges,
     n = n,
     dim = spec$dim,

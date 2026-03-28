@@ -718,7 +718,7 @@ for (family in families) {
     baseline_row <- level_rows[level_rows$candidate_id == baseline_candidate_ids[[family]], , drop = FALSE]
     tuned_row <- level_rows[level_rows$candidate_id == best_candidate_ids[[family]], , drop = FALSE]
 
-    baseline_coords <- grip.layout(
+    baseline_coords <- grip.layout.legacy(
       edges = spec$edges,
       n = max(spec$edges),
       dim = 2,
@@ -732,7 +732,7 @@ for (family in families) {
       repulsion_factor = baseline_row$repulsion_factor[[1L]],
       seed = baseline_row$best_seed[[1L]]
     )
-    tuned_coords <- grip.layout(
+    tuned_coords <- grip.layout.legacy(
       edges = spec$edges,
       n = max(spec$edges),
       dim = 2,

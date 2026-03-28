@@ -96,6 +96,9 @@ test_that("carpet preset matches the explicit carpet tuning profile", {
                                  num_init = 28, num_nbrs = 24,
                                  r = 0.03, s = 6.0,
                                  repulsion_factor = 2.5,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 41)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -112,6 +115,9 @@ test_that("mesh preset matches the explicit mesh tuning profile", {
                                  num_init = 12, num_nbrs = 20,
                                  r = 0.10, s = 4.5,
                                  repulsion_factor = 1.5,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 45)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -128,6 +134,9 @@ test_that("torus preset matches the explicit torus tuning profile", {
                                  num_init = 12, num_nbrs = 28,
                                  r = 0.05, s = 7.5,
                                  repulsion_factor = 0.75,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 47)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -144,6 +153,9 @@ test_that("tree preset matches the explicit tree tuning profile", {
                                  num_init = 28, num_nbrs = 8,
                                  r = 0.05, s = 7.5,
                                  repulsion_factor = 0,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 61)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -161,6 +173,9 @@ test_that("tree preset uses barycenter placement in 3D without warning", {
                                    num_init = 28, num_nbrs = 8,
                                    r = 0.05, s = 7.5,
                                    repulsion_factor = 0,
+                                   coarse_repulsion_factor = 1.5,
+                                   coarse_repulsion_sample = 16,
+                                   coarse_repulsion_exact_below = 64,
                                    seed = 63)
     expect_identical(coords_preset, coords_explicit)
   })
@@ -179,6 +194,9 @@ test_that("explicit tuning args override the carpet preset", {
                                  num_init = 28, num_nbrs = 24,
                                  r = 0.03, s = 6.0,
                                  repulsion_factor = 1.75,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 43)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -196,6 +214,9 @@ test_that("explicit tuning args override the mesh preset", {
                                  num_init = 12, num_nbrs = 20,
                                  r = 0.10, s = 4.5,
                                  repulsion_factor = 0.75,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 49)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -213,6 +234,9 @@ test_that("explicit tuning args override the torus preset", {
                                  num_init = 12, num_nbrs = 28,
                                  r = 0.05, s = 7.5,
                                  repulsion_factor = 0.75,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 53)
   expect_identical(coords_preset, coords_explicit)
 })
@@ -230,6 +254,9 @@ test_that("explicit tuning args override the tree preset", {
                                  num_init = 28, num_nbrs = 8,
                                  r = 0.05, s = 7.5,
                                  repulsion_factor = 0.5,
+                                 coarse_repulsion_factor = 1.5,
+                                 coarse_repulsion_sample = 16,
+                                 coarse_repulsion_exact_below = 64,
                                  seed = 67)
   expect_identical(coords_preset, coords_explicit)
 })

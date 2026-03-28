@@ -260,6 +260,11 @@ grip.globalrep.base.defaults <- function(n = NULL) {
   )
 }
 
+grip.forward_call <- function(target, call, env = parent.frame()) {
+  args <- as.list(call)[-1L]
+  do.call(target, args, envir = env)
+}
+
 grip.resolve.preset <- function(preset,
                                 dim = 2L,
                                 placement,
@@ -532,19 +537,17 @@ grip.validate.layout.inputs <- function(edges = NULL,
 
 #' Compute a GRIP layout with coarse global repulsion
 #'
-#' This experimental variant keeps the standard GRIP multiscale pipeline, but
-#' adds an extra repulsive term on coarse MISF levels to help reduce foldovers.
-#' Coarse and intermediate levels still use local Kamada-Kawai refinement;
-#' the finest level keeps the existing Fruchterman-Reingold refinement used by
-#' \code{\link{grip.layout}()}. With \code{preset = NULL}, the default
-#' global-repulsion profile is tuned for quality-first layouts and automatically
-#' tapers \code{final_rounds} on larger graphs.
+#' This compatibility entry point is an alias of \code{\link{grip.layout}()}.
+#' It keeps the old global-repulsion name available during the API migration,
+#' while using the same quality-first multiscale GRIP engine and adaptive
+#' \code{final_rounds} schedule as the primary layout API.
 #'
 #' @inheritParams grip.layout
 #' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
 #'   coarse-level active-set repulsion term. \code{0} disables that extra term;
-#'   when the remaining tuning arguments also match \code{\link{grip.layout}()},
-#'   the result matches the current \code{\link{grip.layout}()} behavior.
+#'   when the remaining tuning arguments also match
+#'   \code{\link{grip.layout.legacy}()}, the result matches the legacy
+#'   layout behavior.
 #' @param coarse_repulsion_sample Positive integer sample size used to
 #'   approximate active-set-wide repulsion on larger coarse levels.
 #' @param coarse_repulsion_exact_below Positive integer threshold. When the
@@ -724,6 +727,12 @@ grip.layout.globalrep <- function(edges = NULL,
 
 #' Compute a GRIP layout
 #'
+#' This is the primary layout API. It uses the quality-first multiscale GRIP
+#' engine with extra coarse-level global repulsion to reduce foldovers while
+#' preserving the usual GRIP refinement structure. With \code{preset = NULL},
+#' the default profile is tuned for higher-quality layouts and automatically
+#' tapers \code{final_rounds} on larger graphs.
+#'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for undirected graphs.
@@ -734,15 +743,109 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   weights must be finite and strictly positive.
 #' @param dim Layout dimension (2 or 3). Default is 3.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
-#' @param preset Optional tuning preset. \code{NULL} uses the standard defaults.
-#'   \code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
-#'   and validated on carpet levels 3 and 4. \code{"mesh"} applies a preset
-#'   tuned for rectangular lattice graphs and validated on 8x8 and 12x12 mesh
-#'   layouts. \code{"torus"} applies a preset tuned for 3D torus layouts and
-#'   validated on torus sizes from 8x8 through 20x20. \code{"tree"} applies a
-#'   preset tuned for symmetric force-directed layouts of tree-like graphs and
-#'   validated on binary trees of depths 5 and 6. Presets only fill in tuning
-#'   arguments that you did not supply explicitly.
+#' @param preset Optional tuning preset. \code{NULL} uses the quality-first
+#'   defaults. \code{"carpet"} applies a preset tuned for
+#'   Sierpinski-carpet-like graphs and validated on carpet levels 3 and 4.
+#'   \code{"mesh"} applies a preset tuned for rectangular lattice graphs and
+#'   validated on 8x8 and 12x12 mesh layouts. \code{"torus"} applies a preset
+#'   tuned for 3D torus layouts and validated on torus sizes from 8x8 through
+#'   20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
+#'   layouts of tree-like graphs and validated on binary trees of depths 5 and
+#'   6. Presets only fill in tuning arguments that you did not supply
+#'   explicitly.
+#' @param rounds Initial rounds for refinement.
+#' @param final_rounds Final rounds for refinement.
+#' @param num_init Number of initial vertices in the coarsest level.
+#' @param num_nbrs Maximum number of graph-distance neighbors retained for local
+#'   refinement at each filtration level.
+#' @param r Main local temperature adaptation rate in \code{[0, 1]}.
+#' @param s Non-negative boost factor applied when successive displacements have
+#'   a consistent direction.
+#' @param repulsion_factor Non-negative multiplier applied to GRIP's
+#'   finest-level repulsive force scale.
+#' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
+#'   coarse-level active-set repulsion term. \code{0} disables that extra term.
+#' @param coarse_repulsion_sample Positive integer sample size used to
+#'   approximate active-set-wide repulsion on larger coarse levels.
+#' @param coarse_repulsion_exact_below Positive integer threshold. When the
+#'   active set size is at most this value, the coarse repulsion is computed
+#'   exactly against all currently active vertices instead of being sampled.
+#' @param tinit_factor Initial temperature factor.
+#' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
+#' @param disconnected How to handle disconnected graphs:
+#'   \code{"components"} (default) lays out each connected component separately
+#'   and packs them into one coordinate matrix; \code{"error"} stops with an
+#'   error.
+#' @references
+#' Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
+#' Placement. \emph{Journal of Graph Algorithms and Applications}, 6(3),
+#' 203--224. doi:10.7155/jgaa.00052.
+#'
+#' Gajer, P., Goodrich, M.T. and Kobourov, S.G. (2004). A multi-dimensional
+#' approach to force-directed layouts of large graphs.
+#' \emph{Computational Geometry}, 29(1), 3--18.
+#' doi:10.1016/j.comgeo.2004.03.014.
+#' @return A numeric matrix with `n` rows and `dim` columns.
+#' @examples
+#' edges <- edges.mesh(4, 4)
+#' coords <- grip.layout(edges, n = max(edges), dim = 2,
+#'                       coarse_repulsion_factor = 0.2,
+#'                       coarse_repulsion_sample = 8,
+#'                       coarse_repulsion_exact_below = 32,
+#'                       seed = 1)
+#' round(coords, 3)
+#' @export
+grip.layout <- function(edges = NULL,
+                        n = NULL,
+                        adj_list = NULL,
+                        weight_list = NULL,
+                        edge_weights = NULL,
+                        dim = 3,
+                        placement = c("barycenter", "circle"),
+                        preset = NULL,
+                        rounds = 160,
+                        final_rounds = 384,
+                        num_init = 24,
+                        num_nbrs = 20,
+                        r = 0.03,
+                        s = 7.5,
+                        repulsion_factor = 2.5,
+                        coarse_repulsion_factor = 1.5,
+                        coarse_repulsion_sample = 16,
+                        coarse_repulsion_exact_below = 64,
+                        tinit_factor = 6,
+                        seed = 6,
+                        disconnected = c("components", "error")) {
+  grip.forward_call(grip.layout.globalrep, match.call(expand.dots = FALSE), env = parent.frame())
+}
+
+#' Compute the legacy GRIP layout
+#'
+#' This function preserves the original local-force wrapper and historical
+#' default values that were previously exposed as \code{\link{grip.layout}()}.
+#' Use it for backwards-compatible comparisons or when you explicitly want the
+#' pre-global-repulsion behavior.
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for undirected graphs.
+#' @param weight_list Optional parallel list of edge weights (edge lengths).
+#'   If NULL, all edges are treated as weight 1. All weights must be finite
+#'   and strictly positive.
+#' @param edge_weights Optional vector of edge weights for \code{edges}. All
+#'   weights must be finite and strictly positive.
+#' @param dim Layout dimension (2 or 3). Default is 3.
+#' @param placement Initial placement strategy. "circle" is only used for 2D.
+#' @param preset Optional tuning preset. \code{NULL} uses the historical
+#'   defaults. \code{"carpet"} applies a preset tuned for
+#'   Sierpinski-carpet-like graphs and validated on carpet levels 3 and 4.
+#'   \code{"mesh"} applies a preset tuned for rectangular lattice graphs and
+#'   validated on 8x8 and 12x12 mesh layouts. \code{"torus"} applies a preset
+#'   tuned for 3D torus layouts and validated on torus sizes from 8x8 through
+#'   20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
+#'   layouts of tree-like graphs and validated on binary trees of depths 5 and
+#'   6. Presets only fill in tuning arguments that you did not supply
+#'   explicitly.
 #' @param rounds Initial rounds for refinement.
 #' @param final_rounds Final rounds for refinement.
 #' @param num_init Number of initial vertices in the coarsest level.
@@ -771,42 +874,31 @@ grip.layout.globalrep <- function(edges = NULL,
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- cbind(1:5, 2:6)
-#' coords <- grip.layout(edges, n = 6, dim = 2,
-#'                       placement = "barycenter",
-#'                       rounds = 5, final_rounds = 5,
-#'                       num_init = 3, num_nbrs = 4,
-#'                       seed = 1)
+#' coords <- grip.layout.legacy(edges, n = 6, dim = 2,
+#'                              placement = "barycenter",
+#'                              rounds = 5, final_rounds = 5,
+#'                              num_init = 3, num_nbrs = 4,
+#'                              seed = 1)
 #' round(coords, 3)
-#'
-#' adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
-#' weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
-#' grip.layout(adj_list = adj_list,
-#'             weight_list = weight_list,
-#'             n = 4,
-#'             dim = 2,
-#'             placement = "barycenter",
-#'             rounds = 4, final_rounds = 4,
-#'             num_init = 3, num_nbrs = 3,
-#'             seed = 12)
 #' @export
-grip.layout <- function(edges = NULL,
-                        n = NULL,
-                        adj_list = NULL,
-                        weight_list = NULL,
-                        edge_weights = NULL,
-                        dim = 3,
-                        placement = c("barycenter", "circle"),
-                        preset = NULL,
-                        rounds = 20,
-                        final_rounds = 25,
-                        num_init = 36,
-                        num_nbrs = 10,
-                        r = 0.15,
-                        s = 3.0,
-                        repulsion_factor = 1.0,
-                        tinit_factor = 6,
-                        seed = 6,
-                        disconnected = c("components", "error")) {
+grip.layout.legacy <- function(edges = NULL,
+                               n = NULL,
+                               adj_list = NULL,
+                               weight_list = NULL,
+                               edge_weights = NULL,
+                               dim = 3,
+                               placement = c("barycenter", "circle"),
+                               preset = NULL,
+                               rounds = 20,
+                               final_rounds = 25,
+                               num_init = 36,
+                               num_nbrs = 10,
+                               r = 0.15,
+                               s = 3.0,
+                               repulsion_factor = 1.0,
+                               tinit_factor = 6,
+                               seed = 6,
+                               disconnected = c("components", "error")) {
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -816,7 +908,7 @@ grip.layout <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout")
+  preset <- grip.normalize.preset(preset, fn = "grip.layout.legacy")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -934,7 +1026,12 @@ grip.layout <- function(edges = NULL,
 
 #' Compute a GRIP layout trace
 #'
-#' @inheritParams grip.layout
+#' This compatibility trace currently records the legacy GRIP engine exposed by
+#' \code{\link{grip.layout.legacy}()}. The primary \code{\link{grip.layout}()}
+#' API uses the newer coarse-global-repulsion engine and does not yet expose
+#' trace frames.
+#'
+#' @inheritParams grip.layout.legacy
 #' @param trace Snapshot granularity. \code{"round"} records the coarsest
 #'   initialization, each level start, every \code{trace.every} completed rounds,
 #'   and the final layout. \code{"level"} records the coarsest initialization,
@@ -978,6 +1075,55 @@ grip.layout.trace <- function(edges = NULL,
                               seed = 6,
                               trace = c("round", "level"),
                               trace.every = 1) {
+  grip.forward_call(grip.layout.trace.legacy, match.call(expand.dots = FALSE), env = parent.frame())
+}
+
+#' Compute a trace for the legacy GRIP layout
+#'
+#' @inheritParams grip.layout.legacy
+#' @param trace Snapshot granularity. \code{"round"} records the coarsest
+#'   initialization, each level start, every \code{trace.every} completed rounds,
+#'   and the final layout. \code{"level"} records the coarsest initialization,
+#'   every \code{trace.every}th level start, and the final layout.
+#' @param trace.every Positive integer thinning factor for recorded rounds or
+#'   levels. Initial and final snapshots are always included.
+#' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
+#'   and \code{trace.every}. \code{final} is the final coordinate matrix.
+#'   \code{frames} is a list of coordinate matrices with \code{NA} rows for
+#'   vertices that have not yet been introduced by GRIP. \code{meta} is a data
+#'   frame describing each frame with columns \code{frame}, \code{phase},
+#'   \code{level_index}, \code{misf_level}, \code{round_in_level}, and
+#'   \code{active_vertices}.
+#' @examples
+#' edges <- cbind(1:5, 2:6)
+#' tr <- grip.layout.trace.legacy(edges, n = 6, dim = 2,
+#'                                placement = "barycenter",
+#'                                rounds = 3, final_rounds = 2,
+#'                                num_init = 3, num_nbrs = 4,
+#'                                trace = "level",
+#'                                trace.every = 1,
+#'                                seed = 1)
+#' tr$meta
+#' @export
+grip.layout.trace.legacy <- function(edges = NULL,
+                                     n = NULL,
+                                     adj_list = NULL,
+                                     weight_list = NULL,
+                                     edge_weights = NULL,
+                                     dim = 3,
+                                     placement = c("barycenter", "circle"),
+                                     preset = NULL,
+                                     rounds = 20,
+                                     final_rounds = 25,
+                                     num_init = 36,
+                                     num_nbrs = 10,
+                                     r = 0.15,
+                                     s = 3.0,
+                                     repulsion_factor = 1.0,
+                                     tinit_factor = 6,
+                                     seed = 6,
+                                     trace = c("round", "level"),
+                                     trace.every = 1) {
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -987,7 +1133,7 @@ grip.layout.trace <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
+  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace.legacy")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -1057,7 +1203,7 @@ grip.layout.trace <- function(edges = NULL,
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
-      "grip.layout.trace() currently supports only connected graphs; input graph has %d connected components.",
+      "grip.layout.trace.legacy() currently supports only connected graphs; input graph has %d connected components.",
       n.comp
     ))
   }

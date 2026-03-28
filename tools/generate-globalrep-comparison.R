@@ -96,8 +96,8 @@ write_summary <- function(path,
     sprintf("# %s level %d default-vs-globalrep comparison", tools::toTitleCase(family), level),
     "",
     sprintf("- seed: `%d`", seed),
-    "- baseline call: `grip.layout(edges, n = n, dim = 2)`",
-    "- globalrep call: `grip.layout.globalrep(edges, n = n, dim = 2)`",
+    "- baseline call: `grip.layout.legacy(edges, n = n, dim = 2)`",
+    "- current call: `grip.layout(edges, n = n, dim = 2)`",
     "",
     "## Metrics",
     "",
@@ -108,7 +108,7 @@ write_summary <- function(path,
             baseline_metrics$edge_cv,
             baseline_metrics$stress,
             baseline_metrics$sep),
-    sprintf("| globalrep | %.4f | %.4f | %.4f | %.4f |",
+    sprintf("| current | %.4f | %.4f | %.4f | %.4f |",
             globalrep_metrics$rmse,
             globalrep_metrics$edge_cv,
             globalrep_metrics$stress,
@@ -148,14 +148,14 @@ if (!identical(unname(built$edges), unname(edges))) {
 canonical_coords <- built$coords
 n <- max(edges)
 
-baseline_coords <- grip.layout(
+baseline_coords <- grip.layout.legacy(
   edges = edges,
   n = n,
   dim = 2,
   seed = seed
 )
 
-globalrep_coords <- grip.layout.globalrep(
+globalrep_coords <- grip.layout(
   edges = edges,
   n = n,
   dim = 2,
@@ -177,7 +177,7 @@ png_path <- file.path(preview_dir_local, paste0(base_name, ".png"))
 summary_path <- file.path(tmp_dir_local, sprintf("%s-summary.md", base_name))
 
 subtitle <- sprintf(
-  "seed=%d; baseline=grip.layout defaults; globalrep=grip.layout.globalrep defaults",
+  "seed=%d; baseline=grip.layout.legacy defaults; current=grip.layout defaults",
   seed
 )
 title_text <- sprintf("Sierpinski %s level %d", family, level)

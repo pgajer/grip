@@ -436,7 +436,7 @@ run_one_layout <- function(spec, cfg, seed) {
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout(
+  coords <- grip.layout.legacy(
     edges = spec$edges,
     n = n,
     dim = 2,
@@ -570,7 +570,7 @@ run_sierpinski_baseline <- function() {
     group <- raw_metrics[rows, , drop = FALSE]
     best_seed <- group$seed[[which.min(group$procrustes_rmse)]]
     cfg <- baseline_profile[[spec$family]]
-    coords <- grip.layout(
+    coords <- grip.layout.legacy(
       edges = spec$edges,
       n = max(spec$edges),
       dim = 2,

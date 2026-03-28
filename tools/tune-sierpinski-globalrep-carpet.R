@@ -245,7 +245,7 @@ run_candidate <- function(spec, candidate, seed) {
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout.globalrep(
+  coords <- grip.layout(
     edges = spec$edges,
     n = n,
     dim = 2,
@@ -361,9 +361,9 @@ plot_triptych <- function(canonical_coords,
   graphics::par(mfrow = c(1, 3), mar = c(0, 0, 2.8, 0), xaxs = "i", yaxs = "i")
   plot_layout_panel(canonical_coords, edges, paste(title_text, "- canonical"), subtitle_text,
                     xlim = xlim, ylim = ylim)
-  plot_layout_panel(baseline_coords, edges, paste(title_text, "- standard default"), subtitle_text,
+  plot_layout_panel(baseline_coords, edges, paste(title_text, "- legacy default"), subtitle_text,
                     xlim = xlim, ylim = ylim)
-  plot_layout_panel(tuned_coords, edges, paste(title_text, "- globalrep tuned"), subtitle_text,
+  plot_layout_panel(tuned_coords, edges, paste(title_text, "- current tuned"), subtitle_text,
                     xlim = xlim, ylim = ylim)
 }
 
@@ -461,12 +461,12 @@ write_summary_markdown <- function(path,
     "",
     "| Layout | Procrustes RMSE | Edge CV | Sampled stress | Non-edge sep ratio |",
     "| --- | ---: | ---: | ---: | ---: |",
-    sprintf("| standard default | %s | %s | %s | %s |",
+    sprintf("| legacy default | %s | %s | %s | %s |",
             format_num(standard_default_metrics$rmse, 4),
             format_num(standard_default_metrics$edge_cv, 4),
             format_num(standard_default_metrics$stress, 4),
             format_num(standard_default_metrics$sep, 4)),
-    sprintf("| globalrep tuned | %s | %s | %s | %s |",
+    sprintf("| current tuned | %s | %s | %s | %s |",
             format_num(tuned_metrics$rmse, 4),
             format_num(tuned_metrics$edge_cv, 4),
             format_num(tuned_metrics$stress, 4),
@@ -533,13 +533,13 @@ family_rankings <- score_candidates(summary_metrics)
 best_candidate <- family_rankings[1L, , drop = FALSE]
 
 n <- max(edges)
-standard_default_coords <- grip.layout(
+standard_default_coords <- grip.layout.legacy(
   edges = edges,
   n = n,
   dim = 2,
   seed = comparison_seed
 )
-tuned_coords <- grip.layout.globalrep(
+tuned_coords <- grip.layout(
   edges = edges,
   n = n,
   dim = 2,

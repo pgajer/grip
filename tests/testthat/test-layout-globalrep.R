@@ -33,15 +33,15 @@ test_that("globalrep seeded runs are deterministic", {
   expect_identical(coords1, coords2)
 })
 
-test_that("globalrep with zero coarse repulsion matches grip.layout", {
+test_that("globalrep with zero coarse repulsion matches grip.layout.legacy", {
   edges <- edges.mesh(5, 5)
-  coords_base <- grip.layout(edges, n = 25, dim = 2,
-                             placement = "barycenter",
-                             rounds = 8, final_rounds = 8,
-                             num_init = 6, num_nbrs = 8,
-                             r = 0.15, s = 3.0,
-                             repulsion_factor = 1.5,
-                             seed = 29)
+  coords_base <- grip.layout.legacy(edges, n = 25, dim = 2,
+                                    placement = "barycenter",
+                                    rounds = 8, final_rounds = 8,
+                                    num_init = 6, num_nbrs = 8,
+                                    r = 0.15, s = 3.0,
+                                    repulsion_factor = 1.5,
+                                    seed = 29)
   coords_globalrep <- grip.layout.globalrep(edges, n = 25, dim = 2,
                                             placement = "barycenter",
                                             rounds = 8, final_rounds = 8,
@@ -53,6 +53,13 @@ test_that("globalrep with zero coarse repulsion matches grip.layout", {
                                             coarse_repulsion_exact_below = 32,
                                             seed = 29)
   expect_identical(coords_base, coords_globalrep)
+})
+
+test_that("grip.layout is an alias of grip.layout.globalrep", {
+  edges <- edges.mesh(5, 5)
+  coords_primary <- grip.layout(edges, n = 25, dim = 2, seed = 17)
+  coords_alias <- grip.layout.globalrep(edges, n = 25, dim = 2, seed = 17)
+  expect_identical(coords_primary, coords_alias)
 })
 
 test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
@@ -143,13 +150,13 @@ test_that("globalrep larger-graph defaults taper final_rounds only", {
   expect_identical(coords_default, coords_explicit)
 })
 
-test_that("globalrep disconnected handling matches grip.layout when disabled", {
+test_that("globalrep disconnected handling matches grip.layout.legacy when disabled", {
   edges <- rbind(
     cbind(1:2, 2:3),
     cbind(5:6, 6:7)
   )
   expect_warning(
-    coords_base <- grip.layout(edges, n = 7, dim = 2, seed = 11),
+    coords_base <- grip.layout.legacy(edges, n = 7, dim = 2, seed = 11),
     "laying out components separately"
   )
   expect_warning(

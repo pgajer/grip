@@ -467,7 +467,7 @@ run_one_layout_globalrep <- function(spec,
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf, transient = TRUE), add = TRUE)
   setTimeLimit(elapsed = time_limit_sec, transient = TRUE)
 
-  coords <- grip.layout.globalrep(
+  coords <- grip.layout(
     edges = spec$edges,
     n = n,
     dim = spec$dim,
@@ -741,7 +741,7 @@ render_representative_figures <- function(specs,
     default_cfg <- resolve_candidate_cfg("globalrep_default", n)
     fixed_cfg <- resolve_candidate_cfg("globalrep_fixed_candidate", n)
 
-    default_coords <- grip.layout.globalrep(
+    default_coords <- grip.layout(
       edges = spec$edges,
       n = n,
       dim = spec$dim,
@@ -758,7 +758,7 @@ render_representative_figures <- function(specs,
       coarse_repulsion_exact_below = default_cfg$coarse_repulsion_exact_below,
       seed = seed
     )
-    fixed_coords <- grip.layout.globalrep(
+    fixed_coords <- grip.layout(
       edges = spec$edges,
       n = n,
       dim = spec$dim,
