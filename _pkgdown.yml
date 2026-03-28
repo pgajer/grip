@@ -60,7 +60,10 @@ reference:
     desc: Compute graph layouts using the multiscale GRIP algorithm.
     contents:
       - grip.layout
+      - grip.layout.globalrep
+      - grip.layout.legacy
       - grip.layout.trace
+      - grip.layout.trace.legacy
 
   - title: Quality metrics
     desc: Score and compare layouts across seeds and parameter settings.

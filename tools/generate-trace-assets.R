@@ -432,44 +432,35 @@ message("Computing trace animations...")
 carpet4 <- edges_sierpinski_carpet(4)
 triangle4 <- edges_sierpinski_triangle(4)
 
+# Keep the animation scripts on the primary layout defaults and only
+# downsample the saved trace frames for a manageable GIF size.
 carpet4_trace_2d <- grip.layout.trace(carpet4,
                                       n = max(carpet4),
                                       dim = 2,
-                                      placement = "barycenter",
-                                      rounds = 128, final_rounds = 128,
-                                      num_init = 24, num_nbrs = 12,
                                       trace = "round",
-                                      trace.every = 4,
+                                      trace.every = 8,
                                       seed = 24)
 
 carpet4_trace_3d <- grip.layout.trace(carpet4,
                                       n = max(carpet4),
                                       dim = 3,
-                                      placement = "barycenter",
-                                      rounds = 16, final_rounds = 16,
-                                      num_init = 24, num_nbrs = 12,
                                       trace = "round",
-                                      trace.every = 8,
+                                      trace.every = 12,
                                       seed = 24)
 
 triangle4_trace_2d <- grip.layout.trace(triangle4,
                                         n = max(triangle4),
                                         dim = 2,
                                         placement = "circle",
-                                        rounds = 128, final_rounds = 128,
-                                        num_init = 7, num_nbrs = 9,
                                         trace = "round",
-                                        trace.every = 2,
+                                        trace.every = 6,
                                         seed = 25)
 
 triangle4_trace_3d <- grip.layout.trace(triangle4,
                                         n = max(triangle4),
                                         dim = 3,
-                                        placement = "barycenter",
-                                        rounds = 32, final_rounds = 32,
-                                        num_init = 7, num_nbrs = 9,
                                         trace = "round",
-                                        trace.every = 4,
+                                        trace.every = 8,
                                         seed = 25)
 
 plot_2d_trace_gif(file.path(fig_dir, "trace-sierpinski-carpet-level-4-2d.gif"),
