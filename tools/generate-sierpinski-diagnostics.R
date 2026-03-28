@@ -335,7 +335,7 @@ run_triangle_diagnostics <- function(levels, seed) {
     n <- max(edges)
     message(sprintf("Level %d: %d vertices, %d edges", level, n, nrow(edges)))
 
-    baseline_coords <- grip.layout(
+    baseline_coords <- grip.layout.legacy(
       edges = edges,
       n = n,
       dim = 2,
@@ -349,7 +349,7 @@ run_triangle_diagnostics <- function(levels, seed) {
       repulsion_factor = cfg_baseline$repulsion_factor,
       seed = seed
     )
-    tuned_coords <- grip.layout(
+    tuned_coords <- grip.layout.legacy(
       edges = edges,
       n = n,
       dim = 2,
@@ -398,13 +398,13 @@ run_tetrahedron_diagnostics <- function(levels, seed) {
     n <- max(edges)
     message(sprintf("Level %d: %d vertices, %d edges", level, n, nrow(edges)))
 
-    baseline_coords <- grip.layout(
+    baseline_coords <- grip.layout.legacy(
       edges = edges,
       n = n,
       dim = 3,
       seed = seed
     )
-    tuned_coords <- grip.layout(
+    tuned_coords <- grip.layout.legacy(
       edges = edges,
       n = n,
       dim = 3,

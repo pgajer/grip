@@ -31,6 +31,24 @@ test_that("round trace returns frames, metadata, and inactive NA rows", {
   expect_equal(tr$frames[[length(tr$frames)]], tr$final)
 })
 
+test_that("grip.layout.trace is an alias of grip.layout.trace.legacy", {
+  edges <- edges.path(8)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = 8,
+                                  dim = 2,
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 41)
+  tr_legacy <- grip.layout.trace.legacy(edges = edges,
+                                        n = 8,
+                                        dim = 2,
+                                        trace = "level",
+                                        trace.every = 1,
+                                        seed = 41)
+  expect_identical(tr_primary$final, tr_legacy$final)
+  expect_identical(tr_primary$meta, tr_legacy$meta)
+})
+
 test_that("level trace thins level-start snapshots and keeps endpoints", {
   edges <- edges.cycle(12)
   tr_dense <- grip.layout.trace(edges = edges,

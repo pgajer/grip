@@ -46,15 +46,16 @@ weights must be finite and strictly positive.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
 
-\item{preset}{Optional tuning preset. \code{NULL} uses the standard defaults.
-\code{"carpet"} applies a preset tuned for Sierpinski-carpet-like graphs
-and validated on carpet levels 3 and 4. \code{"mesh"} applies a preset
-tuned for rectangular lattice graphs and validated on 8x8 and 12x12 mesh
-layouts. \code{"torus"} applies a preset tuned for 3D torus layouts and
-validated on torus sizes from 8x8 through 20x20. \code{"tree"} applies a
-preset tuned for symmetric force-directed layouts of tree-like graphs and
-validated on binary trees of depths 5 and 6. Presets only fill in tuning
-arguments that you did not supply explicitly.}
+\item{preset}{Optional tuning preset. \code{NULL} uses the quality-first
+defaults. \code{"carpet"} applies a preset tuned for
+Sierpinski-carpet-like graphs and validated on carpet levels 3 and 4.
+\code{"mesh"} applies a preset tuned for rectangular lattice graphs and
+validated on 8x8 and 12x12 mesh layouts. \code{"torus"} applies a preset
+tuned for 3D torus layouts and validated on torus sizes from 8x8 through
+20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
+layouts of tree-like graphs and validated on binary trees of depths 5 and
+6. Presets only fill in tuning arguments that you did not supply
+explicitly.}
 
 \item{rounds}{Initial rounds for refinement.}
 
@@ -71,13 +72,13 @@ refinement at each filtration level.}
 a consistent direction.}
 
 \item{repulsion_factor}{Non-negative multiplier applied to GRIP's
-finest-level repulsive force scale. \code{1} keeps the historical
-repulsion strength; \code{0} disables that repulsive term.}
+finest-level repulsive force scale.}
 
 \item{coarse_repulsion_factor}{Non-negative multiplier applied to the extra
 coarse-level active-set repulsion term. \code{0} disables that extra term;
-when the remaining tuning arguments also match \code{\link{grip.layout}()},
-the result matches the current \code{\link{grip.layout}()} behavior.}
+when the remaining tuning arguments also match
+\code{\link{grip.layout.legacy}()}, the result matches the legacy
+layout behavior.}
 
 \item{coarse_repulsion_sample}{Positive integer sample size used to
 approximate active-set-wide repulsion on larger coarse levels.}
@@ -92,19 +93,17 @@ exactly against all currently active vertices instead of being sampled.}
 
 \item{disconnected}{How to handle disconnected graphs:
 \code{"components"} (default) lays out each connected component separately
-and packs them into one coordinate matrix; \code{"error"} stops with an error.}
+and packs them into one coordinate matrix; \code{"error"} stops with an
+error.}
 }
 \value{
 A numeric matrix with `n` rows and `dim` columns.
 }
 \description{
-This experimental variant keeps the standard GRIP multiscale pipeline, but
-adds an extra repulsive term on coarse MISF levels to help reduce foldovers.
-Coarse and intermediate levels still use local Kamada-Kawai refinement;
-the finest level keeps the existing Fruchterman-Reingold refinement used by
-\code{\link{grip.layout}()}. With \code{preset = NULL}, the default
-global-repulsion profile is tuned for quality-first layouts and automatically
-tapers \code{final_rounds} on larger graphs.
+This compatibility entry point is an alias of \code{\link{grip.layout}()}.
+It keeps the old global-repulsion name available during the API migration,
+while using the same quality-first multiscale GRIP engine and adaptive
+\code{final_rounds} schedule as the primary layout API.
 }
 \examples{
 edges <- edges.mesh(4, 4)

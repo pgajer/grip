@@ -238,7 +238,7 @@ run_one_layout_tetra <- function(spec, cfg, seed, stress_sample = 3000L, sep_sam
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout(
+  coords <- grip.layout.legacy(
     edges = spec$edges,
     n = n,
     dim = 3,
@@ -619,7 +619,7 @@ for (spec in graphs) {
   baseline_row <- level_df[level_df$candidate_id == baseline_candidate_id, , drop = FALSE]
   tuned_row <- level_df[level_df$candidate_id == best_candidate_id, , drop = FALSE]
 
-  baseline_coords <- grip.layout(
+  baseline_coords <- grip.layout.legacy(
     edges = spec$edges,
     n = max(spec$edges),
     dim = 3,
@@ -633,7 +633,7 @@ for (spec in graphs) {
     repulsion_factor = baseline_row$repulsion_factor[[1L]],
     seed = baseline_row$best_seed[[1L]]
   )
-  tuned_coords <- grip.layout(
+  tuned_coords <- grip.layout.legacy(
     edges = spec$edges,
     n = max(spec$edges),
     dim = 3,
