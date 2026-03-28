@@ -46,6 +46,32 @@ test_that("grip.layout.trace final matches grip.layout", {
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("trace can append per-frame diagnostics against a target", {
+  edges <- edges.mesh(4, 4)
+  n <- max(edges)
+  target <- grip.layout(edges = edges, n = n, dim = 2, seed = 17)
+  tr <- grip.layout.trace(edges = edges,
+                          n = n,
+                          dim = 2,
+                          trace = "level",
+                          trace.every = 1,
+                          diagnostics = "light",
+                          target_coords = target,
+                          diagnostic_sample_size_nonedge = 50,
+                          seed = 17)
+
+  expect_true(is.data.frame(tr$diagnostics))
+  expect_equal(nrow(tr$diagnostics), length(tr$frames))
+  expect_true(all(c(
+    "frame", "phase", "level_index", "misf_level", "round_in_level",
+    "active_vertices", "active.edges", "edge.length.cv",
+    "median.edge.length", "sampled.nonedge.sep.ratio",
+    "sampled.stress", "procrustes.rmse"
+  ) %in% names(tr$diagnostics)))
+  expect_lt(tail(tr$diagnostics$procrustes.rmse, 1), 1e-8)
+  expect_true(all(is.na(tr$diagnostics$sampled.stress)))
+})
+
 test_that("level trace thins level-start snapshots and keeps endpoints", {
   edges <- edges.cycle(12)
   tr_dense <- grip.layout.trace(edges = edges,
@@ -124,6 +150,16 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "coarse_repulsion_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      diagnostics = "light",
+                      target_coords = matrix(0, nrow = 7, ncol = 2),
+                      trace = "round",
+                      seed = 123),
+    "nrow\\(target_coords\\) must match the graph size"
   )
 })
 

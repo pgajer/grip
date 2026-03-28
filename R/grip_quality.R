@@ -217,6 +217,168 @@ grip.sampled.nonedge.sep.ratio <- function(coords,
   min(samples) / edge.stats$median
 }
 
+grip.induced.layout.inputs <- function(adj.list, weight.list = NULL, active) {
+  active <- as.logical(active)
+  if (length(active) != length(adj.list)) {
+    stop("active must be parallel to adj.list")
+  }
+  vertex.ids <- which(active)
+  map <- integer(length(active))
+  map[vertex.ids] <- seq_along(vertex.ids)
+
+  sub.adj <- vector("list", length(vertex.ids))
+  sub.weights <- if (is.null(weight.list)) NULL else vector("list", length(vertex.ids))
+
+  for (i in seq_along(vertex.ids)) {
+    old.id <- vertex.ids[[i]]
+    nb <- adj.list[[old.id]]
+    keep <- active[nb]
+    sub.adj[[i]] <- if (any(keep)) {
+      as.integer(map[nb[keep]])
+    } else {
+      integer(0L)
+    }
+    if (!is.null(weight.list)) {
+      ww <- weight.list[[old.id]]
+      sub.weights[[i]] <- if (any(keep)) as.double(ww[keep]) else numeric(0L)
+    }
+  }
+
+  list(
+    vertex.ids = vertex.ids,
+    adj.list = sub.adj,
+    weight.list = sub.weights,
+    edges = grip.edges.from.adj.list(sub.adj)
+  )
+}
+
+grip.validate.trace.diagnostics <- function(diagnostics = c("none", "light", "full"),
+                                            target.coords = NULL,
+                                            n = NULL,
+                                            dim = NULL,
+                                            sample.size.nonedge = 1000L,
+                                            sample.size.stress = 500L,
+                                            nonedge.seed = 1L,
+                                            stress.seed = 1L) {
+  diagnostics <- match.arg(diagnostics)
+
+  if (!is.null(target.coords)) {
+    target.coords <- as.matrix(target.coords)
+    if (!is.numeric(target.coords) || any(!is.finite(target.coords))) {
+      stop("target_coords must be a finite numeric matrix when supplied")
+    }
+    if (!is.null(n) && nrow(target.coords) != n) {
+      stop("nrow(target_coords) must match the graph size")
+    }
+    if (!is.null(dim) && ncol(target.coords) != dim) {
+      stop("ncol(target_coords) must match dim")
+    }
+  }
+
+  sample.size.nonedge <- as.integer(sample.size.nonedge)
+  if (is.na(sample.size.nonedge) || sample.size.nonedge <= 0L) {
+    stop("diagnostic_sample_size_nonedge must be a positive integer")
+  }
+
+  sample.size.stress <- as.integer(sample.size.stress)
+  if (is.na(sample.size.stress) || sample.size.stress <= 0L) {
+    stop("diagnostic_sample_size_stress must be a positive integer")
+  }
+
+  nonedge.seed <- as.integer(nonedge.seed)
+  stress.seed <- as.integer(stress.seed)
+  if (is.na(nonedge.seed) || is.na(stress.seed)) {
+    stop("diagnostic seeds must be finite integers")
+  }
+
+  list(
+    diagnostics = diagnostics,
+    target.coords = target.coords,
+    sample.size.nonedge = sample.size.nonedge,
+    sample.size.stress = sample.size.stress,
+    nonedge.seed = nonedge.seed,
+    stress.seed = stress.seed
+  )
+}
+
+grip.trace.compute.diagnostics <- function(frames,
+                                           meta,
+                                           adj.list,
+                                           weight.list = NULL,
+                                           diagnostics = c("none", "light", "full"),
+                                           target.coords = NULL,
+                                           sample.size.nonedge = 1000L,
+                                           sample.size.stress = 500L,
+                                           nonedge.seed = 1L,
+                                           stress.seed = 1L) {
+  validated <- grip.validate.trace.diagnostics(
+    diagnostics = diagnostics,
+    target.coords = target.coords,
+    n = length(adj.list),
+    dim = ncol(frames[[1L]]),
+    sample.size.nonedge = sample.size.nonedge,
+    sample.size.stress = sample.size.stress,
+    nonedge.seed = nonedge.seed,
+    stress.seed = stress.seed
+  )
+  diagnostics <- validated$diagnostics
+  if (identical(diagnostics, "none")) {
+    return(NULL)
+  }
+
+  rows <- vector("list", length(frames))
+  for (i in seq_along(frames)) {
+    frame.coords <- frames[[i]]
+    active <- stats::complete.cases(frame.coords)
+    active.count <- sum(active)
+
+    row <- meta[i, , drop = FALSE]
+    row$active.edges <- NA_integer_
+    row$edge.length.cv <- NA_real_
+    row$median.edge.length <- NA_real_
+    row$sampled.nonedge.sep.ratio <- NA_real_
+    row$sampled.stress <- NA_real_
+    row$procrustes.rmse <- NA_real_
+
+    if (active.count >= 2L) {
+      induced <- grip.induced.layout.inputs(adj.list, weight.list, active)
+      coords.active <- frame.coords[induced$vertex.ids, , drop = FALSE]
+      edge.stats <- grip.edge.length.stats(coords.active, induced$edges)
+
+      row$active.edges <- nrow(induced$edges)
+      row$edge.length.cv <- edge.stats$cv
+      row$median.edge.length <- edge.stats$median
+      row$sampled.nonedge.sep.ratio <- grip.sampled.nonedge.sep.ratio(
+        coords.active,
+        induced$edges,
+        sample.size = validated$sample.size.nonedge,
+        rng.seed = validated$nonedge.seed + i - 1L
+      )
+
+      if (identical(diagnostics, "full")) {
+        row$sampled.stress <- grip.sampled.stress(
+          coords.active,
+          adj.list = induced$adj.list,
+          weight.list = induced$weight.list,
+          sample.size = validated$sample.size.stress,
+          rng.seed = validated$stress.seed + i - 1L
+        )
+      }
+
+      if (!is.null(validated$target.coords)) {
+        target.active <- validated$target.coords[induced$vertex.ids, , drop = FALSE]
+        row$procrustes.rmse <- grip.align.to.target.nd(coords.active, target.active)$rmse
+      }
+    }
+
+    rows[[i]] <- row
+  }
+
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 grip.segment.orientation <- function(a, b, c) {
   (b[[1L]] - a[[1L]]) * (c[[2L]] - a[[2L]]) -
     (b[[2L]] - a[[2L]]) * (c[[1L]] - a[[1L]])

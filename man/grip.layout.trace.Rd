@@ -26,7 +26,13 @@ grip.layout.trace(
   tinit_factor = 6,
   seed = 6,
   trace = c("round", "level"),
-  trace.every = 1
+  trace.every = 1,
+  diagnostics = c("none", "light", "full"),
+  target_coords = NULL,
+  diagnostic_sample_size_nonedge = 1000L,
+  diagnostic_sample_size_stress = 500L,
+  diagnostic_nonedge_seed = 1L,
+  diagnostic_stress_seed = 1L
 )
 }
 \arguments{
@@ -96,15 +102,39 @@ every \code{trace.every}th level start, and the final layout.}
 
 \item{trace.every}{Positive integer thinning factor for recorded rounds or
 levels. Initial and final snapshots are always included.}
+
+\item{diagnostics}{Optional per-frame diagnostic mode. \code{"none"} skips
+extra scoring, \code{"light"} appends lightweight shape diagnostics, and
+\code{"full"} also computes sampled stress on each traced frame.}
+
+\item{target_coords}{Optional numeric target coordinate matrix used to append
+per-frame Procrustes RMSE diagnostics. It must have `n` rows and `dim`
+columns.}
+
+\item{diagnostic_sample_size_nonedge}{Positive integer sample size used for
+per-frame non-edge separation diagnostics when \code{diagnostics != "none"}.}
+
+\item{diagnostic_sample_size_stress}{Positive integer sample size used for
+per-frame sampled stress when \code{diagnostics = "full"}.}
+
+\item{diagnostic_nonedge_seed}{RNG seed base used for per-frame non-edge
+separation diagnostics.}
+
+\item{diagnostic_stress_seed}{RNG seed base used for per-frame sampled stress
+diagnostics.}
 }
 \value{
 A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
-  and \code{trace.every}. \code{final} is the final coordinate matrix.
+  \code{trace.every}, and optionally \code{diagnostics}. \code{final} is the
+  final coordinate matrix.
   \code{frames} is a list of coordinate matrices with \code{NA} rows for
   vertices that have not yet been introduced by GRIP. \code{meta} is a data
   frame describing each frame with columns \code{frame}, \code{phase},
   \code{level_index}, \code{misf_level}, \code{round_in_level}, and
-  \code{active_vertices}.
+  \code{active_vertices}. When diagnostics are requested, \code{diagnostics}
+  is a data frame parallel to \code{meta} that appends per-frame quality
+  metrics such as \code{edge.length.cv}, \code{sampled.nonedge.sep.ratio},
+  and optional \code{procrustes.rmse}.
 }
 \description{
 This traces the primary \code{\link{grip.layout}()} engine, including the
@@ -120,6 +150,7 @@ tr <- grip.layout.trace(edges, n = 6, dim = 2,
                         num_init = 3, num_nbrs = 4,
                         trace = "level",
                         trace.every = 1,
+                        diagnostics = "light",
                         seed = 1)
-tr$meta
+tr$diagnostics
 }
