@@ -13,13 +13,16 @@ grip.layout.trace(
   dim = 3,
   placement = c("barycenter", "circle"),
   preset = NULL,
-  rounds = 20,
-  final_rounds = 25,
-  num_init = 36,
-  num_nbrs = 10,
-  r = 0.15,
-  s = 3,
-  repulsion_factor = 1,
+  rounds = 160,
+  final_rounds = 384,
+  num_init = 24,
+  num_nbrs = 20,
+  r = 0.03,
+  s = 7.5,
+  repulsion_factor = 2.5,
+  coarse_repulsion_factor = 1.5,
+  coarse_repulsion_sample = 16,
+  coarse_repulsion_exact_below = 64,
   tinit_factor = 6,
   seed = 6,
   trace = c("round", "level"),
@@ -44,7 +47,7 @@ weights must be finite and strictly positive.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
 
-\item{preset}{Optional tuning preset. \code{NULL} uses the historical
+\item{preset}{Optional tuning preset. \code{NULL} uses the quality-first
 defaults. \code{"carpet"} applies a preset tuned for
 Sierpinski-carpet-like graphs and validated on carpet levels 3 and 4.
 \code{"mesh"} applies a preset tuned for rectangular lattice graphs and
@@ -70,8 +73,17 @@ refinement at each filtration level.}
 a consistent direction.}
 
 \item{repulsion_factor}{Non-negative multiplier applied to GRIP's
-finest-level repulsive force scale. \code{1} keeps the historical
-repulsion strength; \code{0} disables that repulsive term.}
+finest-level repulsive force scale.}
+
+\item{coarse_repulsion_factor}{Non-negative multiplier applied to the extra
+coarse-level active-set repulsion term. \code{0} disables that extra term.}
+
+\item{coarse_repulsion_sample}{Positive integer sample size used to
+approximate active-set-wide repulsion on larger coarse levels.}
+
+\item{coarse_repulsion_exact_below}{Positive integer threshold. When the
+active set size is at most this value, the coarse repulsion is computed
+exactly against all currently active vertices instead of being sampled.}
 
 \item{tinit_factor}{Initial temperature factor.}
 
@@ -95,10 +107,10 @@ A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
   \code{active_vertices}.
 }
 \description{
-This compatibility trace currently records the legacy GRIP engine exposed by
-\code{\link{grip.layout.legacy}()}. The primary \code{\link{grip.layout}()}
-API uses the newer coarse-global-repulsion engine and does not yet expose
-trace frames.
+This traces the primary \code{\link{grip.layout}()} engine, including the
+coarse-level global-repulsion term used by the quality-first default layout.
+For backwards-compatible traces of the historical local-force wrapper, use
+\code{\link{grip.layout.trace.legacy}()}.
 }
 \examples{
 edges <- cbind(1:5, 2:6)

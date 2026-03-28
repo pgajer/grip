@@ -1026,12 +1026,12 @@ grip.layout.legacy <- function(edges = NULL,
 
 #' Compute a GRIP layout trace
 #'
-#' This compatibility trace currently records the legacy GRIP engine exposed by
-#' \code{\link{grip.layout.legacy}()}. The primary \code{\link{grip.layout}()}
-#' API uses the newer coarse-global-repulsion engine and does not yet expose
-#' trace frames.
+#' This traces the primary \code{\link{grip.layout}()} engine, including the
+#' coarse-level global-repulsion term used by the quality-first default layout.
+#' For backwards-compatible traces of the historical local-force wrapper, use
+#' \code{\link{grip.layout.trace.legacy}()}.
 #'
-#' @inheritParams grip.layout.legacy
+#' @inheritParams grip.layout
 #' @param trace Snapshot granularity. \code{"round"} records the coarsest
 #'   initialization, each level start, every \code{trace.every} completed rounds,
 #'   and the final layout. \code{"level"} records the coarsest initialization,
@@ -1064,18 +1064,138 @@ grip.layout.trace <- function(edges = NULL,
                               dim = 3,
                               placement = c("barycenter", "circle"),
                               preset = NULL,
-                              rounds = 20,
-                              final_rounds = 25,
-                              num_init = 36,
-                              num_nbrs = 10,
-                              r = 0.15,
-                              s = 3.0,
-                              repulsion_factor = 1.0,
+                              rounds = 160,
+                              final_rounds = 384,
+                              num_init = 24,
+                              num_nbrs = 20,
+                              r = 0.03,
+                              s = 7.5,
+                              repulsion_factor = 2.5,
+                              coarse_repulsion_factor = 1.5,
+                              coarse_repulsion_sample = 16,
+                              coarse_repulsion_exact_below = 64,
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
                               trace.every = 1) {
-  grip.forward_call(grip.layout.trace.legacy, match.call(expand.dots = FALSE), env = parent.frame())
+  placement_missing <- missing(placement)
+  rounds_missing <- missing(rounds)
+  final_rounds_missing <- missing(final_rounds)
+  num_init_missing <- missing(num_init)
+  num_nbrs_missing <- missing(num_nbrs)
+  r_missing <- missing(r)
+  s_missing <- missing(s)
+  repulsion_factor_missing <- missing(repulsion_factor)
+
+  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
+  resolved <- grip.resolve.preset(
+    preset = preset,
+    dim = dim,
+    placement = placement,
+    placement_missing = placement_missing,
+    rounds = rounds,
+    rounds_missing = rounds_missing,
+    final_rounds = final_rounds,
+    final_rounds_missing = final_rounds_missing,
+    num_init = num_init,
+    num_init_missing = num_init_missing,
+    num_nbrs = num_nbrs,
+    num_nbrs_missing = num_nbrs_missing,
+    r = r,
+    r_missing = r_missing,
+    s = s,
+    s_missing = s_missing,
+    repulsion_factor = repulsion_factor,
+    repulsion_factor_missing = repulsion_factor_missing
+  )
+  placement <- resolved$placement
+  rounds <- resolved$rounds
+  final_rounds <- resolved$final_rounds
+  num_init <- resolved$num_init
+  num_nbrs <- resolved$num_nbrs
+  r <- resolved$r
+  s <- resolved$s
+  repulsion_factor <- resolved$repulsion_factor
+  placement <- match.arg(placement)
+  trace <- match.arg(trace)
+
+  if (!is.numeric(trace.every) || length(trace.every) != 1L || !is.finite(trace.every)) {
+    stop("trace.every must be a single finite numeric value")
+  }
+  trace.every <- as.integer(trace.every)
+  if (is.na(trace.every) || trace.every <= 0L) {
+    stop("trace.every must be a positive integer")
+  }
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = dim,
+    placement = placement,
+    seed = seed
+  )
+  adj_list <- validated$adj_list
+  weight_list <- validated$weight_list
+  n <- validated$n
+  dim <- validated$dim
+  seed <- validated$seed
+  if (is.null(preset) && final_rounds_missing) {
+    final_rounds <- grip.globalrep.default.final_rounds(n)
+  }
+  tuning <- grip.validate.globalrep.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor,
+    coarse_repulsion_factor = coarse_repulsion_factor,
+    coarse_repulsion_sample = coarse_repulsion_sample,
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below
+  )
+  num_nbrs <- tuning$num_nbrs
+  r <- tuning$r
+  s <- tuning$s
+  repulsion_factor <- tuning$repulsion_factor
+  coarse_repulsion_factor <- tuning$coarse_repulsion_factor
+  coarse_repulsion_sample <- tuning$coarse_repulsion_sample
+  coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
+
+  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  n.comp <- length(unique(comp))
+  if (n.comp != 1L) {
+    stop(sprintf(
+      "grip.layout.trace() currently supports only connected graphs; input graph has %d connected components.",
+      n.comp
+    ))
+  }
+
+  out <- grip_layout_globalrep_trace_adj_cpp(
+    adj_list = adj_list,
+    weight_list = weight_list,
+    n = n,
+    dim = dim,
+    placement = placement,
+    rounds = as.integer(rounds),
+    final_rounds = as.integer(final_rounds),
+    num_init = as.integer(num_init),
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor,
+    coarse_repulsion_factor = coarse_repulsion_factor,
+    coarse_repulsion_sample = coarse_repulsion_sample,
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    tinit_factor = as.integer(tinit_factor),
+    seed = seed,
+    trace = trace,
+    trace_every = trace.every
+  )
+  out$trace <- trace
+  out$trace.every <- trace.every
+  class(out) <- c("grip_layout_trace", class(out))
+  out
 }
 
 #' Compute a trace for the legacy GRIP layout
