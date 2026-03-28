@@ -156,9 +156,17 @@ draw_tradeoff_scatter <- function(path, summary_df) {
 }
 
 draw_contact_sheet <- function(path, panels) {
-  grDevices::png(path, width = 2400, height = 1600, res = 170, bg = "#f7f3ea")
+  n_panels <- length(panels)
+  n_cols <- ceiling(sqrt(n_panels))
+  n_rows <- ceiling(n_panels / n_cols)
+
+  grDevices::png(path,
+                 width = 800L * n_cols,
+                 height = 800L * n_rows,
+                 res = 170,
+                 bg = "#f7f3ea")
   on.exit(grDevices::dev.off(), add = TRUE)
-  graphics::par(mfrow = c(2, 4), mar = c(0, 0, 3, 0), xaxs = "i", yaxs = "i")
+  graphics::par(mfrow = c(n_rows, n_cols), mar = c(0, 0, 3, 0), xaxs = "i", yaxs = "i")
 
   for (panel in panels) {
     helper_env$plot_layout_panel(
@@ -241,21 +249,21 @@ utils::write.csv(summary_df, summary_csv_path, row.names = FALSE)
 draw_final_rounds_lines(line_plot_path, summary_df)
 draw_tradeoff_scatter(tradeoff_plot_path, summary_df)
 
-seed_one_rows <- raw_metrics[raw_metrics$seed == 1L, , drop = FALSE]
-representative_ids <- c("sampled_f0", "sampled_f64", "sampled_f96", "sampled_f128",
-                        "sampled_f192", "sampled_f384", "exact_f96")
+representative_ids <- c("sampled_f0", "sampled_f32", "sampled_f64", "sampled_f96",
+                        "sampled_f128", "sampled_f192", "sampled_f384", "exact_f96")
 representative_ids <- representative_ids[representative_ids %in% config_df$config_id]
 
 panel_specs <- list(
   list(
     coords = canonical,
     title = "Canonical carpet",
-    subtitle = sprintf("level=%d", level)
+    subtitle = sprintf("level=%d | target", level)
   )
 )
 
 for (config_id in representative_ids) {
   cfg <- config_df[config_df$config_id == config_id, , drop = FALSE]
+  summary_row <- summary_df[summary_df$config_id == config_id, , drop = FALSE]
   coords <- grip.layout(
     edges = edges,
     n = n,
@@ -268,7 +276,9 @@ for (config_id in representative_ids) {
   panel_specs[[length(panel_specs) + 1L]] <- list(
     coords = fit$aligned,
     title = config_id,
-    subtitle = sprintf("%s | seed=1", cfg$coarse_mode[[1L]])
+    subtitle = sprintf("%s | mean RMSE=%s",
+                       cfg$coarse_mode[[1L]],
+                       format_num(summary_row$procrustes_rmse_mean, 4L))
   )
 }
 
