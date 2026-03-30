@@ -31,6 +31,8 @@ using size_tt = uint32_t;
 #define LEVEL0_INSERT_INHERIT 100
 #define LEVEL0_INSERT_BARYCENTER 101
 #define LEVEL0_INSERT_LEAST_SQUARES 102
+#define INSERT_ANCHOR_SCOPE_ANY_HIGHER 0
+#define INSERT_ANCHOR_SCOPE_PREV_MISF 1
 
 //**************************************************************
 //
@@ -61,6 +63,8 @@ class DrawGraph
               size_tt _coarseRepulsionExactBelow = 0,
               coord_t _finalAnchorFactor = 0.0,
               coord_t _finalMoveScaleAfterFirst = 1.0,
+              size_tt _insertionAnchorCount = 3,
+              size_tt _insertionAnchorScope = INSERT_ANCHOR_SCOPE_ANY_HIGHER,
               size_tt _level0InsertionMode = LEVEL0_INSERT_INHERIT,
               size_tt _level0AnchorCount = 3,
               size_tt _level0LocalKkSteps = 3);
@@ -214,6 +218,8 @@ private:
     size_tt coarseRepulsionExactBelow;
     coord_t finalAnchorFactor;
     coord_t finalMoveScaleAfterFirst;
+    size_tt insertionAnchorCount;
+    size_tt insertionAnchorScope;
     size_tt level0InsertionMode;
     size_tt level0AnchorCount;
     size_tt level0LocalKkSteps;

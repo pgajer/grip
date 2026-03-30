@@ -379,8 +379,10 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
                                                   coarse_repulsion_exact_below,
                                                   final_anchor_factor = 0,
                                                   final_move_scale_after_first = 1,
+                                                  insertion_anchor_count = 3,
+                                                  insertion_anchor_scope = "any_higher",
                                                   level0_insertion_mode = "inherit",
-                                                  level0_anchor_count = 3,
+                                                  level0_anchor_count = insertion_anchor_count,
                                                   level0_local_kk_steps = 3) {
   tuning <- grip.validate.tuning.inputs(
     num_nbrs = num_nbrs,
@@ -447,6 +449,25 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
     stop("final_move_scale_after_first must be in [0, 1]")
   }
 
+  if (!is.numeric(insertion_anchor_count) ||
+      length(insertion_anchor_count) != 1L ||
+      !is.finite(insertion_anchor_count)) {
+    stop("insertion_anchor_count must be a single finite numeric value")
+  }
+  if (abs(insertion_anchor_count - round(insertion_anchor_count)) >
+      sqrt(.Machine$double.eps)) {
+    stop("insertion_anchor_count must be a positive integer")
+  }
+  insertion_anchor_count <- as.integer(round(insertion_anchor_count))
+  if (is.na(insertion_anchor_count) || insertion_anchor_count <= 0L) {
+    stop("insertion_anchor_count must be a positive integer")
+  }
+
+  insertion_anchor_scope <- match.arg(
+    insertion_anchor_scope,
+    choices = c("any_higher", "prev_misf")
+  )
+
   level0_insertion_mode <- match.arg(
     level0_insertion_mode,
     choices = c("inherit", "barycenter", "least_squares")
@@ -488,10 +509,95 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
       final_anchor_factor = final_anchor_factor,
       final_move_scale_after_first = final_move_scale_after_first,
+      insertion_anchor_count = insertion_anchor_count,
+      insertion_anchor_scope = insertion_anchor_scope,
       level0_insertion_mode = level0_insertion_mode,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps
     )
+  )
+}
+
+grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
+                                             lgkk_local_nbrs = 20L,
+                                             lgkk_landmark_count = 8L) {
+  if (!is.numeric(lgkk_polish_rounds) ||
+      length(lgkk_polish_rounds) != 1L ||
+      !is.finite(lgkk_polish_rounds)) {
+    stop("lgkk_polish_rounds must be a single finite numeric value")
+  }
+  if (abs(lgkk_polish_rounds - round(lgkk_polish_rounds)) >
+      sqrt(.Machine$double.eps)) {
+    stop("lgkk_polish_rounds must be a non-negative integer")
+  }
+  lgkk_polish_rounds <- as.integer(round(lgkk_polish_rounds))
+  if (is.na(lgkk_polish_rounds) || lgkk_polish_rounds < 0L) {
+    stop("lgkk_polish_rounds must be a non-negative integer")
+  }
+
+  if (!is.numeric(lgkk_local_nbrs) ||
+      length(lgkk_local_nbrs) != 1L ||
+      !is.finite(lgkk_local_nbrs)) {
+    stop("lgkk_local_nbrs must be a single finite numeric value")
+  }
+  if (abs(lgkk_local_nbrs - round(lgkk_local_nbrs)) >
+      sqrt(.Machine$double.eps)) {
+    stop("lgkk_local_nbrs must be a non-negative integer")
+  }
+  lgkk_local_nbrs <- as.integer(round(lgkk_local_nbrs))
+  if (is.na(lgkk_local_nbrs) || lgkk_local_nbrs < 0L) {
+    stop("lgkk_local_nbrs must be a non-negative integer")
+  }
+
+  if (!is.numeric(lgkk_landmark_count) ||
+      length(lgkk_landmark_count) != 1L ||
+      !is.finite(lgkk_landmark_count)) {
+    stop("lgkk_landmark_count must be a single finite numeric value")
+  }
+  if (abs(lgkk_landmark_count - round(lgkk_landmark_count)) >
+      sqrt(.Machine$double.eps)) {
+    stop("lgkk_landmark_count must be a non-negative integer")
+  }
+  lgkk_landmark_count <- as.integer(round(lgkk_landmark_count))
+  if (is.na(lgkk_landmark_count) || lgkk_landmark_count < 0L) {
+    stop("lgkk_landmark_count must be a non-negative integer")
+  }
+
+  list(
+    lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count
+  )
+}
+
+grip.apply.lgkk.polish <- function(coords,
+                                   adj_list,
+                                   weight_list,
+                                   rounds,
+                                   lgkk_local_nbrs,
+                                   lgkk_landmark_count,
+                                   return_trace = FALSE) {
+  if (is.null(rounds) || rounds <= 0L) {
+    return(list(
+      coords = coords,
+      trace = data.frame(),
+      frames = list(coords)
+    ))
+  }
+  prepared <- grip.prepare.landmark.geodesic.kk(
+    adj_list = adj_list,
+    weight_list = weight_list,
+    n = nrow(coords),
+    local_nbrs = lgkk_local_nbrs,
+    landmark_count = lgkk_landmark_count
+  )
+  grip.optimize.landmark.geodesic.kk(
+    coords = coords,
+    prepared = prepared,
+    max_iter = rounds,
+    local_nbrs = lgkk_local_nbrs,
+    landmark_count = lgkk_landmark_count,
+    return_trace = return_trace
   )
 }
 
@@ -626,6 +732,14 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
+#' @param insertion_anchor_count Positive integer number of anchor vertices used
+#'   during multiscale insertion on non-initial MISF refinement levels. This is
+#'   the closest current implementation to a global \code{K_mish} parameter.
+#' @param insertion_anchor_scope Anchor-eligibility rule used during multiscale
+#'   insertion. \code{"any_higher"} matches the historical GRIP behavior and
+#'   allows anchors from any already placed higher MISF level.
+#'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
+#'   level only.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -633,10 +747,19 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
 #'   level 0 before any local micro-polish.
 #' @param level0_anchor_count Positive integer number of already placed anchors
-#'   to collect for level-0 insertion experiments. The legacy behavior uses 3.
+#'   to collect for level-0 insertion experiments. By default this inherits
+#'   \code{insertion_anchor_count}. The legacy behavior uses 3.
 #' @param level0_local_kk_steps Non-negative integer number of tiny local KK
 #'   micro-polish steps applied immediately after each level-0 insertion. The
 #'   legacy behavior uses 3.
+#' @param lgkk_polish_rounds Non-negative integer number of experimental
+#'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
+#'   \code{0} disables the polish.
+#' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
+#'   vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.
+#' @param lgkk_landmark_count Number of farthest-point landmarks retained per
+#'   vertex in the LGKK sparse long-range set when
+#'   \code{lgkk_polish_rounds > 0}.
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
@@ -670,9 +793,14 @@ grip.layout.globalrep <- function(edges = NULL,
                                   final_anchor_factor = 0,
                                   final_move_scale_after_first = 1,
                                   final_mode = c("fr", "kk_repulse"),
+                                  insertion_anchor_count = 3,
+                                  insertion_anchor_scope = c("any_higher", "prev_misf"),
                                   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                                  level0_anchor_count = 3,
+                                  level0_anchor_count = insertion_anchor_count,
                                   level0_local_kk_steps = 3,
+                                  lgkk_polish_rounds = 0L,
+                                  lgkk_local_nbrs = 20L,
+                                  lgkk_landmark_count = 8L,
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
@@ -716,6 +844,7 @@ grip.layout.globalrep <- function(edges = NULL,
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
+  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
   level0_insertion_mode <- match.arg(level0_insertion_mode)
   disconnected <- match.arg(disconnected)
 
@@ -747,6 +876,8 @@ grip.layout.globalrep <- function(edges = NULL,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
     final_move_scale_after_first = final_move_scale_after_first,
+    insertion_anchor_count = insertion_anchor_count,
+    insertion_anchor_scope = insertion_anchor_scope,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps
@@ -760,12 +891,22 @@ grip.layout.globalrep <- function(edges = NULL,
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
   final_anchor_factor <- tuning$final_anchor_factor
   final_move_scale_after_first <- tuning$final_move_scale_after_first
+  insertion_anchor_count <- tuning$insertion_anchor_count
+  insertion_anchor_scope <- tuning$insertion_anchor_scope
   level0_insertion_mode <- tuning$level0_insertion_mode
   level0_anchor_count <- tuning$level0_anchor_count
   level0_local_kk_steps <- tuning$level0_local_kk_steps
+  lgkk <- grip.validate.lgkk.polish.inputs(
+    lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count
+  )
+  lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
+  lgkk_landmark_count <- lgkk$lgkk_landmark_count
 
   layout.adj <- function(adj_list, weight_list, n) {
-    grip_layout_globalrep_adj_cpp(
+    coords <- grip_layout_globalrep_adj_cpp(
       adj_list = adj_list,
       weight_list = weight_list,
       n = n,
@@ -783,6 +924,8 @@ grip.layout.globalrep <- function(edges = NULL,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
       final_anchor_factor = final_anchor_factor,
       final_move_scale_after_first = final_move_scale_after_first,
+      insertion_anchor_count = insertion_anchor_count,
+      insertion_anchor_scope = insertion_anchor_scope,
       level0_insertion_mode = level0_insertion_mode,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps,
@@ -790,6 +933,16 @@ grip.layout.globalrep <- function(edges = NULL,
       tinit_factor = as.integer(tinit_factor),
       seed = seed
     )
+    polished <- grip.apply.lgkk.polish(
+      coords = coords,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      rounds = lgkk_polish_rounds,
+      lgkk_local_nbrs = lgkk_local_nbrs,
+      lgkk_landmark_count = lgkk_landmark_count,
+      return_trace = FALSE
+    )
+    polished$coords
   }
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
@@ -888,6 +1041,14 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
+#' @param insertion_anchor_count Positive integer number of anchor vertices used
+#'   during multiscale insertion on non-initial MISF refinement levels. This is
+#'   the closest current implementation to a global \code{K_mish} parameter.
+#' @param insertion_anchor_scope Anchor-eligibility rule used during multiscale
+#'   insertion. \code{"any_higher"} matches the historical GRIP behavior and
+#'   allows anchors from any already placed higher MISF level.
+#'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
+#'   level only.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -895,10 +1056,19 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
 #'   level 0 before any local micro-polish.
 #' @param level0_anchor_count Positive integer number of already placed anchors
-#'   to collect for level-0 insertion experiments. The legacy behavior uses 3.
+#'   to collect for level-0 insertion experiments. By default this inherits
+#'   \code{insertion_anchor_count}. The legacy behavior uses 3.
 #' @param level0_local_kk_steps Non-negative integer number of tiny local KK
 #'   micro-polish steps applied immediately after each level-0 insertion. The
 #'   legacy behavior uses 3.
+#' @param lgkk_polish_rounds Non-negative integer number of experimental
+#'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
+#'   \code{0} disables the polish.
+#' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
+#'   vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.
+#' @param lgkk_landmark_count Number of farthest-point landmarks retained per
+#'   vertex in the LGKK sparse long-range set when
+#'   \code{lgkk_polish_rounds > 0}.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -945,9 +1115,14 @@ grip.layout <- function(edges = NULL,
                         final_anchor_factor = 0,
                         final_move_scale_after_first = 1,
                         final_mode = c("fr", "kk_repulse"),
+                        insertion_anchor_count = 3,
+                        insertion_anchor_scope = c("any_higher", "prev_misf"),
                         level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                        level0_anchor_count = 3,
+                        level0_anchor_count = insertion_anchor_count,
                         level0_local_kk_steps = 3,
+                        lgkk_polish_rounds = 0L,
+                        lgkk_local_nbrs = 20L,
+                        lgkk_landmark_count = 8L,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
@@ -1188,8 +1363,8 @@ grip.layout.legacy <- function(edges = NULL,
 #' @param diagnostic_stress_seed RNG seed base used for per-frame sampled stress
 #'   diagnostics.
 #' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
-#'   \code{trace.every}, and optionally \code{diagnostics}. \code{final} is the
-#'   final coordinate matrix.
+#'   \code{trace.every}, and optionally \code{diagnostics} and
+#'   \code{lgkk.polish}. \code{final} is the final coordinate matrix.
 #'   \code{frames} is a list of coordinate matrices with \code{NA} rows for
 #'   vertices that have not yet been introduced by GRIP. \code{meta} is a data
 #'   frame describing each frame with columns \code{frame}, \code{phase},
@@ -1231,9 +1406,14 @@ grip.layout.trace <- function(edges = NULL,
                               final_anchor_factor = 0,
                               final_move_scale_after_first = 1,
                               final_mode = c("fr", "kk_repulse"),
+                              insertion_anchor_count = 3,
+                              insertion_anchor_scope = c("any_higher", "prev_misf"),
                               level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                              level0_anchor_count = 3,
+                              level0_anchor_count = insertion_anchor_count,
                               level0_local_kk_steps = 3,
+                              lgkk_polish_rounds = 0L,
+                              lgkk_local_nbrs = 20L,
+                              lgkk_landmark_count = 8L,
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
@@ -1284,6 +1464,7 @@ grip.layout.trace <- function(edges = NULL,
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
+  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
   level0_insertion_mode <- match.arg(level0_insertion_mode)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
@@ -1324,6 +1505,8 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
     final_move_scale_after_first = final_move_scale_after_first,
+    insertion_anchor_count = insertion_anchor_count,
+    insertion_anchor_scope = insertion_anchor_scope,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps
@@ -1337,9 +1520,19 @@ grip.layout.trace <- function(edges = NULL,
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
   final_anchor_factor <- tuning$final_anchor_factor
   final_move_scale_after_first <- tuning$final_move_scale_after_first
+  insertion_anchor_count <- tuning$insertion_anchor_count
+  insertion_anchor_scope <- tuning$insertion_anchor_scope
   level0_insertion_mode <- tuning$level0_insertion_mode
   level0_anchor_count <- tuning$level0_anchor_count
   level0_local_kk_steps <- tuning$level0_local_kk_steps
+  lgkk <- grip.validate.lgkk.polish.inputs(
+    lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count
+  )
+  lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
+  lgkk_landmark_count <- lgkk$lgkk_landmark_count
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -1368,6 +1561,8 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
     final_move_scale_after_first = final_move_scale_after_first,
+    insertion_anchor_count = insertion_anchor_count,
+    insertion_anchor_scope = insertion_anchor_scope,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps,
@@ -1377,6 +1572,37 @@ grip.layout.trace <- function(edges = NULL,
     trace = trace,
     trace_every = trace.every
   )
+  if (lgkk_polish_rounds > 0L) {
+    polished <- grip.apply.lgkk.polish(
+      coords = out$final,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      rounds = lgkk_polish_rounds,
+      lgkk_local_nbrs = lgkk_local_nbrs,
+      lgkk_landmark_count = lgkk_landmark_count,
+      return_trace = TRUE
+    )
+    if (length(polished$frames) > 1L) {
+      add.frames <- polished$frames[-1L]
+      add.meta <- data.frame(
+        frame = seq.int(nrow(out$meta) + 1L, nrow(out$meta) + length(add.frames)),
+        phase = rep("lgkk", length(add.frames)),
+        level_index = rep(tail(out$meta$level_index, 1L), length(add.frames)),
+        misf_level = rep(tail(out$meta$misf_level, 1L), length(add.frames)),
+        round_in_level = seq_len(length(add.frames)),
+        active_vertices = rep(n, length(add.frames)),
+        stringsAsFactors = FALSE
+      )
+      out$frames <- c(out$frames, add.frames)
+      out$meta <- rbind(out$meta, add.meta)
+    } else {
+      out$frames[[length(out$frames)]] <- polished$coords
+    }
+    out$final <- polished$coords
+    out$lgkk.polish <- polished$trace
+  } else {
+    out$lgkk.polish <- data.frame()
+  }
   out$trace <- trace
   out$trace.every <- trace.every
   out$diagnostics <- grip.trace.compute.diagnostics(

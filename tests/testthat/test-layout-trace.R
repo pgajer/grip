@@ -148,6 +148,77 @@ test_that("grip.layout.trace final matches grip.layout for level-0 insertion kno
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("grip.layout.trace final matches grip.layout for insertion anchor knobs", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = n,
+                                  dim = 2,
+                                  rounds = 8,
+                                  final_rounds = 8,
+                                  num_init = 6,
+                                  num_nbrs = 8,
+                                  coarse_repulsion_factor = 0.3,
+                                  coarse_repulsion_sample = 8,
+                                  coarse_repulsion_exact_below = 32,
+                                  insertion_anchor_count = 6,
+                                  insertion_anchor_scope = "prev_misf",
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 43)
+  coords <- grip.layout(edges = edges,
+                        n = n,
+                        dim = 2,
+                        rounds = 8,
+                        final_rounds = 8,
+                        num_init = 6,
+                        num_nbrs = 8,
+                        coarse_repulsion_factor = 0.3,
+                        coarse_repulsion_sample = 8,
+                        coarse_repulsion_exact_below = 32,
+                        insertion_anchor_count = 6,
+                        insertion_anchor_scope = "prev_misf",
+                        seed = 43)
+  expect_identical(tr_primary$final, coords)
+})
+
+test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
+  edges <- edges.mesh(5, 5)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = 25,
+                                  dim = 2,
+                                  rounds = 8,
+                                  final_rounds = 8,
+                                  num_init = 6,
+                                  num_nbrs = 8,
+                                  coarse_repulsion_factor = 0.3,
+                                  coarse_repulsion_sample = 8,
+                                  coarse_repulsion_exact_below = 32,
+                                  lgkk_polish_rounds = 4,
+                                  lgkk_local_nbrs = 6,
+                                  lgkk_landmark_count = 4,
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 47)
+  coords <- grip.layout(edges = edges,
+                        n = 25,
+                        dim = 2,
+                        rounds = 8,
+                        final_rounds = 8,
+                        num_init = 6,
+                        num_nbrs = 8,
+                        coarse_repulsion_factor = 0.3,
+                        coarse_repulsion_sample = 8,
+                        coarse_repulsion_exact_below = 32,
+                        lgkk_polish_rounds = 4,
+                        lgkk_local_nbrs = 6,
+                        lgkk_landmark_count = 4,
+                        seed = 47)
+  expect_identical(tr_primary$final, coords)
+  expect_true(any(tr_primary$meta$phase == "lgkk"))
+  expect_equal(tr_primary$frames[[length(tr_primary$frames)]], tr_primary$final)
+})
+
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
@@ -275,6 +346,24 @@ test_that("trace validates tuning parameters", {
     grip.layout.trace(edges = edges,
                       n = 8,
                       dim = 2,
+                      insertion_anchor_count = 0,
+                      trace = "round",
+                      seed = 123),
+    "insertion_anchor_count must be a positive integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      insertion_anchor_scope = "banana",
+                      trace = "round",
+                      seed = 123),
+    "'arg' should be one of"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
                       diagnostics = "light",
                       target_coords = matrix(0, nrow = 7, ncol = 2),
                       trace = "round",
@@ -316,6 +405,33 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "level0_local_kk_steps must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_polish_rounds = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_polish_rounds must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_local_nbrs = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_local_nbrs must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_landmark_count = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_landmark_count must be a non-negative integer"
   )
 })
 

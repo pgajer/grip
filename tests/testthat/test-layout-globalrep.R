@@ -178,6 +178,72 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
   expect_gt(max(abs(coords_no_local_kk - coords_ls)), 1e-6)
 })
 
+test_that("global insertion anchor knobs can change the layout", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+
+  coords_base <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       insertion_anchor_count = 3,
+                                       insertion_anchor_scope = "any_higher",
+                                       seed = 53)
+  coords_more <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       insertion_anchor_count = 6,
+                                       insertion_anchor_scope = "any_higher",
+                                       seed = 53)
+  coords_prev <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       insertion_anchor_count = 6,
+                                       insertion_anchor_scope = "prev_misf",
+                                       seed = 53)
+
+  expect_gt(max(abs(coords_base - coords_more)), 1e-6)
+  expect_gt(max(abs(coords_more - coords_prev)), 1e-6)
+})
+
+test_that("globalrep LGKK polish knobs can change the layout", {
+  edges <- edges.mesh(5, 5)
+  coords_base <- grip.layout.globalrep(
+    edges, n = 25, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_polish_rounds = 0,
+    seed = 61
+  )
+  coords_polish <- grip.layout.globalrep(
+    edges, n = 25, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_polish_rounds = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    seed = 61
+  )
+  expect_gt(max(abs(coords_base - coords_polish)), 1e-6)
+})
+
 test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
@@ -212,6 +278,18 @@ test_that("globalrep validates the new tuning parameters", {
   )
   expect_error(
     grip.layout.globalrep(edges, n = 10, dim = 2,
+                          insertion_anchor_count = 0,
+                          seed = 1),
+    "insertion_anchor_count must be a positive integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          insertion_anchor_scope = "banana",
+                          seed = 1),
+    "'arg' should be one of"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
                           final_mode = "banana",
                           seed = 1),
     "'arg' should be one of"
@@ -233,6 +311,24 @@ test_that("globalrep validates the new tuning parameters", {
                           level0_local_kk_steps = -1,
                           seed = 1),
     "level0_local_kk_steps must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_polish_rounds = -1,
+                          seed = 1),
+    "lgkk_polish_rounds must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_local_nbrs = -1,
+                          seed = 1),
+    "lgkk_local_nbrs must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_landmark_count = -1,
+                          seed = 1),
+    "lgkk_landmark_count must be a non-negative integer"
   )
 })
 
@@ -257,9 +353,14 @@ test_that("globalrep small-graph defaults match the new fixed candidate profile"
     coarse_repulsion_factor = 1.5,
     coarse_repulsion_sample = 16,
     coarse_repulsion_exact_below = 64,
+    insertion_anchor_count = 3,
+    insertion_anchor_scope = "any_higher",
     level0_insertion_mode = "inherit",
     level0_anchor_count = 3,
     level0_local_kk_steps = 3,
+    lgkk_polish_rounds = 0,
+    lgkk_local_nbrs = 20,
+    lgkk_landmark_count = 8,
     seed = 7
   )
   expect_identical(coords_default, coords_explicit)
@@ -279,9 +380,14 @@ test_that("globalrep larger-graph defaults taper final_rounds only", {
     coarse_repulsion_factor = 1.5,
     coarse_repulsion_sample = 16,
     coarse_repulsion_exact_below = 64,
+    insertion_anchor_count = 3,
+    insertion_anchor_scope = "any_higher",
     level0_insertion_mode = "inherit",
     level0_anchor_count = 3,
     level0_local_kk_steps = 3,
+    lgkk_polish_rounds = 0,
+    lgkk_local_nbrs = 20,
+    lgkk_landmark_count = 8,
     seed = 9
   )
   expect_identical(coords_default, coords_explicit)
