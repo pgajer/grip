@@ -77,6 +77,41 @@ test_that("grip.layout.trace final matches grip.layout for kk_repulse mode", {
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("grip.layout.trace final matches grip.layout for structural FR knobs", {
+  edges <- edges.mesh(5, 5)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = 25,
+                                  dim = 2,
+                                  rounds = 8,
+                                  final_rounds = 8,
+                                  num_init = 6,
+                                  num_nbrs = 8,
+                                  coarse_repulsion_factor = 0.3,
+                                  coarse_repulsion_sample = 8,
+                                  coarse_repulsion_exact_below = 32,
+                                  final_anchor_factor = 1,
+                                  final_move_scale_after_first = 0.5,
+                                  final_mode = "fr",
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 41)
+  coords <- grip.layout(edges = edges,
+                        n = 25,
+                        dim = 2,
+                        rounds = 8,
+                        final_rounds = 8,
+                        num_init = 6,
+                        num_nbrs = 8,
+                        coarse_repulsion_factor = 0.3,
+                        coarse_repulsion_sample = 8,
+                        coarse_repulsion_exact_below = 32,
+                        final_anchor_factor = 1,
+                        final_move_scale_after_first = 0.5,
+                        final_mode = "fr",
+                        seed = 41)
+  expect_identical(tr_primary$final, coords)
+})
+
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
@@ -181,6 +216,24 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "coarse_repulsion_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      final_anchor_factor = -0.1,
+                      trace = "round",
+                      seed = 123),
+    "final_anchor_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      final_move_scale_after_first = 1.1,
+                      trace = "round",
+                      seed = 123),
+    "final_move_scale_after_first must be in \\[0, 1\\]"
   )
   expect_error(
     grip.layout.trace(edges = edges,

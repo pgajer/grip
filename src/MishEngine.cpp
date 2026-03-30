@@ -26,6 +26,7 @@ void DrawGraph::mish_engine()
             firstRound = false;
             rounds = initRounds; 
             prevMishSize = 0;
+            currentRoundInLevel = 0;
             
             // Assign random positions to the initial set of vertices
             for(size_tt i = 0; i < csize; i++){
@@ -36,6 +37,11 @@ void DrawGraph::mish_engine()
             for(size_tt i = 0; i < csize; i++)
                 pos[mish[i]] -= baricenter;
             trace_round_in_level = 0;
+            if(!misfLevel && csize == numOfVert){
+                for(size_tt i = 0; i < csize; i++)
+                    finalAnchorPos[mish[i]] = pos[mish[i]];
+                finalAnchorReady = true;
+            }
             trace_begin_level(csize);
             
             debug("csize="<< numOfInitVert
@@ -68,6 +74,12 @@ void DrawGraph::mish_engine()
         
             for(size_tt i = prevSize; i < csize; i++)
                 bfs_me_v4(mish[i]);
+            currentRoundInLevel = 0;
+            if(!misfLevel && csize == numOfVert){
+                for(size_tt i = 0; i < csize; i++)
+                    finalAnchorPos[mish[i]] = pos[mish[i]];
+                finalAnchorReady = true;
+            }
             trace_round_in_level = 0;
             trace_begin_level(csize);
             
@@ -80,6 +92,7 @@ void DrawGraph::mish_engine()
     
         if( !createList && ctr++ < rounds ){
             activeVertCount = csize;
+            currentRoundInLevel = ctr;
             for(size_tt i = 0; i < csize; i++){
                 //perform local force-directed modifications
                 // rounds-ctr is used here as a destroyFlag
@@ -97,6 +110,11 @@ void DrawGraph::mish_engine()
                 
                 if(dispNorm[mish[i]])
                     disp[mish[i]] /= dispNorm[mish[i]];
+                if(!misfLevel &&
+                   finalStageMode == FINAL_STAGE_FR &&
+                   currentRoundInLevel > 1 &&
+                   finalMoveScaleAfterFirst < 1)
+                    disp[mish[i]] *= finalMoveScaleAfterFirst;
             }
             for(size_tt i = 0; i < csize; i++)
                 pos[mish[i]] += disp[mish[i]];
@@ -171,6 +189,9 @@ void DrawGraph::FR_spring(const size_tt vert,
         vect *= (float)(fedge2/norm2);
         disp[vert] += vect;
     }
+
+    if(!misfLayer)
+        add_final_anchor_force(vert);
     
 //      for(size_tt i = 0; i < 2*nbr[misfLayer]; i += 2){
 //          overt = *ptr++;

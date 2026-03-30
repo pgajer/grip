@@ -28,7 +28,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _finalStageMode,
                      coord_t _coarseRepulsionFactor,
                      size_tt _coarseRepulsionSample,
-                     size_tt _coarseRepulsionExactBelow)
+                     size_tt _coarseRepulsionExactBelow,
+                     coord_t _finalAnchorFactor,
+                     coord_t _finalMoveScaleAfterFirst)
 : createList(false),
   graph(_graph),
   dim(_dim),
@@ -56,10 +58,15 @@ DrawGraph::DrawGraph(const Graph &_graph,
   coarseFedge2(_coarseRepulsionFactor * 0.05 * edge2),
   coarseRepulsionSample(_coarseRepulsionSample),
   coarseRepulsionExactBelow(_coarseRepulsionExactBelow),
+  finalAnchorFactor(_finalAnchorFactor),
+  finalMoveScaleAfterFirst(_finalMoveScaleAfterFirst),
   activeVertCount(0),
+  currentRoundInLevel(0),
+  finalAnchorReady(false),
   traceMode(TRACE_NONE),
   traceEvery(1),
-  traceLevelIndex(0)
+  traceLevelIndex(0),
+  finalAnchorPos(_graph.get_numOfVert())
 {
 #define DEBUG 0
     if( dim != 2 && dim != 3 )

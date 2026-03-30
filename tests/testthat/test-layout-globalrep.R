@@ -106,6 +106,31 @@ test_that("globalrep final_mode can switch the final stage", {
   expect_gt(max(abs(coords_fr - coords_kkr)), 1e-6)
 })
 
+test_that("globalrep structural final-stage knobs can change the layout", {
+  edges <- edges.mesh(5, 5)
+  coords_base <- grip.layout.globalrep(edges, n = 25, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       final_mode = "fr",
+                                       seed = 31)
+  coords_struct <- grip.layout.globalrep(edges, n = 25, dim = 2,
+                                         placement = "barycenter",
+                                         rounds = 8, final_rounds = 8,
+                                         num_init = 6, num_nbrs = 8,
+                                         coarse_repulsion_factor = 0.3,
+                                         coarse_repulsion_sample = 8,
+                                         coarse_repulsion_exact_below = 32,
+                                         final_anchor_factor = 1,
+                                         final_move_scale_after_first = 0.5,
+                                         final_mode = "fr",
+                                         seed = 31)
+  expect_gt(max(abs(coords_base - coords_struct)), 1e-6)
+})
+
 test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
@@ -125,6 +150,18 @@ test_that("globalrep validates the new tuning parameters", {
                           coarse_repulsion_exact_below = 0,
                           seed = 1),
     "coarse_repulsion_exact_below must be a positive integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          final_anchor_factor = -0.1,
+                          seed = 1),
+    "final_anchor_factor must be >= 0"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          final_move_scale_after_first = 1.1,
+                          seed = 1),
+    "final_move_scale_after_first must be in \\[0, 1\\]"
   )
   expect_error(
     grip.layout.globalrep(edges, n = 10, dim = 2,

@@ -55,7 +55,9 @@ class DrawGraph
               size_tt _finalStageMode = FINAL_STAGE_FR,
               coord_t _coarseRepulsionFactor = 0.0,
               size_tt _coarseRepulsionSample = 0,
-              size_tt _coarseRepulsionExactBelow = 0);
+              size_tt _coarseRepulsionExactBelow = 0,
+              coord_t _finalAnchorFactor = 0.0,
+              coord_t _finalMoveScaleAfterFirst = 1.0);
     
     ~DrawGraph();
 
@@ -108,6 +110,7 @@ class DrawGraph
     void add_coarse_global_repulsion_sampled(const size_tt vert,
                                              size_tt activeCount,
                                              size_tt sampleCount);
+    void add_final_anchor_force(const size_tt vert);
     
 
     // Generate a list of random positions of numOfVert points in dim
@@ -203,13 +206,18 @@ private:
     coord_t coarseFedge2;
     size_tt coarseRepulsionSample;
     size_tt coarseRepulsionExactBelow;
+    coord_t finalAnchorFactor;
+    coord_t finalMoveScaleAfterFirst;
     size_tt activeVertCount;
     size_tt misfLevel;
     size_tt initMishHeight;
+    size_tt currentRoundInLevel;
+    bool finalAnchorReady;
     Point<> vect;    // an auxiliary vector holding vert1 - vert2
     size_tt traceMode;
     size_tt traceEvery;
     size_tt traceLevelIndex;
+    std::vector<Point<>> finalAnchorPos;
     std::vector<std::vector<double>> traceFrames;
     std::vector<std::string> tracePhases;
     std::vector<int> traceLevelIndices;
