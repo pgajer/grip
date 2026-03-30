@@ -48,6 +48,8 @@ corridor, and hole-center diagnostics.
 Metrics are reported so that larger \code{global.symmetry.score} and
 \code{edge.axis.concentration} are better, while smaller
 \code{procrustes.rmse}, \code{local.angle.deviation},
-\code{boundary.waviness}, \code{corridor.waviness}, and
-\code{hole.center.error} are better.
+\code{boundary.waviness}, \code{corridor.waviness},
+\code{hole.center.error}, \code{central.hole.skew},
+\code{central.hole.aspect.error}, and \code{central.hole.center.error} are
+better.
 }

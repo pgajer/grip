@@ -63,6 +63,9 @@ test_that("grip.geometry.diagnostics returns strong carpet diagnostics on the ca
   expect_lt(diag$boundary.waviness[[1L]], 1e-10)
   expect_lt(diag$corridor.waviness[[1L]], 1e-10)
   expect_lt(diag$hole.center.error[[1L]], 1e-10)
+  expect_lt(diag$central.hole.skew[[1L]], 1e-10)
+  expect_lt(diag$central.hole.aspect.error[[1L]], 1e-10)
+  expect_lt(diag$central.hole.center.error[[1L]], 1e-10)
 })
 
 test_that("grip.geometry.diagnostics detects geometric degradation on a perturbed carpet", {
@@ -98,6 +101,9 @@ test_that("grip.geometry.diagnostics detects geometric degradation on a perturbe
   expect_gt(degraded$boundary.waviness[[1L]], baseline$boundary.waviness[[1L]])
   expect_gt(degraded$corridor.waviness[[1L]], baseline$corridor.waviness[[1L]])
   expect_gt(degraded$hole.center.error[[1L]], baseline$hole.center.error[[1L]])
+  expect_gt(degraded$central.hole.skew[[1L]], baseline$central.hole.skew[[1L]])
+  expect_gt(degraded$central.hole.aspect.error[[1L]], baseline$central.hole.aspect.error[[1L]])
+  expect_gt(degraded$central.hole.center.error[[1L]], baseline$central.hole.center.error[[1L]])
 })
 
 test_that("grip.geometry.diagnostics leaves carpet-only measures NA for non-carpet graphs", {
@@ -122,4 +128,7 @@ test_that("grip.geometry.diagnostics leaves carpet-only measures NA for non-carp
   expect_true(is.na(diag$boundary.waviness[[1L]]))
   expect_true(is.na(diag$corridor.waviness[[1L]]))
   expect_true(is.na(diag$hole.center.error[[1L]]))
+  expect_true(is.na(diag$central.hole.skew[[1L]]))
+  expect_true(is.na(diag$central.hole.aspect.error[[1L]]))
+  expect_true(is.na(diag$central.hole.center.error[[1L]]))
 })

@@ -282,6 +282,7 @@ grip.carpet.metadata <- function(target.coords) {
         mean((side + 0.5) - component[, 2L])
       )
       holes[[length(holes) + 1L]] <- list(
+        size = nrow(component),
         center = normalize.point(hole.center),
         boundary.vertices = unique(adjacent),
         corridor.refs = corridor.refs
@@ -298,6 +299,62 @@ grip.carpet.metadata <- function(target.coords) {
       bottom = which(cell.y == side - 1L)
     ),
     holes = holes
+  )
+}
+
+grip.carpet.central.hole.metrics <- function(aligned, target.norm, holes) {
+  empty <- list(
+    central.hole.skew = NA_real_,
+    central.hole.aspect.error = NA_real_,
+    central.hole.center.error = NA_real_
+  )
+  if (length(holes) == 0L) {
+    return(empty)
+  }
+
+  hole.sizes <- vapply(holes, function(hole) hole$size, numeric(1L))
+  hole <- holes[[which.max(hole.sizes)]]
+  ids <- hole$boundary.vertices
+  if (length(ids) == 0L) {
+    return(empty)
+  }
+
+  target.boundary <- target.norm[ids, , drop = FALSE]
+  x.min <- min(target.boundary[, 1L])
+  x.max <- max(target.boundary[, 1L])
+  y.min <- min(target.boundary[, 2L])
+  y.max <- max(target.boundary[, 2L])
+  width.target <- x.max - x.min
+  height.target <- y.max - y.min
+  scale <- mean(c(width.target, height.target))
+  if (!is.finite(scale) || scale <= 0) {
+    scale <- max(width.target, height.target, 1)
+  }
+
+  tol.x <- max(width.target * 0.05, 1e-8)
+  tol.y <- max(height.target * 0.05, 1e-8)
+  left.ids <- ids[abs(target.boundary[, 1L] - x.min) <= tol.x]
+  right.ids <- ids[abs(target.boundary[, 1L] - x.max) <= tol.x]
+  bottom.ids <- ids[abs(target.boundary[, 2L] - y.min) <= tol.y]
+  top.ids <- ids[abs(target.boundary[, 2L] - y.max) <= tol.y]
+  if (length(left.ids) == 0L || length(right.ids) == 0L ||
+      length(bottom.ids) == 0L || length(top.ids) == 0L) {
+    return(empty)
+  }
+
+  top.x <- mean(aligned[top.ids, 1L])
+  bottom.x <- mean(aligned[bottom.ids, 1L])
+  left.y <- mean(aligned[left.ids, 2L])
+  right.y <- mean(aligned[right.ids, 2L])
+  width.est <- mean(aligned[right.ids, 1L]) - mean(aligned[left.ids, 1L])
+  height.est <- mean(aligned[top.ids, 2L]) - mean(aligned[bottom.ids, 2L])
+  center.est <- colMeans(aligned[ids, , drop = FALSE])
+  target.center <- colMeans(target.boundary)
+
+  list(
+    central.hole.skew = sqrt((top.x - bottom.x)^2 + (left.y - right.y)^2) / scale,
+    central.hole.aspect.error = abs(abs(width.est) - abs(height.est)) / scale,
+    central.hole.center.error = sqrt(sum((center.est - target.center)^2))
   )
 }
 
@@ -343,11 +400,16 @@ grip.carpet.diagnostics <- function(coords, target.coords) {
     }
   }
 
+  central <- grip.carpet.central.hole.metrics(aligned, target.norm, meta$holes)
+
   list(
     procrustes.rmse = fit$rmse,
     boundary.waviness = if (length(boundary.devs) > 0L) mean(boundary.devs) else NA_real_,
     corridor.waviness = if (length(corridor.devs) > 0L) mean(corridor.devs) else NA_real_,
     hole.center.error = if (length(hole.center.err) > 0L) mean(hole.center.err) else NA_real_,
+    central.hole.skew = central$central.hole.skew,
+    central.hole.aspect.error = central$central.hole.aspect.error,
+    central.hole.center.error = central$central.hole.center.error,
     aligned = fit$aligned,
     target = fit$target
   )
@@ -365,8 +427,10 @@ grip.carpet.diagnostics <- function(coords, target.coords) {
 #' Metrics are reported so that larger \code{global.symmetry.score} and
 #' \code{edge.axis.concentration} are better, while smaller
 #' \code{procrustes.rmse}, \code{local.angle.deviation},
-#' \code{boundary.waviness}, \code{corridor.waviness}, and
-#' \code{hole.center.error} are better.
+#' \code{boundary.waviness}, \code{corridor.waviness},
+#' \code{hole.center.error}, \code{central.hole.skew},
+#' \code{central.hole.aspect.error}, and \code{central.hole.center.error} are
+#' better.
 #'
 #' @param coords Numeric layout matrix with 2 or 3 columns.
 #' @param target.coords Canonical target coordinates with the same shape as
@@ -416,6 +480,9 @@ grip.geometry.diagnostics <- function(coords,
     boundary.waviness = NA_real_,
     corridor.waviness = NA_real_,
     hole.center.error = NA_real_,
+    central.hole.skew = NA_real_,
+    central.hole.aspect.error = NA_real_,
+    central.hole.center.error = NA_real_,
     stringsAsFactors = FALSE
   )
 
@@ -424,6 +491,9 @@ grip.geometry.diagnostics <- function(coords,
     out$boundary.waviness[[1L]] <- carpet$boundary.waviness
     out$corridor.waviness[[1L]] <- carpet$corridor.waviness
     out$hole.center.error[[1L]] <- carpet$hole.center.error
+    out$central.hole.skew[[1L]] <- carpet$central.hole.skew
+    out$central.hole.aspect.error[[1L]] <- carpet$central.hole.aspect.error
+    out$central.hole.center.error[[1L]] <- carpet$central.hole.center.error
   }
 
   out
