@@ -218,15 +218,19 @@ gripui_validate_project <- function(project) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' edges <- edges.path(6)
-#' cmp <- grip.compare.layouts(edges = edges, n = 6, seeds = 1, return.layouts = TRUE)
+#' edges <- edges.path(5)
+#' cmp <- grip.compare.layouts(
+#'   edges = edges,
+#'   n = 5,
+#'   candidates = "default",
+#'   seeds = 1L,
+#'   return.layouts = TRUE
+#' )
 #' graph <- list(
-#'   adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), c(4L, 6L), 5L)
+#'   adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), 4L)
 #' )
 #' project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 #' nrow(project$layouts)
-#' }
 gripui_project_from_compare <- function(compare_obj,
                                         graph = NULL,
                                         vertex_data = NULL,
@@ -409,9 +413,48 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' project <- gripui_project_from_dir("/path/to/saved/outputs", title = "My project")
-#' }
+#' root <- tempfile("gripui-bundle-")
+#' dir.create(root)
+#' on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+#' dir.create(file.path(root, "catalog"), recursive = TRUE, showWarnings = FALSE)
+#' dir.create(file.path(root, "graph"), recursive = TRUE, showWarnings = FALSE)
+#' dir.create(file.path(root, "artifacts", "layouts"), recursive = TRUE, showWarnings = FALSE)
+#'
+#' graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
+#' saveRDS(graph, file.path(root, "graph", "graph.rds"))
+#'
+#' coords.path <- file.path(root, "artifacts", "layouts", "toy_embedding.tsv")
+#' utils::write.table(
+#'   data.frame(
+#'     vertex_id = c("v1", "v2", "v3"),
+#'     x = c(1, 2, 3),
+#'     y = c(0, 0, 0),
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   file = coords.path,
+#'   sep = "\t",
+#'   quote = TRUE,
+#'   row.names = FALSE,
+#'   col.names = TRUE
+#' )
+#' utils::write.table(
+#'   data.frame(
+#'     candidate = "toy.layout",
+#'     stage = "bundle",
+#'     seed = 1L,
+#'     status = "ok",
+#'     coords_path = file.path("artifacts", "layouts", "toy_embedding.tsv"),
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   file = file.path(root, "catalog", "layout_catalog.tsv"),
+#'   sep = "\t",
+#'   quote = TRUE,
+#'   row.names = FALSE,
+#'   col.names = TRUE
+#' )
+#'
+#' project <- gripui_project_from_dir(root, title = "My project")
+#' project$layouts$availability
 gripui_project_from_dir <- function(root,
                                     graph = NULL,
                                     title = NULL,

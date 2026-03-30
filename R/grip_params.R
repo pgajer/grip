@@ -13,23 +13,16 @@
 #'   \code{preset} (included only when the summary row records a non-empty
 #'   preset).
 #' @examples
-#' \dontrun{
-#' edges <- edges.mesh(6, 6)
-#' cmp <- grip.compare.layouts(edges, n = 36, dim = 2,
-#'                             candidates = c("default", "mesh"),
-#'                             seeds = 1)
+#' edges <- edges.path(5)
+#' cmp <- grip.compare.layouts(edges, n = 5, dim = 2,
+#'                             candidates = "default",
+#'                             seeds = 1L)
 #' params <- grip.params.from.summary(cmp$summary[1, ])
-#' coords <- grip.layout(edges, n = 36, dim = 2,
-#'                        placement      = params$placement,
-#'                        rounds         = params$rounds,
-#'                        final_rounds   = params$final_rounds,
-#'                        num_init       = params$num_init,
-#'                        num_nbrs       = params$num_nbrs,
-#'                        r              = params$r,
-#'                        s              = params$s,
-#'                        repulsion_factor = params$repulsion_factor,
-#'                        seed = 42)
-#' }
+#' coords <- do.call(
+#'   grip.layout,
+#'   c(list(edges = edges, n = 5, dim = 2, seed = 42L), params)
+#' )
+#' round(coords, 2)
 #' @export
 grip.params.from.summary <- function(summary.row) {
   if (!is.data.frame(summary.row) || nrow(summary.row) == 0L) {

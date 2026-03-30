@@ -68,3 +68,35 @@ test_that("gripui_app constructs from grip.compare.layouts output", {
   expect_true(is.function(app$httpHandler))
   expect_true(is.function(app$serverFuncSource))
 })
+
+test_that("run_gripui can auto-stop for automated checks", {
+  old.rgl <- getOption("rgl.useNULL")
+  options(rgl.useNULL = TRUE)
+  on.exit(options(rgl.useNULL = old.rgl), add = TRUE)
+
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("DT")
+  skip_if_not_installed("htmltools")
+  skip_if_not_installed("later")
+  skip_if_not_installed("rgl")
+
+  graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
+  layouts <- data.frame(
+    candidate = "toy.layout",
+    stage = "layout",
+    seed = 1L,
+    status = "ok",
+    stringsAsFactors = FALSE
+  )
+  project <- gripui_project(graph = graph, layouts = layouts, title = "Toy project")
+
+  expect_invisible(
+    run_gripui(
+      project,
+      launch.browser = FALSE,
+      quiet = TRUE,
+      auto.stop.after = 0.1
+    )
+  )
+})

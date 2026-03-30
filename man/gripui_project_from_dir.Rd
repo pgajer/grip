@@ -26,7 +26,46 @@ A `gripui_project`.
 Create a `gripui_project` from a directory of saved artifacts
 }
 \examples{
-\dontrun{
-project <- gripui_project_from_dir("/path/to/saved/outputs", title = "My project")
-}
+root <- tempfile("gripui-bundle-")
+dir.create(root)
+on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
+dir.create(file.path(root, "catalog"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root, "graph"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root, "artifacts", "layouts"), recursive = TRUE, showWarnings = FALSE)
+
+graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
+saveRDS(graph, file.path(root, "graph", "graph.rds"))
+
+coords.path <- file.path(root, "artifacts", "layouts", "toy_embedding.tsv")
+utils::write.table(
+  data.frame(
+    vertex_id = c("v1", "v2", "v3"),
+    x = c(1, 2, 3),
+    y = c(0, 0, 0),
+    stringsAsFactors = FALSE
+  ),
+  file = coords.path,
+  sep = "\t",
+  quote = TRUE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+utils::write.table(
+  data.frame(
+    candidate = "toy.layout",
+    stage = "bundle",
+    seed = 1L,
+    status = "ok",
+    coords_path = file.path("artifacts", "layouts", "toy_embedding.tsv"),
+    stringsAsFactors = FALSE
+  ),
+  file = file.path(root, "catalog", "layout_catalog.tsv"),
+  sep = "\t",
+  quote = TRUE,
+  row.names = FALSE,
+  col.names = TRUE
+)
+
+project <- gripui_project_from_dir(root, title = "My project")
+project$layouts$availability
 }
