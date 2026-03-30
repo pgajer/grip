@@ -23,9 +23,26 @@ grip.normalize.coords <- function(coords) {
   centered / radius
 }
 
+grip.normalize.coords.with.meta <- function(coords) {
+  coords <- grip.validate.coords(coords)
+  center <- colMeans(coords)
+  centered <- sweep(coords, 2L, center, check.margin = FALSE)
+  radius <- max(sqrt(rowSums(centered^2)))
+  if (!is.finite(radius) || radius <= 0) {
+    radius <- 1
+  }
+  list(
+    center = center,
+    radius = radius,
+    normalized = centered / radius
+  )
+}
+
 grip.align.to.target.nd <- function(source, target, allow.reflection = TRUE) {
-  src <- grip.normalize.coords(source)
-  dst <- grip.normalize.coords(target)
+  src.meta <- grip.normalize.coords.with.meta(source)
+  dst.meta <- grip.normalize.coords.with.meta(target)
+  src <- src.meta$normalized
+  dst <- dst.meta$normalized
   cross <- t(src) %*% dst
   sv <- svd(cross)
   rot <- sv$u %*% t(sv$v)
@@ -40,6 +57,376 @@ grip.align.to.target.nd <- function(source, target, allow.reflection = TRUE) {
     target = dst,
     rmse = sqrt(mean(rowSums((aligned - dst)^2)))
   )
+}
+
+grip.axis.permutations <- function(dim) {
+  if (dim == 2L) {
+    return(list(c(1L, 2L), c(2L, 1L)))
+  }
+  if (dim == 3L) {
+    return(list(
+      c(1L, 2L, 3L),
+      c(1L, 3L, 2L),
+      c(2L, 1L, 3L),
+      c(2L, 3L, 1L),
+      c(3L, 1L, 2L),
+      c(3L, 2L, 1L)
+    ))
+  }
+  stop("dim must be 2 or 3")
+}
+
+grip.sample.symmetry.points <- function(coords, sample.size, rng.seed) {
+  n <- nrow(coords)
+  sample.size <- max(1L, min(as.integer(sample.size), n))
+  if (sample.size >= n) {
+    return(coords)
+  }
+  set.seed(rng.seed)
+  coords[sample.int(n, sample.size, replace = FALSE), , drop = FALSE]
+}
+
+grip.min.match.distance <- function(source, target) {
+  src2 <- rowSums(source^2)
+  dst2 <- rowSums(target^2)
+  d2 <- outer(src2, dst2, "+") - 2 * (source %*% t(target))
+  mean(sqrt(pmax(0, apply(d2, 1L, min))))
+}
+
+grip.global.symmetry.score <- function(coords,
+                                       sample.size = 512L,
+                                       rng.seed = 1L) {
+  coords <- grip.validate.coords(coords)
+  centered <- grip.normalize.coords(coords)
+  sample.coords <- grip.sample.symmetry.points(centered, sample.size, rng.seed)
+  dim <- ncol(sample.coords)
+  perms <- grip.axis.permutations(dim)
+  sign.grid <- expand.grid(rep(list(c(-1, 1)), dim), KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  best.error <- Inf
+
+  for (perm in perms) {
+    for (i in seq_len(nrow(sign.grid))) {
+      signs <- as.numeric(sign.grid[i, , drop = TRUE])
+      if (identical(perm, seq_len(dim)) && all(signs == 1)) {
+        next
+      }
+      transformed <- sweep(sample.coords[, perm, drop = FALSE], 2L, signs, `*`)
+      err <- grip.min.match.distance(transformed, sample.coords)
+      if (is.finite(err) && err < best.error) {
+        best.error <- err
+      }
+    }
+  }
+
+  if (!is.finite(best.error)) {
+    return(NA_real_)
+  }
+  max(0, 1 - best.error / 2)
+}
+
+grip.sample.wedges <- function(adj.list, sample.size, rng.seed) {
+  eligible <- which(lengths(adj.list) >= 2L)
+  if (length(eligible) == 0L) {
+    return(matrix(integer(), ncol = 3L))
+  }
+  sample.size <- as.integer(sample.size)
+  if (is.na(sample.size) || sample.size <= 0L) {
+    return(matrix(integer(), ncol = 3L))
+  }
+  set.seed(rng.seed)
+  out <- matrix(0L, nrow = sample.size, ncol = 3L)
+  for (i in seq_len(sample.size)) {
+    v <- sample(eligible, 1L)
+    pair <- sample(adj.list[[v]], 2L, replace = FALSE)
+    out[i, ] <- c(pair[[1L]], v, pair[[2L]])
+  }
+  unique(out)
+}
+
+grip.angle.between <- function(a, b) {
+  na <- sqrt(sum(a * a))
+  nb <- sqrt(sum(b * b))
+  if (!is.finite(na) || !is.finite(nb) || na <= 0 || nb <= 0) {
+    return(NA_real_)
+  }
+  cos.theta <- sum(a * b) / (na * nb)
+  acos(max(-1, min(1, cos.theta)))
+}
+
+grip.local.angle.deviation <- function(coords,
+                                       target.coords,
+                                       edges,
+                                       sample.size = 4000L,
+                                       rng.seed = 1L) {
+  coords <- grip.validate.coords(coords)
+  target.coords <- grip.validate.coords(target.coords)
+  if (!identical(dim(coords), dim(target.coords))) {
+    stop("coords and target.coords must have the same dimensions")
+  }
+  fit <- grip.align.to.target.nd(coords, target.coords, allow.reflection = TRUE)
+  adj.list <- grip.make.adj.list(edges, nrow(coords))
+  wedges <- grip.sample.wedges(adj.list, sample.size, rng.seed)
+  if (nrow(wedges) == 0L) {
+    return(NA_real_)
+  }
+
+  diffs <- numeric(nrow(wedges))
+  keep <- logical(nrow(wedges))
+  for (i in seq_len(nrow(wedges))) {
+    u <- wedges[i, 1L]
+    v <- wedges[i, 2L]
+    w <- wedges[i, 3L]
+    layout.angle <- grip.angle.between(fit$aligned[u, ] - fit$aligned[v, ],
+                                       fit$aligned[w, ] - fit$aligned[v, ])
+    target.angle <- grip.angle.between(fit$target[u, ] - fit$target[v, ],
+                                       fit$target[w, ] - fit$target[v, ])
+    if (is.finite(layout.angle) && is.finite(target.angle)) {
+      diffs[[i]] <- abs(layout.angle - target.angle) / pi
+      keep[[i]] <- TRUE
+    }
+  }
+  if (!any(keep)) {
+    return(NA_real_)
+  }
+  mean(diffs[keep])
+}
+
+grip.edge.axis.concentration <- function(coords, edges) {
+  coords <- grip.validate.coords(coords)
+  edges <- as.matrix(edges)
+  if (nrow(edges) == 0L) {
+    return(NA_real_)
+  }
+  diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+  lens <- sqrt(rowSums(diffs^2))
+  keep <- is.finite(lens) & lens > 0
+  if (!any(keep)) {
+    return(NA_real_)
+  }
+  unit <- diffs[keep, , drop = FALSE] / lens[keep]
+  mean(apply(abs(unit), 1L, max))
+}
+
+grip.carpet.metadata <- function(target.coords) {
+  target.coords <- grip.validate.coords(target.coords)
+  if (ncol(target.coords) != 2L) {
+    stop("carpet diagnostics require 2D target coordinates")
+  }
+
+  side <- as.integer(round(max(target.coords[, 1L]) + 0.5))
+  cell.x <- as.integer(round(target.coords[, 1L] - 0.5))
+  cell.y <- as.integer(round((side - 0.5) - target.coords[, 2L]))
+  if (any(cell.x < 0L | cell.x >= side | cell.y < 0L | cell.y >= side)) {
+    stop("target.coords do not look like Sierpinski carpet cell centers")
+  }
+
+  id.map <- matrix(0L, nrow = side, ncol = side)
+  for (i in seq_len(nrow(target.coords))) {
+    id.map[cell.x[[i]] + 1L, cell.y[[i]] + 1L] <- i
+  }
+  missing <- id.map == 0L
+  visited <- matrix(FALSE, nrow = side, ncol = side)
+  holes <- list()
+
+  norm.meta <- grip.normalize.coords.with.meta(target.coords)
+  normalize.point <- function(pt) {
+    (pt - norm.meta$center) / norm.meta$radius
+  }
+
+  for (x in seq_len(side)) {
+    for (y in seq_len(side)) {
+      if (!missing[x, y] || visited[x, y]) {
+        next
+      }
+      queue <- matrix(c(x, y), ncol = 2L)
+      visited[x, y] <- TRUE
+      head <- 1L
+      component <- queue
+      adjacent <- integer(0L)
+      corridor.refs <- list()
+
+      while (head <= nrow(queue)) {
+        cur.x <- queue[head, 1L]
+        cur.y <- queue[head, 2L]
+        head <- head + 1L
+        nbrs <- rbind(
+          c(cur.x - 1L, cur.y),
+          c(cur.x + 1L, cur.y),
+          c(cur.x, cur.y - 1L),
+          c(cur.x, cur.y + 1L)
+        )
+        for (k in seq_len(nrow(nbrs))) {
+          nx <- nbrs[k, 1L]
+          ny <- nbrs[k, 2L]
+          if (nx < 1L || nx > side || ny < 1L || ny > side) {
+            next
+          }
+          if (missing[nx, ny]) {
+            if (!visited[nx, ny]) {
+              visited[nx, ny] <- TRUE
+              queue <- rbind(queue, c(nx, ny))
+              component <- rbind(component, c(nx, ny))
+            }
+          } else {
+            vid <- id.map[nx, ny]
+            adjacent <- c(adjacent, vid)
+            axis <- if (nx != cur.x) "x" else "y"
+            ref.val <- if (axis == "x") target.coords[vid, 1L] else target.coords[vid, 2L]
+            corridor.refs[[length(corridor.refs) + 1L]] <- list(vertex = vid, axis = axis, ref = ref.val)
+          }
+        }
+      }
+
+      hole.center <- c(
+        mean(component[, 1L] - 0.5),
+        mean((side + 0.5) - component[, 2L])
+      )
+      holes[[length(holes) + 1L]] <- list(
+        center = normalize.point(hole.center),
+        boundary.vertices = unique(adjacent),
+        corridor.refs = corridor.refs
+      )
+    }
+  }
+
+  list(
+    target.normalized = norm.meta$normalized,
+    outer.boundary = list(
+      left = which(cell.x == 0L),
+      right = which(cell.x == side - 1L),
+      top = which(cell.y == 0L),
+      bottom = which(cell.y == side - 1L)
+    ),
+    holes = holes
+  )
+}
+
+grip.carpet.diagnostics <- function(coords, target.coords) {
+  fit <- grip.align.to.target.nd(coords, target.coords, allow.reflection = TRUE)
+  meta <- grip.carpet.metadata(target.coords)
+  target.norm <- meta$target.normalized
+  aligned <- fit$aligned
+
+  side.dev <- function(ids, axis) {
+    if (length(ids) == 0L) {
+      return(numeric(0L))
+    }
+    abs(aligned[ids, axis] - target.norm[ids, axis])
+  }
+
+  boundary.devs <- c(
+    side.dev(meta$outer.boundary$left, 1L),
+    side.dev(meta$outer.boundary$right, 1L),
+    side.dev(meta$outer.boundary$top, 2L),
+    side.dev(meta$outer.boundary$bottom, 2L)
+  )
+
+  corridor.devs <- numeric(0L)
+  hole.center.err <- numeric(0L)
+  for (hole in meta$holes) {
+    refs <- hole$corridor.refs
+    if (length(refs) > 0L) {
+      for (ref in refs) {
+        axis <- if (identical(ref$axis, "x")) 1L else 2L
+        norm.ref <- if (axis == 1L) {
+          target.norm[ref$vertex, 1L]
+        } else {
+          target.norm[ref$vertex, 2L]
+        }
+        corridor.devs <- c(corridor.devs, abs(aligned[ref$vertex, axis] - norm.ref))
+      }
+    }
+    vids <- hole$boundary.vertices
+    if (length(vids) > 0L) {
+      center.est <- colMeans(aligned[vids, , drop = FALSE])
+      hole.center.err <- c(hole.center.err, sqrt(sum((center.est - hole$center)^2)))
+    }
+  }
+
+  list(
+    procrustes.rmse = fit$rmse,
+    boundary.waviness = if (length(boundary.devs) > 0L) mean(boundary.devs) else NA_real_,
+    corridor.waviness = if (length(corridor.devs) > 0L) mean(corridor.devs) else NA_real_,
+    hole.center.error = if (length(hole.center.err) > 0L) mean(hole.center.err) else NA_real_,
+    aligned = fit$aligned,
+    target = fit$target
+  )
+}
+
+#' Geometry-aware diagnostics against a canonical target
+#'
+#' \code{grip.geometry.diagnostics()} augments the graph-aware quality measures
+#' in \code{\link{grip.score.layout}()} with target-aware geometric diagnostics.
+#' The function aligns \code{coords} to \code{target.coords} using an orthogonal
+#' Procrustes fit, then reports global symmetry, local angle preservation,
+#' edge-axis concentration, and, for Sierpinski carpet layouts, boundary,
+#' corridor, and hole-center diagnostics.
+#'
+#' Metrics are reported so that larger \code{global.symmetry.score} and
+#' \code{edge.axis.concentration} are better, while smaller
+#' \code{procrustes.rmse}, \code{local.angle.deviation},
+#' \code{boundary.waviness}, \code{corridor.waviness}, and
+#' \code{hole.center.error} are better.
+#'
+#' @param coords Numeric layout matrix with 2 or 3 columns.
+#' @param target.coords Canonical target coordinates with the same shape as
+#'   \code{coords}.
+#' @param edges Two-column integer edge matrix.
+#' @param family Optional graph-family label. Use \code{"sierpinski.carpet"} to
+#'   enable carpet-specific diagnostics.
+#' @param sample.size.symmetry Number of vertices sampled when evaluating global
+#'   symmetry.
+#' @param sample.size.wedges Number of wedges sampled when evaluating local
+#'   angle deviation.
+#' @param rng.seed Integer seed used for the symmetry and wedge sampling.
+#'
+#' @return A one-row data frame of geometric diagnostics.
+#' @export
+grip.geometry.diagnostics <- function(coords,
+                                      target.coords,
+                                      edges,
+                                      family = NULL,
+                                      sample.size.symmetry = 512L,
+                                      sample.size.wedges = 4000L,
+                                      rng.seed = 1L) {
+  coords <- grip.validate.coords(coords)
+  target.coords <- grip.validate.coords(target.coords)
+  if (!identical(dim(coords), dim(target.coords))) {
+    stop("coords and target.coords must have the same dimensions")
+  }
+  edges <- as.matrix(edges)
+  if (ncol(edges) != 2L) {
+    stop("edges must be a two-column matrix")
+  }
+
+  fit <- grip.align.to.target.nd(coords, target.coords, allow.reflection = TRUE)
+  axis.conc <- grip.edge.axis.concentration(fit$aligned, edges)
+  out <- data.frame(
+    procrustes.rmse = fit$rmse,
+    global.symmetry.score = grip.global.symmetry.score(fit$aligned,
+                                                       sample.size = sample.size.symmetry,
+                                                       rng.seed = rng.seed),
+    local.angle.deviation = grip.local.angle.deviation(coords,
+                                                       target.coords,
+                                                       edges,
+                                                       sample.size = sample.size.wedges,
+                                                       rng.seed = rng.seed + 1000L),
+    edge.axis.concentration = axis.conc,
+    edge.axis.deviation = if (is.finite(axis.conc)) 1 - axis.conc else NA_real_,
+    boundary.waviness = NA_real_,
+    corridor.waviness = NA_real_,
+    hole.center.error = NA_real_,
+    stringsAsFactors = FALSE
+  )
+
+  if (identical(family, "sierpinski.carpet")) {
+    carpet <- grip.carpet.diagnostics(coords, target.coords)
+    out$boundary.waviness[[1L]] <- carpet$boundary.waviness
+    out$corridor.waviness[[1L]] <- carpet$corridor.waviness
+    out$hole.center.error[[1L]] <- carpet$hole.center.error
+  }
+
+  out
 }
 
 grip.edges.from.adj.list <- function(adj.list) {

@@ -25,6 +25,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      coord_t _repulsionFactor,
                      size_tt _placementMode,
                      bool _displayPar   ,
+                     size_tt _finalStageMode,
                      coord_t _coarseRepulsionFactor,
                      size_tt _coarseRepulsionSample,
                      size_tt _coarseRepulsionExactBelow)
@@ -48,6 +49,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
   placementMode((_placementMode == PLACEMENT_CIRCLE)
                     ? PLACEMENT_CIRCLE
                     : PLACEMENT_BARYCENTER),
+  finalStageMode((_finalStageMode == FINAL_STAGE_KK_REPULSE)
+                     ? FINAL_STAGE_KK_REPULSE
+                     : FINAL_STAGE_FR),
   fedge2(_repulsionFactor * 0.05 * edge2),
   coarseFedge2(_coarseRepulsionFactor * 0.05 * edge2),
   coarseRepulsionSample(_coarseRepulsionSample),

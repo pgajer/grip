@@ -83,7 +83,9 @@ void DrawGraph::mish_engine()
             for(size_tt i = 0; i < csize; i++){
                 //perform local force-directed modifications
                 // rounds-ctr is used here as a destroyFlag
-                if(!misfLevel)
+                if(!misfLevel && finalStageMode == FINAL_STAGE_KK_REPULSE)
+                    KK_spring_final(mish[i], nbrs[mish[i]][misfLevel], misfLevel);
+                else if(!misfLevel)
                     FR_spring(mish[i], nbrs[mish[i]][misfLevel], misfLevel);
                 else
                     KK_spring_v4(mish[i], nbrs[mish[i]][misfLevel], misfLevel);

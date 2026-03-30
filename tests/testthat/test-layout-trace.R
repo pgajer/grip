@@ -46,6 +46,37 @@ test_that("grip.layout.trace final matches grip.layout", {
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("grip.layout.trace final matches grip.layout for kk_repulse mode", {
+  edges <- edges.mesh(5, 5)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = 25,
+                                  dim = 2,
+                                  rounds = 8,
+                                  final_rounds = 8,
+                                  num_init = 6,
+                                  num_nbrs = 8,
+                                  coarse_repulsion_factor = 0.3,
+                                  coarse_repulsion_sample = 8,
+                                  coarse_repulsion_exact_below = 32,
+                                  final_mode = "kk_repulse",
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 41)
+  coords <- grip.layout(edges = edges,
+                        n = 25,
+                        dim = 2,
+                        rounds = 8,
+                        final_rounds = 8,
+                        num_init = 6,
+                        num_nbrs = 8,
+                        coarse_repulsion_factor = 0.3,
+                        coarse_repulsion_sample = 8,
+                        coarse_repulsion_exact_below = 32,
+                        final_mode = "kk_repulse",
+                        seed = 41)
+  expect_identical(tr_primary$final, coords)
+})
+
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
@@ -160,6 +191,15 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "nrow\\(target_coords\\) must match the graph size"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      final_mode = "banana",
+                      trace = "round",
+                      seed = 123),
+    "'arg' should be one of"
   )
 })
 

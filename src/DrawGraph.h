@@ -26,6 +26,8 @@ using size_tt = uint32_t;
 #define TRACE_NONE 0
 #define TRACE_ROUND 1
 #define TRACE_LEVEL 2
+#define FINAL_STAGE_FR 0
+#define FINAL_STAGE_KK_REPULSE 1
 
 //**************************************************************
 //
@@ -50,6 +52,7 @@ class DrawGraph
               coord_t _repulsionFactor,
               size_tt _placementMode,
               bool _displayPar     ,
+              size_tt _finalStageMode = FINAL_STAGE_FR,
               coord_t _coarseRepulsionFactor = 0.0,
               size_tt _coarseRepulsionSample = 0,
               size_tt _coarseRepulsionExactBelow = 0);
@@ -69,6 +72,9 @@ class DrawGraph
     void KK_spring_v4(const size_tt root,
                       size_tt *rootNbrsLayer,
                       size_tt mishLayer);
+    void KK_spring_final(const size_tt root,
+                         size_tt *rootNbrsLayer,
+                         size_tt mishLayer);
     void FR_spring_v2(const size_tt vert,
                       size_tt *vertNbrs,
                       size_tt misfLayer);
@@ -87,6 +93,16 @@ class DrawGraph
                    size_tt mishLayer);
     void add_coarse_global_repulsion(const size_tt vert,
                                      size_tt activeCount);
+    void add_active_global_repulsion(const size_tt vert,
+                                     size_tt activeCount,
+                                     coord_t repulsionScale);
+    void add_active_global_repulsion_exact(const size_tt vert,
+                                           size_tt activeCount,
+                                           coord_t repulsionScale);
+    void add_active_global_repulsion_sampled(const size_tt vert,
+                                             size_tt activeCount,
+                                             size_tt sampleCount,
+                                             coord_t repulsionScale);
     void add_coarse_global_repulsion_exact(const size_tt vert,
                                            size_tt activeCount);
     void add_coarse_global_repulsion_sampled(const size_tt vert,
@@ -182,6 +198,7 @@ private:
     bool listSwitch;
     bool displayPar;
     size_tt placementMode;
+    size_tt finalStageMode;
     coord_t fedge2;
     coord_t coarseFedge2;
     size_tt coarseRepulsionSample;
