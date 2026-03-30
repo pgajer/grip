@@ -32,6 +32,7 @@ void validate_globalrep_tuning_args(int num_nbrs,
                                     int coarse_repulsion_exact_below,
                                     double final_anchor_factor,
                                     double final_move_scale_after_first,
+                                    int insertion_anchor_count,
                                     int level0_anchor_count,
                                     int level0_local_kk_steps)
 {
@@ -48,6 +49,8 @@ void validate_globalrep_tuning_args(int num_nbrs,
        final_move_scale_after_first < 0.0 ||
        final_move_scale_after_first > 1.0)
         Rcpp::stop("final_move_scale_after_first must be finite and in [0, 1]");
+    if(insertion_anchor_count <= 0)
+        Rcpp::stop("insertion_anchor_count must be a positive integer");
     if(level0_anchor_count <= 0)
         Rcpp::stop("level0_anchor_count must be a positive integer");
     if(level0_local_kk_steps < 0)
@@ -72,6 +75,15 @@ size_tt level0_insertion_mode_from_string(const std::string &mode)
     if(mode == "least_squares")
         return LEVEL0_INSERT_LEAST_SQUARES;
     Rcpp::stop("level0_insertion_mode must be 'inherit', 'barycenter', or 'least_squares'");
+}
+
+size_tt insertion_anchor_scope_from_string(const std::string &scope)
+{
+    if(scope == "any_higher")
+        return INSERT_ANCHOR_SCOPE_ANY_HIGHER;
+    if(scope == "prev_misf")
+        return INSERT_ANCHOR_SCOPE_PREV_MISF;
+    Rcpp::stop("insertion_anchor_scope must be 'any_higher' or 'prev_misf'");
 }
 
 } // namespace
@@ -300,6 +312,8 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     int coarse_repulsion_exact_below,
     double final_anchor_factor,
     double final_move_scale_after_first,
+    int insertion_anchor_count,
+    std::string insertion_anchor_scope,
     std::string level0_insertion_mode,
     int level0_anchor_count,
     int level0_local_kk_steps,
@@ -332,6 +346,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                                    coarse_repulsion_exact_below,
                                    final_anchor_factor,
                                    final_move_scale_after_first,
+                                   insertion_anchor_count,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -382,6 +397,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
+    size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
 
     DrawGraph dg(graph,
@@ -402,6 +418,8 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                  static_cast<size_tt>(coarse_repulsion_exact_below),
                  final_anchor_factor,
                  final_move_scale_after_first,
+                 static_cast<size_tt>(insertion_anchor_count),
+                 insertion_scope,
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps));
@@ -579,6 +597,8 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                                int coarse_repulsion_exact_below,
                                                double final_anchor_factor,
                                                double final_move_scale_after_first,
+                                               int insertion_anchor_count,
+                                               std::string insertion_anchor_scope,
                                                std::string level0_insertion_mode,
                                                int level0_anchor_count,
                                                int level0_local_kk_steps,
@@ -618,6 +638,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                    coarse_repulsion_exact_below,
                                    final_anchor_factor,
                                    final_move_scale_after_first,
+                                   insertion_anchor_count,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -668,6 +689,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
+    size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
 
     DrawGraph dg(graph,
@@ -688,6 +710,8 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                  static_cast<size_tt>(coarse_repulsion_exact_below),
                  final_anchor_factor,
                  final_move_scale_after_first,
+                 static_cast<size_tt>(insertion_anchor_count),
+                 insertion_scope,
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps));

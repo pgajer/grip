@@ -78,7 +78,7 @@ void DrawGraph::bfs_me_v4(size_tt root)
     FastQueue<size_tt> vertDepthQueue(4*numOfVert);// an array based queue
 
     bool level0Insertion = (misfLevel == 0);
-    size_tt numOfCloseVert = level0Insertion ? level0AnchorCount : 3;
+    size_tt numOfCloseVert = level0Insertion ? level0AnchorCount : insertionAnchorCount;
     if(numOfCloseVert == 0)
         numOfCloseVert = 1;
     std::vector<size_tt> closeVert(numOfCloseVert);
@@ -90,6 +90,14 @@ void DrawGraph::bfs_me_v4(size_tt root)
     if(insertionPlacementMode == LEVEL0_INSERT_INHERIT)
         insertionPlacementMode = placementMode;
     size_tt localKkSteps = level0Insertion ? level0LocalKkSteps : 3;
+    size_tt rootDepth = vertDepth[root];
+    auto eligibleAnchor = [&](size_tt overt){
+        if(vertDepth[overt] <= rootDepth)
+            return false;
+        if(insertionAnchorScope == INSERT_ANCHOR_SCOPE_PREV_MISF)
+            return vertDepth[overt] == rootDepth + 1;
+        return true;
+    };
 
     auto finalizeInsertion = [&](size_tt anchorCount){
         if(anchorCount == 0)
@@ -154,7 +162,7 @@ void DrawGraph::bfs_me_v4(size_tt root)
                         bottomNbrsLayer = i+1;
 
                 if( !closeVertDone && closeVertItr < numOfCloseVert &&
-                    vertDepth[overt] > vertDepth[root]){
+                    eligibleAnchor(overt)){
                     closeVertDist[closeVertItr] = currentDepth;
                     closeVert[closeVertItr++] = overt;
 

@@ -31,6 +31,8 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _coarseRepulsionExactBelow,
                      coord_t _finalAnchorFactor,
                      coord_t _finalMoveScaleAfterFirst,
+                     size_tt _insertionAnchorCount,
+                     size_tt _insertionAnchorScope,
                      size_tt _level0InsertionMode,
                      size_tt _level0AnchorCount,
                      size_tt _level0LocalKkSteps)
@@ -63,6 +65,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
   coarseRepulsionExactBelow(_coarseRepulsionExactBelow),
   finalAnchorFactor(_finalAnchorFactor),
   finalMoveScaleAfterFirst(_finalMoveScaleAfterFirst),
+  insertionAnchorCount(std::max<size_tt>(1, _insertionAnchorCount)),
+  insertionAnchorScope((_insertionAnchorScope == INSERT_ANCHOR_SCOPE_PREV_MISF)
+                           ? INSERT_ANCHOR_SCOPE_PREV_MISF
+                           : INSERT_ANCHOR_SCOPE_ANY_HIGHER),
   level0InsertionMode((_level0InsertionMode == LEVEL0_INSERT_BARYCENTER)
                           ? LEVEL0_INSERT_BARYCENTER
                           : (_level0InsertionMode == LEVEL0_INSERT_LEAST_SQUARES)

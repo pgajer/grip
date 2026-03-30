@@ -120,3 +120,31 @@ test_that("landmark geodesic KK prefers the canonical carpet over a perturbed ca
   expect_lt(canonical_score$lgkk.energy[[1L]], perturbed_score$lgkk.energy[[1L]])
   expect_lt(canonical_score$lgkk.weighted.rmse[[1L]], perturbed_score$lgkk.weighted.rmse[[1L]])
 })
+
+test_that("landmark geodesic KK optimizer decreases the prototype energy", {
+  built <- build_test_sierpinski_carpet_lgkk(2L)
+  prepared <- grip.prepare.landmark.geodesic.kk(
+    edges = built$edges,
+    n = nrow(built$coords),
+    local_nbrs = 6L,
+    landmark_count = 4L
+  )
+
+  perturbed <- built$coords
+  set.seed(19)
+  perturbed <- perturbed + matrix(rnorm(length(perturbed), sd = 0.2), ncol = 2L)
+
+  before <- grip.score.landmark.geodesic.kk(perturbed, prepared = prepared)
+  opt <- grip.optimize.landmark.geodesic.kk(
+    coords = perturbed,
+    prepared = prepared,
+    max_iter = 8L,
+    return_trace = TRUE
+  )
+  after <- grip.score.landmark.geodesic.kk(opt$coords, prepared = prepared)
+
+  expect_lt(after$lgkk.energy[[1L]], before$lgkk.energy[[1L]])
+  expect_lt(after$lgkk.weighted.rel.rmse[[1L]], before$lgkk.weighted.rel.rmse[[1L]])
+  expect_true(nrow(opt$trace) >= 2L)
+  expect_true(length(opt$frames) >= 2L)
+})

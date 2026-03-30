@@ -26,9 +26,14 @@ grip.layout.globalrep(
   final_anchor_factor = 0,
   final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
+  insertion_anchor_count = 3,
+  insertion_anchor_scope = c("any_higher", "prev_misf"),
   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-  level0_anchor_count = 3,
+  level0_anchor_count = insertion_anchor_count,
   level0_local_kk_steps = 3,
+  lgkk_polish_rounds = 0L,
+  lgkk_local_nbrs = 20L,
+  lgkk_landmark_count = 8L,
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -106,6 +111,16 @@ current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 KK-style local distance-matching update with explicit active-set
 repulsion instead of the final FR phase.}
 
+\item{insertion_anchor_count}{Positive integer number of anchor vertices used
+during multiscale insertion on non-initial MISF refinement levels. This is
+the closest current implementation to a global \code{K_mish} parameter.}
+
+\item{insertion_anchor_scope}{Anchor-eligibility rule used during multiscale
+insertion. \code{"any_higher"} matches the historical GRIP behavior and
+allows anchors from any already placed higher MISF level.
+\code{"prev_misf"} restricts anchors to the immediately previous MISF
+level only.}
+
 \item{level0_insertion_mode}{Level-0 insertion placement override used only
 when the finest filtration level is first populated. \code{"inherit"}
 keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -114,11 +129,23 @@ circle heuristic at level 0 and uses barycentric anchor placement.
 level 0 before any local micro-polish.}
 
 \item{level0_anchor_count}{Positive integer number of already placed anchors
-to collect for level-0 insertion experiments. The legacy behavior uses 3.}
+to collect for level-0 insertion experiments. By default this inherits
+\code{insertion_anchor_count}. The legacy behavior uses 3.}
 
 \item{level0_local_kk_steps}{Non-negative integer number of tiny local KK
 micro-polish steps applied immediately after each level-0 insertion. The
 legacy behavior uses 3.}
+
+\item{lgkk_polish_rounds}{Non-negative integer number of experimental
+landmark-geodesic KK polish iterations applied after the main GRIP solve.
+\code{0} disables the polish.}
+
+\item{lgkk_local_nbrs}{Number of nearest graph-metric neighbors retained per
+vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.}
+
+\item{lgkk_landmark_count}{Number of farthest-point landmarks retained per
+vertex in the LGKK sparse long-range set when
+\code{lgkk_polish_rounds > 0}.}
 
 \item{tinit_factor}{Initial temperature factor.}
 

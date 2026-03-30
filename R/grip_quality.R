@@ -859,11 +859,20 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 
   parents <- lapply(trees, `[[`, "parent")
   path.vertices <- vector("list", nrow(pair.matrix))
+  path.edges <- vector("list", nrow(pair.matrix))
   pair.graph.distance <- numeric(nrow(pair.matrix))
   for (i in seq_len(nrow(pair.matrix))) {
     src <- pair.matrix[i, 1L]
     dst <- pair.matrix[i, 2L]
     path.vertices[[i]] <- grip.reconstruct.path.vertices(parents[[src]], src, dst)
+    if (length(path.vertices[[i]]) >= 2L) {
+      path.edges[[i]] <- cbind(
+        path.vertices[[i]][-length(path.vertices[[i]])],
+        path.vertices[[i]][-1L]
+      )
+    } else {
+      path.edges[[i]] <- matrix(integer(), ncol = 2L)
+    }
     pair.graph.distance[[i]] <- dist.matrix[src, dst]
   }
 
@@ -877,6 +886,7 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
     pair_matrix = pair.matrix,
     pair_graph_distance = as.double(pair.graph.distance),
     path_vertices = path.vertices,
+    path_edges = path.edges,
     graph_diameter = max(dist.matrix),
     distance_matrix = dist.matrix
   )
@@ -1021,6 +1031,336 @@ grip.score.landmark.geodesic.kk <- function(coords,
     ))
   }
   out
+}
+
+grip.lgkk.path.lengths <- function(coords,
+                                   prepared,
+                                   edge_length_epsilon = 1e-8) {
+  vapply(prepared$path_vertices, function(path) {
+    grip.path.euclidean.length(
+      coords,
+      path,
+      edge_length_epsilon = edge_length_epsilon
+    )
+  }, numeric(1L))
+}
+
+grip.lgkk.fit.scale <- function(path.lengths,
+                                graph.distances,
+                                stiffness = 1.0,
+                                distance_floor = 1e-8) {
+  kk <- as.double(stiffness) / pmax(as.double(graph.distances), as.double(distance_floor))^2
+  denom <- sum(kk * graph.distances * graph.distances)
+  if (!is.finite(denom) || denom <= 0) {
+    return(NA_real_)
+  }
+  sum(kk * graph.distances * path.lengths) / denom
+}
+
+grip.lgkk.energy.gradient <- function(coords,
+                                      prepared,
+                                      scale.L0,
+                                      stiffness = 1.0,
+                                      distance_floor = 1e-8,
+                                      edge_length_epsilon = 1e-8) {
+  g <- as.double(prepared$pair_graph_distance)
+  n.pairs <- length(g)
+  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
+  target <- as.double(scale.L0) * g
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  energy <- 0
+  path.lengths <- numeric(n.pairs)
+
+  if (n.pairs == 0L) {
+    return(list(
+      energy = energy,
+      gradient = grad,
+      gradient_norm = 0,
+      path_lengths = path.lengths,
+      target = target
+    ))
+  }
+
+  for (i in seq_len(n.pairs)) {
+    edges <- prepared$path_edges[[i]]
+    if (nrow(edges) == 0L) {
+      next
+    }
+    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+    edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+    h <- sum(edge.lengths)
+    path.lengths[[i]] <- h
+    resid <- h - target[[i]]
+    coeff <- kk[[i]] * resid
+    energy <- energy + 0.5 * kk[[i]] * resid^2
+    unit.vecs <- diffs / edge.lengths
+    for (j in seq_len(nrow(edges))) {
+      u <- edges[j, 1L]
+      v <- edges[j, 2L]
+      grad[u, ] <- grad[u, ] + coeff * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - coeff * unit.vecs[j, ]
+    }
+  }
+
+  list(
+    energy = energy,
+    gradient = grad,
+    gradient_norm = sqrt(sum(grad^2)),
+    path_lengths = path.lengths,
+    target = target
+  )
+}
+
+#' Optimize a layout under the landmark geodesic KK energy
+#'
+#' \code{grip.optimize.landmark.geodesic.kk()} applies a deterministic
+#' warm-started gradient-descent polish under the sparse landmark geodesic KK
+#' energy. This is the first experimental optimizer prototype: it starts from an
+#' existing layout and refines it, rather than replacing the full multiscale
+#' GRIP refinement pipeline.
+#'
+#' The current prototype fits the LGKK target scale \code{L0} once from the
+#' starting layout and then optimizes against those fixed target path lengths.
+#' That keeps the gradient simple and makes the resulting line search robust for
+#' an initial implementation.
+#'
+#' @param coords Numeric coordinate matrix with 2 or 3 columns.
+#' @param prepared Optional object returned by
+#'   \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param local_nbrs Number of nearest graph-metric neighbors retained per
+#'   vertex when \code{prepared} is not supplied.
+#' @param landmark_count Number of farthest-point landmarks retained per vertex
+#'   when \code{prepared} is not supplied.
+#' @param max_iter Maximum number of gradient-descent iterations.
+#' @param stiffness Global stiffness constant \(K\).
+#' @param distance_floor Small positive floor used in
+#'   \code{k_ij = K / max(g_ij, distance_floor)^2}.
+#' @param edge_length_epsilon Small positive stabilizer added inside each
+#'   embedded edge length.
+#' @param initial_step Initial line-search step size.
+#' @param step_shrink Multiplicative shrink factor in `(0, 1)` for backtracking.
+#' @param armijo_factor Non-negative Armijo decrease constant.
+#' @param grad_tol Non-negative stopping tolerance on the gradient norm.
+#' @param min_step Positive minimum accepted line-search step before giving up.
+#' @param recenter If \code{TRUE}, recenter the layout to zero mean after each
+#'   accepted step.
+#' @param return_trace If \code{TRUE}, include per-iteration diagnostics and the
+#'   accepted intermediate coordinate frames.
+#'
+#' @return A list with \code{coords}, \code{trace}, \code{frames},
+#'   \code{prepared}, and \code{score}.
+#' @export
+grip.optimize.landmark.geodesic.kk <- function(coords,
+                                               prepared = NULL,
+                                               edges = NULL,
+                                               n = NULL,
+                                               adj_list = NULL,
+                                               weight_list = NULL,
+                                               edge_weights = NULL,
+                                               local_nbrs = 20L,
+                                               landmark_count = 8L,
+                                               max_iter = 16L,
+                                               stiffness = 1.0,
+                                               distance_floor = 1e-8,
+                                               edge_length_epsilon = 1e-8,
+                                               initial_step = 1.0,
+                                               step_shrink = 0.5,
+                                               armijo_factor = 1e-4,
+                                               grad_tol = 1e-8,
+                                               min_step = 1e-8,
+                                               recenter = TRUE,
+                                               return_trace = FALSE) {
+  coords <- grip.validate.coords(coords)
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.landmark.geodesic.kk(
+      edges = edges,
+      n = if (is.null(n)) nrow(coords) else n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights,
+      local_nbrs = local_nbrs,
+      landmark_count = landmark_count
+    )
+  }
+  if (!inherits(prepared, "grip_lgkk_prepared")) {
+    stop("prepared must be NULL or an object from grip.prepare.landmark.geodesic.kk()")
+  }
+  if (nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match the graph size stored in prepared")
+  }
+
+  validate_scalar <- function(x, name, lower = -Inf, upper = Inf, open.lower = FALSE, open.upper = FALSE) {
+    if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
+      stop(sprintf("%s must be a single finite numeric value", name))
+    }
+    if ((open.lower && x <= lower) || (!open.lower && x < lower) ||
+        (open.upper && x >= upper) || (!open.upper && x > upper)) {
+      lower.txt <- if (is.finite(lower)) {
+        if (open.lower) sprintf("(%s", format(lower, digits = 16)) else sprintf("[%s", format(lower, digits = 16))
+      } else {
+        "(-Inf"
+      }
+      upper.txt <- if (is.finite(upper)) {
+        if (open.upper) sprintf("%s)", format(upper, digits = 16)) else sprintf("%s]", format(upper, digits = 16))
+      } else {
+        "Inf)"
+      }
+      stop(sprintf("%s must lie in %s, %s", name, lower.txt, upper.txt))
+    }
+  }
+
+  validate_scalar(max_iter, "max_iter", lower = 0)
+  validate_scalar(stiffness, "stiffness", lower = 0, open.lower = TRUE)
+  validate_scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  validate_scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  validate_scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
+  validate_scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  validate_scalar(armijo_factor, "armijo_factor", lower = 0)
+  validate_scalar(grad_tol, "grad_tol", lower = 0)
+  validate_scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
+  max_iter <- as.integer(round(max_iter))
+  if (is.na(max_iter) || max_iter < 0L) {
+    stop("max_iter must be a non-negative integer")
+  }
+  if (!is.logical(recenter) || length(recenter) != 1L || is.na(recenter)) {
+    stop("recenter must be TRUE or FALSE")
+  }
+  if (!is.logical(return_trace) || length(return_trace) != 1L || is.na(return_trace)) {
+    stop("return_trace must be TRUE or FALSE")
+  }
+
+  if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
+    score <- grip.score.landmark.geodesic.kk(
+      coords = coords,
+      prepared = prepared,
+      stiffness = stiffness,
+      distance_floor = distance_floor,
+      edge_length_epsilon = edge_length_epsilon
+    )
+    return(list(
+      coords = coords,
+      trace = data.frame(),
+      frames = list(coords),
+      prepared = prepared,
+      score = score
+    ))
+  }
+
+  current <- coords
+  initial.path.lengths <- grip.lgkk.path.lengths(
+    current,
+    prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  scale.L0 <- grip.lgkk.fit.scale(
+    path.lengths = initial.path.lengths,
+    graph.distances = prepared$pair_graph_distance,
+    stiffness = stiffness,
+    distance_floor = distance_floor
+  )
+  if (!is.finite(scale.L0)) {
+    stop("failed to fit an initial LGKK scale")
+  }
+
+  trace.rows <- vector("list", max_iter + 1L)
+  accepted.frames <- list(current)
+  state <- grip.lgkk.energy.gradient(
+    current,
+    prepared = prepared,
+    scale.L0 = scale.L0,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  trace.rows[[1L]] <- data.frame(
+    iteration = 0L,
+    energy = state$energy,
+    gradient_norm = state$gradient_norm,
+    step = NA_real_,
+    accepted = TRUE,
+    scale.L0 = scale.L0,
+    stringsAsFactors = FALSE
+  )
+  used <- 1L
+
+  for (iter in seq_len(max_iter)) {
+    if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
+      break
+    }
+    step <- as.double(initial_step)
+    accepted <- FALSE
+    candidate <- current
+    candidate.state <- state
+
+    while (is.finite(step) && step >= min_step) {
+      proposal <- current - step * state$gradient
+      if (isTRUE(recenter)) {
+        proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
+      }
+      proposal.state <- grip.lgkk.energy.gradient(
+        proposal,
+        prepared = prepared,
+        scale.L0 = scale.L0,
+        stiffness = stiffness,
+        distance_floor = distance_floor,
+        edge_length_epsilon = edge_length_epsilon
+      )
+      target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
+      if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
+        candidate <- proposal
+        candidate.state <- proposal.state
+        accepted <- TRUE
+        break
+      }
+      step <- step * step_shrink
+    }
+
+    used <- used + 1L
+    trace.rows[[used]] <- data.frame(
+      iteration = iter,
+      energy = if (accepted) candidate.state$energy else state$energy,
+      gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
+      step = if (accepted) step else NA_real_,
+      accepted = accepted,
+      scale.L0 = scale.L0,
+      stringsAsFactors = FALSE
+    )
+
+    if (!accepted) {
+      break
+    }
+
+    current <- candidate
+    state <- candidate.state
+    accepted.frames[[length(accepted.frames) + 1L]] <- current
+  }
+
+  trace.df <- do.call(rbind, trace.rows[seq_len(used)])
+  score <- grip.score.landmark.geodesic.kk(
+    coords = current,
+    prepared = prepared,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  if (!isTRUE(return_trace)) {
+    trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
+    accepted.frames <- list(current)
+  }
+
+  list(
+    coords = current,
+    trace = trace.df,
+    frames = accepted.frames,
+    prepared = prepared,
+    score = score
+  )
 }
 
 grip.sample.vertex.pairs <- function(n, sample.size, rng.seed) {
