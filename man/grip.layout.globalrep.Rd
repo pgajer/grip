@@ -26,6 +26,9 @@ grip.layout.globalrep(
   final_anchor_factor = 0,
   final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
+  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+  level0_anchor_count = 3,
+  level0_local_kk_steps = 3,
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -102,6 +105,20 @@ damp later full-graph movement while keeping the first FR round unchanged.}
 current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 KK-style local distance-matching update with explicit active-set
 repulsion instead of the final FR phase.}
+
+\item{level0_insertion_mode}{Level-0 insertion placement override used only
+when the finest filtration level is first populated. \code{"inherit"}
+keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
+circle heuristic at level 0 and uses barycentric anchor placement.
+\code{"least_squares"} uses a multi-anchor least-squares distance fit at
+level 0 before any local micro-polish.}
+
+\item{level0_anchor_count}{Positive integer number of already placed anchors
+to collect for level-0 insertion experiments. The legacy behavior uses 3.}
+
+\item{level0_local_kk_steps}{Non-negative integer number of tiny local KK
+micro-polish steps applied immediately after each level-0 insertion. The
+legacy behavior uses 3.}
 
 \item{tinit_factor}{Initial temperature factor.}
 

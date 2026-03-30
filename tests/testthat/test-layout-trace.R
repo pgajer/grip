@@ -112,6 +112,42 @@ test_that("grip.layout.trace final matches grip.layout for structural FR knobs",
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("grip.layout.trace final matches grip.layout for level-0 insertion knobs", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  tr_primary <- grip.layout.trace(edges = edges,
+                                  n = n,
+                                  dim = 2,
+                                  rounds = 8,
+                                  final_rounds = 8,
+                                  num_init = 6,
+                                  num_nbrs = 8,
+                                  coarse_repulsion_factor = 0.3,
+                                  coarse_repulsion_sample = 8,
+                                  coarse_repulsion_exact_below = 32,
+                                  level0_insertion_mode = "least_squares",
+                                  level0_anchor_count = 6,
+                                  level0_local_kk_steps = 0,
+                                  trace = "level",
+                                  trace.every = 1,
+                                  seed = 41)
+  coords <- grip.layout(edges = edges,
+                        n = n,
+                        dim = 2,
+                        rounds = 8,
+                        final_rounds = 8,
+                        num_init = 6,
+                        num_nbrs = 8,
+                        coarse_repulsion_factor = 0.3,
+                        coarse_repulsion_sample = 8,
+                        coarse_repulsion_exact_below = 32,
+                        level0_insertion_mode = "least_squares",
+                        level0_anchor_count = 6,
+                        level0_local_kk_steps = 0,
+                        seed = 41)
+  expect_identical(tr_primary$final, coords)
+})
+
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
@@ -253,6 +289,33 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "'arg' should be one of"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      level0_insertion_mode = "banana",
+                      trace = "round",
+                      seed = 123),
+    "'arg' should be one of"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      level0_anchor_count = 0,
+                      trace = "round",
+                      seed = 123),
+    "level0_anchor_count must be a positive integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      level0_local_kk_steps = -1,
+                      trace = "round",
+                      seed = 123),
+    "level0_local_kk_steps must be a non-negative integer"
   )
 })
 
