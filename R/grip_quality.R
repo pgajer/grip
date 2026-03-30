@@ -506,6 +506,453 @@ grip.graph.distances <- function(adj.list, weight.list, source) {
   grip.dijkstra.distances(adj.list, weight.list, source)
 }
 
+grip.sort.adj.with.weights <- function(adj.list, weight.list = NULL) {
+  out.adj <- vector("list", length(adj.list))
+  out.w <- if (is.null(weight.list)) NULL else vector("list", length(adj.list))
+  for (i in seq_along(adj.list)) {
+    nb <- as.integer(adj.list[[i]])
+    if (length(nb) == 0L) {
+      out.adj[[i]] <- integer(0L)
+      if (!is.null(out.w)) out.w[[i]] <- numeric(0L)
+      next
+    }
+    ord <- order(nb)
+    out.adj[[i]] <- nb[ord]
+    if (!is.null(out.w)) {
+      out.w[[i]] <- as.double(weight.list[[i]][ord])
+    }
+  }
+  list(adj_list = out.adj, weight_list = out.w)
+}
+
+grip.bfs.tree <- function(adj.list, source) {
+  n <- length(adj.list)
+  dist <- rep.int(-1L, n)
+  parent <- integer(n)
+  q <- integer(n)
+  head <- 1L
+  tail <- 1L
+  q[[tail]] <- source
+  dist[[source]] <- 0L
+  while (head <= tail) {
+    v <- q[[head]]
+    head <- head + 1L
+    nb <- adj.list[[v]]
+    if (length(nb) == 0L) next
+    for (u in nb) {
+      cand.dist <- dist[[v]] + 1L
+      if (dist[[u]] == -1L) {
+        dist[[u]] <- cand.dist
+        parent[[u]] <- v
+        tail <- tail + 1L
+        q[[tail]] <- u
+      } else if (dist[[u]] == cand.dist && (parent[[u]] == 0L || v < parent[[u]])) {
+        parent[[u]] <- v
+      }
+    }
+  }
+  list(dist = as.double(dist), parent = as.integer(parent))
+}
+
+grip.dijkstra.tree <- function(adj.list, weight.list, source) {
+  n <- length(adj.list)
+  dist <- rep.int(Inf, n)
+  parent <- integer(n)
+  visited <- rep.int(FALSE, n)
+  dist[[source]] <- 0
+  tol <- sqrt(.Machine$double.eps)
+
+  for (iter in seq_len(n)) {
+    remaining <- which(!visited)
+    if (length(remaining) == 0L) break
+    current.dist <- dist[remaining]
+    v <- remaining[[which.min(current.dist)]]
+    if (!is.finite(dist[[v]])) break
+    visited[[v]] <- TRUE
+    nb <- adj.list[[v]]
+    if (length(nb) == 0L) next
+    ww <- weight.list[[v]]
+    for (k in seq_along(nb)) {
+      u <- nb[[k]]
+      alt <- dist[[v]] + ww[[k]]
+      best <- dist[[u]]
+      equal.dist <- is.finite(best) &&
+        abs(alt - best) <= tol * max(1, abs(alt), abs(best))
+      if (alt + tol < best || (equal.dist && (parent[[u]] == 0L || v < parent[[u]]))) {
+        dist[[u]] <- alt
+        parent[[u]] <- v
+      }
+    }
+  }
+
+  list(dist = as.double(dist), parent = as.integer(parent))
+}
+
+grip.shortest.path.tree <- function(adj.list, weight.list, source) {
+  if (is.null(weight.list)) {
+    return(grip.bfs.tree(adj.list, source))
+  }
+  grip.dijkstra.tree(adj.list, weight.list, source)
+}
+
+grip.closest.active.vertices <- function(dist.row, source, count) {
+  count <- as.integer(count)
+  if (is.na(count) || count <= 0L) {
+    return(integer(0L))
+  }
+  ids <- seq_along(dist.row)
+  keep <- ids != source & is.finite(dist.row)
+  if (!any(keep)) {
+    return(integer(0L))
+  }
+  ids <- ids[keep]
+  vals <- dist.row[keep]
+  ord <- order(vals, ids)
+  ids[ord][seq_len(min(count, length(ids)))]
+}
+
+grip.farthest.landmarks <- function(source, dist.matrix, count) {
+  count <- as.integer(count)
+  if (is.na(count) || count <= 0L) {
+    return(integer(0L))
+  }
+  n <- nrow(dist.matrix)
+  ids <- seq_len(n)
+  keep <- ids != source & is.finite(dist.matrix[source, ])
+  candidates <- ids[keep]
+  if (length(candidates) == 0L) {
+    return(integer(0L))
+  }
+
+  selected <- integer(0L)
+  coverage <- dist.matrix[source, candidates]
+  for (step in seq_len(min(count, length(candidates)))) {
+    if (step == 1L) {
+      scores <- dist.matrix[source, candidates]
+    } else {
+      scores <- coverage
+    }
+    ord <- order(-scores, candidates)
+    choice <- candidates[ord[[1L]]]
+    selected <- c(selected, choice)
+    keep.next <- candidates != choice
+    candidates <- candidates[keep.next]
+    if (length(candidates) == 0L) {
+      break
+    }
+    coverage <- pmin(coverage[keep.next], dist.matrix[choice, candidates])
+  }
+  as.integer(selected)
+}
+
+grip.reconstruct.path.vertices <- function(parent, source, target) {
+  if (source == target) {
+    return(as.integer(source))
+  }
+  path <- integer(0L)
+  cur <- as.integer(target)
+  seen <- logical(length(parent))
+  while (cur != 0L && cur != source) {
+    if (seen[[cur]]) {
+      stop("detected a cycle while reconstructing a chosen shortest path")
+    }
+    seen[[cur]] <- TRUE
+    path <- c(cur, path)
+    cur <- parent[[cur]]
+  }
+  if (cur != source) {
+    stop(sprintf("could not reconstruct a shortest path from %d to %d", source, target))
+  }
+  as.integer(c(source, path))
+}
+
+grip.path.euclidean.length <- function(coords, vertices, edge_length_epsilon = 1e-8) {
+  if (length(vertices) <= 1L) {
+    return(0)
+  }
+  diffs <- coords[vertices[-1L], , drop = FALSE] - coords[vertices[-length(vertices)], , drop = FALSE]
+  sum(sqrt(rowSums(diffs^2) + edge_length_epsilon^2))
+}
+
+#' Prepare sparse landmark-geodesic KK data for repeated layout evaluation
+#'
+#' \code{grip.prepare.landmark.geodesic.kk()} builds the deterministic shortest
+#' path trees, graph-distance cache, sparse local-plus-landmark pair set, and
+#' chosen path realizations needed to evaluate the landmark geodesic KK energy
+#' repeatedly on the same graph. This is intended as a reusable preparation step
+#' for experiments where many layouts of the same graph are compared.
+#'
+#' The sparse set follows the implementation choice recorded in
+#' \code{landmark\_geodesic\_kk\_spec\_2026-03-30.tex}: each vertex contributes
+#' its \code{local_nbrs} nearest active vertices in graph distance and its
+#' \code{landmark_count} farthest-point landmarks, both selected
+#' deterministically.
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
+#'   \code{length(adj_list)}. If omitted with \code{edges}, defaults to
+#'   \code{max(edges)}.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param local_nbrs Number of nearest graph-metric neighbors retained per
+#'   vertex.
+#' @param landmark_count Number of farthest-point landmarks retained per vertex.
+#'
+#' @return A list with the sparse pair set, graph distances, chosen paths, and
+#'   other cached data. The object has class \code{"grip_lgkk_prepared"}.
+#' @export
+grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
+                                              n = NULL,
+                                              adj_list = NULL,
+                                              weight_list = NULL,
+                                              edge_weights = NULL,
+                                              local_nbrs = 20L,
+                                              landmark_count = 8L) {
+  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
+    n <- max(as.integer(edges), na.rm = TRUE)
+  }
+  if (is.null(n) && !is.null(adj_list)) {
+    n <- length(adj_list)
+  }
+  if (is.null(n) || !is.finite(n) || n <= 0L) {
+    stop("n must be provided or inferable from edges/adj_list")
+  }
+  n <- as.integer(n)
+
+  if (!is.numeric(local_nbrs) || length(local_nbrs) != 1L || !is.finite(local_nbrs)) {
+    stop("local_nbrs must be a single finite numeric value")
+  }
+  if (!is.numeric(landmark_count) || length(landmark_count) != 1L || !is.finite(landmark_count)) {
+    stop("landmark_count must be a single finite numeric value")
+  }
+  local_nbrs <- as.integer(round(local_nbrs))
+  landmark_count <- as.integer(round(landmark_count))
+  if (is.na(local_nbrs) || local_nbrs < 0L) {
+    stop("local_nbrs must be >= 0")
+  }
+  if (is.na(landmark_count) || landmark_count < 0L) {
+    stop("landmark_count must be >= 0")
+  }
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = 2L,
+    placement = "barycenter",
+    seed = 1L
+  )
+
+  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
+  adj.list <- sorted$adj_list
+  weight.list <- sorted$weight_list
+  edges <- grip.edges.from.adj.list(adj.list)
+
+  trees <- lapply(seq_len(validated$n), function(source) {
+    grip.shortest.path.tree(adj.list, weight.list, source)
+  })
+  dist.matrix <- do.call(rbind, lapply(trees, `[[`, "dist"))
+  finite.mask <- row(dist.matrix) != col(dist.matrix)
+  if (any(!is.finite(dist.matrix[finite.mask]))) {
+    stop("grip.prepare.landmark.geodesic.kk() currently requires a connected graph")
+  }
+
+  pair.keys <- character(0L)
+  pair.list <- vector("list", validated$n)
+  for (source in seq_len(validated$n)) {
+    local <- grip.closest.active.vertices(dist.matrix[source, ], source, local_nbrs)
+    landmarks <- grip.farthest.landmarks(source, dist.matrix, landmark_count)
+    chosen <- unique(c(local, landmarks))
+    chosen <- chosen[chosen != source]
+    if (length(chosen) == 0L) {
+      pair.list[[source]] <- matrix(integer(), ncol = 2L)
+      next
+    }
+    pairs <- cbind(pmin(source, chosen), pmax(source, chosen))
+    pairs <- unique(pairs)
+    pair.list[[source]] <- pairs
+    pair.keys <- c(pair.keys, paste(pairs[, 1L], pairs[, 2L], sep = "-"))
+  }
+
+  if (length(pair.keys) == 0L) {
+    pair.matrix <- matrix(integer(), ncol = 2L)
+  } else {
+    key.parts <- unique(pair.keys)
+    pair.matrix <- do.call(rbind, strsplit(key.parts, "-", fixed = TRUE))
+    pair.matrix <- matrix(as.integer(pair.matrix), ncol = 2L)
+    pair.matrix <- pair.matrix[order(pair.matrix[, 1L], pair.matrix[, 2L]), , drop = FALSE]
+  }
+
+  parents <- lapply(trees, `[[`, "parent")
+  path.vertices <- vector("list", nrow(pair.matrix))
+  pair.graph.distance <- numeric(nrow(pair.matrix))
+  for (i in seq_len(nrow(pair.matrix))) {
+    src <- pair.matrix[i, 1L]
+    dst <- pair.matrix[i, 2L]
+    path.vertices[[i]] <- grip.reconstruct.path.vertices(parents[[src]], src, dst)
+    pair.graph.distance[[i]] <- dist.matrix[src, dst]
+  }
+
+  out <- list(
+    n = validated$n,
+    edges = edges,
+    adj_list = adj.list,
+    weight_list = weight.list,
+    local_nbrs = local_nbrs,
+    landmark_count = landmark_count,
+    pair_matrix = pair.matrix,
+    pair_graph_distance = as.double(pair.graph.distance),
+    path_vertices = path.vertices,
+    graph_diameter = max(dist.matrix),
+    distance_matrix = dist.matrix
+  )
+  class(out) <- "grip_lgkk_prepared"
+  out
+}
+
+#' Score a layout under the landmark geodesic KK energy
+#'
+#' \code{grip.score.landmark.geodesic.kk()} evaluates a layout using the
+#' landmark geodesic KK objective described in
+#' \code{landmark\_geodesic\_kk\_spec\_2026-03-30.tex}. Distances are measured
+#' along fixed chosen graph shortest paths, not by straight-line chord length.
+#' The target scale factor \code{L0} is fit analytically for the supplied layout
+#' so that rankings are not dominated by an arbitrary global drawing scale.
+#'
+#' This is a scoring and comparison helper, not an optimizer.
+#'
+#' @param coords Numeric coordinate matrix with 2 or 3 columns.
+#' @param prepared Optional object returned by
+#'   \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param local_nbrs Number of nearest graph-metric neighbors retained per
+#'   vertex when \code{prepared} is not supplied.
+#' @param landmark_count Number of farthest-point landmarks retained per vertex
+#'   when \code{prepared} is not supplied.
+#' @param stiffness Global stiffness constant \(K\).
+#' @param distance_floor Small positive floor used in
+#'   \code{k_ij = K / max(g_ij, distance_floor)^2}.
+#' @param edge_length_epsilon Small positive stabilizer added inside each
+#'   embedded edge length.
+#' @param return_pair_details If \code{TRUE}, include pairwise path lengths and
+#'   residuals in a list column.
+#'
+#' @return A one-row data frame with the fitted scale factor and landmark
+#'   geodesic KK energy summary.
+#' @export
+grip.score.landmark.geodesic.kk <- function(coords,
+                                            prepared = NULL,
+                                            edges = NULL,
+                                            n = NULL,
+                                            adj_list = NULL,
+                                            weight_list = NULL,
+                                            edge_weights = NULL,
+                                            local_nbrs = 20L,
+                                            landmark_count = 8L,
+                                            stiffness = 1.0,
+                                            distance_floor = 1e-8,
+                                            edge_length_epsilon = 1e-8,
+                                            return_pair_details = FALSE) {
+  coords <- grip.validate.coords(coords)
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.landmark.geodesic.kk(
+      edges = edges,
+      n = if (is.null(n)) nrow(coords) else n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights,
+      local_nbrs = local_nbrs,
+      landmark_count = landmark_count
+    )
+  }
+  if (!inherits(prepared, "grip_lgkk_prepared")) {
+    stop("prepared must be NULL or an object from grip.prepare.landmark.geodesic.kk()")
+  }
+  if (nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match the graph size stored in prepared")
+  }
+  if (!is.numeric(stiffness) || length(stiffness) != 1L || !is.finite(stiffness) || stiffness <= 0) {
+    stop("stiffness must be a single finite value > 0")
+  }
+  if (!is.numeric(distance_floor) || length(distance_floor) != 1L || !is.finite(distance_floor) || distance_floor <= 0) {
+    stop("distance_floor must be a single finite value > 0")
+  }
+  if (!is.numeric(edge_length_epsilon) || length(edge_length_epsilon) != 1L || !is.finite(edge_length_epsilon) || edge_length_epsilon < 0) {
+    stop("edge_length_epsilon must be a single finite value >= 0")
+  }
+
+  g <- as.double(prepared$pair_graph_distance)
+  if (length(g) == 0L) {
+    out <- data.frame(
+      n.vertices = prepared$n,
+      n.pairs = 0L,
+      local.nbrs = prepared$local_nbrs,
+      landmark.count = prepared$landmark_count,
+      scale.L0 = NA_real_,
+      scale.L = NA_real_,
+      lgkk.energy = NA_real_,
+      lgkk.weighted.rmse = NA_real_,
+      lgkk.weighted.rel.rmse = NA_real_,
+      lgkk.mean.abs.path.error = NA_real_,
+      lgkk.mean.rel.path.error = NA_real_,
+      stringsAsFactors = FALSE
+    )
+    if (isTRUE(return_pair_details)) {
+      out$pair.details <- list(data.frame())
+    }
+    return(out)
+  }
+
+  h <- vapply(prepared$path_vertices, function(path) {
+    grip.path.euclidean.length(coords, path, edge_length_epsilon = edge_length_epsilon)
+  }, numeric(1L))
+  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
+  denom <- sum(kk * g * g)
+  scale.L0 <- if (denom > 0) sum(kk * g * h) / denom else NA_real_
+  target <- scale.L0 * g
+  resid <- h - target
+  rel.resid <- resid / pmax(target, distance_floor)
+
+  out <- data.frame(
+    n.vertices = prepared$n,
+    n.pairs = length(g),
+    local.nbrs = prepared$local_nbrs,
+    landmark.count = prepared$landmark_count,
+    scale.L0 = scale.L0,
+    scale.L = scale.L0 * prepared$graph_diameter,
+    lgkk.energy = 0.5 * sum(kk * resid^2),
+    lgkk.weighted.rmse = sqrt(sum(kk * resid^2) / sum(kk)),
+    lgkk.weighted.rel.rmse = sqrt(sum(kk * rel.resid^2) / sum(kk)),
+    lgkk.mean.abs.path.error = mean(abs(resid)),
+    lgkk.mean.rel.path.error = mean(abs(rel.resid)),
+    stringsAsFactors = FALSE
+  )
+
+  if (isTRUE(return_pair_details)) {
+    out$pair.details <- list(data.frame(
+      i = prepared$pair_matrix[, 1L],
+      j = prepared$pair_matrix[, 2L],
+      graph.distance = g,
+      embedded.path.length = h,
+      target.length = target,
+      residual = resid,
+      relative.residual = rel.resid,
+      stiffness = kk,
+      stringsAsFactors = FALSE
+    ))
+  }
+  out
+}
+
 grip.sample.vertex.pairs <- function(n, sample.size, rng.seed) {
   sample.size <- as.integer(sample.size)
   if (is.na(sample.size) || sample.size <= 0L || n < 2L) {
