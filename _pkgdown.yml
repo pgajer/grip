@@ -69,6 +69,7 @@ reference:
     desc: Score and compare layouts across seeds and parameter settings.
     contents:
       - grip.score.layout
+      - grip.geometry.diagnostics
       - grip.compare.layouts
       - grip.params.from.summary
 
