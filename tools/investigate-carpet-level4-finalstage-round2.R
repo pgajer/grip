@@ -252,6 +252,7 @@ draw_tradeoff_scatter(tradeoff_plot_path, summary_df)
 representative_ids <- c("sampled_f0", "sampled_f32", "sampled_f64", "sampled_f96",
                         "sampled_f128", "sampled_f192", "sampled_f384", "exact_f96")
 representative_ids <- representative_ids[representative_ids %in% config_df$config_id]
+panel_seed <- 1L
 
 panel_specs <- list(
   list(
@@ -261,21 +262,54 @@ panel_specs <- list(
   )
 )
 
+sampled_f0_trace <- grip.layout.trace(
+  edges = edges,
+  n = n,
+  dim = 2,
+  seed = panel_seed,
+  final_rounds = 0L,
+  coarse_repulsion_exact_below = 64L,
+  trace = "round",
+  trace.every = 1L
+)
+true_no_final_idx <- which(sampled_f0_trace$meta$phase == "level_start" &
+                             sampled_f0_trace$meta$misf_level == 0L)
+if (length(true_no_final_idx) == 0L) {
+  stop("Could not locate the pre-final full-graph snapshot for sampled_f0.")
+}
+true_no_final_coords <- sampled_f0_trace$frames[[true_no_final_idx[[1L]]]]
+true_no_final_fit <- helper_env$align_to_target(true_no_final_coords, canonical)
+true_no_final_rmse <- true_no_final_fit$rmse
+
+panel_specs[[length(panel_specs) + 1L]] <- list(
+  coords = true_no_final_fit$aligned,
+  title = "true_no_final",
+  subtitle = sprintf("sampled schedule | pre-final snapshot | seed %d RMSE=%s",
+                     panel_seed,
+                     format_num(true_no_final_rmse, 4L))
+)
+
 for (config_id in representative_ids) {
   cfg <- config_df[config_df$config_id == config_id, , drop = FALSE]
   summary_row <- summary_df[summary_df$config_id == config_id, , drop = FALSE]
-  coords <- grip.layout(
-    edges = edges,
-    n = n,
-    dim = 2,
-    seed = 1L,
-    final_rounds = cfg$final_rounds[[1L]],
-    coarse_repulsion_exact_below = cfg$coarse_repulsion_exact_below[[1L]]
-  )
+  if (identical(config_id, "sampled_f0")) {
+    coords <- sampled_f0_trace$final
+    panel_title <- "sampled_f0 (= 1 FR round)"
+  } else {
+    coords <- grip.layout(
+      edges = edges,
+      n = n,
+      dim = 2,
+      seed = panel_seed,
+      final_rounds = cfg$final_rounds[[1L]],
+      coarse_repulsion_exact_below = cfg$coarse_repulsion_exact_below[[1L]]
+    )
+    panel_title <- config_id
+  }
   fit <- helper_env$align_to_target(coords, canonical)
   panel_specs[[length(panel_specs) + 1L]] <- list(
     coords = fit$aligned,
-    title = config_id,
+    title = panel_title,
     subtitle = sprintf("%s | mean RMSE=%s",
                        cfg$coarse_mode[[1L]],
                        format_num(summary_row$procrustes_rmse_mean, 4L))
@@ -331,12 +365,15 @@ lines <- c(
           format_num(default_row$axis_deviation_mean),
           format_num(default_row$sampled_nonedge_sep_ratio_mean),
           format_num(default_row$elapsed_sec_mean, 3L)),
-  sprintf("- no-final sampled_f0: RMSE `%s`, edge CV `%s`, axis deviation `%s`, sep ratio `%s`, sec `%s`",
+  sprintf("- sampled_f0 (= one final FR round): RMSE `%s`, edge CV `%s`, axis deviation `%s`, sep ratio `%s`, sec `%s`",
           format_num(no_final_row$procrustes_rmse_mean),
           format_num(no_final_row$edge_length_cv_mean),
           format_num(no_final_row$axis_deviation_mean),
           format_num(no_final_row$sampled_nonedge_sep_ratio_mean),
           format_num(no_final_row$elapsed_sec_mean, 3L)),
+  sprintf("- true_no_final pre-final snapshot (seed %d): RMSE `%s`",
+          panel_seed,
+          format_num(true_no_final_rmse, 4L)),
   sprintf("- best quality-rank config: `%s` (%s, final_rounds=%d)",
           best_row$config_id,
           best_row$coarse_mode,
