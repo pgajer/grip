@@ -1,7 +1,10 @@
-## Submission
+## Resubmission
 
-This is a new submission of `grip`, an R package implementing the GRIP
+This is a resubmission of `grip`, an R package implementing the GRIP
 algorithm for 2D and 3D graph layout.
+
+Per CRAN feedback, I replaced the unnecessary `\dontrun{}` wrappers and
+rewrote the runnable examples so they execute quickly.
 
 ## Test environments
 
@@ -21,6 +24,9 @@ The clean submission-style check was run with:
 ## Notes
 
 1. `This is a new submission.`
+
+   This is expected because `grip` has not yet been accepted by CRAN; this
+   upload is a revised resubmission responding to CRAN feedback.
 2. `HTML Tidy` is not recent enough on the local machine, so HTML validation
    was skipped during `R CMD check --as-cran`:
 
