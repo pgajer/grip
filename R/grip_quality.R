@@ -1343,32 +1343,28 @@ grip.score.layout <- function(coords,
 #' @return A list with \code{runs} and \code{summary} data frames and,
 #'   optionally, realized \code{layouts}.
 #' @examples
-#' \dontrun{
-#' edges <- edges.mesh(6, 6)
+#' edges <- edges.path(5)
 #' cmp <- grip.compare.layouts(
 #'   edges = edges,
-#'   n = 36,
+#'   n = 5,
 #'   dim = 2,
-#'   candidates = c("default", "mesh"),
-#'   seeds = 1:2
+#'   candidates = c("default", "tree"),
+#'   seeds = 1L
 #' )
-#' cmp$summary
+#' cmp$summary[, c("candidate", "rounds", "final.rounds")]
 #'
 #' search.cmp <- grip.compare.layouts(
 #'   edges = edges,
-#'   n = 36,
+#'   n = 5,
 #'   dim = 2,
 #'   search = list(
-#'     candidate.prefix = "mesh.search",
-#'     preset = "mesh",
-#'     final_rounds = c(96L, 128L),
-#'     num_nbrs = c(16L, 20L),
-#'     repulsion_factor = c(1.0, 1.5)
+#'     candidate.prefix = "path.search",
+#'     rounds = c(4L, 6L),
+#'     final_rounds = c(4L, 6L)
 #'   ),
-#'   seeds = 1:2
+#'   seeds = 1L
 #' )
-#' search.cmp$summary
-#' }
+#' search.cmp$summary[, c("candidate", "rounds", "final.rounds")]
 #' @export
 grip.compare.layouts <- function(edges = NULL,
                                  n = NULL,

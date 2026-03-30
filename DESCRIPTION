@@ -23,6 +23,7 @@ Suggests:
     DT,
     htmltools,
     knitr,
+    later,
     rmarkdown,
     rgl,
     shiny,

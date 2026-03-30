@@ -31,13 +31,17 @@ A `gripui_project`.
 Convert `grip.compare.layouts()` output into a `gripui_project`
 }
 \examples{
-\dontrun{
-edges <- edges.path(6)
-cmp <- grip.compare.layouts(edges = edges, n = 6, seeds = 1, return.layouts = TRUE)
+edges <- edges.path(5)
+cmp <- grip.compare.layouts(
+  edges = edges,
+  n = 5,
+  candidates = "default",
+  seeds = 1L,
+  return.layouts = TRUE
+)
 graph <- list(
-  adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), c(4L, 6L), 5L)
+  adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), 4L)
 )
 project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 nrow(project$layouts)
-}
 }

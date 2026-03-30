@@ -87,6 +87,14 @@ approximate active-set-wide repulsion on larger coarse levels.}
 active set size is at most this value, the coarse repulsion is computed
 exactly against all currently active vertices instead of being sampled.}
 
+\item{final_anchor_factor}{Non-negative multiplier for an anchor term that
+pulls the final FR stage back toward the pre-final full-graph layout.
+`0` disables the anchor and preserves the current behavior.}
+
+\item{final_move_scale_after_first}{Scalar in `[0, 1]` applied to the final
+FR displacement after the first finest-level round. Values below `1`
+damp later full-graph movement while keeping the first FR round unchanged.}
+
 \item{final_mode}{Final full-graph refinement mode. \code{"fr"} keeps the
 current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 KK-style local distance-matching update with explicit active-set

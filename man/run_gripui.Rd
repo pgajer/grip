@@ -8,7 +8,9 @@ run_gripui(
   project,
   host = "127.0.0.1",
   port = getOption("shiny.port"),
-  launch.browser = interactive()
+  launch.browser = interactive(),
+  auto.stop.after = NULL,
+  ...
 )
 }
 \arguments{
@@ -19,6 +21,11 @@ run_gripui(
 \item{port}{Port passed to `shiny::runApp()`.}
 
 \item{launch.browser}{Whether to launch a browser.}
+
+\item{auto.stop.after}{Optional delay, in seconds, after which the app stops
+itself. This is mainly useful for automated examples and tests.}
+
+\item{...}{Additional arguments passed to `shiny::runApp()`.}
 }
 \value{
 Invisibly returns the result of `shiny::runApp()`.
@@ -27,7 +34,7 @@ Invisibly returns the result of `shiny::runApp()`.
 Run the `gripui` Shiny application
 }
 \examples{
-\dontrun{
+\dontshow{if (local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) && requireNamespace("later", quietly = TRUE) })) withAutoprint(\{ # examplesIf}
 graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
 layouts <- data.frame(
   candidate = "toy.layout",
@@ -37,6 +44,11 @@ layouts <- data.frame(
   stringsAsFactors = FALSE
 )
 project <- gripui_project(graph = graph, layouts = layouts, title = "Toy project")
-run_gripui(project)
-}
+run_gripui(
+  project,
+  launch.browser = FALSE,
+  quiet = TRUE,
+  auto.stop.after = 0.1
+)
+\dontshow{\}) # examplesIf}
 }
