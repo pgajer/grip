@@ -262,6 +262,18 @@ void DrawGraph::add_coarse_global_repulsion_sampled(const size_tt vert,
                                         coarseFedge2);
 }
 
+void DrawGraph::add_final_anchor_force(const size_tt vert)
+{
+    if(finalAnchorFactor <= 0 || !finalAnchorReady)
+        return;
+
+    vect.set_to_zero();
+    vect += finalAnchorPos[vert];
+    vect -= pos[vert];
+    vect *= (float)(finalAnchorFactor / edge);
+    disp[vert] += vect;
+}
+
 //**************************************************************
 //
 //    KK_spring_v4()

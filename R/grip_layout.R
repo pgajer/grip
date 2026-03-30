@@ -376,7 +376,9 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
                                                   repulsion_factor,
                                                   coarse_repulsion_factor,
                                                   coarse_repulsion_sample,
-                                                  coarse_repulsion_exact_below) {
+                                                  coarse_repulsion_exact_below,
+                                                  final_anchor_factor = 0,
+                                                  final_move_scale_after_first = 1) {
   tuning <- grip.validate.tuning.inputs(
     num_nbrs = num_nbrs,
     r = r,
@@ -422,12 +424,34 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
     stop("coarse_repulsion_exact_below must be a positive integer")
   }
 
+  if (!is.numeric(final_anchor_factor) ||
+      length(final_anchor_factor) != 1L ||
+      !is.finite(final_anchor_factor)) {
+    stop("final_anchor_factor must be a single finite numeric value")
+  }
+  final_anchor_factor <- as.double(final_anchor_factor)
+  if (final_anchor_factor < 0) {
+    stop("final_anchor_factor must be >= 0")
+  }
+
+  if (!is.numeric(final_move_scale_after_first) ||
+      length(final_move_scale_after_first) != 1L ||
+      !is.finite(final_move_scale_after_first)) {
+    stop("final_move_scale_after_first must be a single finite numeric value")
+  }
+  final_move_scale_after_first <- as.double(final_move_scale_after_first)
+  if (final_move_scale_after_first < 0 || final_move_scale_after_first > 1) {
+    stop("final_move_scale_after_first must be in [0, 1]")
+  }
+
   c(
     tuning,
     list(
       coarse_repulsion_factor = coarse_repulsion_factor,
       coarse_repulsion_sample = coarse_repulsion_sample,
-      coarse_repulsion_exact_below = coarse_repulsion_exact_below
+      coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+      final_anchor_factor = final_anchor_factor,
+      final_move_scale_after_first = final_move_scale_after_first
     )
   )
 }
@@ -553,6 +577,12 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param coarse_repulsion_exact_below Positive integer threshold. When the
 #'   active set size is at most this value, the coarse repulsion is computed
 #'   exactly against all currently active vertices instead of being sampled.
+#' @param final_anchor_factor Non-negative multiplier for an anchor term that
+#'   pulls the final FR stage back toward the pre-final full-graph layout.
+#'   `0` disables the anchor and preserves the current behavior.
+#' @param final_move_scale_after_first Scalar in `[0, 1]` applied to the final
+#'   FR displacement after the first finest-level round. Values below `1`
+#'   damp later full-graph movement while keeping the first FR round unchanged.
 #' @param final_mode Final full-graph refinement mode. \code{"fr"} keeps the
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
@@ -587,6 +617,8 @@ grip.layout.globalrep <- function(edges = NULL,
                                   coarse_repulsion_factor = 1.5,
                                   coarse_repulsion_sample = 16,
                                   coarse_repulsion_exact_below = 64,
+                                  final_anchor_factor = 0,
+                                  final_move_scale_after_first = 1,
                                   final_mode = c("fr", "kk_repulse"),
                                   tinit_factor = 6,
                                   seed = 6,
@@ -658,7 +690,9 @@ grip.layout.globalrep <- function(edges = NULL,
     repulsion_factor = repulsion_factor,
     coarse_repulsion_factor = coarse_repulsion_factor,
     coarse_repulsion_sample = coarse_repulsion_sample,
-    coarse_repulsion_exact_below = coarse_repulsion_exact_below
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_anchor_factor = final_anchor_factor,
+    final_move_scale_after_first = final_move_scale_after_first
   )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
@@ -667,6 +701,8 @@ grip.layout.globalrep <- function(edges = NULL,
   coarse_repulsion_factor <- tuning$coarse_repulsion_factor
   coarse_repulsion_sample <- tuning$coarse_repulsion_sample
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
+  final_anchor_factor <- tuning$final_anchor_factor
+  final_move_scale_after_first <- tuning$final_move_scale_after_first
 
   layout.adj <- function(adj_list, weight_list, n) {
     grip_layout_globalrep_adj_cpp(
@@ -685,6 +721,8 @@ grip.layout.globalrep <- function(edges = NULL,
       coarse_repulsion_factor = coarse_repulsion_factor,
       coarse_repulsion_sample = coarse_repulsion_sample,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+      final_anchor_factor = final_anchor_factor,
+      final_move_scale_after_first = final_move_scale_after_first,
       final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
       seed = seed
@@ -824,6 +862,8 @@ grip.layout <- function(edges = NULL,
                         coarse_repulsion_factor = 1.5,
                         coarse_repulsion_sample = 16,
                         coarse_repulsion_exact_below = 64,
+                        final_anchor_factor = 0,
+                        final_move_scale_after_first = 1,
                         final_mode = c("fr", "kk_repulse"),
                         tinit_factor = 6,
                         seed = 6,
@@ -1105,6 +1145,8 @@ grip.layout.trace <- function(edges = NULL,
                               coarse_repulsion_factor = 1.5,
                               coarse_repulsion_sample = 16,
                               coarse_repulsion_exact_below = 64,
+                              final_anchor_factor = 0,
+                              final_move_scale_after_first = 1,
                               final_mode = c("fr", "kk_repulse"),
                               tinit_factor = 6,
                               seed = 6,
@@ -1192,7 +1234,9 @@ grip.layout.trace <- function(edges = NULL,
     repulsion_factor = repulsion_factor,
     coarse_repulsion_factor = coarse_repulsion_factor,
     coarse_repulsion_sample = coarse_repulsion_sample,
-    coarse_repulsion_exact_below = coarse_repulsion_exact_below
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_anchor_factor = final_anchor_factor,
+    final_move_scale_after_first = final_move_scale_after_first
   )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
@@ -1201,6 +1245,8 @@ grip.layout.trace <- function(edges = NULL,
   coarse_repulsion_factor <- tuning$coarse_repulsion_factor
   coarse_repulsion_sample <- tuning$coarse_repulsion_sample
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
+  final_anchor_factor <- tuning$final_anchor_factor
+  final_move_scale_after_first <- tuning$final_move_scale_after_first
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -1227,6 +1273,8 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_factor = coarse_repulsion_factor,
     coarse_repulsion_sample = coarse_repulsion_sample,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_anchor_factor = final_anchor_factor,
+    final_move_scale_after_first = final_move_scale_after_first,
     final_mode = final_mode,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,

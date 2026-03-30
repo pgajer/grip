@@ -23,6 +23,8 @@ grip.layout.trace(
   coarse_repulsion_factor = 1.5,
   coarse_repulsion_sample = 16,
   coarse_repulsion_exact_below = 64,
+  final_anchor_factor = 0,
+  final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
   tinit_factor = 6,
   seed = 6,
