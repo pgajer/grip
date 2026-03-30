@@ -70,6 +70,8 @@ reference:
     contents:
       - grip.score.layout
       - grip.geometry.diagnostics
+      - grip.prepare.landmark.geodesic.kk
+      - grip.score.landmark.geodesic.kk
       - grip.compare.layouts
       - grip.params.from.summary
 
