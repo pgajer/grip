@@ -23,6 +23,7 @@ grip.layout.globalrep(
   coarse_repulsion_factor = 1.5,
   coarse_repulsion_sample = 16,
   coarse_repulsion_exact_below = 64,
+  final_mode = c("fr", "kk_repulse"),
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -86,6 +87,11 @@ approximate active-set-wide repulsion on larger coarse levels.}
 \item{coarse_repulsion_exact_below}{Positive integer threshold. When the
 active set size is at most this value, the coarse repulsion is computed
 exactly against all currently active vertices instead of being sampled.}
+
+\item{final_mode}{Final full-graph refinement mode. \code{"fr"} keeps the
+current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
+KK-style local distance-matching update with explicit active-set
+repulsion instead of the final FR phase.}
 
 \item{tinit_factor}{Initial temperature factor.}
 

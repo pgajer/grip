@@ -162,33 +162,36 @@ void DrawGraph::bfs_me_v4(size_tt root)
 
 //**************************************************************
 //
-//    add_coarse_global_repulsion()
+//    add_active_global_repulsion()
 //
-//    optional coarse-level repulsion over currently active vertices
+//    optional active-set repulsion over currently active vertices
 //
 //**************************************************************
-void DrawGraph::add_coarse_global_repulsion(const size_tt vert,
-                                            size_tt activeCount)
+void DrawGraph::add_active_global_repulsion(const size_tt vert,
+                                            size_tt activeCount,
+                                            coord_t repulsionScale)
 {
-    if(coarseFedge2 <= 0 || activeCount <= 1 || coarseRepulsionSample == 0)
+    if(repulsionScale <= 0 || activeCount <= 1 || coarseRepulsionSample == 0)
         return;
 
     size_tt population = activeCount - 1;
     if(activeCount <= coarseRepulsionExactBelow ||
        coarseRepulsionSample >= population){
-        add_coarse_global_repulsion_exact(vert, activeCount);
+        add_active_global_repulsion_exact(vert, activeCount, repulsionScale);
         return;
     }
 
-    add_coarse_global_repulsion_sampled(
+    add_active_global_repulsion_sampled(
         vert,
         activeCount,
-        std::min(coarseRepulsionSample, population)
+        std::min(coarseRepulsionSample, population),
+        repulsionScale
     );
 }
 
-void DrawGraph::add_coarse_global_repulsion_exact(const size_tt vert,
-                                                  size_tt activeCount)
+void DrawGraph::add_active_global_repulsion_exact(const size_tt vert,
+                                                  size_tt activeCount,
+                                                  coord_t repulsionScale)
 {
     for(size_tt i = 0; i < activeCount; i++){
         size_tt overt = mish[i];
@@ -200,14 +203,15 @@ void DrawGraph::add_coarse_global_repulsion_exact(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        vect *= (float)(coarseFedge2 / norm2);
+        vect *= (float)(repulsionScale / norm2);
         disp[vert] += vect;
     }
 }
 
-void DrawGraph::add_coarse_global_repulsion_sampled(const size_tt vert,
+void DrawGraph::add_active_global_repulsion_sampled(const size_tt vert,
                                                     size_tt activeCount,
-                                                    size_tt sampleCount)
+                                                    size_tt sampleCount,
+                                                    coord_t repulsionScale)
 {
     if(sampleCount == 0)
         return;
@@ -231,9 +235,31 @@ void DrawGraph::add_coarse_global_repulsion_sampled(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        vect *= (float)((coarseFedge2 * scale) / norm2);
+        vect *= (float)((repulsionScale * scale) / norm2);
         disp[vert] += vect;
     }
+}
+
+void DrawGraph::add_coarse_global_repulsion(const size_tt vert,
+                                            size_tt activeCount)
+{
+    add_active_global_repulsion(vert, activeCount, coarseFedge2);
+}
+
+void DrawGraph::add_coarse_global_repulsion_exact(const size_tt vert,
+                                                  size_tt activeCount)
+{
+    add_active_global_repulsion_exact(vert, activeCount, coarseFedge2);
+}
+
+void DrawGraph::add_coarse_global_repulsion_sampled(const size_tt vert,
+                                                    size_tt activeCount,
+                                                    size_tt sampleCount)
+{
+    add_active_global_repulsion_sampled(vert,
+                                        activeCount,
+                                        sampleCount,
+                                        coarseFedge2);
 }
 
 //**************************************************************
@@ -279,6 +305,50 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
     
     if(dispNorm[vert]){
         disp[vert] *= edge/norm;    
+        dispNorm[vert] = disp[vert].norm();
+    }
+}
+
+//**************************************************************
+//
+//    KK_spring_final()
+//
+//    finest-level local KK refinement with explicit active-set repulsion
+//
+//**************************************************************
+void DrawGraph::KK_spring_final(const size_tt vert,
+                                size_tt *vertNbrs,
+                                size_tt misfLayer)
+{
+    size_tt overt;
+    double dist2;
+    double norm2;
+
+    size_tt *ptr = vertNbrs;
+
+    disp[vert].set_to_zero();
+    for(size_tt i = 0; i < 2*nbr[misfLayer]; i += 2){
+        overt = *ptr++;
+        dist2 = (double)(*ptr) * (*ptr);
+        ptr++;
+        if(!dist2 || overt >= numOfVert || overt == vert)
+            continue;
+        vect.set_to_zero();
+        vect += pos[overt];
+        vect -= pos[vert];
+        norm2 = (double)vect.fnorm2();
+        vect *= (float)(norm2/(dist2 * edge2) - 1);
+        disp[vert] += vect;
+    }
+
+    if(activeVertCount > 1)
+        add_active_global_repulsion(vert, activeVertCount, fedge2);
+
+    coord_t norm = disp[vert].fnorm();
+    dispNorm[vert] = ROUND_L(norm);
+
+    if(dispNorm[vert]){
+        disp[vert] *= edge/norm;
         dispNorm[vert] = disp[vert].norm();
     }
 }

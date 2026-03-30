@@ -83,6 +83,29 @@ test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
   expect_gt(max(abs(coords_none - coords_more)), 1e-6)
 })
 
+test_that("globalrep final_mode can switch the final stage", {
+  edges <- edges.mesh(5, 5)
+  coords_fr <- grip.layout.globalrep(edges, n = 25, dim = 2,
+                                     placement = "barycenter",
+                                     rounds = 8, final_rounds = 8,
+                                     num_init = 6, num_nbrs = 8,
+                                     coarse_repulsion_factor = 0.3,
+                                     coarse_repulsion_sample = 8,
+                                     coarse_repulsion_exact_below = 32,
+                                     final_mode = "fr",
+                                     seed = 31)
+  coords_kkr <- grip.layout.globalrep(edges, n = 25, dim = 2,
+                                      placement = "barycenter",
+                                      rounds = 8, final_rounds = 8,
+                                      num_init = 6, num_nbrs = 8,
+                                      coarse_repulsion_factor = 0.3,
+                                      coarse_repulsion_sample = 8,
+                                      coarse_repulsion_exact_below = 32,
+                                      final_mode = "kk_repulse",
+                                      seed = 31)
+  expect_gt(max(abs(coords_fr - coords_kkr)), 1e-6)
+})
+
 test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
@@ -102,6 +125,12 @@ test_that("globalrep validates the new tuning parameters", {
                           coarse_repulsion_exact_below = 0,
                           seed = 1),
     "coarse_repulsion_exact_below must be a positive integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          final_mode = "banana",
+                          seed = 1),
+    "'arg' should be one of"
   )
 })
 

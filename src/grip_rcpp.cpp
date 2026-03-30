@@ -40,6 +40,15 @@ void validate_globalrep_tuning_args(int num_nbrs,
         Rcpp::stop("coarse_repulsion_exact_below must be a positive integer");
 }
 
+size_tt final_stage_mode_from_string(const std::string &final_mode)
+{
+    if(final_mode == "fr")
+        return FINAL_STAGE_FR;
+    if(final_mode == "kk_repulse")
+        return FINAL_STAGE_KK_REPULSE;
+    Rcpp::stop("final_mode must be either 'fr' or 'kk_repulse'");
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -264,6 +273,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     double coarse_repulsion_factor,
     int coarse_repulsion_sample,
     int coarse_repulsion_exact_below,
+    std::string final_mode,
     int tinit_factor,
     Rcpp::Nullable<int> seed)
 {
@@ -337,6 +347,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
 
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
+    size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -350,6 +361,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                  repulsion_factor,
                  placement_mode,
                  false,
+                 final_stage_mode,
                  coarse_repulsion_factor,
                  static_cast<size_tt>(coarse_repulsion_sample),
                  static_cast<size_tt>(coarse_repulsion_exact_below));
@@ -525,6 +537,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                                double coarse_repulsion_factor,
                                                int coarse_repulsion_sample,
                                                int coarse_repulsion_exact_below,
+                                               std::string final_mode,
                                                int tinit_factor,
                                                Rcpp::Nullable<int> seed,
                                                std::string trace,
@@ -605,6 +618,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
 
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
+    size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -618,6 +632,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                  repulsion_factor,
                  placement_mode,
                  false,
+                 final_stage_mode,
                  coarse_repulsion_factor,
                  static_cast<size_tt>(coarse_repulsion_sample),
                  static_cast<size_tt>(coarse_repulsion_exact_below));

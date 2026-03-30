@@ -553,6 +553,10 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param coarse_repulsion_exact_below Positive integer threshold. When the
 #'   active set size is at most this value, the coarse repulsion is computed
 #'   exactly against all currently active vertices instead of being sampled.
+#' @param final_mode Final full-graph refinement mode. \code{"fr"} keeps the
+#'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
+#'   KK-style local distance-matching update with explicit active-set
+#'   repulsion instead of the final FR phase.
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
@@ -583,6 +587,7 @@ grip.layout.globalrep <- function(edges = NULL,
                                   coarse_repulsion_factor = 1.5,
                                   coarse_repulsion_sample = 16,
                                   coarse_repulsion_exact_below = 64,
+                                  final_mode = c("fr", "kk_repulse"),
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
@@ -625,6 +630,7 @@ grip.layout.globalrep <- function(edges = NULL,
   s <- resolved$s
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
+  final_mode <- match.arg(final_mode)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.layout.inputs(
@@ -679,6 +685,7 @@ grip.layout.globalrep <- function(edges = NULL,
       coarse_repulsion_factor = coarse_repulsion_factor,
       coarse_repulsion_sample = coarse_repulsion_sample,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+      final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
       seed = seed
     )
@@ -770,6 +777,10 @@ grip.layout.globalrep <- function(edges = NULL,
 #' @param coarse_repulsion_exact_below Positive integer threshold. When the
 #'   active set size is at most this value, the coarse repulsion is computed
 #'   exactly against all currently active vertices instead of being sampled.
+#' @param final_mode Final full-graph refinement mode. \code{"fr"} keeps the
+#'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
+#'   KK-style local distance-matching update with explicit active-set
+#'   repulsion instead of the final FR phase.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -813,6 +824,7 @@ grip.layout <- function(edges = NULL,
                         coarse_repulsion_factor = 1.5,
                         coarse_repulsion_sample = 16,
                         coarse_repulsion_exact_below = 64,
+                        final_mode = c("fr", "kk_repulse"),
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
@@ -1093,6 +1105,7 @@ grip.layout.trace <- function(edges = NULL,
                               coarse_repulsion_factor = 1.5,
                               coarse_repulsion_sample = 16,
                               coarse_repulsion_exact_below = 64,
+                              final_mode = c("fr", "kk_repulse"),
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
@@ -1142,6 +1155,7 @@ grip.layout.trace <- function(edges = NULL,
   s <- resolved$s
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
+  final_mode <- match.arg(final_mode)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
 
@@ -1213,6 +1227,7 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_factor = coarse_repulsion_factor,
     coarse_repulsion_sample = coarse_repulsion_sample,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_mode = final_mode,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,
     trace = trace,
