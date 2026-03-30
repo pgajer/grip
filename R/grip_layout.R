@@ -378,7 +378,10 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
                                                   coarse_repulsion_sample,
                                                   coarse_repulsion_exact_below,
                                                   final_anchor_factor = 0,
-                                                  final_move_scale_after_first = 1) {
+                                                  final_move_scale_after_first = 1,
+                                                  level0_insertion_mode = "inherit",
+                                                  level0_anchor_count = 3,
+                                                  level0_local_kk_steps = 3) {
   tuning <- grip.validate.tuning.inputs(
     num_nbrs = num_nbrs,
     r = r,
@@ -444,6 +447,39 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
     stop("final_move_scale_after_first must be in [0, 1]")
   }
 
+  level0_insertion_mode <- match.arg(
+    level0_insertion_mode,
+    choices = c("inherit", "barycenter", "least_squares")
+  )
+
+  if (!is.numeric(level0_anchor_count) ||
+      length(level0_anchor_count) != 1L ||
+      !is.finite(level0_anchor_count)) {
+    stop("level0_anchor_count must be a single finite numeric value")
+  }
+  if (abs(level0_anchor_count - round(level0_anchor_count)) >
+      sqrt(.Machine$double.eps)) {
+    stop("level0_anchor_count must be a positive integer")
+  }
+  level0_anchor_count <- as.integer(round(level0_anchor_count))
+  if (is.na(level0_anchor_count) || level0_anchor_count <= 0L) {
+    stop("level0_anchor_count must be a positive integer")
+  }
+
+  if (!is.numeric(level0_local_kk_steps) ||
+      length(level0_local_kk_steps) != 1L ||
+      !is.finite(level0_local_kk_steps)) {
+    stop("level0_local_kk_steps must be a single finite numeric value")
+  }
+  if (abs(level0_local_kk_steps - round(level0_local_kk_steps)) >
+      sqrt(.Machine$double.eps)) {
+    stop("level0_local_kk_steps must be a non-negative integer")
+  }
+  level0_local_kk_steps <- as.integer(round(level0_local_kk_steps))
+  if (is.na(level0_local_kk_steps) || level0_local_kk_steps < 0L) {
+    stop("level0_local_kk_steps must be a non-negative integer")
+  }
+
   c(
     tuning,
     list(
@@ -451,7 +487,10 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
       coarse_repulsion_sample = coarse_repulsion_sample,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
       final_anchor_factor = final_anchor_factor,
-      final_move_scale_after_first = final_move_scale_after_first
+      final_move_scale_after_first = final_move_scale_after_first,
+      level0_insertion_mode = level0_insertion_mode,
+      level0_anchor_count = level0_anchor_count,
+      level0_local_kk_steps = level0_local_kk_steps
     )
   )
 }
@@ -587,6 +626,17 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
+#' @param level0_insertion_mode Level-0 insertion placement override used only
+#'   when the finest filtration level is first populated. \code{"inherit"}
+#'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
+#'   circle heuristic at level 0 and uses barycentric anchor placement.
+#'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
+#'   level 0 before any local micro-polish.
+#' @param level0_anchor_count Positive integer number of already placed anchors
+#'   to collect for level-0 insertion experiments. The legacy behavior uses 3.
+#' @param level0_local_kk_steps Non-negative integer number of tiny local KK
+#'   micro-polish steps applied immediately after each level-0 insertion. The
+#'   legacy behavior uses 3.
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
@@ -620,6 +670,9 @@ grip.layout.globalrep <- function(edges = NULL,
                                   final_anchor_factor = 0,
                                   final_move_scale_after_first = 1,
                                   final_mode = c("fr", "kk_repulse"),
+                                  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+                                  level0_anchor_count = 3,
+                                  level0_local_kk_steps = 3,
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
@@ -663,6 +716,7 @@ grip.layout.globalrep <- function(edges = NULL,
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
+  level0_insertion_mode <- match.arg(level0_insertion_mode)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.layout.inputs(
@@ -692,7 +746,10 @@ grip.layout.globalrep <- function(edges = NULL,
     coarse_repulsion_sample = coarse_repulsion_sample,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
-    final_move_scale_after_first = final_move_scale_after_first
+    final_move_scale_after_first = final_move_scale_after_first,
+    level0_insertion_mode = level0_insertion_mode,
+    level0_anchor_count = level0_anchor_count,
+    level0_local_kk_steps = level0_local_kk_steps
   )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
@@ -703,6 +760,9 @@ grip.layout.globalrep <- function(edges = NULL,
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
   final_anchor_factor <- tuning$final_anchor_factor
   final_move_scale_after_first <- tuning$final_move_scale_after_first
+  level0_insertion_mode <- tuning$level0_insertion_mode
+  level0_anchor_count <- tuning$level0_anchor_count
+  level0_local_kk_steps <- tuning$level0_local_kk_steps
 
   layout.adj <- function(adj_list, weight_list, n) {
     grip_layout_globalrep_adj_cpp(
@@ -723,6 +783,9 @@ grip.layout.globalrep <- function(edges = NULL,
       coarse_repulsion_exact_below = coarse_repulsion_exact_below,
       final_anchor_factor = final_anchor_factor,
       final_move_scale_after_first = final_move_scale_after_first,
+      level0_insertion_mode = level0_insertion_mode,
+      level0_anchor_count = level0_anchor_count,
+      level0_local_kk_steps = level0_local_kk_steps,
       final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
       seed = seed
@@ -825,6 +888,17 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
+#' @param level0_insertion_mode Level-0 insertion placement override used only
+#'   when the finest filtration level is first populated. \code{"inherit"}
+#'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
+#'   circle heuristic at level 0 and uses barycentric anchor placement.
+#'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
+#'   level 0 before any local micro-polish.
+#' @param level0_anchor_count Positive integer number of already placed anchors
+#'   to collect for level-0 insertion experiments. The legacy behavior uses 3.
+#' @param level0_local_kk_steps Non-negative integer number of tiny local KK
+#'   micro-polish steps applied immediately after each level-0 insertion. The
+#'   legacy behavior uses 3.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -871,6 +945,9 @@ grip.layout <- function(edges = NULL,
                         final_anchor_factor = 0,
                         final_move_scale_after_first = 1,
                         final_mode = c("fr", "kk_repulse"),
+                        level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+                        level0_anchor_count = 3,
+                        level0_local_kk_steps = 3,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
@@ -1154,6 +1231,9 @@ grip.layout.trace <- function(edges = NULL,
                               final_anchor_factor = 0,
                               final_move_scale_after_first = 1,
                               final_mode = c("fr", "kk_repulse"),
+                              level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+                              level0_anchor_count = 3,
+                              level0_local_kk_steps = 3,
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
@@ -1204,6 +1284,7 @@ grip.layout.trace <- function(edges = NULL,
   repulsion_factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
+  level0_insertion_mode <- match.arg(level0_insertion_mode)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
 
@@ -1242,7 +1323,10 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_sample = coarse_repulsion_sample,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
-    final_move_scale_after_first = final_move_scale_after_first
+    final_move_scale_after_first = final_move_scale_after_first,
+    level0_insertion_mode = level0_insertion_mode,
+    level0_anchor_count = level0_anchor_count,
+    level0_local_kk_steps = level0_local_kk_steps
   )
   num_nbrs <- tuning$num_nbrs
   r <- tuning$r
@@ -1253,6 +1337,9 @@ grip.layout.trace <- function(edges = NULL,
   coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
   final_anchor_factor <- tuning$final_anchor_factor
   final_move_scale_after_first <- tuning$final_move_scale_after_first
+  level0_insertion_mode <- tuning$level0_insertion_mode
+  level0_anchor_count <- tuning$level0_anchor_count
+  level0_local_kk_steps <- tuning$level0_local_kk_steps
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -1281,6 +1368,9 @@ grip.layout.trace <- function(edges = NULL,
     coarse_repulsion_exact_below = coarse_repulsion_exact_below,
     final_anchor_factor = final_anchor_factor,
     final_move_scale_after_first = final_move_scale_after_first,
+    level0_insertion_mode = level0_insertion_mode,
+    level0_anchor_count = level0_anchor_count,
+    level0_local_kk_steps = level0_local_kk_steps,
     final_mode = final_mode,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,

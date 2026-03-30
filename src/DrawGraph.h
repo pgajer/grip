@@ -28,6 +28,9 @@ using size_tt = uint32_t;
 #define TRACE_LEVEL 2
 #define FINAL_STAGE_FR 0
 #define FINAL_STAGE_KK_REPULSE 1
+#define LEVEL0_INSERT_INHERIT 100
+#define LEVEL0_INSERT_BARYCENTER 101
+#define LEVEL0_INSERT_LEAST_SQUARES 102
 
 //**************************************************************
 //
@@ -57,7 +60,10 @@ class DrawGraph
               size_tt _coarseRepulsionSample = 0,
               size_tt _coarseRepulsionExactBelow = 0,
               coord_t _finalAnchorFactor = 0.0,
-              coord_t _finalMoveScaleAfterFirst = 1.0);
+              coord_t _finalMoveScaleAfterFirst = 1.0,
+              size_tt _level0InsertionMode = LEVEL0_INSERT_INHERIT,
+              size_tt _level0AnchorCount = 3,
+              size_tt _level0LocalKkSteps = 3);
     
     ~DrawGraph();
 
@@ -208,6 +214,9 @@ private:
     size_tt coarseRepulsionExactBelow;
     coord_t finalAnchorFactor;
     coord_t finalMoveScaleAfterFirst;
+    size_tt level0InsertionMode;
+    size_tt level0AnchorCount;
+    size_tt level0LocalKkSteps;
     size_tt activeVertCount;
     size_tt misfLevel;
     size_tt initMishHeight;
@@ -318,11 +327,18 @@ private:
     Point<> initial_position(const size_tt *closeVert,
                              const size_tt *closeVertDist,
                              size_tt count);
+    Point<> initial_position_mode(const size_tt *closeVert,
+                                  const size_tt *closeVertDist,
+                                  size_tt count,
+                                  size_tt placement_mode);
     Point<> initial_position_barycenter(const size_tt *closeVert,
                                         size_tt count);
     Point<> initial_position_circle(const size_tt *closeVert,
                                     const size_tt *closeVertDist,
                                     size_tt count);
+    Point<> initial_position_least_squares(const size_tt *closeVert,
+                                           const size_tt *closeVertDist,
+                                           size_tt count);
     void capture_trace_snapshot(const char *phase,
                                 size_tt activeCount,
                                 size_tt roundInLevel);

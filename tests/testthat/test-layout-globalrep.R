@@ -131,6 +131,53 @@ test_that("globalrep structural final-stage knobs can change the layout", {
   expect_gt(max(abs(coords_base - coords_struct)), 1e-6)
 })
 
+test_that("globalrep level-0 insertion knobs are wired and can change the layout", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+
+  coords_base <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       level0_insertion_mode = "inherit",
+                                       seed = 41)
+  coords_bary <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                       placement = "barycenter",
+                                       rounds = 8, final_rounds = 8,
+                                       num_init = 6, num_nbrs = 8,
+                                       coarse_repulsion_factor = 0.3,
+                                       coarse_repulsion_sample = 8,
+                                       coarse_repulsion_exact_below = 32,
+                                       level0_insertion_mode = "barycenter",
+                                       seed = 41)
+  coords_no_local_kk <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                              placement = "barycenter",
+                                              rounds = 8, final_rounds = 8,
+                                              num_init = 6, num_nbrs = 8,
+                                              coarse_repulsion_factor = 0.3,
+                                              coarse_repulsion_sample = 8,
+                                              coarse_repulsion_exact_below = 32,
+                                              level0_local_kk_steps = 0,
+                                              seed = 41)
+  coords_ls <- grip.layout.globalrep(edges, n = n, dim = 2,
+                                     placement = "barycenter",
+                                     rounds = 8, final_rounds = 8,
+                                     num_init = 6, num_nbrs = 8,
+                                     coarse_repulsion_factor = 0.3,
+                                     coarse_repulsion_sample = 8,
+                                     coarse_repulsion_exact_below = 32,
+                                     level0_insertion_mode = "least_squares",
+                                     level0_anchor_count = 6,
+                                     seed = 41)
+
+  expect_identical(coords_base, coords_bary)
+  expect_gt(max(abs(coords_bary - coords_no_local_kk)), 1e-6)
+  expect_gt(max(abs(coords_no_local_kk - coords_ls)), 1e-6)
+})
+
 test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
@@ -169,6 +216,24 @@ test_that("globalrep validates the new tuning parameters", {
                           seed = 1),
     "'arg' should be one of"
   )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          level0_insertion_mode = "banana",
+                          seed = 1),
+    "'arg' should be one of"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          level0_anchor_count = 0,
+                          seed = 1),
+    "level0_anchor_count must be a positive integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          level0_local_kk_steps = -1,
+                          seed = 1),
+    "level0_local_kk_steps must be a non-negative integer"
+  )
 })
 
 test_that("globalrep adaptive default final_rounds schedule is stable", {
@@ -192,6 +257,9 @@ test_that("globalrep small-graph defaults match the new fixed candidate profile"
     coarse_repulsion_factor = 1.5,
     coarse_repulsion_sample = 16,
     coarse_repulsion_exact_below = 64,
+    level0_insertion_mode = "inherit",
+    level0_anchor_count = 3,
+    level0_local_kk_steps = 3,
     seed = 7
   )
   expect_identical(coords_default, coords_explicit)
@@ -211,6 +279,9 @@ test_that("globalrep larger-graph defaults taper final_rounds only", {
     coarse_repulsion_factor = 1.5,
     coarse_repulsion_sample = 16,
     coarse_repulsion_exact_below = 64,
+    level0_insertion_mode = "inherit",
+    level0_anchor_count = 3,
+    level0_local_kk_steps = 3,
     seed = 9
   )
   expect_identical(coords_default, coords_explicit)

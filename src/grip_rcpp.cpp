@@ -31,7 +31,9 @@ void validate_globalrep_tuning_args(int num_nbrs,
                                     int coarse_repulsion_sample,
                                     int coarse_repulsion_exact_below,
                                     double final_anchor_factor,
-                                    double final_move_scale_after_first)
+                                    double final_move_scale_after_first,
+                                    int level0_anchor_count,
+                                    int level0_local_kk_steps)
 {
     validate_tuning_args(num_nbrs, r, s, repulsion_factor);
     if(!std::isfinite(coarse_repulsion_factor) || coarse_repulsion_factor < 0.0)
@@ -46,6 +48,10 @@ void validate_globalrep_tuning_args(int num_nbrs,
        final_move_scale_after_first < 0.0 ||
        final_move_scale_after_first > 1.0)
         Rcpp::stop("final_move_scale_after_first must be finite and in [0, 1]");
+    if(level0_anchor_count <= 0)
+        Rcpp::stop("level0_anchor_count must be a positive integer");
+    if(level0_local_kk_steps < 0)
+        Rcpp::stop("level0_local_kk_steps must be a non-negative integer");
 }
 
 size_tt final_stage_mode_from_string(const std::string &final_mode)
@@ -55,6 +61,17 @@ size_tt final_stage_mode_from_string(const std::string &final_mode)
     if(final_mode == "kk_repulse")
         return FINAL_STAGE_KK_REPULSE;
     Rcpp::stop("final_mode must be either 'fr' or 'kk_repulse'");
+}
+
+size_tt level0_insertion_mode_from_string(const std::string &mode)
+{
+    if(mode == "inherit")
+        return LEVEL0_INSERT_INHERIT;
+    if(mode == "barycenter")
+        return LEVEL0_INSERT_BARYCENTER;
+    if(mode == "least_squares")
+        return LEVEL0_INSERT_LEAST_SQUARES;
+    Rcpp::stop("level0_insertion_mode must be 'inherit', 'barycenter', or 'least_squares'");
 }
 
 } // namespace
@@ -283,6 +300,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     int coarse_repulsion_exact_below,
     double final_anchor_factor,
     double final_move_scale_after_first,
+    std::string level0_insertion_mode,
+    int level0_anchor_count,
+    int level0_local_kk_steps,
     std::string final_mode,
     int tinit_factor,
     Rcpp::Nullable<int> seed)
@@ -311,7 +331,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                                    coarse_repulsion_sample,
                                    coarse_repulsion_exact_below,
                                    final_anchor_factor,
-                                   final_move_scale_after_first);
+                                   final_move_scale_after_first,
+                                   level0_anchor_count,
+                                   level0_local_kk_steps);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -360,6 +382,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
+    size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -378,7 +401,10 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                  static_cast<size_tt>(coarse_repulsion_sample),
                  static_cast<size_tt>(coarse_repulsion_exact_below),
                  final_anchor_factor,
-                 final_move_scale_after_first);
+                 final_move_scale_after_first,
+                 level0_mode,
+                 static_cast<size_tt>(level0_anchor_count),
+                 static_cast<size_tt>(level0_local_kk_steps));
 
     dg.mish_engine();
 
@@ -553,6 +579,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                                int coarse_repulsion_exact_below,
                                                double final_anchor_factor,
                                                double final_move_scale_after_first,
+                                               std::string level0_insertion_mode,
+                                               int level0_anchor_count,
+                                               int level0_local_kk_steps,
                                                std::string final_mode,
                                                int tinit_factor,
                                                Rcpp::Nullable<int> seed,
@@ -588,7 +617,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                    coarse_repulsion_sample,
                                    coarse_repulsion_exact_below,
                                    final_anchor_factor,
-                                   final_move_scale_after_first);
+                                   final_move_scale_after_first,
+                                   level0_anchor_count,
+                                   level0_local_kk_steps);
     if(rounds <= 0)
         rounds = 1;
     if(final_rounds <= 0)
@@ -637,6 +668,7 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
     size_tt placement_mode =
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
+    size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -655,7 +687,10 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                  static_cast<size_tt>(coarse_repulsion_sample),
                  static_cast<size_tt>(coarse_repulsion_exact_below),
                  final_anchor_factor,
-                 final_move_scale_after_first);
+                 final_move_scale_after_first,
+                 level0_mode,
+                 static_cast<size_tt>(level0_anchor_count),
+                 static_cast<size_tt>(level0_local_kk_steps));
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
                        static_cast<size_tt>(trace_every));
 

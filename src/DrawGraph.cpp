@@ -30,7 +30,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _coarseRepulsionSample,
                      size_tt _coarseRepulsionExactBelow,
                      coord_t _finalAnchorFactor,
-                     coord_t _finalMoveScaleAfterFirst)
+                     coord_t _finalMoveScaleAfterFirst,
+                     size_tt _level0InsertionMode,
+                     size_tt _level0AnchorCount,
+                     size_tt _level0LocalKkSteps)
 : createList(false),
   graph(_graph),
   dim(_dim),
@@ -60,6 +63,13 @@ DrawGraph::DrawGraph(const Graph &_graph,
   coarseRepulsionExactBelow(_coarseRepulsionExactBelow),
   finalAnchorFactor(_finalAnchorFactor),
   finalMoveScaleAfterFirst(_finalMoveScaleAfterFirst),
+  level0InsertionMode((_level0InsertionMode == LEVEL0_INSERT_BARYCENTER)
+                          ? LEVEL0_INSERT_BARYCENTER
+                          : (_level0InsertionMode == LEVEL0_INSERT_LEAST_SQUARES)
+                                ? LEVEL0_INSERT_LEAST_SQUARES
+                                : LEVEL0_INSERT_INHERIT),
+  level0AnchorCount(std::max<size_tt>(1, _level0AnchorCount)),
+  level0LocalKkSteps(_level0LocalKkSteps),
   activeVertCount(0),
   currentRoundInLevel(0),
   finalAnchorReady(false),
@@ -379,7 +389,17 @@ Point<> DrawGraph::initial_position(const size_tt *closeVert,
                                     const size_tt *closeVertDist,
                                     size_tt count)
 {
-    if( placementMode == PLACEMENT_CIRCLE && dim == 2 )
+    return initial_position_mode(closeVert, closeVertDist, count, placementMode);
+}
+
+Point<> DrawGraph::initial_position_mode(const size_tt *closeVert,
+                                         const size_tt *closeVertDist,
+                                         size_tt count,
+                                         size_tt placement_mode)
+{
+    if( placement_mode == LEVEL0_INSERT_LEAST_SQUARES )
+        return initial_position_least_squares(closeVert, closeVertDist, count);
+    if( placement_mode == PLACEMENT_CIRCLE && dim == 2 )
         return initial_position_circle(closeVert, closeVertDist, count);
     return initial_position_barycenter(closeVert, count);
 }
@@ -469,6 +489,85 @@ Point<> DrawGraph::initial_position_circle(const size_tt *closeVert,
     if(best_score == std::numeric_limits<coord_t>::infinity())
         return initial_position_barycenter(closeVert, count);
     return best;
+}
+
+Point<> DrawGraph::initial_position_least_squares(const size_tt *closeVert,
+                                                  const size_tt *closeVertDist,
+                                                  size_tt count)
+{
+    if(count <= dim)
+        return initial_position_barycenter(closeVert, count);
+
+    const Point<> &base = pos[closeVert[0]];
+    coord_t base_coords[3] = {base.getX(), base.getY(), base.getZ()};
+    coord_t d0 = closeVertDist[0] * edge;
+    coord_t base_norm2 = 0.0;
+    for(size_tt k = 0; k < dim; k++)
+        base_norm2 += base_coords[k] * base_coords[k];
+
+    double ata[3][3] = {{0.0, 0.0, 0.0},
+                        {0.0, 0.0, 0.0},
+                        {0.0, 0.0, 0.0}};
+    double atb[3] = {0.0, 0.0, 0.0};
+
+    for(size_tt i = 1; i < count; i++){
+        const Point<> &anchor = pos[closeVert[i]];
+        coord_t anchor_coords[3] = {anchor.getX(), anchor.getY(), anchor.getZ()};
+        coord_t di = closeVertDist[i] * edge;
+        coord_t anchor_norm2 = 0.0;
+        double row[3] = {0.0, 0.0, 0.0};
+        for(size_tt k = 0; k < dim; k++){
+            row[k] = 2.0 * (anchor_coords[k] - base_coords[k]);
+            anchor_norm2 += anchor_coords[k] * anchor_coords[k];
+        }
+        double rhs = anchor_norm2 - base_norm2 - di * di + d0 * d0;
+        for(size_tt r = 0; r < dim; r++){
+            atb[r] += row[r] * rhs;
+            for(size_tt c = 0; c < dim; c++)
+                ata[r][c] += row[r] * row[c];
+        }
+    }
+
+    double aug[3][4] = {{0.0, 0.0, 0.0, 0.0},
+                        {0.0, 0.0, 0.0, 0.0},
+                        {0.0, 0.0, 0.0, 0.0}};
+    for(size_tt r = 0; r < dim; r++){
+        for(size_tt c = 0; c < dim; c++)
+            aug[r][c] = ata[r][c];
+        aug[r][dim] = atb[r];
+    }
+
+    const double tol = 1e-10;
+    for(size_tt col = 0; col < dim; col++){
+        size_tt pivot = col;
+        for(size_tt row = col + 1; row < dim; row++){
+            if(std::fabs(aug[row][col]) > std::fabs(aug[pivot][col]))
+                pivot = row;
+        }
+        if(std::fabs(aug[pivot][col]) <= tol)
+            return initial_position_barycenter(closeVert, count);
+        if(pivot != col){
+            for(size_tt k = col; k <= dim; k++)
+                std::swap(aug[col][k], aug[pivot][k]);
+        }
+        double pivot_val = aug[col][col];
+        for(size_tt k = col; k <= dim; k++)
+            aug[col][k] /= pivot_val;
+        for(size_tt row = 0; row < dim; row++){
+            if(row == col)
+                continue;
+            double factor = aug[row][col];
+            if(factor == 0.0)
+                continue;
+            for(size_tt k = col; k <= dim; k++)
+                aug[row][k] -= factor * aug[col][k];
+        }
+    }
+
+    coord_t sol[3] = {0.0, 0.0, 0.0};
+    for(size_tt k = 0; k < dim; k++)
+        sol[k] = aug[k][dim];
+    return Point<>(sol[0], sol[1], dim > 2 ? sol[2] : 0.0);
 }
 
 //****************************************************************

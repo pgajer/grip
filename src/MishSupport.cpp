@@ -76,12 +76,47 @@ void DrawGraph::bfs_me_v4(size_tt root)
     size_tt vert;
     size_tt currentDepth = 0;
     FastQueue<size_tt> vertDepthQueue(4*numOfVert);// an array based queue
-    
-    size_tt numOfCloseVert = 3;
+
+    bool level0Insertion = (misfLevel == 0);
+    size_tt numOfCloseVert = level0Insertion ? level0AnchorCount : 3;
+    if(numOfCloseVert == 0)
+        numOfCloseVert = 1;
     std::vector<size_tt> closeVert(numOfCloseVert);
     std::vector<size_tt> closeVertDist(numOfCloseVert);
     size_tt closeVertItr = 0;
     bool closeVertDone = false;
+    size_tt insertionPlacementMode =
+        level0Insertion ? level0InsertionMode : LEVEL0_INSERT_INHERIT;
+    if(insertionPlacementMode == LEVEL0_INSERT_INHERIT)
+        insertionPlacementMode = placementMode;
+    size_tt localKkSteps = level0Insertion ? level0LocalKkSteps : 3;
+
+    auto finalizeInsertion = [&](size_tt anchorCount){
+        if(anchorCount == 0)
+            return;
+        pos[root] = initial_position_mode(closeVert.data(),
+                                          closeVertDist.data(),
+                                          anchorCount,
+                                          insertionPlacementMode);
+
+        oldDisp[root].set_to_zero();
+        for(size_tt i = 0; i < anchorCount; i++)
+            oldDisp[root] += oldDisp[closeVert[i]];
+        oldDisp[root] /= (coord_t)anchorCount;
+        oldDispNorm[root] = oldDisp[root].norm();
+
+        for(size_tt itr = 0; itr < localKkSteps; itr++){
+            KK_spring_local(root, closeVert.data(),
+                            closeVertDist.data(), anchorCount);
+            update_Local_Temp_v3(root, r, s);
+            oldDisp[root] = disp[root];
+            oldDispNorm[root] = dispNorm[root];
+            disp[root] *= (coord_t)heat[root];
+            if(dispNorm[root])
+                disp[root] /= dispNorm[root];
+            pos[root] += disp[root];
+        }
+    };
 
     marked[root] = root;
     vertDepthQueue.enqueue(root);
@@ -125,37 +160,16 @@ void DrawGraph::bfs_me_v4(size_tt root)
 
                     if( closeVertItr == numOfCloseVert ){
                         closeVertDone = true;
-
-                        pos[root] = initial_position(closeVert.data(),
-                                                     closeVertDist.data(),
-                                                     numOfCloseVert);
-
-                        // set oldDisp vector to the average of
-                        // disp vectors of the closest centers
-                        oldDisp[root] += oldDisp[closeVert[0]];
-                        oldDisp[root] += oldDisp[closeVert[1]];
-                        oldDisp[root] += oldDisp[closeVert[2]];
-                        oldDisp[root] /= 3;
-                        oldDispNorm[root] = oldDisp[root].norm();
-                        
-                        size_tt itr = 0;
-                        while(itr++ < 3){
-                            KK_spring_local(root, closeVert.data(),
-                                            closeVertDist.data(), numOfCloseVert);
-                            update_Local_Temp_v3(root, r, s);
-                            oldDisp[root] = disp[root];
-                            oldDispNorm[root] = dispNorm[root];
-                            disp[root] *= (coord_t)heat[root];
-                            if(dispNorm[root])
-                                disp[root] /= dispNorm[root];
-                            pos[root] += disp[root];
-                        }
+                        finalizeInsertion(numOfCloseVert);
                     }
                 }//end of if( !closeVertDone ...
             }            
         }
     } while ( (!closeVertDone || bottomNbrsLayer <= vertDepth[root]) &&
               !vertDepthQueue.is_empty( ) );
+
+    if(!closeVertDone && closeVertItr > 0)
+        finalizeInsertion(closeVertItr);
     delete [] nbrCounter;
 }
 
