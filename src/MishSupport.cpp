@@ -507,6 +507,9 @@ void DrawGraph::lgkk_refine_level(size_tt activeCount,
 {
     if(!should_run_multiscale_lgkk(activeCount, mishLayer))
         return;
+    size_tt roundBudget = lgkk_round_budget_for_layer(mishLayer);
+    if(roundBudget == 0)
+        return;
     build_lgkk_level_cache(activeCount, mishLayer);
     if(lgkkPairs.empty())
         return;
@@ -593,7 +596,7 @@ void DrawGraph::lgkk_refine_level(size_tt activeCount,
         acceptedMove[i].set_to_zero();
 
     LgkkState state = evaluate_state(activePos);
-    for(size_tt roundIndex = 1; roundIndex <= lgkkMultiscaleRounds; roundIndex++){
+    for(size_tt roundIndex = 1; roundIndex <= roundBudget; roundIndex++){
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
             break;
 

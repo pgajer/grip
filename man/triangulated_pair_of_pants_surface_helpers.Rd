@@ -60,8 +60,8 @@ only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{triangulated.pair.of.pants.surface.embedding()} returns an \code{n x 3}
-numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+\code{triangulated.pair.of.pants.surface.embedding()} returns an \code{n x
+3} numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{triangulated.pair.of.pants.surface.graph()} returns a list with
 components:
@@ -88,8 +88,8 @@ components and a deterministic non-grid topology.
 \details{
 \code{triangulated.pair.of.pants.surface.embedding()} returns the 3D
 coordinates of the clipped lattice vertices in the same vertex order as
-\code{\link{edges.triangulated.pair.of.pants}()}.
+\code{edges.triangulated.pair.of.pants()}.
 \code{triangulated.pair.of.pants.surface.graph()} returns a reusable
-weighted-graph bundle with the pair-of-pants edges, induced edge weights,
-3D embedding, and the 2D parameter coordinates of the clipped domain.
+weighted-graph bundle with the pair-of-pants edges, induced edge weights, 3D
+embedding, and the 2D parameter coordinates of the clipped domain.
 }

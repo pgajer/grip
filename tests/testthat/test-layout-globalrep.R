@@ -257,9 +257,24 @@ test_that("insertion anchor strategy can change the layout", {
     insertion_anchor_strategy = "balanced_band",
     seed = 71
   )
+  coords_spread_prev <- grip.layout.globalrep(
+    edges, n = n, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "spread_prev",
+    level0_insertion_mode = "least_squares",
+    level0_local_kk_steps = 1,
+    seed = 71
+  )
 
   expect_gt(max(abs(coords_first - coords_band)), 1e-6)
   expect_gt(max(abs(coords_band - coords_balanced)), 1e-6)
+  expect_gt(max(abs(coords_balanced - coords_spread_prev)), 1e-6)
 })
 
 test_that("globalrep LGKK polish knobs can change the layout", {
@@ -316,6 +331,47 @@ test_that("globalrep multiscale LGKK knobs can change the layout", {
     seed = 67
   )
   expect_gt(max(abs(coords_base - coords_lgkk)), 1e-6)
+})
+
+test_that("globalrep staged LGKK budgets can change weighted layouts", {
+  h <- 6L
+  w <- 6L
+  edges <- edges.mesh(h, w)
+  row_of <- function(v) ((v - 1L) %/% w) + 1L
+  col_of <- function(v) ((v - 1L) %% w) + 1L
+  edge_weights <- apply(edges, 1L, function(e) {
+    r1 <- row_of(e[[1L]])
+    r2 <- row_of(e[[2L]])
+    c1 <- col_of(e[[1L]])
+    c2 <- col_of(e[[2L]])
+    if (r1 == r2 && abs(c1 - c2) == 1L) 1 else 2
+  })
+
+  coords_shared <- grip.layout.globalrep(
+    edges, n = h * w, dim = 2,
+    edge_weights = edge_weights,
+    lgkk_multiscale_rounds = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 8,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 1
+  )
+  coords_a3 <- grip.layout.globalrep(
+    edges, n = h * w, dim = 2,
+    edge_weights = edge_weights,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 8,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 1
+  )
+
+  expect_gt(max(abs(coords_shared - coords_a3)), 1e-6)
 })
 
 test_that("globalrep validates the new tuning parameters", {
@@ -403,6 +459,24 @@ test_that("globalrep validates the new tuning parameters", {
                           lgkk_landmark_count = -1,
                           seed = 1),
     "lgkk_landmark_count must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_rounds_coarse = -1,
+                          seed = 1),
+    "lgkk_rounds_coarse must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_rounds_pre_final = -1,
+                          seed = 1),
+    "lgkk_rounds_pre_final must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep(edges, n = 10, dim = 2,
+                          lgkk_rounds_final = -1,
+                          seed = 1),
+    "lgkk_rounds_final must be a non-negative integer"
   )
 })
 

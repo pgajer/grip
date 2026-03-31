@@ -78,10 +78,9 @@ making it a useful complement to the closed triangulated-polyhedron
 families.
 }
 \details{
-\code{triangulated.annulus.surface.embedding()} returns the 3D coordinates of
-the clipped lattice vertices in the same vertex order as
-\code{\link{edges.triangulated.annulus}()}.
-\code{triangulated.annulus.surface.graph()} returns a reusable weighted-graph
-bundle with the annulus edges, induced edge weights, the 3D embedding, and
-the 2D annulus parameter coordinates.
+\code{triangulated.annulus.surface.embedding()} returns the 3D coordinates
+of the clipped lattice vertices in the same vertex order as
+\code{edges.triangulated.annulus()}. \code{triangulated.annulus.surface.graph()}
+returns a reusable weighted-graph bundle with the annulus edges, induced edge
+weights, the 3D embedding, and the 2D annulus parameter coordinates.
 }

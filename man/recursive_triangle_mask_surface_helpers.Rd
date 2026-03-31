@@ -86,7 +86,7 @@ provides a generic gasket-style triangular family that includes the classic
 Sierpinski triangle together with bridge and asymmetric variants.
 }
 \details{
-The \code{mask} entries are interpreted in the order \code{left},
-\code{right}, \code{top}, and \code{center}. Named masks are reordered
-automatically to match that convention.
+The \code{mask} entries are interpreted in the order
+\code{left}, \code{right}, \code{top}, and \code{center}. Named masks are
+reordered automatically to match that convention.
 }

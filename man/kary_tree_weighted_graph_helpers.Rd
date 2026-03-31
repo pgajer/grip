@@ -77,9 +77,7 @@ topology but assign edge lengths directly from combinatorial tree metadata
 rather than from an ambient Euclidean embedding. Each edge weight is
 constructed as
 \deqn{\mathrm{base\_length} \times \mathrm{depth\_factor(child\ depth)} \times
-\mathrm{branch\_factor(child\ slot)}}{
-base_length * depth_factor(child depth) * branch_factor(child slot)
-}
+\mathrm{branch\_factor(child\ slot)}}
 so the user can control tapering with depth separately from child-slot
 asymmetry.
 }

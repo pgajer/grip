@@ -28,12 +28,15 @@ grip.layout.globalrep(
   final_mode = c("fr", "kk_repulse"),
   insertion_anchor_count = 3,
   insertion_anchor_scope = c("any_higher", "prev_misf"),
-  insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
+  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
   level0_anchor_count = insertion_anchor_count,
   level0_local_kk_steps = 3,
   lgkk_polish_rounds = 0L,
   lgkk_multiscale_rounds = 0L,
+  lgkk_rounds_coarse = NULL,
+  lgkk_rounds_pre_final = NULL,
+  lgkk_rounds_final = NULL,
   lgkk_local_nbrs = 20L,
   lgkk_landmark_count = 8L,
   lgkk_multiscale_scope = c("all", "coarse"),
@@ -132,7 +135,10 @@ until the \code{K_mish}-th anchor distance band is exhausted, then places
 the new vertex from that less order-sensitive anchor pool.
 \code{"balanced_band"} uses the same band expansion, then explicitly
 selects a subset whose centroid stays centered in the candidate cloud while
-remaining geometrically spread out.}
+remaining geometrically spread out. \code{"spread_prev"} is a
+symmetry-oriented band strategy intended to be paired with
+\code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+angular and geometric coverage before placement.}
 
 \item{level0_insertion_mode}{Level-0 insertion placement override used only
 when the finest filtration level is first populated. \code{"inherit"}
@@ -155,7 +161,23 @@ landmark-geodesic KK polish iterations applied after the main GRIP solve.
 
 \item{lgkk_multiscale_rounds}{Non-negative integer number of compiled
 landmark-geodesic KK refinement rounds applied inside the multiscale solver
-after each eligible MISF level completes its standard GRIP rounds.}
+after each eligible MISF level completes its standard GRIP rounds.
+This legacy shared budget is used as a fallback when any of the more
+specific per-stage budgets below are left \code{NULL}.}
+
+\item{lgkk_rounds_coarse}{Optional non-negative integer number of compiled
+LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
+When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.}
+
+\item{lgkk_rounds_pre_final}{Optional non-negative integer number of compiled
+LGKK rounds applied on the last coarse level just before the full graph is
+opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
+\code{lgkk_multiscale_rounds}.}
+
+\item{lgkk_rounds_final}{Optional non-negative integer number of compiled
+LGKK rounds applied after the full graph level completes its standard GRIP
+rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
+\code{lgkk_multiscale_rounds}.}
 
 \item{lgkk_local_nbrs}{Number of nearest graph-metric neighbors retained per
 vertex in the LGKK sparse local set when either LGKK stage is enabled.}

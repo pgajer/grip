@@ -34,6 +34,9 @@ void validate_globalrep_tuning_args(int num_nbrs,
                                     double final_move_scale_after_first,
                                     int insertion_anchor_count,
                                     int lgkk_multiscale_rounds,
+                                    int lgkk_rounds_coarse,
+                                    int lgkk_rounds_pre_final,
+                                    int lgkk_rounds_final,
                                     int lgkk_local_nbrs,
                                     int lgkk_landmark_count,
                                     int lgkk_active_limit,
@@ -57,6 +60,12 @@ void validate_globalrep_tuning_args(int num_nbrs,
         Rcpp::stop("insertion_anchor_count must be a positive integer");
     if(lgkk_multiscale_rounds < 0)
         Rcpp::stop("lgkk_multiscale_rounds must be a non-negative integer");
+    if(lgkk_rounds_coarse < 0)
+        Rcpp::stop("lgkk_rounds_coarse must be a non-negative integer");
+    if(lgkk_rounds_pre_final < 0)
+        Rcpp::stop("lgkk_rounds_pre_final must be a non-negative integer");
+    if(lgkk_rounds_final < 0)
+        Rcpp::stop("lgkk_rounds_final must be a non-negative integer");
     if(lgkk_local_nbrs < 0)
         Rcpp::stop("lgkk_local_nbrs must be a non-negative integer");
     if(lgkk_landmark_count < 0)
@@ -106,7 +115,9 @@ size_tt insertion_anchor_strategy_from_string(const std::string &strategy)
         return INSERT_ANCHOR_STRATEGY_DISTANCE_BAND;
     if(strategy == "balanced_band")
         return INSERT_ANCHOR_STRATEGY_BALANCED_BAND;
-    Rcpp::stop("insertion_anchor_strategy must be 'first', 'distance_band', or 'balanced_band'");
+    if(strategy == "spread_prev")
+        return INSERT_ANCHOR_STRATEGY_SPREAD_PREV;
+    Rcpp::stop("insertion_anchor_strategy must be 'first', 'distance_band', 'balanced_band', or 'spread_prev'");
 }
 
 size_tt lgkk_scope_from_string(const std::string &scope)
@@ -351,6 +362,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     int level0_anchor_count,
     int level0_local_kk_steps,
     int lgkk_multiscale_rounds,
+    int lgkk_rounds_coarse,
+    int lgkk_rounds_pre_final,
+    int lgkk_rounds_final,
     int lgkk_local_nbrs,
     int lgkk_landmark_count,
     std::string lgkk_multiscale_scope,
@@ -386,6 +400,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
                                    lgkk_multiscale_rounds,
+                                   lgkk_rounds_coarse,
+                                   lgkk_rounds_pre_final,
+                                   lgkk_rounds_final,
                                    lgkk_local_nbrs,
                                    lgkk_landmark_count,
                                    lgkk_active_limit,
@@ -469,6 +486,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps),
                  static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_rounds_coarse),
+                 static_cast<size_tt>(lgkk_rounds_pre_final),
+                 static_cast<size_tt>(lgkk_rounds_final),
                  static_cast<size_tt>(lgkk_local_nbrs),
                  static_cast<size_tt>(lgkk_landmark_count),
                  lgkk_scope,
@@ -654,6 +674,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                                int level0_anchor_count,
                                                int level0_local_kk_steps,
                                                int lgkk_multiscale_rounds,
+                                               int lgkk_rounds_coarse,
+                                               int lgkk_rounds_pre_final,
+                                               int lgkk_rounds_final,
                                                int lgkk_local_nbrs,
                                                int lgkk_landmark_count,
                                                std::string lgkk_multiscale_scope,
@@ -696,6 +719,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
                                    lgkk_multiscale_rounds,
+                                   lgkk_rounds_coarse,
+                                   lgkk_rounds_pre_final,
+                                   lgkk_rounds_final,
                                    lgkk_local_nbrs,
                                    lgkk_landmark_count,
                                    lgkk_active_limit,
@@ -779,6 +805,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps),
                  static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_rounds_coarse),
+                 static_cast<size_tt>(lgkk_rounds_pre_final),
+                 static_cast<size_tt>(lgkk_rounds_final),
                  static_cast<size_tt>(lgkk_local_nbrs),
                  static_cast<size_tt>(lgkk_landmark_count),
                  lgkk_scope,

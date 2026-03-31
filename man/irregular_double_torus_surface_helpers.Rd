@@ -106,7 +106,7 @@ components:
 \description{
 Convenience helpers that build a closed genus-2 surface from a
 deterministically irregular slice family whose cyclic cross-sections follow a
-\code{1 -> 3 -> 1} loop transition between two poles. This gives a non-lattice,
+`1 -> 3 -> 1` loop transition between two poles. This gives a non-lattice,
 point-sampled double-torus graph together with either the canonical 3D
 embedding or simple bulged, twisted, and wavy deformations of that geometry.
 }

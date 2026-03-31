@@ -39,6 +39,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _level0AnchorCount,
                      size_tt _level0LocalKkSteps,
                      size_tt _lgkkMultiscaleRounds,
+                     size_tt _lgkkRoundsCoarse,
+                     size_tt _lgkkRoundsPreFinal,
+                     size_tt _lgkkRoundsFinal,
                      size_tt _lgkkLocalNbrs,
                      size_tt _lgkkLandmarkCount,
                      size_tt _lgkkScope,
@@ -89,6 +92,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
   level0AnchorCount(std::max<size_tt>(1, _level0AnchorCount)),
   level0LocalKkSteps(_level0LocalKkSteps),
   lgkkMultiscaleRounds(_lgkkMultiscaleRounds),
+  lgkkRoundsCoarse(_lgkkRoundsCoarse),
+  lgkkRoundsPreFinal(_lgkkRoundsPreFinal),
+  lgkkRoundsFinal(_lgkkRoundsFinal),
   lgkkLocalNbrs(_lgkkLocalNbrs),
   lgkkLandmarkCount(_lgkkLandmarkCount),
   lgkkScope((_lgkkScope == LGKK_SCOPE_COARSE)
@@ -611,6 +617,101 @@ void DrawGraph::select_insertion_anchor_subset(std::vector<size_tt> &anchors,
         candidateCentroid += pos[anchors[i]];
     candidateCentroid /= (coord_t)anchors.size();
 
+    if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_SPREAD_PREV &&
+       dim == 2){
+        const double pi = 3.14159265358979323846;
+        struct PolarCandidate {
+            size_t idx;
+            double angle;
+            double radius2;
+            size_tt vert;
+        };
+
+        auto angular_gap = [pi](double a, double b){
+            double diff = std::fabs(a - b);
+            const double two_pi = 2.0 * pi;
+            while(diff > two_pi)
+                diff -= two_pi;
+            if(diff > pi)
+                diff = two_pi - diff;
+            return diff;
+        };
+
+        std::vector<PolarCandidate> polar;
+        polar.reserve(anchors.size());
+        for(size_t i = 0; i < anchors.size(); i++){
+            const Point<> &p = pos[anchors[i]];
+            double dx = p.getX() - candidateCentroid.getX();
+            double dy = p.getY() - candidateCentroid.getY();
+            polar.push_back(PolarCandidate{
+                i,
+                std::atan2(dy, dx),
+                dx * dx + dy * dy,
+                anchors[i]
+            });
+        }
+
+        std::vector<size_tt> selected;
+        std::vector<size_tt> selectedDist;
+        std::vector<bool> used(anchors.size(), false);
+
+        size_t firstChoice = 0;
+        for(size_t i = 1; i < polar.size(); i++){
+            if(polar[i].radius2 > polar[firstChoice].radius2 + 1e-12 ||
+               (std::fabs(polar[i].radius2 - polar[firstChoice].radius2) <= 1e-12 &&
+                polar[i].vert < polar[firstChoice].vert)){
+                firstChoice = i;
+            }
+        }
+        selected.push_back(anchors[polar[firstChoice].idx]);
+        selectedDist.push_back(anchorDist[polar[firstChoice].idx]);
+        used[polar[firstChoice].idx] = true;
+
+        while(selected.size() < targetCount){
+            size_t bestPolarIndex = polar.size();
+            double bestAngleScore = -1.0;
+            double bestSepScore = -1.0;
+            for(size_t i = 0; i < polar.size(); i++){
+                if(used[polar[i].idx])
+                    continue;
+                double minAngleGap = std::numeric_limits<double>::infinity();
+                double minSep = std::numeric_limits<double>::infinity();
+                for(size_t j = 0; j < selected.size(); j++){
+                    size_tt chosenVert = selected[j];
+                    const Point<> &chosen = pos[chosenVert];
+                    double cdx = chosen.getX() - candidateCentroid.getX();
+                    double cdy = chosen.getY() - candidateCentroid.getY();
+                    double chosenAngle = std::atan2(cdy, cdx);
+                    minAngleGap = std::min(minAngleGap,
+                                           angular_gap(polar[i].angle, chosenAngle));
+                    minSep = std::min(minSep,
+                                      norm2(pos[anchors[polar[i].idx]], chosen));
+                }
+                if(minAngleGap > bestAngleScore + 1e-12 ||
+                   (std::fabs(minAngleGap - bestAngleScore) <= 1e-12 &&
+                    (minSep > bestSepScore + 1e-12 ||
+                     (std::fabs(minSep - bestSepScore) <= 1e-12 &&
+                      (bestPolarIndex >= polar.size() ||
+                       polar[i].vert < polar[bestPolarIndex].vert))))){
+                    bestAngleScore = minAngleGap;
+                    bestSepScore = minSep;
+                    bestPolarIndex = i;
+                }
+            }
+            if(bestPolarIndex >= polar.size())
+                break;
+            used[polar[bestPolarIndex].idx] = true;
+            selected.push_back(anchors[polar[bestPolarIndex].idx]);
+            selectedDist.push_back(anchorDist[polar[bestPolarIndex].idx]);
+        }
+
+        if(selected.size() == targetCount){
+            anchors.swap(selected);
+            anchorDist.swap(selectedDist);
+            return;
+        }
+    }
+
     if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_BALANCED_BAND){
         auto subsetObjective = [&](const std::vector<size_t> &subsetIndices){
             Point<> subsetCentroid = candidateCentroid;
@@ -778,10 +879,25 @@ void DrawGraph::select_insertion_anchor_subset(std::vector<size_tt> &anchors,
     anchorDist.swap(selectedDist);
 }
 
+size_tt DrawGraph::lgkk_round_budget_for_layer(size_tt mishLayer) const
+{
+    size_tt budget = 0;
+    if(mishLayer == 0)
+        budget = lgkkRoundsFinal;
+    else if(mishLayer == 1)
+        budget = lgkkRoundsPreFinal;
+    else
+        budget = lgkkRoundsCoarse;
+
+    if(budget == 0)
+        budget = lgkkMultiscaleRounds;
+    return budget;
+}
+
 bool DrawGraph::should_run_multiscale_lgkk(size_tt activeCount,
                                            size_tt mishLayer) const
 {
-    if(lgkkMultiscaleRounds == 0)
+    if(lgkk_round_budget_for_layer(mishLayer) == 0)
         return false;
     if(lgkkLocalNbrs == 0 && lgkkLandmarkCount == 0)
         return false;

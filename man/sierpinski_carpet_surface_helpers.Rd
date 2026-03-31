@@ -28,8 +28,7 @@ sierpinski.carpet.surface.graph(
 )
 }
 \arguments{
-\item{level}{Recursion depth. Must be at least \code{1}. The number of
-occupied cells is \code{8^level}.}
+\item{level}{Recursion depth. Must be at least \code{1}.}
 
 \item{surface}{Surface family used for the lift. One of \code{"saddle"},
 \code{"paraboloid"}, or \code{"ripple"}.}
