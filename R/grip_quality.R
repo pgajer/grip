@@ -801,6 +801,166 @@ grip.validate.prepared.object <- function(prepared,
   prepared
 }
 
+grip.validate.data.matrix <- function(data, name = "data") {
+  data <- as.matrix(data)
+  if (!is.numeric(data) || ncol(data) < 1L) {
+    stop(sprintf("%s must be a numeric matrix with at least one column", name))
+  }
+  if (nrow(data) < 2L) {
+    stop(sprintf("%s must have at least two rows", name))
+  }
+  if (any(!is.finite(data))) {
+    stop(sprintf("%s must contain only finite values", name))
+  }
+  data
+}
+
+grip.euclidean.distance.matrix <- function(data) {
+  as.matrix(stats::dist(data))
+}
+
+grip.knn.edge.matrix <- function(dist.matrix, k) {
+  n <- nrow(dist.matrix)
+  pair.keys <- character(0L)
+
+  for (source in seq_len(n)) {
+    ids <- seq_len(n)
+    ids <- ids[ids != source]
+    ord <- order(dist.matrix[source, ids], ids)
+    chosen <- ids[ord][seq_len(min(k, length(ids)))]
+    pair.keys <- c(
+      pair.keys,
+      paste(pmin(source, chosen), pmax(source, chosen), sep = "-")
+    )
+  }
+
+  pair.matrix <- do.call(rbind, strsplit(unique(pair.keys), "-", fixed = TRUE))
+  pair.matrix <- matrix(as.integer(pair.matrix), ncol = 2L)
+  pair.matrix[order(pair.matrix[, 1L], pair.matrix[, 2L]), , drop = FALSE]
+}
+
+grip.minimum.spanning.tree.edges <- function(dist.matrix) {
+  n <- nrow(dist.matrix)
+  if (n < 2L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+
+  in.tree <- rep(FALSE, n)
+  key <- rep(Inf, n)
+  parent <- integer(n)
+  key[[1L]] <- 0
+  tol <- sqrt(.Machine$double.eps)
+
+  for (iter in seq_len(n)) {
+    candidates <- which(!in.tree)
+    if (length(candidates) == 0L) {
+      break
+    }
+    best.keys <- key[candidates]
+    v <- candidates[order(best.keys, candidates)][[1L]]
+    in.tree[[v]] <- TRUE
+    remaining <- which(!in.tree)
+    if (length(remaining) == 0L) {
+      next
+    }
+    for (u in remaining) {
+      w <- dist.matrix[v, u]
+      best <- key[[u]]
+      if (w + tol < best || (abs(w - best) <= tol && (parent[[u]] == 0L || v < parent[[u]]))) {
+        key[[u]] <- w
+        parent[[u]] <- v
+      }
+    }
+  }
+
+  edges <- cbind(parent[-1L], seq.int(2L, n))
+  matrix(as.integer(edges), ncol = 2L)
+}
+
+grip.union.edge.matrix <- function(edges, extra.edges) {
+  if (nrow(edges) == 0L) {
+    return(matrix(as.integer(extra.edges), ncol = 2L))
+  }
+  if (nrow(extra.edges) == 0L) {
+    return(matrix(as.integer(edges), ncol = 2L))
+  }
+  pair.keys <- c(
+    paste(edges[, 1L], edges[, 2L], sep = "-"),
+    paste(extra.edges[, 1L], extra.edges[, 2L], sep = "-")
+  )
+  pair.matrix <- do.call(rbind, strsplit(unique(pair.keys), "-", fixed = TRUE))
+  pair.matrix <- matrix(as.integer(pair.matrix), ncol = 2L)
+  pair.matrix[order(pair.matrix[, 1L], pair.matrix[, 2L]), , drop = FALSE]
+}
+
+grip.edge.weights.from.distance.matrix <- function(edges,
+                                                   dist.matrix,
+                                                   distance_floor = sqrt(.Machine$double.eps)) {
+  if (nrow(edges) == 0L) {
+    return(numeric(0L))
+  }
+  pmax(
+    as.double(dist.matrix[cbind(edges[, 1L], edges[, 2L])]),
+    as.double(distance_floor)
+  )
+}
+
+grip.prepare.geodesic.mds.graph <- function(data,
+                                            k,
+                                            connect = c("mst", "error")) {
+  data <- grip.validate.data.matrix(data)
+  connect <- match.arg(connect)
+  n <- nrow(data)
+  k <- grip.validate.count(k, "k")
+  if (k <= 0L || k >= n) {
+    stop("k must be an integer in [1, nrow(data) - 1]")
+  }
+
+  dist.matrix <- grip.euclidean.distance.matrix(data)
+  knn.edges <- grip.knn.edge.matrix(dist.matrix, k)
+  final.edges <- knn.edges
+  mst.added.edges <- matrix(integer(), ncol = 2L)
+
+  adj.raw <- grip.build.adj.from.edges(final.edges, n = n)$adj_list
+  comp.raw <- grip.connected.components(adj.raw, n)
+  if (length(unique(comp.raw)) > 1L) {
+    if (identical(connect, "error")) {
+      stop(sprintf(
+        "symmetric %d-NN graph has %d connected components; use connect = 'mst' to augment it",
+        k,
+        length(unique(comp.raw))
+      ))
+    }
+    mst.edges <- grip.minimum.spanning.tree.edges(dist.matrix)
+    final.edges <- grip.union.edge.matrix(final.edges, mst.edges)
+    mst.added.edges <- final.edges[!(paste(final.edges[, 1L], final.edges[, 2L], sep = "-") %in%
+                                     paste(knn.edges[, 1L], knn.edges[, 2L], sep = "-")), , drop = FALSE]
+  }
+
+  list(
+    data = data,
+    distance_matrix = dist.matrix,
+    k = k,
+    connect = connect,
+    knn_edges = knn.edges,
+    knn_edge_weights = grip.edge.weights.from.distance.matrix(knn.edges, dist.matrix),
+    edges = final.edges,
+    edge_weights = grip.edge.weights.from.distance.matrix(final.edges, dist.matrix),
+    mst_added_edges = mst.added.edges,
+    mst_added_edge_weights = grip.edge.weights.from.distance.matrix(mst.added.edges, dist.matrix)
+  )
+}
+
+grip.validate.geodesic.mds.prepared <- function(prepared, coords = NULL) {
+  if (!inherits(prepared, "grip_geodesic_kk_prepared")) {
+    stop("prepared must be NULL or an object from grip.prepare.geodesic.mds() / grip.prepare.geodesic.kk()")
+  }
+  if (!is.null(coords) && nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match the graph size stored in prepared")
+  }
+  prepared
+}
+
 grip.prepare.geodesic.kk.base <- function(edges = NULL,
                                           n = NULL,
                                           adj_list = NULL,
@@ -2011,6 +2171,470 @@ grip.optimize.geodesic.kk <- function(coords,
     trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
     accepted.frames <- list(current)
   }
+
+  list(
+    coords = current,
+    trace = trace.df,
+    frames = accepted.frames,
+    prepared = prepared,
+    score = score
+  )
+}
+
+grip.geodesic.mds.energy.gradient <- function(coords,
+                                              prepared,
+                                              edge_length_epsilon = 1e-8) {
+  g <- as.double(prepared$pair_graph_distance)
+  n.pairs <- length(g)
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  energy <- 0
+  path.lengths <- numeric(n.pairs)
+
+  if (n.pairs == 0L) {
+    return(list(
+      energy = energy,
+      gradient = grad,
+      gradient_norm = 0,
+      path_lengths = path.lengths,
+      target = g
+    ))
+  }
+
+  for (i in seq_len(n.pairs)) {
+    edges <- prepared$path_edges[[i]]
+    if (nrow(edges) == 0L) {
+      next
+    }
+    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+    edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+    h <- sum(edge.lengths)
+    path.lengths[[i]] <- h
+    resid <- h - g[[i]]
+    energy <- energy + 0.5 * resid^2
+    unit.vecs <- diffs / edge.lengths
+    for (j in seq_len(nrow(edges))) {
+      u <- edges[j, 1L]
+      v <- edges[j, 2L]
+      grad[u, ] <- grad[u, ] + resid * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - resid * unit.vecs[j, ]
+    }
+  }
+
+  list(
+    energy = energy,
+    gradient = grad,
+    gradient_norm = sqrt(sum(grad^2)),
+    path_lengths = path.lengths,
+    target = g
+  )
+}
+
+grip.geodesic.mds.score.stats <- function(coords,
+                                          prepared,
+                                          edge_length_epsilon = 1e-8) {
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  g <- as.double(prepared$pair_graph_distance)
+
+  if (length(g) == 0L) {
+    return(list(
+      n.pairs = 0L,
+      energy = NA_real_,
+      raw_stress = NA_real_,
+      stress = NA_real_,
+      rmse = NA_real_,
+      mean.abs.path.error = NA_real_,
+      mean.rel.path.error = NA_real_,
+      path.lengths = numeric(0L),
+      target = numeric(0L),
+      residual = numeric(0L),
+      relative.residual = numeric(0L)
+    ))
+  }
+
+  h <- grip.geodesic.kk.path.lengths(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  resid <- h - g
+  rel.resid <- resid / pmax(g, edge_length_epsilon)
+  raw.stress <- sum(resid^2)
+  denom <- sum(g^2)
+
+  list(
+    n.pairs = length(g),
+    energy = 0.5 * raw.stress,
+    raw_stress = raw.stress,
+    stress = if (is.finite(denom) && denom > 0) sqrt(raw.stress / denom) else NA_real_,
+    rmse = sqrt(mean(resid^2)),
+    mean.abs.path.error = mean(abs(resid)),
+    mean.rel.path.error = mean(abs(rel.resid)),
+    path.lengths = h,
+    target = g,
+    residual = resid,
+    relative.residual = rel.resid
+  )
+}
+
+grip.geodesic.mds.pair.details <- function(prepared, stats) {
+  data.frame(
+    i = prepared$pair_matrix[, 1L],
+    j = prepared$pair_matrix[, 2L],
+    graph.distance = as.double(prepared$pair_graph_distance),
+    embedded.path.length = stats$path.lengths,
+    target.length = stats$target,
+    residual = stats$residual,
+    relative.residual = stats$relative.residual,
+    stringsAsFactors = FALSE
+  )
+}
+
+grip.geodesic.mds.evaluate.state <- function(coords,
+                                             prepared,
+                                             edge_length_epsilon = 1e-8) {
+  grip.geodesic.mds.energy.gradient(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+}
+
+grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
+  dim <- grip.validate.count(dim, "dim")
+  if (!(dim %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+  fit <- stats::cmdscale(stats::as.dist(prepared$distance_matrix), k = dim)
+  fit <- as.matrix(fit)
+  if (ncol(fit) < dim) {
+    fit <- cbind(fit, matrix(0, nrow = nrow(fit), ncol = dim - ncol(fit)))
+  }
+  storage.mode(fit) <- "double"
+  fit
+}
+
+#' Prepare a geodesic-MDS graph and fixed path family from data
+#'
+#' \code{grip.prepare.geodesic.mds()} builds a deterministic symmetric
+#' \eqn{k}-nearest-neighbor graph from an input data matrix, augments it to
+#' connectedness when requested, and then prepares the full all-pairs chosen
+#' geodesic cache used by the geodesic-MDS scorer and optimizer.
+#'
+#' The current implementation uses Euclidean distances in the input space to
+#' weight graph edges. If the symmetric \eqn{k}-NN graph is disconnected and
+#' \code{connect = "mst"}, the Euclidean minimum spanning tree is unioned with
+#' the \eqn{k}-NN graph before the full path cache is built.
+#'
+#' @param data Numeric matrix whose rows are observations.
+#' @param k Symmetric \eqn{k}-NN neighborhood size.
+#' @param connect Connectivity policy. \code{"mst"} augments a disconnected
+#'   \eqn{k}-NN graph with Euclidean MST edges; \code{"error"} stops instead.
+#'
+#' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
+#'   top of the existing full geodesic path-cache structure.
+#' @export
+grip.prepare.geodesic.mds <- function(data,
+                                      k,
+                                      connect = c("mst", "error")) {
+  built <- grip.prepare.geodesic.mds.graph(
+    data = data,
+    k = k,
+    connect = connect
+  )
+  prepared <- grip.prepare.geodesic.kk(
+    edges = built$edges,
+    n = nrow(built$data),
+    edge_weights = built$edge_weights
+  )
+  prepared$input_data <- built$data
+  prepared$k <- built$k
+  prepared$connect <- built$connect
+  prepared$knn_distance_matrix <- built$distance_matrix
+  prepared$knn_edges <- built$knn_edges
+  prepared$knn_edge_weights <- built$knn_edge_weights
+  prepared$mst_added_edges <- built$mst_added_edges
+  prepared$mst_added_edge_weights <- built$mst_added_edge_weights
+  prepared$graph_build_mode <- "symmetric_knn"
+  class(prepared) <- c("grip_gmds_prepared", class(prepared))
+  prepared
+}
+
+#' Score a layout under the geodesic-MDS objective
+#'
+#' \code{grip.score.geodesic.mds()} evaluates an embedding using the fixed-path
+#' geodesic-MDS criterion from the manuscript: the target for each unordered
+#' vertex pair is the corresponding graph geodesic itself, with no fitted scale
+#' factor and no KK-style inverse-distance weighting.
+#'
+#' @param coords Numeric coordinate matrix with 2 or 3 columns.
+#' @param prepared Optional prepared geodesic object from
+#'   \code{\link{grip.prepare.geodesic.mds}()} or
+#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#' @param data Optional data matrix used when \code{prepared} is omitted.
+#' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
+#'   omitted.
+#' @param connect Connectivity policy used when \code{prepared} is omitted.
+#' @param edge_length_epsilon Small non-negative stabilizer added inside each
+#'   embedded edge length.
+#' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
+#'
+#' @return A one-row data frame summarizing the geodesic-MDS fit.
+#' @export
+grip.score.geodesic.mds <- function(coords,
+                                    prepared = NULL,
+                                    data = NULL,
+                                    k = NULL,
+                                    connect = c("mst", "error"),
+                                    edge_length_epsilon = 1e-8,
+                                    return_pair_details = FALSE) {
+  coords <- grip.validate.coords(coords)
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.geodesic.mds(
+      data = data,
+      k = k,
+      connect = connect
+    )
+  }
+  prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  stats <- grip.geodesic.mds.score.stats(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+
+  out <- data.frame(
+    n = prepared$n,
+    n.pairs = stats$n.pairs,
+    gmds.energy = stats$energy,
+    gmds.raw_stress = stats$raw_stress,
+    gmds.stress = stats$stress,
+    gmds.rmse = stats$rmse,
+    gmds.mean.abs.path.error = stats$mean.abs.path.error,
+    gmds.mean.rel.path.error = stats$mean.rel.path.error,
+    stringsAsFactors = FALSE
+  )
+
+  if (isTRUE(return_pair_details)) {
+    out$pair.details <- list(grip.geodesic.mds.pair.details(prepared, stats))
+  }
+
+  out
+}
+
+#' Optimize a layout under the geodesic-MDS objective
+#'
+#' \code{grip.optimize.geodesic.mds()} optimizes a fixed-path geodesic-MDS
+#' objective using deterministic gradient descent with Armijo backtracking. By
+#' default it initializes from classical MDS on the graph geodesic distance
+#' matrix and then runs a compiled optimizer.
+#'
+#' @param coords Optional numeric coordinate matrix with 2 or 3 columns. If
+#'   omitted, coordinates are initialized according to \code{init}.
+#' @param prepared Optional prepared object from
+#'   \code{\link{grip.prepare.geodesic.mds}()} or
+#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#' @param data Optional input data matrix used when \code{prepared} is omitted.
+#' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
+#'   omitted.
+#' @param dim Target output dimension used when \code{coords} is omitted.
+#' @param connect Connectivity policy used when \code{prepared} is omitted.
+#' @param init Initialization mode: \code{"cmdscale"}, \code{"random"}, or
+#'   \code{"user"}.
+#' @param engine Optimization engine: \code{"cpp"} or \code{"r"}.
+#' @param max_iter Maximum number of gradient-descent iterations.
+#' @param edge_length_epsilon Small non-negative stabilizer added inside each
+#'   embedded edge length.
+#' @param initial_step Initial line-search step size.
+#' @param step_shrink Multiplicative backtracking shrink factor in `(0, 1)`.
+#' @param armijo_factor Non-negative Armijo decrease constant.
+#' @param grad_tol Non-negative stopping tolerance on the gradient norm.
+#' @param min_step Positive minimum accepted line-search step.
+#' @param recenter If \code{TRUE}, recenter accepted proposals to zero mean.
+#' @param return_trace If \code{TRUE}, include per-iteration diagnostics and
+#'   accepted frames.
+#' @param seed Optional integer seed used only for random initialization.
+#'
+#' @return A list with \code{coords}, \code{trace}, \code{frames},
+#'   \code{prepared}, and \code{score}.
+#' @export
+grip.optimize.geodesic.mds <- function(coords = NULL,
+                                       prepared = NULL,
+                                       data = NULL,
+                                       k = NULL,
+                                       dim = 2L,
+                                       connect = c("mst", "error"),
+                                       init = c("cmdscale", "random", "user"),
+                                       engine = c("cpp", "r"),
+                                       max_iter = 16L,
+                                       edge_length_epsilon = 1e-8,
+                                       initial_step = 1.0,
+                                       step_shrink = 0.5,
+                                       armijo_factor = 1e-4,
+                                       grad_tol = 1e-8,
+                                       min_step = 1e-8,
+                                       recenter = TRUE,
+                                       return_trace = FALSE,
+                                       seed = NULL) {
+  init <- match.arg(init)
+  engine <- match.arg(engine)
+  grip.validate.scalar(max_iter, "max_iter", lower = 0)
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  grip.validate.scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  grip.validate.scalar(armijo_factor, "armijo_factor", lower = 0)
+  grip.validate.scalar(grad_tol, "grad_tol", lower = 0)
+  grip.validate.scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
+  max_iter <- as.integer(round(max_iter))
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.geodesic.mds(
+      data = data,
+      k = k,
+      connect = connect
+    )
+  }
+
+  if (is.null(coords)) {
+    dim <- grip.validate.count(dim, "dim")
+    if (!(dim %in% c(2L, 3L))) {
+      stop("dim must be 2 or 3")
+    }
+    if (identical(init, "user")) {
+      stop("coords must be supplied when init = 'user'")
+    }
+    if (identical(init, "cmdscale")) {
+      coords <- grip.geodesic.mds.cmdscale.init(prepared, dim)
+    } else {
+      if (!is.null(seed)) {
+        set.seed(as.integer(seed))
+      }
+      coords <- matrix(stats::rnorm(prepared$n * dim), ncol = dim)
+    }
+  } else {
+    coords <- grip.validate.coords(coords)
+  }
+
+  prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+
+  if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
+    score <- grip.score.geodesic.mds(
+      coords = coords,
+      prepared = prepared,
+      edge_length_epsilon = edge_length_epsilon
+    )
+    return(list(
+      coords = coords,
+      trace = data.frame(),
+      frames = list(coords),
+      prepared = prepared,
+      score = score
+    ))
+  }
+
+  if (identical(engine, "cpp")) {
+    opt <- grip_optimize_geodesic_mds_adj_cpp(
+      adj_list = prepared$adj_list,
+      weight_list = prepared$weight_list,
+      coords = coords,
+      max_iter = max_iter,
+      edge_length_epsilon = edge_length_epsilon,
+      initial_step = initial_step,
+      step_shrink = step_shrink,
+      armijo_factor = armijo_factor,
+      grad_tol = grad_tol,
+      min_step = min_step,
+      recenter = recenter,
+      return_trace = return_trace
+    )
+    score <- grip.score.geodesic.mds(
+      coords = opt$coords,
+      prepared = prepared,
+      edge_length_epsilon = edge_length_epsilon
+    )
+    return(list(
+      coords = opt$coords,
+      trace = opt$trace,
+      frames = opt$frames,
+      prepared = prepared,
+      score = score
+    ))
+  }
+
+  current <- coords
+  trace.rows <- vector("list", max_iter + 1L)
+  accepted.frames <- list(current)
+  state <- grip.geodesic.mds.evaluate.state(
+    coords = current,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  trace.rows[[1L]] <- data.frame(
+    iteration = 0L,
+    energy = state$energy,
+    gradient_norm = state$gradient_norm,
+    step = NA_real_,
+    accepted = TRUE,
+    stringsAsFactors = FALSE
+  )
+  used <- 1L
+
+  for (iter in seq_len(max_iter)) {
+    if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
+      break
+    }
+    step <- as.double(initial_step)
+    accepted <- FALSE
+    candidate <- current
+    candidate.state <- state
+
+    while (is.finite(step) && step >= min_step) {
+      proposal <- current - step * state$gradient
+      if (isTRUE(recenter)) {
+        proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
+      }
+      proposal.state <- grip.geodesic.mds.evaluate.state(
+        coords = proposal,
+        prepared = prepared,
+        edge_length_epsilon = edge_length_epsilon
+      )
+      target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
+      if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
+        candidate <- proposal
+        candidate.state <- proposal.state
+        accepted <- TRUE
+        break
+      }
+      step <- step * step_shrink
+    }
+
+    used <- used + 1L
+    trace.rows[[used]] <- data.frame(
+      iteration = iter,
+      energy = if (accepted) candidate.state$energy else state$energy,
+      gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
+      step = if (accepted) step else NA_real_,
+      accepted = accepted,
+      stringsAsFactors = FALSE
+    )
+
+    if (!accepted) {
+      break
+    }
+
+    current <- candidate
+    state <- candidate.state
+    accepted.frames[[length(accepted.frames) + 1L]] <- current
+  }
+
+  trace.df <- do.call(rbind, trace.rows[seq_len(used)])
+  if (!isTRUE(return_trace)) {
+    trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
+    accepted.frames <- list(current)
+  }
+  score <- grip.score.geodesic.mds(
+    coords = current,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
 
   list(
     coords = current,
