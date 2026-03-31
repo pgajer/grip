@@ -48,6 +48,8 @@ void DrawGraph::mish_engine()
                   << ", rounds=" << rounds);
 
         } else if ( ctr == rounds ){
+            if(!createList)
+                lgkk_refine_level(csize, misfLevel, trace_round_in_level);
             ctr = 0;
             prevSize = csize;
             prevMishSize = misfSize[misfLevel];

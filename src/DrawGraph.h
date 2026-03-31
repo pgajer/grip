@@ -33,6 +33,11 @@ using size_tt = uint32_t;
 #define LEVEL0_INSERT_LEAST_SQUARES 102
 #define INSERT_ANCHOR_SCOPE_ANY_HIGHER 0
 #define INSERT_ANCHOR_SCOPE_PREV_MISF 1
+#define INSERT_ANCHOR_STRATEGY_FIRST 0
+#define INSERT_ANCHOR_STRATEGY_DISTANCE_BAND 1
+#define INSERT_ANCHOR_STRATEGY_BALANCED_BAND 2
+#define LGKK_SCOPE_ALL 0
+#define LGKK_SCOPE_COARSE 1
 
 //**************************************************************
 //
@@ -65,9 +70,15 @@ class DrawGraph
               coord_t _finalMoveScaleAfterFirst = 1.0,
               size_tt _insertionAnchorCount = 3,
               size_tt _insertionAnchorScope = INSERT_ANCHOR_SCOPE_ANY_HIGHER,
+              size_tt _insertionAnchorStrategy = INSERT_ANCHOR_STRATEGY_FIRST,
               size_tt _level0InsertionMode = LEVEL0_INSERT_INHERIT,
               size_tt _level0AnchorCount = 3,
-              size_tt _level0LocalKkSteps = 3);
+              size_tt _level0LocalKkSteps = 3,
+              size_tt _lgkkMultiscaleRounds = 0,
+              size_tt _lgkkLocalNbrs = 20,
+              size_tt _lgkkLandmarkCount = 8,
+              size_tt _lgkkScope = LGKK_SCOPE_ALL,
+              size_tt _lgkkActiveLimit = 4096);
     
     ~DrawGraph();
 
@@ -220,9 +231,15 @@ private:
     coord_t finalMoveScaleAfterFirst;
     size_tt insertionAnchorCount;
     size_tt insertionAnchorScope;
+    size_tt insertionAnchorStrategy;
     size_tt level0InsertionMode;
     size_tt level0AnchorCount;
     size_tt level0LocalKkSteps;
+    size_tt lgkkMultiscaleRounds;
+    size_tt lgkkLocalNbrs;
+    size_tt lgkkLandmarkCount;
+    size_tt lgkkScope;
+    size_tt lgkkActiveLimit;
     size_tt activeVertCount;
     size_tt misfLevel;
     size_tt initMishHeight;
@@ -239,6 +256,22 @@ private:
     std::vector<int> traceMisfLevels;
     std::vector<int> traceRounds;
     std::vector<int> traceActiveCounts;
+    struct LgkkPathEdge {
+        size_tt u;
+        size_tt v;
+    };
+    struct LgkkPairCache {
+        size_tt source;
+        size_tt target;
+        coord_t graphDistance;
+        std::vector<LgkkPathEdge> pathEdges;
+    };
+    size_tt lgkkCacheActiveCount;
+    int lgkkCacheMisfLevel;
+    coord_t lgkkCacheScaleL0;
+    std::vector<int> lgkkActiveIndex;
+    std::vector<double> lgkkDistanceMatrix;
+    std::vector<LgkkPairCache> lgkkPairs;
 
     //
     // SUPPORTING FUNCTIONS
@@ -345,6 +378,25 @@ private:
     Point<> initial_position_least_squares(const size_tt *closeVert,
                                            const size_tt *closeVertDist,
                                            size_tt count);
+    void select_insertion_anchor_subset(std::vector<size_tt> &anchors,
+                                        std::vector<size_tt> &anchorDist,
+                                        size_tt targetCount);
+    bool should_run_multiscale_lgkk(size_tt activeCount,
+                                    size_tt mishLayer) const;
+    void clear_lgkk_level_cache();
+    void build_lgkk_level_cache(size_tt activeCount,
+                                size_tt mishLayer);
+    void compute_active_shortest_paths(size_tt sourceIndex,
+                                       size_tt activeCount,
+                                       std::vector<double> &dist,
+                                       std::vector<int> *parent = nullptr);
+    std::vector<size_tt> lgkk_choose_local_neighbors(size_tt sourceIndex,
+                                                     size_tt activeCount) const;
+    std::vector<size_tt> lgkk_choose_landmarks(size_tt sourceIndex,
+                                               size_tt activeCount) const;
+    void lgkk_refine_level(size_tt activeCount,
+                           size_tt mishLayer,
+                           size_tt &traceRoundInLevel);
     void capture_trace_snapshot(const char *phase,
                                 size_tt activeCount,
                                 size_tt roundInLevel);

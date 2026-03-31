@@ -28,12 +28,16 @@ grip.layout(
   final_mode = c("fr", "kk_repulse"),
   insertion_anchor_count = 3,
   insertion_anchor_scope = c("any_higher", "prev_misf"),
+  insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
   level0_anchor_count = insertion_anchor_count,
   level0_local_kk_steps = 3,
   lgkk_polish_rounds = 0L,
+  lgkk_multiscale_rounds = 0L,
   lgkk_local_nbrs = 20L,
   lgkk_landmark_count = 8L,
+  lgkk_multiscale_scope = c("all", "coarse"),
+  lgkk_active_limit = 4096L,
   tinit_factor = 6,
   seed = 6,
   disconnected = c("components", "error")
@@ -118,6 +122,15 @@ allows anchors from any already placed higher MISF level.
 \code{"prev_misf"} restricts anchors to the immediately previous MISF
 level only.}
 
+\item{insertion_anchor_strategy}{Anchor-selection rule used during
+multiscale insertion. \code{"first"} keeps the historical
+first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
+until the \code{K_mish}-th anchor distance band is exhausted, then places
+the new vertex from that less order-sensitive anchor pool.
+\code{"balanced_band"} uses the same band expansion, then explicitly
+selects a subset whose centroid stays centered in the candidate cloud while
+remaining geometrically spread out.}
+
 \item{level0_insertion_mode}{Level-0 insertion placement override used only
 when the finest filtration level is first populated. \code{"inherit"}
 keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -137,12 +150,24 @@ legacy behavior uses 3.}
 landmark-geodesic KK polish iterations applied after the main GRIP solve.
 \code{0} disables the polish.}
 
+\item{lgkk_multiscale_rounds}{Non-negative integer number of compiled
+landmark-geodesic KK refinement rounds applied inside the multiscale solver
+after each eligible MISF level completes its standard GRIP rounds.}
+
 \item{lgkk_local_nbrs}{Number of nearest graph-metric neighbors retained per
-vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.}
+vertex in the LGKK sparse local set when either LGKK stage is enabled.}
 
 \item{lgkk_landmark_count}{Number of farthest-point landmarks retained per
-vertex in the LGKK sparse long-range set when
-\code{lgkk_polish_rounds > 0}.}
+vertex in the LGKK sparse long-range set when either LGKK stage is
+enabled.}
+
+\item{lgkk_multiscale_scope}{Scope for the compiled multiscale LGKK stage.
+\code{"all"} applies it after every eligible MISF level, including the
+final full-graph level. \code{"coarse"} applies it only on coarse levels.}
+
+\item{lgkk_active_limit}{Positive integer upper bound on the active-set size
+for compiled multiscale LGKK cache construction. Levels larger than this
+skip the multiscale LGKK stage.}
 
 \item{tinit_factor}{Initial temperature factor.}
 
