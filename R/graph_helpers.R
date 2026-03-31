@@ -160,6 +160,32 @@
   keep
 }
 
+.as_cube_keep_mask <- function(mask, name = "mask", min_size = 2L) {
+  if (!is.array(mask) || length(dim(mask)) != 3L) {
+    stop(sprintf("%s must be a 3D array", name), call. = FALSE)
+  }
+  dims <- dim(mask)
+  if (any(dims < min_size) || length(unique(dims)) != 1L) {
+    stop(sprintf("%s must be a cubic 3D array with side length at least %d",
+                 name, min_size),
+         call. = FALSE)
+  }
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric 3D array", name),
+         call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name),
+         call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  keep
+}
+
 .as_keep_grid <- function(keep, name = "keep", min_h = 1L, min_w = 1L) {
   if (!is.matrix(keep) || nrow(keep) < min_h || ncol(keep) < min_w) {
     stop(sprintf("%s must be a matrix with at least %d rows and %d columns",
@@ -433,6 +459,96 @@
   .bind_edges(edges)
 }
 
+.recursive.cube.mask.cells <- function(mask, level) {
+  mask <- .as_cube_keep_mask(mask, "mask", min_size = 2L)
+  level <- .as_whole_number(level, "level", min = 1L)
+  base <- as.integer(dim(mask)[1L])
+  side <- as.integer(base^level)
+  grid <- expand.grid(col = 0:(side - 1L),
+                      row = 0:(side - 1L),
+                      layer = 0:(side - 1L))
+
+  keep_cell <- function(col, row, layer) {
+    for (step in seq_len(level)) {
+      col_digit <- (col %% base) + 1L
+      row_digit <- (row %% base) + 1L
+      layer_digit <- (layer %% base) + 1L
+      if (!mask[row_digit, col_digit, layer_digit]) {
+        return(FALSE)
+      }
+      col <- col %/% base
+      row <- row %/% base
+      layer <- layer %/% base
+    }
+    TRUE
+  }
+
+  keep <- mapply(keep_cell, grid$col, grid$row, grid$layer)
+  cells <- grid[keep, , drop = FALSE]
+  rownames(cells) <- NULL
+  list(
+    level = level,
+    base = base,
+    side = side,
+    mask = mask,
+    cells = cells
+  )
+}
+
+.recursive.cube.mask.param.coords <- function(mask,
+                                              level,
+                                              x_scale = 1,
+                                              y_scale = 1,
+                                              z_scale = 1) {
+  spec <- .recursive.cube.mask.cells(mask, level)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+  z_scale <- .as_positive_scalar(z_scale, "z_scale")
+
+  x_vals <- .grid_axis(spec$side) * x_scale
+  y_vals <- rev(.grid_axis(spec$side) * y_scale)
+  z_vals <- .grid_axis(spec$side) * z_scale
+  coords <- cbind(
+    x = x_vals[spec$cells$col + 1L],
+    y = y_vals[spec$cells$row + 1L],
+    z = z_vals[spec$cells$layer + 1L]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.recursive.cube.mask.edges <- function(mask, level) {
+  spec <- .recursive.cube.mask.cells(mask, level)
+  side <- spec$side
+  cells <- spec$cells
+
+  id_map <- array(0L, dim = c(side, side, side))
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$row[i] + 1L, cells$col[i] + 1L, cells$layer[i] + 1L] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    col <- cells$col[i]
+    row <- cells$row[i]
+    layer <- cells$layer[i]
+    if (col + 1L < side) {
+      nbr <- id_map[row + 1L, col + 2L, layer + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (row + 1L < side) {
+      nbr <- id_map[row + 2L, col + 1L, layer + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (layer + 1L < side) {
+      nbr <- id_map[row + 1L, col + 1L, layer + 2L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  .bind_edges(edges)
+}
+
 .sierpinski.carpet.mask <- function() {
   matrix(
     c(
@@ -443,6 +559,21 @@
     nrow = 3L,
     byrow = TRUE
   )
+}
+
+.menger.sponge.mask <- function() {
+  mask <- array(TRUE, dim = c(3L, 3L, 3L))
+  for (row in seq_len(3L)) {
+    for (col in seq_len(3L)) {
+      for (layer in seq_len(3L)) {
+        middle_count <- sum(c(row, col, layer) == 2L)
+        if (middle_count >= 2L) {
+          mask[row, col, layer] <- FALSE
+        }
+      }
+    }
+  }
+  mask
 }
 
 .vicsek.mask <- function() {
@@ -1440,8 +1571,11 @@ keep.asymmetric.notches <- function(h,
 #' \code{\link{edges.recursive.mask.grid}()} builds a generic square-mask
 #' family, \code{\link{edges.recursive.triangle.mask}()} builds a generic
 #' triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
-#' builds a generic tetrahedron-mask family, \code{\link{edges.vicsek}()}
-#' builds the connected axial-cross variant,
+#' builds a generic tetrahedron-mask family,
+#' \code{\link{edges.recursive.cube.mask}()} builds a generic cube-mask
+#' family, \code{\link{edges.vicsek}()} builds the connected axial-cross
+#' variant, \code{\link{edges.menger.sponge}()} builds the classic cubical
+#' sponge variant,
 #' \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
 #' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 #' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
@@ -2556,6 +2690,286 @@ sierpinski.tetrahedron.surface.graph <- function(level = 2,
   out
 }
 
+.cube.mask.surface.coords <- function(coords_param,
+                                      surface,
+                                      amplitude,
+                                      freq,
+                                      twist) {
+  surface <- .as_named_choice(surface, c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq <- .as_positive_scalar(freq, "freq")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  coords_param <- as.matrix(coords_param)
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  coords <- switch(
+    surface,
+    standard = coords_param,
+    bulged = {
+      local_scale <- 1 + amplitude * rowSums(coords_norm^2)
+      if (any(!is.finite(local_scale) | local_scale <= 0)) {
+        stop("bulged cube-mask parameters produce a non-positive local scale; adjust amplitude",
+             call. = FALSE)
+      }
+      coords_param * local_scale
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords_param[, 1L] * cos(theta) - coords_param[, 2L] * sin(theta)
+      y <- coords_param[, 1L] * sin(theta) + coords_param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords_param[, 3L])
+    },
+    wavy = {
+      dx <- amplitude * sin(pi * freq * coords_norm[, 2L]) *
+        cos(pi * freq * coords_norm[, 3L])
+      dy <- amplitude * sin(pi * freq * coords_norm[, 3L]) *
+        cos(pi * freq * coords_norm[, 1L])
+      dz <- amplitude * sin(pi * freq * coords_norm[, 1L]) *
+        cos(pi * freq * coords_norm[, 2L])
+      coords_param + cbind(dx, dy, dz)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted recursive cube-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide a cube into a regular
+#' \eqn{k \times k \times k} array of subcubes according to a cubic keep-mask,
+#' retain the selected cells at each recursion step, and deform the resulting
+#' face-adjacency graph inside \eqn{\mathbb{R}^3}. This provides a generic
+#' cubical 3D family that includes Menger-sponge-style cell adjacency as a
+#' named special case.
+#'
+#' The \code{mask} is interpreted as a cubic array whose first dimension runs
+#' from top to bottom, second from left to right, and third from front to back.
+#' Non-zero entries are retained at each recursive step.
+#'
+#' @param mask Cubic logical or numeric keep-array. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. Must be at least \code{1}.
+#' @param surface Cube-mask geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param x_scale Positive horizontal scaling applied to the canonical cube
+#'   coordinates.
+#' @param y_scale Positive vertical scaling applied to the canonical cube
+#'   coordinates.
+#' @param z_scale Positive depth scaling applied to the canonical cube
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{recursive.cube.mask.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.cube.mask.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive cube-mask face-adjacency edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D voxel-center coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.cube.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-array,
+#'   \item \code{mask_side}: side length of the base keep-mask,
+#'   \item \code{side}: side length of the fully refined cube grid,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_cube_mask_surface_helpers
+NULL
+
+#' @rdname recursive_cube_mask_surface_helpers
+#' @export
+recursive.cube.mask.surface.embedding <- function(mask,
+                                                  level = 2,
+                                                  surface = c("standard", "bulged",
+                                                              "twisted", "wavy"),
+                                                  amplitude = 0.2,
+                                                  freq = 2,
+                                                  twist = 0.6,
+                                                  x_scale = 1,
+                                                  y_scale = 1,
+                                                  z_scale = 1) {
+  mask <- .as_cube_keep_mask(mask, "mask", min_size = 2L)
+  level <- .as_whole_number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+  z_scale <- .as_positive_scalar(z_scale, "z_scale")
+
+  coords_param <- .recursive.cube.mask.param.coords(
+    mask = mask,
+    level = level,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+  .cube.mask.surface.coords(
+    coords_param = coords_param,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname recursive_cube_mask_surface_helpers
+#' @export
+recursive.cube.mask.surface.graph <- function(mask,
+                                              level = 2,
+                                              surface = c("standard", "bulged",
+                                                          "twisted", "wavy"),
+                                              amplitude = 0.2,
+                                              freq = 2,
+                                              twist = 0.6,
+                                              x_scale = 1,
+                                              y_scale = 1,
+                                              z_scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  mask <- .as_cube_keep_mask(mask, "mask", min_size = 2L)
+  level <- .as_whole_number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  spec <- .recursive.cube.mask.cells(mask, level)
+  edges <- .recursive.cube.mask.edges(mask, level)
+  coords_param <- .recursive.cube.mask.param.coords(
+    mask = mask,
+    level = level,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+  coords_surface <- recursive.cube.mask.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "recursive.cube.mask",
+    surface = surface,
+    level = level,
+    mask = mask,
+    mask_side = as.integer(dim(mask)[1L]),
+    side = spec$side,
+    normalize = normalize,
+    label = sprintf("%s recursive cube mask level %d",
+                    tools::toTitleCase(surface),
+                    level)
+  )
+  class(out) <- c("grip_recursive_cube_mask_surface_graph", "list")
+  out
+}
+
+#' Weighted Menger sponge surface helpers
+#'
+#' Convenience wrappers around \code{recursive.cube.mask.surface.*()} using the
+#' classic \eqn{3 \times 3 \times 3} Menger-sponge keep-mask. These helpers
+#' provide a named cubical 3D benchmark family whose vertices are occupied
+#' subcubes and whose edges connect face-adjacent occupied cells.
+#'
+#' @inheritParams recursive.cube.mask.surface.embedding
+#'
+#' @return
+#' \code{menger.sponge.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 20^level}.
+#'
+#' \code{menger.sponge.surface.graph()} returns the same components as
+#' \code{recursive.cube.mask.surface.graph()}, with \code{family} set to
+#' \code{"menger.sponge"} and a family-specific class and label.
+#'
+#' @name menger_sponge_surface_helpers
+NULL
+
+#' @rdname menger_sponge_surface_helpers
+#' @export
+menger.sponge.surface.embedding <- function(level = 2,
+                                            surface = c("standard", "bulged",
+                                                        "twisted", "wavy"),
+                                            amplitude = 0.2,
+                                            freq = 2,
+                                            twist = 0.6,
+                                            x_scale = 1,
+                                            y_scale = 1,
+                                            z_scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = .menger.sponge.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+}
+
+#' @rdname menger_sponge_surface_helpers
+#' @export
+menger.sponge.surface.graph <- function(level = 2,
+                                        surface = c("standard", "bulged",
+                                                    "twisted", "wavy"),
+                                        amplitude = 0.2,
+                                        freq = 2,
+                                        twist = 0.6,
+                                        x_scale = 1,
+                                        y_scale = 1,
+                                        z_scale = 1,
+                                        normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = .menger.sponge.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale,
+    normalize = normalize
+  )
+  out$family <- "menger.sponge"
+  out$label <- sprintf("%s Menger sponge level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_menger_sponge_surface_graph", class(out))
+  out
+}
+
 #' Weighted recursive triangle-mask surface helpers
 #'
 #' Convenience helpers that recursively subdivide an equilateral triangle into
@@ -3157,15 +3571,21 @@ edges.kary.tree <- function(k = 2, depth = 2) {
 #' @describeIn graph_generators Recursively refined square-mask grid graph whose
 #'   vertices are occupied cells and whose edges connect orthogonally adjacent
 #'   cells.
-#' @param mask Square logical or numeric keep-mask. Non-zero entries are kept at
-#'   each recursive subdivision step. For
+#' @param mask Keep-mask describing which recursive cells are retained. For
+#'   \code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
+#'   or numeric keep-matrix whose non-zero entries are kept at each recursive
+#'   subdivision step. For
 #'   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
 #'   four-entry vector in \code{left}, \code{right}, \code{top},
 #'   \code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
 #'   \code{mask} must be a four-entry vector in \code{base_left},
-#'   \code{base_right}, \code{base_back}, \code{apex} order.
+#'   \code{base_right}, \code{base_back}, \code{apex} order. For
+#'   \code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
+#'   or numeric keep-array whose non-zero entries are kept at each recursive
+#'   subdivision step.
 #' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
-#'   \code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
+#'   \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
+#'   \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
 #'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
 #'   and \code{edges.recursive.tetrahedron.mask()} also allow
 #'   \code{level = 0}.
@@ -3189,11 +3609,27 @@ edges.recursive.tetrahedron.mask <- function(mask = mask.tetrahedron.classic(),
   .recursive.tetrahedron.mask.canonical(mask, level)$edges
 }
 
+#' @describeIn graph_generators Recursively refined cube-mask graph whose
+#'   vertices are occupied subcubes and whose edges connect face-adjacent
+#'   occupied cells.
+#' @export
+edges.recursive.cube.mask <- function(mask, level = 2) {
+  .recursive.cube.mask.edges(mask, level)
+}
+
 #' @describeIn graph_generators Connected Vicsek-style cross family derived from
 #'   a \code{3 x 3} axial-cross keep-mask.
 #' @export
 edges.vicsek <- function(level = 2) {
   edges.recursive.mask.grid(.vicsek.mask(), level = level)
+}
+
+#' @describeIn graph_generators Classic Menger-sponge cubical cell-adjacency
+#'   graph derived from the \code{3 x 3 x 3} keep-mask that removes the center
+#'   cube and the six face-center cubes at each recursion step.
+#' @export
+edges.menger.sponge <- function(level = 2) {
+  edges.recursive.cube.mask(.menger.sponge.mask(), level = level)
 }
 
 #' @describeIn graph_generators Two-dimensional Sierpinski triangle graph at
