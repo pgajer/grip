@@ -260,6 +260,74 @@ test_that("wavy sphere graph supports alternate weight normalization", {
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
 
+test_that("sierpinski triangle surface embedding returns finite 3D coordinates", {
+  coords <- sierpinski.triangle.surface.embedding(2, surface = "folded", amplitude = 0.8)
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(max(edges.sierpinski.triangle(2)), 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("sierpinski triangle surface graph returns normalized positive edge weights", {
+  spec <- sierpinski.triangle.surface.graph(2, surface = "paraboloid", amplitude = 0.9)
+
+  expect_s3_class(spec, "grip_sierpinski_triangle_surface_graph")
+  expect_equal(spec$edges, edges.sierpinski.triangle(2))
+  expect_equal(spec$n, max(edges.sierpinski.triangle(2)))
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+  expect_equal(spec$family, "sierpinski.triangle")
+  expect_equal(spec$surface, "paraboloid")
+})
+
+test_that("ripple sierpinski triangle graph supports alternate weight normalization", {
+  spec <- sierpinski.triangle.surface.graph(
+    2,
+    surface = "ripple",
+    amplitude = 0.6,
+    freq_u = 1.5,
+    freq_v = 0.5,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("sierpinski tetrahedron surface embedding returns finite 3D coordinates", {
+  coords <- sierpinski.tetrahedron.surface.embedding(2, surface = "twisted", twist = 0.7)
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(max(edges.sierpinski.tetrahedron(2)), 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("sierpinski tetrahedron surface graph returns normalized positive edge weights", {
+  spec <- sierpinski.tetrahedron.surface.graph(2, surface = "wavy", amplitude = 0.25)
+
+  expect_s3_class(spec, "grip_sierpinski_tetrahedron_surface_graph")
+  expect_equal(spec$edges, edges.sierpinski.tetrahedron(2))
+  expect_equal(spec$n, max(edges.sierpinski.tetrahedron(2)))
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+  expect_equal(spec$family, "sierpinski.tetrahedron")
+  expect_equal(spec$surface, "wavy")
+})
+
 test_that("recursive mask grid surface graph returns normalized positive edge weights", {
   vicsek_mask <- matrix(
     c(
