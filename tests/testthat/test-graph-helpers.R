@@ -10,10 +10,12 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.torus(3, 4),
     edges.sphere(4, 5),
     edges.cube(3),
+    edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
     edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
+    edges.menger.sponge(1),
     edges.vicsek(2),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
@@ -57,6 +59,21 @@ test_that("recursive mask grid reproduces sierpinski carpet topology", {
   expect_equal(edges.recursive.mask.grid(carpet_mask, 2), edges.sierpinski.carpet(2))
 })
 
+test_that("recursive cube mask reproduces Menger sponge topology", {
+  menger_mask <- array(TRUE, dim = c(3, 3, 3))
+  for (row in seq_len(3)) {
+    for (col in seq_len(3)) {
+      for (layer in seq_len(3)) {
+        if (sum(c(row, col, layer) == 2L) >= 2L) {
+          menger_mask[row, col, layer] <- FALSE
+        }
+      }
+    }
+  }
+
+  expect_equal(edges.recursive.cube.mask(menger_mask, 2), edges.menger.sponge(2))
+})
+
 test_that("recursive triangle mask reproduces classic sierpinski triangle topology", {
   expect_equal(
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
@@ -75,6 +92,12 @@ test_that("vicsek graph labels occupied cells consecutively", {
   edges <- edges.vicsek(4)
   expect_equal(max(edges), 625L)
   expect_true(all(sort(unique(c(edges))) == seq_len(625L)))
+})
+
+test_that("menger sponge graph labels occupied cells consecutively", {
+  edges <- edges.menger.sponge(2)
+  expect_equal(max(edges), 400L)
+  expect_true(all(sort(unique(c(edges))) == seq_len(400L)))
 })
 
 test_that("mask helpers return expected connected motifs", {
@@ -347,6 +370,67 @@ test_that("sierpinski tetrahedron surface graph returns normalized positive edge
   expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
   expect_equal(dim(spec$coords_param), c(spec$n, 3L))
   expect_equal(spec$family, "sierpinski.tetrahedron")
+  expect_equal(spec$surface, "wavy")
+})
+
+test_that("recursive cube mask surface embedding returns finite 3D coordinates", {
+  mask <- array(TRUE, dim = c(2, 2, 2))
+  mask[1, 1, 2] <- FALSE
+  coords <- recursive.cube.mask.surface.embedding(
+    mask = mask,
+    level = 2,
+    surface = "twisted",
+    twist = 0.5
+  )
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_true(all(is.finite(coords)))
+  expect_equal(ncol(coords), 3L)
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("recursive cube mask surface graph returns normalized positive edge weights", {
+  mask <- array(TRUE, dim = c(2, 2, 2))
+  mask[2, 1, 2] <- FALSE
+  spec <- recursive.cube.mask.surface.graph(
+    mask = mask,
+    level = 2,
+    surface = "bulged",
+    amplitude = 0.18
+  )
+
+  expect_s3_class(spec, "grip_recursive_cube_mask_surface_graph")
+  expect_equal(spec$edges, edges.recursive.cube.mask(mask, 2))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(spec$mask, mask != 0)
+  expect_equal(spec$mask_side, 2L)
+  expect_equal(spec$side, 4L)
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+  expect_equal(spec$family, "recursive.cube.mask")
+  expect_equal(spec$surface, "bulged")
+})
+
+test_that("menger sponge surface graph returns normalized positive edge weights", {
+  spec <- menger.sponge.surface.graph(
+    2,
+    surface = "wavy",
+    amplitude = 0.14,
+    freq = 1.5,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_menger_sponge_surface_graph")
+  expect_equal(spec$edges, edges.menger.sponge(2))
+  expect_equal(spec$n, 400L)
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "menger.sponge")
   expect_equal(spec$surface, "wavy")
 })
 

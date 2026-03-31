@@ -11,6 +11,8 @@
 \alias{edges.sphere}
 \alias{edges.cube}
 \alias{edges.kary.tree}
+\alias{edges.menger.sponge}
+\alias{edges.recursive.cube.mask}
 \alias{edges.recursive.mask.grid}
 \alias{edges.recursive.tetrahedron.mask}
 \alias{edges.recursive.triangle.mask}
@@ -38,11 +40,15 @@ edges.cube(side = 2)
 
 edges.kary.tree(k = 2, depth = 2)
 
+edges.recursive.cube.mask(mask, level = 2)
+
 edges.recursive.mask.grid(mask, level = 2)
 
 edges.recursive.tetrahedron.mask(mask = mask.tetrahedron.classic(), level = 2)
 
 edges.recursive.triangle.mask(mask = mask.triangle.classic(), level = 2)
+
+edges.menger.sponge(level = 2)
 
 edges.vicsek(level = 2)
 
@@ -75,10 +81,13 @@ running from top to bottom and columns from left to right. For
 \code{left}, \code{right}, \code{top}, \code{center} order. For
 \code{edges.recursive.tetrahedron.mask()}, this must be a four-entry vector
 in \code{base_left}, \code{base_right}, \code{base_back}, \code{apex}
-order.}
+order. For \code{edges.recursive.cube.mask()}, this must be a cubic logical
+or numeric keep-array whose non-zero entries are kept at each recursive
+subdivision step.}
 
 \item{level}{Recursion depth. For \code{edges.recursive.mask.grid()},
-\code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
+\code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
+\code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
 \code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
 and \code{edges.recursive.tetrahedron.mask()} also allow
 \code{level = 0}.}
@@ -98,8 +107,10 @@ exposed explicitly rather than overloading a single generator with
 layout-dimension-dependent behavior: \code{\link{edges.occupied.mesh}()}
 builds a finite perforated-mesh family from an occupancy matrix,
 \code{\link{edges.recursive.mask.grid}()} builds a generic
-square-mask family, \code{\link{edges.vicsek}()} builds the connected
-axial-cross variant,
+square-mask family, \code{\link{edges.recursive.cube.mask}()} builds a
+generic cube-mask family, \code{\link{edges.vicsek}()} builds the connected
+axial-cross variant, \code{\link{edges.menger.sponge}()} builds the classic
+cubical sponge variant,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
 triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
 builds a generic tetrahedron-mask family,
@@ -134,6 +145,10 @@ levels (including the poles) and wrapped longitude \code{w}.
 
 \item \code{edges.kary.tree()}: Full \code{k}-ary tree of depth \code{depth}.
 
+\item \code{edges.recursive.cube.mask()}: Recursively refined cube-mask graph whose
+vertices are occupied subcubes and whose edges connect face-adjacent
+occupied cells.
+
 \item \code{edges.recursive.mask.grid()}: Recursively refined square-mask grid graph whose
 vertices are occupied cells and whose edges connect orthogonally adjacent
 cells.
@@ -143,6 +158,10 @@ vertices are the retained subdivision vertices of an equilateral triangle.
 
 \item \code{edges.recursive.tetrahedron.mask()}: Recursively refined tetrahedron-mask graph whose
 vertices are the retained subdivision vertices of a tetrahedron.
+
+\item \code{edges.menger.sponge()}: Classic Menger-sponge cubical cell-adjacency
+graph derived from the \code{3 x 3 x 3} keep-mask that removes the center
+cube and the six face-center cubes at each recursion step.
 
 \item \code{edges.vicsek()}: Connected Vicsek-style cross family derived from
 a \code{3 x 3} axial-cross keep-mask.
