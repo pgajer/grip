@@ -2006,6 +2006,208 @@ keep.asymmetric.notches <- function(h,
   )
 }
 
+.normalize.edge.weights <- function(edge_weights,
+                                    normalize = c("median", "mean", "none")) {
+  normalize <- match.arg(normalize)
+  if (!is.numeric(edge_weights)) {
+    stop("edge_weights must be numeric", call. = FALSE)
+  }
+  edge_weights <- as.double(edge_weights)
+  if (length(edge_weights) == 0L) {
+    return(list(edge_weights = numeric(0L), weight_scale = 1))
+  }
+  if (any(!is.finite(edge_weights) | edge_weights <= 0)) {
+    stop("edge_weights must all be finite and > 0", call. = FALSE)
+  }
+
+  weight_scale <- switch(
+    normalize,
+    median = stats::median(edge_weights),
+    mean = mean(edge_weights),
+    none = 1
+  )
+  if (!is.finite(weight_scale) || weight_scale <= 0) {
+    weight_scale <- 1
+  }
+
+  list(
+    edge_weights = as.double(edge_weights / weight_scale),
+    weight_scale = as.double(weight_scale)
+  )
+}
+
+.kary.tree.vertex.count <- function(k, depth) {
+  k <- .as_whole_number(k, "k", min = 1L)
+  depth <- .as_whole_number(depth, "depth")
+  if (depth == 0L) {
+    return(1L)
+  }
+  if (k == 1L) {
+    return(as.integer(depth + 1L))
+  }
+  count <- (k^(depth + 1L) - 1) / (k - 1L)
+  if (!is.finite(count) || count > .Machine$integer.max) {
+    stop("k and depth produce too many tree vertices", call. = FALSE)
+  }
+  as.integer(round(count))
+}
+
+.kary.tree.structure <- function(k = 2, depth = 2) {
+  k <- .as_whole_number(k, "k", min = 1L)
+  depth <- .as_whole_number(depth, "depth")
+  n <- .kary.tree.vertex.count(k, depth)
+  if (depth == 0L) {
+    return(list(
+      edges = .empty_edge_matrix(),
+      n = 1L,
+      parent = 0L,
+      vertex_depth = 0L,
+      edge_parent = integer(0L),
+      edge_child = integer(0L),
+      branch_index = integer(0L),
+      parent_depth = integer(0L),
+      child_depth = integer(0L)
+    ))
+  }
+
+  parent <- integer(n)
+  vertex_depth <- integer(n)
+  edge_count <- n - 1L
+  edge_parent <- integer(edge_count)
+  edge_child <- integer(edge_count)
+  branch_index <- integer(edge_count)
+  parent_depth <- integer(edge_count)
+  child_depth <- integer(edge_count)
+
+  current <- 1L
+  next_id <- 2L
+  edge_id <- 1L
+  for (d in seq_len(depth)) {
+    new_parents <- integer(length(current) * k)
+    new_idx <- 1L
+    for (p in current) {
+      for (slot in seq_len(k)) {
+        child <- next_id
+        next_id <- next_id + 1L
+        parent[[child]] <- p
+        vertex_depth[[child]] <- d
+        edge_parent[[edge_id]] <- p
+        edge_child[[edge_id]] <- child
+        branch_index[[edge_id]] <- slot
+        parent_depth[[edge_id]] <- d - 1L
+        child_depth[[edge_id]] <- d
+        new_parents[[new_idx]] <- child
+        new_idx <- new_idx + 1L
+        edge_id <- edge_id + 1L
+      }
+    }
+    current <- new_parents
+  }
+
+  edges <- cbind(edge_parent, edge_child)
+  storage.mode(edges) <- "integer"
+  list(
+    edges = edges,
+    n = n,
+    parent = parent,
+    vertex_depth = vertex_depth,
+    edge_parent = edge_parent,
+    edge_child = edge_child,
+    branch_index = branch_index,
+    parent_depth = parent_depth,
+    child_depth = child_depth
+  )
+}
+
+.kary.tree.depth.factors <- function(depth,
+                                     depth_rule = c("geometric", "constant", "custom"),
+                                     depth_decay = 0.85,
+                                     depth_factors = NULL) {
+  depth <- .as_whole_number(depth, "depth")
+  depth_rule <- .as_named_choice(depth_rule[[1L]],
+                                 c("geometric", "constant", "custom"),
+                                 "depth_rule")
+  if (depth == 0L) {
+    return(list(rule = depth_rule, factors = numeric(0L)))
+  }
+
+  factors <- switch(
+    depth_rule,
+    geometric = {
+      depth_decay <- .as_positive_scalar(depth_decay, "depth_decay")
+      depth_decay^(seq_len(depth) - 1L)
+    },
+    constant = rep(1, depth),
+    custom = {
+      if (is.null(depth_factors)) {
+        stop("depth_factors must be supplied when depth_rule = \"custom\"",
+             call. = FALSE)
+      }
+      if (!is.numeric(depth_factors) || any(is.na(depth_factors)) ||
+          any(!is.finite(depth_factors)) || any(depth_factors <= 0)) {
+        stop("depth_factors must be a positive finite numeric vector",
+             call. = FALSE)
+      }
+      if (length(depth_factors) == 1L) {
+        rep(as.double(depth_factors), depth)
+      } else if (length(depth_factors) == depth) {
+        as.double(depth_factors)
+      } else {
+        stop(sprintf("depth_factors must have length 1 or %d", depth),
+             call. = FALSE)
+      }
+    }
+  )
+  list(rule = depth_rule, factors = as.double(factors))
+}
+
+.kary.tree.branch.factors <- function(k,
+                                      branch_rule = c("linear", "uniform", "custom"),
+                                      branch_spread = 0.3,
+                                      branch_factors = NULL) {
+  k <- .as_whole_number(k, "k", min = 1L)
+  branch_rule <- .as_named_choice(branch_rule[[1L]],
+                                  c("linear", "uniform", "custom"),
+                                  "branch_rule")
+
+  factors <- switch(
+    branch_rule,
+    linear = {
+      branch_spread <- .as_finite_scalar(branch_spread, "branch_spread")
+      if (branch_spread < 0) {
+        stop("branch_spread must be >= 0", call. = FALSE)
+      }
+      vals <- seq(1 - branch_spread / 2, 1 + branch_spread / 2, length.out = k)
+      if (any(vals <= 0)) {
+        stop("branch_spread is too large and produces non-positive branch factors",
+             call. = FALSE)
+      }
+      vals
+    },
+    uniform = rep(1, k),
+    custom = {
+      if (is.null(branch_factors)) {
+        stop("branch_factors must be supplied when branch_rule = \"custom\"",
+             call. = FALSE)
+      }
+      if (!is.numeric(branch_factors) || any(is.na(branch_factors)) ||
+          any(!is.finite(branch_factors)) || any(branch_factors <= 0)) {
+        stop("branch_factors must be a positive finite numeric vector",
+             call. = FALSE)
+      }
+      if (length(branch_factors) == 1L) {
+        rep(as.double(branch_factors), k)
+      } else if (length(branch_factors) == k) {
+        as.double(branch_factors)
+      } else {
+        stop(sprintf("branch_factors must have length 1 or %d", k),
+             call. = FALSE)
+      }
+    }
+  )
+  list(rule = branch_rule, factors = as.double(factors))
+}
+
 #' Sample graph generators
 #'
 #' Convenience helpers that build small undirected graph families as two-column
@@ -4436,27 +4638,146 @@ edges.cube <- function(side = 2) {
 #' @param depth Number of levels below the root.
 #' @export
 edges.kary.tree <- function(k = 2, depth = 2) {
+  .kary.tree.structure(k = k, depth = depth)$edges
+}
+
+#' Intrinsically weighted k-ary tree helpers
+#'
+#' Convenience helpers that keep the exact \code{\link{edges.kary.tree}()}
+#' topology but assign edge lengths directly from combinatorial tree metadata
+#' rather than from an ambient Euclidean embedding. Each edge weight is
+#' constructed as
+#' \deqn{\mathrm{base\_length} \times \mathrm{depth\_factor(child\ depth)} \times
+#' \mathrm{branch\_factor(child\ slot)}}
+#' so the user can control tapering with depth separately from child-slot
+#' asymmetry.
+#'
+#' The returned object is intended as an intrinsic weighted-tree benchmark
+#' family. It exposes the same edge matrix as \code{edges.kary.tree()} together
+#' with edge weights, vertex depths, parent indices, and an edge table that
+#' records the depth and branch slot associated with each tree edge.
+#'
+#' @param k Branching factor. Must be at least \code{1}.
+#' @param depth Number of levels below the root. May be \code{0}.
+#' @param base_length Positive global edge-length multiplier before
+#'   normalization.
+#' @param depth_rule Rule used to build the per-depth multipliers. One of
+#'   \code{"geometric"}, \code{"constant"}, or \code{"custom"}.
+#' @param depth_decay Positive decay factor used when
+#'   \code{depth_rule = "geometric"}.
+#' @param depth_factors Positive custom depth multipliers. Used only when
+#'   \code{depth_rule = "custom"}. Must have length \code{1} or \code{depth}.
+#' @param branch_rule Rule used to build the per-child-slot multipliers. One of
+#'   \code{"linear"}, \code{"uniform"}, or \code{"custom"}.
+#' @param branch_spread Non-negative spread used when
+#'   \code{branch_rule = "linear"}.
+#' @param branch_factors Positive custom branch multipliers. Used only when
+#'   \code{branch_rule = "custom"}. Must have length \code{1} or \code{k}.
+#' @param normalize Normalization applied to the raw intrinsic edge lengths.
+#'   One of \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return A list with components:
+#' \itemize{
+#'   \item \code{edges}: the \code{k}-ary tree edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: normalized positive intrinsic edge lengths,
+#'   \item \code{weight_scale}: normalization constant applied to the raw edge
+#'     lengths,
+#'   \item \code{vertex_depth}: depth of each vertex, with the root at depth
+#'     \code{0},
+#'   \item \code{parent}: parent vertex index for each vertex, with the root
+#'     parent recorded as \code{0},
+#'   \item \code{edge_table}: data frame containing \code{parent},
+#'     \code{child}, \code{parent_depth}, \code{child_depth},
+#'     \code{branch_index}, \code{raw_weight}, and normalized
+#'     \code{edge_weight},
+#'   \item \code{depth_factors}: the applied per-depth multipliers,
+#'   \item \code{branch_factors}: the applied per-child-slot multipliers,
+#'   \item \code{family}: always \code{"kary.tree.weighted"},
+#'   \item \code{k}: the branching factor,
+#'   \item \code{depth}: the requested tree depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name kary_tree_weighted_graph_helpers
+NULL
+
+#' @rdname kary_tree_weighted_graph_helpers
+#' @export
+kary.tree.weighted.graph <- function(
+    k = 2,
+    depth = 2,
+    base_length = 1,
+    depth_rule = c("geometric", "constant", "custom"),
+    depth_decay = 0.85,
+    depth_factors = NULL,
+    branch_rule = c("linear", "uniform", "custom"),
+    branch_spread = 0.3,
+    branch_factors = NULL,
+    normalize = c("median", "mean", "none")) {
   k <- .as_whole_number(k, "k", min = 1L)
   depth <- .as_whole_number(depth, "depth")
-  if (depth == 0L) {
-    return(.empty_edge_matrix())
-  }
+  structure <- .kary.tree.structure(k = k, depth = depth)
+  base_length <- .as_positive_scalar(base_length, "base_length")
+  normalize <- match.arg(normalize)
+  depth_spec <- .kary.tree.depth.factors(
+    depth = depth,
+    depth_rule = depth_rule,
+    depth_decay = depth_decay,
+    depth_factors = depth_factors
+  )
+  branch_spec <- .kary.tree.branch.factors(
+    k = k,
+    branch_rule = branch_rule,
+    branch_spread = branch_spread,
+    branch_factors = branch_factors
+  )
 
-  edges <- list()
-  current <- 1L
-  next_id <- 2L
-  for (d in seq_len(depth)) {
-    new_parents <- integer()
-    for (p in current) {
-      for (i in seq_len(k)) {
-        edges[[length(edges) + 1L]] <- c(p, next_id)
-        new_parents <- c(new_parents, next_id)
-        next_id <- next_id + 1L
-      }
-    }
-    current <- new_parents
+  raw_weights <- if (nrow(structure$edges) == 0L) {
+    numeric(0L)
+  } else {
+    base_length *
+      depth_spec$factors[structure$child_depth] *
+      branch_spec$factors[structure$branch_index]
   }
-  .normalize_undirected_edges(.bind_edges(edges))
+  weights <- .normalize.edge.weights(raw_weights, normalize = normalize)
+
+  edge_table <- data.frame(
+    parent = structure$edge_parent,
+    child = structure$edge_child,
+    parent_depth = structure$parent_depth,
+    child_depth = structure$child_depth,
+    branch_index = structure$branch_index,
+    raw_weight = as.double(raw_weights),
+    edge_weight = weights$edge_weights,
+    stringsAsFactors = FALSE
+  )
+
+  out <- list(
+    edges = structure$edges,
+    n = structure$n,
+    edge_weights = weights$edge_weights,
+    weight_scale = weights$weight_scale,
+    vertex_depth = structure$vertex_depth,
+    parent = structure$parent,
+    edge_table = edge_table,
+    depth_factors = depth_spec$factors,
+    branch_factors = branch_spec$factors,
+    family = "kary.tree.weighted",
+    k = k,
+    depth = depth,
+    base_length = as.double(base_length),
+    depth_rule = depth_spec$rule,
+    branch_rule = branch_spec$rule,
+    normalize = normalize,
+    label = sprintf("%s/%s intrinsic %d-ary tree depth %d",
+                    tools::toTitleCase(depth_spec$rule),
+                    branch_spec$rule,
+                    k,
+                    depth)
+  )
+  class(out) <- c("grip_kary_tree_weighted_graph", "list")
+  out
 }
 
 #' @describeIn graph_generators Recursively refined square-mask grid graph whose
