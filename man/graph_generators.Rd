@@ -19,6 +19,8 @@
 \alias{edges.recursive.mask.grid}
 \alias{edges.recursive.tetrahedron.mask}
 \alias{edges.recursive.triangle.mask}
+\alias{edges.triangulated.annulus}
+\alias{edges.triangulated.pair.of.pants}
 \alias{edges.triangulated.polyhedron}
 \alias{edges.vicsek}
 \alias{edges.sierpinski.triangle}
@@ -79,6 +81,16 @@ edges.triangulated.polyhedron(
   level = 1
 )
 
+edges.triangulated.annulus(resolution = 12, outer_radius = 1, inner_radius = 0.45)
+
+edges.triangulated.pair.of.pants(
+  resolution = 12,
+  outer_radius = 1.1,
+  hole_radius = 0.24,
+  hole_offset = 0.38,
+  hole_height = 0.18
+)
+
 edges.menger.sponge(level = 2)
 
 edges.vicsek(level = 2)
@@ -106,6 +118,10 @@ keep-mask.}
 
 \item{depth}{Number of levels below the root.}
 
+\item{resolution}{Positive lattice-resolution control used by
+\code{edges.triangulated.annulus()} and
+\code{edges.triangulated.pair.of.pants()}.}
+
 \item{tunnel_width}{Width of each removed tunnel band in
 \code{edges.cube.periodic.tunnels()}.}
 
@@ -129,6 +145,22 @@ keep-mask.}
 
 \item{base}{Base polyhedron for \code{edges.triangulated.polyhedron()}. One
 of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
+
+\item{outer_radius}{Positive outer boundary radius for
+\code{edges.triangulated.annulus()} and
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{inner_radius}{Positive inner annulus radius for
+\code{edges.triangulated.annulus()}.}
+
+\item{hole_radius}{Positive radius of each interior hole for
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{hole_offset}{Positive horizontal offset of the two hole centers for
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{hole_height}{Shared vertical coordinate of the two hole centers for
+\code{edges.triangulated.pair.of.pants()}.}
 
 \item{mask}{Logical or numeric keep-mask. For
 \code{edges.recursive.mask.grid()}, this must be a square matrix whose
@@ -171,7 +203,10 @@ cubical sponge variant, \code{\link{edges.cube.periodic.tunnels}()},
 \code{\link{edges.cube.asymmetric.cavities}()}, and
 \code{\link{edges.cube.channel.network}()} build named porous cubical
 variants, \code{\link{edges.triangulated.polyhedron}()} builds a generic
-irregular triangulated-surface family,
+closed irregular triangulated-surface family, and
+\code{\link{edges.triangulated.annulus}()} together with
+\code{\link{edges.triangulated.pair.of.pants}()} build triangulated
+surface-with-boundary families,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
 triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
 builds a generic tetrahedron-mask family,
@@ -232,6 +267,14 @@ vertices are the retained subdivision vertices of a tetrahedron.
 \item \code{edges.triangulated.polyhedron()}: Triangulated closed-surface graph obtained by
 repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
 icosahedron.
+
+\item \code{edges.triangulated.annulus()}: Triangulated annulus graph obtained by
+clipping a regular triangular lattice to the region between two concentric
+circles.
+
+\item \code{edges.triangulated.pair.of.pants()}: Triangulated pair-of-pants graph
+obtained by clipping a regular triangular lattice to a disk with two
+interior circular holes.
 
 \item \code{edges.menger.sponge()}: Classic Menger-sponge cubical cell-adjacency
 graph derived from the \code{3 x 3 x 3} keep-mask that removes the center

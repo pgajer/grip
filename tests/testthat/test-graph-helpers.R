@@ -15,6 +15,8 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.cube.asymmetric.cavities(1),
     edges.cube.channel.network(1),
     edges.triangulated.polyhedron("octahedron", 1),
+    edges.triangulated.annulus(7),
+    edges.triangulated.pair.of.pants(7),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
@@ -254,6 +256,18 @@ test_that("triangulated polyhedron graph labels vertices consecutively", {
   expect_true(all(sort(unique(c(edges))) == seq_len(42L)))
 })
 
+test_that("triangulated annulus graph labels vertices consecutively", {
+  edges <- edges.triangulated.annulus(resolution = 7)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("triangulated pair-of-pants graph labels vertices consecutively", {
+  edges <- edges.triangulated.pair.of.pants(resolution = 7)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
 test_that("mesh surface embedding returns finite 3D coordinates", {
   coords <- mesh.surface.embedding(4, 5, surface = "saddle", amplitude = 0.8)
 
@@ -472,6 +486,62 @@ test_that("wavy triangulated polyhedron graph supports alternate normalization",
 
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("triangulated annulus surface embedding returns finite 3D coordinates", {
+  coords <- triangulated.annulus.surface.embedding(
+    resolution = 7,
+    surface = "folded",
+    amplitude = 0.4
+  )
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_true(all(is.finite(coords)))
+  expect_equal(ncol(coords), 3L)
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("triangulated annulus surface graph returns normalized positive edge weights", {
+  spec <- triangulated.annulus.surface.graph(
+    resolution = 7,
+    surface = "ripple",
+    amplitude = 0.35,
+    freq_u = 1.2,
+    freq_v = 0.8,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_triangulated_annulus_surface_graph")
+  expect_equal(spec$edges, edges.triangulated.annulus(resolution = 7))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "triangulated.annulus")
+  expect_equal(spec$surface, "ripple")
+  expect_equal(spec$resolution, 7L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+})
+
+test_that("triangulated pair-of-pants surface graph returns normalized positive edge weights", {
+  spec <- triangulated.pair.of.pants.surface.graph(
+    resolution = 7,
+    surface = "saddle",
+    amplitude = 0.45
+  )
+
+  expect_s3_class(spec, "grip_triangulated_pair_of_pants_surface_graph")
+  expect_equal(spec$edges, edges.triangulated.pair.of.pants(resolution = 7))
+  expect_equal(spec$n, max(spec$edges))
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(spec$family, "triangulated.pair.of.pants")
+  expect_equal(spec$surface, "saddle")
+  expect_equal(spec$resolution, 7L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
 })
 
 test_that("sierpinski triangle surface embedding returns finite 3D coordinates", {

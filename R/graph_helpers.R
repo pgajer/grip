@@ -729,6 +729,239 @@
   )
 }
 
+.largest.connected.vertex.set <- function(edges, n) {
+  n <- .as_whole_number(n, "n", min = 1L)
+  if (n == 1L || nrow(edges) == 0L) {
+    return(seq_len(n))
+  }
+
+  neighbors <- vector("list", n)
+  for (i in seq_len(nrow(edges))) {
+    a <- edges[i, 1L]
+    b <- edges[i, 2L]
+    neighbors[[a]] <- c(neighbors[[a]], b)
+    neighbors[[b]] <- c(neighbors[[b]], a)
+  }
+
+  seen <- rep(FALSE, n)
+  best <- integer(0L)
+  for (start in seq_len(n)) {
+    if (seen[[start]]) {
+      next
+    }
+    queue <- start
+    seen[[start]] <- TRUE
+    component <- integer(0L)
+    head <- 1L
+    while (head <= length(queue)) {
+      v <- queue[[head]]
+      head <- head + 1L
+      component <- c(component, v)
+      for (nbr in neighbors[[v]]) {
+        if (!seen[[nbr]]) {
+          seen[[nbr]] <- TRUE
+          queue <- c(queue, nbr)
+        }
+      }
+    }
+    if (length(component) > length(best)) {
+      best <- component
+    }
+  }
+  sort(best)
+}
+
+.induce.subgraph.coords <- function(edges, coords, keep_idx) {
+  keep_idx <- sort(unique(as.integer(keep_idx)))
+  coords <- as.matrix(coords)
+  if (length(keep_idx) == 0L) {
+    stop("keep_idx must contain at least one vertex", call. = FALSE)
+  }
+
+  map <- integer(nrow(coords))
+  map[keep_idx] <- seq_along(keep_idx)
+  keep_edge <- edges[, 1L] %in% keep_idx & edges[, 2L] %in% keep_idx
+  edges_new <- if (!any(keep_edge)) {
+    .empty_edge_matrix()
+  } else {
+    cbind(
+      map[edges[keep_edge, 1L]],
+      map[edges[keep_edge, 2L]]
+    )
+  }
+  storage.mode(edges_new) <- "integer"
+  coords_new <- coords[keep_idx, , drop = FALSE]
+  rownames(coords_new) <- NULL
+  list(
+    edges = .normalize_undirected_edges(edges_new),
+    coords = coords_new
+  )
+}
+
+.triangular.lattice.region.canonical <- function(bbox, spacing, keep_fn) {
+  if (!is.numeric(bbox) || length(bbox) != 4L || any(!is.finite(bbox))) {
+    stop("bbox must be a finite numeric vector c(xmin, xmax, ymin, ymax)",
+         call. = FALSE)
+  }
+  spacing <- .as_positive_scalar(spacing, "spacing")
+  if (!is.function(keep_fn)) {
+    stop("keep_fn must be a function", call. = FALSE)
+  }
+  xmin <- bbox[[1L]]
+  xmax <- bbox[[2L]]
+  ymin <- bbox[[3L]]
+  ymax <- bbox[[4L]]
+  if (!(xmin < xmax && ymin < ymax)) {
+    stop("bbox must satisfy xmin < xmax and ymin < ymax", call. = FALSE)
+  }
+
+  dy <- spacing * sqrt(3) / 2
+  row_vals <- seq(ymin - dy, ymax + dy, by = dy)
+  col_count <- .as_whole_number(ceiling((xmax - xmin) / spacing) + 4L,
+                                "col_count",
+                                min = 3L)
+  n_rows <- length(row_vals)
+  x_mat <- matrix(0, nrow = n_rows, ncol = col_count)
+  y_mat <- matrix(0, nrow = n_rows, ncol = col_count)
+  keep <- matrix(FALSE, nrow = n_rows, ncol = col_count)
+  for (row in seq_len(n_rows)) {
+    x_offset <- 0.5 * ((row - 1L) %% 2L)
+    x_vals <- xmin - spacing + spacing * ((0:(col_count - 1L)) + x_offset)
+    y_val <- row_vals[[row]]
+    x_mat[row, ] <- x_vals
+    y_mat[row, ] <- y_val
+    keep[row, ] <- keep_fn(x_vals, rep(y_val, col_count))
+  }
+
+  positions <- which(keep, arr.ind = TRUE)
+  if (nrow(positions) == 0L) {
+    stop("shape and resolution keep no triangulation vertices", call. = FALSE)
+  }
+  positions <- positions[order(positions[, 1L], positions[, 2L]), , drop = FALSE]
+  id_map <- matrix(0L, nrow = n_rows, ncol = col_count)
+  id_map[positions] <- seq_len(nrow(positions))
+  coords <- cbind(
+    u = x_mat[positions],
+    v = y_mat[positions]
+  )
+  storage.mode(coords) <- "double"
+
+  edges <- list()
+  for (i in seq_len(nrow(positions))) {
+    row <- positions[i, 1L]
+    col <- positions[i, 2L]
+    if (col < col_count) {
+      nbr <- id_map[row, col + 1L]
+      if (nbr > 0L) {
+        edges[[length(edges) + 1L]] <- c(i, nbr)
+      }
+    }
+    if (row < n_rows) {
+      down_same <- id_map[row + 1L, col]
+      if (down_same > 0L) {
+        edges[[length(edges) + 1L]] <- c(i, down_same)
+      }
+      if (((row - 1L) %% 2L) == 0L) {
+        if (col > 1L) {
+          down_diag <- id_map[row + 1L, col - 1L]
+          if (down_diag > 0L) {
+            edges[[length(edges) + 1L]] <- c(i, down_diag)
+          }
+        }
+      } else if (col < col_count) {
+        down_diag <- id_map[row + 1L, col + 1L]
+        if (down_diag > 0L) {
+          edges[[length(edges) + 1L]] <- c(i, down_diag)
+        }
+      }
+    }
+  }
+
+  edges <- .normalize_undirected_edges(.bind_edges(edges))
+  if (nrow(edges) == 0L) {
+    stop("shape and resolution produce no triangulation edges", call. = FALSE)
+  }
+  keep_idx <- .largest.connected.vertex.set(edges, nrow(coords))
+  induced <- .induce.subgraph.coords(edges, coords, keep_idx)
+  colnames(induced$coords) <- c("u", "v")
+  list(
+    edges = induced$edges,
+    coords = induced$coords,
+    n = as.integer(nrow(induced$coords))
+  )
+}
+
+.triangulated.annulus.canonical <- function(resolution = 12,
+                                            outer_radius = 1,
+                                            inner_radius = 0.45) {
+  resolution <- .as_whole_number(resolution, "resolution", min = 4L)
+  outer_radius <- .as_positive_scalar(outer_radius, "outer_radius")
+  inner_radius <- .as_positive_scalar(inner_radius, "inner_radius")
+  if (inner_radius >= outer_radius) {
+    stop("inner_radius must be < outer_radius", call. = FALSE)
+  }
+  spacing <- outer_radius / resolution
+  if ((outer_radius - inner_radius) < (2 * spacing)) {
+    stop("annulus thickness is too small for the chosen resolution", call. = FALSE)
+  }
+
+  keep_fn <- function(x, y) {
+    r2 <- x^2 + y^2
+    r2 <= outer_radius^2 & r2 >= inner_radius^2
+  }
+  built <- .triangular.lattice.region.canonical(
+    bbox = c(-outer_radius, outer_radius, -outer_radius, outer_radius),
+    spacing = spacing,
+    keep_fn = keep_fn
+  )
+  built$resolution <- resolution
+  built$outer_radius <- outer_radius
+  built$inner_radius <- inner_radius
+  built
+}
+
+.triangulated.pair.of.pants.canonical <- function(resolution = 12,
+                                                  outer_radius = 1.1,
+                                                  hole_radius = 0.24,
+                                                  hole_offset = 0.38,
+                                                  hole_height = 0.18) {
+  resolution <- .as_whole_number(resolution, "resolution", min = 4L)
+  outer_radius <- .as_positive_scalar(outer_radius, "outer_radius")
+  hole_radius <- .as_positive_scalar(hole_radius, "hole_radius")
+  hole_offset <- .as_positive_scalar(hole_offset, "hole_offset")
+  hole_height <- .as_finite_scalar(hole_height, "hole_height")
+  if (hole_offset <= hole_radius) {
+    stop("hole_offset must exceed hole_radius so the two holes do not overlap",
+         call. = FALSE)
+  }
+  hole_center_radius <- sqrt(hole_offset^2 + hole_height^2)
+  if ((hole_center_radius + hole_radius) >= outer_radius) {
+    stop("holes must lie strictly inside the outer boundary", call. = FALSE)
+  }
+  spacing <- outer_radius / resolution
+  if ((outer_radius - hole_center_radius - hole_radius) < spacing) {
+    stop("pair-of-pants neck is too thin for the chosen resolution", call. = FALSE)
+  }
+
+  keep_fn <- function(x, y) {
+    outer <- (x^2 + y^2) <= outer_radius^2
+    left_hole <- ((x + hole_offset)^2 + (y - hole_height)^2) < hole_radius^2
+    right_hole <- ((x - hole_offset)^2 + (y - hole_height)^2) < hole_radius^2
+    outer & !left_hole & !right_hole
+  }
+  built <- .triangular.lattice.region.canonical(
+    bbox = c(-outer_radius, outer_radius, -outer_radius, outer_radius),
+    spacing = spacing,
+    keep_fn = keep_fn
+  )
+  built$resolution <- resolution
+  built$outer_radius <- outer_radius
+  built$hole_radius <- hole_radius
+  built$hole_offset <- hole_offset
+  built$hole_height <- hole_height
+  built
+}
+
 .sierpinski.carpet.mask <- function() {
   matrix(
     c(
@@ -3137,6 +3370,307 @@ triangulated.polyhedron.surface.graph <- function(
   out
 }
 
+.triangulated.planar.surface.coords <- function(coords_param,
+                                                surface,
+                                                amplitude,
+                                                freq_u,
+                                                freq_v) {
+  surface <- .as_named_choice(surface,
+                              c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                              "surface")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+
+  coords_param <- as.matrix(coords_param)
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords_param)),
+    saddle = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq_u, freq_v),
+    paraboloid = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq_u, freq_v),
+    ripple = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq_u, freq_v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+  coords <- cbind(x = coords_param[, 1L], y = coords_param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted triangulated annulus surface helpers
+#'
+#' Convenience helpers that triangulate a planar annulus by clipping a regular
+#' triangular lattice to the region between two concentric circles. The
+#' resulting graph is a triangulated manifold with boundary and a single hole,
+#' making it a useful complement to the closed triangulated-polyhedron
+#' families.
+#'
+#' \code{triangulated.annulus.surface.embedding()} returns the 3D coordinates
+#' of the clipped lattice vertices in the same vertex order as
+#' \code{edges.triangulated.annulus()}. \code{triangulated.annulus.surface.graph()}
+#' returns a reusable weighted-graph bundle with the annulus edges, induced edge
+#' weights, the 3D embedding, and the 2D annulus parameter coordinates.
+#'
+#' @param resolution Positive lattice-resolution control. Larger values produce
+#'   finer triangulations.
+#' @param outer_radius Positive outer annulus radius.
+#' @param inner_radius Positive inner annulus radius. Must be strictly smaller
+#'   than \code{outer_radius}.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{triangulated.annulus.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.annulus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated-annulus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 2D annulus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.annulus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{resolution}: the lattice-resolution parameter,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_annulus_surface_helpers
+NULL
+
+#' @rdname triangulated_annulus_surface_helpers
+#' @export
+triangulated.annulus.surface.embedding <- function(
+    resolution = 12,
+    outer_radius = 1,
+    inner_radius = 0.45,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1) {
+  surface <- match.arg(surface)
+  built <- .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius
+  )
+  .triangulated.planar.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+}
+
+#' @rdname triangulated_annulus_surface_helpers
+#' @export
+triangulated.annulus.surface.graph <- function(
+    resolution = 12,
+    outer_radius = 1,
+    inner_radius = 0.45,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius
+  )
+  coords_surface <- triangulated.annulus.surface.embedding(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.annulus",
+    surface = surface,
+    resolution = built$resolution,
+    normalize = normalize,
+    label = sprintf("%s triangulated annulus res %d",
+                    tools::toTitleCase(surface),
+                    built$resolution)
+  )
+  class(out) <- c("grip_triangulated_annulus_surface_graph", "list")
+  out
+}
+
+#' Weighted triangulated pair-of-pants surface helpers
+#'
+#' Convenience helpers that triangulate a planar pair-of-pants domain by
+#' clipping a regular triangular lattice to a disk with two interior circular
+#' holes. The resulting graph is a triangulated surface with three boundary
+#' components and a deterministic non-grid topology.
+#'
+#' \code{triangulated.pair.of.pants.surface.embedding()} returns the 3D
+#' coordinates of the clipped lattice vertices in the same vertex order as
+#' \code{edges.triangulated.pair.of.pants()}.
+#' \code{triangulated.pair.of.pants.surface.graph()} returns a reusable
+#' weighted-graph bundle with the pair-of-pants edges, induced edge weights, 3D
+#' embedding, and the 2D parameter coordinates of the clipped domain.
+#'
+#' @param resolution Positive lattice-resolution control. Larger values produce
+#'   finer triangulations.
+#' @param outer_radius Positive radius of the outer boundary.
+#' @param hole_radius Positive radius of each interior hole.
+#' @param hole_offset Positive horizontal offset of the two hole centers from
+#'   the vertical axis.
+#' @param hole_height Vertical coordinate shared by the two hole centers.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{triangulated.pair.of.pants.surface.embedding()} returns an \code{n x
+#' 3} numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.pair.of.pants.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated pair-of-pants edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 2D pair-of-pants coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.pair.of.pants"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{resolution}: the lattice-resolution parameter,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_pair_of_pants_surface_helpers
+NULL
+
+#' @rdname triangulated_pair_of_pants_surface_helpers
+#' @export
+triangulated.pair.of.pants.surface.embedding <- function(
+    resolution = 12,
+    outer_radius = 1.1,
+    hole_radius = 0.24,
+    hole_offset = 0.38,
+    hole_height = 0.18,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1) {
+  surface <- match.arg(surface)
+  built <- .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height
+  )
+  .triangulated.planar.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+}
+
+#' @rdname triangulated_pair_of_pants_surface_helpers
+#' @export
+triangulated.pair.of.pants.surface.graph <- function(
+    resolution = 12,
+    outer_radius = 1.1,
+    hole_radius = 0.24,
+    hole_offset = 0.38,
+    hole_height = 0.18,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height
+  )
+  coords_surface <- triangulated.pair.of.pants.surface.embedding(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.pair.of.pants",
+    surface = surface,
+    resolution = built$resolution,
+    normalize = normalize,
+    label = sprintf("%s triangulated pair-of-pants res %d",
+                    tools::toTitleCase(surface),
+                    built$resolution)
+  )
+  class(out) <- c("grip_triangulated_pair_of_pants_surface_graph", "list")
+  out
+}
+
 #' Weighted Sierpinski triangle surface helpers
 #'
 #' Convenience helpers that take the canonical recursive embedding of the
@@ -4838,6 +5372,51 @@ edges.triangulated.polyhedron <- function(
     level = 1) {
   base <- match.arg(base)
   .triangulated.polyhedron.canonical(base = base, level = level)$edges
+}
+
+#' @describeIn graph_generators Triangulated annulus graph obtained by clipping
+#'   a regular triangular lattice to the region between two concentric circles.
+#' @param resolution Positive lattice-resolution control used by
+#'   \code{edges.triangulated.annulus()} and
+#'   \code{edges.triangulated.pair.of.pants()}.
+#' @param outer_radius Positive outer boundary radius for
+#'   \code{edges.triangulated.annulus()} and
+#'   \code{edges.triangulated.pair.of.pants()}.
+#' @param inner_radius Positive inner annulus radius for
+#'   \code{edges.triangulated.annulus()}.
+#' @param hole_radius Positive radius of each interior hole for
+#'   \code{edges.triangulated.pair.of.pants()}.
+#' @param hole_offset Positive horizontal offset of the two hole centers for
+#'   \code{edges.triangulated.pair.of.pants()}.
+#' @param hole_height Shared vertical coordinate of the two hole centers for
+#'   \code{edges.triangulated.pair.of.pants()}.
+#' @export
+edges.triangulated.annulus <- function(resolution = 12,
+                                       outer_radius = 1,
+                                       inner_radius = 0.45) {
+  .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius
+  )$edges
+}
+
+#' @describeIn graph_generators Triangulated pair-of-pants graph obtained by
+#'   clipping a regular triangular lattice to a disk with two interior circular
+#'   holes.
+#' @export
+edges.triangulated.pair.of.pants <- function(resolution = 12,
+                                             outer_radius = 1.1,
+                                             hole_radius = 0.24,
+                                             hole_offset = 0.38,
+                                             hole_height = 0.18) {
+  .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height
+  )$edges
 }
 
 #' @describeIn graph_generators Connected Vicsek-style cross family derived from
