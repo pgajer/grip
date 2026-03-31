@@ -215,6 +215,16 @@
   )
 }
 
+.normalize.center_radius.coords <- function(coords) {
+  coords <- as.matrix(coords)
+  centered <- scale(coords, center = TRUE, scale = FALSE)
+  radius <- max(sqrt(rowSums(centered^2)))
+  if (!is.finite(radius) || radius <= 0) {
+    return(centered)
+  }
+  centered / radius
+}
+
 .occupied.mesh.cells <- function(keep) {
   keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
   h <- nrow(keep)
@@ -561,6 +571,137 @@
   keep[(h - bottom_depth + 1L):h, c3_start:c3_end] <- FALSE
 
   keep
+}
+
+.sierpinski.triangle.canonical <- function(level) {
+  level <- .as_whole_number(level, "level")
+
+  merge_nodes <- function(edges, from, to) {
+    edges[edges == from] <- to
+    edges
+  }
+
+  build <- function(k) {
+    if (k == 0L) {
+      coords <- rbind(
+        c(0, 0),
+        c(1, 0),
+        c(0.5, sqrt(3) / 2)
+      )
+      edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 1L))
+      return(list(edges = edges, coords = coords, corners = c(1L, 2L, 3L), n = 3L))
+    }
+
+    left <- build(k - 1L)
+    right <- build(k - 1L)
+    top <- build(k - 1L)
+
+    left_coords <- left$coords / 2
+    right_coords <- right$coords / 2 +
+      matrix(c(0.5, 0), nrow(right$coords), 2L, byrow = TRUE)
+    top_coords <- top$coords / 2 +
+      matrix(c(0.25, sqrt(3) / 4), nrow(top$coords), 2L, byrow = TRUE)
+
+    off1 <- left$n
+    off2 <- left$n + right$n
+
+    edges <- rbind(left$edges,
+                   right$edges + off1,
+                   top$edges + off2)
+    coords <- rbind(left_coords, right_coords, top_coords)
+
+    L <- left$corners
+    R <- right$corners + off1
+    T <- top$corners + off2
+
+    edges <- merge_nodes(edges, R[1L], L[2L])
+    edges <- merge_nodes(edges, T[1L], L[3L])
+    edges <- merge_nodes(edges, T[2L], R[3L])
+
+    ids <- sort(unique(c(edges)))
+    map <- seq_along(ids)
+    names(map) <- ids
+    edges <- cbind(map[as.character(edges[, 1L])],
+                   map[as.character(edges[, 2L])])
+    coords <- coords[ids, , drop = FALSE]
+    edges <- .normalize_undirected_edges(edges)
+
+    corners <- c(map[as.character(L[1L])],
+                 map[as.character(R[2L])],
+                 map[as.character(T[3L])])
+
+    list(edges = edges, coords = coords, corners = corners, n = length(ids))
+  }
+
+  out <- build(level)
+  coords <- out$coords
+  colnames(coords) <- c("u", "v")
+  storage.mode(coords) <- "double"
+  list(
+    edges = out$edges,
+    coords = coords,
+    corners = out$corners,
+    n = as.integer(nrow(coords))
+  )
+}
+
+.sierpinski.tetrahedron.canonical <- function(level) {
+  level <- .as_whole_number(level, "level")
+
+  coords_list <- vector("list", 4L)
+  coords_list[[1L]] <- c(0, 0, 0)
+  coords_list[[2L]] <- c(1, 0, 0)
+  coords_list[[3L]] <- c(0.5, sqrt(3) / 2, 0)
+  coords_list[[4L]] <- c(0.5, sqrt(3) / 6, sqrt(2 / 3))
+
+  state <- new.env(parent = emptyenv())
+  state$edges <- list()
+  state$next_id <- 5L
+
+  add_tetrahedron <- function(a, b, c, d) {
+    state$edges[[length(state$edges) + 1L]] <<- rbind(
+      c(a, b), c(a, c), c(a, d),
+      c(b, c), c(b, d), c(c, d)
+    )
+  }
+
+  midpoint_id <- function(u, v) {
+    id <- state$next_id
+    state$next_id <- state$next_id + 1L
+    coords_list[[id]] <<- (coords_list[[u]] + coords_list[[v]]) / 2
+    id
+  }
+
+  recurse <- function(current_level, a, b, c, d) {
+    if (current_level >= level) {
+      add_tetrahedron(a, b, c, d)
+      return(invisible(NULL))
+    }
+
+    e <- midpoint_id(a, b)
+    f <- midpoint_id(a, c)
+    g <- midpoint_id(a, d)
+    h <- midpoint_id(b, c)
+    i <- midpoint_id(b, d)
+    j <- midpoint_id(c, d)
+
+    recurse(current_level + 1L, a, g, e, f)
+    recurse(current_level + 1L, e, b, i, h)
+    recurse(current_level + 1L, f, c, j, h)
+    recurse(current_level + 1L, g, d, i, j)
+  }
+
+  recurse(0L, 1L, 2L, 3L, 4L)
+
+  edges <- .normalize_undirected_edges(.bind_edges(state$edges))
+  coords <- do.call(rbind, coords_list[seq_len(state$next_id - 1L)])
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  list(
+    edges = edges,
+    coords = coords,
+    n = as.integer(nrow(coords))
+  )
 }
 
 #' Mask pattern helpers for recursive grid families
@@ -1662,6 +1803,292 @@ sphere.surface.graph <- function(h,
   out
 }
 
+#' Weighted Sierpinski triangle surface helpers
+#'
+#' Convenience helpers that take the canonical recursive embedding of the
+#' Sierpinski triangle graph and lift it into \eqn{\mathbb{R}^3}. These helpers
+#' are intended for benchmark families where the topology is the usual
+#' triangular gasket but the intended metric comes from a curved or folded
+#' geometry rather than the flat equilateral reference drawing.
+#'
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Triangle surface family. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling applied to the canonical
+#'   triangle coordinates.
+#' @param y_scale Positive vertical scaling applied to the canonical triangle
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{sierpinski.triangle.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sierpinski.triangle.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the Sierpinski triangle edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 2D triangle coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sierpinski.triangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sierpinski_triangle_surface_helpers
+NULL
+
+#' @rdname sierpinski_triangle_surface_helpers
+#' @export
+sierpinski.triangle.surface.embedding <- function(level = 2,
+                                                  surface = c("flat", "saddle",
+                                                              "paraboloid", "ripple",
+                                                              "folded"),
+                                                  amplitude = 0.75,
+                                                  freq_u = 1,
+                                                  freq_v = 1,
+                                                  x_scale = 1,
+                                                  y_scale = 1) {
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+
+  built <- .sierpinski.triangle.canonical(level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x_scale,
+    v = built$coords[, 2L] * y_scale
+  )
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords_param)),
+    saddle = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq_u, freq_v),
+    paraboloid = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq_u, freq_v),
+    ripple = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq_u, freq_v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+
+  coords <- cbind(x = coords_param[, 1L], y = coords_param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sierpinski_triangle_surface_helpers
+#' @export
+sierpinski.triangle.surface.graph <- function(level = 2,
+                                              surface = c("flat", "saddle",
+                                                          "paraboloid", "ripple",
+                                                          "folded"),
+                                              amplitude = 0.75,
+                                              freq_u = 1,
+                                              freq_v = 1,
+                                              x_scale = 1,
+                                              y_scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .sierpinski.triangle.canonical(level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x_scale,
+    v = built$coords[, 2L] * y_scale
+  )
+  coords_surface <- sierpinski.triangle.surface.embedding(
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "sierpinski.triangle",
+    surface = surface,
+    level = level,
+    normalize = normalize,
+    label = sprintf("%s Sierpinski triangle level %d",
+                    tools::toTitleCase(surface),
+                    level)
+  )
+  class(out) <- c("grip_sierpinski_triangle_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski tetrahedron surface helpers
+#'
+#' Convenience helpers that take the canonical recursive embedding of the
+#' Sierpinski tetrahedron graph and deform it inside \eqn{\mathbb{R}^3}. These
+#' helpers are intended for benchmark families where the topology is the
+#' simplicial tetrahedral gasket but the intended metric comes from a squashed,
+#' twisted, or spatially varying realization.
+#'
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Tetrahedron surface family. One of \code{"standard"},
+#'   \code{"squashed"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sierpinski.tetrahedron.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the Sierpinski tetrahedron edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 3D tetrahedron coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sierpinski.tetrahedron"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sierpinski_tetrahedron_surface_helpers
+NULL
+
+#' @rdname sierpinski_tetrahedron_surface_helpers
+#' @export
+sierpinski.tetrahedron.surface.embedding <- function(level = 2,
+                                                     surface = c("standard", "squashed",
+                                                                 "twisted", "wavy"),
+                                                     amplitude = 0.3,
+                                                     freq = 2,
+                                                     twist = 0.6) {
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq <- .as_positive_scalar(freq, "freq")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  built <- .sierpinski.tetrahedron.canonical(level)
+  coords_param <- built$coords
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  coords <- switch(
+    surface,
+    standard = coords_param,
+    squashed = {
+      xy_scale <- 1 - amplitude / 2
+      z_scale <- 1 + amplitude
+      if (xy_scale <= 0 || z_scale <= 0) {
+        stop("squashed tetrahedron parameters require positive coordinate scales; adjust amplitude",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords_param[, 1L] * xy_scale,
+        y = coords_param[, 2L] * xy_scale,
+        z = coords_param[, 3L] * z_scale
+      )
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords_param[, 1L] * cos(theta) - coords_param[, 2L] * sin(theta)
+      y <- coords_param[, 1L] * sin(theta) + coords_param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords_param[, 3L])
+    },
+    wavy = {
+      local_scale <- 1 + amplitude * sin(pi * freq *
+                                           (coords_norm[, 1L] +
+                                              0.5 * coords_norm[, 2L] -
+                                              0.25 * coords_norm[, 3L]))
+      if (any(!is.finite(local_scale) | local_scale <= 0)) {
+        stop("wavy tetrahedron parameters produce a non-positive local scale; adjust amplitude or frequency",
+             call. = FALSE)
+      }
+      coords_param * local_scale
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sierpinski_tetrahedron_surface_helpers
+#' @export
+sierpinski.tetrahedron.surface.graph <- function(level = 2,
+                                                 surface = c("standard", "squashed",
+                                                             "twisted", "wavy"),
+                                                 amplitude = 0.3,
+                                                 freq = 2,
+                                                 twist = 0.6,
+                                                 normalize = c("median", "mean", "none")) {
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .sierpinski.tetrahedron.canonical(level)
+  coords_surface <- sierpinski.tetrahedron.surface.embedding(
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "sierpinski.tetrahedron",
+    surface = surface,
+    level = level,
+    normalize = normalize,
+    label = sprintf("%s Sierpinski tetrahedron level %d",
+                    tools::toTitleCase(surface),
+                    level)
+  )
+  class(out) <- c("grip_sierpinski_tetrahedron_surface_graph", "list")
+  out
+}
+
 #' Weighted recursive mask-grid surface helpers
 #'
 #' Convenience helpers that recursively subdivide a square grid according to a
@@ -2133,92 +2560,14 @@ edges.vicsek <- function(level = 2) {
 #' grip.plot(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
 #' @export
 edges.sierpinski.triangle <- function(level = 2) {
-  level <- .as_whole_number(level, "level")
-
-  merge_nodes <- function(edges, from, to) {
-    edges[edges == from] <- to
-    edges
-  }
-
-  build <- function(k) {
-    if (k == 0L) {
-      edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 1L))
-      return(list(edges = edges, corners = c(1L, 2L, 3L), n = 3L))
-    }
-
-    left <- build(k - 1L)
-    right <- build(k - 1L)
-    top <- build(k - 1L)
-
-    off1 <- left$n
-    off2 <- left$n + right$n
-
-    edges <- rbind(left$edges,
-                   right$edges + off1,
-                   top$edges + off2)
-
-    L <- left$corners
-    R <- right$corners + off1
-    T <- top$corners + off2
-
-    edges <- merge_nodes(edges, R[1L], L[2L])
-    edges <- merge_nodes(edges, T[1L], L[3L])
-    edges <- merge_nodes(edges, T[2L], R[3L])
-
-    ids <- sort(unique(c(edges)))
-    map <- seq_along(ids)
-    names(map) <- ids
-    edges <- cbind(map[as.character(edges[, 1L])],
-                   map[as.character(edges[, 2L])])
-    edges <- .normalize_undirected_edges(edges)
-
-    corners <- c(map[as.character(L[1L])],
-                 map[as.character(R[2L])],
-                 map[as.character(T[3L])])
-
-    list(edges = edges, corners = corners, n = length(ids))
-  }
-
-  build(level)$edges
+  .sierpinski.triangle.canonical(level)$edges
 }
 
 #' @describeIn graph_generators Three-dimensional tetrahedral Sierpinski graph
 #'   at recursion depth \code{level}.
 #' @export
 edges.sierpinski.tetrahedron <- function(level = 2) {
-  level <- .as_whole_number(level, "level")
-  state <- new.env(parent = emptyenv())
-  state$edges <- list()
-  state$next_id <- 5L
-
-  add_tetrahedron <- function(a, b, c, d) {
-    state$edges[[length(state$edges) + 1L]] <<- rbind(
-      c(a, b), c(a, c), c(a, d),
-      c(b, c), c(b, d), c(c, d)
-    )
-  }
-
-  recurse <- function(current_level, a, b, c, d) {
-    if (current_level >= level) {
-      add_tetrahedron(a, b, c, d)
-    } else {
-      e <- state$next_id
-      f <- e + 1L
-      g <- e + 2L
-      h <- e + 3L
-      i <- e + 4L
-      j <- e + 5L
-      state$next_id <- j + 1L
-
-      recurse(current_level + 1L, a, g, e, f)
-      recurse(current_level + 1L, e, b, i, h)
-      recurse(current_level + 1L, f, c, j, h)
-      recurse(current_level + 1L, g, d, i, j)
-    }
-  }
-
-  recurse(0L, 1L, 2L, 3L, 4L)
-  .normalize_undirected_edges(.bind_edges(state$edges))
+  .sierpinski.tetrahedron.canonical(level)$edges
 }
 
 #' @describeIn graph_generators Two-dimensional Sierpinski carpet graph whose
