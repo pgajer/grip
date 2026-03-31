@@ -130,3 +130,45 @@ test_that("wavy cylinder graph supports alternate weight normalization", {
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
+
+test_that("torus surface embedding returns finite 3D coordinates", {
+  coords <- torus.surface.embedding(6, 9, surface = "standard")
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(54L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("torus surface graph returns normalized positive edge weights", {
+  spec <- torus.surface.graph(6, 9, surface = "pinched", amplitude = 0.2)
+
+  expect_s3_class(spec, "grip_torus_surface_graph")
+  expect_equal(spec$edges, edges.torus(6, 9))
+  expect_equal(spec$n, 54L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(54L, 3L))
+  expect_equal(dim(spec$coords_param), c(54L, 2L))
+  expect_equal(spec$family, "torus")
+  expect_equal(spec$surface, "pinched")
+})
+
+test_that("wavy torus graph supports alternate weight normalization", {
+  spec <- torus.surface.graph(
+    7, 10,
+    surface = "wavy",
+    amplitude = 0.15,
+    freq_major = 3,
+    freq_minor = 2,
+    twist = 0.35,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})

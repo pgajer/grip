@@ -94,6 +94,25 @@
   coords
 }
 
+.torus.param.coords <- function(h, w, major_radius = 2, minor_radius = 0.75) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  major_radius <- .as_positive_scalar(major_radius, "major_radius")
+  minor_radius <- .as_positive_scalar(minor_radius, "minor_radius")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  phi_vals <- seq(0, 2 * pi * (1 - 1 / h), length.out = h)
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(major_radius * theta_vals[[j]], minor_radius * phi_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("theta_arc", "phi_arc")
+  coords
+}
+
 .edge.weights.from.embedding <- function(edges,
                                          coords,
                                          normalize = c("median", "mean", "none")) {
@@ -491,6 +510,174 @@ cylinder.surface.graph <- function(h,
     label = sprintf("%s cylinder %dx%d", tools::toTitleCase(surface), h, w)
   )
   class(out) <- c("grip_cylinder_surface_graph", "list")
+  out
+}
+
+#' Weighted torus surface helpers
+#'
+#' Convenience helpers that embed a toroidal grid graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology is toroidal but the intended metric comes from a curved or
+#' spatially varying 3D realization.
+#'
+#' `torus.surface.embedding()` returns the 3D coordinates of the embedded
+#' toroidal grid. `torus.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the torus edges, induced edge weights, the 3D surface
+#' coordinates, and a 2D unwrapped parameterization.
+#'
+#' @param h Number of wrapped rows. Must be at least \code{3}.
+#' @param w Number of wrapped columns. Defaults to \code{h}; must be at least
+#'   \code{3}.
+#' @param surface Torus surface family. One of \code{"standard"},
+#'   \code{"pinched"}, or \code{"wavy"}.
+#' @param major_radius Positive distance from the torus center to the center of
+#'   the tube.
+#' @param minor_radius Positive baseline radius of the torus tube. The local
+#'   tube radius must remain strictly smaller than \code{major_radius}
+#'   everywhere.
+#' @param amplitude Finite numeric deformation amplitude.
+#' @param freq_major Positive angular frequency around the major cycle, used by
+#'   \code{"wavy"} and the periodic twist.
+#' @param freq_minor Positive angular frequency around the minor cycle, used by
+#'   \code{"wavy"}.
+#' @param twist Finite phase twist applied periodically to the minor angle as a
+#'   function of the major angle.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{torus.surface.embedding()} returns an \code{n x 3} numeric matrix with
+#' columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{torus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected toroidal-grid edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D unwrapped parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name torus_surface_helpers
+NULL
+
+#' @rdname torus_surface_helpers
+#' @export
+torus.surface.embedding <- function(h,
+                                    w = h,
+                                    surface = c("standard", "pinched", "wavy"),
+                                    major_radius = 2,
+                                    minor_radius = 0.75,
+                                    amplitude = 0.2,
+                                    freq_major = 2,
+                                    freq_minor = 1,
+                                    twist = 0.25) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  major_radius <- .as_positive_scalar(major_radius, "major_radius")
+  minor_radius <- .as_positive_scalar(minor_radius, "minor_radius")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_major <- .as_positive_scalar(freq_major, "freq_major")
+  freq_minor <- .as_positive_scalar(freq_minor, "freq_minor")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  phi_vals <- seq(0, 2 * pi * (1 - 1 / h), length.out = h)
+  coords <- matrix(0, nrow = h * w, ncol = 3L)
+  for (i in seq_len(h)) {
+    phi <- phi_vals[[i]]
+    for (j in seq_len(w)) {
+      theta <- theta_vals[[j]]
+      local_minor_radius <- switch(
+        surface,
+        standard = minor_radius,
+        pinched = minor_radius * (1 - amplitude * cos(theta)),
+        wavy = minor_radius * (1 + amplitude * sin(freq_major * theta) * cos(freq_minor * phi))
+      )
+      if (!is.finite(local_minor_radius) || local_minor_radius <= 0) {
+        stop("torus surface parameters produce a non-positive tube radius; adjust amplitude or surface settings",
+             call. = FALSE)
+      }
+      if (local_minor_radius >= major_radius) {
+        stop("torus surface parameters require major_radius to exceed the local tube radius everywhere",
+             call. = FALSE)
+      }
+      phi_eff <- phi + twist * sin(freq_major * theta)
+      ring_radius <- major_radius + local_minor_radius * cos(phi_eff)
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(
+        ring_radius * cos(theta),
+        ring_radius * sin(theta),
+        local_minor_radius * sin(phi_eff)
+      )
+    }
+  }
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname torus_surface_helpers
+#' @export
+torus.surface.graph <- function(h,
+                                w = h,
+                                surface = c("standard", "pinched", "wavy"),
+                                major_radius = 2,
+                                minor_radius = 0.75,
+                                amplitude = 0.2,
+                                freq_major = 2,
+                                freq_minor = 1,
+                                twist = 0.25,
+                                normalize = c("median", "mean", "none")) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.torus(h, w)
+  coords_param <- .torus.param.coords(
+    h = h,
+    w = w,
+    major_radius = major_radius,
+    minor_radius = minor_radius
+  )
+  coords_surface <- torus.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    major_radius = major_radius,
+    minor_radius = minor_radius,
+    amplitude = amplitude,
+    freq_major = freq_major,
+    freq_minor = freq_minor,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "torus",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s torus %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_torus_surface_graph", "list")
   out
 }
 
