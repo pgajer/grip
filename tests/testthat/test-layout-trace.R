@@ -182,6 +182,50 @@ test_that("grip.layout.trace final matches grip.layout for insertion anchor knob
   expect_identical(tr_primary$final, coords)
 })
 
+test_that("grip.layout.trace final matches grip.layout for spread_prev insertion", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+  tr_primary <- grip.layout.trace(
+    edges = edges,
+    n = n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "spread_prev",
+    level0_insertion_mode = "least_squares",
+    level0_local_kk_steps = 1,
+    trace = "level",
+    trace.every = 1,
+    seed = 71
+  )
+  coords <- grip.layout(
+    edges = edges,
+    n = n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "spread_prev",
+    level0_insertion_mode = "least_squares",
+    level0_local_kk_steps = 1,
+    seed = 71
+  )
+  expect_identical(tr_primary$final, coords)
+})
+
 test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
   edges <- edges.mesh(5, 5)
   tr_primary <- grip.layout.trace(edges = edges,
@@ -258,6 +302,57 @@ test_that("grip.layout.trace final matches grip.layout for multiscale LGKK", {
     lgkk_multiscale_scope = "all",
     lgkk_active_limit = 512,
     seed = 73
+  )
+
+  expect_identical(tr_primary$final, coords)
+  expect_true(any(tr_primary$meta$phase == "lgkk"))
+})
+
+test_that("grip.layout.trace final matches grip.layout for staged multiscale LGKK", {
+  h <- 6L
+  w <- 6L
+  edges <- edges.mesh(h, w)
+  row_of <- function(v) ((v - 1L) %/% w) + 1L
+  col_of <- function(v) ((v - 1L) %% w) + 1L
+  edge_weights <- apply(edges, 1L, function(e) {
+    r1 <- row_of(e[[1L]])
+    r2 <- row_of(e[[2L]])
+    c1 <- col_of(e[[1L]])
+    c2 <- col_of(e[[2L]])
+    if (r1 == r2 && abs(c1 - c2) == 1L) 1 else 2
+  })
+
+  tr_primary <- grip.layout.trace(
+    edges = edges,
+    n = h * w,
+    dim = 2,
+    edge_weights = edge_weights,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 8,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    trace = "round",
+    trace.every = 1,
+    seed = 1
+  )
+  coords <- grip.layout(
+    edges = edges,
+    n = h * w,
+    dim = 2,
+    edge_weights = edge_weights,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 8,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 1
   )
 
   expect_identical(tr_primary$final, coords)
@@ -477,6 +572,33 @@ test_that("trace validates tuning parameters", {
                       trace = "round",
                       seed = 123),
     "lgkk_landmark_count must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_rounds_coarse = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_rounds_coarse must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_rounds_pre_final = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_rounds_pre_final must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.trace(edges = edges,
+                      n = 8,
+                      dim = 2,
+                      lgkk_rounds_final = -1,
+                      trace = "round",
+                      seed = 123),
+    "lgkk_rounds_final must be a non-negative integer"
   )
 })
 

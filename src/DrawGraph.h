@@ -36,6 +36,7 @@ using size_tt = uint32_t;
 #define INSERT_ANCHOR_STRATEGY_FIRST 0
 #define INSERT_ANCHOR_STRATEGY_DISTANCE_BAND 1
 #define INSERT_ANCHOR_STRATEGY_BALANCED_BAND 2
+#define INSERT_ANCHOR_STRATEGY_SPREAD_PREV 3
 #define LGKK_SCOPE_ALL 0
 #define LGKK_SCOPE_COARSE 1
 
@@ -75,6 +76,9 @@ class DrawGraph
               size_tt _level0AnchorCount = 3,
               size_tt _level0LocalKkSteps = 3,
               size_tt _lgkkMultiscaleRounds = 0,
+              size_tt _lgkkRoundsCoarse = 0,
+              size_tt _lgkkRoundsPreFinal = 0,
+              size_tt _lgkkRoundsFinal = 0,
               size_tt _lgkkLocalNbrs = 20,
               size_tt _lgkkLandmarkCount = 8,
               size_tt _lgkkScope = LGKK_SCOPE_ALL,
@@ -236,6 +240,9 @@ private:
     size_tt level0AnchorCount;
     size_tt level0LocalKkSteps;
     size_tt lgkkMultiscaleRounds;
+    size_tt lgkkRoundsCoarse;
+    size_tt lgkkRoundsPreFinal;
+    size_tt lgkkRoundsFinal;
     size_tt lgkkLocalNbrs;
     size_tt lgkkLandmarkCount;
     size_tt lgkkScope;
@@ -381,6 +388,7 @@ private:
     void select_insertion_anchor_subset(std::vector<size_tt> &anchors,
                                         std::vector<size_tt> &anchorDist,
                                         size_tt targetCount);
+    size_tt lgkk_round_budget_for_layer(size_tt mishLayer) const;
     bool should_run_multiscale_lgkk(size_tt activeCount,
                                     size_tt mishLayer) const;
     void clear_lgkk_level_cache();

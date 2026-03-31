@@ -471,7 +471,7 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
 
   insertion_anchor_strategy <- match.arg(
     insertion_anchor_strategy,
-    choices = c("first", "distance_band", "balanced_band")
+    choices = c("first", "distance_band", "balanced_band", "spread_prev")
   )
 
   level0_insertion_mode <- match.arg(
@@ -527,6 +527,9 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
 
 grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
                                              lgkk_multiscale_rounds = 0L,
+                                             lgkk_rounds_coarse = NULL,
+                                             lgkk_rounds_pre_final = NULL,
+                                             lgkk_rounds_final = NULL,
                                              lgkk_local_nbrs = 20L,
                                              lgkk_landmark_count = 8L,
                                              lgkk_multiscale_scope = "all",
@@ -557,6 +560,37 @@ grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
   lgkk_multiscale_rounds <- as.integer(round(lgkk_multiscale_rounds))
   if (is.na(lgkk_multiscale_rounds) || lgkk_multiscale_rounds < 0L) {
     stop("lgkk_multiscale_rounds must be a non-negative integer")
+  }
+
+  validate_optional_rounds <- function(x, name) {
+    if (is.null(x)) {
+      return(NULL)
+    }
+    if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
+      stop(sprintf("%s must be NULL or a single finite numeric value", name))
+    }
+    if (abs(x - round(x)) > sqrt(.Machine$double.eps)) {
+      stop(sprintf("%s must be a non-negative integer", name))
+    }
+    x <- as.integer(round(x))
+    if (is.na(x) || x < 0L) {
+      stop(sprintf("%s must be a non-negative integer", name))
+    }
+    x
+  }
+
+  lgkk_rounds_coarse <- validate_optional_rounds(lgkk_rounds_coarse, "lgkk_rounds_coarse")
+  lgkk_rounds_pre_final <- validate_optional_rounds(lgkk_rounds_pre_final, "lgkk_rounds_pre_final")
+  lgkk_rounds_final <- validate_optional_rounds(lgkk_rounds_final, "lgkk_rounds_final")
+
+  if (is.null(lgkk_rounds_coarse)) {
+    lgkk_rounds_coarse <- lgkk_multiscale_rounds
+  }
+  if (is.null(lgkk_rounds_pre_final)) {
+    lgkk_rounds_pre_final <- lgkk_multiscale_rounds
+  }
+  if (is.null(lgkk_rounds_final)) {
+    lgkk_rounds_final <- lgkk_multiscale_rounds
   }
 
   if (!is.numeric(lgkk_local_nbrs) ||
@@ -609,6 +643,9 @@ grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
   list(
     lgkk_polish_rounds = lgkk_polish_rounds,
     lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
     lgkk_multiscale_scope = lgkk_multiscale_scope,
@@ -793,7 +830,10 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   the new vertex from that less order-sensitive anchor pool.
 #'   \code{"balanced_band"} uses the same band expansion, then explicitly
 #'   selects a subset whose centroid stays centered in the candidate cloud while
-#'   remaining geometrically spread out.
+#'   remaining geometrically spread out. \code{"spread_prev"} is a
+#'   symmetry-oriented band strategy intended to be paired with
+#'   \code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+#'   angular and geometric coverage before placement.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -812,6 +852,19 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param lgkk_multiscale_rounds Non-negative integer number of compiled
 #'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
 #'   after each eligible MISF level completes its standard GRIP rounds.
+#'   This legacy shared budget is used as a fallback when any of the more
+#'   specific per-stage budgets below are left \code{NULL}.
+#' @param lgkk_rounds_coarse Optional non-negative integer number of compiled
+#'   LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
+#'   When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.
+#' @param lgkk_rounds_pre_final Optional non-negative integer number of compiled
+#'   LGKK rounds applied on the last coarse level just before the full graph is
+#'   opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
+#'   \code{lgkk_multiscale_rounds}.
+#' @param lgkk_rounds_final Optional non-negative integer number of compiled
+#'   LGKK rounds applied after the full graph level completes its standard GRIP
+#'   rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
+#'   \code{lgkk_multiscale_rounds}.
 #' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
 #'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
 #' @param lgkk_landmark_count Number of farthest-point landmarks retained per
@@ -858,12 +911,15 @@ grip.layout.globalrep <- function(edges = NULL,
                                   final_mode = c("fr", "kk_repulse"),
                                   insertion_anchor_count = 3,
                                   insertion_anchor_scope = c("any_higher", "prev_misf"),
-                                  insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
+                                  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
                                   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                                   level0_anchor_count = insertion_anchor_count,
                                   level0_local_kk_steps = 3,
                                   lgkk_polish_rounds = 0L,
                                   lgkk_multiscale_rounds = 0L,
+                                  lgkk_rounds_coarse = NULL,
+                                  lgkk_rounds_pre_final = NULL,
+                                  lgkk_rounds_final = NULL,
                                   lgkk_local_nbrs = 20L,
                                   lgkk_landmark_count = 8L,
                                   lgkk_multiscale_scope = c("all", "coarse"),
@@ -970,6 +1026,9 @@ grip.layout.globalrep <- function(edges = NULL,
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
     lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
     lgkk_multiscale_scope = lgkk_multiscale_scope,
@@ -977,6 +1036,9 @@ grip.layout.globalrep <- function(edges = NULL,
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
   lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
+  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
+  lgkk_rounds_final <- lgkk$lgkk_rounds_final
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
   lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
@@ -1008,6 +1070,9 @@ grip.layout.globalrep <- function(edges = NULL,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps,
       lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+      lgkk_rounds_coarse = lgkk_rounds_coarse,
+      lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+      lgkk_rounds_final = lgkk_rounds_final,
       lgkk_local_nbrs = lgkk_local_nbrs,
       lgkk_landmark_count = lgkk_landmark_count,
       lgkk_multiscale_scope = lgkk_multiscale_scope,
@@ -1139,7 +1204,10 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   the new vertex from that less order-sensitive anchor pool.
 #'   \code{"balanced_band"} uses the same band expansion, then explicitly
 #'   selects a subset whose centroid stays centered in the candidate cloud while
-#'   remaining geometrically spread out.
+#'   remaining geometrically spread out. \code{"spread_prev"} is a
+#'   symmetry-oriented band strategy intended to be paired with
+#'   \code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+#'   angular and geometric coverage before placement.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -1158,6 +1226,19 @@ grip.layout.globalrep <- function(edges = NULL,
 #' @param lgkk_multiscale_rounds Non-negative integer number of compiled
 #'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
 #'   after each eligible MISF level completes its standard GRIP rounds.
+#'   This legacy shared budget is used as a fallback when any of the more
+#'   specific per-stage budgets below are left \code{NULL}.
+#' @param lgkk_rounds_coarse Optional non-negative integer number of compiled
+#'   LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
+#'   When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.
+#' @param lgkk_rounds_pre_final Optional non-negative integer number of compiled
+#'   LGKK rounds applied on the last coarse level just before the full graph is
+#'   opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
+#'   \code{lgkk_multiscale_rounds}.
+#' @param lgkk_rounds_final Optional non-negative integer number of compiled
+#'   LGKK rounds applied after the full graph level completes its standard GRIP
+#'   rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
+#'   \code{lgkk_multiscale_rounds}.
 #' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
 #'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
 #' @param lgkk_landmark_count Number of farthest-point landmarks retained per
@@ -1217,12 +1298,15 @@ grip.layout <- function(edges = NULL,
                         final_mode = c("fr", "kk_repulse"),
                         insertion_anchor_count = 3,
                         insertion_anchor_scope = c("any_higher", "prev_misf"),
-                        insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
+                        insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
                         level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                         level0_anchor_count = insertion_anchor_count,
                         level0_local_kk_steps = 3,
                         lgkk_polish_rounds = 0L,
                         lgkk_multiscale_rounds = 0L,
+                        lgkk_rounds_coarse = NULL,
+                        lgkk_rounds_pre_final = NULL,
+                        lgkk_rounds_final = NULL,
                         lgkk_local_nbrs = 20L,
                         lgkk_landmark_count = 8L,
                         lgkk_multiscale_scope = c("all", "coarse"),
@@ -1512,12 +1596,15 @@ grip.layout.trace <- function(edges = NULL,
                               final_mode = c("fr", "kk_repulse"),
                               insertion_anchor_count = 3,
                               insertion_anchor_scope = c("any_higher", "prev_misf"),
-                              insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
+                              insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
                               level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                               level0_anchor_count = insertion_anchor_count,
                               level0_local_kk_steps = 3,
                               lgkk_polish_rounds = 0L,
                               lgkk_multiscale_rounds = 0L,
+                              lgkk_rounds_coarse = NULL,
+                              lgkk_rounds_pre_final = NULL,
+                              lgkk_rounds_final = NULL,
                               lgkk_local_nbrs = 20L,
                               lgkk_landmark_count = 8L,
                               lgkk_multiscale_scope = c("all", "coarse"),
@@ -1640,6 +1727,9 @@ grip.layout.trace <- function(edges = NULL,
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
     lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
     lgkk_multiscale_scope = lgkk_multiscale_scope,
@@ -1647,6 +1737,9 @@ grip.layout.trace <- function(edges = NULL,
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
   lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
+  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
+  lgkk_rounds_final <- lgkk$lgkk_rounds_final
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
   lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
@@ -1686,6 +1779,9 @@ grip.layout.trace <- function(edges = NULL,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps,
     lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
     lgkk_multiscale_scope = lgkk_multiscale_scope,
@@ -1711,8 +1807,8 @@ grip.layout.trace <- function(edges = NULL,
       add.meta <- data.frame(
         frame = seq.int(nrow(out$meta) + 1L, nrow(out$meta) + length(add.frames)),
         phase = rep("lgkk", length(add.frames)),
-        level_index = rep(utils::tail(out$meta$level_index, 1L), length(add.frames)),
-        misf_level = rep(utils::tail(out$meta$misf_level, 1L), length(add.frames)),
+        level_index = rep(tail(out$meta$level_index, 1L), length(add.frames)),
+        misf_level = rep(tail(out$meta$misf_level, 1L), length(add.frames)),
         round_in_level = seq_len(length(add.frames)),
         active_vertices = rep(n, length(add.frames)),
         stringsAsFactors = FALSE

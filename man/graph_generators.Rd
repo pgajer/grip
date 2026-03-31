@@ -9,12 +9,12 @@
 \alias{edges.cylinder}
 \alias{edges.torus}
 \alias{edges.irregular.ball}
+\alias{edges.irregular.shell}
 \alias{edges.irregular.torus}
 \alias{edges.sphere}
 \alias{edges.irregular.annulus}
-\alias{edges.irregular.double.torus}
 \alias{edges.irregular.pair.of.pants}
-\alias{edges.irregular.shell}
+\alias{edges.irregular.double.torus}
 \alias{edges.irregular.sphere}
 \alias{edges.cube}
 \alias{edges.kary.tree}
@@ -51,6 +51,16 @@ edges.irregular.ball(
   base = c("tetrahedron", "octahedron", "icosahedron"),
   level = 1,
   layers = 3,
+  outer_radius = 1,
+  radial_irregularity = 0.25,
+  layer_twist = 0.35
+)
+
+edges.irregular.shell(
+  base = c("tetrahedron", "octahedron", "icosahedron"),
+  level = 1,
+  layers = 3,
+  inner_radius = 0.45,
   outer_radius = 1,
   radial_irregularity = 0.25,
   layer_twist = 0.35
@@ -98,16 +108,6 @@ edges.irregular.double.torus(
   count_irregularity = 0.2,
   axial_irregularity = 0.3,
   phase_twist = 0.35
-)
-
-edges.irregular.shell(
-  base = c("tetrahedron", "octahedron", "icosahedron"),
-  level = 1,
-  layers = 3,
-  inner_radius = 0.45,
-  outer_radius = 1,
-  radial_irregularity = 0.25,
-  layer_twist = 0.35
 )
 
 edges.irregular.sphere(
@@ -190,44 +190,39 @@ edges.sierpinski.carpet(level = 2)
 
 \item{keep}{Logical or numeric occupancy matrix. Non-zero entries are kept.}
 
-\item{base}{Base polyhedron for \code{edges.triangulated.polyhedron()},
-\code{edges.irregular.ball()}, and \code{edges.irregular.shell()}. One of
-\code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
+\item{base}{Base polyhedron for \code{edges.triangulated.polyhedron()}. One
+of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
 
 \item{level}{Recursion depth. For \code{edges.recursive.mask.grid()},
 \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
 \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
 \code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
-\code{edges.recursive.tetrahedron.mask()},
-\code{edges.triangulated.polyhedron()}, \code{edges.irregular.ball()}, and
-\code{edges.irregular.shell()} also allow \code{level = 0}.}
+\code{edges.recursive.tetrahedron.mask()}, and
+\code{edges.triangulated.polyhedron()} also allow \code{level = 0}.}
 
 \item{layers}{Number of non-center radial layers for
 \code{edges.irregular.ball()} and number of inner-to-outer layers for
 \code{edges.irregular.shell()}.}
 
+\item{outer_radius}{Positive outer boundary radius for
+\code{edges.triangulated.annulus()} and
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{radial_irregularity}{Within-ring radial irregularity level for
+\code{edges.irregular.annulus()}.}
+
+\item{layer_twist}{Finite z-axis twist applied across radial layers in
+\code{edges.irregular.ball()} and \code{edges.irregular.shell()}.}
+
+\item{inner_radius}{Positive inner annulus radius for
+\code{edges.triangulated.annulus()}.}
+
 \item{major_rings}{Number of cyclic major rings for
 \code{edges.irregular.torus()}.}
-
-\item{rings}{Number of concentric sample rings for
-\code{edges.irregular.annulus()}.}
 
 \item{tube_count}{Approximate number of vertices around each minor cycle for
 \code{edges.irregular.torus()} and around each tube-like loop for
 \code{edges.irregular.double.torus()}.}
-
-\item{outer_count}{Approximate number of vertices on the outer boundary for
-\code{edges.irregular.annulus()} and across the widest slices for
-\code{edges.irregular.pair.of.pants()}.}
-
-\item{outer_radius}{Positive outer boundary radius for
-\code{edges.triangulated.annulus()}, \code{edges.triangulated.pair.of.pants()},
-\code{edges.irregular.ball()}, \code{edges.irregular.annulus()},
-\code{edges.irregular.pair.of.pants()}, and \code{edges.irregular.shell()}.}
-
-\item{inner_radius}{Positive inner annulus radius for
-\code{edges.triangulated.annulus()}, \code{edges.irregular.annulus()}, and
-\code{edges.irregular.shell()}.}
 
 \item{count_irregularity}{Irregularity level for sample counts in
 \code{edges.irregular.torus()}, \code{edges.irregular.annulus()},
@@ -237,20 +232,46 @@ edges.sierpinski.carpet(level = 2)
 \item{major_irregularity}{Major-angle ring-spacing irregularity level for
 \code{edges.irregular.torus()}.}
 
-\item{radial_irregularity}{Radial layer-spacing irregularity level for
-\code{edges.irregular.ball()} and \code{edges.irregular.shell()}, and
-within-ring radial irregularity level for \code{edges.irregular.annulus()}.}
-
-\item{layer_twist}{Finite z-axis twist applied across radial layers in
-\code{edges.irregular.ball()} and \code{edges.irregular.shell()}.}
-
 \item{phase_twist}{Angular phase offset used to desynchronize neighboring
-rings, slice samples, or latitude bands in the irregular torus, irregular
-annulus, irregular pair-of-pants, irregular double torus, and irregular
-sphere families.}
+rings, slice samples, or latitude bands in the irregular torus,
+irregular annulus, irregular pair-of-pants, irregular double torus,
+and irregular sphere families.}
+
+\item{rings}{Number of concentric sample rings for
+\code{edges.irregular.annulus()}.}
+
+\item{outer_count}{Approximate number of vertices on the outer boundary for
+\code{edges.irregular.annulus()} and across the widest slices for
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{slices}{Number of horizontal sample slices for
-\code{edges.irregular.pair.of.pants()} and number of non-pole slices for
+\code{edges.irregular.pair.of.pants()}.}
+
+\item{hole_radius}{Positive radius of each interior hole for
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{hole_offset}{Positive horizontal offset of the two hole centers for
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{hole_height}{Shared vertical coordinate of the two hole centers for
+\code{edges.triangulated.pair.of.pants()}.}
+
+\item{vertical_irregularity}{Slice-spacing irregularity level for
+\code{edges.irregular.pair.of.pants()}.}
+
+\item{branch_length}{Half-length of the three-loop central region for
+\code{edges.irregular.double.torus()}.}
+
+\item{branch_offset}{Offset of the outer loop centers from the middle loop
+for \code{edges.irregular.double.torus()}.}
+
+\item{tube_radius}{Baseline radius of each tube-like loop for
+\code{edges.irregular.double.torus()}.}
+
+\item{transition_width}{Width of the single-loop to three-loop transition
+regions for \code{edges.irregular.double.torus()}.}
+
+\item{axial_irregularity}{Slice-spacing irregularity level for
 \code{edges.irregular.double.torus()}.}
 
 \item{bands}{Number of non-pole latitude bands for
@@ -263,6 +284,27 @@ sphere families.}
 \code{edges.irregular.sphere()}.}
 
 \item{side}{Number of lattice points along each cube edge.}
+
+\item{k}{Branching factor.}
+
+\item{depth}{Number of levels below the root.}
+
+\item{mask}{Keep-mask describing which recursive cells are retained. For
+\code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
+or numeric keep-matrix whose non-zero entries are kept at each recursive
+subdivision step. For
+\code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
+four-entry vector in \code{left}, \code{right}, \code{top},
+\code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
+\code{mask} must be a four-entry vector in \code{base_left},
+\code{base_right}, \code{base_back}, \code{apex} order. For
+\code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
+or numeric keep-array whose non-zero entries are kept at each recursive
+subdivision step.}
+
+\item{resolution}{Positive lattice-resolution control used by
+\code{edges.triangulated.annulus()} and
+\code{edges.triangulated.pair.of.pants()}.}
 
 \item{tunnel_width}{Width of each removed tunnel band in
 \code{edges.cube.periodic.tunnels()}.}
@@ -281,57 +323,6 @@ sphere families.}
 
 \item{channel_width}{Width of each removed channel in
 \code{edges.cube.channel.network()}.}
-
-\item{k}{Branching factor.}
-
-\item{depth}{Number of levels below the root.}
-
-\item{resolution}{Positive lattice-resolution control used by
-\code{edges.triangulated.annulus()} and
-\code{edges.triangulated.pair.of.pants()}.}
-
-\item{hole_radius}{Positive radius of each interior hole for
-\code{edges.triangulated.pair.of.pants()} and
-\code{edges.irregular.pair.of.pants()}.}
-
-\item{hole_offset}{Positive horizontal offset of the two hole centers for
-\code{edges.triangulated.pair.of.pants()} and
-\code{edges.irregular.pair.of.pants()}.}
-
-\item{hole_height}{Shared vertical coordinate of the two hole centers for
-\code{edges.triangulated.pair.of.pants()} and
-\code{edges.irregular.pair.of.pants()}.}
-
-\item{vertical_irregularity}{Slice-spacing irregularity level for
-\code{edges.irregular.pair.of.pants()}.}
-
-\item{branch_length}{Half-length of the three-loop central region for
-\code{edges.irregular.double.torus()}.}
-
-\item{branch_offset}{Offset of the outer loop centers from the middle loop for
-\code{edges.irregular.double.torus()}.}
-
-\item{tube_radius}{Baseline radius of each tube-like loop for
-\code{edges.irregular.double.torus()}.}
-
-\item{transition_width}{Width of the single-loop to three-loop transition
-regions for \code{edges.irregular.double.torus()}.}
-
-\item{axial_irregularity}{Slice-spacing irregularity level for
-\code{edges.irregular.double.torus()}.}
-
-\item{mask}{Keep-mask describing which recursive cells are retained. For
-\code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
-or numeric keep-matrix whose non-zero entries are kept at each recursive
-subdivision step. For
-\code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
-four-entry vector in \code{left}, \code{right}, \code{top},
-\code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
-\code{mask} must be a four-entry vector in \code{base_left},
-\code{base_right}, \code{base_back}, \code{apex} order. For
-\code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
-or numeric keep-array whose non-zero entries are kept at each recursive
-subdivision step.}
 }
 \value{
 A two-column integer matrix of undirected edges. Vertex labels are
@@ -354,13 +345,8 @@ builds a generic tetrahedron-mask family,
 \code{\link{edges.recursive.cube.mask}()} builds a generic cube-mask
 family, \code{\link{edges.vicsek}()} builds the connected axial-cross
 variant, \code{\link{edges.menger.sponge}()} builds the classic cubical
-sponge variant, \code{\link{edges.irregular.torus}()} and
-\code{\link{edges.irregular.double.torus}()} add point-sampled closed
-surface families of genus 1 and 2, \code{\link{edges.triangulated.polyhedron}()}
-builds a generic irregular triangulated-surface family, and
-\code{\link{edges.irregular.ball}()} together with
-\code{\link{edges.irregular.shell}()} add volumetric tetrahedralized-solid
-families,
+sponge variant, \code{\link{edges.triangulated.polyhedron}()} builds a
+generic irregular triangulated-surface family,
 \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
 \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
@@ -384,13 +370,17 @@ width \code{w}.
 \item \code{edges.torus()}: Toroidal grid graph with wrapped height and
 width.
 
-\item \code{edges.irregular.ball()}: Deterministically irregular tetrahedralized
-ball graph built from nested subdivided polyhedral shells connected by a
+\item \code{edges.irregular.ball()}: Deterministically irregular tetrahedralized ball
+graph built from nested subdivided polyhedral shells connected by a
+layered prism-to-tetrahedra edge pattern.
+
+\item \code{edges.irregular.shell()}: Deterministically irregular tetrahedralized shell
+graph built from nested subdivided polyhedral shells connected by a
 layered prism-to-tetrahedra edge pattern.
 
 \item \code{edges.irregular.torus()}: Deterministically irregular torus graph built
-from major-cycle rings with varying sample counts and stitched into a locally
-triangulated closed surface.
+from major-cycle rings with varying sample counts and stitched into a
+locally triangulated closed surface.
 
 \item \code{edges.sphere()}: Sphere surface graph with \code{h} latitude
 levels (including the poles) and wrapped longitude \code{w}.
@@ -399,17 +389,13 @@ levels (including the poles) and wrapped longitude \code{w}.
 from concentric sample rings with varying sample counts and stitched into a
 locally triangulated surface-with-boundary graph.
 
-\item \code{edges.irregular.double.torus()}: Deterministically irregular
-double-torus graph built from cyclic slices whose cross-sections follow a
-\code{1 -> 3 -> 1} loop transition between two poles.
+\item \code{edges.irregular.pair.of.pants()}: Deterministically irregular pair-of-pants graph
+built from horizontal slice intervals with varying sample counts and
+stitched into a locally triangulated surface-with-boundary graph.
 
-\item \code{edges.irregular.pair.of.pants()}: Deterministically irregular
-pair-of-pants graph built from horizontal slice intervals with varying sample
-counts and stitched into a locally triangulated surface-with-boundary graph.
-
-\item \code{edges.irregular.shell()}: Deterministically irregular tetrahedralized
-shell graph built from nested subdivided polyhedral shells connected by a
-layered prism-to-tetrahedra edge pattern.
+\item \code{edges.irregular.double.torus()}: Deterministically irregular double-torus graph
+built from cyclic slices whose cross-sections follow a `1 -> 3 -> 1` loop
+transition between two poles.
 
 \item \code{edges.irregular.sphere()}: Deterministically irregular sphere graph built
 from latitude bands with varying sample counts and stitched into a locally

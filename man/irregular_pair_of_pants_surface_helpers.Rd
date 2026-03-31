@@ -102,8 +102,8 @@ components:
 }
 \description{
 Convenience helpers that build a pair-of-pants domain from deterministically
-irregular horizontal slices, sample each surviving slice interval with varying
-point counts, and stitch adjacent slices into a locally triangulated
+irregular horizontal slices, sample each surviving slice interval with
+varying point counts, and stitch adjacent slices into a locally triangulated
 surface-with-boundary graph. The resulting irregular planar parameterization
 can then be lifted into \eqn{\mathbb{R}^3} using the same planar surface
 families as the triangulated annulus and irregular annulus helpers.

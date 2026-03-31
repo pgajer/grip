@@ -148,7 +148,7 @@ Each \code{*.surface.embedding()} helper returns an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 Each \code{*.surface.graph()} helper returns the same components as
-\code{\link{recursive.cube.mask.surface.graph}()}, with a family-specific
+\code{recursive.cube.mask.surface.graph()}, with a family-specific
 \code{family} field, class, and label.
 }
 \description{

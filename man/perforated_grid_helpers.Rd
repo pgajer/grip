@@ -83,8 +83,8 @@ keep.asymmetric.notches(h, w = h, notch_depth = 3, notch_width = 2)
 \item{notch_width}{Width of the notched opening along that boundary.}
 }
 \value{
-A logical occupancy matrix whose \code{TRUE} entries represent retained
-cells.
+A logical occupancy matrix whose \code{TRUE} entries represent
+  retained cells.
 }
 \description{
 Convenience constructors for finite occupied grids with non-random holes or

@@ -43,11 +43,11 @@ irregular.shell.solid.graph(
 
 \item{level}{Surface subdivision depth used for each radial layer.}
 
-\item{layers}{Number of inner-to-outer radial layers.}
+\item{layers}{Number of non-center radial layers.}
 
 \item{inner_radius}{Positive inner radius of the shell.}
 
-\item{outer_radius}{Positive outer radius of the shell.}
+\item{outer_radius}{Positive outer radius of the ball.}
 
 \item{radial_irregularity}{Irregularity level for the radial layer spacing.
 Must lie in \code{[0, 1]}.}
