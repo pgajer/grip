@@ -3,6 +3,10 @@
   matrix(integer(), ncol = 2L)
 }
 
+.empty_face_matrix <- function() {
+  matrix(integer(), ncol = 3L)
+}
+
 .as_whole_number <- function(x, name, min = 0L) {
   if (length(x) != 1L || is.na(x) || !is.finite(x) || x != as.integer(x) || x < min) {
     stop(sprintf("%s must be a single integer >= %d", name, min), call. = FALSE)
@@ -15,6 +19,15 @@
     return(.empty_edge_matrix())
   }
   out <- do.call(rbind, edges)
+  storage.mode(out) <- "integer"
+  out
+}
+
+.bind_faces <- function(faces) {
+  if (length(faces) == 0L) {
+    return(.empty_face_matrix())
+  }
+  out <- do.call(rbind, faces)
   storage.mode(out) <- "integer"
   out
 }
@@ -679,6 +692,7 @@
     }
 
     edges <- list()
+    faces <- list()
     for (i in 0:subdiv) {
       for (j in 0:(subdiv - i)) {
         cur <- id_map[i + 1L, j + 1L]
@@ -693,15 +707,31 @@
         }
       }
     }
+    if (subdiv >= 1L) {
+      for (i in 0:(subdiv - 1L)) {
+        for (j in 0:(subdiv - 1L - i)) {
+          v00 <- id_map[i + 1L, j + 1L]
+          v10 <- id_map[i + 2L, j + 1L]
+          v01 <- id_map[i + 1L, j + 2L]
+          faces[[length(faces) + 1L]] <- c(v00, v10, v01)
+          if (j <= (subdiv - i - 2L)) {
+            v11 <- id_map[i + 2L, j + 2L]
+            faces[[length(faces) + 1L]] <- c(v10, v11, v01)
+          }
+        }
+      }
+    }
 
     list(
       coords = do.call(rbind, coords),
-      edges = .bind_edges(edges)
+      edges = .bind_edges(edges),
+      faces = .bind_faces(faces)
     )
   }
 
   coords_list <- list()
   edges_list <- list()
+  faces_list <- list()
   offset <- 0L
   for (face_idx in seq_len(nrow(faces))) {
     face <- faces[face_idx, ]
@@ -710,18 +740,39 @@
                         vertices[face[3L], ])
     coords_list[[face_idx]] <- built$coords
     edges_list[[face_idx]] <- built$edges + offset
+    faces_list[[face_idx]] <- built$faces + offset
     offset <- offset + nrow(built$coords)
   }
 
   merged <- .deduplicate.coordinate.graph(
     edges = .bind_edges(edges_list),
-    coords = do.call(rbind, coords_list)
+    coords = do.call(rbind, coords_list),
+    return_map = TRUE
   )
   coords <- merged$coords
   colnames(coords) <- c("x", "y", "z")
   storage.mode(coords) <- "double"
+  faces_all <- .bind_faces(faces_list)
+  faces_new <- if (nrow(faces_all) == 0L) {
+    .empty_face_matrix()
+  } else {
+    mapped <- cbind(
+      merged$old_to_new[faces_all[, 1L]],
+      merged$old_to_new[faces_all[, 2L]],
+      merged$old_to_new[faces_all[, 3L]]
+    )
+    keep_face <- apply(mapped, 1L, function(row) length(unique(row)) == 3L)
+    mapped <- mapped[keep_face, , drop = FALSE]
+    if (nrow(mapped) == 0L) {
+      .empty_face_matrix()
+    } else {
+      unique(t(apply(mapped, 1L, sort)))
+    }
+  }
+  storage.mode(faces_new) <- "integer"
   list(
     edges = merged$edges,
+    faces = faces_new,
     coords = coords,
     n = as.integer(nrow(coords)),
     base = base,
@@ -1018,6 +1069,67 @@
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
+.connect.cyclic.component_sets <- function(comps_a,
+                                           comps_b,
+                                           overlap_scale = 1.05) {
+  overlap_scale <- .as_positive_scalar(overlap_scale, "overlap_scale")
+  if (length(comps_a) == 0L || length(comps_b) == 0L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+
+  centers_a <- do.call(rbind, lapply(comps_a, `[[`, "center"))
+  centers_b <- do.call(rbind, lapply(comps_b, `[[`, "center"))
+  radii_a <- vapply(comps_a, `[[`, numeric(1L), "radius")
+  radii_b <- vapply(comps_b, `[[`, numeric(1L), "radius")
+  dmat <- outer(
+    seq_len(nrow(centers_a)),
+    seq_len(nrow(centers_b)),
+    Vectorize(function(i, j) sqrt(sum((centers_a[i, ] - centers_b[j, ])^2)))
+  )
+  thresh <- outer(radii_a, radii_b, "+") * overlap_scale
+  overlap_pairs <- which(dmat <= thresh, arr.ind = TRUE)
+
+  pair_keys <- character()
+  pair_idx <- matrix(integer(), ncol = 2L)
+  add_pair <- function(i, j) {
+    key <- sprintf("%d-%d", i, j)
+    if (!(key %in% pair_keys)) {
+      pair_keys <<- c(pair_keys, key)
+      pair_idx <<- rbind(pair_idx, c(i, j))
+    }
+  }
+
+  if (nrow(overlap_pairs) > 0L) {
+    for (k in seq_len(nrow(overlap_pairs))) {
+      add_pair(overlap_pairs[k, 1L], overlap_pairs[k, 2L])
+    }
+  }
+  for (i in seq_along(comps_a)) {
+    if (!any(pair_idx[, 1L] == i)) {
+      add_pair(i, which.min(dmat[i, ]))
+    }
+  }
+  for (j in seq_along(comps_b)) {
+    if (!any(pair_idx[, 2L] == j)) {
+      add_pair(which.min(dmat[, j]), j)
+    }
+  }
+
+  edges <- vector("list", nrow(pair_idx))
+  for (k in seq_len(nrow(pair_idx))) {
+    i <- pair_idx[k, 1L]
+    j <- pair_idx[k, 2L]
+    edges[[k]] <- .connect.cyclic.rings(
+      ids_a = comps_a[[i]]$ids,
+      angles_a = comps_a[[i]]$angles,
+      ids_b = comps_b[[j]]$ids,
+      angles_b = comps_b[[j]]$angles
+    )
+  }
+
+  .normalize_undirected_edges(.bind_edges(edges))
+}
+
 .irregular.annulus.canonical <- function(rings = 6,
                                          outer_count = 28,
                                          outer_radius = 1,
@@ -1187,6 +1299,418 @@
     n = as.integer(nrow(coords_param)),
     bands = bands,
     band_sizes = band_sizes
+  )
+}
+
+.irregular.torus.canonical <- function(major_rings = 8,
+                                       tube_count = 16,
+                                       count_irregularity = 0.2,
+                                       major_irregularity = 0.25,
+                                       phase_twist = 0.35) {
+  major_rings <- .as_whole_number(major_rings, "major_rings", min = 4L)
+  tube_count <- .as_whole_number(tube_count, "tube_count", min = 6L)
+  count_irregularity <- .as_finite_scalar(count_irregularity, "count_irregularity")
+  major_irregularity <- .as_finite_scalar(major_irregularity, "major_irregularity")
+  phase_twist <- .as_finite_scalar(phase_twist, "phase_twist")
+  if (count_irregularity < 0 || count_irregularity >= 1) {
+    stop("count_irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (major_irregularity < 0 || major_irregularity > 1) {
+    stop("major_irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  theta_gap <- 2 * pi / major_rings
+  theta_base <- seq(0, 2 * pi * (1 - 1 / major_rings), length.out = major_rings)
+  theta_shift <- major_irregularity * 0.22 * theta_gap *
+    sin(seq_len(major_rings) * (2 * pi / major_rings))
+  theta_vals <- sort(.normalize.angles(theta_base + theta_shift))
+
+  coords_param_list <- vector("list", major_rings)
+  ring_ids <- vector("list", major_rings)
+  ring_angles <- vector("list", major_rings)
+  ring_sizes <- integer(major_rings)
+  edges <- list()
+  next_id <- 1L
+
+  for (ring in seq_len(major_rings)) {
+    theta <- theta_vals[[ring]]
+    t <- (ring - 1L) / major_rings
+    target_count <- tube_count * (1 + count_irregularity * sin(2 * pi * t + 0.4))
+    count <- max(5L, as.integer(round(target_count)))
+    phi <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    phi <- sort(.normalize.angles(phi + phase_twist * sin(2 * theta)))
+
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[ring]] <- as.integer(ids)
+    ring_angles[[ring]] <- phi
+    ring_sizes[[ring]] <- count
+    coords_param_list[[ring]] <- cbind(theta = rep(theta, count), phi = phi)
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+  }
+
+  for (ring in seq_len(major_rings)) {
+    next_ring <- (ring %% major_rings) + 1L
+    edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+      ids_a = ring_ids[[ring]],
+      angles_a = ring_angles[[ring]],
+      ids_b = ring_ids[[next_ring]],
+      angles_b = ring_angles[[next_ring]]
+    )
+  }
+
+  coords_param <- do.call(rbind, coords_param_list)
+  colnames(coords_param) <- c("theta", "phi")
+  storage.mode(coords_param) <- "double"
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords_param = coords_param,
+    n = as.integer(nrow(coords_param)),
+    major_rings = major_rings,
+    ring_sizes = ring_sizes
+  )
+}
+
+.double.torus.slice.components <- function(x,
+                                           branch_length,
+                                           transition_width,
+                                           branch_offset,
+                                           tube_radius) {
+  branch_length <- .as_positive_scalar(branch_length, "branch_length")
+  transition_width <- .as_positive_scalar(transition_width, "transition_width")
+  branch_offset <- .as_positive_scalar(branch_offset, "branch_offset")
+  tube_radius <- .as_positive_scalar(tube_radius, "tube_radius")
+  x <- .as_finite_scalar(x, "x")
+
+  u <- abs(x)
+  branch_weight <- (branch_length + transition_width - u) / transition_width
+  branch_weight <- min(max(branch_weight, 0), 1)
+  if (branch_weight <= 0.12) {
+    radius <- tube_radius * (0.92 + 0.55 * branch_weight)
+    return(list(
+      centers = matrix(c(0, 0), nrow = 1L, dimnames = list(NULL, c("y", "z"))),
+      radii = radius,
+      branch_weight = branch_weight
+    ))
+  }
+
+  spread <- branch_offset * (0.35 + 0.65 * branch_weight)
+  centers <- cbind(
+    y = c(-spread, 0, spread),
+    z = c(0, 0, 0)
+  )
+  radii <- tube_radius * c(0.96, 1.08, 0.96) * (0.95 + 0.08 * cos(pi * x))
+  list(
+    centers = centers,
+    radii = radii,
+    branch_weight = branch_weight
+  )
+}
+
+.irregular.double.torus.canonical <- function(slices = 11,
+                                              tube_count = 14,
+                                              branch_length = 0.85,
+                                              branch_offset = 0.72,
+                                              tube_radius = 0.28,
+                                              transition_width = 0.42,
+                                              count_irregularity = 0.2,
+                                              axial_irregularity = 0.3,
+                                              phase_twist = 0.35) {
+  slices <- .as_whole_number(slices, "slices", min = 7L)
+  tube_count <- .as_whole_number(tube_count, "tube_count", min = 6L)
+  branch_length <- .as_positive_scalar(branch_length, "branch_length")
+  branch_offset <- .as_positive_scalar(branch_offset, "branch_offset")
+  tube_radius <- .as_positive_scalar(tube_radius, "tube_radius")
+  transition_width <- .as_positive_scalar(transition_width, "transition_width")
+  count_irregularity <- .as_finite_scalar(count_irregularity, "count_irregularity")
+  axial_irregularity <- .as_finite_scalar(axial_irregularity, "axial_irregularity")
+  phase_twist <- .as_finite_scalar(phase_twist, "phase_twist")
+  if (count_irregularity < 0 || count_irregularity >= 1) {
+    stop("count_irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (axial_irregularity < 0 || axial_irregularity > 1) {
+    stop("axial_irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  x_extent <- branch_length + transition_width + tube_radius
+  gap <- (2 * x_extent) / (slices + 1L)
+  x_base <- seq(-x_extent + gap / 2, x_extent - gap / 2, length.out = slices)
+  x_shift <- axial_irregularity * 0.22 * gap *
+    sin(seq_len(slices) * (2 * pi / (slices + 1L)))
+  x_vals <- sort(x_base + x_shift)
+
+  west_id <- 1L
+  coords_list <- list(matrix(c(-x_extent, 0, 0), nrow = 1L,
+                             dimnames = list(NULL, c("x", "y", "z"))))
+  slice_specs <- vector("list", slices)
+  slice_sizes <- integer(slices)
+  slice_components <- integer(slices)
+  edges <- list()
+  next_id <- 2L
+
+  for (slice in seq_len(slices)) {
+    x <- x_vals[[slice]]
+    spec <- .double.torus.slice.components(
+      x = x,
+      branch_length = branch_length,
+      transition_width = transition_width,
+      branch_offset = branch_offset,
+      tube_radius = tube_radius
+    )
+    interval_specs <- vector("list", nrow(spec$centers))
+    t <- (slice - 1L) / max(1L, slices - 1L)
+
+    for (comp in seq_len(nrow(spec$centers))) {
+      radius <- spec$radii[[comp]]
+      phase <- phase_twist * (slice + 0.7 * comp)
+      target_count <- tube_count * (radius / tube_radius) *
+        (1 + count_irregularity * sin(2 * pi * t + 0.8 * comp))
+      count <- max(6L, as.integer(round(target_count)))
+      angles <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+      angles <- sort(.normalize.angles(
+        angles + phase * sin(pi * (t - 0.5))
+      ))
+
+      ids <- next_id:(next_id + count - 1L)
+      next_id <- next_id + count
+      center <- spec$centers[comp, ]
+      coords_list[[length(coords_list) + 1L]] <- cbind(
+        x = rep(x, count),
+        y = center[[1L]] + radius * cos(angles),
+        z = center[[2L]] + radius * sin(angles)
+      )
+      interval_specs[[comp]] <- list(
+        ids = as.integer(ids),
+        angles = angles,
+        center = as.double(center),
+        radius = radius
+      )
+      edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+    }
+
+    slice_specs[[slice]] <- list(
+      x = x,
+      components = interval_specs
+    )
+    slice_sizes[[slice]] <- sum(vapply(interval_specs,
+                                       function(comp) length(comp$ids),
+                                       integer(1L)))
+    slice_components[[slice]] <- length(interval_specs)
+  }
+
+  if (slice_components[[1L]] != 1L || slice_components[[slices]] != 1L) {
+    stop("double torus end slices must collapse to a single component; adjust parameters",
+         call. = FALSE)
+  }
+  for (id in slice_specs[[1L]]$components[[1L]]$ids) {
+    edges[[length(edges) + 1L]] <- c(west_id, id)
+  }
+
+  if (slices >= 2L) {
+    for (slice in seq_len(slices - 1L)) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.component_sets(
+        comps_a = slice_specs[[slice]]$components,
+        comps_b = slice_specs[[slice + 1L]]$components,
+        overlap_scale = 1.1
+      )
+    }
+  }
+
+  east_id <- next_id
+  coords_list[[length(coords_list) + 1L]] <- matrix(c(x_extent, 0, 0), nrow = 1L,
+                                                    dimnames = list(NULL, c("x", "y", "z")))
+  for (id in slice_specs[[slices]]$components[[1L]]$ids) {
+    edges[[length(edges) + 1L]] <- c(id, east_id)
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    slices = slices,
+    slice_sizes = slice_sizes,
+    slice_components = slice_components,
+    x_extent = x_extent
+  )
+}
+
+.layered.radial.values <- function(layers,
+                                   inner_radius,
+                                   outer_radius,
+                                   irregularity,
+                                   include_center = FALSE) {
+  layers <- .as_whole_number(layers, "layers", min = 1L)
+  inner_radius <- .as_finite_scalar(inner_radius, "inner_radius")
+  outer_radius <- .as_positive_scalar(outer_radius, "outer_radius")
+  irregularity <- .as_finite_scalar(irregularity, "irregularity")
+  if (inner_radius < 0 || inner_radius >= outer_radius) {
+    stop("inner_radius must satisfy 0 <= inner_radius < outer_radius", call. = FALSE)
+  }
+  if (irregularity < 0 || irregularity > 1) {
+    stop("irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  base <- if (include_center) {
+    seq(outer_radius / layers, outer_radius, length.out = layers)
+  } else {
+    seq(inner_radius, outer_radius, length.out = layers)
+  }
+  if (layers >= 3L) {
+    gap <- min(diff(base))
+    shift <- irregularity * 0.22 * gap *
+      sin(seq_len(layers) * (2 * pi / (layers + 1L)))
+    if (include_center) {
+      shift[[layers]] <- 0
+      base <- sort(base + shift)
+      if (base[[1L]] <= 0) {
+        base[[1L]] <- max(outer_radius / (2 * layers), 1e-8)
+      }
+    } else {
+      shift[[1L]] <- 0
+      shift[[layers]] <- 0
+      base <- sort(base + shift)
+    }
+  }
+  as.double(base)
+}
+
+.rotate.z.coords <- function(coords, angle) {
+  coords <- as.matrix(coords)
+  angle <- .as_finite_scalar(angle, "angle")
+  rot <- matrix(
+    c(cos(angle), -sin(angle), 0,
+      sin(angle),  cos(angle), 0,
+      0,           0,          1),
+    nrow = 3L,
+    byrow = TRUE
+  )
+  coords %*% t(rot)
+}
+
+.layered.triangulated.solid.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                                  level = 1,
+                                                  layers = 3,
+                                                  inner_radius = 0,
+                                                  outer_radius = 1,
+                                                  radial_irregularity = 0.25,
+                                                  layer_twist = 0.35,
+                                                  include_center = FALSE) {
+  base <- match.arg(base)
+  level <- .as_whole_number(level, "level")
+  layers <- .as_whole_number(layers, "layers", min = 1L)
+  layer_twist <- .as_finite_scalar(layer_twist, "layer_twist")
+
+  surf <- .triangulated.polyhedron.canonical(base = base, level = level)
+  dirs <- .normalize.row.coords(surf$coords)
+  n_surface <- nrow(dirs)
+  radii <- .layered.radial.values(
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    irregularity = radial_irregularity,
+    include_center = include_center
+  )
+
+  coords_list <- list()
+  edges <- list()
+  layer_offsets <- integer(layers)
+  next_id <- 1L
+
+  if (include_center) {
+    coords_list[[1L]] <- matrix(c(0, 0, 0), nrow = 1L,
+                                dimnames = list(NULL, c("x", "y", "z")))
+    next_id <- 2L
+  }
+
+  for (layer in seq_len(layers)) {
+    t <- if (layers == 1L) 1 else layer / layers
+    angle <- layer_twist * sin(pi * (t - 0.5))
+    dirs_layer <- .rotate.z.coords(dirs, angle)
+    coords_layer <- dirs_layer * radii[[layer]]
+    layer_offsets[[layer]] <- next_id - 1L
+    coords_list[[length(coords_list) + 1L]] <- coords_layer
+    edges[[length(edges) + 1L]] <- surf$edges + layer_offsets[[layer]]
+    next_id <- next_id + n_surface
+  }
+
+  if (include_center) {
+    first_ids <- layer_offsets[[1L]] + seq_len(n_surface)
+    for (id in first_ids) {
+      edges[[length(edges) + 1L]] <- c(1L, id)
+    }
+  }
+
+  if (layers >= 2L) {
+    face_template <- surf$faces
+    for (layer in seq_len(layers - 1L)) {
+      lower_ids <- layer_offsets[[layer]] + seq_len(n_surface)
+      upper_ids <- layer_offsets[[layer + 1L]] + seq_len(n_surface)
+      edges[[length(edges) + 1L]] <- cbind(lower_ids, upper_ids)
+      for (face_idx in seq_len(nrow(face_template))) {
+        face <- face_template[face_idx, ]
+        lower <- layer_offsets[[layer]] + face
+        upper <- layer_offsets[[layer + 1L]] + face
+        edges[[length(edges) + 1L]] <- rbind(
+          c(lower[[1L]], upper[[2L]]),
+          c(lower[[1L]], upper[[3L]]),
+          c(lower[[2L]], upper[[3L]])
+        )
+      }
+    }
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    base = base,
+    level = level,
+    layers = layers,
+    radii = radii,
+    subdivision = surf$subdivision,
+    n_surface = n_surface,
+    include_center = include_center
+  )
+}
+
+.irregular.ball.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                      level = 1,
+                                      layers = 3,
+                                      outer_radius = 1,
+                                      radial_irregularity = 0.25,
+                                      layer_twist = 0.35) {
+  .layered.triangulated.solid.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner_radius = 0,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist,
+    include_center = TRUE
+  )
+}
+
+.irregular.shell.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                       level = 1,
+                                       layers = 3,
+                                       inner_radius = 0.45,
+                                       outer_radius = 1,
+                                       radial_irregularity = 0.25,
+                                       layer_twist = 0.35) {
+  .layered.triangulated.solid.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist,
+    include_center = FALSE
   )
 }
 
@@ -2150,11 +2674,19 @@
   sprintf("Triangle mask (%s)", paste(names(keep)[keep], collapse = ", "))
 }
 
-.deduplicate.coordinate.graph <- function(edges, coords, digits = 12L) {
+.deduplicate.coordinate.graph <- function(edges,
+                                         coords,
+                                         digits = 12L,
+                                         return_map = FALSE) {
   digits <- .as_whole_number(digits, "digits", min = 1L)
   coords <- as.matrix(coords)
   if (nrow(coords) == 0L) {
-    return(list(edges = .empty_edge_matrix(), coords = coords))
+    out <- list(edges = .empty_edge_matrix(), coords = coords)
+    if (return_map) {
+      out$old_to_new <- integer(0L)
+      out$keep_rows <- logical(0L)
+    }
+    return(out)
   }
   rounded <- round(coords, digits)
   rounded[abs(rounded) < (10^(-digits))] <- 0
@@ -2173,10 +2705,15 @@
     cbind(old_to_new[edges[, 1L]], old_to_new[edges[, 2L]])
   }
   storage.mode(coords_dedup) <- "double"
-  list(
+  out <- list(
     edges = .normalize_undirected_edges(edges_dedup),
     coords = coords_dedup
   )
+  if (return_map) {
+    out$old_to_new <- as.integer(old_to_new)
+    out$keep_rows <- keep_rows
+  }
+  out
 }
 
 .recursive.triangle.mask.canonical <- function(mask, level) {
@@ -3479,6 +4016,762 @@ torus.surface.graph <- function(h,
     label = sprintf("%s torus %dx%d", tools::toTitleCase(surface), h, w)
   )
   class(out) <- c("grip_torus_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular torus surface helpers
+#'
+#' Convenience helpers that build a torus from deterministically irregular
+#' major-cycle rings with varying sample counts, stitch adjacent rings into a
+#' locally triangulated toroidal graph, and then realize that graph in
+#' \eqn{\mathbb{R}^3} using either a standard, pinched, or wavy tube geometry.
+#'
+#' @param major_rings Number of cyclic major rings around the torus.
+#' @param tube_count Approximate number of vertices around each minor cycle.
+#' @param count_irregularity Irregularity level for the per-ring sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param major_irregularity Irregularity level for the major-angle ring
+#'   spacing. Must lie in \code{[0, 1]}.
+#' @param phase_twist Finite phase offset used to desynchronize neighboring
+#'   minor cycles.
+#' @param surface Torus geometry family. One of \code{"standard"},
+#'   \code{"pinched"}, or \code{"wavy"}.
+#' @param major_radius Positive distance from the torus center to the center of
+#'   the tube.
+#' @param minor_radius Positive baseline radius of the torus tube.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_major Positive angular frequency around the major cycle, used by
+#'   \code{"wavy"} and the periodic twist.
+#' @param freq_minor Positive angular frequency around the minor cycle, used by
+#'   \code{"wavy"}.
+#' @param twist Finite phase twist applied periodically to the minor angle as a
+#'   function of the major angle.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.torus.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.torus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular torus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular angular parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{major_rings}: number of major-cycle rings,
+#'   \item \code{ring_sizes}: sample counts around each ring,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_torus_surface_helpers
+NULL
+
+#' @rdname irregular_torus_surface_helpers
+#' @export
+irregular.torus.surface.embedding <- function(
+    major_rings = 8,
+    tube_count = 16,
+    count_irregularity = 0.2,
+    major_irregularity = 0.25,
+    phase_twist = 0.35,
+    surface = c("standard", "pinched", "wavy"),
+    major_radius = 2,
+    minor_radius = 0.75,
+    amplitude = 0.2,
+    freq_major = 2,
+    freq_minor = 1,
+    twist = 0.25) {
+  surface <- match.arg(surface)
+  major_radius <- .as_positive_scalar(major_radius, "major_radius")
+  minor_radius <- .as_positive_scalar(minor_radius, "minor_radius")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_major <- .as_positive_scalar(freq_major, "freq_major")
+  freq_minor <- .as_positive_scalar(freq_minor, "freq_minor")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  built <- .irregular.torus.canonical(
+    major_rings = major_rings,
+    tube_count = tube_count,
+    count_irregularity = count_irregularity,
+    major_irregularity = major_irregularity,
+    phase_twist = phase_twist
+  )
+  theta <- built$coords_param[, 1L]
+  phi <- built$coords_param[, 2L]
+  phi_eff <- phi + twist * sin(freq_major * theta)
+  local_minor_radius <- switch(
+    surface,
+    standard = rep(minor_radius, length(phi)),
+    pinched = minor_radius * (1 - amplitude * cos(theta)),
+    wavy = minor_radius * (1 + amplitude *
+                             sin(freq_major * theta) * cos(freq_minor * phi))
+  )
+  if (any(!is.finite(local_minor_radius) | local_minor_radius <= 0)) {
+    stop("irregular torus parameters produce a non-positive tube radius; adjust amplitude or frequencies",
+         call. = FALSE)
+  }
+  if (any(local_minor_radius >= major_radius)) {
+    stop("irregular torus parameters require major_radius to exceed the local tube radius everywhere",
+         call. = FALSE)
+  }
+
+  ring_radius <- major_radius + local_minor_radius * cos(phi_eff)
+  coords <- cbind(
+    x = ring_radius * cos(theta),
+    y = ring_radius * sin(theta),
+    z = local_minor_radius * sin(phi_eff)
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_torus_surface_helpers
+#' @export
+irregular.torus.surface.graph <- function(
+    major_rings = 8,
+    tube_count = 16,
+    count_irregularity = 0.2,
+    major_irregularity = 0.25,
+    phase_twist = 0.35,
+    surface = c("standard", "pinched", "wavy"),
+    major_radius = 2,
+    minor_radius = 0.75,
+    amplitude = 0.2,
+    freq_major = 2,
+    freq_minor = 1,
+    twist = 0.25,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.torus.canonical(
+    major_rings = major_rings,
+    tube_count = tube_count,
+    count_irregularity = count_irregularity,
+    major_irregularity = major_irregularity,
+    phase_twist = phase_twist
+  )
+  coords_surface <- irregular.torus.surface.embedding(
+    major_rings = major_rings,
+    tube_count = tube_count,
+    count_irregularity = count_irregularity,
+    major_irregularity = major_irregularity,
+    phase_twist = phase_twist,
+    surface = surface,
+    major_radius = major_radius,
+    minor_radius = minor_radius,
+    amplitude = amplitude,
+    freq_major = freq_major,
+    freq_minor = freq_minor,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    weight_scale = weights$weight_scale,
+    family = "irregular.torus",
+    surface = surface,
+    major_rings = built$major_rings,
+    ring_sizes = built$ring_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular torus rings %d",
+                    tools::toTitleCase(surface),
+                    built$major_rings)
+  )
+  class(out) <- c("grip_irregular_torus_surface_graph", "list")
+  out
+}
+
+.irregular.double.torus.surface.coords <- function(coords_param,
+                                                   surface,
+                                                   amplitude,
+                                                   freq_x,
+                                                   freq_theta,
+                                                   twist) {
+  surface <- .as_named_choice(surface,
+                              c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_x <- .as_positive_scalar(freq_x, "freq_x")
+  freq_theta <- .as_positive_scalar(freq_theta, "freq_theta")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  coords_param <- as.matrix(coords_param)
+  x_extent <- max(abs(coords_param[, 1L]))
+  x_norm <- if (x_extent > 0) coords_param[, 1L] / x_extent else rep(0, nrow(coords_param))
+  theta <- atan2(coords_param[, 3L], coords_param[, 2L])
+
+  coords <- switch(
+    surface,
+    standard = coords_param,
+    bulged = {
+      scale <- 1 + amplitude * (1 - x_norm^2)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("double torus bulged parameters require positive radial scale; adjust amplitude",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords_param[, 1L],
+        y = coords_param[, 2L] * scale,
+        z = coords_param[, 3L] * scale
+      )
+    },
+    twisted = {
+      angle <- twist * sin(pi * x_norm)
+      cbind(
+        x = coords_param[, 1L],
+        y = coords_param[, 2L] * cos(angle) - coords_param[, 3L] * sin(angle),
+        z = coords_param[, 2L] * sin(angle) + coords_param[, 3L] * cos(angle)
+      )
+    },
+    wavy = {
+      scale <- 1 + amplitude * sin(freq_x * pi * x_norm) * cos(freq_theta * theta)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("double torus wavy parameters require positive radial scale; adjust amplitude or frequencies",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords_param[, 1L],
+        y = coords_param[, 2L] * scale,
+        z = coords_param[, 3L] * scale
+      )
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted irregular double-torus surface helpers
+#'
+#' Convenience helpers that build a closed genus-2 surface from a
+#' deterministically irregular slice family whose cyclic cross-sections follow a
+#' `1 -> 3 -> 1` loop transition between two poles. This gives a non-lattice,
+#' point-sampled double-torus graph together with either the canonical 3D
+#' embedding or simple bulged, twisted, and wavy deformations of that geometry.
+#'
+#' @param slices Number of non-pole slices through the double torus.
+#' @param tube_count Approximate number of vertices around each tube-like loop.
+#' @param branch_length Half-length of the three-loop central region.
+#' @param branch_offset Offset of the outer loop centers from the central loop.
+#' @param tube_radius Baseline radius of each tube-like loop.
+#' @param transition_width Width of the left and right transition regions
+#'   between the single-loop and three-loop slices.
+#' @param count_irregularity Irregularity level for the per-component sample
+#'   counts. Must lie in \code{[0, 1)}.
+#' @param axial_irregularity Irregularity level for the slice spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param phase_twist Finite phase offset used to desynchronize neighboring
+#'   cyclic slices.
+#' @param surface Double-torus geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_x Positive modulation frequency along the axial direction. Used
+#'   only when \code{surface = "wavy"}.
+#' @param freq_theta Positive angular modulation frequency around the local
+#'   tube direction. Used only when \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.double.torus.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.double.torus.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the irregular double-torus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D double-torus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.double.torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{slices}: number of non-pole slices,
+#'   \item \code{slice_sizes}: vertex counts in each slice,
+#'   \item \code{slice_components}: number of cyclic components in each slice,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_double_torus_surface_helpers
+NULL
+
+#' @rdname irregular_double_torus_surface_helpers
+#' @export
+irregular.double.torus.surface.embedding <- function(
+    slices = 11,
+    tube_count = 14,
+    branch_length = 0.85,
+    branch_offset = 0.72,
+    tube_radius = 0.28,
+    transition_width = 0.42,
+    count_irregularity = 0.2,
+    axial_irregularity = 0.3,
+    phase_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq_x = 2,
+    freq_theta = 2,
+    twist = 0.6) {
+  surface <- match.arg(surface)
+  built <- .irregular.double.torus.canonical(
+    slices = slices,
+    tube_count = tube_count,
+    branch_length = branch_length,
+    branch_offset = branch_offset,
+    tube_radius = tube_radius,
+    transition_width = transition_width,
+    count_irregularity = count_irregularity,
+    axial_irregularity = axial_irregularity,
+    phase_twist = phase_twist
+  )
+  .irregular.double.torus.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_x = freq_x,
+    freq_theta = freq_theta,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_double_torus_surface_helpers
+#' @export
+irregular.double.torus.surface.graph <- function(
+    slices = 11,
+    tube_count = 14,
+    branch_length = 0.85,
+    branch_offset = 0.72,
+    tube_radius = 0.28,
+    transition_width = 0.42,
+    count_irregularity = 0.2,
+    axial_irregularity = 0.3,
+    phase_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq_x = 2,
+    freq_theta = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.double.torus.canonical(
+    slices = slices,
+    tube_count = tube_count,
+    branch_length = branch_length,
+    branch_offset = branch_offset,
+    tube_radius = tube_radius,
+    transition_width = transition_width,
+    count_irregularity = count_irregularity,
+    axial_irregularity = axial_irregularity,
+    phase_twist = phase_twist
+  )
+  coords_surface <- irregular.double.torus.surface.embedding(
+    slices = slices,
+    tube_count = tube_count,
+    branch_length = branch_length,
+    branch_offset = branch_offset,
+    tube_radius = tube_radius,
+    transition_width = transition_width,
+    count_irregularity = count_irregularity,
+    axial_irregularity = axial_irregularity,
+    phase_twist = phase_twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq_x = freq_x,
+    freq_theta = freq_theta,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.double.torus",
+    surface = surface,
+    slices = built$slices,
+    slice_sizes = built$slice_sizes,
+    slice_components = built$slice_components,
+    normalize = normalize,
+    label = sprintf("%s irregular double torus slices %d",
+                    tools::toTitleCase(surface),
+                    built$slices)
+  )
+  class(out) <- c("grip_irregular_double_torus_surface_graph", "list")
+  out
+}
+
+.irregular.radial.solid.surface.coords <- function(coords_param,
+                                                   surface,
+                                                   amplitude,
+                                                   freq_theta,
+                                                   freq_phi,
+                                                   twist) {
+  surface <- .as_named_choice(surface,
+                              c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_theta <- .as_positive_scalar(freq_theta, "freq_theta")
+  freq_phi <- .as_positive_scalar(freq_phi, "freq_phi")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  coords_param <- as.matrix(coords_param)
+  norms <- sqrt(rowSums(coords_param^2))
+  max_norm <- max(norms)
+  r_norm <- if (is.finite(max_norm) && max_norm > 0) norms / max_norm else rep(0, length(norms))
+  theta <- atan2(coords_param[, 2L], coords_param[, 1L])
+  phi <- ifelse(norms > 0, acos(pmin(pmax(coords_param[, 3L] / norms, -1), 1)), 0)
+  unit <- coords_param
+  keep <- norms > 0
+  if (any(keep)) {
+    unit[keep, ] <- sweep(coords_param[keep, , drop = FALSE], 1L, norms[keep], "/")
+  }
+
+  coords <- switch(
+    surface,
+    standard = coords_param,
+    bulged = {
+      scale <- 1 + amplitude * (1 - (2 * r_norm - 1)^2)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("radial solid bulged parameters require positive radial scale; adjust amplitude",
+             call. = FALSE)
+      }
+      unit * (norms * scale)
+    },
+    twisted = {
+      angle <- twist * (2 * r_norm - 1)
+      x <- coords_param[, 1L] * cos(angle) - coords_param[, 2L] * sin(angle)
+      y <- coords_param[, 1L] * sin(angle) + coords_param[, 2L] * cos(angle)
+      cbind(x = x, y = y, z = coords_param[, 3L])
+    },
+    wavy = {
+      scale <- 1 + amplitude * (0.35 + 0.65 * r_norm) *
+        sin(freq_theta * theta) * cos(freq_phi * (phi - pi / 2))
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("radial solid wavy parameters require positive radial scale; adjust amplitude or frequencies",
+             call. = FALSE)
+      }
+      unit * (norms * scale)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted irregular ball solid helpers
+#'
+#' Convenience helpers that build a layered simplicial ball by taking a
+#' subdivided triangulated polyhedron, normalizing its vertices to directions on
+#' the sphere, placing those directions on nested radial layers, and connecting
+#' adjacent layers by a deterministic prism-to-tetrahedra edge pattern. The
+#' center vertex is included explicitly, so the resulting graph is genuinely
+#' volumetric rather than just a closed surface.
+#'
+#' @param base Base polyhedron. One of \code{"tetrahedron"},
+#'   \code{"octahedron"}, or \code{"icosahedron"}.
+#' @param level Surface subdivision depth used for each radial layer.
+#' @param layers Number of non-center radial layers.
+#' @param outer_radius Positive outer radius of the ball.
+#' @param radial_irregularity Irregularity level for the radial layer spacing.
+#'   Must lie in \code{[0, 1]}.
+#' @param layer_twist Finite z-axis twist applied smoothly across radial
+#'   layers.
+#' @param surface Solid geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_theta Positive azimuthal modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq_phi Positive polar modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.ball.solid.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.ball.solid.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular ball edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D ball coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.ball"},
+#'   \item \code{surface}: the chosen solid geometry family,
+#'   \item \code{base}: the chosen base polyhedron,
+#'   \item \code{level}: the surface subdivision depth,
+#'   \item \code{layers}: number of non-center radial layers,
+#'   \item \code{radii}: the radial layer values,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_ball_solid_helpers
+NULL
+
+#' @rdname irregular_ball_solid_helpers
+#' @export
+irregular.ball.solid.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    outer_radius = 1,
+    radial_irregularity = 0.25,
+    layer_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq_theta = 2,
+    freq_phi = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  built <- .irregular.ball.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )
+  .irregular.radial.solid.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_phi = freq_phi,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_ball_solid_helpers
+#' @export
+irregular.ball.solid.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    outer_radius = 1,
+    radial_irregularity = 0.25,
+    layer_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq_theta = 2,
+    freq_phi = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.ball.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )
+  coords_surface <- irregular.ball.solid.embedding(
+    base = base,
+    level = level,
+    layers = layers,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_phi = freq_phi,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.ball",
+    surface = surface,
+    base = built$base,
+    level = built$level,
+    layers = built$layers,
+    radii = built$radii,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s irregular ball %s level %d layers %d",
+                    tools::toTitleCase(surface),
+                    built$base,
+                    built$level,
+                    built$layers)
+  )
+  class(out) <- c("grip_irregular_ball_solid_graph", "list")
+  out
+}
+
+#' Weighted irregular shell solid helpers
+#'
+#' Convenience helpers that build a layered simplicial shell by placing the
+#' vertices of a subdivided triangulated polyhedron on nested inner-to-outer
+#' radial layers and connecting adjacent layers by the same deterministic
+#' prism-to-tetrahedra edge pattern used for \code{irregular.ball.solid.*()}.
+#' The result is a genuinely volumetric shell graph with a hollow interior.
+#'
+#' @param inner_radius Positive inner radius of the shell.
+#' @inheritParams irregular_ball_solid_helpers
+#'
+#' @return
+#' \code{irregular.shell.solid.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.shell.solid.graph()} returns the same components as
+#' \code{irregular.ball.solid.graph()}, with \code{family} set to
+#' \code{"irregular.shell"}.
+#'
+#' @name irregular_shell_solid_helpers
+NULL
+
+#' @rdname irregular_shell_solid_helpers
+#' @export
+irregular.shell.solid.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    inner_radius = 0.45,
+    outer_radius = 1,
+    radial_irregularity = 0.25,
+    layer_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq_theta = 2,
+    freq_phi = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  built <- .irregular.shell.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )
+  .irregular.radial.solid.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_phi = freq_phi,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_shell_solid_helpers
+#' @export
+irregular.shell.solid.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    inner_radius = 0.45,
+    outer_radius = 1,
+    radial_irregularity = 0.25,
+    layer_twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq_theta = 2,
+    freq_phi = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.shell.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )
+  coords_surface <- irregular.shell.solid.embedding(
+    base = base,
+    level = level,
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_phi = freq_phi,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.shell",
+    surface = surface,
+    base = built$base,
+    level = built$level,
+    layers = built$layers,
+    radii = built$radii,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s irregular shell %s level %d layers %d",
+                    tools::toTitleCase(surface),
+                    built$base,
+                    built$level,
+                    built$layers)
+  )
+  class(out) <- c("grip_irregular_shell_solid_graph", "list")
   out
 }
 
@@ -6091,6 +7384,88 @@ edges.torus <- function(h, w = h) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
+#' @describeIn graph_generators Deterministically irregular tetrahedralized ball
+#'   graph built from nested subdivided polyhedral shells connected by a
+#'   layered prism-to-tetrahedra edge pattern.
+#' @param base Base polyhedron for \code{edges.triangulated.polyhedron()},
+#'   \code{edges.irregular.ball()}, and \code{edges.irregular.shell()}. One of
+#'   \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
+#' @param level Surface subdivision depth used by \code{edges.irregular.ball()}
+#'   and \code{edges.irregular.shell()}.
+#' @param layers Number of non-center radial layers for
+#'   \code{edges.irregular.ball()} and number of inner-to-outer layers for
+#'   \code{edges.irregular.shell()}.
+#' @param outer_radius Positive outer radius for \code{edges.irregular.ball()}
+#'   and \code{edges.irregular.shell()}.
+#' @param radial_irregularity Radial layer-spacing irregularity level for
+#'   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+#' @param layer_twist Finite z-axis twist applied across radial layers in
+#'   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+#' @export
+edges.irregular.ball <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                 level = 1,
+                                 layers = 3,
+                                 outer_radius = 1,
+                                 radial_irregularity = 0.25,
+                                 layer_twist = 0.35) {
+  .irregular.ball.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )$edges
+}
+
+#' @describeIn graph_generators Deterministically irregular tetrahedralized shell
+#'   graph built from nested subdivided polyhedral shells connected by a
+#'   layered prism-to-tetrahedra edge pattern.
+#' @param inner_radius Positive inner radius for \code{edges.irregular.shell()}.
+#' @export
+edges.irregular.shell <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                  level = 1,
+                                  layers = 3,
+                                  inner_radius = 0.45,
+                                  outer_radius = 1,
+                                  radial_irregularity = 0.25,
+                                  layer_twist = 0.35) {
+  .irregular.shell.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner_radius = inner_radius,
+    outer_radius = outer_radius,
+    radial_irregularity = radial_irregularity,
+    layer_twist = layer_twist
+  )$edges
+}
+
+#' @describeIn graph_generators Deterministically irregular torus graph built
+#'   from major-cycle rings with varying sample counts and stitched into a
+#'   locally triangulated closed surface.
+#' @param major_rings Number of cyclic major rings for
+#'   \code{edges.irregular.torus()}.
+#' @param tube_count Approximate number of vertices around each minor cycle for
+#'   \code{edges.irregular.torus()} and around each tube-like loop for
+#'   \code{edges.irregular.double.torus()}.
+#' @param major_irregularity Major-angle ring-spacing irregularity level for
+#'   \code{edges.irregular.torus()}.
+#' @export
+edges.irregular.torus <- function(major_rings = 8,
+                                  tube_count = 16,
+                                  count_irregularity = 0.2,
+                                  major_irregularity = 0.25,
+                                  phase_twist = 0.35) {
+  .irregular.torus.canonical(
+    major_rings = major_rings,
+    tube_count = tube_count,
+    count_irregularity = count_irregularity,
+    major_irregularity = major_irregularity,
+    phase_twist = phase_twist
+  )$edges
+}
+
 #' @describeIn graph_generators Sphere surface graph with \code{h} latitude
 #'   levels (including the poles) and wrapped longitude \code{w}.
 #' @export
@@ -6136,13 +7511,15 @@ edges.sphere <- function(h, w = h) {
 #' @param equator_count Approximate number of vertices near the equator for
 #'   \code{edges.irregular.sphere()}.
 #' @param count_irregularity Irregularity level for sample counts in
-#'   \code{edges.irregular.annulus()}, \code{edges.irregular.pair.of.pants()},
-#'   and \code{edges.irregular.sphere()}.
+#'   \code{edges.irregular.torus()}, \code{edges.irregular.annulus()},
+#'   \code{edges.irregular.pair.of.pants()},
+#'   \code{edges.irregular.double.torus()}, and \code{edges.irregular.sphere()}.
 #' @param radial_irregularity Within-ring radial irregularity level for
 #'   \code{edges.irregular.annulus()}.
 #' @param phase_twist Angular phase offset used to desynchronize neighboring
-#'   rings, slice samples, or latitude bands in the irregular annulus,
-#'   irregular pair-of-pants, and irregular sphere families.
+#'   rings, slice samples, or latitude bands in the irregular torus,
+#'   irregular annulus, irregular pair-of-pants, irregular double torus,
+#'   and irregular sphere families.
 #' @param bands Number of non-pole latitude bands for
 #'   \code{edges.irregular.sphere()}.
 #' @param lat_irregularity Latitude-band spacing irregularity level for
@@ -6157,6 +7534,16 @@ edges.sphere <- function(h, w = h) {
 #'   \code{edges.irregular.pair.of.pants()}.
 #' @param vertical_irregularity Slice-spacing irregularity level for
 #'   \code{edges.irregular.pair.of.pants()}.
+#' @param branch_length Half-length of the three-loop central region for
+#'   \code{edges.irregular.double.torus()}.
+#' @param branch_offset Offset of the outer loop centers from the middle loop
+#'   for \code{edges.irregular.double.torus()}.
+#' @param tube_radius Baseline radius of each tube-like loop for
+#'   \code{edges.irregular.double.torus()}.
+#' @param transition_width Width of the single-loop to three-loop transition
+#'   regions for \code{edges.irregular.double.torus()}.
+#' @param axial_irregularity Slice-spacing irregularity level for
+#'   \code{edges.irregular.double.torus()}.
 #' @export
 edges.irregular.annulus <- function(rings = 6,
                                     outer_count = 28,
@@ -6198,6 +7585,32 @@ edges.irregular.pair.of.pants <- function(slices = 11,
     hole_height = hole_height,
     count_irregularity = count_irregularity,
     vertical_irregularity = vertical_irregularity,
+    phase_twist = phase_twist
+  )$edges
+}
+
+#' @describeIn graph_generators Deterministically irregular double-torus graph
+#'   built from cyclic slices whose cross-sections follow a `1 -> 3 -> 1` loop
+#'   transition between two poles.
+#' @export
+edges.irregular.double.torus <- function(slices = 11,
+                                         tube_count = 14,
+                                         branch_length = 0.85,
+                                         branch_offset = 0.72,
+                                         tube_radius = 0.28,
+                                         transition_width = 0.42,
+                                         count_irregularity = 0.2,
+                                         axial_irregularity = 0.3,
+                                         phase_twist = 0.35) {
+  .irregular.double.torus.canonical(
+    slices = slices,
+    tube_count = tube_count,
+    branch_length = branch_length,
+    branch_offset = branch_offset,
+    tube_radius = tube_radius,
+    transition_width = transition_width,
+    count_irregularity = count_irregularity,
+    axial_irregularity = axial_irregularity,
     phase_twist = phase_twist
   )$edges
 }
