@@ -138,6 +138,47 @@
   coords
 }
 
+.sierpinski.carpet.cells <- function(level) {
+  level <- .as_whole_number(level, "level", min = 1L)
+  side <- 3L^level
+  grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
+
+  keep_cell <- function(x, y) {
+    while (x > 0L || y > 0L) {
+      if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
+        return(FALSE)
+      }
+      x <- x %/% 3L
+      y <- y %/% 3L
+    }
+    TRUE
+  }
+
+  keep <- mapply(keep_cell, grid$x, grid$y)
+  cells <- grid[keep, , drop = FALSE]
+  rownames(cells) <- NULL
+  list(
+    level = level,
+    side = side,
+    cells = cells
+  )
+}
+
+.sierpinski.carpet.param.coords <- function(level, x_scale = 1, y_scale = 1) {
+  spec <- .sierpinski.carpet.cells(level)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+
+  x_vals <- .grid_axis(spec$side) * x_scale
+  y_vals <- rev(.grid_axis(spec$side) * y_scale)
+  coords <- cbind(
+    u = x_vals[spec$cells$x + 1L],
+    v = y_vals[spec$cells$y + 1L]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
 .edge.weights.from.embedding <- function(edges,
                                          coords,
                                          normalize = c("median", "mean", "none")) {
@@ -904,6 +945,145 @@ sphere.surface.graph <- function(h,
   out
 }
 
+#' Weighted Sierpinski carpet surface helpers
+#'
+#' Convenience helpers that embed the occupied-cell Sierpinski carpet graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers reuse the same lifted-surface families as
+#' \code{mesh.surface.embedding()}, but only on the occupied carpet cells, so
+#' the topology stays fractal while the intended metric comes from a curved
+#' ambient geometry.
+#'
+#' `sierpinski.carpet.surface.embedding()` returns the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
+#' `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
+#' containing the carpet edges, induced edge weights, the 3D surface
+#' coordinates, and the 2D parameter coordinates of the occupied cells.
+#'
+#' @param level Recursion depth. Must be at least \code{1}. The number of
+#'   occupied cells is \code{8^level}.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq_u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling of the parameter domain.
+#' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{sierpinski.carpet.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 8^level}.
+#'
+#' \code{sierpinski.carpet.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the occupied-cell Sierpinski carpet edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sierpinski.carpet"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the carpet recursion depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sierpinski_carpet_surface_helpers
+NULL
+
+#' @rdname sierpinski_carpet_surface_helpers
+#' @export
+sierpinski.carpet.surface.embedding <- function(level = 2,
+                                                surface = c("saddle", "paraboloid", "ripple"),
+                                                amplitude = 0.75,
+                                                freq_u = 1,
+                                                freq_v = 1,
+                                                x_scale = 1,
+                                                y_scale = 1) {
+  level <- .as_whole_number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+
+  coords_param <- .sierpinski.carpet.param.coords(
+    level = level,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- switch(
+    surface,
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sierpinski_carpet_surface_helpers
+#' @export
+sierpinski.carpet.surface.graph <- function(level = 2,
+                                            surface = c("saddle", "paraboloid", "ripple"),
+                                            amplitude = 0.75,
+                                            freq_u = 1,
+                                            freq_v = 1,
+                                            x_scale = 1,
+                                            y_scale = 1,
+                                            normalize = c("median", "mean", "none")) {
+  level <- .as_whole_number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.sierpinski.carpet(level)
+  coords_param <- .sierpinski.carpet.param.coords(
+    level = level,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  coords_surface <- sierpinski.carpet.surface.embedding(
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "sierpinski.carpet",
+    surface = surface,
+    level = level,
+    normalize = normalize,
+    label = sprintf("%s Sierpinski carpet level %d", tools::toTitleCase(surface), level)
+  )
+  class(out) <- c("grip_sierpinski_carpet_surface_graph", "list")
+  out
+}
+
 #' @describeIn graph_generators Cylindrical grid graph with \code{h} rows and wrapped
 #'   width \code{w}.
 #' @export
@@ -1140,23 +1320,9 @@ edges.sierpinski.tetrahedron <- function(level = 2) {
 #'   cells.
 #' @export
 edges.sierpinski.carpet <- function(level = 2) {
-  level <- .as_whole_number(level, "level", min = 1L)
-  side <- 3L^level
-  grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
-
-  keep_cell <- function(x, y) {
-    while (x > 0L || y > 0L) {
-      if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
-        return(FALSE)
-      }
-      x <- x %/% 3L
-      y <- y %/% 3L
-    }
-    TRUE
-  }
-
-  keep <- mapply(keep_cell, grid$x, grid$y)
-  cells <- grid[keep, , drop = FALSE]
+  spec <- .sierpinski.carpet.cells(level)
+  side <- spec$side
+  cells <- spec$cells
 
   id_map <- matrix(0L, nrow = side, ncol = side)
   for (i in seq_len(nrow(cells))) {

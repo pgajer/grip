@@ -214,3 +214,45 @@ test_that("wavy sphere graph supports alternate weight normalization", {
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
+
+test_that("sierpinski carpet surface embedding returns finite 3D coordinates", {
+  coords <- sierpinski.carpet.surface.embedding(2, surface = "saddle", amplitude = 0.8)
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(64L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("sierpinski carpet surface graph returns normalized positive edge weights", {
+  spec <- sierpinski.carpet.surface.graph(2, surface = "paraboloid", amplitude = 0.9)
+
+  expect_s3_class(spec, "grip_sierpinski_carpet_surface_graph")
+  expect_equal(spec$edges, edges.sierpinski.carpet(2))
+  expect_equal(spec$n, 64L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(64L, 3L))
+  expect_equal(dim(spec$coords_param), c(64L, 2L))
+  expect_equal(spec$family, "sierpinski.carpet")
+  expect_equal(spec$surface, "paraboloid")
+  expect_equal(spec$level, 2L)
+})
+
+test_that("ripple sierpinski carpet graph supports alternate weight normalization", {
+  spec <- sierpinski.carpet.surface.graph(
+    2,
+    surface = "ripple",
+    amplitude = 0.6,
+    freq_u = 1.5,
+    freq_v = 0.5,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
