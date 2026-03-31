@@ -12,6 +12,7 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.cube(3),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
+    edges.recursive.triangle.mask(mask.triangle.classic(), 2),
     edges.vicsek(2),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
@@ -55,6 +56,13 @@ test_that("recursive mask grid reproduces sierpinski carpet topology", {
   expect_equal(edges.recursive.mask.grid(carpet_mask, 2), edges.sierpinski.carpet(2))
 })
 
+test_that("recursive triangle mask reproduces classic sierpinski triangle topology", {
+  expect_equal(
+    edges.recursive.triangle.mask(mask.triangle.classic(), 2),
+    edges.sierpinski.triangle(2)
+  )
+})
+
 test_that("vicsek graph labels occupied cells consecutively", {
   edges <- edges.vicsek(4)
   expect_equal(max(edges), 625L)
@@ -70,6 +78,8 @@ test_that("mask helpers return expected connected motifs", {
   expect_equal(sum(mask.border(5, 1)), 16L)
   expect_equal(sum(mask.corner(5, 2, corner = "top_left")), 4L)
   expect_equal(sum(mask.asymmetric.holes(5, 1)), 22L)
+  expect_equal(mask.triangle.classic(), c(left = TRUE, right = TRUE, top = TRUE, center = FALSE))
+  expect_equal(mask.triangle.bridge("top"), c(left = TRUE, right = TRUE, top = FALSE, center = TRUE))
   expect_equal(edges.recursive.mask.grid(mask.cross(3, 1), 2), edges.vicsek(2))
 })
 
@@ -326,6 +336,47 @@ test_that("sierpinski tetrahedron surface graph returns normalized positive edge
   expect_equal(dim(spec$coords_param), c(spec$n, 3L))
   expect_equal(spec$family, "sierpinski.tetrahedron")
   expect_equal(spec$surface, "wavy")
+})
+
+test_that("recursive triangle mask surface embedding returns finite 3D coordinates", {
+  coords <- recursive.triangle.mask.surface.embedding(
+    mask = mask.triangle.bridge("right"),
+    level = 2,
+    surface = "folded",
+    amplitude = 0.7
+  )
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_true(all(is.finite(coords)))
+  expect_equal(ncol(coords), 3L)
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("recursive triangle mask surface graph returns normalized positive edge weights", {
+  bridge_mask <- mask.triangle.bridge("top")
+  spec <- recursive.triangle.mask.surface.graph(
+    mask = bridge_mask,
+    level = 2,
+    surface = "ripple",
+    amplitude = 0.55,
+    freq_u = 1.25,
+    freq_v = 0.75
+  )
+
+  expect_s3_class(spec, "grip_recursive_triangle_mask_surface_graph")
+  expect_equal(spec$edges, edges.recursive.triangle.mask(bridge_mask, 2))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(spec$mask, bridge_mask)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+  expect_equal(spec$family, "recursive.triangle.mask")
+  expect_equal(spec$surface, "ripple")
 })
 
 test_that("recursive mask grid surface graph returns normalized positive edge weights", {

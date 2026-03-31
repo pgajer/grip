@@ -193,6 +193,42 @@
   x
 }
 
+.as_triangle_keep_mask <- function(mask, name = "mask") {
+  slots <- c("left", "right", "top", "center")
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric vector", name), call. = FALSE)
+  }
+  if (is.matrix(mask)) {
+    if (length(mask) != 4L) {
+      stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+    }
+    mask <- as.vector(mask)
+  }
+  if (length(mask) != 4L) {
+    stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!is.null(names(mask))) {
+    mask_names <- names(mask)
+    if (length(unique(mask_names)) != 4L || !all(slots %in% mask_names)) {
+      stop(sprintf("%s names must be exactly %s",
+                   name,
+                   paste(sprintf('"%s"', slots), collapse = ", ")),
+           call. = FALSE)
+    }
+    keep <- keep[match(slots, mask_names)]
+  }
+  names(keep) <- slots
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one subtriangle", name), call. = FALSE)
+  }
+  keep
+}
+
 .as_odd_whole_number <- function(x, name, min = 1L) {
   x <- .as_whole_number(x, name, min = min)
   if ((x %% 2L) != 1L) {
@@ -704,6 +740,131 @@
   )
 }
 
+.triangle.classic.mask <- function() {
+  setNames(c(TRUE, TRUE, TRUE, FALSE), c("left", "right", "top", "center"))
+}
+
+.triangle.bridge.mask <- function(missing = c("top", "left", "right")) {
+  missing <- .as_named_choice(missing[[1L]], c("top", "left", "right"), "missing")
+  keep <- setNames(rep(TRUE, 4L), c("left", "right", "top", "center"))
+  keep[[missing]] <- FALSE
+  keep
+}
+
+.triangle.mask.is_classic <- function(mask) {
+  identical(
+    unname(.as_triangle_keep_mask(mask, "mask")),
+    unname(.triangle.classic.mask())
+  )
+}
+
+.triangle.mask.label <- function(mask) {
+  keep <- .as_triangle_keep_mask(mask, "mask")
+  if (identical(unname(keep), unname(.triangle.classic.mask()))) {
+    return("Sierpinski triangle mask")
+  }
+  if (isTRUE(keep[["center"]]) && sum(keep) == 3L) {
+    omitted <- names(keep)[!keep][1L]
+    return(sprintf("Bridge triangle mask (%s omitted)", omitted))
+  }
+  sprintf("Triangle mask (%s)", paste(names(keep)[keep], collapse = ", "))
+}
+
+.deduplicate.coordinate.graph <- function(edges, coords, digits = 12L) {
+  digits <- .as_whole_number(digits, "digits", min = 1L)
+  coords <- as.matrix(coords)
+  if (nrow(coords) == 0L) {
+    return(list(edges = .empty_edge_matrix(), coords = coords))
+  }
+  rounded <- round(coords, digits)
+  rounded[abs(rounded) < (10^(-digits))] <- 0
+  key_parts <- apply(
+    rounded,
+    2L,
+    function(col) formatC(col, digits = digits, format = "f")
+  )
+  keys <- apply(key_parts, 1L, paste, collapse = ":")
+  keep_rows <- !duplicated(keys)
+  old_to_new <- match(keys, keys[keep_rows])
+  coords_dedup <- coords[keep_rows, , drop = FALSE]
+  edges_dedup <- if (nrow(edges) == 0L) {
+    .empty_edge_matrix()
+  } else {
+    cbind(old_to_new[edges[, 1L]], old_to_new[edges[, 2L]])
+  }
+  storage.mode(coords_dedup) <- "double"
+  list(
+    edges = .normalize_undirected_edges(edges_dedup),
+    coords = coords_dedup
+  )
+}
+
+.recursive.triangle.mask.canonical <- function(mask, level) {
+  mask <- .as_triangle_keep_mask(mask, "mask")
+  level <- .as_whole_number(level, "level")
+  if (.triangle.mask.is_classic(mask)) {
+    out <- .sierpinski.triangle.canonical(level)
+    out$mask <- mask
+    return(out)
+  }
+
+  height <- sqrt(3) / 2
+  base_vertices <- rbind(
+    c(0, 0),
+    c(1, 0),
+    c(0.5, height)
+  )
+  base_edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 1L))
+
+  build <- function(current_level, vertices) {
+    if (current_level == 0L) {
+      coords <- as.matrix(vertices)
+      storage.mode(coords) <- "double"
+      return(list(edges = base_edges, coords = coords, n = 3L))
+    }
+
+    a <- vertices[1L, ]
+    b <- vertices[2L, ]
+    c <- vertices[3L, ]
+    ab <- (a + b) / 2
+    bc <- (b + c) / 2
+    ac <- (a + c) / 2
+    child_vertices <- list(
+      left = rbind(a, ab, ac),
+      right = rbind(ab, b, bc),
+      top = rbind(ac, bc, c),
+      center = rbind(ab, bc, ac)
+    )
+
+    edges <- list()
+    coords_list <- list()
+    offset <- 0L
+    active_slots <- names(mask)[mask]
+    for (slot in active_slots) {
+      child <- build(current_level - 1L, child_vertices[[slot]])
+      edges[[length(edges) + 1L]] <- child$edges + offset
+      coords_list[[length(coords_list) + 1L]] <- child$coords
+      offset <- offset + child$n
+    }
+
+    merged <- .deduplicate.coordinate.graph(
+      edges = .bind_edges(edges),
+      coords = do.call(rbind, coords_list)
+    )
+    list(
+      edges = merged$edges,
+      coords = merged$coords,
+      n = as.integer(nrow(merged$coords))
+    )
+  }
+
+  out <- build(level, base_vertices)
+  colnames(out$coords) <- c("u", "v")
+  storage.mode(out$coords) <- "double"
+  out$mask <- mask
+  out
+}
+
 #' Mask pattern helpers for recursive grid families
 #'
 #' Convenience constructors for connected \eqn{k \times k} keep-masks that can
@@ -778,6 +939,36 @@ mask.asymmetric.holes <- function(k = 5, hole_size = 1) {
     k = k,
     hole_size = hole_size
   )
+}
+
+#' Triangle mask helpers for recursive gasket families
+#'
+#' Convenience constructors for the four-slot triangle masks used by
+#' \code{\link{edges.recursive.triangle.mask}()} and
+#' \code{\link{recursive.triangle.mask.surface.graph}()}. The slots correspond
+#' to the three corner subtriangles and the central inverted subtriangle created
+#' by one barycentric refinement of an equilateral triangle.
+#'
+#' The returned mask entries are ordered and named as \code{left},
+#' \code{right}, \code{top}, and \code{center}.
+#'
+#' @param missing Which outer corner is omitted in
+#'   \code{mask.triangle.bridge()}.
+#'
+#' @return A named logical vector of length 4.
+#' @name triangle_mask_helpers
+NULL
+
+#' @rdname triangle_mask_helpers
+#' @export
+mask.triangle.classic <- function() {
+  .triangle.classic.mask()
+}
+
+#' @rdname triangle_mask_helpers
+#' @export
+mask.triangle.bridge <- function(missing = c("top", "left", "right")) {
+  .triangle.bridge.mask(match.arg(missing))
 }
 
 #' Occupied-mesh and perforated-grid helpers
@@ -2089,6 +2280,165 @@ sierpinski.tetrahedron.surface.graph <- function(level = 2,
   out
 }
 
+#' Weighted recursive triangle-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide an equilateral triangle into
+#' three corner subtriangles plus one central inverted subtriangle according to
+#' a four-slot keep-mask, retain the selected subtriangles at each recursion
+#' step, and lift the resulting vertex graph into \eqn{\mathbb{R}^3}. This
+#' provides a generic gasket-style triangular family that includes the classic
+#' Sierpinski triangle together with bridge and asymmetric variants.
+#'
+#' The \code{mask} entries are interpreted in the order
+#' \code{left}, \code{right}, \code{top}, and \code{center}. Named masks are
+#' reordered automatically to match that convention.
+#'
+#' @param mask Four-entry logical or numeric keep-mask. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Triangle surface family. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling applied to the canonical
+#'   triangle coordinates.
+#' @param y_scale Positive vertical scaling applied to the canonical triangle
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{recursive.triangle.mask.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.triangle.mask.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive triangle-mask edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 2D triangle coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.triangle.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_triangle_mask_surface_helpers
+NULL
+
+#' @rdname recursive_triangle_mask_surface_helpers
+#' @export
+recursive.triangle.mask.surface.embedding <- function(mask = mask.triangle.classic(),
+                                                      level = 2,
+                                                      surface = c("flat", "saddle",
+                                                                  "paraboloid", "ripple",
+                                                                  "folded"),
+                                                      amplitude = 0.75,
+                                                      freq_u = 1,
+                                                      freq_v = 1,
+                                                      x_scale = 1,
+                                                      y_scale = 1) {
+  mask <- .as_triangle_keep_mask(mask, "mask")
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+
+  built <- .recursive.triangle.mask.canonical(mask, level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x_scale,
+    v = built$coords[, 2L] * y_scale
+  )
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords_param)),
+    saddle = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq_u, freq_v),
+    paraboloid = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq_u, freq_v),
+    ripple = .surface.z.from_uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq_u, freq_v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+
+  coords <- cbind(x = coords_param[, 1L], y = coords_param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname recursive_triangle_mask_surface_helpers
+#' @export
+recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic(),
+                                                  level = 2,
+                                                  surface = c("flat", "saddle",
+                                                              "paraboloid", "ripple",
+                                                              "folded"),
+                                                  amplitude = 0.75,
+                                                  freq_u = 1,
+                                                  freq_v = 1,
+                                                  x_scale = 1,
+                                                  y_scale = 1,
+                                                  normalize = c("median", "mean", "none")) {
+  mask <- .as_triangle_keep_mask(mask, "mask")
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .recursive.triangle.mask.canonical(mask, level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x_scale,
+    v = built$coords[, 2L] * y_scale
+  )
+  coords_surface <- recursive.triangle.mask.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "recursive.triangle.mask",
+    surface = surface,
+    level = level,
+    mask = mask,
+    normalize = normalize,
+    label = sprintf("%s %s level %d",
+                    tools::toTitleCase(surface),
+                    .triangle.mask.label(mask),
+                    level)
+  )
+  class(out) <- c("grip_recursive_triangle_mask_surface_graph", "list")
+  out
+}
+
 #' Weighted recursive mask-grid surface helpers
 #'
 #' Convenience helpers that recursively subdivide a square grid according to a
@@ -2532,14 +2882,24 @@ edges.kary.tree <- function(k = 2, depth = 2) {
 #'   vertices are occupied cells and whose edges connect orthogonally adjacent
 #'   cells.
 #' @param mask Square logical or numeric keep-mask. Non-zero entries are kept at
-#'   each recursive subdivision step. Rows run from top to bottom and columns
-#'   run from left to right in the motif.
+#'   each recursive subdivision step. For
+#'   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
+#'   four-entry vector in \code{left}, \code{right}, \code{top},
+#'   \code{center} order.
 #' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
 #'   \code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
-#'   \code{level} must be at least 1.
+#'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
+#'   also allows \code{level = 0}.
 #' @export
 edges.recursive.mask.grid <- function(mask, level = 2) {
   .recursive.mask.grid.edges(mask, level)
+}
+
+#' @describeIn graph_generators Recursively refined triangle-mask graph whose
+#'   vertices are the retained subdivision vertices of an equilateral triangle.
+#' @export
+edges.recursive.triangle.mask <- function(mask = mask.triangle.classic(), level = 2) {
+  .recursive.triangle.mask.canonical(mask, level)$edges
 }
 
 #' @describeIn graph_generators Connected Vicsek-style cross family derived from
