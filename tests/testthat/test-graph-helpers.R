@@ -11,6 +11,9 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.sphere(4, 5),
     edges.cube(3),
     edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
+    edges.cube.periodic.tunnels(1),
+    edges.cube.asymmetric.cavities(1),
+    edges.cube.channel.network(1),
     edges.triangulated.polyhedron("octahedron", 1),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
@@ -107,6 +110,16 @@ test_that("menger sponge graph labels occupied cells consecutively", {
   expect_true(all(sort(unique(c(edges))) == seq_len(400L)))
 })
 
+test_that("named porous cube families label occupied cells consecutively", {
+  periodic <- edges.cube.periodic.tunnels(level = 1)
+  cavities <- edges.cube.asymmetric.cavities(level = 1)
+  channels <- edges.cube.channel.network(level = 1)
+
+  expect_equal(max(periodic), sum(mask.cube.periodic.tunnels()))
+  expect_equal(max(cavities), sum(mask.cube.asymmetric.cavities()))
+  expect_equal(max(channels), sum(mask.cube.channel.network()))
+})
+
 test_that("mask helpers return expected connected motifs", {
   expect_equal(mask.cross(3, 1), matrix(c(
     FALSE, TRUE, FALSE,
@@ -123,6 +136,35 @@ test_that("mask helpers return expected connected motifs", {
   expect_equal(mask.tetrahedron.corner.missing("apex"),
                c(base_left = TRUE, base_right = TRUE, base_back = TRUE, apex = FALSE))
   expect_equal(edges.recursive.mask.grid(mask.cross(3, 1), 2), edges.vicsek(2))
+})
+
+test_that("cube mask helpers return distinct porous keep-arrays", {
+  periodic <- mask.cube.periodic.tunnels()
+  cavities <- mask.cube.asymmetric.cavities()
+  channels <- mask.cube.channel.network()
+
+  expect_true(is.array(periodic) && is.logical(periodic))
+  expect_true(is.array(cavities) && is.logical(cavities))
+  expect_true(is.array(channels) && is.logical(channels))
+  expect_equal(dim(periodic), c(5L, 5L, 5L))
+  expect_equal(dim(cavities), c(5L, 5L, 5L))
+  expect_equal(dim(channels), c(5L, 5L, 5L))
+  expect_false(identical(periodic, cavities))
+  expect_false(identical(periodic, channels))
+  expect_false(identical(cavities, channels))
+})
+
+test_that("periodic tunnel cube mask contains Menger sponge as the 3x3 special case", {
+  expect_equal(
+    edges.cube.periodic.tunnels(
+      level = 2,
+      side = 3,
+      tunnel_width = 1,
+      tunnel_period = 2,
+      tunnel_offset = 2
+    ),
+    edges.menger.sponge(2)
+  )
 })
 
 test_that("occupied mesh graph labels occupied cells consecutively", {
@@ -498,6 +540,59 @@ test_that("menger sponge surface graph returns normalized positive edge weights"
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
   expect_equal(spec$family, "menger.sponge")
   expect_equal(spec$surface, "wavy")
+})
+
+test_that("periodic tunnel cube surface graph returns normalized positive edge weights", {
+  spec <- cube.periodic.tunnels.surface.graph(
+    level = 1,
+    side = 5,
+    surface = "wavy",
+    amplitude = 0.16,
+    freq = 1.5,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_cube_periodic_tunnels_surface_graph")
+  expect_equal(spec$edges, edges.cube.periodic.tunnels(level = 1, side = 5))
+  expect_equal(spec$n, 81L)
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "cube.periodic.tunnels")
+  expect_equal(spec$surface, "wavy")
+})
+
+test_that("asymmetric cavity cube surface graph returns normalized positive edge weights", {
+  spec <- cube.asymmetric.cavities.surface.graph(
+    level = 1,
+    side = 5,
+    surface = "bulged",
+    amplitude = 0.18
+  )
+
+  expect_s3_class(spec, "grip_cube_asymmetric_cavities_surface_graph")
+  expect_equal(spec$edges, edges.cube.asymmetric.cavities(level = 1, side = 5))
+  expect_equal(spec$n, 116L)
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(spec$family, "cube.asymmetric.cavities")
+  expect_equal(spec$surface, "bulged")
+})
+
+test_that("channel-network cube surface graph returns normalized positive edge weights", {
+  spec <- cube.channel.network.surface.graph(
+    level = 1,
+    side = 5,
+    surface = "twisted",
+    twist = 0.45
+  )
+
+  expect_s3_class(spec, "grip_cube_channel_network_surface_graph")
+  expect_equal(spec$edges, edges.cube.channel.network(level = 1, side = 5))
+  expect_equal(spec$n, 104L)
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(spec$family, "cube.channel.network")
+  expect_equal(spec$surface, "twisted")
 })
 
 test_that("recursive tetrahedron mask surface embedding returns finite 3D coordinates", {
