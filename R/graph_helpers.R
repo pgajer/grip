@@ -229,6 +229,42 @@
   keep
 }
 
+.as_tetrahedron_keep_mask <- function(mask, name = "mask") {
+  slots <- c("base_left", "base_right", "base_back", "apex")
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric vector", name), call. = FALSE)
+  }
+  if (is.matrix(mask)) {
+    if (length(mask) != 4L) {
+      stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+    }
+    mask <- as.vector(mask)
+  }
+  if (length(mask) != 4L) {
+    stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!is.null(names(mask))) {
+    mask_names <- names(mask)
+    if (length(unique(mask_names)) != 4L || !all(slots %in% mask_names)) {
+      stop(sprintf("%s names must be exactly %s",
+                   name,
+                   paste(sprintf('"%s"', slots), collapse = ", ")),
+           call. = FALSE)
+    }
+    keep <- keep[match(slots, mask_names)]
+  }
+  names(keep) <- slots
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one subtetrahedron", name), call. = FALSE)
+  }
+  keep
+}
+
 .as_odd_whole_number <- function(x, name, min = 1L) {
   x <- .as_whole_number(x, name, min = min)
   if ((x %% 2L) != 1L) {
@@ -740,6 +776,114 @@
   )
 }
 
+.tetrahedron.classic.mask <- function() {
+  setNames(rep(TRUE, 4L), c("base_left", "base_right", "base_back", "apex"))
+}
+
+.tetrahedron.corner.missing.mask <- function(omit = c("apex", "base_left",
+                                                      "base_right", "base_back")) {
+  omit <- .as_named_choice(
+    omit[[1L]],
+    c("apex", "base_left", "base_right", "base_back"),
+    "omit"
+  )
+  keep <- .tetrahedron.classic.mask()
+  keep[[omit]] <- FALSE
+  keep
+}
+
+.tetrahedron.mask.is_classic <- function(mask) {
+  identical(
+    unname(.as_tetrahedron_keep_mask(mask, "mask")),
+    unname(.tetrahedron.classic.mask())
+  )
+}
+
+.tetrahedron.mask.label <- function(mask) {
+  keep <- .as_tetrahedron_keep_mask(mask, "mask")
+  if (identical(unname(keep), unname(.tetrahedron.classic.mask()))) {
+    return("Sierpinski tetrahedron mask")
+  }
+  if (sum(keep) == 3L) {
+    omitted <- names(keep)[!keep][1L]
+    return(sprintf("Corner-mask tetrahedron (%s omitted)", omitted))
+  }
+  sprintf("Tetrahedron mask (%s)", paste(names(keep)[keep], collapse = ", "))
+}
+
+.recursive.tetrahedron.mask.canonical <- function(mask, level) {
+  mask <- .as_tetrahedron_keep_mask(mask, "mask")
+  level <- .as_whole_number(level, "level")
+  if (.tetrahedron.mask.is_classic(mask)) {
+    out <- .sierpinski.tetrahedron.canonical(level)
+    out$mask <- mask
+    return(out)
+  }
+
+  base_vertices <- rbind(
+    c(0, 0, 0),
+    c(1, 0, 0),
+    c(0.5, sqrt(3) / 2, 0),
+    c(0.5, sqrt(3) / 6, sqrt(2 / 3))
+  )
+  base_edges <- rbind(
+    c(1L, 2L), c(1L, 3L), c(1L, 4L),
+    c(2L, 3L), c(2L, 4L), c(3L, 4L)
+  )
+
+  build <- function(current_level, vertices) {
+    if (current_level == 0L) {
+      coords <- as.matrix(vertices)
+      storage.mode(coords) <- "double"
+      return(list(edges = base_edges, coords = coords, n = 4L))
+    }
+
+    a <- vertices[1L, ]
+    b <- vertices[2L, ]
+    c <- vertices[3L, ]
+    d <- vertices[4L, ]
+    ab <- (a + b) / 2
+    ac <- (a + c) / 2
+    ad <- (a + d) / 2
+    bc <- (b + c) / 2
+    bd <- (b + d) / 2
+    cd <- (c + d) / 2
+    child_vertices <- list(
+      base_left = rbind(a, ab, ac, ad),
+      base_right = rbind(ab, b, bc, bd),
+      base_back = rbind(ac, bc, c, cd),
+      apex = rbind(ad, bd, cd, d)
+    )
+
+    edges <- list()
+    coords_list <- list()
+    offset <- 0L
+    active_slots <- names(mask)[mask]
+    for (slot in active_slots) {
+      child <- build(current_level - 1L, child_vertices[[slot]])
+      edges[[length(edges) + 1L]] <- child$edges + offset
+      coords_list[[length(coords_list) + 1L]] <- child$coords
+      offset <- offset + child$n
+    }
+
+    merged <- .deduplicate.coordinate.graph(
+      edges = .bind_edges(edges),
+      coords = do.call(rbind, coords_list)
+    )
+    list(
+      edges = merged$edges,
+      coords = merged$coords,
+      n = as.integer(nrow(merged$coords))
+    )
+  }
+
+  out <- build(level, base_vertices)
+  colnames(out$coords) <- c("x", "y", "z")
+  storage.mode(out$coords) <- "double"
+  out$mask <- mask
+  out
+}
+
 .triangle.classic.mask <- function() {
   setNames(c(TRUE, TRUE, TRUE, FALSE), c("left", "right", "top", "center"))
 }
@@ -969,6 +1113,37 @@ mask.triangle.classic <- function() {
 #' @export
 mask.triangle.bridge <- function(missing = c("top", "left", "right")) {
   .triangle.bridge.mask(match.arg(missing))
+}
+
+#' Tetrahedron mask helpers for recursive gasket families
+#'
+#' Convenience constructors for the four-corner tetrahedron masks used by
+#' \code{\link{edges.recursive.tetrahedron.mask}()} and
+#' \code{\link{recursive.tetrahedron.mask.surface.graph}()}. The slots
+#' correspond to the four corner subtetrahedra created by one barycentric
+#' refinement of a tetrahedron.
+#'
+#' The returned mask entries are ordered and named as \code{base_left},
+#' \code{base_right}, \code{base_back}, and \code{apex}.
+#'
+#' @param omit Which tetrahedron corner is omitted in
+#'   \code{mask.tetrahedron.corner.missing()}.
+#'
+#' @return A named logical vector of length 4.
+#' @name tetrahedron_mask_helpers
+NULL
+
+#' @rdname tetrahedron_mask_helpers
+#' @export
+mask.tetrahedron.classic <- function() {
+  .tetrahedron.classic.mask()
+}
+
+#' @rdname tetrahedron_mask_helpers
+#' @export
+mask.tetrahedron.corner.missing <- function(
+    omit = c("apex", "base_left", "base_right", "base_back")) {
+  .tetrahedron.corner.missing.mask(match.arg(omit))
 }
 
 #' Occupied-mesh and perforated-grid helpers
@@ -1263,11 +1438,14 @@ keep.asymmetric.notches <- function(h,
 #' layout-dimension-dependent behavior: \code{\link{edges.occupied.mesh}()}
 #' builds a finite perforated-mesh family from an occupancy matrix,
 #' \code{\link{edges.recursive.mask.grid}()} builds a generic square-mask
-#' family, \code{\link{edges.vicsek}()} builds the connected axial-cross
-#' variant, \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex
-#' family, \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex
-#' family, and \code{\link{edges.sierpinski.carpet}()} builds a 2D
-#' cell-adjacency carpet graph.
+#' family, \code{\link{edges.recursive.triangle.mask}()} builds a generic
+#' triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
+#' builds a generic tetrahedron-mask family, \code{\link{edges.vicsek}()}
+#' builds the connected axial-cross variant,
+#' \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
+#' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
+#' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
+#' carpet graph.
 #'
 #' @return A two-column integer matrix of undirected edges. Vertex labels are
 #'   consecutive integers starting at 1.
@@ -2137,63 +2315,18 @@ sierpinski.triangle.surface.graph <- function(level = 2,
   out
 }
 
-#' Weighted Sierpinski tetrahedron surface helpers
-#'
-#' Convenience helpers that take the canonical recursive embedding of the
-#' Sierpinski tetrahedron graph and deform it inside \eqn{\mathbb{R}^3}. These
-#' helpers are intended for benchmark families where the topology is the
-#' simplicial tetrahedral gasket but the intended metric comes from a squashed,
-#' twisted, or spatially varying realization.
-#'
-#' @param level Recursion depth. May be \code{0} or larger.
-#' @param surface Tetrahedron surface family. One of \code{"standard"},
-#'   \code{"squashed"}, \code{"twisted"}, or \code{"wavy"}.
-#' @param amplitude Finite deformation amplitude.
-#' @param freq Positive modulation frequency used only when
-#'   \code{surface = "wavy"}.
-#' @param twist Finite twist strength used only when
-#'   \code{surface = "twisted"}.
-#' @param normalize Normalization applied to the induced edge lengths. One of
-#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
-#'
-#' @return
-#' \code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
-#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
-#'
-#' \code{sierpinski.tetrahedron.surface.graph()} returns a list with components:
-#' \itemize{
-#'   \item \code{edges}: the Sierpinski tetrahedron edges,
-#'   \item \code{n}: number of vertices,
-#'   \item \code{edge_weights}: induced positive edge lengths,
-#'   \item \code{coords_surface}: the 3D surface embedding,
-#'   \item \code{coords_param}: the canonical 3D tetrahedron coordinates,
-#'   \item \code{weight_scale}: the normalization constant applied to the raw
-#'     edge lengths,
-#'   \item \code{family}: always \code{"sierpinski.tetrahedron"},
-#'   \item \code{surface}: the chosen surface name,
-#'   \item \code{level}: the recursion depth,
-#'   \item \code{label}: a human-readable family label.
-#' }
-#'
-#' @name sierpinski_tetrahedron_surface_helpers
-NULL
-
-#' @rdname sierpinski_tetrahedron_surface_helpers
-#' @export
-sierpinski.tetrahedron.surface.embedding <- function(level = 2,
-                                                     surface = c("standard", "squashed",
-                                                                 "twisted", "wavy"),
-                                                     amplitude = 0.3,
-                                                     freq = 2,
-                                                     twist = 0.6) {
-  level <- .as_whole_number(level, "level")
-  surface <- match.arg(surface)
+.tetrahedron.surface.coords <- function(coords_param,
+                                        surface,
+                                        amplitude,
+                                        freq,
+                                        twist) {
+  surface <- .as_named_choice(surface, c("standard", "squashed", "twisted", "wavy"),
+                              "surface")
   amplitude <- .as_finite_scalar(amplitude, "amplitude")
   freq <- .as_positive_scalar(freq, "freq")
   twist <- .as_finite_scalar(twist, "twist")
 
-  built <- .sierpinski.tetrahedron.canonical(level)
-  coords_param <- built$coords
+  coords_param <- as.matrix(coords_param)
   coords_norm <- .normalize.center_radius.coords(coords_param)
   coords <- switch(
     surface,
@@ -2234,21 +2367,97 @@ sierpinski.tetrahedron.surface.embedding <- function(level = 2,
   coords
 }
 
-#' @rdname sierpinski_tetrahedron_surface_helpers
+#' Weighted recursive tetrahedron-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide a tetrahedron into four
+#' corner subtetrahedra according to a four-corner keep-mask, retain the
+#' selected subtetrahedra at each recursion step, and deform the resulting
+#' simplicial graph inside \eqn{\mathbb{R}^3}. This provides a generic
+#' tetrahedral gasket family that includes the classic Sierpinski tetrahedron
+#' together with corner-omission variants.
+#'
+#' The \code{mask} entries are interpreted in the order
+#' \code{base_left}, \code{base_right}, \code{base_back}, and \code{apex}.
+#' Named masks are reordered automatically to match that convention.
+#'
+#' @param mask Four-entry logical or numeric keep-mask. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Tetrahedron surface family. One of \code{"standard"},
+#'   \code{"squashed"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{recursive.tetrahedron.mask.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.tetrahedron.mask.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive tetrahedron-mask edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 3D tetrahedron coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.tetrahedron.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_tetrahedron_mask_surface_helpers
+NULL
+
+#' @rdname recursive_tetrahedron_mask_surface_helpers
 #' @export
-sierpinski.tetrahedron.surface.graph <- function(level = 2,
-                                                 surface = c("standard", "squashed",
-                                                             "twisted", "wavy"),
-                                                 amplitude = 0.3,
-                                                 freq = 2,
-                                                 twist = 0.6,
-                                                 normalize = c("median", "mean", "none")) {
+recursive.tetrahedron.mask.surface.embedding <- function(
+    mask = mask.tetrahedron.classic(),
+    level = 2,
+    surface = c("standard", "squashed", "twisted", "wavy"),
+    amplitude = 0.3,
+    freq = 2,
+    twist = 0.6) {
+  mask <- .as_tetrahedron_keep_mask(mask, "mask")
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+
+  built <- .recursive.tetrahedron.mask.canonical(mask, level)
+  .tetrahedron.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname recursive_tetrahedron_mask_surface_helpers
+#' @export
+recursive.tetrahedron.mask.surface.graph <- function(
+    mask = mask.tetrahedron.classic(),
+    level = 2,
+    surface = c("standard", "squashed", "twisted", "wavy"),
+    amplitude = 0.3,
+    freq = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  mask <- .as_tetrahedron_keep_mask(mask, "mask")
   level <- .as_whole_number(level, "level")
   surface <- match.arg(surface)
   normalize <- match.arg(normalize)
 
-  built <- .sierpinski.tetrahedron.canonical(level)
-  coords_surface <- sierpinski.tetrahedron.surface.embedding(
+  built <- .recursive.tetrahedron.mask.canonical(mask, level)
+  coords_surface <- recursive.tetrahedron.mask.surface.embedding(
+    mask = mask,
     level = level,
     surface = surface,
     amplitude = amplitude,
@@ -2268,15 +2477,82 @@ sierpinski.tetrahedron.surface.graph <- function(level = 2,
     coords_surface = coords_surface,
     coords_param = built$coords,
     weight_scale = weights$weight_scale,
-    family = "sierpinski.tetrahedron",
+    family = "recursive.tetrahedron.mask",
     surface = surface,
     level = level,
+    mask = mask,
     normalize = normalize,
-    label = sprintf("%s Sierpinski tetrahedron level %d",
+    label = sprintf("%s %s level %d",
                     tools::toTitleCase(surface),
+                    .tetrahedron.mask.label(mask),
                     level)
   )
-  class(out) <- c("grip_sierpinski_tetrahedron_surface_graph", "list")
+  class(out) <- c("grip_recursive_tetrahedron_mask_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski tetrahedron surface helpers
+#'
+#' Convenience wrappers around \code{recursive.tetrahedron.mask.surface.*()}
+#' using the classic all-corner tetrahedron mask. These helpers are intended
+#' for benchmark families where the topology is the standard simplicial
+#' tetrahedral gasket but the intended metric comes from a squashed, twisted,
+#' or spatially varying realization.
+#'
+#' @inheritParams recursive.tetrahedron.mask.surface.embedding
+#'
+#' @return
+#' \code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sierpinski.tetrahedron.surface.graph()} returns the same components as
+#' \code{recursive.tetrahedron.mask.surface.graph()}, with \code{family} set to
+#' \code{"sierpinski.tetrahedron"} and a family-specific class and label.
+#'
+#' @name sierpinski_tetrahedron_surface_helpers
+NULL
+
+#' @rdname sierpinski_tetrahedron_surface_helpers
+#' @export
+sierpinski.tetrahedron.surface.embedding <- function(level = 2,
+                                                     surface = c("standard", "squashed",
+                                                                 "twisted", "wavy"),
+                                                     amplitude = 0.3,
+                                                     freq = 2,
+                                                     twist = 0.6) {
+  recursive.tetrahedron.mask.surface.embedding(
+    mask = .tetrahedron.classic.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname sierpinski_tetrahedron_surface_helpers
+#' @export
+sierpinski.tetrahedron.surface.graph <- function(level = 2,
+                                                 surface = c("standard", "squashed",
+                                                             "twisted", "wavy"),
+                                                 amplitude = 0.3,
+                                                 freq = 2,
+                                                 twist = 0.6,
+                                                 normalize = c("median", "mean", "none")) {
+  out <- recursive.tetrahedron.mask.surface.graph(
+    mask = .tetrahedron.classic.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    normalize = normalize
+  )
+  out$family <- "sierpinski.tetrahedron"
+  out$label <- sprintf("%s Sierpinski tetrahedron level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_sierpinski_tetrahedron_surface_graph", class(out))
   out
 }
 
@@ -2885,11 +3161,14 @@ edges.kary.tree <- function(k = 2, depth = 2) {
 #'   each recursive subdivision step. For
 #'   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
 #'   four-entry vector in \code{left}, \code{right}, \code{top},
-#'   \code{center} order.
+#'   \code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
+#'   \code{mask} must be a four-entry vector in \code{base_left},
+#'   \code{base_right}, \code{base_back}, \code{apex} order.
 #' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
 #'   \code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
 #'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
-#'   also allows \code{level = 0}.
+#'   and \code{edges.recursive.tetrahedron.mask()} also allow
+#'   \code{level = 0}.
 #' @export
 edges.recursive.mask.grid <- function(mask, level = 2) {
   .recursive.mask.grid.edges(mask, level)
@@ -2900,6 +3179,14 @@ edges.recursive.mask.grid <- function(mask, level = 2) {
 #' @export
 edges.recursive.triangle.mask <- function(mask = mask.triangle.classic(), level = 2) {
   .recursive.triangle.mask.canonical(mask, level)$edges
+}
+
+#' @describeIn graph_generators Recursively refined tetrahedron-mask graph whose
+#'   vertices are the retained subdivision vertices of a tetrahedron.
+#' @export
+edges.recursive.tetrahedron.mask <- function(mask = mask.tetrahedron.classic(),
+                                             level = 2) {
+  .recursive.tetrahedron.mask.canonical(mask, level)$edges
 }
 
 #' @describeIn graph_generators Connected Vicsek-style cross family derived from

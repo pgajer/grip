@@ -13,6 +13,7 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
+    edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
     edges.vicsek(2),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
@@ -63,6 +64,13 @@ test_that("recursive triangle mask reproduces classic sierpinski triangle topolo
   )
 })
 
+test_that("recursive tetrahedron mask reproduces classic sierpinski tetrahedron topology", {
+  expect_equal(
+    edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
+    edges.sierpinski.tetrahedron(2)
+  )
+})
+
 test_that("vicsek graph labels occupied cells consecutively", {
   edges <- edges.vicsek(4)
   expect_equal(max(edges), 625L)
@@ -80,6 +88,10 @@ test_that("mask helpers return expected connected motifs", {
   expect_equal(sum(mask.asymmetric.holes(5, 1)), 22L)
   expect_equal(mask.triangle.classic(), c(left = TRUE, right = TRUE, top = TRUE, center = FALSE))
   expect_equal(mask.triangle.bridge("top"), c(left = TRUE, right = TRUE, top = FALSE, center = TRUE))
+  expect_equal(mask.tetrahedron.classic(),
+               c(base_left = TRUE, base_right = TRUE, base_back = TRUE, apex = TRUE))
+  expect_equal(mask.tetrahedron.corner.missing("apex"),
+               c(base_left = TRUE, base_right = TRUE, base_back = TRUE, apex = FALSE))
   expect_equal(edges.recursive.mask.grid(mask.cross(3, 1), 2), edges.vicsek(2))
 })
 
@@ -335,6 +347,46 @@ test_that("sierpinski tetrahedron surface graph returns normalized positive edge
   expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
   expect_equal(dim(spec$coords_param), c(spec$n, 3L))
   expect_equal(spec$family, "sierpinski.tetrahedron")
+  expect_equal(spec$surface, "wavy")
+})
+
+test_that("recursive tetrahedron mask surface embedding returns finite 3D coordinates", {
+  coords <- recursive.tetrahedron.mask.surface.embedding(
+    mask = mask.tetrahedron.corner.missing("base_right"),
+    level = 2,
+    surface = "twisted",
+    twist = 0.65
+  )
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_true(all(is.finite(coords)))
+  expect_equal(ncol(coords), 3L)
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("recursive tetrahedron mask surface graph returns normalized positive edge weights", {
+  corner_mask <- mask.tetrahedron.corner.missing("apex")
+  spec <- recursive.tetrahedron.mask.surface.graph(
+    mask = corner_mask,
+    level = 2,
+    surface = "wavy",
+    amplitude = 0.22,
+    freq = 2.5
+  )
+
+  expect_s3_class(spec, "grip_recursive_tetrahedron_mask_surface_graph")
+  expect_equal(spec$edges, edges.recursive.tetrahedron.mask(corner_mask, 2))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(spec$mask, corner_mask)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+  expect_equal(spec$family, "recursive.tetrahedron.mask")
   expect_equal(spec$surface, "wavy")
 })
 

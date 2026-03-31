@@ -44,25 +44,14 @@ sierpinski.tetrahedron.surface.graph(
 \code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
-\code{sierpinski.tetrahedron.surface.graph()} returns a list with components:
-\itemize{
-  \item \code{edges}: the Sierpinski tetrahedron edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the canonical 3D tetrahedron coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"sierpinski.tetrahedron"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{level}: the recursion depth,
-  \item \code{label}: a human-readable family label.
-}
+\code{sierpinski.tetrahedron.surface.graph()} returns the same components as
+\code{recursive.tetrahedron.mask.surface.graph()}, with \code{family} set to
+\code{"sierpinski.tetrahedron"} and a family-specific class and label.
 }
 \description{
-Convenience helpers that take the canonical recursive embedding of the
-Sierpinski tetrahedron graph and deform it inside \eqn{\mathbb{R}^3}. These
-helpers are intended for benchmark families where the topology is the
-simplicial tetrahedral gasket but the intended metric comes from a squashed,
-twisted, or spatially varying realization.
+Convenience wrappers around \code{recursive.tetrahedron.mask.surface.*()}
+using the classic all-corner tetrahedron mask. These helpers are intended
+for benchmark families where the topology is the standard simplicial
+tetrahedral gasket but the intended metric comes from a squashed, twisted,
+or spatially varying realization.
 }
