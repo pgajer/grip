@@ -10,6 +10,8 @@
 \alias{edges.sphere}
 \alias{edges.cube}
 \alias{edges.kary.tree}
+\alias{edges.recursive.mask.grid}
+\alias{edges.vicsek}
 \alias{edges.sierpinski.triangle}
 \alias{edges.sierpinski.tetrahedron}
 \alias{edges.sierpinski.carpet}
@@ -31,6 +33,10 @@ edges.cube(side = 2)
 
 edges.kary.tree(k = 2, depth = 2)
 
+edges.recursive.mask.grid(mask, level = 2)
+
+edges.vicsek(level = 2)
+
 edges.sierpinski.triangle(level = 2)
 
 edges.sierpinski.tetrahedron(level = 2)
@@ -50,7 +56,12 @@ edges.sierpinski.carpet(level = 2)
 
 \item{depth}{Number of levels below the root.}
 
-\item{level}{Recursion depth. For \code{edges.sierpinski.carpet()},
+\item{mask}{Square logical or numeric keep-mask. Non-zero entries are kept at
+each recursive subdivision step. Rows run from top to bottom and columns
+run from left to right in the motif.}
+
+\item{level}{Recursion depth. For \code{edges.recursive.mask.grid()},
+\code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
 \code{level} must be at least 1.}
 }
 \value{
@@ -63,8 +74,11 @@ integer edge matrices suitable for \code{\link{grip.layout}()}. These
 helpers are meant for examples, experiments, and reproducible tests.
 }
 \details{
-The Sierpinski families are exposed explicitly rather than overloading a
-single generator with layout-dimension-dependent behavior:
+The recursive masked-grid and Sierpinski families are exposed explicitly
+rather than overloading a single generator with layout-dimension-dependent
+behavior: \code{\link{edges.recursive.mask.grid}()} builds a generic
+square-mask family, \code{\link{edges.vicsek}()} builds the connected
+axial-cross variant,
 \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
 \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
@@ -92,6 +106,13 @@ levels (including the poles) and wrapped longitude \code{w}.
 \code{side x side x side} lattice.
 
 \item \code{edges.kary.tree()}: Full \code{k}-ary tree of depth \code{depth}.
+
+\item \code{edges.recursive.mask.grid()}: Recursively refined square-mask grid graph whose
+vertices are occupied cells and whose edges connect orthogonally adjacent
+cells.
+
+\item \code{edges.vicsek()}: Connected Vicsek-style cross family derived from
+a \code{3 x 3} axial-cross keep-mask.
 
 \item \code{edges.sierpinski.triangle()}: Two-dimensional Sierpinski triangle graph at
 recursion depth \code{level}.

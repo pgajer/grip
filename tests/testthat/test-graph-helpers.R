@@ -1,4 +1,5 @@
 test_that("basic graph helpers return two-column integer matrices", {
+  full_mask <- matrix(c(1, 1, 1, 1), nrow = 2, byrow = TRUE)
   helpers <- list(
     edges.path(5),
     edges.cycle(6),
@@ -8,6 +9,8 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.sphere(4, 5),
     edges.cube(3),
     edges.kary.tree(2, 3),
+    edges.recursive.mask.grid(full_mask, 2),
+    edges.vicsek(2),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
     edges.sierpinski.carpet(2)
@@ -34,6 +37,26 @@ test_that("sierpinski carpet labels all occupied cells consecutively", {
   edges <- edges.sierpinski.carpet(4)
   expect_equal(max(edges), 4096L)
   expect_true(all(sort(unique(c(edges))) == seq_len(4096L)))
+})
+
+test_that("recursive mask grid reproduces sierpinski carpet topology", {
+  carpet_mask <- matrix(
+    c(
+      1, 1, 1,
+      1, 0, 1,
+      1, 1, 1
+    ),
+    nrow = 3,
+    byrow = TRUE
+  )
+
+  expect_equal(edges.recursive.mask.grid(carpet_mask, 2), edges.sierpinski.carpet(2))
+})
+
+test_that("vicsek graph labels occupied cells consecutively", {
+  edges <- edges.vicsek(4)
+  expect_equal(max(edges), 625L)
+  expect_true(all(sort(unique(c(edges))) == seq_len(625L)))
 })
 
 test_that("sphere graph labels intermediate latitude rings consecutively", {
@@ -215,6 +238,33 @@ test_that("wavy sphere graph supports alternate weight normalization", {
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
 
+test_that("recursive mask grid surface graph returns normalized positive edge weights", {
+  vicsek_mask <- matrix(
+    c(
+      0, 1, 0,
+      1, 1, 1,
+      0, 1, 0
+    ),
+    nrow = 3,
+    byrow = TRUE
+  )
+  spec <- recursive.mask.grid.surface.graph(
+    vicsek_mask,
+    2,
+    surface = "saddle",
+    amplitude = 0.8
+  )
+
+  expect_s3_class(spec, "grip_recursive_mask_grid_surface_graph")
+  expect_equal(spec$edges, edges.vicsek(2))
+  expect_equal(spec$n, 25L)
+  expect_equal(spec$mask, vicsek_mask != 0)
+  expect_equal(spec$mask_size, 3L)
+  expect_equal(spec$side, 9L)
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+})
+
 test_that("sierpinski carpet surface embedding returns finite 3D coordinates", {
   coords <- sierpinski.carpet.surface.embedding(2, surface = "saddle", amplitude = 0.8)
 
@@ -253,6 +303,24 @@ test_that("ripple sierpinski carpet graph supports alternate weight normalizatio
     normalize = "mean"
   )
 
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("vicsek surface graph returns normalized positive edge weights", {
+  spec <- vicsek.surface.graph(
+    2,
+    surface = "ripple",
+    amplitude = 0.6,
+    freq_u = 1.5,
+    freq_v = 0.5,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_vicsek_surface_graph")
+  expect_equal(spec$edges, edges.vicsek(2))
+  expect_equal(spec$n, 25L)
+  expect_equal(spec$family, "vicsek")
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
