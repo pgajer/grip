@@ -39,9 +39,9 @@ edges.path(n)
 
 edges.cycle(n)
 
-edges.mesh(h, w = h)
+edges.mesh(h, w = h, connectivity = c("orthogonal", "diagonal"))
 
-edges.occupied.mesh(keep)
+edges.occupied.mesh(keep, connectivity = c("orthogonal", "diagonal"))
 
 edges.cylinder(h, w = h)
 
@@ -187,6 +187,10 @@ edges.sierpinski.carpet(level = 2)
 \item{h}{Number of rows.}
 
 \item{w}{Number of columns. Defaults to \code{h}.}
+
+\item{connectivity}{Mesh neighborhood rule. \code{"orthogonal"} keeps the
+4-neighbor grid; \code{"diagonal"} also adds both diagonals of every unit
+square.}
 
 \item{keep}{Logical or numeric occupancy matrix. Non-zero entries are kept.}
 
@@ -363,6 +367,8 @@ columns.
 
 \item \code{edges.occupied.mesh()}: Rectangular occupied-grid graph whose vertices
 are kept cells and whose edges connect orthogonally adjacent kept cells.
+With \code{connectivity = "diagonal"}, both diagonals are added for every
+fully occupied 2-by-2 block.
 
 \item \code{edges.cylinder()}: Cylindrical grid graph with \code{h} rows and wrapped
 width \code{w}.

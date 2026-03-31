@@ -245,6 +245,23 @@ test_that("occupied mesh graph labels occupied cells consecutively", {
   expect_true(all(sort(unique(c(edges))) == seq_len(sum(keep))))
 })
 
+test_that("mesh connectivity option adds diagonal edges deterministically", {
+  orth <- edges.mesh(3, 4, connectivity = "orthogonal")
+  diag <- edges.mesh(3, 4, connectivity = "diagonal")
+
+  expect_equal(nrow(orth), 17L)
+  expect_equal(nrow(diag), 29L)
+  expect_true(all(apply(orth, 1L, function(e) any(diag[, 1L] == e[[1L]] & diag[, 2L] == e[[2L]]))))
+
+  keep_full <- matrix(TRUE, nrow = 2, ncol = 2)
+  keep_missing <- matrix(c(TRUE, TRUE, TRUE, FALSE), nrow = 2, byrow = TRUE)
+  expect_equal(nrow(edges.occupied.mesh(keep_full, connectivity = "diagonal")), 6L)
+  expect_equal(
+    edges.occupied.mesh(keep_missing, connectivity = "diagonal"),
+    edges.occupied.mesh(keep_missing, connectivity = "orthogonal")
+  )
+})
+
 test_that("sphere graph labels intermediate latitude rings consecutively", {
   edges <- edges.sphere(5, 8)
   expect_equal(max(edges), 26L)
@@ -342,6 +359,7 @@ test_that("mesh surface graph returns normalized positive edge weights", {
   expect_equal(dim(spec$coords_param), c(30L, 2L))
   expect_equal(spec$family, "mesh")
   expect_equal(spec$surface, "paraboloid")
+  expect_equal(spec$connectivity, "orthogonal")
 })
 
 test_that("ripple mesh graph supports alternate weight normalization", {
@@ -356,6 +374,23 @@ test_that("ripple mesh graph supports alternate weight normalization", {
 
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("mesh surface graph supports diagonal connectivity", {
+  spec <- mesh.surface.graph(
+    4, 4,
+    surface = "ripple",
+    amplitude = 0.6,
+    freq_u = 1.5,
+    freq_v = 0.5,
+    connectivity = "diagonal",
+    normalize = "mean"
+  )
+
+  expect_equal(spec$edges, edges.mesh(4, 4, connectivity = "diagonal"))
+  expect_equal(spec$connectivity, "diagonal")
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
 })
 
 test_that("cylinder surface embedding returns finite 3D coordinates", {
@@ -1142,6 +1177,30 @@ test_that("occupied mesh surface graph returns normalized positive edge weights"
   expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
   expect_equal(dim(spec$coords_param), c(sum(keep), 2L))
   expect_equal(spec$family, "occupied.mesh")
+  expect_equal(spec$connectivity, "orthogonal")
+})
+
+test_that("occupied mesh surface graph supports diagonal connectivity", {
+  keep <- matrix(
+    c(
+      TRUE, TRUE, TRUE,
+      TRUE, TRUE, TRUE,
+      TRUE, TRUE, FALSE
+    ),
+    nrow = 3,
+    byrow = TRUE
+  )
+  spec <- occupied.mesh.surface.graph(
+    keep,
+    surface = "saddle",
+    amplitude = 0.5,
+    connectivity = "diagonal"
+  )
+
+  expect_equal(spec$edges, edges.occupied.mesh(keep, connectivity = "diagonal"))
+  expect_equal(spec$connectivity, "diagonal")
+  expect_true(nrow(spec$edges) > nrow(edges.occupied.mesh(keep, connectivity = "orthogonal")))
+  expect_true(all(spec$edge_weights > 0))
 })
 
 test_that("deterministic perforated grids produce distinct occupancy patterns", {

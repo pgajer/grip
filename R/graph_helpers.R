@@ -379,8 +379,14 @@
   coords
 }
 
-.occupied.mesh.edges <- function(keep) {
+.mesh.connectivity.arg <- function(connectivity = c("orthogonal", "diagonal")) {
+  match.arg(connectivity)
+}
+
+.occupied.mesh.edges <- function(keep,
+                                 connectivity = c("orthogonal", "diagonal")) {
   spec <- .occupied.mesh.cells(keep)
+  connectivity <- .mesh.connectivity.arg(connectivity)
   cells <- spec$cells
   id_map <- matrix(0L, nrow = spec$h, ncol = spec$w)
   for (i in seq_len(nrow(cells))) {
@@ -401,7 +407,24 @@
     }
   }
 
-  .bind_edges(edges)
+  if (identical(connectivity, "diagonal") && spec$h >= 2L && spec$w >= 2L) {
+    for (row in seq_len(spec$h - 1L)) {
+      for (col in seq_len(spec$w - 1L)) {
+        block_ids <- c(
+          id_map[row, col],
+          id_map[row, col + 1L],
+          id_map[row + 1L, col],
+          id_map[row + 1L, col + 1L]
+        )
+        if (all(block_ids > 0L)) {
+          edges[[length(edges) + 1L]] <- c(block_ids[[1L]], block_ids[[4L]])
+          edges[[length(edges) + 1L]] <- c(block_ids[[2L]], block_ids[[3L]])
+        }
+      }
+    }
+  }
+
+  .normalize_undirected_edges(.bind_edges(edges))
 }
 
 .recursive.mask.grid.cells <- function(mask, level) {
@@ -2987,8 +3010,8 @@ mask.tetrahedron.corner.missing <- function(
 
 #' Occupied-mesh and perforated-grid helpers
 #'
-#' \code{edges.occupied.mesh()} builds the orthogonal adjacency graph on the
-#' occupied cells of a finite rectangular grid. The corresponding surface
+#' \code{edges.occupied.mesh()} builds a finite occupied-grid graph on the
+#' retained cells of a rectangular occupancy matrix. The corresponding surface
 #' helpers lift those occupied cells into \eqn{\mathbb{R}^3} using the same
 #' \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
 #' for regular meshes.
@@ -3004,6 +3027,7 @@ mask.tetrahedron.corner.missing <- function(
 #'   Used only when \code{surface = "ripple"}.
 #' @param x_scale Positive horizontal scaling of the parameter domain.
 #' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param connectivity Mesh neighborhood rule passed to \code{edges.mesh()}.
 #' @param normalize Normalization applied to the induced edge lengths. One of
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
@@ -3022,6 +3046,7 @@ mask.tetrahedron.corner.missing <- function(
 #'     edge lengths,
 #'   \item \code{family}: always \code{"occupied.mesh"},
 #'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen occupied-mesh connectivity rule,
 #'   \item \code{keep}: the logical occupancy matrix,
 #'   \item \code{label}: a human-readable family label.
 #' }
@@ -3074,12 +3099,14 @@ occupied.mesh.surface.graph <- function(keep,
                                         freq_v = 1,
                                         x_scale = 1,
                                         y_scale = 1,
+                                        connectivity = c("orthogonal", "diagonal"),
                                         normalize = c("median", "mean", "none")) {
   keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
   surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
   normalize <- match.arg(normalize)
 
-  edges <- .occupied.mesh.edges(keep)
+  edges <- .occupied.mesh.edges(keep, connectivity = connectivity)
   coords_param <- .occupied.mesh.param.coords(
     keep = keep,
     x_scale = x_scale,
@@ -3109,10 +3136,12 @@ occupied.mesh.surface.graph <- function(keep,
     weight_scale = weights$weight_scale,
     family = "occupied.mesh",
     surface = surface,
+    connectivity = connectivity,
     keep = keep,
     normalize = normalize,
-    label = sprintf("%s occupied mesh %dx%d",
+    label = sprintf("%s %s occupied mesh %dx%d",
                     tools::toTitleCase(surface),
+                    connectivity,
                     nrow(keep),
                     ncol(keep))
   )
@@ -3538,11 +3567,17 @@ edges.cycle <- function(n) {
 #'   columns.
 #' @param h Number of rows.
 #' @param w Number of columns. Defaults to \code{h}.
+#' @param connectivity Mesh neighborhood rule. \code{"orthogonal"} keeps the
+#'   4-neighbor grid; \code{"diagonal"} also adds both diagonals of every unit
+#'   square.
 #' @param keep Logical or numeric occupancy matrix. Non-zero entries are kept.
 #' @export
-edges.mesh <- function(h, w = h) {
+edges.mesh <- function(h,
+                       w = h,
+                       connectivity = c("orthogonal", "diagonal")) {
   h <- .as_whole_number(h, "h", min = 1L)
   w <- .as_whole_number(w, "w", min = 1L)
+  connectivity <- .mesh.connectivity.arg(connectivity)
   idx <- function(i, j) (i - 1L) * w + j
   edges <- list()
   for (i in seq_len(h)) {
@@ -3552,14 +3587,25 @@ edges.mesh <- function(h, w = h) {
       if (j < w) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L))
     }
   }
+  if (identical(connectivity, "diagonal") && h >= 2L && w >= 2L) {
+    for (i in seq_len(h - 1L)) {
+      for (j in seq_len(w - 1L)) {
+        edges[[length(edges) + 1L]] <- c(idx(i, j), idx(i + 1L, j + 1L))
+        edges[[length(edges) + 1L]] <- c(idx(i + 1L, j), idx(i, j + 1L))
+      }
+    }
+  }
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
 #' @describeIn graph_generators Rectangular occupied-grid graph whose vertices
 #'   are kept cells and whose edges connect orthogonally adjacent kept cells.
+#'   With \code{connectivity = "diagonal"}, both diagonals are added for every
+#'   fully occupied 2-by-2 block.
 #' @export
-edges.occupied.mesh <- function(keep) {
-  .occupied.mesh.edges(keep)
+edges.occupied.mesh <- function(keep,
+                                connectivity = c("orthogonal", "diagonal")) {
+  .occupied.mesh.edges(keep, connectivity = connectivity)
 }
 
 #' Weighted mesh surface helpers
@@ -3587,6 +3633,8 @@ edges.occupied.mesh <- function(keep) {
 #'   Used only when \code{surface = "ripple"}.
 #' @param x_scale Positive horizontal scaling of the parameter domain.
 #' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param connectivity Occupied-mesh neighborhood rule passed to
+#'   \code{edges.occupied.mesh()}.
 #' @param normalize Normalization applied to the induced edge lengths. One of
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
@@ -3605,6 +3653,7 @@ edges.occupied.mesh <- function(keep) {
 #'     edge lengths,
 #'   \item \code{family}: always \code{"mesh"},
 #'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen mesh connectivity rule,
 #'   \item \code{label}: a human-readable family label.
 #' }
 #'
@@ -3658,13 +3707,15 @@ mesh.surface.graph <- function(h,
                                freq_v = 1,
                                x_scale = 1,
                                y_scale = 1,
+                               connectivity = c("orthogonal", "diagonal"),
                                normalize = c("median", "mean", "none")) {
   h <- .as_whole_number(h, "h", min = 1L)
   w <- .as_whole_number(w, "w", min = 1L)
   surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
   normalize <- match.arg(normalize)
 
-  edges <- edges.mesh(h, w)
+  edges <- edges.mesh(h, w, connectivity = connectivity)
   coords_param <- .mesh.param.coords(
     h = h,
     w = w,
@@ -3696,8 +3747,13 @@ mesh.surface.graph <- function(h,
     weight_scale = weights$weight_scale,
     family = "mesh",
     surface = surface,
+    connectivity = connectivity,
     normalize = normalize,
-    label = sprintf("%s mesh %dx%d", tools::toTitleCase(surface), h, w)
+    label = sprintf("%s %s mesh %dx%d",
+                    tools::toTitleCase(surface),
+                    connectivity,
+                    h,
+                    w)
   )
   class(out) <- c("grip_mesh_surface_graph", "list")
   out

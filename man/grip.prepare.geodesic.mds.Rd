@@ -4,7 +4,12 @@
 \alias{grip.prepare.geodesic.mds}
 \title{Prepare a geodesic-MDS graph and fixed path family from data}
 \usage{
-grip.prepare.geodesic.mds(data, k, connect = c("mst", "error"))
+grip.prepare.geodesic.mds(
+  data,
+  k,
+  connect = c("mst", "error"),
+  tie_mode = c("single", "average")
+)
 }
 \arguments{
 \item{data}{Numeric matrix whose rows are observations.}
@@ -13,6 +18,11 @@ grip.prepare.geodesic.mds(data, k, connect = c("mst", "error"))
 
 \item{connect}{Connectivity policy. \code{"mst"} augments a disconnected
 \eqn{k}-NN graph with Euclidean MST edges; \code{"error"} stops instead.}
+
+\item{tie_mode}{Shortest-path aggregation mode. \code{"single"} uses one
+deterministic chosen shortest path per pair. \code{"average"} replaces
+each tied shortest-path family by the exact uniform average over all
+shortest paths between the pair.}
 }
 \value{
 A prepared object with class \code{"grip_gmds_prepared"} layered on

@@ -37,8 +37,8 @@ test_that("geodesic MDS preparation is deterministic and augments disconnected k
   expect_equal(nrow(prepared1$mst_added_edges), 1L)
   expect_true(all(is.finite(prepared1$pair_graph_distance)))
 
-  adj <- grip.build.adj.from.edges(prepared1$edges, n = nrow(data))$adj_list
-  comp <- grip.connected.components(adj, nrow(data))
+  adj <- grip:::grip.build.adj.from.edges(prepared1$edges, n = nrow(data))$adj_list
+  comp <- grip:::grip.connected.components(adj, nrow(data))
   expect_equal(length(unique(comp)), 1L)
 })
 

@@ -9,7 +9,8 @@ grip.prepare.geodesic.kk(
   n = NULL,
   adj_list = NULL,
   weight_list = NULL,
-  edge_weights = NULL
+  edge_weights = NULL,
+  tie_mode = c("single", "average")
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ grip.prepare.geodesic.kk(
 
 \item{edge_weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
+
+\item{tie_mode}{Shortest-path aggregation mode. \code{"single"} uses one
+deterministic chosen shortest path per pair. \code{"average"} replaces
+each tied shortest-path family by the exact uniform average over all
+shortest paths between the pair.}
 }
 \value{
 A list with the all-pairs graph distances, chosen paths, and cached
@@ -36,8 +42,11 @@ path cache needed to evaluate or optimize the full geodesic Kamada--Kawai
 objective repeatedly on the same connected graph.
 }
 \details{
-For each unordered vertex pair, the prepared object stores one deterministic
-chosen graph shortest path, its graph distance, and the corresponding path
-edge sequence. This is the full all-pairs analogue of the sparse landmark
-cache used by \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+For each unordered vertex pair, the prepared object stores either one
+deterministic chosen graph shortest path (\code{tie_mode = "single"}) or the
+exact uniform average over all tied shortest paths
+(\code{tie_mode = "average"}), together with the graph distance and the
+corresponding cached edge realization. This is the full all-pairs analogue of
+the sparse landmark cache used by
+\code{\link{grip.prepare.landmark.geodesic.kk}()}.
 }
