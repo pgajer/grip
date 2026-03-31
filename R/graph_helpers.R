@@ -75,6 +75,25 @@
   coords
 }
 
+.cylinder.param.coords <- function(h, w, radius = 1, height = 2) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  radius <- .as_positive_scalar(radius, "radius")
+  height <- .as_positive_scalar(height, "height")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  z_vals <- rev(.grid_axis(h) * (height / 2))
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(radius * theta_vals[[j]], z_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("theta_arc", "z")
+  coords
+}
+
 .edge.weights.from.embedding <- function(edges,
                                          coords,
                                          normalize = c("median", "mean", "none")) {
@@ -312,6 +331,166 @@ mesh.surface.graph <- function(h,
     label = sprintf("%s mesh %dx%d", tools::toTitleCase(surface), h, w)
   )
   class(out) <- c("grip_mesh_surface_graph", "list")
+  out
+}
+
+#' Weighted cylinder surface helpers
+#'
+#' Convenience helpers that embed a cylindrical grid graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology is cylindrical but the intended metric comes from a curved or
+#' spatially varying 3D realization.
+#'
+#' `cylinder.surface.embedding()` returns the 3D coordinates of the embedded
+#' cylindrical grid. `cylinder.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the cylinder edges, induced edge weights, the 3D surface
+#' coordinates, and a 2D unwrapped parameterization.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Cylinder surface family. One of \code{"barrel"},
+#'   \code{"hourglass"}, or \code{"wavy"}.
+#' @param radius Positive baseline cylinder radius.
+#' @param height Positive cylinder height.
+#' @param amplitude Finite numeric deformation amplitude. The resulting radius
+#'   profile must stay positive everywhere.
+#' @param freq_theta Positive angular frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq_z Positive vertical frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite angular twist applied linearly with height.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{cylinder.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{cylinder.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected cylindrical-grid edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D unwrapped parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"cylinder"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name cylinder_surface_helpers
+NULL
+
+#' @rdname cylinder_surface_helpers
+#' @export
+cylinder.surface.embedding <- function(h,
+                                       w = h,
+                                       surface = c("barrel", "hourglass", "wavy"),
+                                       radius = 1,
+                                       height = 2,
+                                       amplitude = 0.3,
+                                       freq_theta = 2,
+                                       freq_z = 1,
+                                       twist = 0.25) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  radius <- .as_positive_scalar(radius, "radius")
+  height <- .as_positive_scalar(height, "height")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_theta <- .as_positive_scalar(freq_theta, "freq_theta")
+  freq_z <- .as_positive_scalar(freq_z, "freq_z")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  s_vals <- rev(.grid_axis(h))
+  coords <- matrix(0, nrow = h * w, ncol = 3L)
+  for (i in seq_len(h)) {
+    s <- s_vals[[i]]
+    z <- (height / 2) * s
+    for (j in seq_len(w)) {
+      theta <- theta_vals[[j]]
+      local_radius <- switch(
+        surface,
+        barrel = radius * (1 + amplitude * (1 - s^2)),
+        hourglass = radius * (1 - amplitude * (1 - s^2)),
+        wavy = radius * (1 + amplitude * sin(freq_theta * theta) * cos(pi * freq_z * s))
+      )
+      if (!is.finite(local_radius) || local_radius <= 0) {
+        stop("cylinder surface parameters produce a non-positive radius; adjust amplitude or surface settings",
+             call. = FALSE)
+      }
+      angle <- theta + twist * s
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(
+        local_radius * cos(angle),
+        local_radius * sin(angle),
+        z
+      )
+    }
+  }
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname cylinder_surface_helpers
+#' @export
+cylinder.surface.graph <- function(h,
+                                   w = h,
+                                   surface = c("barrel", "hourglass", "wavy"),
+                                   radius = 1,
+                                   height = 2,
+                                   amplitude = 0.3,
+                                   freq_theta = 2,
+                                   freq_z = 1,
+                                   twist = 0.25,
+                                   normalize = c("median", "mean", "none")) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.cylinder(h, w)
+  coords_param <- .cylinder.param.coords(
+    h = h,
+    w = w,
+    radius = radius,
+    height = height
+  )
+  coords_surface <- cylinder.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    radius = radius,
+    height = height,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_z = freq_z,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "cylinder",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s cylinder %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_cylinder_surface_graph", "list")
   out
 }
 
