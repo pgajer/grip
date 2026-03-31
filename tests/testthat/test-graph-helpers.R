@@ -11,6 +11,7 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.sphere(4, 5),
     edges.cube(3),
     edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
+    edges.triangulated.polyhedron("octahedron", 1),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
@@ -37,6 +38,12 @@ test_that("sierpinski triangle counts match the paper depth convention", {
 test_that("sierpinski tetrahedron counts match the legacy generator", {
   expect_equal(max(edges.sierpinski.tetrahedron(5)), 2050L)
   expect_equal(max(edges.sierpinski.tetrahedron(6)), 8194L)
+})
+
+test_that("triangulated polyhedron counts match closed-surface formulas", {
+  expect_equal(max(edges.triangulated.polyhedron("tetrahedron", 1)), 10L)
+  expect_equal(max(edges.triangulated.polyhedron("octahedron", 1)), 18L)
+  expect_equal(max(edges.triangulated.polyhedron("icosahedron", 1)), 42L)
 })
 
 test_that("sierpinski carpet labels all occupied cells consecutively", {
@@ -136,6 +143,12 @@ test_that("cube graph matches the cube-surface vertex count", {
   edges <- edges.cube(4)
   expect_equal(max(edges), 56L)
   expect_true(all(sort(unique(c(edges))) == seq_len(56L)))
+})
+
+test_that("triangulated polyhedron graph labels vertices consecutively", {
+  edges <- edges.triangulated.polyhedron("icosahedron", 1)
+  expect_equal(max(edges), 42L)
+  expect_true(all(sort(unique(c(edges))) == seq_len(42L)))
 })
 
 test_that("mesh surface embedding returns finite 3D coordinates", {
@@ -298,6 +311,59 @@ test_that("wavy sphere graph supports alternate weight normalization", {
     freq_theta = 3,
     freq_lat = 2,
     twist = 0.3,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("triangulated polyhedron surface embedding returns finite 3D coordinates", {
+  coords <- triangulated.polyhedron.surface.embedding(
+    base = "icosahedron",
+    level = 1,
+    surface = "twisted",
+    twist = 0.5
+  )
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(42L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("triangulated polyhedron surface graph returns normalized positive edge weights", {
+  spec <- triangulated.polyhedron.surface.graph(
+    base = "octahedron",
+    level = 2,
+    surface = "inflated",
+    amplitude = 0.6
+  )
+
+  expect_s3_class(spec, "grip_triangulated_polyhedron_surface_graph")
+  expect_equal(spec$edges, edges.triangulated.polyhedron("octahedron", 2))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(spec$base, "octahedron")
+  expect_equal(spec$level, 2L)
+  expect_equal(spec$subdivision, 4L)
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+  expect_equal(spec$family, "triangulated.polyhedron")
+  expect_equal(spec$surface, "inflated")
+})
+
+test_that("wavy triangulated polyhedron graph supports alternate normalization", {
+  spec <- triangulated.polyhedron.surface.graph(
+    base = "tetrahedron",
+    level = 1,
+    surface = "wavy",
+    amplitude = 0.18,
+    freq = 1.5,
     normalize = "mean"
   )
 

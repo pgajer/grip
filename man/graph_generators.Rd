@@ -16,6 +16,7 @@
 \alias{edges.recursive.mask.grid}
 \alias{edges.recursive.tetrahedron.mask}
 \alias{edges.recursive.triangle.mask}
+\alias{edges.triangulated.polyhedron}
 \alias{edges.vicsek}
 \alias{edges.sierpinski.triangle}
 \alias{edges.sierpinski.tetrahedron}
@@ -48,6 +49,11 @@ edges.recursive.tetrahedron.mask(mask = mask.tetrahedron.classic(), level = 2)
 
 edges.recursive.triangle.mask(mask = mask.triangle.classic(), level = 2)
 
+edges.triangulated.polyhedron(
+  base = c("tetrahedron", "octahedron", "icosahedron"),
+  level = 1
+)
+
 edges.menger.sponge(level = 2)
 
 edges.vicsek(level = 2)
@@ -73,6 +79,9 @@ edges.sierpinski.carpet(level = 2)
 
 \item{depth}{Number of levels below the root.}
 
+\item{base}{Base polyhedron for \code{edges.triangulated.polyhedron()}. One
+of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
+
 \item{mask}{Logical or numeric keep-mask. For
 \code{edges.recursive.mask.grid()}, this must be a square matrix whose
 non-zero entries are kept at each recursive subdivision step, with rows
@@ -88,9 +97,9 @@ subdivision step.}
 \item{level}{Recursion depth. For \code{edges.recursive.mask.grid()},
 \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
 \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
-\code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
-and \code{edges.recursive.tetrahedron.mask()} also allow
-\code{level = 0}.}
+\code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
+\code{edges.recursive.tetrahedron.mask()}, and
+\code{edges.triangulated.polyhedron()} also allow \code{level = 0}.}
 }
 \value{
 A two-column integer matrix of undirected edges. Vertex labels are
@@ -110,7 +119,8 @@ builds a finite perforated-mesh family from an occupancy matrix,
 square-mask family, \code{\link{edges.recursive.cube.mask}()} builds a
 generic cube-mask family, \code{\link{edges.vicsek}()} builds the connected
 axial-cross variant, \code{\link{edges.menger.sponge}()} builds the classic
-cubical sponge variant,
+cubical sponge variant, \code{\link{edges.triangulated.polyhedron}()} builds
+a generic irregular triangulated-surface family,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
 triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
 builds a generic tetrahedron-mask family,
@@ -158,6 +168,10 @@ vertices are the retained subdivision vertices of an equilateral triangle.
 
 \item \code{edges.recursive.tetrahedron.mask()}: Recursively refined tetrahedron-mask graph whose
 vertices are the retained subdivision vertices of a tetrahedron.
+
+\item \code{edges.triangulated.polyhedron()}: Triangulated closed-surface graph obtained by
+repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
+icosahedron.
 
 \item \code{edges.menger.sponge()}: Classic Menger-sponge cubical cell-adjacency
 graph derived from the \code{3 x 3 x 3} keep-mask that removes the center

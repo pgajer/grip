@@ -323,6 +323,15 @@
   centered / radius
 }
 
+.normalize.row.coords <- function(coords) {
+  coords <- as.matrix(coords)
+  norms <- sqrt(rowSums(coords^2))
+  if (any(!is.finite(norms) | norms <= 0)) {
+    stop("coords must have positive finite row norms", call. = FALSE)
+  }
+  sweep(coords, 1L, norms, "/")
+}
+
 .occupied.mesh.cells <- function(keep) {
   keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
   h <- nrow(keep)
@@ -547,6 +556,177 @@
   }
 
   .bind_edges(edges)
+}
+
+.triangulated.polyhedron.base <- function(base = c("tetrahedron", "octahedron", "icosahedron")) {
+  base <- match.arg(base)
+  out <- switch(
+    base,
+    tetrahedron = list(
+      vertices = rbind(
+        c(1, 1, 1),
+        c(-1, -1, 1),
+        c(-1, 1, -1),
+        c(1, -1, -1)
+      ),
+      faces = matrix(
+        c(
+          1, 2, 3,
+          1, 4, 2,
+          1, 3, 4,
+          2, 4, 3
+        ),
+        ncol = 3L,
+        byrow = TRUE
+      )
+    ),
+    octahedron = list(
+      vertices = rbind(
+        c(1, 0, 0),
+        c(-1, 0, 0),
+        c(0, 1, 0),
+        c(0, -1, 0),
+        c(0, 0, 1),
+        c(0, 0, -1)
+      ),
+      faces = matrix(
+        c(
+          1, 3, 5,
+          3, 2, 5,
+          2, 4, 5,
+          4, 1, 5,
+          3, 1, 6,
+          2, 3, 6,
+          4, 2, 6,
+          1, 4, 6
+        ),
+        ncol = 3L,
+        byrow = TRUE
+      )
+    ),
+    icosahedron = {
+      phi <- (1 + sqrt(5)) / 2
+      list(
+        vertices = rbind(
+          c(-1, phi, 0),
+          c(1, phi, 0),
+          c(-1, -phi, 0),
+          c(1, -phi, 0),
+          c(0, -1, phi),
+          c(0, 1, phi),
+          c(0, -1, -phi),
+          c(0, 1, -phi),
+          c(phi, 0, -1),
+          c(phi, 0, 1),
+          c(-phi, 0, -1),
+          c(-phi, 0, 1)
+        ),
+        faces = matrix(
+          c(
+            1, 12, 6,
+            1, 6, 2,
+            1, 2, 8,
+            1, 8, 11,
+            1, 11, 12,
+            2, 6, 10,
+            6, 12, 5,
+            12, 11, 3,
+            11, 8, 7,
+            8, 2, 9,
+            4, 10, 5,
+            4, 5, 3,
+            4, 3, 7,
+            4, 7, 9,
+            4, 9, 10,
+            5, 10, 6,
+            3, 5, 12,
+            7, 3, 11,
+            9, 7, 8,
+            10, 9, 2
+          ),
+          ncol = 3L,
+          byrow = TRUE
+        )
+      )
+    }
+  )
+  out$vertices <- .normalize.row.coords(out$vertices)
+  storage.mode(out$vertices) <- "double"
+  storage.mode(out$faces) <- "integer"
+  out
+}
+
+.triangulated.polyhedron.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                               level = 1) {
+  base <- match.arg(base)
+  level <- .as_whole_number(level, "level")
+  spec <- .triangulated.polyhedron.base(base)
+  vertices <- spec$vertices
+  faces <- spec$faces
+  subdiv <- as.integer(2^level)
+
+  face_build <- function(a, b, c) {
+    id_map <- matrix(NA_integer_, nrow = subdiv + 1L, ncol = subdiv + 1L)
+    coords <- vector("list", ((subdiv + 1L) * (subdiv + 2L)) %/% 2L)
+    next_id <- 1L
+    for (i in 0:subdiv) {
+      for (j in 0:(subdiv - i)) {
+        id_map[i + 1L, j + 1L] <- next_id
+        point <- a + (i / subdiv) * (b - a) + (j / subdiv) * (c - a)
+        coords[[next_id]] <- point
+        next_id <- next_id + 1L
+      }
+    }
+
+    edges <- list()
+    for (i in 0:subdiv) {
+      for (j in 0:(subdiv - i)) {
+        cur <- id_map[i + 1L, j + 1L]
+        if ((i + 1L + j) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 2L, j + 1L])
+        }
+        if ((i + j + 1L) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 1L, j + 2L])
+        }
+        if (j >= 1L && (i + 1L + j - 1L) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 2L, j])
+        }
+      }
+    }
+
+    list(
+      coords = do.call(rbind, coords),
+      edges = .bind_edges(edges)
+    )
+  }
+
+  coords_list <- list()
+  edges_list <- list()
+  offset <- 0L
+  for (face_idx in seq_len(nrow(faces))) {
+    face <- faces[face_idx, ]
+    built <- face_build(vertices[face[1L], ],
+                        vertices[face[2L], ],
+                        vertices[face[3L], ])
+    coords_list[[face_idx]] <- built$coords
+    edges_list[[face_idx]] <- built$edges + offset
+    offset <- offset + nrow(built$coords)
+  }
+
+  merged <- .deduplicate.coordinate.graph(
+    edges = .bind_edges(edges_list),
+    coords = do.call(rbind, coords_list)
+  )
+  coords <- merged$coords
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  list(
+    edges = merged$edges,
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    base = base,
+    subdivision = subdiv
+  )
 }
 
 .sierpinski.carpet.mask <- function() {
@@ -1575,7 +1755,8 @@ keep.asymmetric.notches <- function(h,
 #' \code{\link{edges.recursive.cube.mask}()} builds a generic cube-mask
 #' family, \code{\link{edges.vicsek}()} builds the connected axial-cross
 #' variant, \code{\link{edges.menger.sponge}()} builds the classic cubical
-#' sponge variant,
+#' sponge variant, \code{\link{edges.triangulated.polyhedron}()} builds a
+#' generic irregular triangulated-surface family,
 #' \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
 #' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 #' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
@@ -2303,6 +2484,186 @@ sphere.surface.graph <- function(h,
     label = sprintf("%s sphere %dx%d", tools::toTitleCase(surface), h, w)
   )
   class(out) <- c("grip_sphere_surface_graph", "list")
+  out
+}
+
+.triangulated.polyhedron.surface.coords <- function(coords_param,
+                                                    surface,
+                                                    amplitude,
+                                                    freq,
+                                                    twist) {
+  surface <- .as_named_choice(surface,
+                              c("standard", "inflated", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq <- .as_positive_scalar(freq, "freq")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  coords_param <- as.matrix(coords_param)
+  norms <- sqrt(rowSums(coords_param^2))
+  unit <- .normalize.row.coords(coords_param)
+  coords_norm <- .normalize.center_radius.coords(coords_param)
+  coords <- switch(
+    surface,
+    standard = coords_param,
+    inflated = {
+      target_radius <- norms + amplitude * (1 - norms)
+      if (any(!is.finite(target_radius) | target_radius <= 0)) {
+        stop("inflated polyhedron parameters produce a non-positive radius; adjust amplitude",
+             call. = FALSE)
+      }
+      unit * target_radius
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords_param[, 1L] * cos(theta) - coords_param[, 2L] * sin(theta)
+      y <- coords_param[, 1L] * sin(theta) + coords_param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords_param[, 3L])
+    },
+    wavy = {
+      radial_scale <- 1 + amplitude *
+        sin(pi * freq * coords_norm[, 1L]) *
+        cos(pi * freq * coords_norm[, 2L]) *
+        sin(pi * freq * coords_norm[, 3L])
+      if (any(!is.finite(radial_scale) | radial_scale <= 0)) {
+        stop("wavy polyhedron parameters produce a non-positive local radius; adjust amplitude or frequency",
+             call. = FALSE)
+      }
+      unit * (norms * radial_scale)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted triangulated polyhedron surface helpers
+#'
+#' Convenience helpers that take a triangular-face polyhedron, repeatedly split
+#' each face into four subtriangles, merge shared-edge vertices, and use the
+#' resulting triangulated-surface graph as a reusable benchmark family. The
+#' canonical geometry is a piecewise-flat triangulated surface, while the
+#' weighted variants can inflate, twist, or radially modulate that surface in
+#' \eqn{\mathbb{R}^3}.
+#'
+#' The current supported bases are the regular tetrahedron, octahedron, and
+#' icosahedron. These give closed triangulated surfaces with non-grid topology
+#' and a small number of extraordinary vertices, making them useful complements
+#' to the mesh-derived families already in the package.
+#'
+#' @param base Base polyhedron. One of \code{"tetrahedron"},
+#'   \code{"octahedron"}, or \code{"icosahedron"}.
+#' @param level Subdivision depth. \code{level = 0} returns the base
+#'   triangulation, \code{level = 1} splits each face into four, and so on.
+#' @param surface Geometry family used for the 3D embedding. One of
+#'   \code{"standard"}, \code{"inflated"}, \code{"twisted"}, or
+#'   \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{triangulated.polyhedron.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.polyhedron.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated-surface edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical piecewise-flat coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.polyhedron"},
+#'   \item \code{base}: the chosen base polyhedron,
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the subdivision depth,
+#'   \item \code{subdivision}: the linear face subdivision factor
+#'     \code{2^level},
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_polyhedron_surface_helpers
+NULL
+
+#' @rdname triangulated_polyhedron_surface_helpers
+#' @export
+triangulated.polyhedron.surface.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    surface = c("standard", "inflated", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+
+  built <- .triangulated.polyhedron.canonical(base = base, level = level)
+  .triangulated.polyhedron.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname triangulated_polyhedron_surface_helpers
+#' @export
+triangulated.polyhedron.surface.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    surface = c("standard", "inflated", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  level <- .as_whole_number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .triangulated.polyhedron.canonical(base = base, level = level)
+  coords_surface <- triangulated.polyhedron.surface.embedding(
+    base = base,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.polyhedron",
+    base = base,
+    surface = surface,
+    level = level,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s triangulated %s level %d",
+                    tools::toTitleCase(surface),
+                    base,
+                    level)
+  )
+  class(out) <- c("grip_triangulated_polyhedron_surface_graph", "list")
   out
 }
 
@@ -3506,6 +3867,8 @@ edges.sphere <- function(h, w = h) {
 #' @describeIn graph_generators Cube surface graph on the boundary of a
 #'   \code{side x side x side} lattice.
 #' @param side Number of lattice points along each cube edge.
+#' @param base Base polyhedron for \code{edges.triangulated.polyhedron()}. One
+#'   of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
 #' @export
 edges.cube <- function(side = 2) {
   side <- .as_whole_number(side, "side", min = 2L)
@@ -3586,9 +3949,9 @@ edges.kary.tree <- function(k = 2, depth = 2) {
 #' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
 #'   \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
 #'   \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
-#'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
-#'   and \code{edges.recursive.tetrahedron.mask()} also allow
-#'   \code{level = 0}.
+#'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
+#'   \code{edges.recursive.tetrahedron.mask()}, and
+#'   \code{edges.triangulated.polyhedron()} also allow \code{level = 0}.
 #' @export
 edges.recursive.mask.grid <- function(mask, level = 2) {
   .recursive.mask.grid.edges(mask, level)
@@ -3615,6 +3978,17 @@ edges.recursive.tetrahedron.mask <- function(mask = mask.tetrahedron.classic(),
 #' @export
 edges.recursive.cube.mask <- function(mask, level = 2) {
   .recursive.cube.mask.edges(mask, level)
+}
+
+#' @describeIn graph_generators Triangulated closed-surface graph obtained by
+#'   repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
+#'   icosahedron.
+#' @export
+edges.triangulated.polyhedron <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1) {
+  base <- match.arg(base)
+  .triangulated.polyhedron.canonical(base = base, level = level)$edges
 }
 
 #' @describeIn graph_generators Connected Vicsek-style cross family derived from
