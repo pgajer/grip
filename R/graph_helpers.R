@@ -2537,7 +2537,7 @@
 }
 
 .tetrahedron.classic.mask <- function() {
-  setNames(rep(TRUE, 4L), c("base_left", "base_right", "base_back", "apex"))
+  stats::setNames(rep(TRUE, 4L), c("base_left", "base_right", "base_back", "apex"))
 }
 
 .tetrahedron.corner.missing.mask <- function(omit = c("apex", "base_left",
@@ -2645,12 +2645,12 @@
 }
 
 .triangle.classic.mask <- function() {
-  setNames(c(TRUE, TRUE, TRUE, FALSE), c("left", "right", "top", "center"))
+  stats::setNames(c(TRUE, TRUE, TRUE, FALSE), c("left", "right", "top", "center"))
 }
 
 .triangle.bridge.mask <- function(missing = c("top", "left", "right")) {
   missing <- .as_named_choice(missing[[1L]], c("top", "left", "right"), "missing")
-  keep <- setNames(rep(TRUE, 4L), c("left", "right", "top", "center"))
+  keep <- stats::setNames(rep(TRUE, 4L), c("left", "right", "top", "center"))
   keep[[missing]] <- FALSE
   keep
 }
@@ -3494,6 +3494,18 @@ keep.asymmetric.notches <- function(h,
 #'
 #' @return A two-column integer matrix of undirected edges. Vertex labels are
 #'   consecutive integers starting at 1.
+#' @param tunnel_width Width of each removed tunnel band in
+#'   \code{edges.cube.periodic.tunnels()}.
+#' @param tunnel_period Spacing between successive tunnel bands in
+#'   \code{edges.cube.periodic.tunnels()}.
+#' @param tunnel_offset Starting index of the first tunnel band in
+#'   \code{edges.cube.periodic.tunnels()}.
+#' @param cavity_size Side length of the larger interior cavity block in
+#'   \code{edges.cube.asymmetric.cavities()}.
+#' @param pocket_size Side length of the smaller secondary cavity block in
+#'   \code{edges.cube.asymmetric.cavities()}.
+#' @param channel_width Width of each removed channel in
+#'   \code{edges.cube.channel.network()}.
 #' @name graph_generators
 NULL
 
