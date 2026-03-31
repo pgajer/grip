@@ -88,3 +88,45 @@ test_that("ripple mesh graph supports alternate weight normalization", {
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
+
+test_that("cylinder surface embedding returns finite 3D coordinates", {
+  coords <- cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(40L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("cylinder surface graph returns normalized positive edge weights", {
+  spec <- cylinder.surface.graph(5, 8, surface = "hourglass", amplitude = 0.35)
+
+  expect_s3_class(spec, "grip_cylinder_surface_graph")
+  expect_equal(spec$edges, edges.cylinder(5, 8))
+  expect_equal(spec$n, 40L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(40L, 3L))
+  expect_equal(dim(spec$coords_param), c(40L, 2L))
+  expect_equal(spec$family, "cylinder")
+  expect_equal(spec$surface, "hourglass")
+})
+
+test_that("wavy cylinder graph supports alternate weight normalization", {
+  spec <- cylinder.surface.graph(
+    6, 9,
+    surface = "wavy",
+    amplitude = 0.2,
+    freq_theta = 3,
+    freq_z = 1.5,
+    twist = 0.4,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
