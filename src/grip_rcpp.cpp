@@ -33,6 +33,10 @@ void validate_globalrep_tuning_args(int num_nbrs,
                                     double final_anchor_factor,
                                     double final_move_scale_after_first,
                                     int insertion_anchor_count,
+                                    int lgkk_multiscale_rounds,
+                                    int lgkk_local_nbrs,
+                                    int lgkk_landmark_count,
+                                    int lgkk_active_limit,
                                     int level0_anchor_count,
                                     int level0_local_kk_steps)
 {
@@ -51,6 +55,14 @@ void validate_globalrep_tuning_args(int num_nbrs,
         Rcpp::stop("final_move_scale_after_first must be finite and in [0, 1]");
     if(insertion_anchor_count <= 0)
         Rcpp::stop("insertion_anchor_count must be a positive integer");
+    if(lgkk_multiscale_rounds < 0)
+        Rcpp::stop("lgkk_multiscale_rounds must be a non-negative integer");
+    if(lgkk_local_nbrs < 0)
+        Rcpp::stop("lgkk_local_nbrs must be a non-negative integer");
+    if(lgkk_landmark_count < 0)
+        Rcpp::stop("lgkk_landmark_count must be a non-negative integer");
+    if(lgkk_active_limit <= 0)
+        Rcpp::stop("lgkk_active_limit must be a positive integer");
     if(level0_anchor_count <= 0)
         Rcpp::stop("level0_anchor_count must be a positive integer");
     if(level0_local_kk_steps < 0)
@@ -84,6 +96,26 @@ size_tt insertion_anchor_scope_from_string(const std::string &scope)
     if(scope == "prev_misf")
         return INSERT_ANCHOR_SCOPE_PREV_MISF;
     Rcpp::stop("insertion_anchor_scope must be 'any_higher' or 'prev_misf'");
+}
+
+size_tt insertion_anchor_strategy_from_string(const std::string &strategy)
+{
+    if(strategy == "first")
+        return INSERT_ANCHOR_STRATEGY_FIRST;
+    if(strategy == "distance_band")
+        return INSERT_ANCHOR_STRATEGY_DISTANCE_BAND;
+    if(strategy == "balanced_band")
+        return INSERT_ANCHOR_STRATEGY_BALANCED_BAND;
+    Rcpp::stop("insertion_anchor_strategy must be 'first', 'distance_band', or 'balanced_band'");
+}
+
+size_tt lgkk_scope_from_string(const std::string &scope)
+{
+    if(scope == "all")
+        return LGKK_SCOPE_ALL;
+    if(scope == "coarse")
+        return LGKK_SCOPE_COARSE;
+    Rcpp::stop("lgkk_multiscale_scope must be 'all' or 'coarse'");
 }
 
 } // namespace
@@ -314,9 +346,15 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
     double final_move_scale_after_first,
     int insertion_anchor_count,
     std::string insertion_anchor_scope,
+    std::string insertion_anchor_strategy,
     std::string level0_insertion_mode,
     int level0_anchor_count,
     int level0_local_kk_steps,
+    int lgkk_multiscale_rounds,
+    int lgkk_local_nbrs,
+    int lgkk_landmark_count,
+    std::string lgkk_multiscale_scope,
+    int lgkk_active_limit,
     std::string final_mode,
     int tinit_factor,
     Rcpp::Nullable<int> seed)
@@ -347,6 +385,10 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                                    final_anchor_factor,
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
+                                   lgkk_multiscale_rounds,
+                                   lgkk_local_nbrs,
+                                   lgkk_landmark_count,
+                                   lgkk_active_limit,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -398,7 +440,9 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
     size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
+    size_tt insertion_strategy = insertion_anchor_strategy_from_string(insertion_anchor_strategy);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
+    size_tt lgkk_scope = lgkk_scope_from_string(lgkk_multiscale_scope);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -420,9 +464,15 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
                  final_move_scale_after_first,
                  static_cast<size_tt>(insertion_anchor_count),
                  insertion_scope,
+                 insertion_strategy,
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
-                 static_cast<size_tt>(level0_local_kk_steps));
+                 static_cast<size_tt>(level0_local_kk_steps),
+                 static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_local_nbrs),
+                 static_cast<size_tt>(lgkk_landmark_count),
+                 lgkk_scope,
+                 static_cast<size_tt>(lgkk_active_limit));
 
     dg.mish_engine();
 
@@ -599,9 +649,15 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                                double final_move_scale_after_first,
                                                int insertion_anchor_count,
                                                std::string insertion_anchor_scope,
+                                               std::string insertion_anchor_strategy,
                                                std::string level0_insertion_mode,
                                                int level0_anchor_count,
                                                int level0_local_kk_steps,
+                                               int lgkk_multiscale_rounds,
+                                               int lgkk_local_nbrs,
+                                               int lgkk_landmark_count,
+                                               std::string lgkk_multiscale_scope,
+                                               int lgkk_active_limit,
                                                std::string final_mode,
                                                int tinit_factor,
                                                Rcpp::Nullable<int> seed,
@@ -639,6 +695,10 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                                    final_anchor_factor,
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
+                                   lgkk_multiscale_rounds,
+                                   lgkk_local_nbrs,
+                                   lgkk_landmark_count,
+                                   lgkk_active_limit,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -690,7 +750,9 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
         (placement == "circle") ? PLACEMENT_CIRCLE : PLACEMENT_BARYCENTER;
     size_tt final_stage_mode = final_stage_mode_from_string(final_mode);
     size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
+    size_tt insertion_strategy = insertion_anchor_strategy_from_string(insertion_anchor_strategy);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
+    size_tt lgkk_scope = lgkk_scope_from_string(lgkk_multiscale_scope);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -712,9 +774,15 @@ Rcpp::List grip_layout_globalrep_trace_adj_cpp(Rcpp::List adj_list,
                  final_move_scale_after_first,
                  static_cast<size_tt>(insertion_anchor_count),
                  insertion_scope,
+                 insertion_strategy,
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
-                 static_cast<size_tt>(level0_local_kk_steps));
+                 static_cast<size_tt>(level0_local_kk_steps),
+                 static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_local_nbrs),
+                 static_cast<size_tt>(lgkk_landmark_count),
+                 lgkk_scope,
+                 static_cast<size_tt>(lgkk_active_limit));
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
                        static_cast<size_tt>(trace_every));
 

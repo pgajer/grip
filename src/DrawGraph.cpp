@@ -4,6 +4,7 @@
 //
 #include "DrawGraph.h"
 #include <algorithm>
+#include <functional>
 #include <stdexcept>
 #include <vector>
 #include <limits>
@@ -33,9 +34,15 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      coord_t _finalMoveScaleAfterFirst,
                      size_tt _insertionAnchorCount,
                      size_tt _insertionAnchorScope,
+                     size_tt _insertionAnchorStrategy,
                      size_tt _level0InsertionMode,
                      size_tt _level0AnchorCount,
-                     size_tt _level0LocalKkSteps)
+                     size_tt _level0LocalKkSteps,
+                     size_tt _lgkkMultiscaleRounds,
+                     size_tt _lgkkLocalNbrs,
+                     size_tt _lgkkLandmarkCount,
+                     size_tt _lgkkScope,
+                     size_tt _lgkkActiveLimit)
 : createList(false),
   graph(_graph),
   dim(_dim),
@@ -69,6 +76,11 @@ DrawGraph::DrawGraph(const Graph &_graph,
   insertionAnchorScope((_insertionAnchorScope == INSERT_ANCHOR_SCOPE_PREV_MISF)
                            ? INSERT_ANCHOR_SCOPE_PREV_MISF
                            : INSERT_ANCHOR_SCOPE_ANY_HIGHER),
+  insertionAnchorStrategy((_insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_DISTANCE_BAND)
+                              ? INSERT_ANCHOR_STRATEGY_DISTANCE_BAND
+                              : (_insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_BALANCED_BAND)
+                                    ? INSERT_ANCHOR_STRATEGY_BALANCED_BAND
+                                    : INSERT_ANCHOR_STRATEGY_FIRST),
   level0InsertionMode((_level0InsertionMode == LEVEL0_INSERT_BARYCENTER)
                           ? LEVEL0_INSERT_BARYCENTER
                           : (_level0InsertionMode == LEVEL0_INSERT_LEAST_SQUARES)
@@ -76,13 +88,23 @@ DrawGraph::DrawGraph(const Graph &_graph,
                                 : LEVEL0_INSERT_INHERIT),
   level0AnchorCount(std::max<size_tt>(1, _level0AnchorCount)),
   level0LocalKkSteps(_level0LocalKkSteps),
+  lgkkMultiscaleRounds(_lgkkMultiscaleRounds),
+  lgkkLocalNbrs(_lgkkLocalNbrs),
+  lgkkLandmarkCount(_lgkkLandmarkCount),
+  lgkkScope((_lgkkScope == LGKK_SCOPE_COARSE)
+                ? LGKK_SCOPE_COARSE
+                : LGKK_SCOPE_ALL),
+  lgkkActiveLimit(std::max<size_tt>(1, _lgkkActiveLimit)),
   activeVertCount(0),
   currentRoundInLevel(0),
   finalAnchorReady(false),
   traceMode(TRACE_NONE),
   traceEvery(1),
   traceLevelIndex(0),
-  finalAnchorPos(_graph.get_numOfVert())
+  finalAnchorPos(_graph.get_numOfVert()),
+  lgkkCacheActiveCount(0),
+  lgkkCacheMisfLevel(-1),
+  lgkkCacheScaleL0(1.0)
 {
 #define DEBUG 0
     if( dim != 2 && dim != 3 )
@@ -574,6 +596,210 @@ Point<> DrawGraph::initial_position_least_squares(const size_tt *closeVert,
     for(size_tt k = 0; k < dim; k++)
         sol[k] = aug[k][dim];
     return Point<>(sol[0], sol[1], dim > 2 ? sol[2] : 0.0);
+}
+
+void DrawGraph::select_insertion_anchor_subset(std::vector<size_tt> &anchors,
+                                               std::vector<size_tt> &anchorDist,
+                                               size_tt targetCount)
+{
+    if(targetCount == 0 || anchors.size() <= targetCount)
+        return;
+
+    Point<> candidateCentroid = pos[anchors[0]];
+    candidateCentroid.set_to_zero();
+    for(size_t i = 0; i < anchors.size(); i++)
+        candidateCentroid += pos[anchors[i]];
+    candidateCentroid /= (coord_t)anchors.size();
+
+    if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_BALANCED_BAND){
+        auto subsetObjective = [&](const std::vector<size_t> &subsetIndices){
+            Point<> subsetCentroid = candidateCentroid;
+            subsetCentroid.set_to_zero();
+            for(size_t idx : subsetIndices)
+                subsetCentroid += pos[anchors[idx]];
+            subsetCentroid /= (coord_t)subsetIndices.size();
+
+            double centroidError = norm2(subsetCentroid, candidateCentroid);
+            double minSep = 0.0;
+            if(subsetIndices.size() >= 2){
+                minSep = std::numeric_limits<double>::infinity();
+                for(size_t i = 0; i < subsetIndices.size(); i++){
+                    for(size_t j = i + 1; j < subsetIndices.size(); j++){
+                        double sep = norm2(pos[anchors[subsetIndices[i]]],
+                                           pos[anchors[subsetIndices[j]]]);
+                        if(sep < minSep)
+                            minSep = sep;
+                    }
+                }
+                if(!std::isfinite(minSep))
+                    minSep = 0.0;
+            }
+
+            double scale = 0.0;
+            for(size_t i = 0; i < anchors.size(); i++)
+                scale = std::max(scale, norm2(pos[anchors[i]], candidateCentroid));
+            if(scale <= 0.0)
+                scale = 1.0;
+
+            return centroidError / scale - 0.25 * (minSep / scale);
+        };
+
+        auto build_subset = [&](const std::vector<size_t> &bestIndices){
+            std::vector<size_tt> selected;
+            std::vector<size_tt> selectedDist;
+            selected.reserve(bestIndices.size());
+            selectedDist.reserve(bestIndices.size());
+            for(size_t idx : bestIndices){
+                selected.push_back(anchors[idx]);
+                selectedDist.push_back(anchorDist[idx]);
+            }
+            anchors.swap(selected);
+            anchorDist.swap(selectedDist);
+        };
+
+        size_t n = anchors.size();
+        size_t k = std::min<size_t>(targetCount, n);
+        double combinationCount = 1.0;
+        for(size_t i = 1; i <= k; i++){
+            combinationCount *= static_cast<double>(n - k + i);
+            combinationCount /= static_cast<double>(i);
+        }
+
+        if(combinationCount <= 50000.0){
+            std::vector<size_t> current;
+            std::vector<size_t> best;
+            double bestObjective = std::numeric_limits<double>::infinity();
+
+            std::function<void(size_t, size_t)> dfs =
+                [&](size_t start, size_t remaining){
+                    if(remaining == 0){
+                        double objective = subsetObjective(current);
+                        if(objective < bestObjective - 1e-12){
+                            bestObjective = objective;
+                            best = current;
+                        } else if(std::fabs(objective - bestObjective) <= 1e-12){
+                            if(best.empty() ||
+                               anchors[current[0]] < anchors[best[0]]){
+                                best = current;
+                            }
+                        }
+                        return;
+                    }
+                    size_t limit = n - remaining;
+                    for(size_t idx = start; idx <= limit; idx++){
+                        current.push_back(idx);
+                        dfs(idx + 1, remaining - 1);
+                        current.pop_back();
+                    }
+                };
+            dfs(0, k);
+            if(!best.empty()){
+                build_subset(best);
+                return;
+            }
+        }
+
+        std::vector<size_t> greedy;
+        greedy.reserve(k);
+        std::vector<bool> used(anchors.size(), false);
+        while(greedy.size() < k){
+            size_t bestIndex = anchors.size();
+            double bestObjective = std::numeric_limits<double>::infinity();
+            for(size_t i = 0; i < anchors.size(); i++){
+                if(used[i])
+                    continue;
+                greedy.push_back(i);
+                double objective = subsetObjective(greedy);
+                greedy.pop_back();
+                if(objective < bestObjective - 1e-12 ||
+                   (std::fabs(objective - bestObjective) <= 1e-12 &&
+                    (bestIndex >= anchors.size() || anchors[i] < anchors[bestIndex]))){
+                    bestObjective = objective;
+                    bestIndex = i;
+                }
+            }
+            if(bestIndex >= anchors.size())
+                break;
+            used[bestIndex] = true;
+            greedy.push_back(bestIndex);
+        }
+        if(!greedy.empty()){
+            build_subset(greedy);
+            return;
+        }
+    }
+
+    std::vector<size_tt> selected;
+    std::vector<size_tt> selectedDist;
+    std::vector<bool> used(anchors.size(), false);
+
+    size_t firstChoice = 0;
+    double firstScore = -1.0;
+    for(size_t i = 0; i < anchors.size(); i++){
+        double score = norm2(pos[anchors[i]], candidateCentroid);
+        if(score > firstScore ||
+           (std::fabs(score - firstScore) <= 1e-12 &&
+            anchors[i] < anchors[firstChoice])){
+            firstScore = score;
+            firstChoice = i;
+        }
+    }
+    selected.push_back(anchors[firstChoice]);
+    selectedDist.push_back(anchorDist[firstChoice]);
+    used[firstChoice] = true;
+
+    while(selected.size() < targetCount){
+        size_t bestIndex = anchors.size();
+        double bestScore = -1.0;
+        for(size_t i = 0; i < anchors.size(); i++){
+            if(used[i])
+                continue;
+            double minSep = std::numeric_limits<double>::infinity();
+            for(size_t j = 0; j < selected.size(); j++){
+                double sep = norm2(pos[anchors[i]], pos[selected[j]]);
+                if(sep < minSep)
+                    minSep = sep;
+            }
+            if(minSep > bestScore ||
+               (std::fabs(minSep - bestScore) <= 1e-12 &&
+                (bestIndex >= anchors.size() || anchors[i] < anchors[bestIndex]))){
+                bestScore = minSep;
+                bestIndex = i;
+            }
+        }
+        if(bestIndex >= anchors.size())
+            break;
+        used[bestIndex] = true;
+        selected.push_back(anchors[bestIndex]);
+        selectedDist.push_back(anchorDist[bestIndex]);
+    }
+
+    anchors.swap(selected);
+    anchorDist.swap(selectedDist);
+}
+
+bool DrawGraph::should_run_multiscale_lgkk(size_tt activeCount,
+                                           size_tt mishLayer) const
+{
+    if(lgkkMultiscaleRounds == 0)
+        return false;
+    if(lgkkLocalNbrs == 0 && lgkkLandmarkCount == 0)
+        return false;
+    if(activeCount < 2 || activeCount > lgkkActiveLimit)
+        return false;
+    if(lgkkScope == LGKK_SCOPE_COARSE && mishLayer == 0)
+        return false;
+    return true;
+}
+
+void DrawGraph::clear_lgkk_level_cache()
+{
+    lgkkCacheActiveCount = 0;
+    lgkkCacheMisfLevel = -1;
+    lgkkCacheScaleL0 = 1.0;
+    lgkkActiveIndex.clear();
+    lgkkDistanceMatrix.clear();
+    lgkkPairs.clear();
 }
 
 //****************************************************************

@@ -381,6 +381,7 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
                                                   final_move_scale_after_first = 1,
                                                   insertion_anchor_count = 3,
                                                   insertion_anchor_scope = "any_higher",
+                                                  insertion_anchor_strategy = "first",
                                                   level0_insertion_mode = "inherit",
                                                   level0_anchor_count = insertion_anchor_count,
                                                   level0_local_kk_steps = 3) {
@@ -468,6 +469,11 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
     choices = c("any_higher", "prev_misf")
   )
 
+  insertion_anchor_strategy <- match.arg(
+    insertion_anchor_strategy,
+    choices = c("first", "distance_band", "balanced_band")
+  )
+
   level0_insertion_mode <- match.arg(
     level0_insertion_mode,
     choices = c("inherit", "barycenter", "least_squares")
@@ -511,6 +517,7 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
       final_move_scale_after_first = final_move_scale_after_first,
       insertion_anchor_count = insertion_anchor_count,
       insertion_anchor_scope = insertion_anchor_scope,
+      insertion_anchor_strategy = insertion_anchor_strategy,
       level0_insertion_mode = level0_insertion_mode,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps
@@ -519,8 +526,11 @@ grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
 }
 
 grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
+                                             lgkk_multiscale_rounds = 0L,
                                              lgkk_local_nbrs = 20L,
-                                             lgkk_landmark_count = 8L) {
+                                             lgkk_landmark_count = 8L,
+                                             lgkk_multiscale_scope = "all",
+                                             lgkk_active_limit = 4096L) {
   if (!is.numeric(lgkk_polish_rounds) ||
       length(lgkk_polish_rounds) != 1L ||
       !is.finite(lgkk_polish_rounds)) {
@@ -533,6 +543,20 @@ grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
   lgkk_polish_rounds <- as.integer(round(lgkk_polish_rounds))
   if (is.na(lgkk_polish_rounds) || lgkk_polish_rounds < 0L) {
     stop("lgkk_polish_rounds must be a non-negative integer")
+  }
+
+  if (!is.numeric(lgkk_multiscale_rounds) ||
+      length(lgkk_multiscale_rounds) != 1L ||
+      !is.finite(lgkk_multiscale_rounds)) {
+    stop("lgkk_multiscale_rounds must be a single finite numeric value")
+  }
+  if (abs(lgkk_multiscale_rounds - round(lgkk_multiscale_rounds)) >
+      sqrt(.Machine$double.eps)) {
+    stop("lgkk_multiscale_rounds must be a non-negative integer")
+  }
+  lgkk_multiscale_rounds <- as.integer(round(lgkk_multiscale_rounds))
+  if (is.na(lgkk_multiscale_rounds) || lgkk_multiscale_rounds < 0L) {
+    stop("lgkk_multiscale_rounds must be a non-negative integer")
   }
 
   if (!is.numeric(lgkk_local_nbrs) ||
@@ -563,10 +587,32 @@ grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
     stop("lgkk_landmark_count must be a non-negative integer")
   }
 
+  lgkk_multiscale_scope <- match.arg(
+    lgkk_multiscale_scope,
+    choices = c("all", "coarse")
+  )
+
+  if (!is.numeric(lgkk_active_limit) ||
+      length(lgkk_active_limit) != 1L ||
+      !is.finite(lgkk_active_limit)) {
+    stop("lgkk_active_limit must be a single finite numeric value")
+  }
+  if (abs(lgkk_active_limit - round(lgkk_active_limit)) >
+      sqrt(.Machine$double.eps)) {
+    stop("lgkk_active_limit must be a positive integer")
+  }
+  lgkk_active_limit <- as.integer(round(lgkk_active_limit))
+  if (is.na(lgkk_active_limit) || lgkk_active_limit <= 0L) {
+    stop("lgkk_active_limit must be a positive integer")
+  }
+
   list(
     lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
     lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit
   )
 }
 
@@ -740,6 +786,14 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'   allows anchors from any already placed higher MISF level.
 #'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
 #'   level only.
+#' @param insertion_anchor_strategy Anchor-selection rule used during
+#'   multiscale insertion. \code{"first"} keeps the historical
+#'   first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
+#'   until the \code{K_mish}-th anchor distance band is exhausted, then places
+#'   the new vertex from that less order-sensitive anchor pool.
+#'   \code{"balanced_band"} uses the same band expansion, then explicitly
+#'   selects a subset whose centroid stays centered in the candidate cloud while
+#'   remaining geometrically spread out.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -755,11 +809,20 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @param lgkk_polish_rounds Non-negative integer number of experimental
 #'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
 #'   \code{0} disables the polish.
+#' @param lgkk_multiscale_rounds Non-negative integer number of compiled
+#'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
+#'   after each eligible MISF level completes its standard GRIP rounds.
 #' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
-#'   vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.
+#'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
 #' @param lgkk_landmark_count Number of farthest-point landmarks retained per
-#'   vertex in the LGKK sparse long-range set when
-#'   \code{lgkk_polish_rounds > 0}.
+#'   vertex in the LGKK sparse long-range set when either LGKK stage is
+#'   enabled.
+#' @param lgkk_multiscale_scope Scope for the compiled multiscale LGKK stage.
+#'   \code{"all"} applies it after every eligible MISF level, including the
+#'   final full-graph level. \code{"coarse"} applies it only on coarse levels.
+#' @param lgkk_active_limit Positive integer upper bound on the active-set size
+#'   for compiled multiscale LGKK cache construction. Levels larger than this
+#'   skip the multiscale LGKK stage.
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
@@ -795,12 +858,16 @@ grip.layout.globalrep <- function(edges = NULL,
                                   final_mode = c("fr", "kk_repulse"),
                                   insertion_anchor_count = 3,
                                   insertion_anchor_scope = c("any_higher", "prev_misf"),
+                                  insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
                                   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                                   level0_anchor_count = insertion_anchor_count,
                                   level0_local_kk_steps = 3,
                                   lgkk_polish_rounds = 0L,
+                                  lgkk_multiscale_rounds = 0L,
                                   lgkk_local_nbrs = 20L,
                                   lgkk_landmark_count = 8L,
+                                  lgkk_multiscale_scope = c("all", "coarse"),
+                                  lgkk_active_limit = 4096L,
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
@@ -845,7 +912,9 @@ grip.layout.globalrep <- function(edges = NULL,
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
   insertion_anchor_scope <- match.arg(insertion_anchor_scope)
+  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
   level0_insertion_mode <- match.arg(level0_insertion_mode)
+  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.layout.inputs(
@@ -878,6 +947,7 @@ grip.layout.globalrep <- function(edges = NULL,
     final_move_scale_after_first = final_move_scale_after_first,
     insertion_anchor_count = insertion_anchor_count,
     insertion_anchor_scope = insertion_anchor_scope,
+    insertion_anchor_strategy = insertion_anchor_strategy,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps
@@ -893,17 +963,24 @@ grip.layout.globalrep <- function(edges = NULL,
   final_move_scale_after_first <- tuning$final_move_scale_after_first
   insertion_anchor_count <- tuning$insertion_anchor_count
   insertion_anchor_scope <- tuning$insertion_anchor_scope
+  insertion_anchor_strategy <- tuning$insertion_anchor_strategy
   level0_insertion_mode <- tuning$level0_insertion_mode
   level0_anchor_count <- tuning$level0_anchor_count
   level0_local_kk_steps <- tuning$level0_local_kk_steps
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
     lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
+  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
+  lgkk_active_limit <- lgkk$lgkk_active_limit
 
   layout.adj <- function(adj_list, weight_list, n) {
     coords <- grip_layout_globalrep_adj_cpp(
@@ -926,9 +1003,15 @@ grip.layout.globalrep <- function(edges = NULL,
       final_move_scale_after_first = final_move_scale_after_first,
       insertion_anchor_count = insertion_anchor_count,
       insertion_anchor_scope = insertion_anchor_scope,
+      insertion_anchor_strategy = insertion_anchor_strategy,
       level0_insertion_mode = level0_insertion_mode,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps,
+      lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+      lgkk_local_nbrs = lgkk_local_nbrs,
+      lgkk_landmark_count = lgkk_landmark_count,
+      lgkk_multiscale_scope = lgkk_multiscale_scope,
+      lgkk_active_limit = lgkk_active_limit,
       final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
       seed = seed
@@ -1049,6 +1132,14 @@ grip.layout.globalrep <- function(edges = NULL,
 #'   allows anchors from any already placed higher MISF level.
 #'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
 #'   level only.
+#' @param insertion_anchor_strategy Anchor-selection rule used during
+#'   multiscale insertion. \code{"first"} keeps the historical
+#'   first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
+#'   until the \code{K_mish}-th anchor distance band is exhausted, then places
+#'   the new vertex from that less order-sensitive anchor pool.
+#'   \code{"balanced_band"} uses the same band expansion, then explicitly
+#'   selects a subset whose centroid stays centered in the candidate cloud while
+#'   remaining geometrically spread out.
 #' @param level0_insertion_mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
@@ -1064,11 +1155,20 @@ grip.layout.globalrep <- function(edges = NULL,
 #' @param lgkk_polish_rounds Non-negative integer number of experimental
 #'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
 #'   \code{0} disables the polish.
+#' @param lgkk_multiscale_rounds Non-negative integer number of compiled
+#'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
+#'   after each eligible MISF level completes its standard GRIP rounds.
 #' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
-#'   vertex in the LGKK sparse local set when \code{lgkk_polish_rounds > 0}.
+#'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
 #' @param lgkk_landmark_count Number of farthest-point landmarks retained per
-#'   vertex in the LGKK sparse long-range set when
-#'   \code{lgkk_polish_rounds > 0}.
+#'   vertex in the LGKK sparse long-range set when either LGKK stage is
+#'   enabled.
+#' @param lgkk_multiscale_scope Scope for the compiled multiscale LGKK stage.
+#'   \code{"all"} applies it after every eligible MISF level, including the
+#'   final full-graph level. \code{"coarse"} applies it only on coarse levels.
+#' @param lgkk_active_limit Positive integer upper bound on the active-set size
+#'   for compiled multiscale LGKK cache construction. Levels larger than this
+#'   skip the multiscale LGKK stage.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
@@ -1117,12 +1217,16 @@ grip.layout <- function(edges = NULL,
                         final_mode = c("fr", "kk_repulse"),
                         insertion_anchor_count = 3,
                         insertion_anchor_scope = c("any_higher", "prev_misf"),
+                        insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
                         level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                         level0_anchor_count = insertion_anchor_count,
                         level0_local_kk_steps = 3,
                         lgkk_polish_rounds = 0L,
+                        lgkk_multiscale_rounds = 0L,
                         lgkk_local_nbrs = 20L,
                         lgkk_landmark_count = 8L,
+                        lgkk_multiscale_scope = c("all", "coarse"),
+                        lgkk_active_limit = 4096L,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
@@ -1408,12 +1512,16 @@ grip.layout.trace <- function(edges = NULL,
                               final_mode = c("fr", "kk_repulse"),
                               insertion_anchor_count = 3,
                               insertion_anchor_scope = c("any_higher", "prev_misf"),
+                              insertion_anchor_strategy = c("first", "distance_band", "balanced_band"),
                               level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
                               level0_anchor_count = insertion_anchor_count,
                               level0_local_kk_steps = 3,
                               lgkk_polish_rounds = 0L,
+                              lgkk_multiscale_rounds = 0L,
                               lgkk_local_nbrs = 20L,
                               lgkk_landmark_count = 8L,
+                              lgkk_multiscale_scope = c("all", "coarse"),
+                              lgkk_active_limit = 4096L,
                               tinit_factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
@@ -1465,7 +1573,9 @@ grip.layout.trace <- function(edges = NULL,
   placement <- match.arg(placement)
   final_mode <- match.arg(final_mode)
   insertion_anchor_scope <- match.arg(insertion_anchor_scope)
+  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
   level0_insertion_mode <- match.arg(level0_insertion_mode)
+  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
 
@@ -1507,6 +1617,7 @@ grip.layout.trace <- function(edges = NULL,
     final_move_scale_after_first = final_move_scale_after_first,
     insertion_anchor_count = insertion_anchor_count,
     insertion_anchor_scope = insertion_anchor_scope,
+    insertion_anchor_strategy = insertion_anchor_strategy,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps
@@ -1522,17 +1633,24 @@ grip.layout.trace <- function(edges = NULL,
   final_move_scale_after_first <- tuning$final_move_scale_after_first
   insertion_anchor_count <- tuning$insertion_anchor_count
   insertion_anchor_scope <- tuning$insertion_anchor_scope
+  insertion_anchor_strategy <- tuning$insertion_anchor_strategy
   level0_insertion_mode <- tuning$level0_insertion_mode
   level0_anchor_count <- tuning$level0_anchor_count
   level0_local_kk_steps <- tuning$level0_local_kk_steps
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
     lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
+  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
+  lgkk_active_limit <- lgkk$lgkk_active_limit
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -1563,9 +1681,15 @@ grip.layout.trace <- function(edges = NULL,
     final_move_scale_after_first = final_move_scale_after_first,
     insertion_anchor_count = insertion_anchor_count,
     insertion_anchor_scope = insertion_anchor_scope,
+    insertion_anchor_strategy = insertion_anchor_strategy,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit,
     final_mode = final_mode,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,

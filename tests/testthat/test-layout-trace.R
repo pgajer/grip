@@ -219,6 +219,51 @@ test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
   expect_equal(tr_primary$frames[[length(tr_primary$frames)]], tr_primary$final)
 })
 
+test_that("grip.layout.trace final matches grip.layout for multiscale LGKK", {
+  edges <- edges.mesh(5, 5)
+  tr_primary <- grip.layout.trace(
+    edges = edges,
+    n = 25,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    trace = "round",
+    trace.every = 1,
+    seed = 73
+  )
+  coords <- grip.layout(
+    edges = edges,
+    n = 25,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    seed = 73
+  )
+
+  expect_identical(tr_primary$final, coords)
+  expect_true(any(tr_primary$meta$phase == "lgkk"))
+})
+
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)

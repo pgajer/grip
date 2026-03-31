@@ -217,6 +217,51 @@ test_that("global insertion anchor knobs can change the layout", {
   expect_gt(max(abs(coords_more - coords_prev)), 1e-6)
 })
 
+test_that("insertion anchor strategy can change the layout", {
+  edges <- edges.sierpinski.carpet(2)
+  n <- max(edges)
+
+  coords_first <- grip.layout.globalrep(
+    edges, n = n, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "first",
+    seed = 71
+  )
+  coords_band <- grip.layout.globalrep(
+    edges, n = n, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "distance_band",
+    seed = 71
+  )
+  coords_balanced <- grip.layout.globalrep(
+    edges, n = n, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    insertion_anchor_count = 6,
+    insertion_anchor_scope = "prev_misf",
+    insertion_anchor_strategy = "balanced_band",
+    seed = 71
+  )
+
+  expect_gt(max(abs(coords_first - coords_band)), 1e-6)
+  expect_gt(max(abs(coords_band - coords_balanced)), 1e-6)
+})
+
 test_that("globalrep LGKK polish knobs can change the layout", {
   edges <- edges.mesh(5, 5)
   coords_base <- grip.layout.globalrep(
@@ -242,6 +287,35 @@ test_that("globalrep LGKK polish knobs can change the layout", {
     seed = 61
   )
   expect_gt(max(abs(coords_base - coords_polish)), 1e-6)
+})
+
+test_that("globalrep multiscale LGKK knobs can change the layout", {
+  edges <- edges.mesh(5, 5)
+  coords_base <- grip.layout.globalrep(
+    edges, n = 25, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 0,
+    seed = 67
+  )
+  coords_lgkk <- grip.layout.globalrep(
+    edges, n = 25, dim = 2,
+    rounds = 8, final_rounds = 8,
+    num_init = 6, num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    seed = 67
+  )
+  expect_gt(max(abs(coords_base - coords_lgkk)), 1e-6)
 })
 
 test_that("globalrep validates the new tuning parameters", {

@@ -1,6 +1,9 @@
 // Shared support routines for the GRIP layout engine
 
 #include <algorithm>
+#include <limits>
+#include <queue>
+#include <unordered_set>
 
 #include "DrawGraph.h"
 
@@ -81,9 +84,11 @@ void DrawGraph::bfs_me_v4(size_tt root)
     size_tt numOfCloseVert = level0Insertion ? level0AnchorCount : insertionAnchorCount;
     if(numOfCloseVert == 0)
         numOfCloseVert = 1;
-    std::vector<size_tt> closeVert(numOfCloseVert);
-    std::vector<size_tt> closeVertDist(numOfCloseVert);
-    size_tt closeVertItr = 0;
+    std::vector<size_tt> closeVert;
+    std::vector<size_tt> closeVertDist;
+    closeVert.reserve(numOfCloseVert);
+    closeVertDist.reserve(numOfCloseVert);
+    size_tt closeVertCutoffDepth = 0;
     bool closeVertDone = false;
     size_tt insertionPlacementMode =
         level0Insertion ? level0InsertionMode : LEVEL0_INSERT_INHERIT;
@@ -102,6 +107,8 @@ void DrawGraph::bfs_me_v4(size_tt root)
     auto finalizeInsertion = [&](size_tt anchorCount){
         if(anchorCount == 0)
             return;
+        select_insertion_anchor_subset(closeVert, closeVertDist, numOfCloseVert);
+        anchorCount = std::min<size_tt>(anchorCount, closeVert.size());
         pos[root] = initial_position_mode(closeVert.data(),
                                           closeVertDist.data(),
                                           anchorCount,
@@ -161,24 +168,464 @@ void DrawGraph::bfs_me_v4(size_tt root)
                     } else
                         bottomNbrsLayer = i+1;
 
-                if( !closeVertDone && closeVertItr < numOfCloseVert &&
-                    eligibleAnchor(overt)){
-                    closeVertDist[closeVertItr] = currentDepth;
-                    closeVert[closeVertItr++] = overt;
+                if(!closeVertDone && eligibleAnchor(overt)){
+                    closeVertDist.push_back(currentDepth);
+                    closeVert.push_back(overt);
 
-                    if( closeVertItr == numOfCloseVert ){
-                        closeVertDone = true;
-                        finalizeInsertion(numOfCloseVert);
+                    if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_FIRST){
+                        if(closeVert.size() == numOfCloseVert){
+                            closeVertDone = true;
+                            finalizeInsertion(numOfCloseVert);
+                        }
+                    } else if(closeVert.size() == numOfCloseVert){
+                        closeVertCutoffDepth = currentDepth;
                     }
                 }//end of if( !closeVertDone ...
             }            
         }
+        if(!closeVertDone &&
+           insertionAnchorStrategy != INSERT_ANCHOR_STRATEGY_FIRST &&
+           closeVertCutoffDepth > 0 &&
+           currentDepth > closeVertCutoffDepth){
+            closeVertDone = true;
+            finalizeInsertion(closeVert.size());
+        }
     } while ( (!closeVertDone || bottomNbrsLayer <= vertDepth[root]) &&
               !vertDepthQueue.is_empty( ) );
 
-    if(!closeVertDone && closeVertItr > 0)
-        finalizeInsertion(closeVertItr);
+    if(!closeVertDone && !closeVert.empty())
+        finalizeInsertion(closeVert.size());
     delete [] nbrCounter;
+}
+
+void DrawGraph::compute_active_shortest_paths(size_tt sourceIndex,
+                                              size_tt activeCount,
+                                              std::vector<double> &dist,
+                                              std::vector<int> *parent)
+{
+    const double inf = std::numeric_limits<double>::infinity();
+    const double tol = 1e-10;
+    dist.assign(activeCount, inf);
+    if(parent)
+        parent->assign(activeCount, -1);
+    if(sourceIndex >= activeCount)
+        return;
+
+    dist[sourceIndex] = 0.0;
+
+    if(!graph.has_weights()){
+        std::queue<size_tt> q;
+        std::vector<char> inQueue(activeCount, 0);
+        q.push(sourceIndex);
+        inQueue[sourceIndex] = 1;
+
+        while(!q.empty()){
+            size_tt currentIndex = q.front();
+            q.pop();
+            inQueue[currentIndex] = 0;
+            size_tt currentVert = mish[currentIndex];
+            double currentDist = dist[currentIndex];
+            size_tt deg = graph.adjList[0][currentVert];
+            for(size_tt adjVert = 0; adjVert < deg; adjVert++){
+                size_tt overt = graph.adjList[currentVert + 1][adjVert];
+                int overtIndex = lgkkActiveIndex[overt];
+                if(overtIndex < 0 || static_cast<size_tt>(overtIndex) >= activeCount)
+                    continue;
+                double alt = currentDist + 1.0;
+                double best = dist[overtIndex];
+                bool improve = alt + tol < best;
+                bool equal = std::isfinite(best) && std::fabs(alt - best) <= tol;
+                if(improve){
+                    dist[overtIndex] = alt;
+                    if(parent)
+                        (*parent)[overtIndex] = static_cast<int>(currentIndex);
+                    if(!inQueue[overtIndex]){
+                        q.push(static_cast<size_tt>(overtIndex));
+                        inQueue[overtIndex] = 1;
+                    }
+                } else if(equal && parent){
+                    int currentParent = (*parent)[overtIndex];
+                    if(currentParent < 0 ||
+                       mish[currentIndex] < mish[static_cast<size_tt>(currentParent)]){
+                        (*parent)[overtIndex] = static_cast<int>(currentIndex);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
+    using QueueNode = std::pair<double, size_tt>;
+    std::priority_queue<QueueNode,
+                        std::vector<QueueNode>,
+                        std::greater<QueueNode>> pq;
+    pq.push(std::make_pair(0.0, sourceIndex));
+
+    while(!pq.empty()){
+        double currentDist = pq.top().first;
+        size_tt currentIndex = pq.top().second;
+        pq.pop();
+        if(currentDist > dist[currentIndex] + tol)
+            continue;
+        size_tt currentVert = mish[currentIndex];
+        size_tt deg = graph.adjList[0][currentVert];
+        for(size_tt adjVert = 0; adjVert < deg; adjVert++){
+            size_tt overt = graph.adjList[currentVert + 1][adjVert];
+            int overtIndex = lgkkActiveIndex[overt];
+            if(overtIndex < 0 || static_cast<size_tt>(overtIndex) >= activeCount)
+                continue;
+            double alt = currentDist + graph.get_edge_weight(currentVert, adjVert);
+            double best = dist[overtIndex];
+            double scale = std::max(1.0, std::max(std::fabs(alt), std::fabs(best)));
+            bool improve = alt + tol * scale < best;
+            bool equal = std::isfinite(best) &&
+                std::fabs(alt - best) <= tol * scale;
+            if(improve){
+                dist[overtIndex] = alt;
+                if(parent)
+                    (*parent)[overtIndex] = static_cast<int>(currentIndex);
+                pq.push(std::make_pair(alt, static_cast<size_tt>(overtIndex)));
+            } else if(equal && parent){
+                int currentParent = (*parent)[overtIndex];
+                if(currentParent < 0 ||
+                   mish[currentIndex] < mish[static_cast<size_tt>(currentParent)]){
+                    (*parent)[overtIndex] = static_cast<int>(currentIndex);
+                }
+            }
+        }
+    }
+}
+
+std::vector<size_tt> DrawGraph::lgkk_choose_local_neighbors(size_tt sourceIndex,
+                                                            size_tt activeCount) const
+{
+    struct Candidate {
+        double dist;
+        size_tt index;
+        size_tt vert;
+    };
+    std::vector<Candidate> candidates;
+    if(lgkkLocalNbrs == 0 || sourceIndex >= activeCount)
+        return std::vector<size_tt>();
+
+    const double *row = lgkkDistanceMatrix.data() + sourceIndex * activeCount;
+    candidates.reserve(activeCount > 0 ? activeCount - 1 : 0);
+    for(size_tt idx = 0; idx < activeCount; idx++){
+        if(idx == sourceIndex || !std::isfinite(row[idx]))
+            continue;
+        candidates.push_back(Candidate{row[idx], idx, mish[idx]});
+    }
+    std::sort(candidates.begin(), candidates.end(),
+              [](const Candidate &lhs, const Candidate &rhs){
+                  if(lhs.dist != rhs.dist)
+                      return lhs.dist < rhs.dist;
+                  return lhs.vert < rhs.vert;
+              });
+
+    std::vector<size_tt> out;
+    out.reserve(std::min<size_tt>(lgkkLocalNbrs, candidates.size()));
+    for(size_t i = 0; i < candidates.size() && out.size() < lgkkLocalNbrs; i++){
+        out.push_back(candidates[i].index);
+    }
+    return out;
+}
+
+std::vector<size_tt> DrawGraph::lgkk_choose_landmarks(size_tt sourceIndex,
+                                                      size_tt activeCount) const
+{
+    if(lgkkLandmarkCount == 0 || sourceIndex >= activeCount)
+        return std::vector<size_tt>();
+
+    std::vector<size_tt> candidates;
+    candidates.reserve(activeCount > 0 ? activeCount - 1 : 0);
+    const double *sourceRow = lgkkDistanceMatrix.data() + sourceIndex * activeCount;
+    for(size_tt idx = 0; idx < activeCount; idx++){
+        if(idx == sourceIndex || !std::isfinite(sourceRow[idx]))
+            continue;
+        candidates.push_back(idx);
+    }
+    if(candidates.empty())
+        return std::vector<size_tt>();
+
+    std::vector<size_tt> selected;
+    std::vector<double> coverage;
+    coverage.reserve(candidates.size());
+    for(size_t i = 0; i < candidates.size(); i++)
+        coverage.push_back(sourceRow[candidates[i]]);
+
+    size_t maxCount = std::min<size_t>(lgkkLandmarkCount, candidates.size());
+    for(size_t step = 0; step < maxCount; step++){
+        size_t choicePos = candidates.size();
+        double choiceScore = -1.0;
+        for(size_t i = 0; i < candidates.size(); i++){
+            double score = (step == 0) ? sourceRow[candidates[i]] : coverage[i];
+            if(score > choiceScore ||
+               (std::fabs(score - choiceScore) <= 1e-12 &&
+                (choicePos >= candidates.size() ||
+                 mish[candidates[i]] < mish[candidates[choicePos]]))){
+                choiceScore = score;
+                choicePos = i;
+            }
+        }
+        if(choicePos >= candidates.size())
+            break;
+        size_tt choice = candidates[choicePos];
+        selected.push_back(choice);
+        candidates.erase(candidates.begin() + static_cast<long>(choicePos));
+        coverage.erase(coverage.begin() + static_cast<long>(choicePos));
+        if(candidates.empty())
+            break;
+        const double *choiceRow = lgkkDistanceMatrix.data() + choice * activeCount;
+        for(size_t i = 0; i < candidates.size(); i++)
+            coverage[i] = std::min(coverage[i], choiceRow[candidates[i]]);
+    }
+    return selected;
+}
+
+void DrawGraph::build_lgkk_level_cache(size_tt activeCount,
+                                       size_tt mishLayer)
+{
+    clear_lgkk_level_cache();
+    if(!should_run_multiscale_lgkk(activeCount, mishLayer))
+        return;
+
+    lgkkActiveIndex.assign(numOfVert, -1);
+    for(size_tt i = 0; i < activeCount; i++)
+        lgkkActiveIndex[mish[i]] = static_cast<int>(i);
+
+    lgkkDistanceMatrix.assign(activeCount * activeCount,
+                              std::numeric_limits<double>::infinity());
+    std::vector<double> dist;
+    for(size_tt sourceIndex = 0; sourceIndex < activeCount; sourceIndex++){
+        compute_active_shortest_paths(sourceIndex, activeCount, dist, nullptr);
+        std::copy(dist.begin(),
+                  dist.end(),
+                  lgkkDistanceMatrix.begin() + sourceIndex * activeCount);
+    }
+
+    std::vector<std::vector<size_tt>> selectedTargets(activeCount);
+    for(size_tt sourceIndex = 0; sourceIndex < activeCount; sourceIndex++){
+        std::vector<size_tt> local = lgkk_choose_local_neighbors(sourceIndex, activeCount);
+        std::vector<size_tt> landmarks = lgkk_choose_landmarks(sourceIndex, activeCount);
+        local.insert(local.end(), landmarks.begin(), landmarks.end());
+        std::sort(local.begin(), local.end());
+        local.erase(std::unique(local.begin(), local.end()), local.end());
+        selectedTargets[sourceIndex] = std::move(local);
+    }
+
+    std::unordered_set<uint64_t> seenPairs;
+    std::vector<int> parent;
+    lgkkPairs.reserve(activeCount * std::max<size_tt>(1, lgkkLocalNbrs + lgkkLandmarkCount));
+    for(size_tt sourceIndex = 0; sourceIndex < activeCount; sourceIndex++){
+        if(selectedTargets[sourceIndex].empty())
+            continue;
+        compute_active_shortest_paths(sourceIndex, activeCount, dist, &parent);
+        for(size_t targetPos = 0; targetPos < selectedTargets[sourceIndex].size(); targetPos++){
+            size_tt targetIndex = selectedTargets[sourceIndex][targetPos];
+            size_tt sourceVert = mish[sourceIndex];
+            size_tt targetVert = mish[targetIndex];
+            size_tt minVert = std::min(sourceVert, targetVert);
+            size_tt maxVert = std::max(sourceVert, targetVert);
+            uint64_t key = (static_cast<uint64_t>(minVert) << 32) |
+                           static_cast<uint64_t>(maxVert);
+            if(seenPairs.find(key) != seenPairs.end())
+                continue;
+            if(!std::isfinite(dist[targetIndex]))
+                continue;
+
+            std::vector<size_tt> pathVertices;
+            int currentIndex = static_cast<int>(targetIndex);
+            while(currentIndex >= 0 && static_cast<size_tt>(currentIndex) != sourceIndex){
+                pathVertices.push_back(mish[static_cast<size_tt>(currentIndex)]);
+                currentIndex = parent[static_cast<size_tt>(currentIndex)];
+            }
+            if(currentIndex < 0)
+                continue;
+            pathVertices.push_back(sourceVert);
+            std::reverse(pathVertices.begin(), pathVertices.end());
+            if(pathVertices.size() < 2)
+                continue;
+
+            LgkkPairCache pair;
+            pair.source = sourceVert;
+            pair.target = targetVert;
+            pair.graphDistance = static_cast<coord_t>(dist[targetIndex]);
+            pair.pathEdges.reserve(pathVertices.size() - 1);
+            for(size_t edgeIndex = 1; edgeIndex < pathVertices.size(); edgeIndex++){
+                pair.pathEdges.push_back(
+                    LgkkPathEdge{pathVertices[edgeIndex - 1], pathVertices[edgeIndex]}
+                );
+            }
+            lgkkPairs.push_back(std::move(pair));
+            seenPairs.insert(key);
+        }
+    }
+
+    double numerator = 0.0;
+    double denominator = 0.0;
+    const double eps2 = 1e-16;
+    for(size_t pairIndex = 0; pairIndex < lgkkPairs.size(); pairIndex++){
+        const LgkkPairCache &pair = lgkkPairs[pairIndex];
+        double h = 0.0;
+        for(size_t edgeIndex = 0; edgeIndex < pair.pathEdges.size(); edgeIndex++){
+            const LgkkPathEdge &edgeRef = pair.pathEdges[edgeIndex];
+            vect.set_to_zero();
+            vect += pos[edgeRef.u];
+            vect -= pos[edgeRef.v];
+            h += std::sqrt(vect.fnorm2() + eps2);
+        }
+        double g = std::max<double>(pair.graphDistance, 1e-8);
+        double kk = 1.0 / (g * g);
+        numerator += kk * g * h;
+        denominator += kk * g * g;
+    }
+
+    lgkkCacheScaleL0 = denominator > 0.0
+        ? static_cast<coord_t>(numerator / denominator)
+        : 1.0;
+    lgkkCacheActiveCount = activeCount;
+    lgkkCacheMisfLevel = static_cast<int>(mishLayer);
+}
+
+void DrawGraph::lgkk_refine_level(size_tt activeCount,
+                                  size_tt mishLayer,
+                                  size_tt &traceRoundInLevel)
+{
+    if(!should_run_multiscale_lgkk(activeCount, mishLayer))
+        return;
+    build_lgkk_level_cache(activeCount, mishLayer);
+    if(lgkkPairs.empty())
+        return;
+
+    const double eps2 = 1e-16;
+    const double initialStep = 1.0;
+    const double stepShrink = 0.5;
+    const double armijo = 1e-4;
+    const double gradTol2 = 1e-16;
+    const double minStep = 1e-8;
+    const double distanceFloor = 1e-8;
+
+    struct LgkkState {
+        double energy;
+        double gradNorm2;
+        std::vector<Point<>> gradient;
+    };
+
+    std::vector<Point<>> activePos(activeCount);
+    for(size_tt i = 0; i < activeCount; i++)
+        activePos[i] = pos[mish[i]];
+
+    auto evaluate_state = [&](const std::vector<Point<>> &coords){
+        LgkkState state;
+        state.energy = 0.0;
+        state.gradNorm2 = 0.0;
+        state.gradient.assign(activeCount, Point<>());
+        for(size_tt i = 0; i < activeCount; i++)
+            state.gradient[i].set_to_zero();
+
+        for(size_t pairIndex = 0; pairIndex < lgkkPairs.size(); pairIndex++){
+            const LgkkPairCache &pair = lgkkPairs[pairIndex];
+            double g = std::max<double>(pair.graphDistance, distanceFloor);
+            double kk = 1.0 / (g * g);
+            double target = lgkkCacheScaleL0 * pair.graphDistance;
+
+            std::vector<Point<>> edgeDiffs;
+            std::vector<double> edgeLens;
+            edgeDiffs.reserve(pair.pathEdges.size());
+            edgeLens.reserve(pair.pathEdges.size());
+
+            double h = 0.0;
+            for(size_t edgeIndex = 0; edgeIndex < pair.pathEdges.size(); edgeIndex++){
+                const LgkkPathEdge &edgeRef = pair.pathEdges[edgeIndex];
+                int uIndex = lgkkActiveIndex[edgeRef.u];
+                int vIndex = lgkkActiveIndex[edgeRef.v];
+                if(uIndex < 0 || vIndex < 0)
+                    continue;
+                Point<> diff = coords[static_cast<size_t>(uIndex)] -
+                               coords[static_cast<size_t>(vIndex)];
+                double len = std::sqrt(diff.fnorm2() + eps2);
+                edgeDiffs.push_back(diff);
+                edgeLens.push_back(len);
+                h += len;
+            }
+            if(edgeDiffs.empty())
+                continue;
+
+            double resid = h - target;
+            double coeff = kk * resid;
+            state.energy += 0.5 * kk * resid * resid;
+            for(size_t edgeIndex = 0; edgeIndex < pair.pathEdges.size(); edgeIndex++){
+                const LgkkPathEdge &edgeRef = pair.pathEdges[edgeIndex];
+                int uIndex = lgkkActiveIndex[edgeRef.u];
+                int vIndex = lgkkActiveIndex[edgeRef.v];
+                if(uIndex < 0 || vIndex < 0)
+                    continue;
+                if(edgeLens[edgeIndex] <= 0.0)
+                    continue;
+                Point<> stepVec = edgeDiffs[edgeIndex] * (coeff / edgeLens[edgeIndex]);
+                state.gradient[static_cast<size_t>(uIndex)] += stepVec;
+                state.gradient[static_cast<size_t>(vIndex)] -= stepVec;
+            }
+        }
+
+        for(size_tt i = 0; i < activeCount; i++)
+            state.gradNorm2 += state.gradient[i].fnorm2();
+
+        return state;
+    };
+
+    std::vector<Point<>> acceptedMove(activeCount);
+    for(size_tt i = 0; i < activeCount; i++)
+        acceptedMove[i].set_to_zero();
+
+    LgkkState state = evaluate_state(activePos);
+    for(size_tt roundIndex = 1; roundIndex <= lgkkMultiscaleRounds; roundIndex++){
+        if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
+            break;
+
+        double step = initialStep;
+        bool accepted = false;
+        std::vector<Point<>> proposal(activeCount);
+        LgkkState candidate = state;
+
+        while(std::isfinite(step) && step >= minStep){
+            for(size_tt i = 0; i < activeCount; i++)
+                proposal[i] = activePos[i] - state.gradient[i] * step;
+
+            candidate = evaluate_state(proposal);
+            double targetEnergy = state.energy - armijo * step * state.gradNorm2;
+            if(std::isfinite(candidate.energy) && candidate.energy <= targetEnergy){
+                accepted = true;
+                break;
+            }
+            step *= stepShrink;
+        }
+
+        if(!accepted)
+            break;
+
+        for(size_tt i = 0; i < activeCount; i++){
+            acceptedMove[i] = proposal[i] - activePos[i];
+            activePos[i] = proposal[i];
+            size_tt vert = mish[i];
+            pos[vert] = activePos[i];
+            disp[vert] = acceptedMove[i];
+            oldDisp[vert] = acceptedMove[i];
+            dispNorm[vert] = ROUND_L(acceptedMove[i].fnorm());
+            oldDispNorm[vert] = dispNorm[vert];
+        }
+
+        state = candidate;
+        currentRoundInLevel = rounds + roundIndex;
+        traceRoundInLevel = currentRoundInLevel;
+        if(traceMode == TRACE_ROUND &&
+           (traceEvery <= 1 || roundIndex % traceEvery == 0)){
+            capture_trace_snapshot("lgkk", activeCount, traceRoundInLevel);
+        }
+    }
+
+    if(traceMode == TRACE_LEVEL)
+        capture_trace_snapshot("lgkk", activeCount, traceRoundInLevel);
 }
 
 
