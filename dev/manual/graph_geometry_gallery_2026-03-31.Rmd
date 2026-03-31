@@ -1,0 +1,613 @@
+---
+title: "GRIP Synthetic Graph Geometry Gallery"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    self_contained: true
+---
+
+This R Markdown document generates an HTML gallery of the synthetic graph geometries added in the long March 31, 2026 Codex thread.
+
+Coverage notes:
+- Every graph-family branch added in the thread is represented at least once.
+- Generic recursive families are shown through representative masks or parameter choices.
+- Most families are shown via their intrinsic `coords_surface` or `coords_param`-derived 3D embeddings.
+- `kary.tree.weighted.graph()` is intrinsically weighted rather than ambient-geometric, so the gallery uses an illustrative 3D branching display whose edge lengths match the intrinsic edge weights.
+
+Rendering:
+
+```r
+rmarkdown::render("dev/manual/graph_geometry_gallery_2026-03-31.Rmd")
+```
+
+The underlying implementations live in [R/graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+
+if (requireNamespace("pkgload", quietly = TRUE)) {
+  pkgload::load_all(".", quiet = TRUE)
+} else if (requireNamespace("devtools", quietly = TRUE)) {
+  devtools::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)
+} else {
+  stop("Install 'pkgload' or 'devtools' to render this gallery.")
+}
+
+for (pkg in c("htmltools", "rgl", "htmlwidgets")) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(sprintf("Package '%s' is required to render this gallery.", pkg))
+  }
+}
+
+rgl::setupKnitr(autoprint = FALSE)
+```
+
+```{r helpers, include=FALSE}
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+scale01 <- function(x) {
+  if (length(x) == 0L) {
+    return(numeric())
+  }
+  rng <- range(x, finite = TRUE)
+  if (!all(is.finite(rng)) || diff(rng) == 0) {
+    return(rep(0.5, length(x)))
+  }
+  (x - rng[[1L]]) / diff(rng)
+}
+
+normalize_coords3d <- function(coords) {
+  coords <- as.matrix(coords)
+  if (ncol(coords) != 3L) {
+    stop("Expected a 3-column coordinate matrix.")
+  }
+  center <- colMeans(coords)
+  coords <- sweep(coords, 2L, center, "-")
+  scl <- max(abs(coords))
+  if (is.finite(scl) && scl > 0) {
+    coords <- coords / scl
+  }
+  coords
+}
+
+edge_color_map <- function(values) {
+  pal <- grDevices::colorRampPalette(c("#3b4f73", "#4f8fc0", "#7dcfb6", "#f4d35e", "#ee964b", "#d1495b"))(256)
+  pal[pmax(1L, pmin(256L, 1L + floor(scale01(values) * 255)))]
+}
+
+vertex_color_map <- function(coords) {
+  pal <- grDevices::colorRampPalette(c("#264653", "#2a9d8f", "#8ab17d", "#e9c46a", "#f4a261"))(256)
+  pal[pmax(1L, pmin(256L, 1L + floor(scale01(coords[, 3L]) * 255)))]
+}
+
+graph_payload <- function(obj) {
+  coords <- obj$coords_surface %||% obj$coords %||% NULL
+  if (is.null(coords)) {
+    stop("Expected an object with 'coords_surface' or 'coords'.")
+  }
+  list(
+    edges = as.matrix(obj$edges),
+    coords = as.matrix(coords),
+    edge_weights = obj$edge_weights %||% NULL,
+    note = obj$note %||% NULL
+  )
+}
+
+tree_display_payload <- function(tree) {
+  parent <- tree$parent
+  n <- length(parent)
+  children_of <- split(seq_len(n), parent)
+  children_of <- children_of[names(children_of) != "0"]
+  edge_tbl <- tree$edge_table
+
+  coords <- matrix(0, nrow = n, ncol = 3L)
+  colnames(coords) <- c("x", "y", "z")
+  leaf_counter <- 0
+
+  assign_x <- function(v) {
+    key <- as.character(v)
+    kids <- children_of[[key]]
+    if (is.null(kids) || length(kids) == 0L) {
+      leaf_counter <<- leaf_counter + 1L
+      coords[v, 1L] <<- leaf_counter
+      return(invisible(NULL))
+    }
+    for (child in kids) {
+      assign_x(child)
+    }
+    coords[v, 1L] <<- mean(coords[kids, 1L])
+  }
+
+  assign_yz <- function(v) {
+    key <- as.character(v)
+    kids <- children_of[[key]]
+    if (is.null(kids) || length(kids) == 0L) {
+      return(invisible(NULL))
+    }
+    kids <- kids[order(kids)]
+    slot_center <- (length(kids) + 1) / 2
+    for (i in seq_along(kids)) {
+      child <- kids[[i]]
+      row <- edge_tbl[edge_tbl$parent == v & edge_tbl$child == child, , drop = FALSE]
+      w <- row$edge_weight[[1L]]
+      slot <- row$branch_index[[1L]]
+      coords[child, 2L] <<- coords[v, 2L] - w
+      coords[child, 3L] <<- coords[v, 3L] + (slot - slot_center) * w * 0.85
+      assign_yz(child)
+    }
+  }
+
+  assign_x(1L)
+  assign_yz(1L)
+
+  list(
+    edges = tree$edges,
+    coords_surface = coords,
+    edge_weights = tree$edge_weights,
+    note = "Illustrative 3D branching display; edge lengths match the intrinsic weighted-tree edge lengths."
+  )
+}
+
+scene_widget <- function(payload, height = 320) {
+  payload <- graph_payload(payload)
+  coords <- normalize_coords3d(payload$coords)
+  edges <- payload$edges
+  edge_weights <- payload$edge_weights
+
+  p1 <- coords[edges[, 1L], , drop = FALSE]
+  p2 <- coords[edges[, 2L], , drop = FALSE]
+  seg <- matrix(NA_real_, nrow = 3L * nrow(edges), ncol = 3L)
+  seg[seq(1L, nrow(seg), by = 3L), ] <- p1
+  seg[seq(2L, nrow(seg), by = 3L), ] <- p2
+
+  edge_cols <- if (is.null(edge_weights)) {
+    rep("#6c7a89", nrow(edges))
+  } else {
+    edge_color_map(edge_weights)
+  }
+  edge_cols <- rep(edge_cols, each = 3L)
+  point_cols <- vertex_color_map(coords)
+  point_size <- if (nrow(coords) <= 80L) 7 else if (nrow(coords) <= 180L) 5 else 4
+  edge_lwd <- if (nrow(edges) <= 160L) 2 else 1.5
+
+  rgl::open3d(useNULL = TRUE)
+  rgl::bg3d(color = "#ffffff")
+  rgl::material3d(specular = "#444444")
+  rgl::lines3d(seg, color = edge_cols, lwd = edge_lwd)
+  rgl::points3d(coords, color = point_cols, size = point_size, alpha = 0.95)
+  rgl::aspect3d(1, 1, 1)
+  rgl::view3d(theta = 32, phi = 20, zoom = 0.78, fov = 30)
+  widget <- rgl::rglwidget(width = 320, height = height)
+  rgl::close3d()
+  widget
+}
+
+gallery_card <- function(example) {
+  obj <- example$build()
+  payload <- graph_payload(obj)
+  n <- nrow(payload$coords)
+  m <- nrow(payload$edges)
+  htmltools::tags$div(
+    class = "gallery-card",
+    htmltools::tags$h4(example$title),
+    htmltools::tags$p(class = "gallery-call", htmltools::tags$code(example$call)),
+    htmltools::tags$p(class = "gallery-meta", sprintf("n = %d, m = %d", n, m)),
+    if (!is.null(example$note %||% payload$note)) htmltools::tags$p(class = "gallery-note", example$note %||% payload$note),
+    scene_widget(payload)
+  )
+}
+
+gallery_grid <- function(examples) {
+  htmltools::tags$div(
+    class = "gallery-grid",
+    lapply(examples, gallery_card)
+  )
+}
+
+custom_cube_mask <- local({
+  mask <- array(TRUE, dim = c(3L, 3L, 3L))
+  mask[2L, 2L, 2L] <- FALSE
+  mask[1L, 2L, 2L] <- FALSE
+  mask[2L, 1L, 2L] <- FALSE
+  mask
+})
+```
+
+```{r styling, results='asis'}
+cat(
+'<style>
+body { font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.45; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
+  margin: 1rem 0 2rem 0;
+}
+.gallery-card {
+  border: 1px solid #d9dee7;
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fafc 100%);
+  box-shadow: 0 8px 24px rgba(40, 52, 71, 0.08);
+}
+.gallery-card h4 {
+  margin-top: 0;
+  margin-bottom: 0.45rem;
+  color: #1f2a44;
+}
+.gallery-call, .gallery-meta, .gallery-note {
+  margin: 0.35rem 0 0.55rem 0;
+}
+.gallery-call code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+}
+.gallery-meta {
+  color: #52606d;
+  font-size: 0.92rem;
+}
+.gallery-note {
+  color: #44546a;
+  font-size: 0.92rem;
+}
+</style>'
+)
+```
+
+## Regular lifted lattice families
+
+```{r regular-lattices}
+regular_lattices <- list(
+  list(
+    title = "Mesh / saddle",
+    call = 'mesh.surface.graph(h = 6, w = 6, surface = "saddle", amplitude = 0.70)',
+    build = function() mesh.surface.graph(h = 6, w = 6, surface = "saddle", amplitude = 0.70)
+  ),
+  list(
+    title = "Cylinder / barrel",
+    call = 'cylinder.surface.graph(h = 7, w = 14, surface = "barrel", radius = 1, height = 2.4, amplitude = 0.28)',
+    build = function() cylinder.surface.graph(h = 7, w = 14, surface = "barrel", radius = 1, height = 2.4, amplitude = 0.28)
+  ),
+  list(
+    title = "Torus / pinched",
+    call = 'torus.surface.graph(h = 8, w = 14, surface = "pinched", major_radius = 2, minor_radius = 0.72, amplitude = 0.22)',
+    build = function() torus.surface.graph(h = 8, w = 14, surface = "pinched", major_radius = 2, minor_radius = 0.72, amplitude = 0.22)
+  ),
+  list(
+    title = "Sphere / ellipsoid",
+    call = 'sphere.surface.graph(h = 7, w = 14, surface = "ellipsoid", radius = 1, amplitude = 0.22)',
+    build = function() sphere.surface.graph(h = 7, w = 14, surface = "ellipsoid", radius = 1, amplitude = 0.22)
+  )
+)
+
+gallery_grid(regular_lattices)
+```
+
+## Recursive square-mask families
+
+```{r square-mask-generic}
+square_masks <- list(
+  list(
+    title = "Recursive mask grid / cross mask",
+    call = 'recursive.mask.grid.surface.graph(mask.cross(k = 5, arm_width = 1), level = 2, surface = "saddle", amplitude = 0.65)',
+    build = function() recursive.mask.grid.surface.graph(mask.cross(k = 5, arm_width = 1), level = 2, surface = "saddle", amplitude = 0.65)
+  ),
+  list(
+    title = "Recursive mask grid / border mask",
+    call = 'recursive.mask.grid.surface.graph(mask.border(k = 5, thickness = 1), level = 2, surface = "paraboloid", amplitude = 0.55)',
+    build = function() recursive.mask.grid.surface.graph(mask.border(k = 5, thickness = 1), level = 2, surface = "paraboloid", amplitude = 0.55)
+  ),
+  list(
+    title = "Recursive mask grid / corner mask",
+    call = 'recursive.mask.grid.surface.graph(mask.corner(k = 5, width = 2, corner = "top_left"), level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2)',
+    build = function() recursive.mask.grid.surface.graph(mask.corner(k = 5, width = 2, corner = "top_left"), level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2)
+  ),
+  list(
+    title = "Recursive mask grid / asymmetric holes",
+    call = 'recursive.mask.grid.surface.graph(mask.asymmetric.holes(k = 5, hole_size = 1), level = 2, surface = "saddle", amplitude = 0.60)',
+    build = function() recursive.mask.grid.surface.graph(mask.asymmetric.holes(k = 5, hole_size = 1), level = 2, surface = "saddle", amplitude = 0.60)
+  )
+)
+
+gallery_grid(square_masks)
+```
+
+### Named wrappers
+
+```{r square-mask-wrappers}
+square_mask_wrappers <- list(
+  list(
+    title = "Sierpinski carpet",
+    call = 'sierpinski.carpet.surface.graph(level = 2, surface = "paraboloid", amplitude = 0.55)',
+    build = function() sierpinski.carpet.surface.graph(level = 2, surface = "paraboloid", amplitude = 0.55)
+  ),
+  list(
+    title = "Vicsek fractal",
+    call = 'vicsek.surface.graph(level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2, freq_v = 2)',
+    build = function() vicsek.surface.graph(level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2, freq_v = 2)
+  )
+)
+
+gallery_grid(square_mask_wrappers)
+```
+
+## Deterministic perforated occupied meshes
+
+```{r perforated-meshes}
+perforated_meshes <- list(
+  list(
+    title = "Occupied mesh / periodic holes",
+    call = 'occupied.mesh.surface.graph(keep.periodic.holes(h = 10, w = 10, hole_period = 4), surface = "saddle", amplitude = 0.55)',
+    build = function() occupied.mesh.surface.graph(keep.periodic.holes(h = 10, w = 10, hole_period = 4), surface = "saddle", amplitude = 0.55)
+  ),
+  list(
+    title = "Occupied mesh / staggered windows",
+    call = 'occupied.mesh.surface.graph(keep.staggered.windows(h = 10, w = 12), surface = "paraboloid", amplitude = 0.50)',
+    build = function() occupied.mesh.surface.graph(keep.staggered.windows(h = 10, w = 12), surface = "paraboloid", amplitude = 0.50)
+  ),
+  list(
+    title = "Occupied mesh / slit channels",
+    call = 'occupied.mesh.surface.graph(keep.slit.channels(h = 10, w = 12, orientation = "vertical"), surface = "ripple", amplitude = 0.50, freq_u = 2)',
+    build = function() occupied.mesh.surface.graph(keep.slit.channels(h = 10, w = 12, orientation = "vertical"), surface = "ripple", amplitude = 0.50, freq_u = 2)
+  ),
+  list(
+    title = "Occupied mesh / asymmetric notches",
+    call = 'occupied.mesh.surface.graph(keep.asymmetric.notches(h = 10, w = 12, notch_depth = 3, notch_width = 3), surface = "saddle", amplitude = 0.60)',
+    build = function() occupied.mesh.surface.graph(keep.asymmetric.notches(h = 10, w = 12, notch_depth = 3, notch_width = 3), surface = "saddle", amplitude = 0.60)
+  )
+)
+
+gallery_grid(perforated_meshes)
+```
+
+## Recursive triangle-mask families
+
+```{r triangle-mask-families}
+triangle_masks <- list(
+  list(
+    title = "Triangle mask / classic",
+    call = 'recursive.triangle.mask.surface.graph(mask.triangle.classic(), level = 2, surface = "flat")',
+    build = function() recursive.triangle.mask.surface.graph(mask.triangle.classic(), level = 2, surface = "flat")
+  ),
+  list(
+    title = "Triangle mask / bridge missing top",
+    call = 'recursive.triangle.mask.surface.graph(mask.triangle.bridge("top"), level = 2, surface = "folded", amplitude = 0.60)',
+    build = function() recursive.triangle.mask.surface.graph(mask.triangle.bridge("top"), level = 2, surface = "folded", amplitude = 0.60)
+  ),
+  list(
+    title = "Triangle mask / bridge missing left",
+    call = 'recursive.triangle.mask.surface.graph(mask.triangle.bridge("left"), level = 2, surface = "saddle", amplitude = 0.55)',
+    build = function() recursive.triangle.mask.surface.graph(mask.triangle.bridge("left"), level = 2, surface = "saddle", amplitude = 0.55)
+  ),
+  list(
+    title = "Triangle mask / bridge missing right",
+    call = 'recursive.triangle.mask.surface.graph(mask.triangle.bridge("right"), level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2)',
+    build = function() recursive.triangle.mask.surface.graph(mask.triangle.bridge("right"), level = 2, surface = "ripple", amplitude = 0.55, freq_u = 2)
+  )
+)
+
+gallery_grid(triangle_masks)
+```
+
+### Named wrapper
+
+```{r triangle-wrapper}
+triangle_wrapper <- list(
+  list(
+    title = "Sierpinski triangle",
+    call = 'sierpinski.triangle.surface.graph(level = 2, surface = "folded", amplitude = 0.60)',
+    build = function() sierpinski.triangle.surface.graph(level = 2, surface = "folded", amplitude = 0.60)
+  )
+)
+
+gallery_grid(triangle_wrapper)
+```
+
+## Recursive tetrahedron-mask families
+
+```{r tetrahedron-mask-families}
+tetrahedron_masks <- list(
+  list(
+    title = "Tetrahedron mask / classic",
+    call = 'recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.classic(), level = 2, surface = "standard")',
+    build = function() recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.classic(), level = 2, surface = "standard")
+  ),
+  list(
+    title = "Tetrahedron mask / missing apex",
+    call = 'recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("apex"), level = 2, surface = "squashed", amplitude = 0.28)',
+    build = function() recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("apex"), level = 2, surface = "squashed", amplitude = 0.28)
+  ),
+  list(
+    title = "Tetrahedron mask / missing base_left",
+    call = 'recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_left"), level = 2, surface = "twisted", twist = 0.60)',
+    build = function() recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_left"), level = 2, surface = "twisted", twist = 0.60)
+  ),
+  list(
+    title = "Tetrahedron mask / missing base_right",
+    call = 'recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_right"), level = 2, surface = "wavy", amplitude = 0.28, freq = 2)',
+    build = function() recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_right"), level = 2, surface = "wavy", amplitude = 0.28, freq = 2)
+  ),
+  list(
+    title = "Tetrahedron mask / missing base_back",
+    call = 'recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_back"), level = 2, surface = "twisted", twist = 0.70)',
+    build = function() recursive.tetrahedron.mask.surface.graph(mask.tetrahedron.corner.missing("base_back"), level = 2, surface = "twisted", twist = 0.70)
+  )
+)
+
+gallery_grid(tetrahedron_masks)
+```
+
+### Named wrapper
+
+```{r tetrahedron-wrapper}
+tetrahedron_wrapper <- list(
+  list(
+    title = "Sierpinski tetrahedron",
+    call = 'sierpinski.tetrahedron.surface.graph(level = 2, surface = "wavy", amplitude = 0.28, freq = 2)',
+    build = function() sierpinski.tetrahedron.surface.graph(level = 2, surface = "wavy", amplitude = 0.28, freq = 2)
+  )
+)
+
+gallery_grid(tetrahedron_wrapper)
+```
+
+## Recursive cube, Menger sponge, and porous cubes
+
+```{r cube-families}
+cube_families <- list(
+  list(
+    title = "Recursive cube mask / custom connected mask",
+    call = 'recursive.cube.mask.surface.graph(custom_cube_mask, level = 2, surface = "bulged", amplitude = 0.18)',
+    build = function() recursive.cube.mask.surface.graph(custom_cube_mask, level = 2, surface = "bulged", amplitude = 0.18)
+  ),
+  list(
+    title = "Menger sponge",
+    call = 'menger.sponge.surface.graph(level = 2, surface = "standard")',
+    build = function() menger.sponge.surface.graph(level = 2, surface = "standard")
+  ),
+  list(
+    title = "Cube / periodic tunnels",
+    call = 'cube.periodic.tunnels.surface.graph(level = 2, side = 5, surface = "twisted", twist = 0.55)',
+    build = function() cube.periodic.tunnels.surface.graph(level = 2, side = 5, surface = "twisted", twist = 0.55)
+  ),
+  list(
+    title = "Cube / asymmetric cavities",
+    call = 'cube.asymmetric.cavities.surface.graph(level = 2, side = 5, surface = "bulged", amplitude = 0.18)',
+    build = function() cube.asymmetric.cavities.surface.graph(level = 2, side = 5, surface = "bulged", amplitude = 0.18)
+  ),
+  list(
+    title = "Cube / channel network",
+    call = 'cube.channel.network.surface.graph(level = 2, side = 5, surface = "wavy", amplitude = 0.18, freq = 2)',
+    build = function() cube.channel.network.surface.graph(level = 2, side = 5, surface = "wavy", amplitude = 0.18, freq = 2)
+  )
+)
+
+gallery_grid(cube_families)
+```
+
+## Triangulated manifold families
+
+```{r triangulated-families}
+triangulated_families <- list(
+  list(
+    title = "Triangulated polyhedron / tetrahedron base",
+    call = 'triangulated.polyhedron.surface.graph(base = "tetrahedron", level = 1, surface = "inflated", amplitude = 0.22)',
+    build = function() triangulated.polyhedron.surface.graph(base = "tetrahedron", level = 1, surface = "inflated", amplitude = 0.22)
+  ),
+  list(
+    title = "Triangulated polyhedron / octahedron base",
+    call = 'triangulated.polyhedron.surface.graph(base = "octahedron", level = 1, surface = "twisted", twist = 0.55)',
+    build = function() triangulated.polyhedron.surface.graph(base = "octahedron", level = 1, surface = "twisted", twist = 0.55)
+  ),
+  list(
+    title = "Triangulated polyhedron / icosahedron base",
+    call = 'triangulated.polyhedron.surface.graph(base = "icosahedron", level = 1, surface = "wavy", amplitude = 0.22, freq = 2)',
+    build = function() triangulated.polyhedron.surface.graph(base = "icosahedron", level = 1, surface = "wavy", amplitude = 0.22, freq = 2)
+  ),
+  list(
+    title = "Triangulated annulus",
+    call = 'triangulated.annulus.surface.graph(resolution = 10, surface = "folded", amplitude = 0.55)',
+    build = function() triangulated.annulus.surface.graph(resolution = 10, surface = "folded", amplitude = 0.55)
+  ),
+  list(
+    title = "Triangulated pair of pants",
+    call = 'triangulated.pair.of.pants.surface.graph(resolution = 10, surface = "saddle", amplitude = 0.55)',
+    build = function() triangulated.pair.of.pants.surface.graph(resolution = 10, surface = "saddle", amplitude = 0.55)
+  )
+)
+
+gallery_grid(triangulated_families)
+```
+
+## Irregular point-sampled manifold families
+
+```{r irregular-manifolds}
+irregular_manifolds <- list(
+  list(
+    title = "Irregular annulus",
+    call = 'irregular.annulus.surface.graph(rings = 6, outer_count = 24, surface = "folded", amplitude = 0.55)',
+    build = function() irregular.annulus.surface.graph(rings = 6, outer_count = 24, surface = "folded", amplitude = 0.55)
+  ),
+  list(
+    title = "Irregular sphere",
+    call = 'irregular.sphere.surface.graph(bands = 6, equator_count = 24, surface = "wavy", amplitude = 0.20)',
+    build = function() irregular.sphere.surface.graph(bands = 6, equator_count = 24, surface = "wavy", amplitude = 0.20)
+  ),
+  list(
+    title = "Irregular pair of pants",
+    call = 'irregular.pair.of.pants.surface.graph(slices = 11, outer_count = 24, surface = "paraboloid", amplitude = 0.50)',
+    build = function() irregular.pair.of.pants.surface.graph(slices = 11, outer_count = 24, surface = "paraboloid", amplitude = 0.50)
+  ),
+  list(
+    title = "Irregular torus",
+    call = 'irregular.torus.surface.graph(major_rings = 8, tube_count = 14, surface = "pinched", amplitude = 0.20)',
+    build = function() irregular.torus.surface.graph(major_rings = 8, tube_count = 14, surface = "pinched", amplitude = 0.20)
+  ),
+  list(
+    title = "Irregular double torus",
+    call = 'irregular.double.torus.surface.graph(slices = 11, tube_count = 12, surface = "twisted", twist = 0.55)',
+    build = function() irregular.double.torus.surface.graph(slices = 11, tube_count = 12, surface = "twisted", twist = 0.55)
+  )
+)
+
+gallery_grid(irregular_manifolds)
+```
+
+## Irregular tetrahedralized 3D solids
+
+```{r irregular-solids}
+irregular_solids <- list(
+  list(
+    title = "Irregular ball",
+    call = 'irregular.ball.solid.graph(base = "icosahedron", level = 1, layers = 3, surface = "bulged", amplitude = 0.18)',
+    build = function() irregular.ball.solid.graph(base = "icosahedron", level = 1, layers = 3, surface = "bulged", amplitude = 0.18)
+  ),
+  list(
+    title = "Irregular shell",
+    call = 'irregular.shell.solid.graph(base = "octahedron", level = 1, layers = 3, surface = "twisted", twist = 0.55)',
+    build = function() irregular.shell.solid.graph(base = "octahedron", level = 1, layers = 3, surface = "twisted", twist = 0.55)
+  )
+)
+
+gallery_grid(irregular_solids)
+```
+
+## Intrinsic weighted trees
+
+```{r weighted-trees}
+weighted_trees <- list(
+  list(
+    title = "Weighted 3-ary tree / geometric-linear rule",
+    call = 'kary.tree.weighted.graph(k = 3, depth = 3, depth_rule = "geometric", branch_rule = "linear", depth_decay = 0.82, branch_spread = 0.35)',
+    build = function() tree_display_payload(kary.tree.weighted.graph(k = 3, depth = 3, depth_rule = "geometric", branch_rule = "linear", depth_decay = 0.82, branch_spread = 0.35))
+  ),
+  list(
+    title = "Weighted 4-ary tree / custom depth and branch factors",
+    call = 'kary.tree.weighted.graph(k = 4, depth = 3, depth_rule = "custom", depth_factors = c(1, 0.80, 0.62), branch_rule = "custom", branch_factors = c(0.7, 0.95, 1.1, 1.35))',
+    build = function() tree_display_payload(kary.tree.weighted.graph(k = 4, depth = 3, depth_rule = "custom", depth_factors = c(1, 0.80, 0.62), branch_rule = "custom", branch_factors = c(0.7, 0.95, 1.1, 1.35)))
+  )
+)
+
+gallery_grid(weighted_trees)
+```
+
+## Coverage summary
+
+This gallery includes representative examples for:
+
+- regular lifted lattice families: mesh, cylinder, torus, sphere
+- recursive square-mask families: generic mask grid, Sierpinski carpet, Vicsek
+- finite perforated occupied meshes
+- recursive triangle-mask families and the named Sierpinski triangle wrapper
+- recursive tetrahedron-mask families and the named Sierpinski tetrahedron wrapper
+- recursive cube-mask families, Menger sponge, and porous cube variants
+- triangulated manifolds with and without boundary
+- irregular point-sampled manifolds, including torus and double torus
+- irregular tetrahedralized solids: ball and shell
+- intrinsic weighted k-ary trees
