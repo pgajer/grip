@@ -47,3 +47,44 @@ test_that("cube graph matches the cube-surface vertex count", {
   expect_equal(max(edges), 56L)
   expect_true(all(sort(unique(c(edges))) == seq_len(56L)))
 })
+
+test_that("mesh surface embedding returns finite 3D coordinates", {
+  coords <- mesh.surface.embedding(4, 5, surface = "saddle", amplitude = 0.8)
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(20L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("mesh surface graph returns normalized positive edge weights", {
+  spec <- mesh.surface.graph(5, 6, surface = "paraboloid", amplitude = 0.9)
+
+  expect_s3_class(spec, "grip_mesh_surface_graph")
+  expect_equal(spec$edges, edges.mesh(5, 6))
+  expect_equal(spec$n, 30L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(30L, 3L))
+  expect_equal(dim(spec$coords_param), c(30L, 2L))
+  expect_equal(spec$family, "mesh")
+  expect_equal(spec$surface, "paraboloid")
+})
+
+test_that("ripple mesh graph supports alternate weight normalization", {
+  spec <- mesh.surface.graph(
+    4, 4,
+    surface = "ripple",
+    amplitude = 0.6,
+    freq_u = 1.5,
+    freq_v = 0.5,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
