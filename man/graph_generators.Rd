@@ -10,6 +10,9 @@
 \alias{edges.torus}
 \alias{edges.sphere}
 \alias{edges.cube}
+\alias{edges.cube.asymmetric.cavities}
+\alias{edges.cube.channel.network}
+\alias{edges.cube.periodic.tunnels}
 \alias{edges.kary.tree}
 \alias{edges.menger.sponge}
 \alias{edges.recursive.cube.mask}
@@ -38,6 +41,28 @@ edges.torus(h, w = h)
 edges.sphere(h, w = h)
 
 edges.cube(side = 2)
+
+edges.cube.periodic.tunnels(
+  level = 2,
+  side = 5,
+  tunnel_width = 1,
+  tunnel_period = 2,
+  tunnel_offset = 2
+)
+
+edges.cube.asymmetric.cavities(
+  level = 2,
+  side = 5,
+  cavity_size = 2,
+  pocket_size = max(1L, cavity_size - 1L)
+)
+
+edges.cube.channel.network(
+  level = 2,
+  side = 5,
+  channel_width = 1,
+  branch_offset = 2
+)
 
 edges.kary.tree(k = 2, depth = 2)
 
@@ -73,11 +98,34 @@ edges.sierpinski.carpet(level = 2)
 
 \item{keep}{Logical or numeric occupancy matrix. Non-zero entries are kept.}
 
-\item{side}{Number of lattice points along each cube edge.}
+\item{side}{For \code{edges.cube()}, number of lattice points along each cube
+edge. For the named porous cube families, side length of the base cubic
+keep-mask.}
 
 \item{k}{Branching factor.}
 
 \item{depth}{Number of levels below the root.}
+
+\item{tunnel_width}{Width of each removed tunnel band in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{tunnel_period}{Spacing between successive tunnel bands in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{tunnel_offset}{Starting index of the first tunnel band in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{cavity_size}{Side length of the larger interior cavity block in
+\code{edges.cube.asymmetric.cavities()}.}
+
+\item{pocket_size}{Side length of the smaller secondary cavity block in
+\code{edges.cube.asymmetric.cavities()}.}
+
+\item{channel_width}{Width of each removed channel in
+\code{edges.cube.channel.network()}.}
+
+\item{branch_offset}{Interior offset of the extra branch channel in
+\code{edges.cube.channel.network()}.}
 
 \item{base}{Base polyhedron for \code{edges.triangulated.polyhedron()}. One
 of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
@@ -119,8 +167,11 @@ builds a finite perforated-mesh family from an occupancy matrix,
 square-mask family, \code{\link{edges.recursive.cube.mask}()} builds a
 generic cube-mask family, \code{\link{edges.vicsek}()} builds the connected
 axial-cross variant, \code{\link{edges.menger.sponge}()} builds the classic
-cubical sponge variant, \code{\link{edges.triangulated.polyhedron}()} builds
-a generic irregular triangulated-surface family,
+cubical sponge variant, \code{\link{edges.cube.periodic.tunnels}()},
+\code{\link{edges.cube.asymmetric.cavities}()}, and
+\code{\link{edges.cube.channel.network}()} build named porous cubical
+variants, \code{\link{edges.triangulated.polyhedron}()} builds a generic
+irregular triangulated-surface family,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
 triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
 builds a generic tetrahedron-mask family,
@@ -152,6 +203,15 @@ levels (including the poles) and wrapped longitude \code{w}.
 
 \item \code{edges.cube()}: Cube surface graph on the boundary of a
 \code{side x side x side} lattice.
+
+\item \code{edges.cube.periodic.tunnels()}: Periodic cubical tunnel family derived from a
+repeated tunnel-band keep-mask.
+
+\item \code{edges.cube.asymmetric.cavities()}: Cubical porous family with two
+offset interior cavity blocks repeated recursively.
+
+\item \code{edges.cube.channel.network()}: Cubical porous family with a deterministic
+branched channel network carved through each recursive block.
 
 \item \code{edges.kary.tree()}: Full \code{k}-ary tree of depth \code{depth}.
 

@@ -756,6 +756,208 @@
   mask
 }
 
+.cube.band.starts <- function(side,
+                              width,
+                              period,
+                              offset,
+                              width_name = "width",
+                              period_name = "period",
+                              offset_name = "offset") {
+  width <- .as_whole_number(width, width_name, min = 1L)
+  if (width >= side) {
+    stop(sprintf("%s must be < side", width_name), call. = FALSE)
+  }
+  period <- .as_whole_number(period, period_name, min = 1L)
+  offset <- .as_whole_number(offset, offset_name, min = 1L)
+  max_start <- side - width
+  if (offset > max_start) {
+    stop(sprintf("%s must be <= %d for the chosen side and width",
+                 offset_name,
+                 max_start),
+         call. = FALSE)
+  }
+  as.integer(seq(offset, max_start, by = period))
+}
+
+.cube.band.mask <- function(side, width, starts) {
+  side <- .as_whole_number(side, "side", min = 2L)
+  width <- .as_whole_number(width, "width", min = 1L)
+  starts <- as.integer(starts)
+  out <- rep(FALSE, side)
+  for (start in starts) {
+    out[start:(start + width - 1L)] <- TRUE
+  }
+  out
+}
+
+.set_cube_block <- function(arr,
+                            row_start,
+                            col_start,
+                            layer_start,
+                            row_size,
+                            col_size = row_size,
+                            layer_size = row_size,
+                            value = FALSE) {
+  dims <- dim(arr)
+  row_start <- .as_whole_number(row_start, "row_start", min = 1L)
+  col_start <- .as_whole_number(col_start, "col_start", min = 1L)
+  layer_start <- .as_whole_number(layer_start, "layer_start", min = 1L)
+  row_size <- .as_whole_number(row_size, "row_size", min = 1L)
+  col_size <- .as_whole_number(col_size, "col_size", min = 1L)
+  layer_size <- .as_whole_number(layer_size, "layer_size", min = 1L)
+
+  row_end <- row_start + row_size - 1L
+  col_end <- col_start + col_size - 1L
+  layer_end <- layer_start + layer_size - 1L
+  if (row_end > dims[1L] || col_end > dims[2L] || layer_end > dims[3L]) {
+    stop("requested cube block lies outside the keep-array bounds", call. = FALSE)
+  }
+
+  arr[row_start:row_end, col_start:col_end, layer_start:layer_end] <- value
+  arr
+}
+
+.cube.periodic.tunnels.mask <- function(side = 5,
+                                        tunnel_width = 1,
+                                        tunnel_period = 2,
+                                        tunnel_offset = 2) {
+  side <- .as_whole_number(side, "side", min = 3L)
+  starts <- .cube.band.starts(
+    side = side,
+    width = tunnel_width,
+    period = tunnel_period,
+    offset = tunnel_offset,
+    width_name = "tunnel_width",
+    period_name = "tunnel_period",
+    offset_name = "tunnel_offset"
+  )
+  bands <- .cube.band.mask(side, tunnel_width, starts)
+  grid <- expand.grid(
+    row = seq_len(side),
+    col = seq_len(side),
+    layer = seq_len(side)
+  )
+  middle_count <- bands[grid$row] + bands[grid$col] + bands[grid$layer]
+  keep <- array(TRUE, dim = c(side, side, side))
+  keep[cbind(grid$row[middle_count >= 2L],
+             grid$col[middle_count >= 2L],
+             grid$layer[middle_count >= 2L])] <- FALSE
+  keep
+}
+
+.cube.asymmetric.cavities.mask <- function(side = 5,
+                                           cavity_size = 2,
+                                           pocket_size = max(1L, cavity_size - 1L)) {
+  side <- .as_whole_number(side, "side", min = 5L)
+  cavity_size <- .as_whole_number(cavity_size, "cavity_size", min = 1L)
+  pocket_size <- .as_whole_number(pocket_size, "pocket_size", min = 1L)
+  max_interior <- side - 2L
+  if (cavity_size > max_interior) {
+    stop(sprintf("cavity_size must be <= %d for the chosen side", max_interior),
+         call. = FALSE)
+  }
+  if (pocket_size > max_interior) {
+    stop(sprintf("pocket_size must be <= %d for the chosen side", max_interior),
+         call. = FALSE)
+  }
+
+  keep <- array(TRUE, dim = c(side, side, side))
+  keep <- .set_cube_block(
+    keep,
+    row_start = 2L,
+    col_start = max(2L, side - cavity_size),
+    layer_start = 2L,
+    row_size = cavity_size,
+    col_size = cavity_size,
+    layer_size = cavity_size,
+    value = FALSE
+  )
+  keep <- .set_cube_block(
+    keep,
+    row_start = max(2L, side - pocket_size),
+    col_start = 2L,
+    layer_start = max(2L, side - pocket_size),
+    row_size = pocket_size,
+    col_size = pocket_size,
+    layer_size = pocket_size,
+    value = FALSE
+  )
+  keep
+}
+
+.cube.channel.network.mask <- function(side = 5,
+                                       channel_width = 1,
+                                       branch_offset = 2) {
+  side <- .as_whole_number(side, "side", min = 5L)
+  channel_width <- .as_whole_number(channel_width, "channel_width", min = 1L)
+  if (channel_width >= side) {
+    stop("channel_width must be < side", call. = FALSE)
+  }
+  max_start <- side - channel_width
+  branch_offset <- .as_whole_number(branch_offset, "branch_offset", min = 2L)
+  if (branch_offset > max_start) {
+    stop(sprintf("branch_offset must be <= %d for the chosen side and channel_width",
+                 max_start),
+         call. = FALSE)
+  }
+
+  keep <- array(TRUE, dim = c(side, side, side))
+  mid_start <- ((side - channel_width) %/% 2L) + 1L
+  high_start <- side - channel_width
+
+  keep <- .set_cube_block(
+    keep,
+    row_start = mid_start,
+    col_start = 1L,
+    layer_start = mid_start,
+    row_size = channel_width,
+    col_size = side,
+    layer_size = channel_width,
+    value = FALSE
+  )
+  keep <- .set_cube_block(
+    keep,
+    row_start = 1L,
+    col_start = mid_start,
+    layer_start = mid_start,
+    row_size = side,
+    col_size = channel_width,
+    layer_size = channel_width,
+    value = FALSE
+  )
+  keep <- .set_cube_block(
+    keep,
+    row_start = mid_start,
+    col_start = mid_start,
+    layer_start = 1L,
+    row_size = channel_width,
+    col_size = channel_width,
+    layer_size = side,
+    value = FALSE
+  )
+  keep <- .set_cube_block(
+    keep,
+    row_start = branch_offset,
+    col_start = 1L,
+    layer_start = mid_start,
+    row_size = channel_width,
+    col_size = side,
+    layer_size = channel_width,
+    value = FALSE
+  )
+  keep <- .set_cube_block(
+    keep,
+    row_start = mid_start,
+    col_start = high_start,
+    layer_start = 1L,
+    row_size = channel_width,
+    col_size = channel_width,
+    layer_size = side,
+    value = FALSE
+  )
+  keep
+}
+
 .vicsek.mask <- function() {
   matrix(
     c(
@@ -1393,6 +1595,72 @@ mask.asymmetric.holes <- function(k = 5, hole_size = 1) {
   .mask.asymmetric.holes.keep(
     k = k,
     hole_size = hole_size
+  )
+}
+
+#' Cube mask pattern helpers for recursive porous families
+#'
+#' Convenience constructors for cubic keep-arrays that can be passed to
+#' \code{\link{edges.recursive.cube.mask}()} or
+#' \code{\link{recursive.cube.mask.surface.graph}()} to build cubical porous
+#' benchmark families. These helpers encode three qualitatively different void
+#' patterns: repeated tunnel lattices, interior asymmetric cavities, and
+#' deterministic channel networks.
+#'
+#' The returned arrays use the same orientation as the recursive cube-mask
+#' helpers: the first dimension runs from top to bottom, the second from left
+#' to right, and the third from front to back.
+#'
+#' @param side Side length of the cubic keep-array.
+#' @param tunnel_width Width of each removed tunnel band.
+#' @param tunnel_period Spacing between successive tunnel bands.
+#' @param tunnel_offset Starting index of the first tunnel band.
+#' @param cavity_size Side length of the larger interior cavity block.
+#' @param pocket_size Side length of the smaller secondary cavity block.
+#' @param channel_width Width of each removed channel in the channel-network
+#'   family.
+#' @param branch_offset Interior offset of the extra branch channel in
+#'   \code{mask.cube.channel.network()}.
+#'
+#' @return A logical cubic keep-array.
+#' @name cube_mask_pattern_helpers
+NULL
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.periodic.tunnels <- function(side = 5,
+                                       tunnel_width = 1,
+                                       tunnel_period = 2,
+                                       tunnel_offset = 2) {
+  .cube.periodic.tunnels.mask(
+    side = side,
+    tunnel_width = tunnel_width,
+    tunnel_period = tunnel_period,
+    tunnel_offset = tunnel_offset
+  )
+}
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.asymmetric.cavities <- function(side = 5,
+                                          cavity_size = 2,
+                                          pocket_size = max(1L, cavity_size - 1L)) {
+  .cube.asymmetric.cavities.mask(
+    side = side,
+    cavity_size = cavity_size,
+    pocket_size = pocket_size
+  )
+}
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.channel.network <- function(side = 5,
+                                      channel_width = 1,
+                                      branch_offset = 2) {
+  .cube.channel.network.mask(
+    side = side,
+    channel_width = channel_width,
+    branch_offset = branch_offset
   )
 }
 
@@ -3331,6 +3599,266 @@ menger.sponge.surface.graph <- function(level = 2,
   out
 }
 
+#' Weighted porous cube-mask surface helpers
+#'
+#' Convenience wrappers around \code{recursive.cube.mask.surface.*()} for three
+#' named porous cubical families: a periodic tunnel lattice, an asymmetric
+#' cavity family, and a deterministic channel network. Each family uses a
+#' reusable base keep-array and then recurses it in exactly the same way as the
+#' generic cube-mask helpers.
+#'
+#' @param level Recursion depth. Must be at least \code{1}.
+#' @param side Side length of the base cubic keep-array.
+#' @param surface Cube-mask geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param x_scale Positive horizontal scaling applied to the canonical cube
+#'   coordinates.
+#' @param y_scale Positive vertical scaling applied to the canonical cube
+#'   coordinates.
+#' @param z_scale Positive depth scaling applied to the canonical cube
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#' @param tunnel_width Width of each removed tunnel band.
+#' @param tunnel_period Spacing between successive tunnel bands.
+#' @param tunnel_offset Starting index of the first tunnel band.
+#' @param cavity_size Side length of the larger interior cavity block.
+#' @param pocket_size Side length of the smaller secondary cavity block.
+#' @param channel_width Width of each removed channel in the channel-network
+#'   family.
+#' @param branch_offset Interior offset of the extra branch channel in the
+#'   channel-network family.
+#'
+#' @return
+#' Each \code{*.surface.embedding()} helper returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' Each \code{*.surface.graph()} helper returns the same components as
+#' \code{recursive.cube.mask.surface.graph()}, with a family-specific
+#' \code{family} field, class, and label.
+#'
+#' @name porous_cube_surface_helpers
+NULL
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.periodic.tunnels.surface.embedding <- function(level = 2,
+                                                    side = 5,
+                                                    tunnel_width = 1,
+                                                    tunnel_period = 2,
+                                                    tunnel_offset = 2,
+                                                    surface = c("standard", "bulged",
+                                                                "twisted", "wavy"),
+                                                    amplitude = 0.2,
+                                                    freq = 2,
+                                                    twist = 0.6,
+                                                    x_scale = 1,
+                                                    y_scale = 1,
+                                                    z_scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.periodic.tunnels(
+      side = side,
+      tunnel_width = tunnel_width,
+      tunnel_period = tunnel_period,
+      tunnel_offset = tunnel_offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.periodic.tunnels.surface.graph <- function(level = 2,
+                                                side = 5,
+                                                tunnel_width = 1,
+                                                tunnel_period = 2,
+                                                tunnel_offset = 2,
+                                                surface = c("standard", "bulged",
+                                                            "twisted", "wavy"),
+                                                amplitude = 0.2,
+                                                freq = 2,
+                                                twist = 0.6,
+                                                x_scale = 1,
+                                                y_scale = 1,
+                                                z_scale = 1,
+                                                normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.periodic.tunnels(
+      side = side,
+      tunnel_width = tunnel_width,
+      tunnel_period = tunnel_period,
+      tunnel_offset = tunnel_offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale,
+    normalize = normalize
+  )
+  out$family <- "cube.periodic.tunnels"
+  out$label <- sprintf("%s periodic tunnels cube level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_periodic_tunnels_surface_graph", class(out))
+  out
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.asymmetric.cavities.surface.embedding <- function(level = 2,
+                                                       side = 5,
+                                                       cavity_size = 2,
+                                                       pocket_size = max(1L, cavity_size - 1L),
+                                                       surface = c("standard", "bulged",
+                                                                   "twisted", "wavy"),
+                                                       amplitude = 0.2,
+                                                       freq = 2,
+                                                       twist = 0.6,
+                                                       x_scale = 1,
+                                                       y_scale = 1,
+                                                       z_scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.asymmetric.cavities(
+      side = side,
+      cavity_size = cavity_size,
+      pocket_size = pocket_size
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.asymmetric.cavities.surface.graph <- function(level = 2,
+                                                   side = 5,
+                                                   cavity_size = 2,
+                                                   pocket_size = max(1L, cavity_size - 1L),
+                                                   surface = c("standard", "bulged",
+                                                               "twisted", "wavy"),
+                                                   amplitude = 0.2,
+                                                   freq = 2,
+                                                   twist = 0.6,
+                                                   x_scale = 1,
+                                                   y_scale = 1,
+                                                   z_scale = 1,
+                                                   normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.asymmetric.cavities(
+      side = side,
+      cavity_size = cavity_size,
+      pocket_size = pocket_size
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale,
+    normalize = normalize
+  )
+  out$family <- "cube.asymmetric.cavities"
+  out$label <- sprintf("%s asymmetric cavities cube level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_asymmetric_cavities_surface_graph", class(out))
+  out
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.channel.network.surface.embedding <- function(level = 2,
+                                                   side = 5,
+                                                   channel_width = 1,
+                                                   branch_offset = 2,
+                                                   surface = c("standard", "bulged",
+                                                               "twisted", "wavy"),
+                                                   amplitude = 0.2,
+                                                   freq = 2,
+                                                   twist = 0.6,
+                                                   x_scale = 1,
+                                                   y_scale = 1,
+                                                   z_scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.channel.network(
+      side = side,
+      channel_width = channel_width,
+      branch_offset = branch_offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.channel.network.surface.graph <- function(level = 2,
+                                               side = 5,
+                                               channel_width = 1,
+                                               branch_offset = 2,
+                                               surface = c("standard", "bulged",
+                                                           "twisted", "wavy"),
+                                               amplitude = 0.2,
+                                               freq = 2,
+                                               twist = 0.6,
+                                               x_scale = 1,
+                                               y_scale = 1,
+                                               z_scale = 1,
+                                               normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.channel.network(
+      side = side,
+      channel_width = channel_width,
+      branch_offset = branch_offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    z_scale = z_scale,
+    normalize = normalize
+  )
+  out$family <- "cube.channel.network"
+  out$label <- sprintf("%s cube channel network level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_channel_network_surface_graph", class(out))
+  out
+}
+
 #' Weighted recursive triangle-mask surface helpers
 #'
 #' Convenience helpers that recursively subdivide an equilateral triangle into
@@ -4004,6 +4532,60 @@ edges.vicsek <- function(level = 2) {
 #' @export
 edges.menger.sponge <- function(level = 2) {
   edges.recursive.cube.mask(.menger.sponge.mask(), level = level)
+}
+
+#' @describeIn graph_generators Periodic cubical tunnel family derived from a
+#'   repeated tunnel-band keep-mask. The classic Menger sponge appears as the
+#'   \code{side = 3}, \code{tunnel_width = 1} special case.
+#' @export
+edges.cube.periodic.tunnels <- function(level = 2,
+                                        side = 5,
+                                        tunnel_width = 1,
+                                        tunnel_period = 2,
+                                        tunnel_offset = 2) {
+  edges.recursive.cube.mask(
+    mask.cube.periodic.tunnels(
+      side = side,
+      tunnel_width = tunnel_width,
+      tunnel_period = tunnel_period,
+      tunnel_offset = tunnel_offset
+    ),
+    level = level
+  )
+}
+
+#' @describeIn graph_generators Cubical porous family with two offset interior
+#'   cavity blocks repeated recursively.
+#' @export
+edges.cube.asymmetric.cavities <- function(level = 2,
+                                           side = 5,
+                                           cavity_size = 2,
+                                           pocket_size = max(1L, cavity_size - 1L)) {
+  edges.recursive.cube.mask(
+    mask.cube.asymmetric.cavities(
+      side = side,
+      cavity_size = cavity_size,
+      pocket_size = pocket_size
+    ),
+    level = level
+  )
+}
+
+#' @describeIn graph_generators Cubical porous family with a deterministic
+#'   branched channel network carved through each recursive block.
+#' @export
+edges.cube.channel.network <- function(level = 2,
+                                       side = 5,
+                                       channel_width = 1,
+                                       branch_offset = 2) {
+  edges.recursive.cube.mask(
+    mask.cube.channel.network(
+      side = side,
+      channel_width = channel_width,
+      branch_offset = branch_offset
+    ),
+    level = level
+  )
 }
 
 #' @describeIn graph_generators Two-dimensional Sierpinski triangle graph at
