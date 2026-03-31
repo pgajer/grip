@@ -78,6 +78,13 @@ gripui.family.numeric.vector.text <- function(x) {
   paste(format(as.numeric(x), trim = TRUE, digits = 6), collapse = ", ")
 }
 
+gripui.family.value_or_default <- function(x, default) {
+  if (is.null(x) || length(x) == 0L || all(is.na(x))) {
+    return(default)
+  }
+  x
+}
+
 gripui.family.js.value <- function(x) {
   if (is.logical(x)) {
     if (isTRUE(x)) "true" else "false"
@@ -411,6 +418,173 @@ gripui.family.default.color <- function(choices) {
   unname(choices[[1L]])
 }
 
+gripui.family.compare.family.input_id <- function(idx) {
+  sprintf("compare_family_%d", idx)
+}
+
+gripui.family.compare.preset.input_id <- function(idx) {
+  sprintf("compare_preset_%d", idx)
+}
+
+gripui.family.compare.plot.output_id <- function(idx) {
+  sprintf("compare_viewer_2d_%d", idx)
+}
+
+gripui.family.compare.preferred.ids <- function(catalog) {
+  preferred <- c(
+    "mesh",
+    "sierpinski_carpet",
+    "sphere",
+    "irregular_torus",
+    "menger_sponge",
+    "kary_tree"
+  )
+  unique(c(preferred[preferred %in% names(catalog)], names(catalog)))
+}
+
+gripui.family.compare.default.family_id <- function(catalog, idx = 1L) {
+  ids <- gripui.family.compare.preferred.ids(catalog)
+  ids[[((idx - 1L) %% length(ids)) + 1L]]
+}
+
+gripui.family.compare.default.preset <- function(desc, rank = 1L) {
+  ids <- c("default", names(desc$presets))
+  ids[[((rank - 1L) %% length(ids)) + 1L]]
+}
+
+gripui.family.compare.slot.selection <- function(idx,
+                                                 input,
+                                                 catalog,
+                                                 current_family_id,
+                                                 lock_family = FALSE,
+                                                 include_current = TRUE) {
+  if (isTRUE(include_current) && idx == 1L) {
+    return(list(source = "current", slot = idx))
+  }
+
+  family_id <- if (isTRUE(lock_family)) {
+    current_family_id
+  } else {
+    raw <- input[[gripui.family.compare.family.input_id(idx)]]
+    if (is.null(raw) || !raw %in% names(catalog)) {
+      gripui.family.compare.default.family_id(catalog, idx = idx)
+    } else {
+      raw
+    }
+  }
+
+  desc <- catalog[[family_id]]
+  preset_raw <- input[[gripui.family.compare.preset.input_id(idx)]]
+  preset_id <- if (is.null(preset_raw) || !preset_raw %in% c("default", names(desc$presets))) {
+    gripui.family.compare.default.preset(desc, rank = idx)
+  } else {
+    preset_raw
+  }
+
+  list(
+    source = "preset",
+    slot = idx,
+    family_id = family_id,
+    preset_id = preset_id
+  )
+}
+
+gripui.family.compare.slot.ui <- function(idx,
+                                          input,
+                                          catalog,
+                                          current_family_id,
+                                          include_current = TRUE,
+                                          lock_family = FALSE,
+                                          current_desc = NULL) {
+  selection <- gripui.family.compare.slot.selection(
+    idx = idx,
+    input = input,
+    catalog = catalog,
+    current_family_id = current_family_id,
+    lock_family = lock_family,
+    include_current = include_current
+  )
+
+  if (identical(selection$source, "current")) {
+    label <- if (is.null(current_desc)) "Current explore controls" else current_desc$label
+    return(
+      shiny::tags$div(
+        class = "gripui-family-group",
+        shiny::tags$h5(style = "margin-top:0.8rem;", "Current Explore Selection"),
+        shiny::tags$p(
+          class = "gripui-project-summary",
+          sprintf("Slot %d uses the current Explore family and the current sidebar parameter values.", idx)
+        ),
+        shiny::tags$p(class = "gripui-selection-status", label)
+      )
+    )
+  }
+
+  desc <- catalog[[selection$family_id]]
+  family_choices <- gripui.family.choices(catalog)
+
+  shiny::tags$div(
+    class = "gripui-family-group",
+    shiny::tags$h5(style = "margin-top:0.8rem;", sprintf("Variant %d", idx)),
+    if (isTRUE(lock_family)) {
+      shiny::tags$p(
+        class = "gripui-selection-status",
+        sprintf("Family locked to %s.", catalog[[current_family_id]]$label)
+      )
+    } else {
+      shiny::selectInput(
+        inputId = gripui.family.compare.family.input_id(idx),
+        label = "Family",
+        choices = family_choices,
+        selected = selection$family_id
+      )
+    },
+    shiny::selectInput(
+      inputId = gripui.family.compare.preset.input_id(idx),
+      label = "Preset",
+      choices = gripui.family.preset.choices(desc),
+      selected = selection$preset_id
+    )
+  )
+}
+
+gripui.family.compare.color.choices <- function(payloads) {
+  if (is.null(payloads) || length(payloads) == 0L) {
+    return(c(Plain = "plain"))
+  }
+  fields <- unique(unlist(lapply(payloads, function(payload) {
+    if (is.null(payload$graph$vertex_data)) {
+      return(character(0))
+    }
+    setdiff(names(payload$graph$vertex_data), c("x", "y", "z"))
+  }), use.names = FALSE))
+  c(Plain = "plain", stats::setNames(fields, tools::toTitleCase(gsub("_", " ", fields, fixed = TRUE))))
+}
+
+gripui.family.compare.summary <- function(payloads) {
+  if (is.null(payloads) || length(payloads) == 0L) {
+    return(data.frame())
+  }
+  rows <- lapply(payloads, function(payload) {
+    weights <- as.numeric(payload$edge_weights)
+    coords <- payload$coords_display
+    spans <- apply(coords, 2L, function(x) diff(range(x, finite = TRUE)))
+    data.frame(
+      slot = payload$compare_slot,
+      label = payload$compare_label,
+      family = payload$family_label,
+      preset = payload$compare_preset,
+      vertices = payload$n,
+      edges = gripui.family.count.edges(payload$edges),
+      mean_weight = sprintf("%.4f", mean(weights)),
+      weight_cv = sprintf("%.4f", if (length(weights) > 1L && mean(weights) > 0) stats::sd(weights) / mean(weights) else 0),
+      z_span = sprintf("%.4f", spans[[3L]]),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
 gripui.family.ui <- function(catalog, title, subtitle = NULL) {
   categories <- c("All families", gripui.family.categories(catalog))
   initial_choices <- gripui.family.choices(catalog, categories[[1L]])
@@ -428,58 +602,93 @@ gripui.family.ui <- function(catalog, title, subtitle = NULL) {
       if (!is.null(subtitle) && nzchar(subtitle)) {
         shiny::tags$p(class = "gripui-project-summary", subtitle)
       },
-      shiny::uiOutput("family_meta"),
-      shiny::selectInput("family_category", "Category", choices = categories, selected = categories[[1L]]),
-      shiny::selectInput("family_id", "Family", choices = initial_choices, selected = unname(initial_choices[[1L]])),
-      shiny::selectInput("family_preset", "Preset", choices = gripui.family.preset.choices(initial_desc), selected = "default"),
-      shiny::uiOutput("family_param_panel"),
-      shiny::selectInput("viewer_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
-      shiny::checkboxInput("show_edges", "Show edges", value = TRUE),
-      shiny::actionButton("render_family_geometry", "Render geometry", class = "btn-primary"),
-      shiny::uiOutput("render_status")
+      shiny::conditionalPanel(
+        condition = "input['family_app_mode'] == 'Explore'",
+        shiny::uiOutput("family_meta"),
+        shiny::selectInput("family_category", "Category", choices = categories, selected = categories[[1L]]),
+        shiny::selectInput("family_id", "Family", choices = initial_choices, selected = unname(initial_choices[[1L]])),
+        shiny::selectInput("family_preset", "Preset", choices = gripui.family.preset.choices(initial_desc), selected = "default"),
+        shiny::uiOutput("family_param_panel"),
+        shiny::selectInput("viewer_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
+        shiny::checkboxInput("show_edges", "Show edges", value = TRUE),
+        shiny::actionButton("render_family_geometry", "Render geometry", class = "btn-primary"),
+        shiny::uiOutput("render_status")
+      ),
+      shiny::conditionalPanel(
+        condition = "input['family_app_mode'] == 'Compare'",
+        shiny::tags$div(class = "gripui-project-title", "Compare"),
+        shiny::tags$p(
+          class = "gripui-project-summary",
+          "Compare current controls and family presets side by side."
+        ),
+        shiny::numericInput("compare_panel_count", "Panels", value = 3L, min = 2L, max = 4L, step = 1L),
+        shiny::checkboxInput("compare_include_current", "Include current Explore selection", value = TRUE),
+        shiny::checkboxInput("compare_lock_family", "Lock family to current Explore family", value = FALSE),
+        shiny::uiOutput("compare_control_panel"),
+        shiny::selectInput("compare_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
+        shiny::checkboxInput("compare_show_edges", "Show edges", value = TRUE),
+        shiny::actionButton("render_family_compare", "Render comparison", class = "btn-primary"),
+        shiny::uiOutput("compare_render_status")
+      )
     ),
     if (nzchar(css.path)) shiny::tags$head(shiny::includeCSS(css.path)),
-    bslib::layout_columns(
-      col_widths = c(7, 5),
-      bslib::card(
-        full_screen = TRUE,
-        class = "gripui-card",
-        bslib::card_header("3D Geometry"),
-        shiny::uiOutput("family_viewer_3d")
+    bslib::navset_card_tab(
+      id = "family_app_mode",
+      bslib::nav_panel(
+        "Explore",
+        bslib::layout_columns(
+          col_widths = c(7, 5),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("3D Geometry"),
+            shiny::uiOutput("family_viewer_3d")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("2D Auxiliary View"),
+            shiny::plotOutput("family_viewer_2d", height = 520)
+          )
+        ),
+        bslib::layout_columns(
+          col_widths = c(4, 4, 4),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Graph Summary"),
+            shiny::tableOutput("family_graph_summary")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Weight Summary"),
+            shiny::tableOutput("family_weight_summary")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Geometry Summary"),
+            shiny::tableOutput("family_geometry_summary")
+          )
+        ),
+        bslib::card(
+          full_screen = TRUE,
+          class = "gripui-card",
+          bslib::card_header("Reproducible R Call"),
+          shiny::verbatimTextOutput("family_code")
+        )
       ),
-      bslib::card(
-        full_screen = TRUE,
-        class = "gripui-card",
-        bslib::card_header("2D Auxiliary View"),
-        shiny::plotOutput("family_viewer_2d", height = 520)
+      bslib::nav_panel(
+        "Compare",
+        shiny::uiOutput("compare_grid"),
+        bslib::card(
+          full_screen = TRUE,
+          class = "gripui-card",
+          bslib::card_header("Shared Summary"),
+          shiny::tableOutput("compare_summary")
+        )
       )
-    ),
-    bslib::layout_columns(
-      col_widths = c(4, 4, 4),
-      bslib::card(
-        full_screen = TRUE,
-        class = "gripui-card",
-        bslib::card_header("Graph Summary"),
-        shiny::tableOutput("family_graph_summary")
-      ),
-      bslib::card(
-        full_screen = TRUE,
-        class = "gripui-card",
-        bslib::card_header("Weight Summary"),
-        shiny::tableOutput("family_weight_summary")
-      ),
-      bslib::card(
-        full_screen = TRUE,
-        class = "gripui-card",
-        bslib::card_header("Geometry Summary"),
-        shiny::tableOutput("family_geometry_summary")
-      )
-    ),
-    bslib::card(
-      full_screen = TRUE,
-      class = "gripui-card",
-      bslib::card_header("Reproducible R Call"),
-      shiny::verbatimTextOutput("family_code")
     )
   )
 }
@@ -488,6 +697,8 @@ gripui.family.server <- function(catalog) {
   function(input, output, session) {
     payload_state <- shiny::reactiveVal(NULL)
     error_state <- shiny::reactiveVal(NULL)
+    compare_payloads_state <- shiny::reactiveVal(NULL)
+    compare_error_state <- shiny::reactiveVal(NULL)
 
     current_desc <- shiny::reactive({
       catalog[[input$family_id]]
@@ -571,6 +782,116 @@ gripui.family.server <- function(catalog) {
       shiny::updateSelectInput(session, "viewer_color_by", choices = choices, selected = selected)
     })
 
+    output$compare_control_panel <- shiny::renderUI({
+      count <- min(max(as.integer(gripui.family.value_or_default(input$compare_panel_count, 3L)), 2L), 4L)
+      include_current <- isTRUE(input$compare_include_current)
+      lock_family <- isTRUE(input$compare_lock_family)
+      current_family_id <- if (!is.null(input$family_id) && input$family_id %in% names(catalog)) {
+        input$family_id
+      } else {
+        names(catalog)[[1L]]
+      }
+
+      shiny::tagList(lapply(seq_len(count), function(idx) {
+        gripui.family.compare.slot.ui(
+          idx = idx,
+          input = input,
+          catalog = catalog,
+          current_family_id = current_family_id,
+          include_current = include_current,
+          lock_family = lock_family,
+          current_desc = current_desc()
+        )
+      }))
+    })
+
+    build_current_compare_payload <- function() {
+      desc <- current_desc()
+      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+      payload <- gripui.family.build.payload(desc, values)
+      payload$compare_slot <- 1L
+      payload$compare_label <- "Current"
+      payload$compare_preset <- "current_controls"
+      payload
+    }
+
+    build_compare_payloads <- function() {
+      count <- min(max(as.integer(gripui.family.value_or_default(input$compare_panel_count, 3L)), 2L), 4L)
+      include_current <- isTRUE(input$compare_include_current)
+      lock_family <- isTRUE(input$compare_lock_family)
+      current_family_id <- if (!is.null(input$family_id) && input$family_id %in% names(catalog)) {
+        input$family_id
+      } else {
+        names(catalog)[[1L]]
+      }
+
+      payloads <- lapply(seq_len(count), function(idx) {
+        selection <- gripui.family.compare.slot.selection(
+          idx = idx,
+          input = input,
+          catalog = catalog,
+          current_family_id = current_family_id,
+          lock_family = lock_family,
+          include_current = include_current
+        )
+
+        if (identical(selection$source, "current")) {
+          payload <- build_current_compare_payload()
+          payload$compare_slot <- idx
+          return(payload)
+        }
+
+        desc <- catalog[[selection$family_id]]
+        values <- .gripui.family.merge.values(desc, preset_id = selection$preset_id)
+        payload <- gripui.family.build.payload(desc, values)
+        payload$compare_slot <- idx
+        payload$compare_label <- sprintf("Variant %d", idx)
+        payload$compare_preset <- selection$preset_id
+        payload
+      })
+
+      compare_payloads_state(payloads)
+      compare_error_state(NULL)
+      invisible(payloads)
+    }
+
+    shiny::observe({
+      payloads <- compare_payloads_state()
+      choices <- gripui.family.compare.color.choices(payloads)
+      current <- shiny::isolate(input$compare_color_by)
+      selected <- if (!is.null(current) && current %in% unname(choices)) {
+        current
+      } else {
+        gripui.family.default.color(choices)
+      }
+      shiny::updateSelectInput(session, "compare_color_by", choices = choices, selected = selected)
+    })
+
+    shiny::observeEvent(
+      list(
+        input$family_id,
+        input$family_preset,
+        input$compare_panel_count,
+        input$compare_include_current,
+        input$compare_lock_family
+      ),
+      {
+        result <- tryCatch(build_compare_payloads(), error = function(e) e)
+        if (inherits(result, "error")) {
+          compare_error_state(conditionMessage(result))
+        }
+      },
+      ignoreInit = FALSE
+    )
+
+    shiny::observeEvent(input$render_family_compare, {
+      result <- tryCatch(build_compare_payloads(), error = function(e) e)
+      if (inherits(result, "error")) {
+        compare_error_state(conditionMessage(result))
+        shiny::showNotification(conditionMessage(result), type = "error")
+      }
+    })
+
     output$render_status <- shiny::renderUI({
       payload <- payload_state()
       err <- error_state()
@@ -583,6 +904,21 @@ gripui.family.server <- function(catalog) {
       shiny::tags$p(
         class = "gripui-selection-status",
         sprintf("%s rendered with %d vertices and %d edges.", payload$family_label, payload$n, gripui.family.count.edges(payload$edges))
+      )
+    })
+
+    output$compare_render_status <- shiny::renderUI({
+      payloads <- compare_payloads_state()
+      err <- compare_error_state()
+      if (!is.null(err)) {
+        return(shiny::tags$p(style = "color:#8a1c1c;", err))
+      }
+      if (is.null(payloads) || length(payloads) == 0L) {
+        return(shiny::tags$p(class = "gripui-muted", "Render a comparison to inspect multiple families side by side."))
+      }
+      shiny::tags$p(
+        class = "gripui-selection-status",
+        sprintf("Comparison rendered for %d panel%s.", length(payloads), if (length(payloads) == 1L) "" else "s")
       )
     })
 
@@ -619,6 +955,69 @@ gripui.family.server <- function(catalog) {
       )
     })
 
+    for (idx in seq_len(4L)) {
+      local({
+        i <- idx
+        output[[gripui.family.compare.plot.output_id(i)]] <- shiny::renderPlot({
+          payloads <- compare_payloads_state()
+          if (is.null(payloads) || length(payloads) < i || is.null(payloads[[i]])) {
+            graphics::plot.new()
+            graphics::title("No geometry rendered")
+            return(invisible(NULL))
+          }
+
+          payload <- payloads[[i]]
+          gripui.render.layout.plot2d(
+            payload$coords_plot,
+            graph = payload$graph,
+            color_by = input$compare_color_by,
+            show_edges = isTRUE(input$compare_show_edges)
+          )
+        })
+      })
+    }
+
+    output$compare_grid <- shiny::renderUI({
+      payloads <- compare_payloads_state()
+      if (is.null(payloads) || length(payloads) == 0L) {
+        return(shiny::tags$p(class = "gripui-muted", "No comparison rendered yet."))
+      }
+
+      cards <- lapply(seq_along(payloads), function(idx) {
+        payload <- payloads[[idx]]
+        preset_label <- if (identical(payload$compare_preset, "current_controls")) {
+          "Current Explore controls"
+        } else {
+          tools::toTitleCase(gsub("_", " ", payload$compare_preset, fixed = TRUE))
+        }
+
+        bslib::card(
+          full_screen = TRUE,
+          class = "gripui-card",
+          bslib::card_header(sprintf("%s: %s", payload$compare_label, payload$family_label)),
+          shiny::tags$p(class = "gripui-project-summary", sprintf("Preset: %s", preset_label)),
+          gripui.render.rglwidget(
+            payload$coords_display,
+            graph = payload$graph,
+            color_by = input$compare_color_by,
+            show_edges = isTRUE(input$compare_show_edges)
+          ),
+          shiny::plotOutput(gripui.family.compare.plot.output_id(idx), height = 220),
+          if (!is.null(payload$note) && nzchar(payload$note)) {
+            shiny::tags$p(style = "margin-top:0.9rem;color:#6b7280;", payload$note)
+          }
+        )
+      })
+
+      rows <- split(cards, ceiling(seq_along(cards) / 2L))
+      shiny::tagList(lapply(rows, function(row_cards) {
+        do.call(
+          bslib::layout_columns,
+          c(list(col_widths = if (length(row_cards) == 1L) 12 else rep(6, length(row_cards))), row_cards)
+        )
+      }))
+    })
+
     output$family_graph_summary <- shiny::renderTable({
       payload <- payload_state()
       if (is.null(payload)) {
@@ -650,6 +1049,14 @@ gripui.family.server <- function(catalog) {
       }
       payload$code
     })
+
+    output$compare_summary <- shiny::renderTable({
+      payloads <- compare_payloads_state()
+      if (is.null(payloads) || length(payloads) == 0L) {
+        return(NULL)
+      }
+      gripui.family.compare.summary(payloads)
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
   }
 }
 
