@@ -13,6 +13,8 @@
 \alias{edges.cube.asymmetric.cavities}
 \alias{edges.cube.channel.network}
 \alias{edges.cube.periodic.tunnels}
+\alias{edges.irregular.annulus}
+\alias{edges.irregular.sphere}
 \alias{edges.kary.tree}
 \alias{edges.menger.sponge}
 \alias{edges.recursive.cube.mask}
@@ -41,6 +43,24 @@ edges.cylinder(h, w = h)
 edges.torus(h, w = h)
 
 edges.sphere(h, w = h)
+
+edges.irregular.annulus(
+  rings = 6,
+  outer_count = 28,
+  outer_radius = 1,
+  inner_radius = 0.45,
+  count_irregularity = 0.2,
+  radial_irregularity = 0.35,
+  phase_twist = 0.35
+)
+
+edges.irregular.sphere(
+  bands = 6,
+  equator_count = 28,
+  count_irregularity = 0.2,
+  lat_irregularity = 0.35,
+  phase_twist = 0.35
+)
 
 edges.cube(side = 2)
 
@@ -118,9 +138,18 @@ keep-mask.}
 
 \item{depth}{Number of levels below the root.}
 
+\item{rings}{Number of concentric sample rings for
+\code{edges.irregular.annulus()}.}
+
+\item{outer_count}{Approximate number of vertices on the outer boundary for
+\code{edges.irregular.annulus()}.}
+
 \item{resolution}{Positive lattice-resolution control used by
 \code{edges.triangulated.annulus()} and
 \code{edges.triangulated.pair.of.pants()}.}
+
+\item{equator_count}{Approximate number of vertices near the equator for
+\code{edges.irregular.sphere()}.}
 
 \item{tunnel_width}{Width of each removed tunnel band in
 \code{edges.cube.periodic.tunnels()}.}
@@ -147,11 +176,29 @@ keep-mask.}
 of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
 
 \item{outer_radius}{Positive outer boundary radius for
-\code{edges.triangulated.annulus()} and
+\code{edges.triangulated.annulus()},
+\code{edges.irregular.annulus()}, and
 \code{edges.triangulated.pair.of.pants()}.}
 
 \item{inner_radius}{Positive inner annulus radius for
-\code{edges.triangulated.annulus()}.}
+\code{edges.triangulated.annulus()} and
+\code{edges.irregular.annulus()}.}
+
+\item{count_irregularity}{Irregularity level for sample counts in
+\code{edges.irregular.annulus()} and \code{edges.irregular.sphere()}.}
+
+\item{radial_irregularity}{Within-ring radial irregularity level for
+\code{edges.irregular.annulus()}.}
+
+\item{phase_twist}{Angular phase offset used to desynchronize neighboring
+rings or latitude bands in the irregular annulus and irregular sphere
+families.}
+
+\item{bands}{Number of non-pole latitude bands for
+\code{edges.irregular.sphere()}.}
+
+\item{lat_irregularity}{Latitude-band spacing irregularity level for
+\code{edges.irregular.sphere()}.}
 
 \item{hole_radius}{Positive radius of each interior hole for
 \code{edges.triangulated.pair.of.pants()}.}
@@ -206,7 +253,10 @@ variants, \code{\link{edges.triangulated.polyhedron}()} builds a generic
 closed irregular triangulated-surface family, and
 \code{\link{edges.triangulated.annulus}()} together with
 \code{\link{edges.triangulated.pair.of.pants}()} build triangulated
-surface-with-boundary families,
+surface-with-boundary families, while
+\code{\link{edges.irregular.annulus}()} and
+\code{\link{edges.irregular.sphere}()} build deterministic irregular
+point-sampled manifold families,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
 triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
 builds a generic tetrahedron-mask family,
@@ -235,6 +285,14 @@ width.
 
 \item \code{edges.sphere()}: Sphere surface graph with \code{h} latitude
 levels (including the poles) and wrapped longitude \code{w}.
+
+\item \code{edges.irregular.annulus()}: Deterministically irregular annulus graph built
+from concentric sample rings with varying sample counts and stitched into a
+locally triangulated surface-with-boundary graph.
+
+\item \code{edges.irregular.sphere()}: Deterministically irregular sphere graph built
+from latitude bands with varying sample counts and stitched into a locally
+triangulated closed surface.
 
 \item \code{edges.cube()}: Cube surface graph on the boundary of a
 \code{side x side x side} lattice.

@@ -962,6 +962,234 @@
   built
 }
 
+.normalize.angles <- function(theta) {
+  theta <- theta %% (2 * pi)
+  theta[theta < 0] <- theta[theta < 0] + 2 * pi
+  theta
+}
+
+.cyclic.ring.edges <- function(ids) {
+  ids <- as.integer(ids)
+  if (length(ids) < 3L) {
+    stop("cyclic rings require at least 3 vertices", call. = FALSE)
+  }
+  edges <- cbind(ids, c(ids[-1L], ids[1L]))
+  storage.mode(edges) <- "integer"
+  .normalize_undirected_edges(edges)
+}
+
+.cyclic.bracketing.indices <- function(theta, ring_angles) {
+  ring_angles <- .normalize.angles(ring_angles)
+  order_idx <- order(ring_angles)
+  sorted_angles <- ring_angles[order_idx]
+  theta <- .normalize.angles(theta)
+  if (length(sorted_angles) == 1L) {
+    return(rep(order_idx[[1L]], 2L))
+  }
+  aug <- c(sorted_angles, sorted_angles[1L] + 2 * pi)
+  theta_aug <- theta
+  if (theta_aug < sorted_angles[1L]) {
+    theta_aug <- theta_aug + 2 * pi
+  }
+  lower_sorted <- findInterval(theta_aug, aug, rightmost.closed = TRUE)
+  lower_sorted <- min(max(lower_sorted, 1L), length(sorted_angles))
+  upper_sorted <- (lower_sorted %% length(sorted_angles)) + 1L
+  c(order_idx[lower_sorted], order_idx[upper_sorted])
+}
+
+.connect.cyclic.rings <- function(ids_a, angles_a, ids_b, angles_b) {
+  ids_a <- as.integer(ids_a)
+  ids_b <- as.integer(ids_b)
+  angles_a <- .normalize.angles(angles_a)
+  angles_b <- .normalize.angles(angles_b)
+  edges <- list()
+
+  for (j in seq_along(ids_b)) {
+    nbr <- .cyclic.bracketing.indices(angles_b[[j]], angles_a)
+    edges[[length(edges) + 1L]] <- c(ids_b[[j]], ids_a[nbr[[1L]]])
+    edges[[length(edges) + 1L]] <- c(ids_b[[j]], ids_a[nbr[[2L]]])
+  }
+  for (i in seq_along(ids_a)) {
+    nbr <- .cyclic.bracketing.indices(angles_a[[i]], angles_b)
+    edges[[length(edges) + 1L]] <- c(ids_a[[i]], ids_b[nbr[[1L]]])
+    edges[[length(edges) + 1L]] <- c(ids_a[[i]], ids_b[nbr[[2L]]])
+  }
+
+  .normalize_undirected_edges(.bind_edges(edges))
+}
+
+.irregular.annulus.canonical <- function(rings = 6,
+                                         outer_count = 28,
+                                         outer_radius = 1,
+                                         inner_radius = 0.45,
+                                         count_irregularity = 0.2,
+                                         radial_irregularity = 0.35,
+                                         phase_twist = 0.35) {
+  rings <- .as_whole_number(rings, "rings", min = 2L)
+  outer_count <- .as_whole_number(outer_count, "outer_count", min = 6L)
+  outer_radius <- .as_positive_scalar(outer_radius, "outer_radius")
+  inner_radius <- .as_positive_scalar(inner_radius, "inner_radius")
+  if (inner_radius >= outer_radius) {
+    stop("inner_radius must be < outer_radius", call. = FALSE)
+  }
+  count_irregularity <- .as_finite_scalar(count_irregularity, "count_irregularity")
+  radial_irregularity <- .as_finite_scalar(radial_irregularity, "radial_irregularity")
+  phase_twist <- .as_finite_scalar(phase_twist, "phase_twist")
+  if (count_irregularity < 0 || count_irregularity >= 1) {
+    stop("count_irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (radial_irregularity < 0 || radial_irregularity > 1) {
+    stop("radial_irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  radii <- seq(inner_radius, outer_radius, length.out = rings)
+  ring_gap <- if (rings > 1L) min(diff(radii)) else (outer_radius - inner_radius)
+  radial_amp <- radial_irregularity * 0.45 * ring_gap
+  coords_list <- list()
+  ring_ids <- vector("list", rings)
+  ring_angles <- vector("list", rings)
+  ring_sizes <- integer(rings)
+  next_id <- 1L
+
+  for (ring in seq_len(rings)) {
+    t <- if (rings == 1L) 0 else (ring - 1L) / (rings - 1L)
+    target_count <- outer_count *
+      (radii[[ring]] / outer_radius) *
+      (1 + count_irregularity * cos(2 * pi * t + 0.4))
+    count <- max(5L, as.integer(round(target_count)))
+    theta <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    theta <- .normalize.angles(theta + phase_twist * sin(pi * (t - 0.5)))
+    theta <- sort(theta)
+    radius_local <- radii[[ring]] + radial_amp * sin(3 * theta + 2 * pi * t)
+    if (any(!is.finite(radius_local) | radius_local <= 0)) {
+      stop("irregular annulus parameters produce non-positive local radii",
+           call. = FALSE)
+    }
+
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[ring]] <- as.integer(ids)
+    ring_angles[[ring]] <- theta
+    ring_sizes[[ring]] <- count
+    coords_list[[ring]] <- cbind(
+      u = radius_local * cos(theta),
+      v = radius_local * sin(theta)
+    )
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  edges <- list()
+  for (ring in seq_len(rings)) {
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ring_ids[[ring]])
+    if (ring < rings) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+        ids_a = ring_ids[[ring]],
+        angles_a = ring_angles[[ring]],
+        ids_b = ring_ids[[ring + 1L]],
+        angles_b = ring_angles[[ring + 1L]]
+      )
+    }
+  }
+
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    rings = rings,
+    ring_sizes = ring_sizes,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius
+  )
+}
+
+.irregular.sphere.canonical <- function(bands = 6,
+                                        equator_count = 28,
+                                        count_irregularity = 0.2,
+                                        lat_irregularity = 0.35,
+                                        phase_twist = 0.35) {
+  bands <- .as_whole_number(bands, "bands", min = 2L)
+  equator_count <- .as_whole_number(equator_count, "equator_count", min = 6L)
+  count_irregularity <- .as_finite_scalar(count_irregularity, "count_irregularity")
+  lat_irregularity <- .as_finite_scalar(lat_irregularity, "lat_irregularity")
+  phase_twist <- .as_finite_scalar(phase_twist, "phase_twist")
+  if (count_irregularity < 0 || count_irregularity >= 1) {
+    stop("count_irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (lat_irregularity < 0 || lat_irregularity > 1) {
+    stop("lat_irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  base_gap <- pi / (bands + 1L)
+  lat_base <- seq(pi / 2 - base_gap, -pi / 2 + base_gap, length.out = bands)
+  lat_shift <- lat_irregularity * 0.22 * base_gap *
+    sin(seq_len(bands) * (2 * pi / (bands + 1L)))
+  lat_vals <- sort(lat_base + lat_shift, decreasing = TRUE)
+
+  north_id <- 1L
+  coords_param_list <- list(matrix(c(0, pi / 2), nrow = 1L,
+                                   dimnames = list(NULL, c("theta", "latitude"))))
+  ring_ids <- vector("list", bands)
+  ring_angles <- vector("list", bands)
+  band_sizes <- integer(bands)
+  next_id <- 2L
+  edges <- list()
+
+  for (band in seq_len(bands)) {
+    lat <- lat_vals[[band]]
+    t <- (band - 1L) / max(1L, bands - 1L)
+    target_count <- equator_count *
+      max(cos(lat), 0.2) *
+      (1 + count_irregularity * sin(3 * pi * t + 0.3))
+    count <- max(3L, as.integer(round(target_count)))
+    theta <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    theta <- .normalize.angles(theta + phase_twist * sin(2 * lat))
+    theta <- sort(theta)
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[band]] <- as.integer(ids)
+    ring_angles[[band]] <- theta
+    band_sizes[[band]] <- count
+    coords_param_list[[band + 1L]] <- cbind(theta = theta, latitude = rep(lat, count))
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+  }
+
+  south_id <- next_id
+  coords_param_list[[bands + 2L]] <- matrix(c(0, -pi / 2), nrow = 1L,
+                                            dimnames = list(NULL, c("theta", "latitude")))
+  if (bands >= 1L) {
+    first_ring <- ring_ids[[1L]]
+    last_ring <- ring_ids[[bands]]
+    for (id in first_ring) {
+      edges[[length(edges) + 1L]] <- c(north_id, id)
+    }
+    for (id in last_ring) {
+      edges[[length(edges) + 1L]] <- c(south_id, id)
+    }
+  }
+  if (bands >= 2L) {
+    for (band in seq_len(bands - 1L)) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+        ids_a = ring_ids[[band]],
+        angles_a = ring_angles[[band]],
+        ids_b = ring_ids[[band + 1L]],
+        angles_b = ring_angles[[band + 1L]]
+      )
+    }
+  }
+
+  coords_param <- do.call(rbind, coords_param_list)
+  colnames(coords_param) <- c("theta", "latitude")
+  storage.mode(coords_param) <- "double"
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords_param = coords_param,
+    n = as.integer(nrow(coords_param)),
+    bands = bands,
+    band_sizes = band_sizes
+  )
+}
+
 .sierpinski.carpet.mask <- function() {
   matrix(
     c(
@@ -3190,6 +3418,189 @@ sphere.surface.graph <- function(h,
   out
 }
 
+#' Weighted irregular sphere surface helpers
+#'
+#' Convenience helpers that build a sphere from deterministically irregular
+#' latitude bands with varying sample counts, stitch adjacent bands into a
+#' locally triangulated graph, and then realize that graph in \eqn{\mathbb{R}^3}
+#' using either a standard sphere, an ellipsoid, or a wavy radial modulation.
+#'
+#' @param bands Number of non-pole latitude bands.
+#' @param equator_count Approximate number of vertices near the equator.
+#' @param count_irregularity Irregularity level for per-band sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param lat_irregularity Irregularity level for latitude-band spacing. Must
+#'   lie in \code{[0, 1]}.
+#' @param phase_twist Finite angular phase offset used to desynchronize
+#'   neighboring latitude bands.
+#' @param surface Sphere geometry family. One of \code{"standard"},
+#'   \code{"ellipsoid"}, or \code{"wavy"}.
+#' @param radius Positive baseline radius.
+#' @param amplitude Finite deformation amplitude. For \code{"ellipsoid"},
+#'   positive values make the shape oblate and negative values make it prolate.
+#' @param freq_theta Positive longitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq_lat Positive latitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite longitude twist applied smoothly by latitude.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.sphere.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.sphere.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular sphere edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular angular parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.sphere"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{bands}: number of non-pole latitude bands,
+#'   \item \code{band_sizes}: sample counts in each latitude band,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_sphere_surface_helpers
+NULL
+
+#' @rdname irregular_sphere_surface_helpers
+#' @export
+irregular.sphere.surface.embedding <- function(
+    bands = 6,
+    equator_count = 28,
+    count_irregularity = 0.2,
+    lat_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("standard", "ellipsoid", "wavy"),
+    radius = 1,
+    amplitude = 0.2,
+    freq_theta = 3,
+    freq_lat = 2,
+    twist = 0.25) {
+  surface <- match.arg(surface)
+  radius <- .as_positive_scalar(radius, "radius")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_theta <- .as_positive_scalar(freq_theta, "freq_theta")
+  freq_lat <- .as_positive_scalar(freq_lat, "freq_lat")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  built <- .irregular.sphere.canonical(
+    bands = bands,
+    equator_count = equator_count,
+    count_irregularity = count_irregularity,
+    lat_irregularity = lat_irregularity,
+    phase_twist = phase_twist
+  )
+  theta <- built$coords_param[, 1L]
+  lat <- built$coords_param[, 2L]
+  theta_eff <- theta + twist * sin(2 * lat)
+
+  if (surface == "ellipsoid") {
+    equatorial_radius <- radius * (1 + amplitude)
+    polar_radius <- radius * (1 - amplitude)
+    if (!is.finite(equatorial_radius) || !is.finite(polar_radius) ||
+        equatorial_radius <= 0 || polar_radius <= 0) {
+      stop("irregular sphere ellipsoid parameters require positive equatorial and polar radii; adjust amplitude",
+           call. = FALSE)
+    }
+    coords <- cbind(
+      x = equatorial_radius * cos(lat) * cos(theta_eff),
+      y = equatorial_radius * cos(lat) * sin(theta_eff),
+      z = polar_radius * sin(lat)
+    )
+  } else {
+    pole_taper <- cos(lat)^2
+    local_radius <- switch(
+      surface,
+      standard = rep(radius, length(lat)),
+      wavy = radius * (1 + amplitude * pole_taper *
+                         sin(freq_theta * theta) * cos(freq_lat * lat))
+    )
+    if (any(!is.finite(local_radius) | local_radius <= 0)) {
+      stop("irregular sphere parameters produce a non-positive local radius; adjust amplitude or frequencies",
+           call. = FALSE)
+    }
+    coords <- cbind(
+      x = local_radius * cos(lat) * cos(theta_eff),
+      y = local_radius * cos(lat) * sin(theta_eff),
+      z = local_radius * sin(lat)
+    )
+  }
+
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_sphere_surface_helpers
+#' @export
+irregular.sphere.surface.graph <- function(
+    bands = 6,
+    equator_count = 28,
+    count_irregularity = 0.2,
+    lat_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("standard", "ellipsoid", "wavy"),
+    radius = 1,
+    amplitude = 0.2,
+    freq_theta = 3,
+    freq_lat = 2,
+    twist = 0.25,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.sphere.canonical(
+    bands = bands,
+    equator_count = equator_count,
+    count_irregularity = count_irregularity,
+    lat_irregularity = lat_irregularity,
+    phase_twist = phase_twist
+  )
+  coords_surface <- irregular.sphere.surface.embedding(
+    bands = bands,
+    equator_count = equator_count,
+    count_irregularity = count_irregularity,
+    lat_irregularity = lat_irregularity,
+    phase_twist = phase_twist,
+    surface = surface,
+    radius = radius,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_lat = freq_lat,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    weight_scale = weights$weight_scale,
+    family = "irregular.sphere",
+    surface = surface,
+    bands = built$bands,
+    band_sizes = built$band_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular sphere bands %d",
+                    tools::toTitleCase(surface),
+                    built$bands)
+  )
+  class(out) <- c("grip_irregular_sphere_surface_graph", "list")
+  out
+}
+
 .triangulated.polyhedron.surface.coords <- function(coords_param,
                                                     surface,
                                                     amplitude,
@@ -3668,6 +4079,157 @@ triangulated.pair.of.pants.surface.graph <- function(
                     built$resolution)
   )
   class(out) <- c("grip_triangulated_pair_of_pants_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular annulus surface helpers
+#'
+#' Convenience helpers that build an annulus from deterministically irregular
+#' concentric rings with varying sample counts, stitch adjacent rings into a
+#' locally triangulated graph, and then optionally lift the resulting irregular
+#' planar parameterization into \eqn{\mathbb{R}^3}. This provides a non-lattice
+#' annulus family with boundary and nonuniform local valence.
+#'
+#' @param rings Number of concentric sample rings, including the inner and
+#'   outer boundary cycles.
+#' @param outer_count Approximate number of vertices on the outer boundary.
+#' @param outer_radius Positive outer annulus radius.
+#' @param inner_radius Positive inner annulus radius.
+#' @param count_irregularity Irregularity level for the per-ring sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param radial_irregularity Irregularity level for within-ring radial
+#'   perturbations. Must lie in \code{[0, 1]}.
+#' @param phase_twist Finite angular phase offset used to desynchronize
+#'   neighboring rings.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.annulus.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.annulus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular annulus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular planar annulus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.annulus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{rings}: number of concentric rings,
+#'   \item \code{ring_sizes}: sample counts on each ring,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_annulus_surface_helpers
+NULL
+
+#' @rdname irregular_annulus_surface_helpers
+#' @export
+irregular.annulus.surface.embedding <- function(
+    rings = 6,
+    outer_count = 28,
+    outer_radius = 1,
+    inner_radius = 0.45,
+    count_irregularity = 0.2,
+    radial_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1) {
+  surface <- match.arg(surface)
+  built <- .irregular.annulus.canonical(
+    rings = rings,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius,
+    count_irregularity = count_irregularity,
+    radial_irregularity = radial_irregularity,
+    phase_twist = phase_twist
+  )
+  .triangulated.planar.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+}
+
+#' @rdname irregular_annulus_surface_helpers
+#' @export
+irregular.annulus.surface.graph <- function(
+    rings = 6,
+    outer_count = 28,
+    outer_radius = 1,
+    inner_radius = 0.45,
+    count_irregularity = 0.2,
+    radial_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.annulus.canonical(
+    rings = rings,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius,
+    count_irregularity = count_irregularity,
+    radial_irregularity = radial_irregularity,
+    phase_twist = phase_twist
+  )
+  coords_surface <- irregular.annulus.surface.embedding(
+    rings = rings,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius,
+    count_irregularity = count_irregularity,
+    radial_irregularity = radial_irregularity,
+    phase_twist = phase_twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.annulus",
+    surface = surface,
+    rings = built$rings,
+    ring_sizes = built$ring_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular annulus rings %d",
+                    tools::toTitleCase(surface),
+                    built$rings)
+  )
+  class(out) <- c("grip_irregular_annulus_surface_graph", "list")
   out
 }
 
@@ -5126,6 +5688,67 @@ edges.sphere <- function(h, w = h) {
     }
   }
   .normalize_undirected_edges(.bind_edges(edges))
+}
+
+#' @describeIn graph_generators Deterministically irregular annulus graph built
+#'   from concentric sample rings with varying sample counts and stitched into a
+#'   locally triangulated surface-with-boundary graph.
+#' @param rings Number of concentric sample rings for
+#'   \code{edges.irregular.annulus()}.
+#' @param outer_count Approximate number of vertices on the outer boundary for
+#'   \code{edges.irregular.annulus()}.
+#' @param outer_radius Positive outer annulus radius for
+#'   \code{edges.irregular.annulus()}.
+#' @param inner_radius Positive inner annulus radius for
+#'   \code{edges.irregular.annulus()}.
+#' @param equator_count Approximate number of vertices near the equator for
+#'   \code{edges.irregular.sphere()}.
+#' @param count_irregularity Irregularity level for sample counts in
+#'   \code{edges.irregular.annulus()} and \code{edges.irregular.sphere()}.
+#' @param radial_irregularity Within-ring radial irregularity level for
+#'   \code{edges.irregular.annulus()}.
+#' @param phase_twist Angular phase offset used to desynchronize neighboring
+#'   rings or latitude bands in the irregular annulus and irregular sphere
+#'   families.
+#' @param bands Number of non-pole latitude bands for
+#'   \code{edges.irregular.sphere()}.
+#' @param lat_irregularity Latitude-band spacing irregularity level for
+#'   \code{edges.irregular.sphere()}.
+#' @export
+edges.irregular.annulus <- function(rings = 6,
+                                    outer_count = 28,
+                                    outer_radius = 1,
+                                    inner_radius = 0.45,
+                                    count_irregularity = 0.2,
+                                    radial_irregularity = 0.35,
+                                    phase_twist = 0.35) {
+  .irregular.annulus.canonical(
+    rings = rings,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    inner_radius = inner_radius,
+    count_irregularity = count_irregularity,
+    radial_irregularity = radial_irregularity,
+    phase_twist = phase_twist
+  )$edges
+}
+
+#' @describeIn graph_generators Deterministically irregular sphere graph built
+#'   from latitude bands with varying sample counts and stitched into a locally
+#'   triangulated closed surface.
+#' @export
+edges.irregular.sphere <- function(bands = 6,
+                                   equator_count = 28,
+                                   count_irregularity = 0.2,
+                                   lat_irregularity = 0.35,
+                                   phase_twist = 0.35) {
+  .irregular.sphere.canonical(
+    bands = bands,
+    equator_count = equator_count,
+    count_irregularity = count_irregularity,
+    lat_irregularity = lat_irregularity,
+    phase_twist = phase_twist
+  )$edges
 }
 
 #' @describeIn graph_generators Cube surface graph on the boundary of a
