@@ -70,10 +70,15 @@ reference:
     contents:
       - grip.score.layout
       - grip.geometry.diagnostics
-      - grip.prepare.landmark.geodesic.kk
-      - grip.score.landmark.geodesic.kk
       - grip.compare.layouts
       - grip.params.from.summary
+
+  - title: Landmark geodesic KK
+    desc: Prepare, score, and optimize layouts with the sparse landmark-geodesic KK objective.
+    contents:
+      - grip.prepare.landmark.geodesic.kk
+      - grip.score.landmark.geodesic.kk
+      - grip.optimize.landmark.geodesic.kk
 
   - title: Visualization
     desc: Plot layouts in 2D and 3D.
