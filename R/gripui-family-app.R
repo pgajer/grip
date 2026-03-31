@@ -585,10 +585,23 @@ gripui.family.compare.summary <- function(payloads) {
   do.call(rbind, rows)
 }
 
+gripui.family.initial.explore.state <- function(catalog) {
+  family_id <- names(catalog)[[1L]]
+  desc <- catalog[[family_id]]
+  category <- desc$category
+  choices <- gripui.family.choices(catalog, category)
+
+  list(
+    category = category,
+    choices = choices,
+    family_id = family_id,
+    desc = desc
+  )
+}
+
 gripui.family.ui <- function(catalog, title, subtitle = NULL) {
   categories <- c("All families", gripui.family.categories(catalog))
-  initial_choices <- gripui.family.choices(catalog, categories[[1L]])
-  initial_desc <- catalog[[unname(initial_choices[[1L]])]]
+  initial_state <- gripui.family.initial.explore.state(catalog)
   css.path <- system.file("app/www/gripui.css", package = "grip")
 
   bslib::page_sidebar(
@@ -605,9 +618,9 @@ gripui.family.ui <- function(catalog, title, subtitle = NULL) {
       shiny::conditionalPanel(
         condition = "input['family_app_mode'] == 'Explore'",
         shiny::uiOutput("family_meta"),
-        shiny::selectInput("family_category", "Category", choices = categories, selected = categories[[1L]]),
-        shiny::selectInput("family_id", "Family", choices = initial_choices, selected = unname(initial_choices[[1L]])),
-        shiny::selectInput("family_preset", "Preset", choices = gripui.family.preset.choices(initial_desc), selected = "default"),
+        shiny::selectInput("family_category", "Category", choices = categories, selected = initial_state$category),
+        shiny::selectInput("family_id", "Family", choices = initial_state$choices, selected = initial_state$family_id),
+        shiny::selectInput("family_preset", "Preset", choices = gripui.family.preset.choices(initial_state$desc), selected = "default"),
         shiny::uiOutput("family_param_panel"),
         shiny::selectInput("viewer_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
         shiny::checkboxInput("show_edges", "Show edges", value = TRUE),

@@ -128,6 +128,15 @@ test_that("compare slot selection uses current slot and valid preset fallbacks",
   expect_true(fallback$preset_id %in% c("default", names(catalog$mesh$presets)))
 })
 
+test_that("initial explore state keeps family and category aligned", {
+  catalog <- gripui_graph_family_catalog()
+  initial <- grip:::gripui.family.initial.explore.state(catalog)
+
+  expect_identical(initial$family_id, "mesh")
+  expect_identical(initial$category, catalog[[initial$family_id]]$category)
+  expect_true(initial$family_id %in% unname(initial$choices))
+})
+
 test_that("family explorer app constructs when optional packages are available", {
   old <- getOption("rgl.useNULL")
   options(rgl.useNULL = TRUE)
