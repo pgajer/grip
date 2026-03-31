@@ -113,6 +113,31 @@
   coords
 }
 
+.sphere.param.coords <- function(h, w, radius = 1) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  radius <- .as_positive_scalar(radius, "radius")
+
+  ring.count <- h - 2L
+  n <- 2L + ring.count * w
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  lat_vals <- seq(pi / 2, -pi / 2, length.out = h)
+  coords <- matrix(0, nrow = n, ncol = 2L)
+  coords[1L, ] <- c(0, radius * lat_vals[[1L]])
+  if (ring.count > 0L) {
+    for (i in seq_len(ring.count)) {
+      lat <- lat_vals[[i + 1L]]
+      for (j in seq_len(w)) {
+        id <- 1L + (i - 1L) * w + j
+        coords[id, ] <- c(radius * theta_vals[[j]], radius * lat)
+      }
+    }
+  }
+  coords[n, ] <- c(0, radius * lat_vals[[h]])
+  colnames(coords) <- c("theta_arc", "latitude_arc")
+  coords
+}
+
 .edge.weights.from.embedding <- function(edges,
                                          coords,
                                          normalize = c("median", "mean", "none")) {
@@ -678,6 +703,204 @@ torus.surface.graph <- function(h,
     label = sprintf("%s torus %dx%d", tools::toTitleCase(surface), h, w)
   )
   class(out) <- c("grip_torus_surface_graph", "list")
+  out
+}
+
+#' Weighted sphere surface helpers
+#'
+#' Convenience helpers that embed the sampled sphere graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology follows the current pole-plus-latitude-rings sphere graph but
+#' the intended metric comes from a curved or spatially varying 3D realization.
+#'
+#' `sphere.surface.embedding()` returns the 3D coordinates of the sampled
+#' surface in the same vertex order as \code{edges.sphere()}: north pole first,
+#' then latitude rings from north to south, then the south pole.
+#' `sphere.surface.graph()` returns a reusable weighted-graph bundle containing
+#' the sphere edges, induced edge weights, the 3D surface coordinates, and a 2D
+#' longitude-latitude parameterization.
+#'
+#' @param h Number of latitude levels including the poles. Must be at least
+#'   \code{3}.
+#' @param w Wrapped longitude count. Defaults to \code{h}; must be at least
+#'   \code{3}.
+#' @param surface Sphere surface family. One of \code{"standard"},
+#'   \code{"ellipsoid"}, or \code{"wavy"}.
+#' @param radius Positive baseline radius.
+#' @param amplitude Finite deformation amplitude. For \code{"ellipsoid"},
+#'   positive values make the shape oblate and negative values make it prolate,
+#'   while keeping all axis lengths positive. For \code{"wavy"}, the local
+#'   radius must remain positive everywhere.
+#' @param freq_theta Positive longitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq_lat Positive latitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite longitude twist applied smoothly by latitude. The twist
+#'   vanishes at the poles.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{sphere.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 2 + (h - 2) * w}.
+#'
+#' \code{sphere.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected sphere-graph edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D longitude-latitude parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sphere"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sphere_surface_helpers
+NULL
+
+#' @rdname sphere_surface_helpers
+#' @export
+sphere.surface.embedding <- function(h,
+                                     w = h,
+                                     surface = c("standard", "ellipsoid", "wavy"),
+                                     radius = 1,
+                                     amplitude = 0.2,
+                                     freq_theta = 3,
+                                     freq_lat = 2,
+                                     twist = 0.25) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  radius <- .as_positive_scalar(radius, "radius")
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_theta <- .as_positive_scalar(freq_theta, "freq_theta")
+  freq_lat <- .as_positive_scalar(freq_lat, "freq_lat")
+  twist <- .as_finite_scalar(twist, "twist")
+
+  ring.count <- h - 2L
+  n <- 2L + ring.count * w
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  lat_vals <- seq(pi / 2, -pi / 2, length.out = h)
+  coords <- matrix(0, nrow = n, ncol = 3L)
+
+  if (surface == "ellipsoid") {
+    equatorial_radius <- radius * (1 + amplitude)
+    polar_radius <- radius * (1 - amplitude)
+    if (!is.finite(equatorial_radius) || !is.finite(polar_radius) ||
+        equatorial_radius <= 0 || polar_radius <= 0) {
+      stop("sphere ellipsoid parameters require positive equatorial and polar radii; adjust amplitude",
+           call. = FALSE)
+    }
+    coords[1L, ] <- c(0, 0, polar_radius)
+    if (ring.count > 0L) {
+      for (i in seq_len(ring.count)) {
+        lat <- lat_vals[[i + 1L]]
+        theta_shift <- twist * sin(2 * lat)
+        for (j in seq_len(w)) {
+          theta_eff <- theta_vals[[j]] + theta_shift
+          id <- 1L + (i - 1L) * w + j
+          coords[id, ] <- c(
+            equatorial_radius * cos(lat) * cos(theta_eff),
+            equatorial_radius * cos(lat) * sin(theta_eff),
+            polar_radius * sin(lat)
+          )
+        }
+      }
+    }
+    coords[n, ] <- c(0, 0, -polar_radius)
+  } else {
+    coords[1L, ] <- c(0, 0, radius)
+    if (ring.count > 0L) {
+      for (i in seq_len(ring.count)) {
+        lat <- lat_vals[[i + 1L]]
+        theta_shift <- twist * sin(2 * lat)
+        pole_taper <- cos(lat)^2
+        for (j in seq_len(w)) {
+          theta <- theta_vals[[j]]
+          theta_eff <- theta + theta_shift
+          local_radius <- switch(
+            surface,
+            standard = radius,
+            wavy = radius * (1 + amplitude * pole_taper *
+                               sin(freq_theta * theta) * cos(freq_lat * lat))
+          )
+          if (!is.finite(local_radius) || local_radius <= 0) {
+            stop("sphere surface parameters produce a non-positive local radius; adjust amplitude or surface settings",
+                 call. = FALSE)
+          }
+          id <- 1L + (i - 1L) * w + j
+          coords[id, ] <- c(
+            local_radius * cos(lat) * cos(theta_eff),
+            local_radius * cos(lat) * sin(theta_eff),
+            local_radius * sin(lat)
+          )
+        }
+      }
+    }
+    coords[n, ] <- c(0, 0, -radius)
+  }
+
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sphere_surface_helpers
+#' @export
+sphere.surface.graph <- function(h,
+                                 w = h,
+                                 surface = c("standard", "ellipsoid", "wavy"),
+                                 radius = 1,
+                                 amplitude = 0.2,
+                                 freq_theta = 3,
+                                 freq_lat = 2,
+                                 twist = 0.25,
+                                 normalize = c("median", "mean", "none")) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.sphere(h, w)
+  coords_param <- .sphere.param.coords(
+    h = h,
+    w = w,
+    radius = radius
+  )
+  coords_surface <- sphere.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    radius = radius,
+    amplitude = amplitude,
+    freq_theta = freq_theta,
+    freq_lat = freq_lat,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(2L + (h - 2L) * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "sphere",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s sphere %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_sphere_surface_graph", "list")
   out
 }
 

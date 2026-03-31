@@ -172,3 +172,45 @@ test_that("wavy torus graph supports alternate weight normalization", {
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
 })
+
+test_that("sphere surface embedding returns finite 3D coordinates", {
+  coords <- sphere.surface.embedding(6, 9, surface = "standard")
+
+  expect_true(is.matrix(coords))
+  expect_true(is.numeric(coords))
+  expect_equal(dim(coords), c(38L, 3L))
+  expect_true(all(is.finite(coords)))
+  expect_equal(colnames(coords), c("x", "y", "z"))
+})
+
+test_that("sphere surface graph returns normalized positive edge weights", {
+  spec <- sphere.surface.graph(6, 9, surface = "ellipsoid", amplitude = 0.2)
+
+  expect_s3_class(spec, "grip_sphere_surface_graph")
+  expect_equal(spec$edges, edges.sphere(6, 9))
+  expect_equal(spec$n, 38L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_surface), c(38L, 3L))
+  expect_equal(dim(spec$coords_param), c(38L, 2L))
+  expect_equal(spec$family, "sphere")
+  expect_equal(spec$surface, "ellipsoid")
+})
+
+test_that("wavy sphere graph supports alternate weight normalization", {
+  spec <- sphere.surface.graph(
+    7, 10,
+    surface = "wavy",
+    amplitude = 0.18,
+    freq_theta = 3,
+    freq_lat = 2,
+    twist = 0.3,
+    normalize = "mean"
+  )
+
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
