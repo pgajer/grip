@@ -7,7 +7,10 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.mesh(3, 4),
     edges.occupied.mesh(occupied_keep),
     edges.cylinder(3, 4),
+    edges.irregular.ball(),
+    edges.irregular.shell(),
     edges.torus(3, 4),
+    edges.irregular.torus(),
     edges.sphere(4, 5),
     edges.cube(3),
     edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
@@ -19,6 +22,7 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.triangulated.pair.of.pants(7),
     edges.irregular.annulus(),
     edges.irregular.pair.of.pants(),
+    edges.irregular.double.torus(),
     edges.irregular.sphere(),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
@@ -277,8 +281,32 @@ test_that("irregular annulus graph labels vertices consecutively", {
   expect_gt(max(edges), 0L)
 })
 
+test_that("irregular ball graph labels vertices consecutively", {
+  edges <- edges.irregular.ball(base = "icosahedron", level = 1, layers = 3)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("irregular shell graph labels vertices consecutively", {
+  edges <- edges.irregular.shell(base = "octahedron", level = 1, layers = 3)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
 test_that("irregular pair-of-pants graph labels vertices consecutively", {
   edges <- edges.irregular.pair.of.pants(slices = 11, outer_count = 24)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("irregular torus graph labels vertices consecutively", {
+  edges <- edges.irregular.torus(major_rings = 8, tube_count = 16)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("irregular double torus graph labels vertices consecutively", {
+  edges <- edges.irregular.double.torus(slices = 11, tube_count = 14)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
@@ -589,6 +617,84 @@ test_that("irregular annulus surface graph returns normalized positive edge weig
   expect_equal(dim(spec$coords_param), c(spec$n, 2L))
 })
 
+test_that("irregular ball solid graph returns normalized positive edge weights", {
+  spec <- irregular.ball.solid.graph(
+    base = "icosahedron",
+    level = 1,
+    layers = 3,
+    surface = "wavy",
+    amplitude = 0.12,
+    freq_theta = 2,
+    freq_phi = 3,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_ball_solid_graph")
+  expect_equal(spec$edges, edges.irregular.ball(base = "icosahedron", level = 1, layers = 3))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.ball")
+  expect_equal(spec$surface, "wavy")
+  expect_equal(spec$base, "icosahedron")
+  expect_equal(spec$level, 1L)
+  expect_equal(spec$layers, 3L)
+  expect_equal(length(spec$radii), 3L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+})
+
+test_that("irregular shell solid graph returns normalized positive edge weights", {
+  spec <- irregular.shell.solid.graph(
+    base = "octahedron",
+    level = 1,
+    layers = 3,
+    inner_radius = 0.42,
+    surface = "bulged",
+    amplitude = 0.1,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_shell_solid_graph")
+  expect_equal(spec$edges, edges.irregular.shell(base = "octahedron", level = 1, layers = 3,
+                                                 inner_radius = 0.42))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.shell")
+  expect_equal(spec$surface, "bulged")
+  expect_equal(spec$base, "octahedron")
+  expect_equal(spec$level, 1L)
+  expect_equal(spec$layers, 3L)
+  expect_equal(length(spec$radii), 3L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
+})
+
+test_that("irregular torus surface graph returns normalized positive edge weights", {
+  spec <- irregular.torus.surface.graph(
+    major_rings = 8,
+    tube_count = 16,
+    surface = "wavy",
+    amplitude = 0.18,
+    freq_major = 2,
+    freq_minor = 1.5,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_torus_surface_graph")
+  expect_equal(spec$edges, edges.irregular.torus(major_rings = 8, tube_count = 16))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.torus")
+  expect_equal(spec$surface, "wavy")
+  expect_equal(spec$major_rings, 8L)
+  expect_equal(length(spec$ring_sizes), 8L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+})
+
 test_that("irregular pair-of-pants surface graph returns normalized positive edge weights", {
   spec <- irregular.pair.of.pants.surface.graph(
     slices = 11,
@@ -613,6 +719,31 @@ test_that("irregular pair-of-pants surface graph returns normalized positive edg
   expect_true(all(spec$slice_components >= 1L))
   expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
   expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+})
+
+test_that("irregular double torus surface graph returns normalized positive edge weights", {
+  spec <- irregular.double.torus.surface.graph(
+    slices = 11,
+    tube_count = 14,
+    surface = "wavy",
+    amplitude = 0.14,
+    freq_x = 2,
+    freq_theta = 2.5,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_double_torus_surface_graph")
+  expect_equal(spec$edges, edges.irregular.double.torus(slices = 11, tube_count = 14))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.double.torus")
+  expect_equal(spec$surface, "wavy")
+  expect_equal(spec$slices, 11L)
+  expect_equal(length(spec$slice_sizes), 11L)
+  expect_equal(length(spec$slice_components), 11L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 3L))
 })
 
 test_that("irregular sphere surface graph returns normalized positive edge weights", {
