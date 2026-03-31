@@ -312,7 +312,7 @@ gripui.render.rglwidget <- function(coords,
     }
   }
 
-  rgl::rglwidget(width = "100%", height = 520)
+  rgl::rglwidget(height = 520)
 }
 
 gripui.landscape.colors <- function(values) {
