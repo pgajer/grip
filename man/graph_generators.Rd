@@ -12,6 +12,7 @@
 \alias{edges.cube}
 \alias{edges.kary.tree}
 \alias{edges.recursive.mask.grid}
+\alias{edges.recursive.triangle.mask}
 \alias{edges.vicsek}
 \alias{edges.sierpinski.triangle}
 \alias{edges.sierpinski.tetrahedron}
@@ -38,6 +39,8 @@ edges.kary.tree(k = 2, depth = 2)
 
 edges.recursive.mask.grid(mask, level = 2)
 
+edges.recursive.triangle.mask(mask = mask.triangle.classic(), level = 2)
+
 edges.vicsek(level = 2)
 
 edges.sierpinski.triangle(level = 2)
@@ -61,13 +64,17 @@ edges.sierpinski.carpet(level = 2)
 
 \item{depth}{Number of levels below the root.}
 
-\item{mask}{Square logical or numeric keep-mask. Non-zero entries are kept at
-each recursive subdivision step. Rows run from top to bottom and columns
-run from left to right in the motif.}
+\item{mask}{Logical or numeric keep-mask. For
+\code{edges.recursive.mask.grid()}, this must be a square matrix whose
+non-zero entries are kept at each recursive subdivision step, with rows
+running from top to bottom and columns from left to right. For
+\code{edges.recursive.triangle.mask()}, this must be a four-entry vector in
+\code{left}, \code{right}, \code{top}, \code{center} order.}
 
 \item{level}{Recursion depth. For \code{edges.recursive.mask.grid()},
 \code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
-\code{level} must be at least 1.}
+\code{level} must be at least 1; \code{edges.recursive.triangle.mask()}
+also allows \code{level = 0}.}
 }
 \value{
 A two-column integer matrix of undirected edges. Vertex labels are
@@ -86,6 +93,8 @@ builds a finite perforated-mesh family from an occupancy matrix,
 \code{\link{edges.recursive.mask.grid}()} builds a generic
 square-mask family, \code{\link{edges.vicsek}()} builds the connected
 axial-cross variant,
+\code{\link{edges.recursive.triangle.mask}()} builds a generic
+triangle-mask family,
 \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
 \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
@@ -120,6 +129,9 @@ levels (including the poles) and wrapped longitude \code{w}.
 \item \code{edges.recursive.mask.grid()}: Recursively refined square-mask grid graph whose
 vertices are occupied cells and whose edges connect orthogonally adjacent
 cells.
+
+\item \code{edges.recursive.triangle.mask()}: Recursively refined triangle-mask graph whose
+vertices are the retained subdivision vertices of an equilateral triangle.
 
 \item \code{edges.vicsek()}: Connected Vicsek-style cross family derived from
 a \code{3 x 3} axial-cross keep-mask.
