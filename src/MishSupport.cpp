@@ -255,15 +255,27 @@ void DrawGraph::compute_active_shortest_paths(size_tt sourceIndex,
         return;
     }
 
-    using QueueNode = std::pair<double, size_tt>;
+    struct QueueNode {
+        double dist;
+        size_tt vert;
+        size_tt index;
+    };
+    struct QueueNodeGreater {
+        bool operator()(const QueueNode &lhs, const QueueNode &rhs) const
+        {
+            if(lhs.dist != rhs.dist)
+                return lhs.dist > rhs.dist;
+            return lhs.vert > rhs.vert;
+        }
+    };
     std::priority_queue<QueueNode,
                         std::vector<QueueNode>,
-                        std::greater<QueueNode>> pq;
-    pq.push(std::make_pair(0.0, sourceIndex));
+                        QueueNodeGreater> pq;
+    pq.push(QueueNode{0.0, mish[sourceIndex], sourceIndex});
 
     while(!pq.empty()){
-        double currentDist = pq.top().first;
-        size_tt currentIndex = pq.top().second;
+        double currentDist = pq.top().dist;
+        size_tt currentIndex = pq.top().index;
         pq.pop();
         if(currentDist > dist[currentIndex] + tol)
             continue;
@@ -276,15 +288,17 @@ void DrawGraph::compute_active_shortest_paths(size_tt sourceIndex,
                 continue;
             double alt = currentDist + graph.get_edge_weight(currentVert, adjVert);
             double best = dist[overtIndex];
-            double scale = std::max(1.0, std::max(std::fabs(alt), std::fabs(best)));
-            bool improve = alt + tol * scale < best;
+            double scale = std::max(1.0,
+                                    std::max(std::fabs(alt),
+                                             std::isfinite(best) ? std::fabs(best) : 0.0));
+            bool improve = !std::isfinite(best) || alt + tol * scale < best;
             bool equal = std::isfinite(best) &&
                 std::fabs(alt - best) <= tol * scale;
             if(improve){
                 dist[overtIndex] = alt;
                 if(parent)
                     (*parent)[overtIndex] = static_cast<int>(currentIndex);
-                pq.push(std::make_pair(alt, static_cast<size_tt>(overtIndex)));
+                pq.push(QueueNode{alt, overt, static_cast<size_tt>(overtIndex)});
             } else if(equal && parent){
                 int currentParent = (*parent)[overtIndex];
                 if(currentParent < 0 ||
