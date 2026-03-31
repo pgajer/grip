@@ -72,6 +72,62 @@ test_that("generic family code paths show helper calls without quoting them", {
   }
 })
 
+test_that("compare helpers build shared color choices and summaries", {
+  catalog <- gripui_graph_family_catalog()
+
+  desc1 <- catalog$mesh
+  desc2 <- catalog$kary_tree
+  payload1 <- grip:::gripui.family.build.payload(desc1, grip:::.gripui.family.param.defaults(desc1))
+  payload2 <- grip:::gripui.family.build.payload(desc2, grip:::.gripui.family.param.defaults(desc2))
+
+  payload1$compare_slot <- 1L
+  payload1$compare_label <- "Current"
+  payload1$compare_preset <- "current_controls"
+
+  payload2$compare_slot <- 2L
+  payload2$compare_label <- "Variant 2"
+  payload2$compare_preset <- "default"
+
+  payloads <- list(payload1, payload2)
+  choices <- grip:::gripui.family.compare.color.choices(payloads)
+  summary <- grip:::gripui.family.compare.summary(payloads)
+
+  expect_true("degree" %in% unname(choices))
+  expect_true("surface_z" %in% unname(choices))
+  expect_identical(nrow(summary), 2L)
+  expect_identical(summary$label[[1L]], "Current")
+  expect_identical(summary$preset[[2L]], "default")
+})
+
+test_that("compare slot selection uses current slot and valid preset fallbacks", {
+  catalog <- gripui_graph_family_catalog()
+  mock_input <- list(
+    compare_family_2 = "mesh",
+    compare_preset_2 = "not_a_real_preset"
+  )
+
+  current <- grip:::gripui.family.compare.slot.selection(
+    idx = 1L,
+    input = mock_input,
+    catalog = catalog,
+    current_family_id = "mesh",
+    include_current = TRUE,
+    lock_family = FALSE
+  )
+  fallback <- grip:::gripui.family.compare.slot.selection(
+    idx = 2L,
+    input = mock_input,
+    catalog = catalog,
+    current_family_id = "mesh",
+    include_current = TRUE,
+    lock_family = FALSE
+  )
+
+  expect_identical(current$source, "current")
+  expect_identical(fallback$family_id, "mesh")
+  expect_true(fallback$preset_id %in% c("default", names(catalog$mesh$presets)))
+})
+
 test_that("family explorer app constructs when optional packages are available", {
   old <- getOption("rgl.useNULL")
   options(rgl.useNULL = TRUE)
