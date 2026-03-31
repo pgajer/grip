@@ -138,18 +138,58 @@
   coords
 }
 
-.sierpinski.carpet.cells <- function(level) {
+.as_square_keep_mask <- function(mask, name = "mask", min_size = 2L) {
+  if (!is.matrix(mask) || nrow(mask) != ncol(mask) || nrow(mask) < min_size) {
+    stop(sprintf("%s must be a square matrix with at least %d rows and columns",
+                 name, min_size),
+         call. = FALSE)
+  }
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric square matrix", name),
+         call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name),
+         call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  keep
+}
+
+.surface.z.from_uv <- function(u,
+                               v,
+                               surface,
+                               amplitude,
+                               freq_u,
+                               freq_v) {
+  switch(
+    surface,
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
+  )
+}
+
+.recursive.mask.grid.cells <- function(mask, level) {
+  mask <- .as_square_keep_mask(mask, "mask", min_size = 2L)
   level <- .as_whole_number(level, "level", min = 1L)
-  side <- 3L^level
+  base <- as.integer(nrow(mask))
+  side <- as.integer(base^level)
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
 
   keep_cell <- function(x, y) {
-    while (x > 0L || y > 0L) {
-      if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
+    for (step in seq_len(level)) {
+      x_digit <- (x %% base) + 1L
+      y_digit <- (y %% base) + 1L
+      if (!mask[y_digit, x_digit]) {
         return(FALSE)
       }
-      x <- x %/% 3L
-      y <- y %/% 3L
+      x <- x %/% base
+      y <- y %/% base
     }
     TRUE
   }
@@ -159,13 +199,18 @@
   rownames(cells) <- NULL
   list(
     level = level,
+    base = base,
     side = side,
+    mask = mask,
     cells = cells
   )
 }
 
-.sierpinski.carpet.param.coords <- function(level, x_scale = 1, y_scale = 1) {
-  spec <- .sierpinski.carpet.cells(level)
+.recursive.mask.grid.param.coords <- function(mask,
+                                              level,
+                                              x_scale = 1,
+                                              y_scale = 1) {
+  spec <- .recursive.mask.grid.cells(mask, level)
   x_scale <- .as_positive_scalar(x_scale, "x_scale")
   y_scale <- .as_positive_scalar(y_scale, "y_scale")
 
@@ -177,6 +222,57 @@
   )
   storage.mode(coords) <- "double"
   coords
+}
+
+.recursive.mask.grid.edges <- function(mask, level) {
+  spec <- .recursive.mask.grid.cells(mask, level)
+  side <- spec$side
+  cells <- spec$cells
+
+  id_map <- matrix(0L, nrow = side, ncol = side)
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$y[i] + 1L, cells$x[i] + 1L] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    x <- cells$x[i]
+    y <- cells$y[i]
+    if (x + 1L < side) {
+      nbr <- id_map[y + 1L, x + 2L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (y + 1L < side) {
+      nbr <- id_map[y + 2L, x + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  .bind_edges(edges)
+}
+
+.sierpinski.carpet.mask <- function() {
+  matrix(
+    c(
+      1, 1, 1,
+      1, 0, 1,
+      1, 1, 1
+    ),
+    nrow = 3L,
+    byrow = TRUE
+  )
+}
+
+.vicsek.mask <- function() {
+  matrix(
+    c(
+      0, 1, 0,
+      1, 1, 1,
+      0, 1, 0
+    ),
+    nrow = 3L,
+    byrow = TRUE
+  )
 }
 
 .edge.weights.from.embedding <- function(edges,
@@ -221,12 +317,14 @@
 #' integer edge matrices suitable for \code{\link{grip.layout}()}. These
 #' helpers are meant for examples, experiments, and reproducible tests.
 #'
-#' The Sierpinski families are exposed explicitly rather than overloading a
-#' single generator with layout-dimension-dependent behavior:
-#' \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
-#' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
-#' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
-#' carpet graph.
+#' The recursive masked-grid and Sierpinski families are exposed explicitly
+#' rather than overloading a single generator with layout-dimension-dependent
+#' behavior: \code{\link{edges.recursive.mask.grid}()} builds a generic
+#' square-mask family, \code{\link{edges.vicsek}()} builds the connected
+#' axial-cross variant, \code{\link{edges.sierpinski.triangle}()} builds the
+#' 2-simplex family, \code{\link{edges.sierpinski.tetrahedron}()} builds the
+#' 3-simplex family, and \code{\link{edges.sierpinski.carpet}()} builds a 2D
+#' cell-adjacency carpet graph.
 #'
 #' @return A two-column integer matrix of undirected edges. Vertex labels are
 #'   consecutive integers starting at 1.
@@ -945,23 +1043,28 @@ sphere.surface.graph <- function(h,
   out
 }
 
-#' Weighted Sierpinski carpet surface helpers
+#' Weighted recursive mask-grid surface helpers
 #'
-#' Convenience helpers that embed the occupied-cell Sierpinski carpet graph into
-#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
-#' graph weights. These helpers reuse the same lifted-surface families as
-#' \code{mesh.surface.embedding()}, but only on the occupied carpet cells, so
-#' the topology stays fractal while the intended metric comes from a curved
-#' ambient geometry.
+#' Convenience helpers that recursively subdivide a square grid according to a
+#' square keep-mask, retain the occupied cells, and then lift those cells into
+#' \eqn{\mathbb{R}^3}. The induced Euclidean edge lengths become positive graph
+#' weights. This provides a generic mesh-derived family that includes the
+#' Sierpinski carpet and related masked-grid fractals such as Vicsek-style
+#' cross families.
 #'
-#' `sierpinski.carpet.surface.embedding()` returns the 3D coordinates of the
-#' occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
-#' `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
-#' containing the carpet edges, induced edge weights, the 3D surface
-#' coordinates, and the 2D parameter coordinates of the occupied cells.
+#' The \code{mask} is interpreted in standard matrix display orientation: rows
+#' run from top to bottom and columns run from left to right. Non-zero entries
+#' are retained at each recursive subdivision step.
 #'
-#' @param level Recursion depth. Must be at least \code{1}. The number of
-#'   occupied cells is \code{8^level}.
+#' `recursive.mask.grid.surface.embedding()` returns the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges.recursive.mask.grid()}.
+#' `recursive.mask.grid.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the masked-grid edges, induced edge weights, the 3D
+#' surface coordinates, and the 2D parameter coordinates of the occupied cells.
+#'
+#' @param mask Square logical or numeric keep-mask with at least one retained
+#'   cell. Non-zero entries are kept at each recursive step.
+#' @param level Recursion depth. Must be at least \code{1}.
 #' @param surface Surface family used for the lift. One of \code{"saddle"},
 #'   \code{"paraboloid"}, or \code{"ripple"}.
 #' @param amplitude Finite numeric amplitude controlling the non-flat
@@ -976,55 +1079,62 @@ sphere.surface.graph <- function(h,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{sierpinski.carpet.surface.embedding()} returns an \code{n x 3} numeric
-#' matrix with columns \code{x}, \code{y}, and \code{z}, where
-#' \code{n = 8^level}.
+#' \code{recursive.mask.grid.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
-#' \code{sierpinski.carpet.surface.graph()} returns a list with components:
+#' \code{recursive.mask.grid.surface.graph()} returns a list with components:
 #' \itemize{
-#'   \item \code{edges}: the occupied-cell Sierpinski carpet edges,
+#'   \item \code{edges}: the occupied-cell masked-grid edges,
 #'   \item \code{n}: number of vertices,
 #'   \item \code{edge_weights}: induced positive edge lengths,
 #'   \item \code{coords_surface}: the 3D surface embedding,
 #'   \item \code{coords_param}: the 2D parameter coordinates,
 #'   \item \code{weight_scale}: the normalization constant applied to the raw
 #'     edge lengths,
-#'   \item \code{family}: always \code{"sierpinski.carpet"},
+#'   \item \code{family}: always \code{"recursive.mask.grid"},
 #'   \item \code{surface}: the chosen surface name,
-#'   \item \code{level}: the carpet recursion depth,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{mask_size}: the side length of the mask,
+#'   \item \code{side}: the side length of the fully refined grid,
 #'   \item \code{label}: a human-readable family label.
 #' }
 #'
-#' @name sierpinski_carpet_surface_helpers
+#' @name recursive_mask_grid_surface_helpers
 NULL
 
-#' @rdname sierpinski_carpet_surface_helpers
+#' @rdname recursive_mask_grid_surface_helpers
 #' @export
-sierpinski.carpet.surface.embedding <- function(level = 2,
-                                                surface = c("saddle", "paraboloid", "ripple"),
-                                                amplitude = 0.75,
-                                                freq_u = 1,
-                                                freq_v = 1,
-                                                x_scale = 1,
-                                                y_scale = 1) {
+recursive.mask.grid.surface.embedding <- function(mask,
+                                                  level = 2,
+                                                  surface = c("saddle", "paraboloid", "ripple"),
+                                                  amplitude = 0.75,
+                                                  freq_u = 1,
+                                                  freq_v = 1,
+                                                  x_scale = 1,
+                                                  y_scale = 1) {
+  mask <- .as_square_keep_mask(mask, "mask", min_size = 2L)
   level <- .as_whole_number(level, "level", min = 1L)
   surface <- match.arg(surface)
   amplitude <- .as_finite_scalar(amplitude, "amplitude")
   freq_u <- .as_positive_scalar(freq_u, "freq_u")
   freq_v <- .as_positive_scalar(freq_v, "freq_v")
 
-  coords_param <- .sierpinski.carpet.param.coords(
+  coords_param <- .recursive.mask.grid.param.coords(
+    mask = mask,
     level = level,
     x_scale = x_scale,
     y_scale = y_scale
   )
   u <- coords_param[, 1L]
   v <- coords_param[, 2L]
-  z <- switch(
-    surface,
-    saddle = amplitude * (u^2 - v^2),
-    paraboloid = amplitude * (u^2 + v^2),
-    ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
+  z <- .surface.z.from_uv(
+    u = u,
+    v = v,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
   )
 
   coords <- cbind(x = u, y = v, z = z)
@@ -1032,27 +1142,32 @@ sierpinski.carpet.surface.embedding <- function(level = 2,
   coords
 }
 
-#' @rdname sierpinski_carpet_surface_helpers
+#' @rdname recursive_mask_grid_surface_helpers
 #' @export
-sierpinski.carpet.surface.graph <- function(level = 2,
-                                            surface = c("saddle", "paraboloid", "ripple"),
-                                            amplitude = 0.75,
-                                            freq_u = 1,
-                                            freq_v = 1,
-                                            x_scale = 1,
-                                            y_scale = 1,
-                                            normalize = c("median", "mean", "none")) {
+recursive.mask.grid.surface.graph <- function(mask,
+                                              level = 2,
+                                              surface = c("saddle", "paraboloid", "ripple"),
+                                              amplitude = 0.75,
+                                              freq_u = 1,
+                                              freq_v = 1,
+                                              x_scale = 1,
+                                              y_scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  mask <- .as_square_keep_mask(mask, "mask", min_size = 2L)
   level <- .as_whole_number(level, "level", min = 1L)
   surface <- match.arg(surface)
   normalize <- match.arg(normalize)
 
-  edges <- edges.sierpinski.carpet(level)
-  coords_param <- .sierpinski.carpet.param.coords(
+  spec <- .recursive.mask.grid.cells(mask, level)
+  edges <- .recursive.mask.grid.edges(mask, level)
+  coords_param <- .recursive.mask.grid.param.coords(
+    mask = mask,
     level = level,
     x_scale = x_scale,
     y_scale = y_scale
   )
-  coords_surface <- sierpinski.carpet.surface.embedding(
+  coords_surface <- recursive.mask.grid.surface.embedding(
+    mask = mask,
     level = level,
     surface = surface,
     amplitude = amplitude,
@@ -1074,13 +1189,166 @@ sierpinski.carpet.surface.graph <- function(level = 2,
     coords_surface = coords_surface,
     coords_param = coords_param,
     weight_scale = weights$weight_scale,
-    family = "sierpinski.carpet",
+    family = "recursive.mask.grid",
     surface = surface,
     level = level,
+    mask = mask,
+    mask_size = as.integer(nrow(mask)),
+    side = spec$side,
     normalize = normalize,
-    label = sprintf("%s Sierpinski carpet level %d", tools::toTitleCase(surface), level)
+    label = sprintf("Recursive %dx%d mask level %d",
+                    nrow(mask), ncol(mask), level)
   )
-  class(out) <- c("grip_sierpinski_carpet_surface_graph", "list")
+  class(out) <- c("grip_recursive_mask_grid_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski carpet surface helpers
+#'
+#' Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
+#' classic \eqn{3 \times 3} carpet mask with the center cell removed.
+#'
+#' `sierpinski.carpet.surface.embedding()` returns the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
+#' `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
+#' for the named Sierpinski carpet family.
+#'
+#' @inheritParams recursive.mask.grid.surface.embedding
+#'
+#' @return
+#' \code{sierpinski.carpet.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 8^level}.
+#'
+#' \code{sierpinski.carpet.surface.graph()} returns the same components as
+#' \code{recursive.mask.grid.surface.graph()}, with \code{family} set to
+#' \code{"sierpinski.carpet"} and a family-specific class and label.
+#'
+#' @name sierpinski_carpet_surface_helpers
+NULL
+
+#' @rdname sierpinski_carpet_surface_helpers
+#' @export
+sierpinski.carpet.surface.embedding <- function(level = 2,
+                                                surface = c("saddle", "paraboloid", "ripple"),
+                                                amplitude = 0.75,
+                                                freq_u = 1,
+                                                freq_v = 1,
+                                                x_scale = 1,
+                                                y_scale = 1) {
+  recursive.mask.grid.surface.embedding(
+    mask = .sierpinski.carpet.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+}
+
+#' @rdname sierpinski_carpet_surface_helpers
+#' @export
+sierpinski.carpet.surface.graph <- function(level = 2,
+                                            surface = c("saddle", "paraboloid", "ripple"),
+                                            amplitude = 0.75,
+                                            freq_u = 1,
+                                            freq_v = 1,
+                                            x_scale = 1,
+                                            y_scale = 1,
+                                            normalize = c("median", "mean", "none")) {
+  out <- recursive.mask.grid.surface.graph(
+    mask = .sierpinski.carpet.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    normalize = normalize
+  )
+  out$family <- "sierpinski.carpet"
+  out$label <- sprintf("%s Sierpinski carpet level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_sierpinski_carpet_surface_graph", class(out))
+  out
+}
+
+#' Weighted Vicsek surface helpers
+#'
+#' Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
+#' connected \eqn{3 \times 3} axial-cross mask: center plus the four cardinal
+#' neighbors. This produces a mesh-derived fractal family with strong
+#' bottlenecks while remaining orthogonally connected at every level.
+#'
+#' `vicsek.surface.embedding()` returns the 3D coordinates of the occupied
+#' cells in the same vertex order as \code{edges.vicsek()}.
+#' `vicsek.surface.graph()` returns a reusable weighted-graph bundle for the
+#' named Vicsek family.
+#'
+#' @inheritParams recursive.mask.grid.surface.embedding
+#'
+#' @return
+#' \code{vicsek.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}, where \code{n = 5^level}.
+#'
+#' \code{vicsek.surface.graph()} returns the same components as
+#' \code{recursive.mask.grid.surface.graph()}, with \code{family} set to
+#' \code{"vicsek"} and a family-specific class and label.
+#'
+#' @name vicsek_surface_helpers
+NULL
+
+#' @rdname vicsek_surface_helpers
+#' @export
+vicsek.surface.embedding <- function(level = 2,
+                                     surface = c("saddle", "paraboloid", "ripple"),
+                                     amplitude = 0.75,
+                                     freq_u = 1,
+                                     freq_v = 1,
+                                     x_scale = 1,
+                                     y_scale = 1) {
+  recursive.mask.grid.surface.embedding(
+    mask = .vicsek.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+}
+
+#' @rdname vicsek_surface_helpers
+#' @export
+vicsek.surface.graph <- function(level = 2,
+                                 surface = c("saddle", "paraboloid", "ripple"),
+                                 amplitude = 0.75,
+                                 freq_u = 1,
+                                 freq_v = 1,
+                                 x_scale = 1,
+                                 y_scale = 1,
+                                 normalize = c("median", "mean", "none")) {
+  out <- recursive.mask.grid.surface.graph(
+    mask = .vicsek.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    normalize = normalize
+  )
+  out$family <- "vicsek"
+  out$label <- sprintf("%s Vicsek level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_vicsek_surface_graph", class(out))
   out
 }
 
@@ -1214,10 +1482,29 @@ edges.kary.tree <- function(k = 2, depth = 2) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
+#' @describeIn graph_generators Recursively refined square-mask grid graph whose
+#'   vertices are occupied cells and whose edges connect orthogonally adjacent
+#'   cells.
+#' @param mask Square logical or numeric keep-mask. Non-zero entries are kept at
+#'   each recursive subdivision step. Rows run from top to bottom and columns
+#'   run from left to right in the motif.
+#' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
+#'   \code{edges.vicsek()}, and \code{edges.sierpinski.carpet()},
+#'   \code{level} must be at least 1.
+#' @export
+edges.recursive.mask.grid <- function(mask, level = 2) {
+  .recursive.mask.grid.edges(mask, level)
+}
+
+#' @describeIn graph_generators Connected Vicsek-style cross family derived from
+#'   a \code{3 x 3} axial-cross keep-mask.
+#' @export
+edges.vicsek <- function(level = 2) {
+  edges.recursive.mask.grid(.vicsek.mask(), level = level)
+}
+
 #' @describeIn graph_generators Two-dimensional Sierpinski triangle graph at
 #'   recursion depth \code{level}.
-#' @param level Recursion depth. For \code{edges.sierpinski.carpet()},
-#'   \code{level} must be at least 1.
 #' @examples
 #' edges <- edges.sierpinski.triangle(2)
 #' n <- max(edges)
@@ -1320,28 +1607,5 @@ edges.sierpinski.tetrahedron <- function(level = 2) {
 #'   cells.
 #' @export
 edges.sierpinski.carpet <- function(level = 2) {
-  spec <- .sierpinski.carpet.cells(level)
-  side <- spec$side
-  cells <- spec$cells
-
-  id_map <- matrix(0L, nrow = side, ncol = side)
-  for (i in seq_len(nrow(cells))) {
-    id_map[cells$x[i] + 1L, cells$y[i] + 1L] <- i
-  }
-
-  edges <- list()
-  for (i in seq_len(nrow(cells))) {
-    x <- cells$x[i]
-    y <- cells$y[i]
-    if (x + 1L < side) {
-      nbr <- id_map[x + 2L, y + 1L]
-      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
-    }
-    if (y + 1L < side) {
-      nbr <- id_map[x + 1L, y + 2L]
-      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
-    }
-  }
-
-  .bind_edges(edges)
+  edges.recursive.mask.grid(.sierpinski.carpet.mask(), level = level)
 }
