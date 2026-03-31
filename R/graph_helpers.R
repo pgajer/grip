@@ -1190,6 +1190,268 @@
   )
 }
 
+.path.bracketing.indices <- function(x, x_vals) {
+  x_vals <- as.double(x_vals)
+  n <- length(x_vals)
+  if (n == 0L) {
+    stop("x_vals must contain at least one point", call. = FALSE)
+  }
+  if (n == 1L) {
+    return(c(1L, 1L))
+  }
+  if (x <= x_vals[[1L]]) {
+    return(c(1L, 2L))
+  }
+  if (x >= x_vals[[n]]) {
+    return(c(n - 1L, n))
+  }
+  lower <- max(which(x_vals <= x))
+  if (isTRUE(all.equal(x, x_vals[[lower]], tolerance = 1e-12))) {
+    return(c(lower, lower))
+  }
+  c(lower, lower + 1L)
+}
+
+.connect_open_paths <- function(ids_a, x_a, ids_b, x_b) {
+  ids_a <- as.integer(ids_a)
+  ids_b <- as.integer(ids_b)
+  ord_a <- order(x_a)
+  ord_b <- order(x_b)
+  ids_a <- ids_a[ord_a]
+  ids_b <- ids_b[ord_b]
+  x_a <- as.double(x_a[ord_a])
+  x_b <- as.double(x_b[ord_b])
+  edges <- list()
+
+  for (j in seq_along(ids_b)) {
+    nbr <- .path.bracketing.indices(x_b[[j]], x_a)
+    edges[[length(edges) + 1L]] <- c(ids_b[[j]], ids_a[nbr[[1L]]])
+    if (nbr[[2L]] != nbr[[1L]]) {
+      edges[[length(edges) + 1L]] <- c(ids_b[[j]], ids_a[nbr[[2L]]])
+    }
+  }
+  for (i in seq_along(ids_a)) {
+    nbr <- .path.bracketing.indices(x_a[[i]], x_b)
+    edges[[length(edges) + 1L]] <- c(ids_a[[i]], ids_b[nbr[[1L]]])
+    if (nbr[[2L]] != nbr[[1L]]) {
+      edges[[length(edges) + 1L]] <- c(ids_a[[i]], ids_b[nbr[[2L]]])
+    }
+  }
+
+  .normalize_undirected_edges(.bind_edges(edges))
+}
+
+.pair.of.pants.slice.intervals <- function(y,
+                                           outer_radius,
+                                           hole_radius,
+                                           hole_offset,
+                                           hole_height,
+                                           tol = 1e-10) {
+  outer_dx_sq <- outer_radius^2 - y^2
+  if (outer_dx_sq <= 0) {
+    return(matrix(numeric(), ncol = 2L))
+  }
+  intervals <- matrix(c(-sqrt(outer_dx_sq), sqrt(outer_dx_sq)), ncol = 2L)
+  holes <- list()
+
+  hole_y <- y - hole_height
+  hole_dx_sq <- hole_radius^2 - hole_y^2
+  if (hole_dx_sq > 0) {
+    hole_dx <- sqrt(hole_dx_sq)
+    holes <- list(
+      c(-hole_offset - hole_dx, -hole_offset + hole_dx),
+      c(hole_offset - hole_dx, hole_offset + hole_dx)
+    )
+  }
+
+  subtract_interval <- function(current, hole) {
+    out <- matrix(numeric(), ncol = 2L)
+    for (i in seq_len(nrow(current))) {
+      start <- current[i, 1L]
+      end <- current[i, 2L]
+      h_start <- hole[[1L]]
+      h_end <- hole[[2L]]
+      if (h_end <= start + tol || h_start >= end - tol) {
+        out <- rbind(out, c(start, end))
+      } else {
+        if (h_start > start + tol) {
+          out <- rbind(out, c(start, h_start))
+        }
+        if (h_end < end - tol) {
+          out <- rbind(out, c(h_end, end))
+        }
+      }
+    }
+    out
+  }
+
+  for (hole in holes) {
+    intervals <- subtract_interval(intervals, hole)
+    if (nrow(intervals) == 0L) {
+      break
+    }
+  }
+  intervals[order(intervals[, 1L]), , drop = FALSE]
+}
+
+.sample.open.interval <- function(start,
+                                  end,
+                                  count,
+                                  phase,
+                                  irregularity) {
+  count <- .as_whole_number(count, "count", min = 1L)
+  phase <- .as_finite_scalar(phase, "phase")
+  irregularity <- .as_finite_scalar(irregularity, "irregularity")
+  if (count == 1L) {
+    return((start + end) / 2)
+  }
+  s <- seq(0, 1, length.out = count)
+  if (count > 2L && irregularity > 0) {
+    delta <- 0.18 * irregularity * sin(pi * s) * cos(phase + 2 * pi * s)
+    s <- pmin(pmax(s + delta / max(count - 1L, 1L), 0), 1)
+    s[[1L]] <- 0
+    s[[count]] <- 1
+    s <- sort(s)
+  }
+  start + (end - start) * s
+}
+
+.irregular.pair.of.pants.canonical <- function(slices = 11,
+                                               outer_count = 28,
+                                               outer_radius = 1.1,
+                                               hole_radius = 0.24,
+                                               hole_offset = 0.38,
+                                               hole_height = 0.18,
+                                               count_irregularity = 0.2,
+                                               vertical_irregularity = 0.35,
+                                               phase_twist = 0.35) {
+  slices <- .as_whole_number(slices, "slices", min = 5L)
+  outer_count <- .as_whole_number(outer_count, "outer_count", min = 8L)
+  outer_radius <- .as_positive_scalar(outer_radius, "outer_radius")
+  hole_radius <- .as_positive_scalar(hole_radius, "hole_radius")
+  hole_offset <- .as_positive_scalar(hole_offset, "hole_offset")
+  hole_height <- .as_finite_scalar(hole_height, "hole_height")
+  count_irregularity <- .as_finite_scalar(count_irregularity, "count_irregularity")
+  vertical_irregularity <- .as_finite_scalar(vertical_irregularity, "vertical_irregularity")
+  phase_twist <- .as_finite_scalar(phase_twist, "phase_twist")
+  if (count_irregularity < 0 || count_irregularity >= 1) {
+    stop("count_irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (vertical_irregularity < 0 || vertical_irregularity > 1) {
+    stop("vertical_irregularity must be in [0, 1]", call. = FALSE)
+  }
+  if (hole_offset <= hole_radius) {
+    stop("hole_offset must exceed hole_radius so the two holes remain disjoint",
+         call. = FALSE)
+  }
+  hole_center_radius <- sqrt(hole_offset^2 + hole_height^2)
+  if ((hole_center_radius + hole_radius) >= outer_radius) {
+    stop("holes must lie strictly inside the outer boundary", call. = FALSE)
+  }
+
+  gap <- (2 * outer_radius) / (slices + 1L)
+  y_base <- seq(outer_radius - gap / 2, -outer_radius + gap / 2, length.out = slices)
+  y_shift <- vertical_irregularity * 0.22 * gap *
+    sin(seq_len(slices) * (2 * pi / (slices + 1L)))
+  y_vals <- sort(y_base + y_shift, decreasing = TRUE)
+  base_spacing <- (2 * outer_radius) / outer_count
+
+  coords_list <- list()
+  slice_specs <- vector("list", slices)
+  slice_sizes <- integer(slices)
+  slice_components <- integer(slices)
+  next_id <- 1L
+  edges <- list()
+
+  for (slice in seq_len(slices)) {
+    y <- y_vals[[slice]]
+    intervals <- .pair.of.pants.slice.intervals(
+      y = y,
+      outer_radius = outer_radius,
+      hole_radius = hole_radius,
+      hole_offset = hole_offset,
+      hole_height = hole_height
+    )
+    if (nrow(intervals) == 0L) {
+      stop("slice construction produced an empty cross-section; adjust parameters",
+           call. = FALSE)
+    }
+
+    interval_specs <- vector("list", nrow(intervals))
+    t <- (slice - 1L) / max(1L, slices - 1L)
+    for (comp in seq_len(nrow(intervals))) {
+      start <- intervals[comp, 1L]
+      end <- intervals[comp, 2L]
+      len <- end - start
+      target <- outer_count * (len / (2 * outer_radius)) *
+        (1 + count_irregularity * sin(2 * pi * t + 0.9 * comp))
+      min_count <- if (len > 0.75 * base_spacing) 2L else 1L
+      count <- max(min_count, as.integer(round(target)))
+      x_vals <- .sample.open.interval(
+        start = start,
+        end = end,
+        count = count,
+        phase = phase_twist * (slice + comp),
+        irregularity = count_irregularity
+      )
+      ids <- next_id:(next_id + count - 1L)
+      next_id <- next_id + count
+      coords_list[[length(coords_list) + 1L]] <- cbind(
+        u = x_vals,
+        v = rep(y, count)
+      )
+      interval_specs[[comp]] <- list(
+        ids = as.integer(ids),
+        x = as.double(x_vals),
+        start = start,
+        end = end
+      )
+      if (count >= 2L) {
+        edges[[length(edges) + 1L]] <- cbind(ids[-count], ids[-1L])
+      }
+    }
+    slice_specs[[slice]] <- list(
+      y = y,
+      intervals = interval_specs
+    )
+    slice_sizes[[slice]] <- sum(vapply(interval_specs,
+                                       function(spec) length(spec$ids),
+                                       integer(1L)))
+    slice_components[[slice]] <- length(interval_specs)
+  }
+
+  for (slice in seq_len(slices - 1L)) {
+    current <- slice_specs[[slice]]$intervals
+    next_slice <- slice_specs[[slice + 1L]]$intervals
+    for (i in seq_along(current)) {
+      for (j in seq_along(next_slice)) {
+        overlap <- min(current[[i]]$end, next_slice[[j]]$end) -
+          max(current[[i]]$start, next_slice[[j]]$start)
+        if (overlap >= (-0.15 * base_spacing)) {
+          edges[[length(edges) + 1L]] <- .connect_open_paths(
+            ids_a = current[[i]]$ids,
+            x_a = current[[i]]$x,
+            ids_b = next_slice[[j]]$ids,
+            x_b = next_slice[[j]]$x
+          )
+        }
+      }
+    }
+  }
+
+  coords <- do.call(rbind, coords_list)
+  colnames(coords) <- c("u", "v")
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize_undirected_edges(.bind_edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    slices = slices,
+    slice_sizes = slice_sizes,
+    slice_components = slice_components
+  )
+}
+
 .sierpinski.carpet.mask <- function() {
   matrix(
     c(
@@ -4233,6 +4495,174 @@ irregular.annulus.surface.graph <- function(
   out
 }
 
+#' Weighted irregular pair-of-pants surface helpers
+#'
+#' Convenience helpers that build a pair-of-pants domain from deterministically
+#' irregular horizontal slices, sample each surviving slice interval with
+#' varying point counts, and stitch adjacent slices into a locally triangulated
+#' surface-with-boundary graph. The resulting irregular planar parameterization
+#' can then be lifted into \eqn{\mathbb{R}^3} using the same planar surface
+#' families as the triangulated annulus and irregular annulus helpers.
+#'
+#' @param slices Number of horizontal sample slices through the pair-of-pants
+#'   domain.
+#' @param outer_count Approximate number of vertices across the widest slices.
+#' @param outer_radius Positive outer boundary radius.
+#' @param hole_radius Positive radius of each interior hole.
+#' @param hole_offset Positive horizontal offset of the two hole centers.
+#' @param hole_height Shared vertical coordinate of the two hole centers.
+#' @param count_irregularity Irregularity level for the per-slice sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param vertical_irregularity Irregularity level for slice spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param phase_twist Finite phase offset used to desynchronize neighboring
+#'   slice samples.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq_u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.pair.of.pants.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.pair.of.pants.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the irregular pair-of-pants edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular planar pair-of-pants coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.pair.of.pants"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{slices}: number of horizontal sample slices,
+#'   \item \code{slice_sizes}: vertex counts in each slice,
+#'   \item \code{slice_components}: number of connected slice intervals in each
+#'     slice,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_pair_of_pants_surface_helpers
+NULL
+
+#' @rdname irregular_pair_of_pants_surface_helpers
+#' @export
+irregular.pair.of.pants.surface.embedding <- function(
+    slices = 11,
+    outer_count = 28,
+    outer_radius = 1.1,
+    hole_radius = 0.24,
+    hole_offset = 0.38,
+    hole_height = 0.18,
+    count_irregularity = 0.2,
+    vertical_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1) {
+  surface <- match.arg(surface)
+  built <- .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height,
+    count_irregularity = count_irregularity,
+    vertical_irregularity = vertical_irregularity,
+    phase_twist = phase_twist
+  )
+  .triangulated.planar.surface.coords(
+    coords_param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+}
+
+#' @rdname irregular_pair_of_pants_surface_helpers
+#' @export
+irregular.pair.of.pants.surface.graph <- function(
+    slices = 11,
+    outer_count = 28,
+    outer_radius = 1.1,
+    hole_radius = 0.24,
+    hole_offset = 0.38,
+    hole_height = 0.18,
+    count_irregularity = 0.2,
+    vertical_irregularity = 0.35,
+    phase_twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq_u = 1,
+    freq_v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height,
+    count_irregularity = count_irregularity,
+    vertical_irregularity = vertical_irregularity,
+    phase_twist = phase_twist
+  )
+  coords_surface <- irregular.pair.of.pants.surface.embedding(
+    slices = slices,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height,
+    count_irregularity = count_irregularity,
+    vertical_irregularity = vertical_irregularity,
+    phase_twist = phase_twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.pair.of.pants",
+    surface = surface,
+    slices = built$slices,
+    slice_sizes = built$slice_sizes,
+    slice_components = built$slice_components,
+    normalize = normalize,
+    label = sprintf("%s irregular pair-of-pants slices %d",
+                    tools::toTitleCase(surface),
+                    built$slices)
+  )
+  class(out) <- c("grip_irregular_pair_of_pants_surface_graph", "list")
+  out
+}
+
 #' Weighted Sierpinski triangle surface helpers
 #'
 #' Convenience helpers that take the canonical recursive embedding of the
@@ -5696,24 +6126,37 @@ edges.sphere <- function(h, w = h) {
 #' @param rings Number of concentric sample rings for
 #'   \code{edges.irregular.annulus()}.
 #' @param outer_count Approximate number of vertices on the outer boundary for
-#'   \code{edges.irregular.annulus()}.
+#'   \code{edges.irregular.annulus()} and across the widest slices for
+#'   \code{edges.irregular.pair.of.pants()}.
 #' @param outer_radius Positive outer annulus radius for
-#'   \code{edges.irregular.annulus()}.
+#'   \code{edges.irregular.annulus()} and positive outer boundary radius for
+#'   \code{edges.irregular.pair.of.pants()}.
 #' @param inner_radius Positive inner annulus radius for
 #'   \code{edges.irregular.annulus()}.
 #' @param equator_count Approximate number of vertices near the equator for
 #'   \code{edges.irregular.sphere()}.
 #' @param count_irregularity Irregularity level for sample counts in
-#'   \code{edges.irregular.annulus()} and \code{edges.irregular.sphere()}.
+#'   \code{edges.irregular.annulus()}, \code{edges.irregular.pair.of.pants()},
+#'   and \code{edges.irregular.sphere()}.
 #' @param radial_irregularity Within-ring radial irregularity level for
 #'   \code{edges.irregular.annulus()}.
 #' @param phase_twist Angular phase offset used to desynchronize neighboring
-#'   rings or latitude bands in the irregular annulus and irregular sphere
-#'   families.
+#'   rings, slice samples, or latitude bands in the irregular annulus,
+#'   irregular pair-of-pants, and irregular sphere families.
 #' @param bands Number of non-pole latitude bands for
 #'   \code{edges.irregular.sphere()}.
 #' @param lat_irregularity Latitude-band spacing irregularity level for
 #'   \code{edges.irregular.sphere()}.
+#' @param slices Number of horizontal sample slices for
+#'   \code{edges.irregular.pair.of.pants()}.
+#' @param hole_radius Positive radius of each interior hole for
+#'   \code{edges.irregular.pair.of.pants()}.
+#' @param hole_offset Positive horizontal offset of the two hole centers for
+#'   \code{edges.irregular.pair.of.pants()}.
+#' @param hole_height Shared vertical coordinate of the two hole centers for
+#'   \code{edges.irregular.pair.of.pants()}.
+#' @param vertical_irregularity Slice-spacing irregularity level for
+#'   \code{edges.irregular.pair.of.pants()}.
 #' @export
 edges.irregular.annulus <- function(rings = 6,
                                     outer_count = 28,
@@ -5729,6 +6172,32 @@ edges.irregular.annulus <- function(rings = 6,
     inner_radius = inner_radius,
     count_irregularity = count_irregularity,
     radial_irregularity = radial_irregularity,
+    phase_twist = phase_twist
+  )$edges
+}
+
+#' @describeIn graph_generators Deterministically irregular pair-of-pants graph
+#'   built from horizontal slice intervals with varying sample counts and
+#'   stitched into a locally triangulated surface-with-boundary graph.
+#' @export
+edges.irregular.pair.of.pants <- function(slices = 11,
+                                          outer_count = 28,
+                                          outer_radius = 1.1,
+                                          hole_radius = 0.24,
+                                          hole_offset = 0.38,
+                                          hole_height = 0.18,
+                                          count_irregularity = 0.2,
+                                          vertical_irregularity = 0.35,
+                                          phase_twist = 0.35) {
+  .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer_count = outer_count,
+    outer_radius = outer_radius,
+    hole_radius = hole_radius,
+    hole_offset = hole_offset,
+    hole_height = hole_height,
+    count_irregularity = count_irregularity,
+    vertical_irregularity = vertical_irregularity,
     phase_twist = phase_twist
   )$edges
 }

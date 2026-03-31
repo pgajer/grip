@@ -14,6 +14,7 @@
 \alias{edges.cube.channel.network}
 \alias{edges.cube.periodic.tunnels}
 \alias{edges.irregular.annulus}
+\alias{edges.irregular.pair.of.pants}
 \alias{edges.irregular.sphere}
 \alias{edges.kary.tree}
 \alias{edges.menger.sponge}
@@ -51,6 +52,18 @@ edges.irregular.annulus(
   inner_radius = 0.45,
   count_irregularity = 0.2,
   radial_irregularity = 0.35,
+  phase_twist = 0.35
+)
+
+edges.irregular.pair.of.pants(
+  slices = 11,
+  outer_count = 28,
+  outer_radius = 1.1,
+  hole_radius = 0.24,
+  hole_offset = 0.38,
+  hole_height = 0.18,
+  count_irregularity = 0.2,
+  vertical_irregularity = 0.35,
   phase_twist = 0.35
 )
 
@@ -142,7 +155,8 @@ keep-mask.}
 \code{edges.irregular.annulus()}.}
 
 \item{outer_count}{Approximate number of vertices on the outer boundary for
-\code{edges.irregular.annulus()}.}
+\code{edges.irregular.annulus()} and across the widest slices for
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{resolution}{Positive lattice-resolution control used by
 \code{edges.triangulated.annulus()} and
@@ -177,22 +191,27 @@ of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.}
 
 \item{outer_radius}{Positive outer boundary radius for
 \code{edges.triangulated.annulus()},
-\code{edges.irregular.annulus()}, and
-\code{edges.triangulated.pair.of.pants()}.}
+\code{edges.irregular.annulus()},
+\code{edges.triangulated.pair.of.pants()}, and
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{inner_radius}{Positive inner annulus radius for
 \code{edges.triangulated.annulus()} and
 \code{edges.irregular.annulus()}.}
 
 \item{count_irregularity}{Irregularity level for sample counts in
-\code{edges.irregular.annulus()} and \code{edges.irregular.sphere()}.}
+\code{edges.irregular.annulus()}, \code{edges.irregular.pair.of.pants()}, and
+\code{edges.irregular.sphere()}.}
 
 \item{radial_irregularity}{Within-ring radial irregularity level for
 \code{edges.irregular.annulus()}.}
 
 \item{phase_twist}{Angular phase offset used to desynchronize neighboring
-rings or latitude bands in the irregular annulus and irregular sphere
-families.}
+rings, slice samples, or latitude bands in the irregular annulus, irregular
+pair-of-pants, and irregular sphere families.}
+
+\item{slices}{Number of horizontal sample slices for
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{bands}{Number of non-pole latitude bands for
 \code{edges.irregular.sphere()}.}
@@ -200,14 +219,20 @@ families.}
 \item{lat_irregularity}{Latitude-band spacing irregularity level for
 \code{edges.irregular.sphere()}.}
 
+\item{vertical_irregularity}{Slice-spacing irregularity level for
+\code{edges.irregular.pair.of.pants()}.}
+
 \item{hole_radius}{Positive radius of each interior hole for
-\code{edges.triangulated.pair.of.pants()}.}
+\code{edges.triangulated.pair.of.pants()} and
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{hole_offset}{Positive horizontal offset of the two hole centers for
-\code{edges.triangulated.pair.of.pants()}.}
+\code{edges.triangulated.pair.of.pants()} and
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{hole_height}{Shared vertical coordinate of the two hole centers for
-\code{edges.triangulated.pair.of.pants()}.}
+\code{edges.triangulated.pair.of.pants()} and
+\code{edges.irregular.pair.of.pants()}.}
 
 \item{mask}{Logical or numeric keep-mask. For
 \code{edges.recursive.mask.grid()}, this must be a square matrix whose
@@ -254,7 +279,8 @@ closed irregular triangulated-surface family, and
 \code{\link{edges.triangulated.annulus}()} together with
 \code{\link{edges.triangulated.pair.of.pants}()} build triangulated
 surface-with-boundary families, while
-\code{\link{edges.irregular.annulus}()} and
+\code{\link{edges.irregular.annulus}()},
+\code{\link{edges.irregular.pair.of.pants}()}, and
 \code{\link{edges.irregular.sphere}()} build deterministic irregular
 point-sampled manifold families,
 \code{\link{edges.recursive.triangle.mask}()} builds a generic
@@ -289,6 +315,10 @@ levels (including the poles) and wrapped longitude \code{w}.
 \item \code{edges.irregular.annulus()}: Deterministically irregular annulus graph built
 from concentric sample rings with varying sample counts and stitched into a
 locally triangulated surface-with-boundary graph.
+
+\item \code{edges.irregular.pair.of.pants()}: Deterministically irregular
+pair-of-pants graph built from horizontal slice intervals with varying sample
+counts and stitched into a locally triangulated surface-with-boundary graph.
 
 \item \code{edges.irregular.sphere()}: Deterministically irregular sphere graph built
 from latitude bands with varying sample counts and stitched into a locally
