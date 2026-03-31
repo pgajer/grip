@@ -220,7 +220,10 @@ gripui.valid.coord.rows <- function(coords) {
   apply(coords, 1L, function(x) all(is.finite(x)))
 }
 
-gripui.render.layout.plot2d <- function(coords, graph = NULL, color_by = "plain") {
+gripui.render.layout.plot2d <- function(coords,
+                                        graph = NULL,
+                                        color_by = "plain",
+                                        show_edges = TRUE) {
   keep <- gripui.valid.coord.rows(coords)
   if (!any(keep)) {
     graphics::plot.new()
@@ -247,7 +250,7 @@ gripui.render.layout.plot2d <- function(coords, graph = NULL, color_by = "plain"
   )
 
   edges <- gripui.graph.edges(graph)
-  if (!is.null(edges) && nrow(edges) > 0L) {
+  if (isTRUE(show_edges) && !is.null(edges) && nrow(edges) > 0L) {
     good.edges <- keep[edges[, 1L]] & keep[edges[, 2L]]
     edges <- edges[good.edges, , drop = FALSE]
     if (nrow(edges) > 0L) {
@@ -265,7 +268,10 @@ gripui.render.layout.plot2d <- function(coords, graph = NULL, color_by = "plain"
   invisible(NULL)
 }
 
-gripui.render.rglwidget <- function(coords, graph = NULL, color_by = "plain") {
+gripui.render.rglwidget <- function(coords,
+                                    graph = NULL,
+                                    color_by = "plain",
+                                    show_edges = TRUE) {
   old <- gripui.enable.rgl.null.device()
   on.exit(options(rgl.useNULL = old), add = TRUE)
 
@@ -289,7 +295,7 @@ gripui.render.rglwidget <- function(coords, graph = NULL, color_by = "plain") {
   }
 
   edges <- gripui.graph.edges(graph)
-  if (!is.null(edges) && nrow(edges) > 0L) {
+  if (isTRUE(show_edges) && !is.null(edges) && nrow(edges) > 0L) {
     good.edges <- keep[edges[, 1L]] & keep[edges[, 2L]]
     edges <- edges[good.edges, , drop = FALSE]
     if (nrow(edges) > 0L) {

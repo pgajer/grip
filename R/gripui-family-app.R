@@ -1,0 +1,734 @@
+gripui.family.theme <- function() {
+  bslib::bs_theme(
+    version = 5,
+    base_font = bslib::font_google("Space Grotesk"),
+    heading_font = bslib::font_google("Fraunces"),
+    code_font = bslib::font_google("IBM Plex Mono"),
+    bg = "#f4f1ea",
+    fg = "#17323a",
+    primary = "#1f3b73",
+    secondary = "#8a5a44",
+    "border-radius" = "0.9rem",
+    "card-border-radius" = "0.9rem",
+    "btn-border-radius" = "999px"
+  )
+}
+
+gripui.require.family.app.packages <- function() {
+  old <- gripui.enable.rgl.null.device()
+  pkgs <- c("shiny", "bslib", "rgl")
+  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1L), quietly = TRUE)]
+  if (length(missing) > 0L) {
+    options(rgl.useNULL = old)
+    stop(
+      "gripui_family_app requires optional packages that are not installed: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  old
+}
+
+gripui.family.validate.catalog <- function(catalog) {
+  if (!is.list(catalog) || length(catalog) == 0L || is.null(names(catalog))) {
+    stop("catalog must be a named non-empty list of family descriptors.", call. = FALSE)
+  }
+  required <- c("id", "label", "category", "function_name", "summary", "params", "builder", "presets", "implementation")
+  for (nm in names(catalog)) {
+    desc <- catalog[[nm]]
+    missing <- setdiff(required, names(desc))
+    if (length(missing) > 0L) {
+      stop(sprintf("catalog entry '%s' is missing fields: %s", nm, paste(missing, collapse = ", ")), call. = FALSE)
+    }
+  }
+  invisible(catalog)
+}
+
+gripui.family.categories <- function(catalog) {
+  unique(vapply(catalog, `[[`, character(1L), "category"))
+}
+
+gripui.family.choices <- function(catalog, category = NULL) {
+  keep <- rep(TRUE, length(catalog))
+  if (!is.null(category) && nzchar(category) && !identical(category, "All families")) {
+    keep <- vapply(catalog, function(x) identical(x$category, category), logical(1L))
+  }
+  items <- catalog[keep]
+  stats::setNames(names(items), vapply(items, `[[`, character(1L), "label"))
+}
+
+gripui.family.preset.choices <- function(desc) {
+  choices <- c(Default = "default")
+  if (length(desc$presets) == 0L) {
+    return(choices)
+  }
+  labels <- gsub("_", " ", names(desc$presets), fixed = TRUE)
+  labels <- tools::toTitleCase(labels)
+  c(choices, stats::setNames(names(desc$presets), labels))
+}
+
+gripui.family.input_id <- function(id) {
+  paste0("family_param_", id)
+}
+
+gripui.family.numeric.vector.text <- function(x) {
+  if (is.null(x) || length(x) == 0L) {
+    return("")
+  }
+  paste(format(as.numeric(x), trim = TRUE, digits = 6), collapse = ", ")
+}
+
+gripui.family.js.value <- function(x) {
+  if (is.logical(x)) {
+    if (isTRUE(x)) "true" else "false"
+  } else if (is.numeric(x)) {
+    format(x[[1L]], scientific = FALSE, trim = TRUE)
+  } else {
+    paste0("'", gsub("'", "\\\\'", as.character(x[[1L]]), fixed = TRUE), "'")
+  }
+}
+
+gripui.family.visible.condition <- function(spec) {
+  vis <- spec$visible_if
+  if (is.null(vis) || !length(vis)) {
+    return(NULL)
+  }
+  pieces <- vapply(names(vis), function(id) {
+    values <- vis[[id]]
+    input_name <- gripui.family.input_id(id)
+    options <- vapply(values, function(val) {
+      sprintf("input['%s'] == %s", input_name, gripui.family.js.value(val))
+    }, character(1L))
+    sprintf("(%s)", paste(options, collapse = " || "))
+  }, character(1L))
+  paste(pieces, collapse = " && ")
+}
+
+gripui.family.param.control <- function(spec, value) {
+  input_id <- gripui.family.input_id(spec$id)
+  widget <- switch(
+    spec$type,
+    integer = shiny::numericInput(
+      inputId = input_id,
+      label = spec$label,
+      value = value,
+      min = spec$min,
+      max = spec$max,
+      step = spec$step
+    ),
+    double = shiny::numericInput(
+      inputId = input_id,
+      label = spec$label,
+      value = value,
+      min = spec$min,
+      max = spec$max,
+      step = spec$step
+    ),
+    choice = shiny::selectInput(
+      inputId = input_id,
+      label = spec$label,
+      choices = stats::setNames(spec$choices, tools::toTitleCase(gsub("_", " ", spec$choices, fixed = TRUE))),
+      selected = value
+    ),
+    logical = shiny::checkboxInput(
+      inputId = input_id,
+      label = spec$label,
+      value = isTRUE(value)
+    ),
+    numeric_vector = shiny::textInput(
+      inputId = input_id,
+      label = spec$label,
+      value = gripui.family.numeric.vector.text(value),
+      placeholder = "e.g. 1, 0.8, 0.6"
+    ),
+    stop("Unsupported parameter type: ", spec$type, call. = FALSE)
+  )
+
+  block <- shiny::tagList(
+    widget,
+    if (!is.null(spec$help) && nzchar(spec$help)) {
+      shiny::tags$div(style = "margin-top:-0.5rem;color:#6b7280;font-size:0.9rem;", spec$help)
+    }
+  )
+  cond <- gripui.family.visible.condition(spec)
+  if (!is.null(cond)) {
+    shiny::conditionalPanel(condition = cond, block)
+  } else {
+    block
+  }
+}
+
+gripui.family.param.ui <- function(desc, values) {
+  groups <- unique(vapply(desc$params, `[[`, character(1L), "group"))
+  shiny::tagList(lapply(groups, function(group) {
+    items <- Filter(function(x) identical(x$group, group), desc$params)
+    shiny::tags$div(
+      class = "gripui-family-group",
+      shiny::tags$h5(style = "margin-top:0.8rem;", group),
+      shiny::tagList(lapply(items, function(spec) {
+        gripui.family.param.control(spec, values[[spec$id]])
+      }))
+    )
+  }))
+}
+
+gripui.family.collect.values <- function(desc, input, preset_id = "default") {
+  defaults <- .gripui.family.merge.values(desc, preset_id = preset_id)
+  out <- defaults
+  for (spec in desc$params) {
+    raw <- input[[gripui.family.input_id(spec$id)]]
+    value <- if (is.null(raw)) spec$default else spec$coerce(raw)
+    out[[spec$id]] <- value
+  }
+  out
+}
+
+gripui.family.as_matrix <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  out <- as.matrix(x)
+  storage.mode(out) <- "double"
+  out
+}
+
+gripui.family.pad_coords <- function(coords, target_cols = 3L, colnames_out = c("x", "y", "z")) {
+  coords <- gripui.family.as_matrix(coords)
+  if (is.null(coords)) {
+    return(NULL)
+  }
+  if (ncol(coords) < target_cols) {
+    coords <- cbind(coords, matrix(0, nrow(coords), target_cols - ncol(coords)))
+  }
+  coords <- coords[, seq_len(target_cols), drop = FALSE]
+  colnames(coords) <- colnames_out[seq_len(target_cols)]
+  coords
+}
+
+gripui.family.tree.leaf_order <- function(parent) {
+  children <- split(seq_along(parent), parent)
+  children <- children[names(children) != "0"]
+
+  order <- numeric(length(parent))
+  next_leaf <- 1
+
+  assign_order <- function(node) {
+    kids <- children[[as.character(node)]]
+    if (is.null(kids) || length(kids) == 0L) {
+      order[[node]] <<- next_leaf
+      next_leaf <<- next_leaf + 1
+      return(order[[node]])
+    }
+    child_vals <- vapply(kids, assign_order, numeric(1L))
+    order[[node]] <<- mean(child_vals)
+    order[[node]]
+  }
+
+  assign_order(1L)
+  order
+}
+
+gripui.family.tree.display.coords <- function(raw) {
+  n <- as.integer(raw$n)
+  parent <- as.integer(raw$parent)
+  if (length(parent) != n) {
+    return(cbind(seq_len(n), rep(0, n), rep(0, n)))
+  }
+  depth <- as.integer(raw$vertex_depth)
+  leaf_order <- gripui.family.tree.leaf_order(parent)
+  edge_table <- raw$edge_table
+
+  root_dist <- numeric(n)
+  branch_z <- numeric(n)
+  if (is.data.frame(edge_table) && nrow(edge_table) > 0L) {
+    for (i in seq_len(nrow(edge_table))) {
+      child <- edge_table$child[[i]]
+      par <- edge_table$parent[[i]]
+      w <- edge_table$edge_weight[[i]]
+      idx <- edge_table$branch_index[[i]]
+      k_local <- max(edge_table$branch_index[edge_table$parent == par])
+      offset <- idx - (k_local + 1) / 2
+      root_dist[[child]] <- root_dist[[par]] + w
+      branch_z[[child]] <- branch_z[[par]] * 0.45 + offset * w * 0.35
+    }
+  }
+
+  y <- leaf_order - mean(leaf_order)
+  if (length(y) > 1L && max(abs(y)) > 0) {
+    y <- y / max(abs(y))
+  }
+
+  coords <- cbind(root_dist, y, branch_z)
+  colnames(coords) <- c("x", "y", "z")
+  coords
+}
+
+gripui.family.display.coords <- function(raw) {
+  coords <- gripui.family.pad_coords(raw$coords_surface, target_cols = 3L)
+  note <- NULL
+  if (!is.null(coords)) {
+    return(list(coords = coords, note = note))
+  }
+  coords <- gripui.family.tree.display.coords(raw)
+  note <- paste(
+    "This family has intrinsic weighted-tree geometry but no canonical ambient embedding.",
+    "The viewer uses a deterministic display layout for inspection."
+  )
+  list(coords = coords, note = note)
+}
+
+gripui.family.plot.coords <- function(raw, display_coords) {
+  coords <- raw$coords_param
+  if (is.null(coords)) {
+    coords <- display_coords
+  }
+  gripui.family.pad_coords(coords, target_cols = 2L, colnames_out = c("x", "y"))
+}
+
+gripui.family.vertex.data <- function(raw, graph_obj, display_coords, plot_coords) {
+  degree <- vapply(graph_obj$adj_list, length, integer(1L))
+  out <- data.frame(
+    x = display_coords[, 1L],
+    y = display_coords[, 2L],
+    z = display_coords[, 3L],
+    plot_x = plot_coords[, 1L],
+    plot_y = plot_coords[, 2L],
+    degree = degree,
+    stringsAsFactors = FALSE
+  )
+  if (!is.null(raw$coords_surface)) {
+    surface <- gripui.family.pad_coords(raw$coords_surface, target_cols = 3L)
+    out$surface_x <- surface[, 1L]
+    out$surface_y <- surface[, 2L]
+    out$surface_z <- surface[, 3L]
+  }
+  if (!is.null(raw$coords_param)) {
+    param <- gripui.family.as_matrix(raw$coords_param)
+    for (j in seq_len(ncol(param))) {
+      out[[paste0("param_", j)]] <- param[, j]
+    }
+  }
+  if (!is.null(raw$vertex_depth) && length(raw$vertex_depth) == nrow(out)) {
+    out$depth <- raw$vertex_depth
+  }
+  out
+}
+
+gripui.family.count.edges <- function(edges) {
+  if (is.null(edges)) 0L else nrow(as.matrix(edges))
+}
+
+gripui.family.build.payload <- function(desc, values) {
+  raw <- desc$builder(values)
+  display <- gripui.family.display.coords(raw)
+  display_coords <- display$coords
+  plot_coords <- gripui.family.plot.coords(raw, display_coords)
+  graph_obj <- grip.build.adj.from.edges(raw$edges, n = raw$n, edge_weights = raw$edge_weights)
+  graph_obj$vertex_data <- gripui.family.vertex.data(raw, graph_obj, display_coords, plot_coords)
+  code <- if (is.function(desc$code)) {
+    desc$code(values)
+  } else {
+    .gripui.family.call.code(desc$function_name, values)
+  }
+  list(
+    family_id = desc$id,
+    family_label = desc$label,
+    category = desc$category,
+    raw = raw,
+    graph = graph_obj,
+    edges = raw$edges,
+    n = raw$n,
+    edge_weights = raw$edge_weights,
+    coords_display = display_coords,
+    coords_plot = plot_coords,
+    code = code,
+    implementation = desc$implementation,
+    note = display$note
+  )
+}
+
+gripui.family.summary.table <- function(items) {
+  data.frame(
+    field = names(items),
+    value = unname(vapply(items, as.character, character(1L))),
+    stringsAsFactors = FALSE
+  )
+}
+
+gripui.family.graph.summary <- function(payload) {
+  degrees <- vapply(payload$graph$adj_list, length, integer(1L))
+  gripui.family.summary.table(list(
+    family = payload$family_label,
+    vertices = payload$n,
+    edges = gripui.family.count.edges(payload$edges),
+    average_degree = sprintf("%.3f", mean(degrees)),
+    max_degree = max(degrees),
+    implementation = basename(payload$implementation)
+  ))
+}
+
+gripui.family.weight.summary <- function(payload) {
+  w <- as.numeric(payload$edge_weights)
+  cv <- if (length(w) > 1L && mean(w) > 0) stats::sd(w) / mean(w) else 0
+  gripui.family.summary.table(list(
+    min = sprintf("%.4f", min(w)),
+    median = sprintf("%.4f", stats::median(w)),
+    mean = sprintf("%.4f", mean(w)),
+    max = sprintf("%.4f", max(w)),
+    cv = sprintf("%.4f", cv),
+    normalize = payload$raw$normalize[[1L]]
+  ))
+}
+
+gripui.family.geometry.summary <- function(payload) {
+  coords <- payload$coords_display
+  spans <- apply(coords, 2L, function(x) diff(range(x, finite = TRUE)))
+  gripui.family.summary.table(list(
+    display_x_span = sprintf("%.4f", spans[[1L]]),
+    display_y_span = sprintf("%.4f", spans[[2L]]),
+    display_z_span = sprintf("%.4f", spans[[3L]]),
+    plot_dimensions = ncol(payload$coords_plot),
+    surface = if ("surface" %in% names(payload$raw)) payload$raw$surface[[1L]] else "intrinsic",
+    note = if (is.null(payload$note)) "" else payload$note
+  ))
+}
+
+gripui.family.color.choices <- function(payload) {
+  if (is.null(payload) || is.null(payload$graph$vertex_data)) {
+    return(c(Plain = "plain"))
+  }
+  fields <- setdiff(names(payload$graph$vertex_data), c("x", "y", "z"))
+  c(Plain = "plain", stats::setNames(fields, tools::toTitleCase(gsub("_", " ", fields, fixed = TRUE))))
+}
+
+gripui.family.default.color <- function(choices) {
+  preferred <- c("surface_z", "depth", "degree", "plain")
+  for (nm in preferred) {
+    if (nm %in% unname(choices)) {
+      return(nm)
+    }
+  }
+  unname(choices[[1L]])
+}
+
+gripui.family.ui <- function(catalog, title, subtitle = NULL) {
+  categories <- c("All families", gripui.family.categories(catalog))
+  initial_choices <- gripui.family.choices(catalog, categories[[1L]])
+  initial_desc <- catalog[[unname(initial_choices[[1L]])]]
+  css.path <- system.file("app/www/gripui.css", package = "grip")
+
+  bslib::page_sidebar(
+    title = shiny::div(
+      class = "gripui-titlebar",
+      shiny::div(class = "gripui-brand", title)
+    ),
+    theme = gripui.family.theme(),
+    sidebar = bslib::sidebar(
+      width = 380,
+      if (!is.null(subtitle) && nzchar(subtitle)) {
+        shiny::tags$p(class = "gripui-project-summary", subtitle)
+      },
+      shiny::uiOutput("family_meta"),
+      shiny::selectInput("family_category", "Category", choices = categories, selected = categories[[1L]]),
+      shiny::selectInput("family_id", "Family", choices = initial_choices, selected = unname(initial_choices[[1L]])),
+      shiny::selectInput("family_preset", "Preset", choices = gripui.family.preset.choices(initial_desc), selected = "default"),
+      shiny::uiOutput("family_param_panel"),
+      shiny::selectInput("viewer_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
+      shiny::checkboxInput("show_edges", "Show edges", value = TRUE),
+      shiny::actionButton("render_family_geometry", "Render geometry", class = "btn-primary"),
+      shiny::uiOutput("render_status")
+    ),
+    if (nzchar(css.path)) shiny::tags$head(shiny::includeCSS(css.path)),
+    bslib::layout_columns(
+      col_widths = c(7, 5),
+      bslib::card(
+        full_screen = TRUE,
+        class = "gripui-card",
+        bslib::card_header("3D Geometry"),
+        shiny::uiOutput("family_viewer_3d")
+      ),
+      bslib::card(
+        full_screen = TRUE,
+        class = "gripui-card",
+        bslib::card_header("2D Auxiliary View"),
+        shiny::plotOutput("family_viewer_2d", height = 520)
+      )
+    ),
+    bslib::layout_columns(
+      col_widths = c(4, 4, 4),
+      bslib::card(
+        full_screen = TRUE,
+        class = "gripui-card",
+        bslib::card_header("Graph Summary"),
+        shiny::tableOutput("family_graph_summary")
+      ),
+      bslib::card(
+        full_screen = TRUE,
+        class = "gripui-card",
+        bslib::card_header("Weight Summary"),
+        shiny::tableOutput("family_weight_summary")
+      ),
+      bslib::card(
+        full_screen = TRUE,
+        class = "gripui-card",
+        bslib::card_header("Geometry Summary"),
+        shiny::tableOutput("family_geometry_summary")
+      )
+    ),
+    bslib::card(
+      full_screen = TRUE,
+      class = "gripui-card",
+      bslib::card_header("Reproducible R Call"),
+      shiny::verbatimTextOutput("family_code")
+    )
+  )
+}
+
+gripui.family.server <- function(catalog) {
+  function(input, output, session) {
+    payload_state <- shiny::reactiveVal(NULL)
+    error_state <- shiny::reactiveVal(NULL)
+
+    current_desc <- shiny::reactive({
+      catalog[[input$family_id]]
+    })
+
+    shiny::observe({
+      choices <- gripui.family.choices(catalog, input$family_category)
+      current <- shiny::isolate(input$family_id)
+      selected <- if (!is.null(current) && current %in% unname(choices)) current else unname(choices[[1L]])
+      shiny::updateSelectInput(session, "family_id", choices = choices, selected = selected)
+    })
+
+    shiny::observe({
+      desc <- current_desc()
+      shiny::updateSelectInput(
+        session,
+        "family_preset",
+        choices = gripui.family.preset.choices(desc),
+        selected = "default"
+      )
+    })
+
+    output$family_meta <- shiny::renderUI({
+      desc <- current_desc()
+      shiny::tagList(
+        shiny::tags$div(class = "gripui-project-title", desc$label),
+        shiny::tags$p(class = "gripui-project-summary", desc$summary),
+        shiny::tags$p(
+          class = "gripui-project-summary",
+          shiny::tags$strong("Source: "),
+          shiny::tags$code(desc$function_name),
+          shiny::tags$br(),
+          shiny::tags$code(desc$implementation)
+        )
+      )
+    })
+
+    output$family_param_panel <- shiny::renderUI({
+      desc <- current_desc()
+      values <- .gripui.family.merge.values(desc, preset_id = input$family_preset)
+      gripui.family.param.ui(desc, values)
+    })
+
+    build_payload <- function(values) {
+      desc <- current_desc()
+      result <- tryCatch(
+        gripui.family.build.payload(desc, values),
+        error = function(e) e
+      )
+      if (inherits(result, "error")) {
+        error_state(conditionMessage(result))
+        shiny::showNotification(conditionMessage(result), type = "error")
+        return(invisible(NULL))
+      }
+      payload_state(result)
+      error_state(NULL)
+      invisible(result)
+    }
+
+    shiny::observeEvent(list(input$family_id, input$family_preset), {
+      desc <- current_desc()
+      values <- .gripui.family.merge.values(desc, preset_id = input$family_preset)
+      build_payload(values)
+    }, ignoreInit = FALSE)
+
+    shiny::observeEvent(input$render_family_geometry, {
+      desc <- current_desc()
+      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+      build_payload(values)
+    })
+
+    shiny::observe({
+      payload <- payload_state()
+      choices <- gripui.family.color.choices(payload)
+      current <- shiny::isolate(input$viewer_color_by)
+      selected <- if (!is.null(current) && current %in% unname(choices)) {
+        current
+      } else {
+        gripui.family.default.color(choices)
+      }
+      shiny::updateSelectInput(session, "viewer_color_by", choices = choices, selected = selected)
+    })
+
+    output$render_status <- shiny::renderUI({
+      payload <- payload_state()
+      err <- error_state()
+      if (!is.null(err)) {
+        return(shiny::tags$p(style = "color:#8a1c1c;", err))
+      }
+      if (is.null(payload)) {
+        return(shiny::tags$p(class = "gripui-muted", "Render a family to inspect its geometry."))
+      }
+      shiny::tags$p(
+        class = "gripui-selection-status",
+        sprintf("%s rendered with %d vertices and %d edges.", payload$family_label, payload$n, gripui.family.count.edges(payload$edges))
+      )
+    })
+
+    output$family_viewer_3d <- shiny::renderUI({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        return(shiny::tags$p(class = "gripui-muted", "No geometry rendered yet."))
+      }
+      shiny::tagList(
+        gripui.render.rglwidget(
+          payload$coords_display,
+          graph = payload$graph,
+          color_by = input$viewer_color_by,
+          show_edges = isTRUE(input$show_edges)
+        ),
+        if (!is.null(payload$note) && nzchar(payload$note)) {
+          shiny::tags$p(style = "margin-top:0.9rem;color:#6b7280;", payload$note)
+        }
+      )
+    })
+
+    output$family_viewer_2d <- shiny::renderPlot({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        graphics::plot.new()
+        graphics::title("No geometry rendered yet")
+        return(invisible(NULL))
+      }
+      gripui.render.layout.plot2d(
+        payload$coords_plot,
+        graph = payload$graph,
+        color_by = input$viewer_color_by,
+        show_edges = isTRUE(input$show_edges)
+      )
+    })
+
+    output$family_graph_summary <- shiny::renderTable({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        return(NULL)
+      }
+      gripui.family.graph.summary(payload)
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$family_weight_summary <- shiny::renderTable({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        return(NULL)
+      }
+      gripui.family.weight.summary(payload)
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$family_geometry_summary <- shiny::renderTable({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        return(NULL)
+      }
+      gripui.family.geometry.summary(payload)
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$family_code <- shiny::renderText({
+      payload <- payload_state()
+      if (is.null(payload)) {
+        return("")
+      }
+      payload$code
+    })
+  }
+}
+
+#' Build the graph-family geometry explorer Shiny application
+#'
+#' @param catalog Family catalog, usually `gripui_graph_family_catalog()`.
+#' @param title Application title.
+#' @param subtitle Optional subtitle shown in the sidebar.
+#'
+#' @return A `shiny.appobj`.
+#' @export
+#'
+#' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
+#' app <- gripui_family_app()
+#' inherits(app, "shiny.appobj")
+gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
+                              title = "Graph Family Geometry Explorer",
+                              subtitle = "Interactive geometry browser for synthetic benchmark families.") {
+  gripui.family.validate.catalog(catalog)
+  old <- gripui.require.family.app.packages()
+  on.exit(options(rgl.useNULL = old), add = TRUE)
+
+  shiny::shinyApp(
+    ui = gripui.family.ui(catalog = catalog, title = title, subtitle = subtitle),
+    server = gripui.family.server(catalog = catalog)
+  )
+}
+
+#' Run the graph-family geometry explorer Shiny application
+#'
+#' @param catalog Family catalog, usually `gripui_graph_family_catalog()`.
+#' @param title Application title.
+#' @param subtitle Optional subtitle shown in the sidebar.
+#' @param host Host passed to `shiny::runApp()`.
+#' @param port Port passed to `shiny::runApp()`.
+#' @param launch.browser Whether to launch a browser.
+#' @param auto.stop.after Optional delay, in seconds, after which the app stops
+#'   itself. This is mainly useful for automated examples and tests.
+#' @param ... Additional arguments passed to `shiny::runApp()`.
+#'
+#' @return Invisibly returns the result of `shiny::runApp()`.
+#' @export
+#'
+#' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) && requireNamespace("later", quietly = TRUE) })
+#' run_gripui_family(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
+run_gripui_family <- function(catalog = gripui_graph_family_catalog(),
+                              title = "Graph Family Geometry Explorer",
+                              subtitle = "Interactive geometry browser for synthetic benchmark families.",
+                              host = "127.0.0.1",
+                              port = getOption("shiny.port"),
+                              launch.browser = interactive(),
+                              auto.stop.after = NULL,
+                              ...) {
+  app <- gripui_family_app(catalog = catalog, title = title, subtitle = subtitle)
+
+  if (!is.null(auto.stop.after)) {
+    if (!requireNamespace("later", quietly = TRUE)) {
+      stop("Package 'later' is required when auto.stop.after is used.", call. = FALSE)
+    }
+    if (!is.numeric(auto.stop.after) ||
+        length(auto.stop.after) != 1L ||
+        is.na(auto.stop.after) ||
+        auto.stop.after < 0) {
+      stop("auto.stop.after must be a single non-negative number of seconds.", call. = FALSE)
+    }
+
+    previous.on.start <- app$onStart
+    app$onStart <- function() {
+      on.stop <- if (is.function(previous.on.start)) previous.on.start() else NULL
+      later::later(function() shiny::stopApp(invisible(NULL)), delay = auto.stop.after)
+      on.stop
+    }
+  }
+
+  shiny::runApp(
+    app,
+    host = host,
+    port = port,
+    launch.browser = launch.browser,
+    ...
+  )
+}
