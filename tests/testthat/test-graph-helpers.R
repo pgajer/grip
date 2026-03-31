@@ -17,6 +17,8 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.triangulated.polyhedron("octahedron", 1),
     edges.triangulated.annulus(7),
     edges.triangulated.pair.of.pants(7),
+    edges.irregular.annulus(),
+    edges.irregular.sphere(),
     edges.kary.tree(2, 3),
     edges.recursive.mask.grid(full_mask, 2),
     edges.recursive.triangle.mask(mask.triangle.classic(), 2),
@@ -264,6 +266,18 @@ test_that("triangulated annulus graph labels vertices consecutively", {
 
 test_that("triangulated pair-of-pants graph labels vertices consecutively", {
   edges <- edges.triangulated.pair.of.pants(resolution = 7)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("irregular annulus graph labels vertices consecutively", {
+  edges <- edges.irregular.annulus(rings = 6, outer_count = 24)
+  expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
+  expect_gt(max(edges), 0L)
+})
+
+test_that("irregular sphere graph labels vertices consecutively", {
+  edges <- edges.irregular.sphere(bands = 6, equator_count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
@@ -540,6 +554,54 @@ test_that("triangulated pair-of-pants surface graph returns normalized positive 
   expect_equal(spec$family, "triangulated.pair.of.pants")
   expect_equal(spec$surface, "saddle")
   expect_equal(spec$resolution, 7L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+})
+
+test_that("irregular annulus surface graph returns normalized positive edge weights", {
+  spec <- irregular.annulus.surface.graph(
+    rings = 6,
+    outer_count = 24,
+    surface = "ripple",
+    amplitude = 0.3,
+    freq_u = 1.3,
+    freq_v = 0.7,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_annulus_surface_graph")
+  expect_equal(spec$edges, edges.irregular.annulus(rings = 6, outer_count = 24))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.annulus")
+  expect_equal(spec$surface, "ripple")
+  expect_equal(spec$rings, 6L)
+  expect_equal(length(spec$ring_sizes), 6L)
+  expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
+  expect_equal(dim(spec$coords_param), c(spec$n, 2L))
+})
+
+test_that("irregular sphere surface graph returns normalized positive edge weights", {
+  spec <- irregular.sphere.surface.graph(
+    bands = 6,
+    equator_count = 24,
+    surface = "wavy",
+    amplitude = 0.18,
+    freq_theta = 3,
+    freq_lat = 2,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_sphere_surface_graph")
+  expect_equal(spec$edges, edges.irregular.sphere(bands = 6, equator_count = 24))
+  expect_equal(spec$n, max(spec$edges))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+  expect_equal(spec$family, "irregular.sphere")
+  expect_equal(spec$surface, "wavy")
+  expect_equal(spec$bands, 6L)
+  expect_equal(length(spec$band_sizes), 6L)
   expect_equal(dim(spec$coords_surface), c(spec$n, 3L))
   expect_equal(dim(spec$coords_param), c(spec$n, 2L))
 })
