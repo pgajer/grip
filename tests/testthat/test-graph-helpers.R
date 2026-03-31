@@ -49,6 +49,67 @@ test_that("triangulated polyhedron counts match closed-surface formulas", {
   expect_equal(max(edges.triangulated.polyhedron("icosahedron", 1)), 42L)
 })
 
+test_that("weighted kary tree graph follows custom depth and branch rules", {
+  spec <- kary.tree.weighted.graph(
+    k = 2,
+    depth = 2,
+    base_length = 2,
+    depth_rule = "custom",
+    depth_factors = c(1, 3),
+    branch_rule = "custom",
+    branch_factors = c(1, 2),
+    normalize = "none"
+  )
+
+  expect_s3_class(spec, "grip_kary_tree_weighted_graph")
+  expect_equal(spec$edges, edges.kary.tree(2, 2))
+  expect_equal(spec$n, 7L)
+  expect_equal(spec$edge_weights, c(2, 4, 6, 12, 6, 12))
+  expect_equal(spec$weight_scale, 1)
+  expect_equal(spec$vertex_depth, c(0L, 1L, 1L, 2L, 2L, 2L, 2L))
+  expect_equal(spec$parent, c(0L, 1L, 1L, 2L, 2L, 3L, 3L))
+  expect_equal(spec$depth_factors, c(1, 3))
+  expect_equal(spec$branch_factors, c(1, 2))
+  expect_equal(spec$edge_table$branch_index, c(1L, 2L, 1L, 2L, 1L, 2L))
+  expect_equal(spec$edge_table$raw_weight, c(2, 4, 6, 12, 6, 12))
+  expect_equal(spec$family, "kary.tree.weighted")
+})
+
+test_that("weighted kary tree graph supports built-in rule normalization", {
+  spec <- kary.tree.weighted.graph(
+    k = 3,
+    depth = 2,
+    depth_rule = "geometric",
+    depth_decay = 0.7,
+    branch_rule = "linear",
+    branch_spread = 0.4,
+    normalize = "mean"
+  )
+
+  expect_equal(spec$edges, edges.kary.tree(3, 2))
+  expect_equal(spec$n, 13L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(spec$edge_weights > 0))
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(spec$depth_factors, c(1, 0.7))
+  expect_equal(spec$branch_factors, c(0.8, 1.0, 1.2))
+  expect_equal(spec$family, "kary.tree.weighted")
+})
+
+test_that("weighted kary tree graph handles depth zero", {
+  spec <- kary.tree.weighted.graph(k = 4, depth = 0)
+
+  expect_equal(spec$edges, matrix(integer(), ncol = 2L))
+  expect_equal(spec$n, 1L)
+  expect_equal(spec$edge_weights, numeric())
+  expect_equal(spec$vertex_depth, 0L)
+  expect_equal(spec$parent, 0L)
+  expect_equal(nrow(spec$edge_table), 0L)
+  expect_equal(spec$depth_factors, numeric())
+  expect_equal(length(spec$branch_factors), 4L)
+})
+
 test_that("sierpinski carpet labels all occupied cells consecutively", {
   edges <- edges.sierpinski.carpet(4)
   expect_equal(max(edges), 4096L)
