@@ -1,9 +1,11 @@
 test_that("basic graph helpers return two-column integer matrices", {
   full_mask <- matrix(c(1, 1, 1, 1), nrow = 2, byrow = TRUE)
+  occupied_keep <- matrix(c(1, 1, 0, 1, 1, 1), nrow = 2, byrow = TRUE)
   helpers <- list(
     edges.path(5),
     edges.cycle(6),
     edges.mesh(3, 4),
+    edges.occupied.mesh(occupied_keep),
     edges.cylinder(3, 4),
     edges.torus(3, 4),
     edges.sphere(4, 5),
@@ -57,6 +59,26 @@ test_that("vicsek graph labels occupied cells consecutively", {
   edges <- edges.vicsek(4)
   expect_equal(max(edges), 625L)
   expect_true(all(sort(unique(c(edges))) == seq_len(625L)))
+})
+
+test_that("mask helpers return expected connected motifs", {
+  expect_equal(mask.cross(3, 1), matrix(c(
+    FALSE, TRUE, FALSE,
+    TRUE, TRUE, TRUE,
+    FALSE, TRUE, FALSE
+  ), nrow = 3, byrow = TRUE))
+  expect_equal(sum(mask.border(5, 1)), 16L)
+  expect_equal(sum(mask.corner(5, 2, corner = "top_left")), 4L)
+  expect_equal(sum(mask.asymmetric.holes(5, 1)), 22L)
+  expect_equal(edges.recursive.mask.grid(mask.cross(3, 1), 2), edges.vicsek(2))
+})
+
+test_that("occupied mesh graph labels occupied cells consecutively", {
+  keep <- keep.periodic.holes(6, 7, hole_period = 3, hole_height = 1, hole_width = 1)
+  edges <- edges.occupied.mesh(keep)
+
+  expect_equal(max(edges), sum(keep))
+  expect_true(all(sort(unique(c(edges))) == seq_len(sum(keep))))
 })
 
 test_that("sphere graph labels intermediate latitude rings consecutively", {
@@ -323,4 +345,46 @@ test_that("vicsek surface graph returns normalized positive edge weights", {
   expect_equal(spec$family, "vicsek")
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
+})
+
+test_that("occupied mesh surface graph returns normalized positive edge weights", {
+  keep <- keep.staggered.windows(
+    8, 9,
+    window_height = 1,
+    window_width = 2,
+    row_period = 3,
+    col_period = 4
+  )
+  spec <- occupied.mesh.surface.graph(
+    keep,
+    surface = "paraboloid",
+    amplitude = 0.9
+  )
+
+  expect_s3_class(spec, "grip_occupied_mesh_surface_graph")
+  expect_equal(spec$edges, edges.occupied.mesh(keep))
+  expect_equal(spec$n, sum(keep))
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(dim(spec$coords_param), c(sum(keep), 2L))
+  expect_equal(spec$family, "occupied.mesh")
+})
+
+test_that("deterministic perforated grids produce distinct occupancy patterns", {
+  periodic <- keep.periodic.holes(9, 9, hole_period = 4, hole_height = 1, hole_width = 1)
+  staggered <- keep.staggered.windows(9, 9, window_height = 1, window_width = 2)
+  slits <- keep.slit.channels(9, 9, orientation = "vertical", slit_period = 4)
+  notches <- keep.asymmetric.notches(9, 10, notch_depth = 3, notch_width = 2)
+
+  expect_true(is.matrix(periodic) && is.logical(periodic))
+  expect_true(is.matrix(staggered) && is.logical(staggered))
+  expect_true(is.matrix(slits) && is.logical(slits))
+  expect_true(is.matrix(notches) && is.logical(notches))
+  expect_false(identical(periodic, staggered))
+  expect_false(identical(periodic, slits))
+  expect_true(sum(periodic) < length(periodic))
+  expect_true(sum(staggered) < length(staggered))
+  expect_true(sum(slits) < length(slits))
+  expect_true(sum(notches) < length(notches))
 })
