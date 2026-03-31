@@ -264,6 +264,24 @@ sphere families.}
 
 \item{side}{Number of lattice points along each cube edge.}
 
+\item{tunnel_width}{Width of each removed tunnel band in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{tunnel_period}{Spacing between successive tunnel bands in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{tunnel_offset}{Starting index of the first tunnel band in
+\code{edges.cube.periodic.tunnels()}.}
+
+\item{cavity_size}{Side length of the larger interior cavity block in
+\code{edges.cube.asymmetric.cavities()}.}
+
+\item{pocket_size}{Side length of the smaller secondary cavity block in
+\code{edges.cube.asymmetric.cavities()}.}
+
+\item{channel_width}{Width of each removed channel in
+\code{edges.cube.channel.network()}.}
+
 \item{k}{Branching factor.}
 
 \item{depth}{Number of levels below the root.}
