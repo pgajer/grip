@@ -5,6 +5,7 @@
 \alias{edges.path}
 \alias{edges.cycle}
 \alias{edges.mesh}
+\alias{edges.occupied.mesh}
 \alias{edges.cylinder}
 \alias{edges.torus}
 \alias{edges.sphere}
@@ -22,6 +23,8 @@ edges.path(n)
 edges.cycle(n)
 
 edges.mesh(h, w = h)
+
+edges.occupied.mesh(keep)
 
 edges.cylinder(h, w = h)
 
@@ -50,6 +53,8 @@ edges.sierpinski.carpet(level = 2)
 
 \item{w}{Number of columns. Defaults to \code{h}.}
 
+\item{keep}{Logical or numeric occupancy matrix. Non-zero entries are kept.}
+
 \item{side}{Number of lattice points along each cube edge.}
 
 \item{k}{Branching factor.}
@@ -74,9 +79,11 @@ integer edge matrices suitable for \code{\link{grip.layout}()}. These
 helpers are meant for examples, experiments, and reproducible tests.
 }
 \details{
-The recursive masked-grid and Sierpinski families are exposed explicitly
-rather than overloading a single generator with layout-dimension-dependent
-behavior: \code{\link{edges.recursive.mask.grid}()} builds a generic
+The occupied-grid, recursive masked-grid, and Sierpinski families are
+exposed explicitly rather than overloading a single generator with
+layout-dimension-dependent behavior: \code{\link{edges.occupied.mesh}()}
+builds a finite perforated-mesh family from an occupancy matrix,
+\code{\link{edges.recursive.mask.grid}()} builds a generic
 square-mask family, \code{\link{edges.vicsek}()} builds the connected
 axial-cross variant,
 \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
@@ -92,6 +99,9 @@ carpet graph.
 
 \item \code{edges.mesh()}: Rectangular grid graph with \code{h} rows and \code{w}
 columns.
+
+\item \code{edges.occupied.mesh()}: Rectangular occupied-grid graph whose vertices
+are kept cells and whose edges connect orthogonally adjacent kept cells.
 
 \item \code{edges.cylinder()}: Cylindrical grid graph with \code{h} rows and wrapped
 width \code{w}.

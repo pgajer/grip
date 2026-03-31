@@ -160,6 +160,47 @@
   keep
 }
 
+.as_keep_grid <- function(keep, name = "keep", min_h = 1L, min_w = 1L) {
+  if (!is.matrix(keep) || nrow(keep) < min_h || ncol(keep) < min_w) {
+    stop(sprintf("%s must be a matrix with at least %d rows and %d columns",
+                 name, min_h, min_w),
+         call. = FALSE)
+  }
+  if (!(is.logical(keep) || is.numeric(keep) || is.integer(keep))) {
+    stop(sprintf("%s must be a logical or numeric matrix", name), call. = FALSE)
+  }
+  if (any(is.na(keep)) || (is.numeric(keep) && any(!is.finite(keep)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  out <- keep != 0
+  storage.mode(out) <- "logical"
+  if (!any(out)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  out
+}
+
+.as_named_choice <- function(x, choices, name) {
+  if (!is.character(x) || length(x) != 1L || is.na(x)) {
+    stop(sprintf("%s must be a single character value", name), call. = FALSE)
+  }
+  if (!x %in% choices) {
+    stop(sprintf("%s must be one of %s",
+                 name,
+                 paste(sprintf('"%s"', choices), collapse = ", ")),
+         call. = FALSE)
+  }
+  x
+}
+
+.as_odd_whole_number <- function(x, name, min = 1L) {
+  x <- .as_whole_number(x, name, min = min)
+  if ((x %% 2L) != 1L) {
+    stop(sprintf("%s must be odd", name), call. = FALSE)
+  }
+  x
+}
+
 .surface.z.from_uv <- function(u,
                                v,
                                surface,
@@ -172,6 +213,65 @@
     paraboloid = amplitude * (u^2 + v^2),
     ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
   )
+}
+
+.occupied.mesh.cells <- function(keep) {
+  keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
+  h <- nrow(keep)
+  w <- ncol(keep)
+  grid <- expand.grid(row = seq_len(h), col = seq_len(w))
+  keep_idx <- keep[cbind(grid$row, grid$col)]
+  cells <- data.frame(
+    row = grid$row[keep_idx],
+    col = grid$col[keep_idx]
+  )
+  rownames(cells) <- NULL
+  list(
+    keep = keep,
+    h = h,
+    w = w,
+    cells = cells
+  )
+}
+
+.occupied.mesh.param.coords <- function(keep, x_scale = 1, y_scale = 1) {
+  spec <- .occupied.mesh.cells(keep)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+
+  x_vals <- .grid_axis(spec$w) * x_scale
+  y_vals <- rev(.grid_axis(spec$h) * y_scale)
+  coords <- cbind(
+    u = x_vals[spec$cells$col],
+    v = y_vals[spec$cells$row]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.occupied.mesh.edges <- function(keep) {
+  spec <- .occupied.mesh.cells(keep)
+  cells <- spec$cells
+  id_map <- matrix(0L, nrow = spec$h, ncol = spec$w)
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$row[i], cells$col[i]] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    row <- cells$row[i]
+    col <- cells$col[i]
+    if (col < spec$w) {
+      nbr <- id_map[row, col + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (row < spec$h) {
+      nbr <- id_map[row + 1L, col]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  .bind_edges(edges)
 }
 
 .recursive.mask.grid.cells <- function(mask, level) {
@@ -275,6 +375,515 @@
   )
 }
 
+.mask.corner.keep <- function(k,
+                              width = 2,
+                              corner = c("top_left", "top_right",
+                                         "bottom_left", "bottom_right")) {
+  k <- .as_whole_number(k, "k", min = 2L)
+  width <- .as_whole_number(width, "width", min = 1L)
+  if (width > k) {
+    stop("width must be <= k", call. = FALSE)
+  }
+  corner <- .as_named_choice(corner[[1L]],
+                             c("top_left", "top_right", "bottom_left", "bottom_right"),
+                             "corner")
+  keep <- matrix(FALSE, nrow = k, ncol = k)
+  rows <- switch(corner,
+                 top_left = seq_len(width),
+                 top_right = seq_len(width),
+                 bottom_left = (k - width + 1L):k,
+                 bottom_right = (k - width + 1L):k)
+  cols <- switch(corner,
+                 top_left = seq_len(width),
+                 top_right = (k - width + 1L):k,
+                 bottom_left = seq_len(width),
+                 bottom_right = (k - width + 1L):k)
+  keep[rows, cols] <- TRUE
+  keep
+}
+
+.mask.asymmetric.holes.keep <- function(k, hole_size = 1) {
+  k <- .as_odd_whole_number(k, "k", min = 5L)
+  hole_size <- .as_whole_number(hole_size, "hole_size", min = 1L)
+  max_hole <- max(1L, (k - 3L) %/% 2L)
+  if (hole_size > max_hole) {
+    stop(sprintf("hole_size must be <= %d for the chosen k", max_hole), call. = FALSE)
+  }
+
+  keep <- matrix(TRUE, nrow = k, ncol = k)
+  max_start <- k - hole_size
+  mid_start <- max(2L, min(max_start, ((k + 1L) %/% 2L) - (hole_size %/% 2L)))
+  hole_blocks <- unique(
+    list(
+      c(2L, 2L),
+      c(2L, max_start),
+      c(max_start, mid_start)
+    )
+  )
+  for (block in hole_blocks) {
+    rows <- block[[1L]]:(block[[1L]] + hole_size - 1L)
+    cols <- block[[2L]]:(block[[2L]] + hole_size - 1L)
+    if (min(rows) >= 2L && max(rows) <= k - 1L &&
+        min(cols) >= 2L && max(cols) <= k - 1L) {
+      keep[rows, cols] <- FALSE
+    }
+  }
+  keep
+}
+
+.keep.periodic.holes <- function(h,
+                                 w = h,
+                                 hole_period = 4,
+                                 hole_height = 1,
+                                 hole_width = hole_height,
+                                 row_offset = 2,
+                                 col_offset = 2) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  hole_period <- .as_whole_number(hole_period, "hole_period", min = 2L)
+  hole_height <- .as_whole_number(hole_height, "hole_height", min = 1L)
+  hole_width <- .as_whole_number(hole_width, "hole_width", min = 1L)
+  row_offset <- .as_whole_number(row_offset, "row_offset", min = 1L)
+  col_offset <- .as_whole_number(col_offset, "col_offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  row_starts <- seq(row_offset, h - hole_height + 1L, by = hole_period)
+  col_starts <- seq(col_offset, w - hole_width + 1L, by = hole_period)
+  for (r in row_starts) {
+    for (c in col_starts) {
+      keep[r:(r + hole_height - 1L), c:(c + hole_width - 1L)] <- FALSE
+    }
+  }
+  keep
+}
+
+.keep.staggered.windows <- function(h,
+                                    w = h,
+                                    window_height = 1,
+                                    window_width = 2,
+                                    row_period = 4,
+                                    col_period = 5,
+                                    row_offset = 2,
+                                    col_offset = 2) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  window_height <- .as_whole_number(window_height, "window_height", min = 1L)
+  window_width <- .as_whole_number(window_width, "window_width", min = 1L)
+  row_period <- .as_whole_number(row_period, "row_period", min = 2L)
+  col_period <- .as_whole_number(col_period, "col_period", min = 2L)
+  row_offset <- .as_whole_number(row_offset, "row_offset", min = 1L)
+  col_offset <- .as_whole_number(col_offset, "col_offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  row_starts <- seq(row_offset, h - window_height + 1L, by = row_period)
+  for (band_idx in seq_along(row_starts)) {
+    r <- row_starts[[band_idx]]
+    band_shift <- if ((band_idx %% 2L) == 0L) col_period %/% 2L else 0L
+    col_starts <- seq(col_offset + band_shift, w - window_width + 1L, by = col_period)
+    for (c in col_starts) {
+      if (c >= 1L && c + window_width - 1L <= w) {
+        keep[r:(r + window_height - 1L), c:(c + window_width - 1L)] <- FALSE
+      }
+    }
+  }
+  keep
+}
+
+.keep.slit.channels <- function(h,
+                                w = h,
+                                orientation = c("vertical", "horizontal"),
+                                slit_period = 5,
+                                slit_width = 1,
+                                bridge_spacing = 4,
+                                bridge_size = 1,
+                                offset = 2) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  orientation <- match.arg(orientation)
+  slit_period <- .as_whole_number(slit_period, "slit_period", min = 2L)
+  slit_width <- .as_whole_number(slit_width, "slit_width", min = 1L)
+  bridge_spacing <- .as_whole_number(bridge_spacing, "bridge_spacing", min = 2L)
+  bridge_size <- .as_whole_number(bridge_size, "bridge_size", min = 1L)
+  offset <- .as_whole_number(offset, "offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  if (orientation == "vertical") {
+    col_starts <- seq(offset, w - slit_width + 1L, by = slit_period)
+    for (c in col_starts) {
+      for (r in seq_len(h)) {
+        in_bridge <- ((r - 1L) %% bridge_spacing) < bridge_size
+        if (!in_bridge) {
+          keep[r, c:(c + slit_width - 1L)] <- FALSE
+        }
+      }
+    }
+  } else {
+    row_starts <- seq(offset, h - slit_width + 1L, by = slit_period)
+    for (r in row_starts) {
+      for (c in seq_len(w)) {
+        in_bridge <- ((c - 1L) %% bridge_spacing) < bridge_size
+        if (!in_bridge) {
+          keep[r:(r + slit_width - 1L), c] <- FALSE
+        }
+      }
+    }
+  }
+  keep
+}
+
+.keep.asymmetric.notches <- function(h,
+                                     w = h,
+                                     notch_depth = 3,
+                                     notch_width = 2) {
+  h <- .as_whole_number(h, "h", min = 3L)
+  w <- .as_whole_number(w, "w", min = 3L)
+  notch_depth <- .as_whole_number(notch_depth, "notch_depth", min = 1L)
+  notch_width <- .as_whole_number(notch_width, "notch_width", min = 1L)
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+
+  top_depth <- min(notch_depth, max(1L, h - 2L))
+  left_depth <- min(notch_depth, max(1L, w - 2L))
+  bottom_depth <- min(max(1L, notch_depth - 1L), max(1L, h - 2L))
+  width1 <- min(notch_width, max(1L, w - 2L))
+  width2 <- min(max(1L, notch_width + 1L), max(1L, h - 2L))
+  width3 <- min(max(1L, notch_width), max(1L, w - 3L))
+
+  c1_start <- max(2L, (w %/% 3L))
+  c1_end <- min(w - 1L, c1_start + width1 - 1L)
+  keep[1L:top_depth, c1_start:c1_end] <- FALSE
+
+  r2_start <- max(2L, (h %/% 2L) - width2 %/% 2L)
+  r2_end <- min(h - 1L, r2_start + width2 - 1L)
+  keep[r2_start:r2_end, (w - left_depth + 1L):w] <- FALSE
+
+  c3_end <- min(w - 2L, max(2L, (2L * w) %/% 3L))
+  c3_start <- max(2L, c3_end - width3 + 1L)
+  keep[(h - bottom_depth + 1L):h, c3_start:c3_end] <- FALSE
+
+  keep
+}
+
+#' Mask pattern helpers for recursive grid families
+#'
+#' Convenience constructors for connected \eqn{k \times k} keep-masks that can
+#' be passed to \code{\link{edges.recursive.mask.grid}()} or
+#' \code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
+#' carpets. These helpers are meant to provide explicit benchmark motifs such
+#' as cross, border, corner, and asymmetric-hole patterns.
+#'
+#' The returned masks use standard matrix display orientation: rows run from top
+#' to bottom and columns run from left to right.
+#'
+#' @param k Mask side length.
+#' @param arm_width Width of the retained cross arms.
+#' @param thickness Border thickness for \code{mask.border()}.
+#' @param width Side length of the retained corner block for
+#'   \code{mask.corner()}.
+#' @param corner Which corner to retain in \code{mask.corner()}.
+#' @param hole_size Side length of each removed interior hole block for
+#'   \code{mask.asymmetric.holes()}.
+#'
+#' @return A logical \eqn{k \times k} keep-mask.
+#' @name mask_pattern_helpers
+NULL
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.cross <- function(k = 5, arm_width = 1) {
+  k <- .as_odd_whole_number(k, "k", min = 3L)
+  arm_width <- .as_whole_number(arm_width, "arm_width", min = 1L)
+  if (arm_width > k) {
+    stop("arm_width must be <= k", call. = FALSE)
+  }
+  start <- ((k - arm_width) %/% 2L) + 1L
+  stop_idx <- start + arm_width - 1L
+  keep <- matrix(FALSE, nrow = k, ncol = k)
+  keep[start:stop_idx, ] <- TRUE
+  keep[, start:stop_idx] <- TRUE
+  keep
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.border <- function(k = 5, thickness = 1) {
+  k <- .as_whole_number(k, "k", min = 3L)
+  thickness <- .as_whole_number(thickness, "thickness", min = 1L)
+  if (thickness > k) {
+    stop("thickness must be <= k", call. = FALSE)
+  }
+  keep <- matrix(TRUE, nrow = k, ncol = k)
+  if ((2L * thickness) < k) {
+    keep[(thickness + 1L):(k - thickness), (thickness + 1L):(k - thickness)] <- FALSE
+  }
+  keep
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.corner <- function(k = 5,
+                        width = 2,
+                        corner = c("top_left", "top_right", "bottom_left", "bottom_right")) {
+  .mask.corner.keep(
+    k = k,
+    width = width,
+    corner = match.arg(corner)
+  )
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.asymmetric.holes <- function(k = 5, hole_size = 1) {
+  .mask.asymmetric.holes.keep(
+    k = k,
+    hole_size = hole_size
+  )
+}
+
+#' Occupied-mesh and perforated-grid helpers
+#'
+#' \code{edges.occupied.mesh()} builds the orthogonal adjacency graph on the
+#' occupied cells of a finite rectangular grid. The corresponding surface
+#' helpers lift those occupied cells into \eqn{\mathbb{R}^3} using the same
+#' \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
+#' for regular meshes.
+#'
+#' @param keep Logical or numeric occupancy matrix. Non-zero entries are kept.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq_u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling of the parameter domain.
+#' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{occupied.mesh.surface.embedding()} returns an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{occupied.mesh.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the occupied-cell mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"occupied.mesh"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{keep}: the logical occupancy matrix,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name occupied_mesh_surface_helpers
+NULL
+
+#' @rdname occupied_mesh_surface_helpers
+#' @export
+occupied.mesh.surface.embedding <- function(keep,
+                                            surface = c("saddle", "paraboloid", "ripple"),
+                                            amplitude = 0.75,
+                                            freq_u = 1,
+                                            freq_v = 1,
+                                            x_scale = 1,
+                                            y_scale = 1) {
+  keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+
+  coords_param <- .occupied.mesh.param.coords(
+    keep = keep,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- .surface.z.from_uv(
+    u = u,
+    v = v,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname occupied_mesh_surface_helpers
+#' @export
+occupied.mesh.surface.graph <- function(keep,
+                                        surface = c("saddle", "paraboloid", "ripple"),
+                                        amplitude = 0.75,
+                                        freq_u = 1,
+                                        freq_v = 1,
+                                        x_scale = 1,
+                                        y_scale = 1,
+                                        normalize = c("median", "mean", "none")) {
+  keep <- .as_keep_grid(keep, "keep", min_h = 1L, min_w = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- .occupied.mesh.edges(keep)
+  coords_param <- .occupied.mesh.param.coords(
+    keep = keep,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  coords_surface <- occupied.mesh.surface.embedding(
+    keep = keep,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "occupied.mesh",
+    surface = surface,
+    keep = keep,
+    normalize = normalize,
+    label = sprintf("%s occupied mesh %dx%d",
+                    tools::toTitleCase(surface),
+                    nrow(keep),
+                    ncol(keep))
+  )
+  class(out) <- c("grip_occupied_mesh_surface_graph", "list")
+  out
+}
+
+#' Deterministic perforated-grid occupancy helpers
+#'
+#' Convenience constructors for finite occupied grids with non-random holes or
+#' channels. These matrices can be passed to \code{\link{edges.occupied.mesh}()}
+#' or \code{\link{occupied.mesh.surface.graph}()}.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param hole_period Spacing between periodic holes.
+#' @param hole_height Height of each removed rectangular hole.
+#' @param hole_width Width of each removed rectangular hole.
+#' @param row_offset Starting row index for the first removed block.
+#' @param col_offset Starting column index for the first removed block.
+#' @param window_height Height of each staggered removed window.
+#' @param window_width Width of each staggered removed window.
+#' @param row_period Vertical spacing between staggered window bands.
+#' @param col_period Horizontal spacing between staggered windows within a band.
+#' @param orientation Whether slit channels run \code{"vertical"} or
+#'   \code{"horizontal"}.
+#' @param slit_period Spacing between repeated slit channels.
+#' @param slit_width Width of each slit channel.
+#' @param bridge_spacing Spacing between preserved bridge segments.
+#' @param bridge_size Size of each preserved bridge segment along a slit.
+#' @param offset Starting row or column index for the first slit channel.
+#' @param notch_depth Depth of each asymmetric notch cut from a boundary.
+#' @param notch_width Width of the notched opening along that boundary.
+#'
+#' @return A logical occupancy matrix whose \code{TRUE} entries represent
+#'   retained cells.
+#' @name perforated_grid_helpers
+NULL
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.periodic.holes <- function(h,
+                                w = h,
+                                hole_period = 4,
+                                hole_height = 1,
+                                hole_width = hole_height,
+                                row_offset = 2,
+                                col_offset = 2) {
+  .keep.periodic.holes(
+    h = h,
+    w = w,
+    hole_period = hole_period,
+    hole_height = hole_height,
+    hole_width = hole_width,
+    row_offset = row_offset,
+    col_offset = col_offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.staggered.windows <- function(h,
+                                   w = h,
+                                   window_height = 1,
+                                   window_width = 2,
+                                   row_period = 4,
+                                   col_period = 5,
+                                   row_offset = 2,
+                                   col_offset = 2) {
+  .keep.staggered.windows(
+    h = h,
+    w = w,
+    window_height = window_height,
+    window_width = window_width,
+    row_period = row_period,
+    col_period = col_period,
+    row_offset = row_offset,
+    col_offset = col_offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.slit.channels <- function(h,
+                               w = h,
+                               orientation = c("vertical", "horizontal"),
+                               slit_period = 5,
+                               slit_width = 1,
+                               bridge_spacing = 4,
+                               bridge_size = 1,
+                               offset = 2) {
+  .keep.slit.channels(
+    h = h,
+    w = w,
+    orientation = match.arg(orientation),
+    slit_period = slit_period,
+    slit_width = slit_width,
+    bridge_spacing = bridge_spacing,
+    bridge_size = bridge_size,
+    offset = offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.asymmetric.notches <- function(h,
+                                    w = h,
+                                    notch_depth = 3,
+                                    notch_width = 2) {
+  .keep.asymmetric.notches(
+    h = h,
+    w = w,
+    notch_depth = notch_depth,
+    notch_width = notch_width
+  )
+}
+
 .edge.weights.from.embedding <- function(edges,
                                          coords,
                                          normalize = c("median", "mean", "none")) {
@@ -317,13 +926,15 @@
 #' integer edge matrices suitable for \code{\link{grip.layout}()}. These
 #' helpers are meant for examples, experiments, and reproducible tests.
 #'
-#' The recursive masked-grid and Sierpinski families are exposed explicitly
-#' rather than overloading a single generator with layout-dimension-dependent
-#' behavior: \code{\link{edges.recursive.mask.grid}()} builds a generic
-#' square-mask family, \code{\link{edges.vicsek}()} builds the connected
-#' axial-cross variant, \code{\link{edges.sierpinski.triangle}()} builds the
-#' 2-simplex family, \code{\link{edges.sierpinski.tetrahedron}()} builds the
-#' 3-simplex family, and \code{\link{edges.sierpinski.carpet}()} builds a 2D
+#' The occupied-grid, recursive masked-grid, and Sierpinski families are
+#' exposed explicitly rather than overloading a single generator with
+#' layout-dimension-dependent behavior: \code{\link{edges.occupied.mesh}()}
+#' builds a finite perforated-mesh family from an occupancy matrix,
+#' \code{\link{edges.recursive.mask.grid}()} builds a generic square-mask
+#' family, \code{\link{edges.vicsek}()} builds the connected axial-cross
+#' variant, \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex
+#' family, \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex
+#' family, and \code{\link{edges.sierpinski.carpet}()} builds a 2D
 #' cell-adjacency carpet graph.
 #'
 #' @return A two-column integer matrix of undirected edges. Vertex labels are
@@ -360,6 +971,7 @@ edges.cycle <- function(n) {
 #'   columns.
 #' @param h Number of rows.
 #' @param w Number of columns. Defaults to \code{h}.
+#' @param keep Logical or numeric occupancy matrix. Non-zero entries are kept.
 #' @export
 edges.mesh <- function(h, w = h) {
   h <- .as_whole_number(h, "h", min = 1L)
@@ -374,6 +986,13 @@ edges.mesh <- function(h, w = h) {
     }
   }
   .normalize_undirected_edges(.bind_edges(edges))
+}
+
+#' @describeIn graph_generators Rectangular occupied-grid graph whose vertices
+#'   are kept cells and whose edges connect orthogonally adjacent kept cells.
+#' @export
+edges.occupied.mesh <- function(keep) {
+  .occupied.mesh.edges(keep)
 }
 
 #' Weighted mesh surface helpers
