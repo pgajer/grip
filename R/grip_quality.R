@@ -736,6 +736,30 @@ grip.reconstruct.path.vertices <- function(parent, source, target) {
   as.integer(c(source, path))
 }
 
+grip.logsumexp <- function(x) {
+  if (length(x) == 0L) {
+    return(-Inf)
+  }
+  xmax <- max(x)
+  if (!is.finite(xmax)) {
+    return(-Inf)
+  }
+  xmax + log(sum(exp(x - xmax)))
+}
+
+grip.safe.exp <- function(logx) {
+  out <- rep.int(NA_real_, length(logx))
+  finite <- is.finite(logx)
+  if (any(finite)) {
+    out[finite] <- ifelse(
+      logx[finite] > log(.Machine$double.xmax),
+      Inf,
+      exp(logx[finite])
+    )
+  }
+  out
+}
+
 grip.path.euclidean.length <- function(coords, vertices, edge_length_epsilon = 1e-8) {
   if (length(vertices) <= 1L) {
     return(0)
@@ -752,6 +776,23 @@ grip.path.vertices.to.edges <- function(vertices) {
     vertices[-length(vertices)],
     vertices[-1L]
   )
+}
+
+grip.path.edge.coefficients <- function(prepared, index, edge.count = NULL) {
+  coeffs <- NULL
+  if (!is.null(prepared$path_edge_weights)) {
+    coeffs <- as.double(prepared$path_edge_weights[[index]])
+  }
+  if (is.null(edge.count)) {
+    edge.count <- nrow(prepared$path_edges[[index]])
+  }
+  if (length(coeffs) == 0L) {
+    coeffs <- rep.int(1, edge.count)
+  }
+  if (length(coeffs) != edge.count) {
+    stop("path_edge_weights must be parallel to path_edges")
+  }
+  coeffs
 }
 
 grip.validate.scalar <- function(x,
@@ -1083,15 +1124,321 @@ grip.build.geodesic.kk.path.cache <- function(pair.matrix,
   )
 }
 
+grip.shortest.path.predecessors <- function(adj.list,
+                                            weight.list,
+                                            source,
+                                            dist.row,
+                                            tol = sqrt(.Machine$double.eps)) {
+  n <- length(adj.list)
+  preds <- vector("list", n)
+  preds[[source]] <- integer(0L)
+  for (u in seq_len(n)) {
+    d.u <- dist.row[[u]]
+    if (!is.finite(d.u)) {
+      next
+    }
+    nb <- adj.list[[u]]
+    if (length(nb) == 0L) {
+      next
+    }
+    ww <- if (is.null(weight.list)) rep.int(1, length(nb)) else weight.list[[u]]
+    for (k in seq_along(nb)) {
+      v <- nb[[k]]
+      d.v <- dist.row[[v]]
+      if (!is.finite(d.v)) {
+        next
+      }
+      step <- as.double(ww[[k]])
+      scale <- max(1, abs(d.u), abs(d.v), abs(step))
+      if (d.u + tol * scale < d.v && abs(d.u + step - d.v) <= tol * scale) {
+        preds[[v]] <- c(preds[[v]], u)
+      }
+    }
+  }
+  lapply(preds, as.integer)
+}
+
+grip.shortest.path.successors <- function(predecessors) {
+  n <- length(predecessors)
+  succ <- vector("list", n)
+  for (v in seq_len(n)) {
+    pv <- predecessors[[v]]
+    if (length(pv) == 0L) {
+      next
+    }
+    for (u in pv) {
+      succ[[u]] <- c(succ[[u]], v)
+    }
+  }
+  lapply(succ, as.integer)
+}
+
+grip.shortest.path.log_counts.forward <- function(predecessors,
+                                                  source,
+                                                  order.vertices) {
+  n <- length(predecessors)
+  out <- rep.int(-Inf, n)
+  out[[source]] <- 0
+  ordered <- order.vertices[order.vertices != source]
+  for (v in ordered) {
+    pv <- predecessors[[v]]
+    if (length(pv) == 0L) {
+      next
+    }
+    out[[v]] <- grip.logsumexp(out[pv])
+  }
+  out
+}
+
+grip.shortest.path.ancestor.mask <- function(predecessors, target) {
+  n <- length(predecessors)
+  keep <- rep.int(FALSE, n)
+  queue <- as.integer(target)
+  keep[[target]] <- TRUE
+  head <- 1L
+  while (head <= length(queue)) {
+    v <- queue[[head]]
+    head <- head + 1L
+    pv <- predecessors[[v]]
+    if (length(pv) == 0L) {
+      next
+    }
+    new <- pv[!keep[pv]]
+    if (length(new) > 0L) {
+      keep[new] <- TRUE
+      queue <- c(queue, new)
+    }
+  }
+  keep
+}
+
+grip.shortest.path.log_counts.backward <- function(successors,
+                                                   target,
+                                                   ancestor.mask,
+                                                   order.vertices) {
+  n <- length(successors)
+  out <- rep.int(-Inf, n)
+  out[[target]] <- 0
+  ordered <- rev(order.vertices[ancestor.mask[order.vertices]])
+  for (u in ordered) {
+    if (u == target) {
+      next
+    }
+    sv <- successors[[u]]
+    sv <- sv[ancestor.mask[sv]]
+    if (length(sv) == 0L) {
+      next
+    }
+    out[[u]] <- grip.logsumexp(out[sv])
+  }
+  out
+}
+
+grip.build.tie.average.shortest.path.cache.r <- function(pair.matrix,
+                                                         adj.list,
+                                                         weight.list,
+                                                         dist.matrix,
+                                                         parents = NULL) {
+  n.pairs <- nrow(pair.matrix)
+  path.vertices <- vector("list", n.pairs)
+  path.edges <- vector("list", n.pairs)
+  path.edge.weights <- vector("list", n.pairs)
+  pair.graph.distance <- numeric(n.pairs)
+  pair.path.count.log <- numeric(n.pairs)
+
+  if (n.pairs == 0L) {
+    return(list(
+      path_vertices = path.vertices,
+      path_edges = path.edges,
+      path_edge_weights = path.edge.weights,
+      pair_graph_distance = pair.graph.distance,
+      pair_path_count_log = pair.path.count.log
+    ))
+  }
+
+  by.source <- split(seq_len(n.pairs), pair.matrix[, 1L])
+  for (key in names(by.source)) {
+    idx <- by.source[[key]]
+    source <- as.integer(key)
+    dist.row <- as.double(dist.matrix[source, ])
+    order.vertices <- order(dist.row, seq_along(dist.row))
+    predecessors <- grip.shortest.path.predecessors(
+      adj.list = adj.list,
+      weight.list = weight.list,
+      source = source,
+      dist.row = dist.row
+    )
+    successors <- grip.shortest.path.successors(predecessors)
+    log.count.from <- grip.shortest.path.log_counts.forward(
+      predecessors = predecessors,
+      source = source,
+      order.vertices = order.vertices
+    )
+
+    for (i in idx) {
+      target <- pair.matrix[i, 2L]
+      ancestor.mask <- grip.shortest.path.ancestor.mask(predecessors, target)
+      log.count.to <- grip.shortest.path.log_counts.backward(
+        successors = successors,
+        target = target,
+        ancestor.mask = ancestor.mask,
+        order.vertices = order.vertices
+      )
+      total.log.count <- log.count.from[[target]]
+      edge.u <- integer(0L)
+      edge.v <- integer(0L)
+      edge.w <- numeric(0L)
+      active.vertices <- order.vertices[ancestor.mask[order.vertices]]
+      for (u in active.vertices) {
+        sv <- successors[[u]]
+        sv <- sv[ancestor.mask[sv] & is.finite(log.count.to[sv])]
+        if (length(sv) == 0L || !is.finite(log.count.from[[u]])) {
+          next
+        }
+        edge.u <- c(edge.u, rep.int(u, length(sv)))
+        edge.v <- c(edge.v, sv)
+        edge.w <- c(edge.w, exp(log.count.from[[u]] + log.count.to[sv] - total.log.count))
+      }
+      path.edges[[i]] <- if (length(edge.u) == 0L) {
+        matrix(integer(), ncol = 2L)
+      } else {
+        cbind(as.integer(edge.u), as.integer(edge.v))
+      }
+      path.edge.weights[[i]] <- as.double(edge.w)
+      path.vertices[[i]] <- if (!is.null(parents)) {
+        grip.reconstruct.path.vertices(parents[[source]], source, target)
+      } else {
+        integer(0L)
+      }
+      pair.graph.distance[[i]] <- dist.row[[target]]
+      pair.path.count.log[[i]] <- total.log.count
+    }
+  }
+
+  list(
+    path_vertices = path.vertices,
+    path_edges = path.edges,
+    path_edge_weights = path.edge.weights,
+    pair_graph_distance = as.double(pair.graph.distance),
+    pair_path_count_log = as.double(pair.path.count.log)
+  )
+}
+
+grip.flatten.geodesic.path.cache <- function(path.edges,
+                                             path.edge.weights = NULL) {
+  edge.counts <- vapply(path.edges, nrow, integer(1L))
+  offsets <- c(0L, cumsum(edge.counts))
+  total.edges <- offsets[[length(offsets)]]
+  if (total.edges == 0L) {
+    return(list(
+      flat_pair_edge_offsets = as.integer(offsets),
+      flat_edge_u = integer(0L),
+      flat_edge_v = integer(0L),
+      flat_edge_coeff = numeric(0L)
+    ))
+  }
+
+  nonempty <- which(edge.counts > 0L)
+  flat.edges <- do.call(rbind, path.edges[nonempty])
+  coeff.list <- if (is.null(path.edge.weights)) {
+    lapply(nonempty, function(i) rep.int(1, edge.counts[[i]]))
+  } else {
+    lapply(nonempty, function(i) {
+      coeffs <- as.double(path.edge.weights[[i]])
+      if (length(coeffs) == 0L) {
+        rep.int(1, edge.counts[[i]])
+      } else {
+        coeffs
+      }
+    })
+  }
+  flat.coeff <- unlist(coeff.list, use.names = FALSE)
+
+  list(
+    flat_pair_edge_offsets = as.integer(offsets),
+    flat_edge_u = as.integer(flat.edges[, 1L] - 1L),
+    flat_edge_v = as.integer(flat.edges[, 2L] - 1L),
+    flat_edge_coeff = as.double(flat.coeff)
+  )
+}
+
+grip.build.tie.average.shortest.path.cache <- function(pair.matrix,
+                                                       adj.list,
+                                                       weight.list,
+                                                       dist.matrix,
+                                                       parents = NULL,
+                                                       cache_engine = c("cpp", "r")) {
+  cache_engine <- match.arg(cache_engine)
+  if (identical(cache_engine, "r")) {
+    return(grip.build.tie.average.shortest.path.cache.r(
+      pair.matrix = pair.matrix,
+      adj.list = adj.list,
+      weight.list = weight.list,
+      dist.matrix = dist.matrix,
+      parents = parents
+    ))
+  }
+
+  cache <- grip_build_tie_average_shortest_path_cache_cpp(
+    adj_list = adj.list,
+    weight_list = weight.list,
+    pair_matrix = pair.matrix,
+    dist_matrix = dist.matrix
+  )
+  cache$path_vertices <- if (!is.null(parents)) {
+    lapply(seq_len(nrow(pair.matrix)), function(i) {
+      grip.reconstruct.path.vertices(
+        parents[[pair.matrix[i, 1L]]],
+        pair.matrix[i, 1L],
+        pair.matrix[i, 2L]
+      )
+    })
+  } else {
+    replicate(nrow(pair.matrix), integer(0L), simplify = FALSE)
+  }
+  cache
+}
+
+grip.build.geodesic.mds.path.cache <- function(pair.matrix,
+                                               adj.list,
+                                               weight.list,
+                                               dist.matrix,
+                                               parents = NULL,
+                                               tie_mode = c("single", "average"),
+                                               cache_engine = c("cpp", "r")) {
+  tie_mode <- match.arg(tie_mode)
+  cache_engine <- match.arg(cache_engine)
+  if (identical(tie_mode, "single")) {
+    cache <- grip.build.geodesic.kk.path.cache(
+      pair.matrix = pair.matrix,
+      parents = parents,
+      dist.matrix = dist.matrix
+    )
+    cache$path_edge_weights <- replicate(length(cache$path_edges), numeric(0L), simplify = FALSE)
+    cache$pair_path_count_log <- rep.int(0, nrow(pair.matrix))
+    return(cache)
+  }
+  grip.build.tie.average.shortest.path.cache(
+    pair.matrix = pair.matrix,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    dist.matrix = dist.matrix,
+    parents = parents,
+    cache_engine = cache_engine
+  )
+}
+
 grip.geodesic.kk.path.lengths <- function(coords,
                                           prepared,
                                           edge_length_epsilon = 1e-8) {
-  vapply(prepared$path_vertices, function(path) {
-    grip.path.euclidean.length(
-      coords,
-      path,
-      edge_length_epsilon = edge_length_epsilon
-    )
+  vapply(seq_along(prepared$path_edges), function(i) {
+    edges <- prepared$path_edges[[i]]
+    if (nrow(edges) == 0L) {
+      return(0)
+    }
+    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+    edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+    sum(grip.path.edge.coefficients(prepared, i, nrow(edges)) * edge.lengths)
   }, numeric(1L))
 }
 
@@ -1136,9 +1483,10 @@ grip.geodesic.kk.energy.gradient <- function(coords,
     if (nrow(edges) == 0L) {
       next
     }
+    coeffs <- grip.path.edge.coefficients(prepared, i, nrow(edges))
     diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
     edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
-    h <- sum(edge.lengths)
+    h <- sum(coeffs * edge.lengths)
     path.lengths[[i]] <- h
     resid <- h - target[[i]]
     coeff <- kk[[i]] * resid
@@ -1147,8 +1495,8 @@ grip.geodesic.kk.energy.gradient <- function(coords,
     for (j in seq_len(nrow(edges))) {
       u <- edges[j, 1L]
       v <- edges[j, 2L]
-      grad[u, ] <- grad[u, ] + coeff * unit.vecs[j, ]
-      grad[v, ] <- grad[v, ] - coeff * unit.vecs[j, ]
+      grad[u, ] <- grad[u, ] + coeff * coeffs[[j]] * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - coeff * coeffs[[j]] * unit.vecs[j, ]
     }
   }
 
@@ -1410,10 +1758,13 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 #' path cache needed to evaluate or optimize the full geodesic Kamada--Kawai
 #' objective repeatedly on the same connected graph.
 #'
-#' For each unordered vertex pair, the prepared object stores one deterministic
-#' chosen graph shortest path, its graph distance, and the corresponding path
-#' edge sequence. This is the full all-pairs analogue of the sparse landmark
-#' cache used by \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#' For each unordered vertex pair, the prepared object stores either one
+#' deterministic chosen graph shortest path (\code{tie_mode = "single"}) or the
+#' exact uniform average over all tied shortest paths
+#' (\code{tie_mode = "average"}), together with the graph distance and the
+#' corresponding cached edge realization. This is the full all-pairs analogue of
+#' the sparse landmark cache used by
+#' \code{\link{grip.prepare.landmark.geodesic.kk}()}.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
@@ -1423,6 +1774,10 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 #' @param weight_list Optional parallel list of positive edge weights.
 #' @param edge_weights Optional positive edge-weight vector parallel to
 #'   \code{edges}.
+#' @param tie_mode Shortest-path aggregation mode. \code{"single"} uses one
+#'   deterministic chosen shortest path per pair. \code{"average"} replaces
+#'   each tied shortest-path family by the exact uniform average over all
+#'   shortest paths between the pair.
 #'
 #' @return A list with the all-pairs graph distances, chosen paths, and cached
 #'   path-edge realizations. The object has class \code{"grip_gkk_prepared"}.
@@ -1431,7 +1786,9 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
                                      n = NULL,
                                      adj_list = NULL,
                                      weight_list = NULL,
-                                     edge_weights = NULL) {
+                                     edge_weights = NULL,
+                                     tie_mode = c("single", "average")) {
+  tie_mode <- match.arg(tie_mode)
   base <- grip.prepare.geodesic.kk.base(
     edges = edges,
     n = n,
@@ -1441,11 +1798,22 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
     caller = "grip.prepare.geodesic.kk"
   )
   pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
-  cache <- grip.build.geodesic.kk.path.cache(
+  cache <- grip.build.geodesic.mds.path.cache(
     pair.matrix = pair.matrix,
+    adj.list = base$adj_list,
+    weight.list = base$weight_list,
+    dist.matrix = base$distance_matrix,
     parents = base$parents,
-    dist.matrix = base$distance_matrix
+    tie_mode = tie_mode
   )
+  flat.cache <- if (!is.null(cache$flat_pair_edge_offsets)) {
+    cache[c("flat_pair_edge_offsets", "flat_edge_u", "flat_edge_v", "flat_edge_coeff")]
+  } else {
+    grip.flatten.geodesic.path.cache(
+      path.edges = cache$path_edges,
+      path.edge.weights = cache$path_edge_weights
+    )
+  }
 
   out <- list(
     n = base$n,
@@ -1456,9 +1824,16 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
     pair_graph_distance = cache$pair_graph_distance,
     path_vertices = cache$path_vertices,
     path_edges = cache$path_edges,
+    path_edge_weights = cache$path_edge_weights,
+    pair_path_count_log = cache$pair_path_count_log,
+    flat_pair_edge_offsets = flat.cache$flat_pair_edge_offsets,
+    flat_edge_u = flat.cache$flat_edge_u,
+    flat_edge_v = flat.cache$flat_edge_v,
+    flat_edge_coeff = flat.cache$flat_edge_coeff,
     graph_diameter = base$graph_diameter,
     distance_matrix = base$distance_matrix,
-    pair_mode = "all_pairs"
+    pair_mode = "all_pairs",
+    tie_mode = tie_mode
   )
   class(out) <- c("grip_gkk_prepared", "grip_geodesic_kk_prepared")
   out
@@ -2181,20 +2556,103 @@ grip.optimize.geodesic.kk <- function(coords,
   )
 }
 
+grip.geodesic.mds.resolve.anchor <- function(anchor_mode,
+                                             coords,
+                                             prepared,
+                                             anchor_coords = NULL,
+                                             recenter = TRUE) {
+  anchor_mode <- match.arg(anchor_mode, c("none", "cmdscale", "initial", "user"))
+  if (identical(anchor_mode, "none")) {
+    return(NULL)
+  }
+  out <- switch(
+    anchor_mode,
+    cmdscale = grip.geodesic.mds.cmdscale.init(prepared, ncol(coords)),
+    initial = coords,
+    user = anchor_coords
+  )
+  if (is.null(out)) {
+    stop("anchor_coords must be supplied when anchor_mode = 'user'")
+  }
+  out <- grip.validate.coords(out)
+  if (!identical(dim(out), dim(coords))) {
+    stop("anchor_coords must have the same dimensions as coords")
+  }
+  if (isTRUE(recenter)) {
+    out <- sweep(out, 2L, colMeans(out), "-", check.margin = FALSE)
+  }
+  out
+}
+
+grip.geodesic.mds.anchor.schedule <- function(max_iter,
+                                              anchor_weight,
+                                              anchor_weight_end = anchor_weight,
+                                              continuation = c("constant", "linear", "geometric")) {
+  continuation <- match.arg(continuation)
+  anchor_weight <- as.double(anchor_weight)
+  anchor_weight_end <- as.double(anchor_weight_end)
+  grip.validate.scalar(anchor_weight, "anchor_weight", lower = 0)
+  grip.validate.scalar(anchor_weight_end, "anchor_weight_end", lower = 0)
+  if (max_iter <= 0L) {
+    return(anchor_weight)
+  }
+  s <- seq.int(0, max_iter) / max_iter
+  if (identical(continuation, "constant")) {
+    return(rep.int(anchor_weight, max_iter + 1L))
+  }
+  if (identical(continuation, "linear")) {
+    return((1 - s) * anchor_weight + s * anchor_weight_end)
+  }
+  if (anchor_weight <= 0 || anchor_weight_end <= 0) {
+    stop("geometric continuation requires anchor_weight and anchor_weight_end to both be > 0")
+  }
+  anchor_weight * (anchor_weight_end / anchor_weight)^s
+}
+
+grip.geodesic.mds.anchor.stats <- function(coords,
+                                           anchor_coords = NULL,
+                                           anchor_weight = 0) {
+  if (is.null(anchor_coords) || !is.finite(anchor_weight) || anchor_weight <= 0) {
+    return(list(
+      anchor_weight = as.double(anchor_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+    ))
+  }
+  diff <- coords - anchor_coords
+  list(
+    anchor_weight = as.double(anchor_weight),
+    raw_penalty = sum(diff^2),
+    energy = as.double(anchor_weight) * sum(diff^2),
+    gradient = 2 * as.double(anchor_weight) * diff
+  )
+}
+
 grip.geodesic.mds.energy.gradient <- function(coords,
                                               prepared,
-                                              edge_length_epsilon = 1e-8) {
+                                              edge_length_epsilon = 1e-8,
+                                              anchor_coords = NULL,
+                                              anchor_weight = 0) {
   g <- as.double(prepared$pair_graph_distance)
   n.pairs <- length(g)
   grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
-  energy <- 0
+  gmds.energy <- 0
   path.lengths <- numeric(n.pairs)
 
   if (n.pairs == 0L) {
+    anchor.stats <- grip.geodesic.mds.anchor.stats(
+      coords = coords,
+      anchor_coords = anchor_coords,
+      anchor_weight = anchor_weight
+    )
     return(list(
-      energy = energy,
-      gradient = grad,
-      gradient_norm = 0,
+      energy = anchor.stats$energy,
+      gmds_energy = 0,
+      anchor_energy = anchor.stats$energy,
+      anchor_raw_penalty = anchor.stats$raw_penalty,
+      gradient = anchor.stats$gradient,
+      gradient_norm = sqrt(sum(anchor.stats$gradient^2)),
       path_lengths = path.lengths,
       target = g
     ))
@@ -2205,23 +2663,34 @@ grip.geodesic.mds.energy.gradient <- function(coords,
     if (nrow(edges) == 0L) {
       next
     }
+    coeffs <- grip.path.edge.coefficients(prepared, i, nrow(edges))
     diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
     edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
-    h <- sum(edge.lengths)
+    h <- sum(coeffs * edge.lengths)
     path.lengths[[i]] <- h
     resid <- h - g[[i]]
-    energy <- energy + 0.5 * resid^2
+    gmds.energy <- gmds.energy + 0.5 * resid^2
     unit.vecs <- diffs / edge.lengths
     for (j in seq_len(nrow(edges))) {
       u <- edges[j, 1L]
       v <- edges[j, 2L]
-      grad[u, ] <- grad[u, ] + resid * unit.vecs[j, ]
-      grad[v, ] <- grad[v, ] - resid * unit.vecs[j, ]
+      grad[u, ] <- grad[u, ] + resid * coeffs[[j]] * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - resid * coeffs[[j]] * unit.vecs[j, ]
     }
   }
 
+  anchor.stats <- grip.geodesic.mds.anchor.stats(
+    coords = coords,
+    anchor_coords = anchor_coords,
+    anchor_weight = anchor_weight
+  )
+  grad <- grad + anchor.stats$gradient
+
   list(
-    energy = energy,
+    energy = gmds.energy + anchor.stats$energy,
+    gmds_energy = gmds.energy,
+    anchor_energy = anchor.stats$energy,
+    anchor_raw_penalty = anchor.stats$raw_penalty,
     gradient = grad,
     gradient_norm = sqrt(sum(grad^2)),
     path_lengths = path.lengths,
@@ -2231,14 +2700,25 @@ grip.geodesic.mds.energy.gradient <- function(coords,
 
 grip.geodesic.mds.score.stats <- function(coords,
                                           prepared,
-                                          edge_length_epsilon = 1e-8) {
+                                          edge_length_epsilon = 1e-8,
+                                          anchor_coords = NULL,
+                                          anchor_weight = 0) {
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
   g <- as.double(prepared$pair_graph_distance)
+  anchor.stats <- grip.geodesic.mds.anchor.stats(
+    coords = coords,
+    anchor_coords = anchor_coords,
+    anchor_weight = anchor_weight
+  )
 
   if (length(g) == 0L) {
     return(list(
       n.pairs = 0L,
-      energy = NA_real_,
+      energy = anchor.stats$energy,
+      gmds.energy = 0,
+      anchor.weight = anchor.stats$anchor_weight,
+      anchor.raw.penalty = anchor.stats$raw_penalty,
+      anchor.energy = anchor.stats$energy,
       raw_stress = NA_real_,
       stress = NA_real_,
       rmse = NA_real_,
@@ -2263,7 +2743,11 @@ grip.geodesic.mds.score.stats <- function(coords,
 
   list(
     n.pairs = length(g),
-    energy = 0.5 * raw.stress,
+    energy = 0.5 * raw.stress + anchor.stats$energy,
+    gmds.energy = 0.5 * raw.stress,
+    anchor.weight = anchor.stats$anchor_weight,
+    anchor.raw.penalty = anchor.stats$raw_penalty,
+    anchor.energy = anchor.stats$energy,
     raw_stress = raw.stress,
     stress = if (is.finite(denom) && denom > 0) sqrt(raw.stress / denom) else NA_real_,
     rmse = sqrt(mean(resid^2)),
@@ -2277,7 +2761,7 @@ grip.geodesic.mds.score.stats <- function(coords,
 }
 
 grip.geodesic.mds.pair.details <- function(prepared, stats) {
-  data.frame(
+  out <- data.frame(
     i = prepared$pair_matrix[, 1L],
     j = prepared$pair_matrix[, 2L],
     graph.distance = as.double(prepared$pair_graph_distance),
@@ -2287,15 +2771,27 @@ grip.geodesic.mds.pair.details <- function(prepared, stats) {
     relative.residual = stats$relative.residual,
     stringsAsFactors = FALSE
   )
+  if (!is.null(prepared$tie_mode)) {
+    out$tie.mode <- as.character(prepared$tie_mode)
+  }
+  if (!is.null(prepared$pair_path_count_log)) {
+    out$shortest.path.count.log <- as.double(prepared$pair_path_count_log)
+    out$shortest.path.count <- grip.safe.exp(out$shortest.path.count.log)
+  }
+  out
 }
 
 grip.geodesic.mds.evaluate.state <- function(coords,
                                              prepared,
-                                             edge_length_epsilon = 1e-8) {
+                                             edge_length_epsilon = 1e-8,
+                                             anchor_coords = NULL,
+                                             anchor_weight = 0) {
   grip.geodesic.mds.energy.gradient(
     coords = coords,
     prepared = prepared,
-    edge_length_epsilon = edge_length_epsilon
+    edge_length_epsilon = edge_length_epsilon,
+    anchor_coords = anchor_coords,
+    anchor_weight = anchor_weight
   )
 }
 
@@ -2329,33 +2825,77 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
 #' @param k Symmetric \eqn{k}-NN neighborhood size.
 #' @param connect Connectivity policy. \code{"mst"} augments a disconnected
 #'   \eqn{k}-NN graph with Euclidean MST edges; \code{"error"} stops instead.
+#' @param tie_mode Shortest-path aggregation mode. \code{"single"} uses one
+#'   deterministic chosen shortest path per pair. \code{"average"} replaces
+#'   each tied shortest-path family by the exact uniform average over all
+#'   shortest paths between the pair.
 #'
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
 #' @export
 grip.prepare.geodesic.mds <- function(data,
                                       k,
-                                      connect = c("mst", "error")) {
+                                      connect = c("mst", "error"),
+                                      tie_mode = c("single", "average")) {
+  tie_mode <- match.arg(tie_mode)
   built <- grip.prepare.geodesic.mds.graph(
     data = data,
     k = k,
     connect = connect
   )
-  prepared <- grip.prepare.geodesic.kk(
+  base <- grip.prepare.geodesic.kk.base(
     edges = built$edges,
     n = nrow(built$data),
-    edge_weights = built$edge_weights
+    edge_weights = built$edge_weights,
+    caller = "grip.prepare.geodesic.mds"
   )
-  prepared$input_data <- built$data
-  prepared$k <- built$k
-  prepared$connect <- built$connect
-  prepared$knn_distance_matrix <- built$distance_matrix
-  prepared$knn_edges <- built$knn_edges
-  prepared$knn_edge_weights <- built$knn_edge_weights
-  prepared$mst_added_edges <- built$mst_added_edges
-  prepared$mst_added_edge_weights <- built$mst_added_edge_weights
-  prepared$graph_build_mode <- "symmetric_knn"
-  class(prepared) <- c("grip_gmds_prepared", class(prepared))
+  pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
+  cache <- grip.build.geodesic.mds.path.cache(
+    pair.matrix = pair.matrix,
+    adj.list = base$adj_list,
+    weight.list = base$weight_list,
+    dist.matrix = base$distance_matrix,
+    parents = base$parents,
+    tie_mode = tie_mode
+  )
+  flat.cache <- if (!is.null(cache$flat_pair_edge_offsets)) {
+    cache[c("flat_pair_edge_offsets", "flat_edge_u", "flat_edge_v", "flat_edge_coeff")]
+  } else {
+    grip.flatten.geodesic.path.cache(
+      path.edges = cache$path_edges,
+      path.edge.weights = cache$path_edge_weights
+    )
+  }
+  prepared <- list(
+    n = base$n,
+    edges = base$edges,
+    adj_list = base$adj_list,
+    weight_list = base$weight_list,
+    pair_matrix = pair.matrix,
+    pair_graph_distance = cache$pair_graph_distance,
+    path_vertices = cache$path_vertices,
+    path_edges = cache$path_edges,
+    path_edge_weights = cache$path_edge_weights,
+    pair_path_count_log = cache$pair_path_count_log,
+    flat_pair_edge_offsets = flat.cache$flat_pair_edge_offsets,
+    flat_edge_u = flat.cache$flat_edge_u,
+    flat_edge_v = flat.cache$flat_edge_v,
+    flat_edge_coeff = flat.cache$flat_edge_coeff,
+    graph_diameter = base$graph_diameter,
+    distance_matrix = base$distance_matrix,
+    pair_mode = "all_pairs",
+    input_data = built$data,
+    k = built$k,
+    connect = built$connect,
+    knn_distance_matrix = built$distance_matrix,
+    knn_edges = built$knn_edges,
+    knn_edge_weights = built$knn_edge_weights,
+    mst_added_edges = built$mst_added_edges,
+    mst_added_edge_weights = built$mst_added_edge_weights,
+    graph_build_mode = "symmetric_knn",
+    tie_mode = tie_mode
+  )
+  class(prepared) <- c("grip_gmds_prepared", "grip_gkk_prepared", "grip_geodesic_kk_prepared", "list")
   prepared
 }
 
@@ -2374,8 +2914,13 @@ grip.prepare.geodesic.mds <- function(data,
 #' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
 #'   omitted.
 #' @param connect Connectivity policy used when \code{prepared} is omitted.
+#' @param tie_mode Shortest-path aggregation mode used when \code{prepared} is
+#'   omitted.
 #' @param edge_length_epsilon Small non-negative stabilizer added inside each
 #'   embedded edge length.
+#' @param anchor_coords Optional anchor embedding used to add the quadratic
+#'   tether term \eqn{\lambda \|Z - A\|_F^2}.
+#' @param anchor_weight Non-negative anchor weight \eqn{\lambda}.
 #' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
 #'
 #' @return A one-row data frame summarizing the geodesic-MDS fit.
@@ -2385,32 +2930,53 @@ grip.score.geodesic.mds <- function(coords,
                                     data = NULL,
                                     k = NULL,
                                     connect = c("mst", "error"),
+                                    tie_mode = c("single", "average"),
                                     edge_length_epsilon = 1e-8,
+                                    anchor_coords = NULL,
+                                    anchor_weight = 0,
                                     return_pair_details = FALSE) {
   coords <- grip.validate.coords(coords)
+  tie_mode <- match.arg(tie_mode)
   if (is.null(prepared)) {
     prepared <- grip.prepare.geodesic.mds(
       data = data,
       k = k,
-      connect = connect
+      connect = connect,
+      tie_mode = tie_mode
     )
   }
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  anchor.coords <- if (is.null(anchor_coords)) NULL else {
+    grip.geodesic.mds.resolve.anchor(
+      anchor_mode = "user",
+      coords = coords,
+      prepared = prepared,
+      anchor_coords = anchor_coords,
+      recenter = FALSE
+    )
+  }
   stats <- grip.geodesic.mds.score.stats(
     coords = coords,
     prepared = prepared,
-    edge_length_epsilon = edge_length_epsilon
+    edge_length_epsilon = edge_length_epsilon,
+    anchor_coords = anchor.coords,
+    anchor_weight = anchor_weight
   )
 
   out <- data.frame(
     n = prepared$n,
     n.pairs = stats$n.pairs,
     gmds.energy = stats$energy,
+    gmds.base.energy = stats$gmds.energy,
     gmds.raw_stress = stats$raw_stress,
     gmds.stress = stats$stress,
     gmds.rmse = stats$rmse,
     gmds.mean.abs.path.error = stats$mean.abs.path.error,
     gmds.mean.rel.path.error = stats$mean.rel.path.error,
+    anchor.weight = stats$anchor.weight,
+    anchor.raw.penalty = stats$anchor.raw.penalty,
+    anchor.energy = stats$anchor.energy,
+    tie.mode = if (!is.null(prepared$tie_mode)) prepared$tie_mode else "single",
     stringsAsFactors = FALSE
   )
 
@@ -2438,8 +3004,23 @@ grip.score.geodesic.mds <- function(coords,
 #'   omitted.
 #' @param dim Target output dimension used when \code{coords} is omitted.
 #' @param connect Connectivity policy used when \code{prepared} is omitted.
+#' @param tie_mode Shortest-path aggregation mode used when \code{prepared} is
+#'   omitted.
 #' @param init Initialization mode: \code{"cmdscale"}, \code{"random"}, or
 #'   \code{"user"}.
+#' @param anchor_mode Anchor family used by the quadratic tether term.
+#'   \code{"cmdscale"} tethers to the classical-MDS embedding of the graph
+#'   distance matrix, \code{"initial"} tethers to the starting layout, and
+#'   \code{"user"} uses \code{anchor_coords}.
+#' @param anchor_coords Optional anchor coordinates used when
+#'   \code{anchor_mode = "user"}.
+#' @param anchor_weight Initial non-negative tether weight.
+#' @param anchor_weight_end Final non-negative tether weight used at the end of
+#'   the continuation schedule.
+#' @param continuation Continuation schedule for the tether weight. With
+#'   \code{"constant"}, the tether weight stays fixed; \code{"linear"} and
+#'   \code{"geometric"} gradually relax the tether from
+#'   \code{anchor_weight} to \code{anchor_weight_end}.
 #' @param engine Optimization engine: \code{"cpp"} or \code{"r"}.
 #' @param max_iter Maximum number of gradient-descent iterations.
 #' @param edge_length_epsilon Small non-negative stabilizer added inside each
@@ -2449,6 +3030,9 @@ grip.score.geodesic.mds <- function(coords,
 #' @param armijo_factor Non-negative Armijo decrease constant.
 #' @param grad_tol Non-negative stopping tolerance on the gradient norm.
 #' @param min_step Positive minimum accepted line-search step.
+#' @param n_threads Number of CPU threads used by the flattened compiled
+#'   optimizer. \code{0} picks an automatic value and \code{1} forces serial
+#'   evaluation.
 #' @param recenter If \code{TRUE}, recenter accepted proposals to zero mean.
 #' @param return_trace If \code{TRUE}, include per-iteration diagnostics and
 #'   accepted frames.
@@ -2463,7 +3047,13 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
                                        k = NULL,
                                        dim = 2L,
                                        connect = c("mst", "error"),
+                                       tie_mode = c("single", "average"),
                                        init = c("cmdscale", "random", "user"),
+                                       anchor_mode = c("none", "cmdscale", "initial", "user"),
+                                       anchor_coords = NULL,
+                                       anchor_weight = 0,
+                                       anchor_weight_end = anchor_weight,
+                                       continuation = c("constant", "linear", "geometric"),
                                        engine = c("cpp", "r"),
                                        max_iter = 16L,
                                        edge_length_epsilon = 1e-8,
@@ -2472,10 +3062,14 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
                                        armijo_factor = 1e-4,
                                        grad_tol = 1e-8,
                                        min_step = 1e-8,
+                                       n_threads = 0L,
                                        recenter = TRUE,
                                        return_trace = FALSE,
                                        seed = NULL) {
   init <- match.arg(init)
+  tie_mode <- match.arg(tie_mode)
+  anchor_mode <- match.arg(anchor_mode)
+  continuation <- match.arg(continuation)
   engine <- match.arg(engine)
   grip.validate.scalar(max_iter, "max_iter", lower = 0)
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
@@ -2484,12 +3078,20 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   grip.validate.scalar(armijo_factor, "armijo_factor", lower = 0)
   grip.validate.scalar(grad_tol, "grad_tol", lower = 0)
   grip.validate.scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(n_threads, "n_threads", lower = 0)
+  grip.validate.scalar(anchor_weight, "anchor_weight", lower = 0)
+  grip.validate.scalar(anchor_weight_end, "anchor_weight_end", lower = 0)
+  if (identical(anchor_mode, "none") && (anchor_weight > 0 || anchor_weight_end > 0)) {
+    stop("anchor_mode must not be 'none' when anchor_weight or anchor_weight_end is positive")
+  }
   max_iter <- as.integer(round(max_iter))
+  n_threads <- as.integer(round(n_threads))
   if (is.null(prepared)) {
     prepared <- grip.prepare.geodesic.mds(
       data = data,
       k = k,
-      connect = connect
+      connect = connect,
+      tie_mode = tie_mode
     )
   }
 
@@ -2514,48 +3116,109 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   }
 
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  anchor.coords <- grip.geodesic.mds.resolve.anchor(
+    anchor_mode = anchor_mode,
+    coords = coords,
+    prepared = prepared,
+    anchor_coords = anchor_coords,
+    recenter = recenter
+  )
+  anchor.schedule <- if (is.null(anchor.coords)) {
+    rep.int(0, max_iter + 1L)
+  } else {
+    grip.geodesic.mds.anchor.schedule(
+      max_iter = max_iter,
+      anchor_weight = anchor_weight,
+      anchor_weight_end = anchor_weight_end,
+      continuation = continuation
+    )
+  }
 
   if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
     score <- grip.score.geodesic.mds(
       coords = coords,
       prepared = prepared,
-      edge_length_epsilon = edge_length_epsilon
+      edge_length_epsilon = edge_length_epsilon,
+      anchor_coords = anchor.coords,
+      anchor_weight = anchor.schedule[[1L]]
     )
     return(list(
       coords = coords,
       trace = data.frame(),
       frames = list(coords),
       prepared = prepared,
-      score = score
+      score = score,
+      anchor_coords = anchor.coords,
+      anchor_schedule = anchor.schedule,
+      final_anchor_weight = anchor.schedule[[1L]],
+      n_threads_used = 1L
     ))
   }
 
   if (identical(engine, "cpp")) {
-    opt <- grip_optimize_geodesic_mds_adj_cpp(
-      adj_list = prepared$adj_list,
-      weight_list = prepared$weight_list,
-      coords = coords,
-      max_iter = max_iter,
-      edge_length_epsilon = edge_length_epsilon,
-      initial_step = initial_step,
-      step_shrink = step_shrink,
-      armijo_factor = armijo_factor,
-      grad_tol = grad_tol,
-      min_step = min_step,
-      recenter = recenter,
-      return_trace = return_trace
-    )
+    opt <- if (!is.null(prepared$flat_pair_edge_offsets) &&
+               !is.null(prepared$flat_edge_u) &&
+               !is.null(prepared$flat_edge_v) &&
+               !is.null(prepared$flat_edge_coeff)) {
+      grip_optimize_geodesic_mds_flat_cpp(
+        flat_pair_edge_offsets = prepared$flat_pair_edge_offsets,
+        flat_edge_u = prepared$flat_edge_u,
+        flat_edge_v = prepared$flat_edge_v,
+        flat_edge_coeff = prepared$flat_edge_coeff,
+        pair_graph_distance = prepared$pair_graph_distance,
+        coords = coords,
+        max_iter = max_iter,
+        edge_length_epsilon = edge_length_epsilon,
+        initial_step = initial_step,
+        step_shrink = step_shrink,
+        armijo_factor = armijo_factor,
+        grad_tol = grad_tol,
+        min_step = min_step,
+        recenter = recenter,
+        return_trace = return_trace,
+        anchor_coords = anchor.coords,
+        anchor_weights = anchor.schedule,
+        n_threads = n_threads
+      )
+    } else {
+      out <- grip_optimize_geodesic_mds_cache_cpp(
+        path_edges = prepared$path_edges,
+        path_edge_weights = prepared$path_edge_weights,
+        pair_graph_distance = prepared$pair_graph_distance,
+        coords = coords,
+        max_iter = max_iter,
+        edge_length_epsilon = edge_length_epsilon,
+        initial_step = initial_step,
+        step_shrink = step_shrink,
+        armijo_factor = armijo_factor,
+        grad_tol = grad_tol,
+        min_step = min_step,
+        recenter = recenter,
+        return_trace = return_trace,
+        anchor_coords = anchor.coords,
+        anchor_weights = anchor.schedule
+      )
+      out$n_threads_used <- 1L
+      out
+    }
+    final.anchor.weight <- opt$final_anchor_weight
     score <- grip.score.geodesic.mds(
       coords = opt$coords,
       prepared = prepared,
-      edge_length_epsilon = edge_length_epsilon
+      edge_length_epsilon = edge_length_epsilon,
+      anchor_coords = anchor.coords,
+      anchor_weight = final.anchor.weight
     )
     return(list(
       coords = opt$coords,
       trace = opt$trace,
       frames = opt$frames,
       prepared = prepared,
-      score = score
+      score = score,
+      anchor_coords = anchor.coords,
+      anchor_schedule = anchor.schedule,
+      final_anchor_weight = final.anchor.weight,
+      n_threads_used = opt$n_threads_used
     ))
   }
 
@@ -2565,19 +3228,32 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   state <- grip.geodesic.mds.evaluate.state(
     coords = current,
     prepared = prepared,
-    edge_length_epsilon = edge_length_epsilon
+    edge_length_epsilon = edge_length_epsilon,
+    anchor_coords = anchor.coords,
+    anchor_weight = anchor.schedule[[1L]]
   )
   trace.rows[[1L]] <- data.frame(
     iteration = 0L,
     energy = state$energy,
+    gmds_energy = state$gmds_energy,
+    anchor_energy = state$anchor_energy,
     gradient_norm = state$gradient_norm,
     step = NA_real_,
     accepted = TRUE,
+    anchor_weight = anchor.schedule[[1L]],
     stringsAsFactors = FALSE
   )
   used <- 1L
 
   for (iter in seq_len(max_iter)) {
+    iter.anchor.weight <- anchor.schedule[[iter + 1L]]
+    state <- grip.geodesic.mds.evaluate.state(
+      coords = current,
+      prepared = prepared,
+      edge_length_epsilon = edge_length_epsilon,
+      anchor_coords = anchor.coords,
+      anchor_weight = iter.anchor.weight
+    )
     if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
       break
     }
@@ -2594,7 +3270,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       proposal.state <- grip.geodesic.mds.evaluate.state(
         coords = proposal,
         prepared = prepared,
-        edge_length_epsilon = edge_length_epsilon
+        edge_length_epsilon = edge_length_epsilon,
+        anchor_coords = anchor.coords,
+        anchor_weight = iter.anchor.weight
       )
       target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
       if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
@@ -2610,9 +3288,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     trace.rows[[used]] <- data.frame(
       iteration = iter,
       energy = if (accepted) candidate.state$energy else state$energy,
+      gmds_energy = if (accepted) candidate.state$gmds_energy else state$gmds_energy,
+      anchor_energy = if (accepted) candidate.state$anchor_energy else state$anchor_energy,
       gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
       step = if (accepted) step else NA_real_,
       accepted = accepted,
+      anchor_weight = iter.anchor.weight,
       stringsAsFactors = FALSE
     )
 
@@ -2627,13 +3308,16 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
   if (!isTRUE(return_trace)) {
-    trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
+    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "gradient_norm", "step", "accepted", "anchor_weight"), drop = FALSE]
     accepted.frames <- list(current)
   }
+  final.anchor.weight <- trace.df$anchor_weight[[nrow(trace.df)]]
   score <- grip.score.geodesic.mds(
     coords = current,
     prepared = prepared,
-    edge_length_epsilon = edge_length_epsilon
+    edge_length_epsilon = edge_length_epsilon,
+    anchor_coords = anchor.coords,
+    anchor_weight = final.anchor.weight
   )
 
   list(
@@ -2641,7 +3325,11 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     trace = trace.df,
     frames = accepted.frames,
     prepared = prepared,
-    score = score
+    score = score,
+    anchor_coords = anchor.coords,
+    anchor_schedule = anchor.schedule,
+    final_anchor_weight = final.anchor.weight,
+    n_threads_used = 1L
   )
 }
 

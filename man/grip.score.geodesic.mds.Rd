@@ -10,7 +10,10 @@ grip.score.geodesic.mds(
   data = NULL,
   k = NULL,
   connect = c("mst", "error"),
+  tie_mode = c("single", "average"),
   edge_length_epsilon = 1e-08,
+  anchor_coords = NULL,
+  anchor_weight = 0,
   return_pair_details = FALSE
 )
 }
@@ -28,8 +31,16 @@ omitted.}
 
 \item{connect}{Connectivity policy used when \code{prepared} is omitted.}
 
+\item{tie_mode}{Shortest-path aggregation mode used when \code{prepared} is
+omitted.}
+
 \item{edge_length_epsilon}{Small non-negative stabilizer added inside each
 embedded edge length.}
+
+\item{anchor_coords}{Optional anchor embedding used to add the quadratic
+tether term \eqn{\lambda \|Z - A\|_F^2}.}
+
+\item{anchor_weight}{Non-negative anchor weight \eqn{\lambda}.}
 
 \item{return_pair_details}{If \code{TRUE}, attach per-pair residual details.}
 }

@@ -24,6 +24,7 @@ occupied.mesh.surface.graph(
   freq_v = 1,
   x_scale = 1,
   y_scale = 1,
+  connectivity = c("orthogonal", "diagonal"),
   normalize = c("median", "mean", "none")
 )
 }
@@ -46,6 +47,8 @@ Used only when \code{surface = "ripple"}.}
 
 \item{y_scale}{Positive vertical scaling of the parameter domain.}
 
+\item{connectivity}{Mesh neighborhood rule passed to \code{edges.mesh()}.}
+
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
@@ -64,13 +67,14 @@ matrix with columns \code{x}, \code{y}, and \code{z}.
     edge lengths,
   \item \code{family}: always \code{"occupied.mesh"},
   \item \code{surface}: the chosen surface name,
+  \item \code{connectivity}: the chosen occupied-mesh connectivity rule,
   \item \code{keep}: the logical occupancy matrix,
   \item \code{label}: a human-readable family label.
 }
 }
 \description{
-\code{edges.occupied.mesh()} builds the orthogonal adjacency graph on the
-occupied cells of a finite rectangular grid. The corresponding surface
+\code{edges.occupied.mesh()} builds a finite occupied-grid graph on the
+retained cells of a rectangular occupancy matrix. The corresponding surface
 helpers lift those occupied cells into \eqn{\mathbb{R}^3} using the same
 \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
 for regular meshes.

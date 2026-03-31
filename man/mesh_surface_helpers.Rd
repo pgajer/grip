@@ -26,6 +26,7 @@ mesh.surface.graph(
   freq_v = 1,
   x_scale = 1,
   y_scale = 1,
+  connectivity = c("orthogonal", "diagonal"),
   normalize = c("median", "mean", "none")
 )
 }
@@ -50,6 +51,9 @@ Used only when \code{surface = "ripple"}.}
 
 \item{y_scale}{Positive vertical scaling of the parameter domain.}
 
+\item{connectivity}{Occupied-mesh neighborhood rule passed to
+\code{edges.occupied.mesh()}.}
+
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
@@ -68,6 +72,7 @@ columns \code{x}, \code{y}, and \code{z}.
     edge lengths,
   \item \code{family}: always \code{"mesh"},
   \item \code{surface}: the chosen surface name,
+  \item \code{connectivity}: the chosen mesh connectivity rule,
   \item \code{label}: a human-readable family label.
 }
 }

@@ -11,7 +11,13 @@ grip.optimize.geodesic.mds(
   k = NULL,
   dim = 2L,
   connect = c("mst", "error"),
+  tie_mode = c("single", "average"),
   init = c("cmdscale", "random", "user"),
+  anchor_mode = c("none", "cmdscale", "initial", "user"),
+  anchor_coords = NULL,
+  anchor_weight = 0,
+  anchor_weight_end = anchor_weight,
+  continuation = c("constant", "linear", "geometric"),
   engine = c("cpp", "r"),
   max_iter = 16L,
   edge_length_epsilon = 1e-08,
@@ -42,8 +48,29 @@ omitted.}
 
 \item{connect}{Connectivity policy used when \code{prepared} is omitted.}
 
+\item{tie_mode}{Shortest-path aggregation mode used when \code{prepared} is
+omitted.}
+
 \item{init}{Initialization mode: \code{"cmdscale"}, \code{"random"}, or
 \code{"user"}.}
+
+\item{anchor_mode}{Anchor family used by the quadratic tether term.
+\code{"cmdscale"} tethers to the classical-MDS embedding of the graph
+distance matrix, \code{"initial"} tethers to the starting layout, and
+\code{"user"} uses \code{anchor_coords}.}
+
+\item{anchor_coords}{Optional anchor coordinates used when
+\code{anchor_mode = "user"}.}
+
+\item{anchor_weight}{Initial non-negative tether weight.}
+
+\item{anchor_weight_end}{Final non-negative tether weight used at the end of
+the continuation schedule.}
+
+\item{continuation}{Continuation schedule for the tether weight. With
+\code{"constant"}, the tether weight stays fixed; \code{"linear"} and
+\code{"geometric"} gradually relax the tether from
+\code{anchor_weight} to \code{anchor_weight_end}.}
 
 \item{engine}{Optimization engine: \code{"cpp"} or \code{"r"}.}
 
