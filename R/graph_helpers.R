@@ -33,6 +33,84 @@
   unique(edges)
 }
 
+.as_finite_scalar <- function(x, name) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x)) {
+    stop(sprintf("%s must be a single finite numeric value", name), call. = FALSE)
+  }
+  as.double(x)
+}
+
+.as_positive_scalar <- function(x, name) {
+  x <- .as_finite_scalar(x, name)
+  if (x <= 0) {
+    stop(sprintf("%s must be > 0", name), call. = FALSE)
+  }
+  x
+}
+
+.grid_axis <- function(n) {
+  n <- .as_whole_number(n, "n", min = 1L)
+  if (n == 1L) {
+    return(0)
+  }
+  seq(-1, 1, length.out = n)
+}
+
+.mesh.param.coords <- function(h, w, x_scale = 1, y_scale = 1) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+
+  x_vals <- .grid_axis(w) * x_scale
+  y_vals <- rev(.grid_axis(h) * y_scale)
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(x_vals[[j]], y_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("u", "v")
+  coords
+}
+
+.edge.weights.from.embedding <- function(edges,
+                                         coords,
+                                         normalize = c("median", "mean", "none")) {
+  normalize <- match.arg(normalize)
+  if (!is.matrix(coords) || !is.numeric(coords) || ncol(coords) < 2L) {
+    stop("coords must be a numeric matrix with at least 2 columns", call. = FALSE)
+  }
+  if (!is.matrix(edges) || ncol(edges) != 2L) {
+    stop("edges must be a two-column matrix", call. = FALSE)
+  }
+  if (nrow(edges) == 0L) {
+    return(list(edge_weights = numeric(0L), weight_scale = 1))
+  }
+
+  diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+  edge_weights <- sqrt(rowSums(diffs^2))
+  if (any(!is.finite(edge_weights) | edge_weights <= 0)) {
+    stop("embedded edge weights must all be finite and > 0", call. = FALSE)
+  }
+
+  weight_scale <- switch(
+    normalize,
+    median = stats::median(edge_weights),
+    mean = mean(edge_weights),
+    none = 1
+  )
+  if (!is.finite(weight_scale) || weight_scale <= 0) {
+    weight_scale <- 1
+  }
+
+  list(
+    edge_weights = as.double(edge_weights / weight_scale),
+    weight_scale = as.double(weight_scale)
+  )
+}
+
 #' Sample graph generators
 #'
 #' Convenience helpers that build small undirected graph families as two-column
@@ -94,6 +172,147 @@ edges.mesh <- function(h, w = h) {
     }
   }
   .normalize_undirected_edges(.bind_edges(edges))
+}
+
+#' Weighted mesh surface helpers
+#'
+#' Convenience helpers that lift a rectangular mesh parameter grid into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' topology is a plain mesh but the intended metric comes from a curved ambient
+#' geometry.
+#'
+#' `mesh.surface.embedding()` returns the 3D coordinates of the lifted grid.
+#' `mesh.surface.graph()` returns a reusable weighted-graph bundle containing the
+#' mesh edges, induced edge weights, the 3D surface coordinates, and the 2D
+#' parameter coordinates.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq_u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling of the parameter domain.
+#' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{mesh.surface.embedding()} returns an \code{n x 3} numeric matrix with
+#' columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{mesh.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter-grid coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"mesh"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name mesh_surface_helpers
+NULL
+
+#' @rdname mesh_surface_helpers
+#' @export
+mesh.surface.embedding <- function(h,
+                                   w = h,
+                                   surface = c("saddle", "paraboloid", "ripple"),
+                                   amplitude = 0.75,
+                                   freq_u = 1,
+                                   freq_v = 1,
+                                   x_scale = 1,
+                                   y_scale = 1) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+
+  coords_param <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- switch(
+    surface,
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname mesh_surface_helpers
+#' @export
+mesh.surface.graph <- function(h,
+                               w = h,
+                               surface = c("saddle", "paraboloid", "ripple"),
+                               amplitude = 0.75,
+                               freq_u = 1,
+                               freq_v = 1,
+                               x_scale = 1,
+                               y_scale = 1,
+                               normalize = c("median", "mean", "none")) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.mesh(h, w)
+  coords_param <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  coords_surface <- mesh.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "mesh",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s mesh %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_mesh_surface_graph", "list")
+  out
 }
 
 #' @describeIn graph_generators Cylindrical grid graph with \code{h} rows and wrapped

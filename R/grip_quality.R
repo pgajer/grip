@@ -744,6 +744,429 @@ grip.path.euclidean.length <- function(coords, vertices, edge_length_epsilon = 1
   sum(sqrt(rowSums(diffs^2) + edge_length_epsilon^2))
 }
 
+grip.path.vertices.to.edges <- function(vertices) {
+  if (length(vertices) <= 1L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+  cbind(
+    vertices[-length(vertices)],
+    vertices[-1L]
+  )
+}
+
+grip.validate.scalar <- function(x,
+                                 name,
+                                 lower = -Inf,
+                                 upper = Inf,
+                                 open.lower = FALSE,
+                                 open.upper = FALSE) {
+  if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
+    stop(sprintf("%s must be a single finite numeric value", name))
+  }
+  if ((open.lower && x <= lower) || (!open.lower && x < lower) ||
+      (open.upper && x >= upper) || (!open.upper && x > upper)) {
+    lower.txt <- if (is.finite(lower)) {
+      if (open.lower) sprintf("(%s", format(lower, digits = 16)) else sprintf("[%s", format(lower, digits = 16))
+    } else {
+      "(-Inf"
+    }
+    upper.txt <- if (is.finite(upper)) {
+      if (open.upper) sprintf("%s)", format(upper, digits = 16)) else sprintf("%s]", format(upper, digits = 16))
+    } else {
+      "Inf)"
+    }
+    stop(sprintf("%s must lie in %s, %s", name, lower.txt, upper.txt))
+  }
+}
+
+grip.validate.count <- function(x, name) {
+  grip.validate.scalar(x, name, lower = 0)
+  x <- as.integer(round(x))
+  if (is.na(x) || x < 0L) {
+    stop(sprintf("%s must be >= 0", name))
+  }
+  x
+}
+
+grip.validate.prepared.object <- function(prepared,
+                                          class_name,
+                                          prepare_fun_name,
+                                          coords = NULL) {
+  if (!inherits(prepared, class_name)) {
+    stop(sprintf("prepared must be NULL or an object from %s()", prepare_fun_name))
+  }
+  if (!is.null(coords) && nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match the graph size stored in prepared")
+  }
+  prepared
+}
+
+grip.prepare.geodesic.kk.base <- function(edges = NULL,
+                                          n = NULL,
+                                          adj_list = NULL,
+                                          weight_list = NULL,
+                                          edge_weights = NULL,
+                                          caller = "grip.prepare.geodesic.kk") {
+  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
+    n <- max(as.integer(edges), na.rm = TRUE)
+  }
+  if (is.null(n) && !is.null(adj_list)) {
+    n <- length(adj_list)
+  }
+  if (is.null(n) || !is.finite(n) || n <= 0L) {
+    stop("n must be provided or inferable from edges/adj_list")
+  }
+  n <- as.integer(n)
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = 2L,
+    placement = "barycenter",
+    seed = 1L
+  )
+
+  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
+  adj.list <- sorted$adj_list
+  weight.list <- sorted$weight_list
+  edges <- grip.edges.from.adj.list(adj.list)
+
+  trees <- lapply(seq_len(validated$n), function(source) {
+    grip.shortest.path.tree(adj.list, weight.list, source)
+  })
+  dist.matrix <- do.call(rbind, lapply(trees, `[[`, "dist"))
+  finite.mask <- row(dist.matrix) != col(dist.matrix)
+  if (any(!is.finite(dist.matrix[finite.mask]))) {
+    stop(sprintf("%s() currently requires a connected graph", caller))
+  }
+
+  list(
+    n = validated$n,
+    edges = edges,
+    adj_list = adj.list,
+    weight_list = weight.list,
+    trees = trees,
+    parents = lapply(trees, `[[`, "parent"),
+    distance_matrix = dist.matrix,
+    graph_diameter = max(dist.matrix)
+  )
+}
+
+grip.landmark.geodesic.kk.pair.matrix <- function(dist.matrix,
+                                                  local_nbrs,
+                                                  landmark_count) {
+  n <- nrow(dist.matrix)
+  pair.keys <- character(0L)
+
+  for (source in seq_len(n)) {
+    local <- grip.closest.active.vertices(dist.matrix[source, ], source, local_nbrs)
+    landmarks <- grip.farthest.landmarks(source, dist.matrix, landmark_count)
+    chosen <- unique(c(local, landmarks))
+    chosen <- chosen[chosen != source]
+    if (length(chosen) == 0L) {
+      next
+    }
+    pairs <- cbind(pmin(source, chosen), pmax(source, chosen))
+    pairs <- unique(pairs)
+    pair.keys <- c(pair.keys, paste(pairs[, 1L], pairs[, 2L], sep = "-"))
+  }
+
+  if (length(pair.keys) == 0L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+
+  pair.matrix <- do.call(rbind, strsplit(unique(pair.keys), "-", fixed = TRUE))
+  pair.matrix <- matrix(as.integer(pair.matrix), ncol = 2L)
+  pair.matrix[order(pair.matrix[, 1L], pair.matrix[, 2L]), , drop = FALSE]
+}
+
+grip.full.geodesic.kk.pair.matrix <- function(n) {
+  n <- as.integer(n)
+  if (is.na(n) || n < 2L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+  pair.matrix <- t(utils::combn(seq_len(n), 2L))
+  matrix(as.integer(pair.matrix), ncol = 2L)
+}
+
+grip.build.geodesic.kk.path.cache <- function(pair.matrix,
+                                              parents,
+                                              dist.matrix) {
+  n.pairs <- nrow(pair.matrix)
+  path.vertices <- vector("list", n.pairs)
+  path.edges <- vector("list", n.pairs)
+  pair.graph.distance <- numeric(n.pairs)
+
+  if (n.pairs == 0L) {
+    return(list(
+      path_vertices = path.vertices,
+      path_edges = path.edges,
+      pair_graph_distance = pair.graph.distance
+    ))
+  }
+
+  for (i in seq_len(n.pairs)) {
+    src <- pair.matrix[i, 1L]
+    dst <- pair.matrix[i, 2L]
+    path.vertices[[i]] <- grip.reconstruct.path.vertices(parents[[src]], src, dst)
+    path.edges[[i]] <- grip.path.vertices.to.edges(path.vertices[[i]])
+    pair.graph.distance[[i]] <- dist.matrix[src, dst]
+  }
+
+  list(
+    path_vertices = path.vertices,
+    path_edges = path.edges,
+    pair_graph_distance = as.double(pair.graph.distance)
+  )
+}
+
+grip.geodesic.kk.path.lengths <- function(coords,
+                                          prepared,
+                                          edge_length_epsilon = 1e-8) {
+  vapply(prepared$path_vertices, function(path) {
+    grip.path.euclidean.length(
+      coords,
+      path,
+      edge_length_epsilon = edge_length_epsilon
+    )
+  }, numeric(1L))
+}
+
+grip.geodesic.kk.fit.scale <- function(path.lengths,
+                                       graph.distances,
+                                       stiffness = 1.0,
+                                       distance_floor = 1e-8) {
+  kk <- as.double(stiffness) / pmax(as.double(graph.distances), as.double(distance_floor))^2
+  denom <- sum(kk * graph.distances * graph.distances)
+  if (!is.finite(denom) || denom <= 0) {
+    return(NA_real_)
+  }
+  sum(kk * graph.distances * path.lengths) / denom
+}
+
+grip.geodesic.kk.energy.gradient <- function(coords,
+                                             prepared,
+                                             scale.L0,
+                                             stiffness = 1.0,
+                                             distance_floor = 1e-8,
+                                             edge_length_epsilon = 1e-8) {
+  g <- as.double(prepared$pair_graph_distance)
+  n.pairs <- length(g)
+  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
+  target <- as.double(scale.L0) * g
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  energy <- 0
+  path.lengths <- numeric(n.pairs)
+
+  if (n.pairs == 0L) {
+    return(list(
+      energy = energy,
+      gradient = grad,
+      gradient_norm = 0,
+      path_lengths = path.lengths,
+      target = target
+    ))
+  }
+
+  for (i in seq_len(n.pairs)) {
+    edges <- prepared$path_edges[[i]]
+    if (nrow(edges) == 0L) {
+      next
+    }
+    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+    edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+    h <- sum(edge.lengths)
+    path.lengths[[i]] <- h
+    resid <- h - target[[i]]
+    coeff <- kk[[i]] * resid
+    energy <- energy + 0.5 * kk[[i]] * resid^2
+    unit.vecs <- diffs / edge.lengths
+    for (j in seq_len(nrow(edges))) {
+      u <- edges[j, 1L]
+      v <- edges[j, 2L]
+      grad[u, ] <- grad[u, ] + coeff * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - coeff * unit.vecs[j, ]
+    }
+  }
+
+  list(
+    energy = energy,
+    gradient = grad,
+    gradient_norm = sqrt(sum(grad^2)),
+    path_lengths = path.lengths,
+    target = target
+  )
+}
+
+grip.lgkk.path.lengths <- function(coords,
+                                   prepared,
+                                   edge_length_epsilon = 1e-8) {
+  grip.geodesic.kk.path.lengths(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+}
+
+grip.lgkk.fit.scale <- function(path.lengths,
+                                graph.distances,
+                                stiffness = 1.0,
+                                distance_floor = 1e-8) {
+  grip.geodesic.kk.fit.scale(
+    path.lengths = path.lengths,
+    graph.distances = graph.distances,
+    stiffness = stiffness,
+    distance_floor = distance_floor
+  )
+}
+
+grip.lgkk.energy.gradient <- function(coords,
+                                      prepared,
+                                      scale.L0,
+                                      stiffness = 1.0,
+                                      distance_floor = 1e-8,
+                                      edge_length_epsilon = 1e-8) {
+  grip.geodesic.kk.energy.gradient(
+    coords = coords,
+    prepared = prepared,
+    scale.L0 = scale.L0,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon
+  )
+}
+
+grip.geodesic.kk.score.stats <- function(coords,
+                                         prepared,
+                                         stiffness = 1.0,
+                                         distance_floor = 1e-8,
+                                         edge_length_epsilon = 1e-8,
+                                         scale_mode = c("profiled", "user"),
+                                         scale.L0 = NULL) {
+  scale_mode <- match.arg(scale_mode)
+  grip.validate.scalar(stiffness, "stiffness", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  if (identical(scale_mode, "user")) {
+    grip.validate.scalar(scale.L0, "scale.L0", lower = 0, open.lower = TRUE)
+  }
+
+  g <- as.double(prepared$pair_graph_distance)
+  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
+
+  if (length(g) == 0L) {
+    return(list(
+      n.pairs = 0L,
+      scale_mode = scale_mode,
+      scale.L0 = if (identical(scale_mode, "user")) as.double(scale.L0) else NA_real_,
+      scale.L = NA_real_,
+      energy = NA_real_,
+      weighted.rmse = NA_real_,
+      weighted.rel.rmse = NA_real_,
+      mean.abs.path.error = NA_real_,
+      mean.rel.path.error = NA_real_,
+      path.lengths = numeric(0L),
+      target = numeric(0L),
+      residual = numeric(0L),
+      relative.residual = numeric(0L),
+      stiffnesses = kk
+    ))
+  }
+
+  h <- grip.geodesic.kk.path.lengths(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  if (identical(scale_mode, "profiled")) {
+    scale.L0 <- grip.geodesic.kk.fit.scale(
+      path.lengths = h,
+      graph.distances = g,
+      stiffness = stiffness,
+      distance_floor = distance_floor
+    )
+  }
+  if (!is.finite(scale.L0)) {
+    stop("failed to fit a geodesic KK scale")
+  }
+
+  target <- scale.L0 * g
+  resid <- h - target
+  rel.resid <- resid / pmax(target, distance_floor)
+
+  list(
+    n.pairs = length(g),
+    scale_mode = scale_mode,
+    scale.L0 = scale.L0,
+    scale.L = scale.L0 * prepared$graph_diameter,
+    energy = 0.5 * sum(kk * resid^2),
+    weighted.rmse = sqrt(sum(kk * resid^2) / sum(kk)),
+    weighted.rel.rmse = sqrt(sum(kk * rel.resid^2) / sum(kk)),
+    mean.abs.path.error = mean(abs(resid)),
+    mean.rel.path.error = mean(abs(rel.resid)),
+    path.lengths = h,
+    target = target,
+    residual = resid,
+    relative.residual = rel.resid,
+    stiffnesses = kk
+  )
+}
+
+grip.geodesic.kk.pair.details <- function(prepared, stats) {
+  data.frame(
+    i = prepared$pair_matrix[, 1L],
+    j = prepared$pair_matrix[, 2L],
+    graph.distance = as.double(prepared$pair_graph_distance),
+    embedded.path.length = stats$path.lengths,
+    target.length = stats$target,
+    residual = stats$residual,
+    relative.residual = stats$relative.residual,
+    stiffness = stats$stiffnesses,
+    stringsAsFactors = FALSE
+  )
+}
+
+grip.geodesic.kk.evaluate.state <- function(coords,
+                                            prepared,
+                                            stiffness = 1.0,
+                                            distance_floor = 1e-8,
+                                            edge_length_epsilon = 1e-8,
+                                            scale_mode = c("fixed", "profiled"),
+                                            scale.L0 = NULL) {
+  scale_mode <- match.arg(scale_mode)
+  if (identical(scale_mode, "profiled")) {
+    scale.L0 <- grip.geodesic.kk.fit.scale(
+      path.lengths = grip.geodesic.kk.path.lengths(
+        coords = coords,
+        prepared = prepared,
+        edge_length_epsilon = edge_length_epsilon
+      ),
+      graph.distances = prepared$pair_graph_distance,
+      stiffness = stiffness,
+      distance_floor = distance_floor
+    )
+    if (!is.finite(scale.L0)) {
+      stop("failed to fit a geodesic KK scale")
+    }
+  } else {
+    grip.validate.scalar(scale.L0, "scale.L0", lower = 0, open.lower = TRUE)
+  }
+
+  state <- grip.geodesic.kk.energy.gradient(
+    coords = coords,
+    prepared = prepared,
+    scale.L0 = scale.L0,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  state$scale.L0 <- scale.L0
+  state
+}
+
 #' Prepare sparse landmark-geodesic KK data for repeated layout evaluation
 #'
 #' \code{grip.prepare.landmark.geodesic.kk()} builds the deterministic shortest
@@ -780,117 +1203,104 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
                                               edge_weights = NULL,
                                               local_nbrs = 20L,
                                               landmark_count = 8L) {
-  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
-    n <- max(as.integer(edges), na.rm = TRUE)
-  }
-  if (is.null(n) && !is.null(adj_list)) {
-    n <- length(adj_list)
-  }
-  if (is.null(n) || !is.finite(n) || n <= 0L) {
-    stop("n must be provided or inferable from edges/adj_list")
-  }
-  n <- as.integer(n)
+  local_nbrs <- grip.validate.count(local_nbrs, "local_nbrs")
+  landmark_count <- grip.validate.count(landmark_count, "landmark_count")
 
-  if (!is.numeric(local_nbrs) || length(local_nbrs) != 1L || !is.finite(local_nbrs)) {
-    stop("local_nbrs must be a single finite numeric value")
-  }
-  if (!is.numeric(landmark_count) || length(landmark_count) != 1L || !is.finite(landmark_count)) {
-    stop("landmark_count must be a single finite numeric value")
-  }
-  local_nbrs <- as.integer(round(local_nbrs))
-  landmark_count <- as.integer(round(landmark_count))
-  if (is.na(local_nbrs) || local_nbrs < 0L) {
-    stop("local_nbrs must be >= 0")
-  }
-  if (is.na(landmark_count) || landmark_count < 0L) {
-    stop("landmark_count must be >= 0")
-  }
-
-  validated <- grip.validate.layout.inputs(
+  base <- grip.prepare.geodesic.kk.base(
     edges = edges,
     n = n,
     adj_list = adj_list,
     weight_list = weight_list,
     edge_weights = edge_weights,
-    dim = 2L,
-    placement = "barycenter",
-    seed = 1L
+    caller = "grip.prepare.landmark.geodesic.kk"
+  )
+  pair.matrix <- grip.landmark.geodesic.kk.pair.matrix(
+    dist.matrix = base$distance_matrix,
+    local_nbrs = local_nbrs,
+    landmark_count = landmark_count
+  )
+  cache <- grip.build.geodesic.kk.path.cache(
+    pair.matrix = pair.matrix,
+    parents = base$parents,
+    dist.matrix = base$distance_matrix
   )
 
-  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
-  adj.list <- sorted$adj_list
-  weight.list <- sorted$weight_list
-  edges <- grip.edges.from.adj.list(adj.list)
-
-  trees <- lapply(seq_len(validated$n), function(source) {
-    grip.shortest.path.tree(adj.list, weight.list, source)
-  })
-  dist.matrix <- do.call(rbind, lapply(trees, `[[`, "dist"))
-  finite.mask <- row(dist.matrix) != col(dist.matrix)
-  if (any(!is.finite(dist.matrix[finite.mask]))) {
-    stop("grip.prepare.landmark.geodesic.kk() currently requires a connected graph")
-  }
-
-  pair.keys <- character(0L)
-  pair.list <- vector("list", validated$n)
-  for (source in seq_len(validated$n)) {
-    local <- grip.closest.active.vertices(dist.matrix[source, ], source, local_nbrs)
-    landmarks <- grip.farthest.landmarks(source, dist.matrix, landmark_count)
-    chosen <- unique(c(local, landmarks))
-    chosen <- chosen[chosen != source]
-    if (length(chosen) == 0L) {
-      pair.list[[source]] <- matrix(integer(), ncol = 2L)
-      next
-    }
-    pairs <- cbind(pmin(source, chosen), pmax(source, chosen))
-    pairs <- unique(pairs)
-    pair.list[[source]] <- pairs
-    pair.keys <- c(pair.keys, paste(pairs[, 1L], pairs[, 2L], sep = "-"))
-  }
-
-  if (length(pair.keys) == 0L) {
-    pair.matrix <- matrix(integer(), ncol = 2L)
-  } else {
-    key.parts <- unique(pair.keys)
-    pair.matrix <- do.call(rbind, strsplit(key.parts, "-", fixed = TRUE))
-    pair.matrix <- matrix(as.integer(pair.matrix), ncol = 2L)
-    pair.matrix <- pair.matrix[order(pair.matrix[, 1L], pair.matrix[, 2L]), , drop = FALSE]
-  }
-
-  parents <- lapply(trees, `[[`, "parent")
-  path.vertices <- vector("list", nrow(pair.matrix))
-  path.edges <- vector("list", nrow(pair.matrix))
-  pair.graph.distance <- numeric(nrow(pair.matrix))
-  for (i in seq_len(nrow(pair.matrix))) {
-    src <- pair.matrix[i, 1L]
-    dst <- pair.matrix[i, 2L]
-    path.vertices[[i]] <- grip.reconstruct.path.vertices(parents[[src]], src, dst)
-    if (length(path.vertices[[i]]) >= 2L) {
-      path.edges[[i]] <- cbind(
-        path.vertices[[i]][-length(path.vertices[[i]])],
-        path.vertices[[i]][-1L]
-      )
-    } else {
-      path.edges[[i]] <- matrix(integer(), ncol = 2L)
-    }
-    pair.graph.distance[[i]] <- dist.matrix[src, dst]
-  }
-
   out <- list(
-    n = validated$n,
-    edges = edges,
-    adj_list = adj.list,
-    weight_list = weight.list,
+    n = base$n,
+    edges = base$edges,
+    adj_list = base$adj_list,
+    weight_list = base$weight_list,
     local_nbrs = local_nbrs,
     landmark_count = landmark_count,
     pair_matrix = pair.matrix,
-    pair_graph_distance = as.double(pair.graph.distance),
-    path_vertices = path.vertices,
-    path_edges = path.edges,
-    graph_diameter = max(dist.matrix),
-    distance_matrix = dist.matrix
+    pair_graph_distance = cache$pair_graph_distance,
+    path_vertices = cache$path_vertices,
+    path_edges = cache$path_edges,
+    graph_diameter = base$graph_diameter,
+    distance_matrix = base$distance_matrix,
+    pair_mode = "landmark_sparse"
   )
-  class(out) <- "grip_lgkk_prepared"
+  class(out) <- c("grip_lgkk_prepared", "grip_geodesic_kk_prepared")
+  out
+}
+
+#' Prepare full geodesic KK data for repeated layout evaluation
+#'
+#' \code{grip.prepare.geodesic.kk()} builds the deterministic all-pairs shortest
+#' path cache needed to evaluate or optimize the full geodesic Kamada--Kawai
+#' objective repeatedly on the same connected graph.
+#'
+#' For each unordered vertex pair, the prepared object stores one deterministic
+#' chosen graph shortest path, its graph distance, and the corresponding path
+#' edge sequence. This is the full all-pairs analogue of the sparse landmark
+#' cache used by \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
+#'   \code{length(adj_list)}. If omitted with \code{edges}, defaults to
+#'   \code{max(edges)}.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#'
+#' @return A list with the all-pairs graph distances, chosen paths, and cached
+#'   path-edge realizations. The object has class \code{"grip_gkk_prepared"}.
+#' @export
+grip.prepare.geodesic.kk <- function(edges = NULL,
+                                     n = NULL,
+                                     adj_list = NULL,
+                                     weight_list = NULL,
+                                     edge_weights = NULL) {
+  base <- grip.prepare.geodesic.kk.base(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    caller = "grip.prepare.geodesic.kk"
+  )
+  pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
+  cache <- grip.build.geodesic.kk.path.cache(
+    pair.matrix = pair.matrix,
+    parents = base$parents,
+    dist.matrix = base$distance_matrix
+  )
+
+  out <- list(
+    n = base$n,
+    edges = base$edges,
+    adj_list = base$adj_list,
+    weight_list = base$weight_list,
+    pair_matrix = pair.matrix,
+    pair_graph_distance = cache$pair_graph_distance,
+    path_vertices = cache$path_vertices,
+    path_edges = cache$path_edges,
+    graph_diameter = base$graph_diameter,
+    distance_matrix = base$distance_matrix,
+    pair_mode = "all_pairs"
+  )
+  class(out) <- c("grip_gkk_prepared", "grip_geodesic_kk_prepared")
   out
 }
 
@@ -954,24 +1364,22 @@ grip.score.landmark.geodesic.kk <- function(coords,
       landmark_count = landmark_count
     )
   }
-  if (!inherits(prepared, "grip_lgkk_prepared")) {
-    stop("prepared must be NULL or an object from grip.prepare.landmark.geodesic.kk()")
-  }
-  if (nrow(coords) != prepared$n) {
-    stop("nrow(coords) must match the graph size stored in prepared")
-  }
-  if (!is.numeric(stiffness) || length(stiffness) != 1L || !is.finite(stiffness) || stiffness <= 0) {
-    stop("stiffness must be a single finite value > 0")
-  }
-  if (!is.numeric(distance_floor) || length(distance_floor) != 1L || !is.finite(distance_floor) || distance_floor <= 0) {
-    stop("distance_floor must be a single finite value > 0")
-  }
-  if (!is.numeric(edge_length_epsilon) || length(edge_length_epsilon) != 1L || !is.finite(edge_length_epsilon) || edge_length_epsilon < 0) {
-    stop("edge_length_epsilon must be a single finite value >= 0")
-  }
+  prepared <- grip.validate.prepared.object(
+    prepared = prepared,
+    class_name = "grip_lgkk_prepared",
+    prepare_fun_name = "grip.prepare.landmark.geodesic.kk",
+    coords = coords
+  )
 
-  g <- as.double(prepared$pair_graph_distance)
-  if (length(g) == 0L) {
+  stats <- grip.geodesic.kk.score.stats(
+    coords = coords,
+    prepared = prepared,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon,
+    scale_mode = "profiled"
+  )
+  if (stats$n.pairs == 0L) {
     out <- data.frame(
       n.vertices = prepared$n,
       n.pairs = 0L,
@@ -992,123 +1400,121 @@ grip.score.landmark.geodesic.kk <- function(coords,
     return(out)
   }
 
-  h <- vapply(prepared$path_vertices, function(path) {
-    grip.path.euclidean.length(coords, path, edge_length_epsilon = edge_length_epsilon)
-  }, numeric(1L))
-  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
-  denom <- sum(kk * g * g)
-  scale.L0 <- if (denom > 0) sum(kk * g * h) / denom else NA_real_
-  target <- scale.L0 * g
-  resid <- h - target
-  rel.resid <- resid / pmax(target, distance_floor)
-
   out <- data.frame(
     n.vertices = prepared$n,
-    n.pairs = length(g),
+    n.pairs = stats$n.pairs,
     local.nbrs = prepared$local_nbrs,
     landmark.count = prepared$landmark_count,
-    scale.L0 = scale.L0,
-    scale.L = scale.L0 * prepared$graph_diameter,
-    lgkk.energy = 0.5 * sum(kk * resid^2),
-    lgkk.weighted.rmse = sqrt(sum(kk * resid^2) / sum(kk)),
-    lgkk.weighted.rel.rmse = sqrt(sum(kk * rel.resid^2) / sum(kk)),
-    lgkk.mean.abs.path.error = mean(abs(resid)),
-    lgkk.mean.rel.path.error = mean(abs(rel.resid)),
+    scale.L0 = stats$scale.L0,
+    scale.L = stats$scale.L,
+    lgkk.energy = stats$energy,
+    lgkk.weighted.rmse = stats$weighted.rmse,
+    lgkk.weighted.rel.rmse = stats$weighted.rel.rmse,
+    lgkk.mean.abs.path.error = stats$mean.abs.path.error,
+    lgkk.mean.rel.path.error = stats$mean.rel.path.error,
     stringsAsFactors = FALSE
   )
 
   if (isTRUE(return_pair_details)) {
-    out$pair.details <- list(data.frame(
-      i = prepared$pair_matrix[, 1L],
-      j = prepared$pair_matrix[, 2L],
-      graph.distance = g,
-      embedded.path.length = h,
-      target.length = target,
-      residual = resid,
-      relative.residual = rel.resid,
-      stiffness = kk,
-      stringsAsFactors = FALSE
-    ))
+    out$pair.details <- list(grip.geodesic.kk.pair.details(prepared, stats))
   }
   out
 }
 
-grip.lgkk.path.lengths <- function(coords,
-                                   prepared,
-                                   edge_length_epsilon = 1e-8) {
-  vapply(prepared$path_vertices, function(path) {
-    grip.path.euclidean.length(
-      coords,
-      path,
-      edge_length_epsilon = edge_length_epsilon
+#' Score a layout under the full geodesic KK energy
+#'
+#' \code{grip.score.geodesic.kk()} evaluates a layout using the full all-pairs
+#' geodesic Kamada--Kawai objective. Distances are measured along fixed chosen
+#' graph shortest paths, not by straight-line chord length.
+#'
+#' By default the global target scale \code{L0} is fit analytically for the
+#' supplied layout. Alternatively, the score can be evaluated at a user-supplied
+#' scale.
+#'
+#' @param coords Numeric coordinate matrix with 2 or 3 columns.
+#' @param prepared Optional object returned by
+#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param stiffness Global stiffness constant \(K\).
+#' @param distance_floor Small positive floor used in
+#'   \code{k_ij = K / max(g_ij, distance_floor)^2}.
+#' @param edge_length_epsilon Small positive stabilizer added inside each
+#'   embedded edge length.
+#' @param scale_mode Either \code{"profiled"} to fit \code{L0} analytically
+#'   for the supplied layout or \code{"user"} to use \code{scale.L0}.
+#' @param scale.L0 Optional user-supplied geodesic KK scale, required when
+#'   \code{scale_mode = "user"}.
+#' @param return_pair_details If \code{TRUE}, include pairwise path lengths and
+#'   residuals in a list column.
+#'
+#' @return A one-row data frame with the fitted or user-supplied scale factor
+#'   and full geodesic KK energy summary.
+#' @export
+grip.score.geodesic.kk <- function(coords,
+                                   prepared = NULL,
+                                   edges = NULL,
+                                   n = NULL,
+                                   adj_list = NULL,
+                                   weight_list = NULL,
+                                   edge_weights = NULL,
+                                   stiffness = 1.0,
+                                   distance_floor = 1e-8,
+                                   edge_length_epsilon = 1e-8,
+                                   scale_mode = c("profiled", "user"),
+                                   scale.L0 = NULL,
+                                   return_pair_details = FALSE) {
+  coords <- grip.validate.coords(coords)
+  scale_mode <- match.arg(scale_mode)
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.geodesic.kk(
+      edges = edges,
+      n = if (is.null(n)) nrow(coords) else n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
     )
-  }, numeric(1L))
-}
-
-grip.lgkk.fit.scale <- function(path.lengths,
-                                graph.distances,
-                                stiffness = 1.0,
-                                distance_floor = 1e-8) {
-  kk <- as.double(stiffness) / pmax(as.double(graph.distances), as.double(distance_floor))^2
-  denom <- sum(kk * graph.distances * graph.distances)
-  if (!is.finite(denom) || denom <= 0) {
-    return(NA_real_)
   }
-  sum(kk * graph.distances * path.lengths) / denom
-}
-
-grip.lgkk.energy.gradient <- function(coords,
-                                      prepared,
-                                      scale.L0,
-                                      stiffness = 1.0,
-                                      distance_floor = 1e-8,
-                                      edge_length_epsilon = 1e-8) {
-  g <- as.double(prepared$pair_graph_distance)
-  n.pairs <- length(g)
-  kk <- as.double(stiffness) / pmax(g, as.double(distance_floor))^2
-  target <- as.double(scale.L0) * g
-  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
-  energy <- 0
-  path.lengths <- numeric(n.pairs)
-
-  if (n.pairs == 0L) {
-    return(list(
-      energy = energy,
-      gradient = grad,
-      gradient_norm = 0,
-      path_lengths = path.lengths,
-      target = target
-    ))
-  }
-
-  for (i in seq_len(n.pairs)) {
-    edges <- prepared$path_edges[[i]]
-    if (nrow(edges) == 0L) {
-      next
-    }
-    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
-    edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
-    h <- sum(edge.lengths)
-    path.lengths[[i]] <- h
-    resid <- h - target[[i]]
-    coeff <- kk[[i]] * resid
-    energy <- energy + 0.5 * kk[[i]] * resid^2
-    unit.vecs <- diffs / edge.lengths
-    for (j in seq_len(nrow(edges))) {
-      u <- edges[j, 1L]
-      v <- edges[j, 2L]
-      grad[u, ] <- grad[u, ] + coeff * unit.vecs[j, ]
-      grad[v, ] <- grad[v, ] - coeff * unit.vecs[j, ]
-    }
-  }
-
-  list(
-    energy = energy,
-    gradient = grad,
-    gradient_norm = sqrt(sum(grad^2)),
-    path_lengths = path.lengths,
-    target = target
+  prepared <- grip.validate.prepared.object(
+    prepared = prepared,
+    class_name = "grip_gkk_prepared",
+    prepare_fun_name = "grip.prepare.geodesic.kk",
+    coords = coords
   )
+
+  stats <- grip.geodesic.kk.score.stats(
+    coords = coords,
+    prepared = prepared,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon,
+    scale_mode = scale_mode,
+    scale.L0 = scale.L0
+  )
+
+  out <- data.frame(
+    n.vertices = prepared$n,
+    n.pairs = stats$n.pairs,
+    pair.mode = if (!is.null(prepared$pair_mode)) prepared$pair_mode else "all_pairs",
+    scale.mode = stats$scale_mode,
+    scale.L0 = stats$scale.L0,
+    scale.L = stats$scale.L,
+    gkk.energy = stats$energy,
+    gkk.weighted.rmse = stats$weighted.rmse,
+    gkk.weighted.rel.rmse = stats$weighted.rel.rmse,
+    gkk.mean.abs.path.error = stats$mean.abs.path.error,
+    gkk.mean.rel.path.error = stats$mean.rel.path.error,
+    stringsAsFactors = FALSE
+  )
+
+  if (isTRUE(return_pair_details)) {
+    out$pair.details <- list(grip.geodesic.kk.pair.details(prepared, stats))
+  }
+  out
 }
 
 #' Optimize a layout under the landmark geodesic KK energy
@@ -1188,42 +1594,22 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
       landmark_count = landmark_count
     )
   }
-  if (!inherits(prepared, "grip_lgkk_prepared")) {
-    stop("prepared must be NULL or an object from grip.prepare.landmark.geodesic.kk()")
-  }
-  if (nrow(coords) != prepared$n) {
-    stop("nrow(coords) must match the graph size stored in prepared")
-  }
+  prepared <- grip.validate.prepared.object(
+    prepared = prepared,
+    class_name = "grip_lgkk_prepared",
+    prepare_fun_name = "grip.prepare.landmark.geodesic.kk",
+    coords = coords
+  )
 
-  validate_scalar <- function(x, name, lower = -Inf, upper = Inf, open.lower = FALSE, open.upper = FALSE) {
-    if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
-      stop(sprintf("%s must be a single finite numeric value", name))
-    }
-    if ((open.lower && x <= lower) || (!open.lower && x < lower) ||
-        (open.upper && x >= upper) || (!open.upper && x > upper)) {
-      lower.txt <- if (is.finite(lower)) {
-        if (open.lower) sprintf("(%s", format(lower, digits = 16)) else sprintf("[%s", format(lower, digits = 16))
-      } else {
-        "(-Inf"
-      }
-      upper.txt <- if (is.finite(upper)) {
-        if (open.upper) sprintf("%s)", format(upper, digits = 16)) else sprintf("%s]", format(upper, digits = 16))
-      } else {
-        "Inf)"
-      }
-      stop(sprintf("%s must lie in %s, %s", name, lower.txt, upper.txt))
-    }
-  }
-
-  validate_scalar(max_iter, "max_iter", lower = 0)
-  validate_scalar(stiffness, "stiffness", lower = 0, open.lower = TRUE)
-  validate_scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
-  validate_scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
-  validate_scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
-  validate_scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
-  validate_scalar(armijo_factor, "armijo_factor", lower = 0)
-  validate_scalar(grad_tol, "grad_tol", lower = 0)
-  validate_scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(max_iter, "max_iter", lower = 0)
+  grip.validate.scalar(stiffness, "stiffness", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  grip.validate.scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  grip.validate.scalar(armijo_factor, "armijo_factor", lower = 0)
+  grip.validate.scalar(grad_tol, "grad_tol", lower = 0)
+  grip.validate.scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
   max_iter <- as.integer(round(max_iter))
   if (is.na(max_iter) || max_iter < 0L) {
     stop("max_iter must be a non-negative integer")
@@ -1253,12 +1639,12 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
   }
 
   current <- coords
-  initial.path.lengths <- grip.lgkk.path.lengths(
+  initial.path.lengths <- grip.geodesic.kk.path.lengths(
     current,
     prepared,
     edge_length_epsilon = edge_length_epsilon
   )
-  scale.L0 <- grip.lgkk.fit.scale(
+  scale.L0 <- grip.geodesic.kk.fit.scale(
     path.lengths = initial.path.lengths,
     graph.distances = prepared$pair_graph_distance,
     stiffness = stiffness,
@@ -1270,7 +1656,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
 
   trace.rows <- vector("list", max_iter + 1L)
   accepted.frames <- list(current)
-  state <- grip.lgkk.energy.gradient(
+  state <- grip.geodesic.kk.energy.gradient(
     current,
     prepared = prepared,
     scale.L0 = scale.L0,
@@ -1303,7 +1689,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
       if (isTRUE(recenter)) {
         proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
       }
-      proposal.state <- grip.lgkk.energy.gradient(
+      proposal.state <- grip.geodesic.kk.energy.gradient(
         proposal,
         prepared = prepared,
         scale.L0 = scale.L0,
@@ -1348,6 +1734,278 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
     stiffness = stiffness,
     distance_floor = distance_floor,
     edge_length_epsilon = edge_length_epsilon
+  )
+  if (!isTRUE(return_trace)) {
+    trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
+    accepted.frames <- list(current)
+  }
+
+  list(
+    coords = current,
+    trace = trace.df,
+    frames = accepted.frames,
+    prepared = prepared,
+    score = score
+  )
+}
+
+#' Optimize a layout under the full geodesic KK energy
+#'
+#' \code{grip.optimize.geodesic.kk()} applies a deterministic gradient-descent
+#' polish under the full all-pairs geodesic Kamada--Kawai objective.
+#'
+#' The optimizer supports three scale policies. With
+#' \code{scale_mode = "fixed_initial"} the target scale is fit once from the
+#' starting layout and then held fixed during optimization, matching the current
+#' LGKK prototype behavior. With \code{scale_mode = "profiled"} the scale is
+#' re-fit analytically at each evaluation. With \code{scale_mode = "user"}, a
+#' fixed user-supplied \code{scale.L0} is used throughout.
+#'
+#' @param coords Numeric coordinate matrix with 2 or 3 columns.
+#' @param prepared Optional object returned by
+#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param max_iter Maximum number of gradient-descent iterations.
+#' @param stiffness Global stiffness constant \(K\).
+#' @param distance_floor Small positive floor used in
+#'   \code{k_ij = K / max(g_ij, distance_floor)^2}.
+#' @param edge_length_epsilon Small positive stabilizer added inside each
+#'   embedded edge length.
+#' @param initial_step Initial line-search step size.
+#' @param step_shrink Multiplicative shrink factor in `(0, 1)` for backtracking.
+#' @param armijo_factor Non-negative Armijo decrease constant.
+#' @param grad_tol Non-negative stopping tolerance on the gradient norm.
+#' @param min_step Positive minimum accepted line-search step before giving up.
+#' @param recenter If \code{TRUE}, recenter the layout to zero mean after each
+#'   accepted step.
+#' @param return_trace If \code{TRUE}, include per-iteration diagnostics and the
+#'   accepted intermediate coordinate frames.
+#' @param scale_mode One of \code{"fixed_initial"}, \code{"profiled"}, or
+#'   \code{"user"}.
+#' @param scale.L0 Optional user-supplied fixed scale, required when
+#'   \code{scale_mode = "user"}.
+#'
+#' @return A list with \code{coords}, \code{trace}, \code{frames},
+#'   \code{prepared}, and \code{score}.
+#' @export
+grip.optimize.geodesic.kk <- function(coords,
+                                      prepared = NULL,
+                                      edges = NULL,
+                                      n = NULL,
+                                      adj_list = NULL,
+                                      weight_list = NULL,
+                                      edge_weights = NULL,
+                                      max_iter = 16L,
+                                      stiffness = 1.0,
+                                      distance_floor = 1e-8,
+                                      edge_length_epsilon = 1e-8,
+                                      initial_step = 1.0,
+                                      step_shrink = 0.5,
+                                      armijo_factor = 1e-4,
+                                      grad_tol = 1e-8,
+                                      min_step = 1e-8,
+                                      recenter = TRUE,
+                                      return_trace = FALSE,
+                                      scale_mode = c("fixed_initial", "profiled", "user"),
+                                      scale.L0 = NULL) {
+  coords <- grip.validate.coords(coords)
+  scale_mode <- match.arg(scale_mode)
+  if (is.null(prepared)) {
+    prepared <- grip.prepare.geodesic.kk(
+      edges = edges,
+      n = if (is.null(n)) nrow(coords) else n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
+    )
+  }
+  prepared <- grip.validate.prepared.object(
+    prepared = prepared,
+    class_name = "grip_gkk_prepared",
+    prepare_fun_name = "grip.prepare.geodesic.kk",
+    coords = coords
+  )
+
+  grip.validate.scalar(max_iter, "max_iter", lower = 0)
+  grip.validate.scalar(stiffness, "stiffness", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  grip.validate.scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  grip.validate.scalar(armijo_factor, "armijo_factor", lower = 0)
+  grip.validate.scalar(grad_tol, "grad_tol", lower = 0)
+  grip.validate.scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
+  max_iter <- as.integer(round(max_iter))
+  if (is.na(max_iter) || max_iter < 0L) {
+    stop("max_iter must be a non-negative integer")
+  }
+  if (!is.logical(recenter) || length(recenter) != 1L || is.na(recenter)) {
+    stop("recenter must be TRUE or FALSE")
+  }
+  if (!is.logical(return_trace) || length(return_trace) != 1L || is.na(return_trace)) {
+    stop("return_trace must be TRUE or FALSE")
+  }
+  if (identical(scale_mode, "user")) {
+    grip.validate.scalar(scale.L0, "scale.L0", lower = 0, open.lower = TRUE)
+  }
+
+  current <- coords
+  fixed.scale.L0 <- NULL
+  if (length(prepared$pair_graph_distance) > 0L) {
+    if (identical(scale_mode, "fixed_initial")) {
+      fixed.scale.L0 <- grip.geodesic.kk.fit.scale(
+        path.lengths = grip.geodesic.kk.path.lengths(
+          coords = current,
+          prepared = prepared,
+          edge_length_epsilon = edge_length_epsilon
+        ),
+        graph.distances = prepared$pair_graph_distance,
+        stiffness = stiffness,
+        distance_floor = distance_floor
+      )
+      if (!is.finite(fixed.scale.L0)) {
+        stop("failed to fit an initial GKK scale")
+      }
+    } else if (identical(scale_mode, "user")) {
+      fixed.scale.L0 <- as.double(scale.L0)
+    }
+  } else if (identical(scale_mode, "user")) {
+    fixed.scale.L0 <- as.double(scale.L0)
+  }
+
+  score.mode <- if (identical(scale_mode, "profiled")) "profiled" else "user"
+  score.scale <- if (identical(score.mode, "user")) fixed.scale.L0 else NULL
+
+  if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
+    score <- grip.score.geodesic.kk(
+      coords = coords,
+      prepared = prepared,
+      stiffness = stiffness,
+      distance_floor = distance_floor,
+      edge_length_epsilon = edge_length_epsilon,
+      scale_mode = score.mode,
+      scale.L0 = score.scale
+    )
+    return(list(
+      coords = coords,
+      trace = data.frame(),
+      frames = list(coords),
+      prepared = prepared,
+      score = score
+    ))
+  }
+
+  trace.rows <- vector("list", max_iter + 1L)
+  accepted.frames <- list(current)
+  state <- if (identical(scale_mode, "profiled")) {
+    grip.geodesic.kk.evaluate.state(
+      coords = current,
+      prepared = prepared,
+      stiffness = stiffness,
+      distance_floor = distance_floor,
+      edge_length_epsilon = edge_length_epsilon,
+      scale_mode = "profiled"
+    )
+  } else {
+    grip.geodesic.kk.evaluate.state(
+      coords = current,
+      prepared = prepared,
+      stiffness = stiffness,
+      distance_floor = distance_floor,
+      edge_length_epsilon = edge_length_epsilon,
+      scale_mode = "fixed",
+      scale.L0 = fixed.scale.L0
+    )
+  }
+  trace.rows[[1L]] <- data.frame(
+    iteration = 0L,
+    energy = state$energy,
+    gradient_norm = state$gradient_norm,
+    step = NA_real_,
+    accepted = TRUE,
+    scale.L0 = state$scale.L0,
+    stringsAsFactors = FALSE
+  )
+  used <- 1L
+
+  for (iter in seq_len(max_iter)) {
+    if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
+      break
+    }
+    step <- as.double(initial_step)
+    accepted <- FALSE
+    candidate <- current
+    candidate.state <- state
+
+    while (is.finite(step) && step >= min_step) {
+      proposal <- current - step * state$gradient
+      if (isTRUE(recenter)) {
+        proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
+      }
+      proposal.state <- if (identical(scale_mode, "profiled")) {
+        grip.geodesic.kk.evaluate.state(
+          coords = proposal,
+          prepared = prepared,
+          stiffness = stiffness,
+          distance_floor = distance_floor,
+          edge_length_epsilon = edge_length_epsilon,
+          scale_mode = "profiled"
+        )
+      } else {
+        grip.geodesic.kk.evaluate.state(
+          coords = proposal,
+          prepared = prepared,
+          stiffness = stiffness,
+          distance_floor = distance_floor,
+          edge_length_epsilon = edge_length_epsilon,
+          scale_mode = "fixed",
+          scale.L0 = fixed.scale.L0
+        )
+      }
+      target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
+      if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
+        candidate <- proposal
+        candidate.state <- proposal.state
+        accepted <- TRUE
+        break
+      }
+      step <- step * step_shrink
+    }
+
+    used <- used + 1L
+    trace.rows[[used]] <- data.frame(
+      iteration = iter,
+      energy = if (accepted) candidate.state$energy else state$energy,
+      gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
+      step = if (accepted) step else NA_real_,
+      accepted = accepted,
+      scale.L0 = if (accepted) candidate.state$scale.L0 else state$scale.L0,
+      stringsAsFactors = FALSE
+    )
+
+    if (!accepted) {
+      break
+    }
+
+    current <- candidate
+    state <- candidate.state
+    accepted.frames[[length(accepted.frames) + 1L]] <- current
+  }
+
+  trace.df <- do.call(rbind, trace.rows[seq_len(used)])
+  score <- grip.score.geodesic.kk(
+    coords = current,
+    prepared = prepared,
+    stiffness = stiffness,
+    distance_floor = distance_floor,
+    edge_length_epsilon = edge_length_epsilon,
+    scale_mode = score.mode,
+    scale.L0 = score.scale
   )
   if (!isTRUE(return_trace)) {
     trace.df <- trace.df[, c("iteration", "energy", "gradient_norm", "step", "accepted"), drop = FALSE]
