@@ -128,7 +128,7 @@ test_that("geodesic MDS scoring reports spring and repulsion contributions", {
   )
 })
 
-test_that("optimizer falls back to the R engine and reduces repulsion energy", {
+test_that("compiled optimizer matches the R engine for spring-repulsion GMDS", {
   prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords <- rbind(
     c(0.0, 0.0),
@@ -136,7 +136,7 @@ test_that("optimizer falls back to the R engine and reduces repulsion energy", {
     c(0.4, 0.0),
     c(0.6, 0.0)
   )
-  args <- list(
+  score.args <- list(
     prepared = prepared,
     edge_spring_weight = 0.1,
     repulsion_weight = 0.4,
@@ -145,26 +145,42 @@ test_that("optimizer falls back to the R engine and reduces repulsion energy", {
     repulsion_cap_quantile = 1,
     repulsion_hop_min = 2L
   )
-
-  before <- do.call(grip.score.geodesic.mds, c(list(coords = coords), args))
-  opt <- NULL
-  expect_warning(
-    opt <- do.call(
-      grip.optimize.geodesic.mds,
-      c(
-        list(coords = coords, engine = "cpp", max_iter = 6L, return_trace = TRUE),
-        args
-      )
-    ),
-    "falling back to the R engine"
+  opt.args <- c(
+    score.args,
+    list(
+    initial_step = 0.5,
+    max_iter = 6L,
+    return_trace = TRUE,
+    n_threads = 1L
+    )
   )
-  after <- do.call(grip.score.geodesic.mds, c(list(coords = opt$coords), args))
 
-  expect_true(all(c("edge_spring_energy", "repulsion_energy") %in% names(opt$trace)))
+  before <- do.call(grip.score.geodesic.mds, c(list(coords = coords), score.args))
+  opt.r <- do.call(
+    grip.optimize.geodesic.mds,
+    c(list(coords = coords, engine = "r"), opt.args)
+  )
+  opt.cpp <- NULL
+  expect_no_warning(
+    opt.cpp <- do.call(
+      grip.optimize.geodesic.mds,
+      c(list(coords = coords, engine = "cpp"), opt.args)
+    )
+  )
+  after <- do.call(grip.score.geodesic.mds, c(list(coords = opt.cpp$coords), score.args))
+
+  expect_true(all(c("edge_spring_energy", "repulsion_energy") %in% names(opt.cpp$trace)))
+  expect_true(all(c("edge_spring_weight", "repulsion_weight") %in% names(opt.cpp$trace)))
+  expect_equal(opt.cpp$coords, opt.r$coords, tolerance = 1e-6)
+  expect_equal(opt.cpp$trace$energy, opt.r$trace$energy, tolerance = 1e-6)
+  expect_equal(opt.cpp$trace$edge_spring_energy, opt.r$trace$edge_spring_energy, tolerance = 1e-6)
+  expect_equal(opt.cpp$trace$repulsion_energy, opt.r$trace$repulsion_energy, tolerance = 1e-6)
+  expect_equal(opt.cpp$score$gmds.energy[[1L]], opt.r$score$gmds.energy[[1L]], tolerance = 1e-6)
   expect_lt(after$gmds.energy[[1L]], before$gmds.energy[[1L]])
   expect_lt(after$repulsion.energy[[1L]], before$repulsion.energy[[1L]])
   expect_gt(
-    sqrt(sum((opt$coords[1L, ] - opt$coords[4L, ])^2)),
+    sqrt(sum((opt.cpp$coords[1L, ] - opt.cpp$coords[4L, ])^2)),
     sqrt(sum((coords[1L, ] - coords[4L, ])^2))
   )
+  expect_equal(opt.cpp$n_threads_used, 1L)
 })

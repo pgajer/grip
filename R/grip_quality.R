@@ -3622,10 +3622,10 @@ grip.score.geodesic.mds <- function(coords,
 #' \code{grip.optimize.geodesic.mds()} optimizes a fixed-path geodesic-MDS
 #' objective using deterministic gradient descent with Armijo backtracking. By
 #' default it initializes from classical MDS on the graph geodesic distance
-#' matrix and then runs a compiled optimizer. In this Phase 1 prototype, the
-#' optional graph-edge spring and graph-distance-aware repulsion terms are
-#' implemented in the R optimizer path; requesting either of them forces a
-#' fallback from \code{engine = "cpp"} to \code{engine = "r"}.
+#' matrix and then runs a compiled optimizer. When the flattened all-pairs path
+#' cache is available, the compiled path also supports the optional
+#' graph-edge-spring, graph-distance-aware repulsion, anchor, and smoothness
+#' continuation terms.
 #'
 #' @param coords Optional numeric coordinate matrix with 2 or 3 columns. If
 #'   omitted, coordinates are initialized according to \code{init}.
@@ -3882,16 +3882,14 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   }
 
   if (identical(engine, "cpp")) {
-    if (any(edge.spring.schedule > 0) || any(repulsion.schedule > 0)) {
-      warning("edge_spring_weight/repulsion_weight are currently implemented only in the R engine; falling back to the R engine")
-      engine <- "r"
-    }
-    if (any(smoothness.schedule > 0) &&
+    if ((any(smoothness.schedule > 0) ||
+         any(edge.spring.schedule > 0) ||
+         any(repulsion.schedule > 0)) &&
         (is.null(prepared$flat_pair_edge_offsets) ||
          is.null(prepared$flat_edge_u) ||
          is.null(prepared$flat_edge_v) ||
          is.null(prepared$flat_edge_coeff))) {
-      warning("smoothness regularization requires the flattened cache; falling back to the R engine")
+      warning("graph regularization in the compiled engine requires the flattened cache; falling back to the R engine")
       engine <- "r"
     }
   }
@@ -3901,6 +3899,36 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       grip.flatten.adj.list.zero.based(prepared$adj_list)
     } else {
       list(flat_adj_offsets = integer(), flat_adj_vertices = integer())
+    }
+    graph.edge.u <- if (!is.null(prepared$graph_edge_matrix) && nrow(prepared$graph_edge_matrix) > 0L) {
+      as.integer(prepared$graph_edge_matrix[, 1L] - 1L)
+    } else {
+      integer(0L)
+    }
+    graph.edge.v <- if (!is.null(prepared$graph_edge_matrix) && nrow(prepared$graph_edge_matrix) > 0L) {
+      as.integer(prepared$graph_edge_matrix[, 2L] - 1L)
+    } else {
+      integer(0L)
+    }
+    graph.edge.target <- if (!is.null(prepared$graph_edge_target)) {
+      as.double(prepared$graph_edge_target)
+    } else {
+      numeric(0L)
+    }
+    repulsion.u <- if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
+      as.integer(prepared$repulsion_pair_matrix[, 1L] - 1L)
+    } else {
+      integer(0L)
+    }
+    repulsion.v <- if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
+      as.integer(prepared$repulsion_pair_matrix[, 2L] - 1L)
+    } else {
+      integer(0L)
+    }
+    repulsion.target <- if (!is.null(prepared$repulsion_target)) {
+      as.double(prepared$repulsion_target)
+    } else {
+      numeric(0L)
     }
     opt <- if (!is.null(prepared$flat_pair_edge_offsets) &&
                !is.null(prepared$flat_edge_u) &&
@@ -3927,6 +3955,14 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         smooth_adj_offsets = smooth.flat$flat_adj_offsets,
         smooth_adj_vertices = smooth.flat$flat_adj_vertices,
         smooth_weights = smoothness.schedule,
+        graph_edge_u = graph.edge.u,
+        graph_edge_v = graph.edge.v,
+        graph_edge_target = graph.edge.target,
+        edge_spring_weights = edge.spring.schedule,
+        repulsion_u = repulsion.u,
+        repulsion_v = repulsion.v,
+        repulsion_target = repulsion.target,
+        repulsion_weights = repulsion.schedule,
         n_threads = n_threads
       )
     } else {
@@ -3951,6 +3987,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       out
     }
     final.anchor.weight <- opt$final_anchor_weight
+    final.edge.spring.weight <- if (!is.null(opt$final_edge_spring_weight)) opt$final_edge_spring_weight else 0
+    final.repulsion.weight <- if (!is.null(opt$final_repulsion_weight)) opt$final_repulsion_weight else 0
     score <- grip.score.geodesic.mds(
       coords = opt$coords,
       prepared = prepared,
@@ -3958,8 +3996,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       anchor_coords = anchor.coords,
       anchor_weight = final.anchor.weight,
       smoothness_weight = opt$final_smoothness_weight,
-      edge_spring_weight = 0,
-      repulsion_weight = 0
+      edge_spring_weight = final.edge.spring.weight,
+      repulsion_weight = final.repulsion.weight,
+      repulsion_quantile = repulsion_quantile,
+      repulsion_scale = repulsion_scale,
+      repulsion_cap_quantile = repulsion_cap_quantile,
+      repulsion_hop_min = repulsion_hop_min
     )
     return(list(
       coords = opt$coords,
@@ -3974,8 +4016,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       repulsion_schedule = repulsion.schedule,
       final_anchor_weight = final.anchor.weight,
       final_smoothness_weight = opt$final_smoothness_weight,
-      final_edge_spring_weight = 0,
-      final_repulsion_weight = 0,
+      final_edge_spring_weight = final.edge.spring.weight,
+      final_repulsion_weight = final.repulsion.weight,
       n_threads_used = opt$n_threads_used
     ))
   }

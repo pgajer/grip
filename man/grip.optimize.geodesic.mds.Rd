@@ -164,8 +164,8 @@ A list with \code{coords}, \code{trace}, \code{frames},
 \code{grip.optimize.geodesic.mds()} optimizes a fixed-path geodesic-MDS
 objective using deterministic gradient descent with Armijo backtracking. By
 default it initializes from classical MDS on the graph geodesic distance
-matrix and then runs a compiled optimizer. In this Phase 1 prototype, the
-optional graph-edge spring and graph-distance-aware repulsion terms are
-implemented in the R optimizer path; requesting either of them forces a
-fallback from \code{engine = "cpp"} to \code{engine = "r"}.
+matrix and then runs a compiled optimizer. When the flattened all-pairs path
+cache is available, the compiled path also supports the optional
+graph-edge-spring, graph-distance-aware repulsion, anchor, and smoothness
+continuation terms.
 }
