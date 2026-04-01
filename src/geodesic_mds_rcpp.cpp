@@ -32,6 +32,7 @@ struct GeodesicMdsState {
     double energy;
     double gmdsEnergy;
     double anchorEnergy;
+    double smoothEnergy;
     double gradNorm2;
     std::vector<Point<>> gradient;
 };
@@ -46,6 +47,21 @@ struct FlatGeodesicCacheView {
     size_t pairCount() const
     {
         return pairGraphDistance.size();
+    }
+};
+
+struct FlatSmoothnessView {
+    std::vector<int> offsets;
+    std::vector<int> neighbors;
+
+    bool enabled() const
+    {
+        return !offsets.empty();
+    }
+
+    size_t vertexCount() const
+    {
+        return offsets.empty() ? 0 : offsets.size() - 1;
     }
 };
 
@@ -710,6 +726,35 @@ std::vector<double> resolve_anchor_schedule(Rcpp::Nullable<Rcpp::NumericVector> 
     return out;
 }
 
+FlatSmoothnessView build_flat_smoothness_view(Rcpp::IntegerVector smooth_adj_offsets,
+                                              Rcpp::IntegerVector smooth_adj_vertices,
+                                              int n)
+{
+    FlatSmoothnessView view{
+        Rcpp::as<std::vector<int>>(smooth_adj_offsets),
+        Rcpp::as<std::vector<int>>(smooth_adj_vertices)
+    };
+    if(view.offsets.empty() && view.neighbors.empty())
+        return view;
+
+    if(static_cast<int>(view.offsets.size()) != n + 1)
+        Rcpp::stop("smooth_adj_offsets must have length nrow(coords) + 1");
+    if(view.offsets.front() != 0)
+        Rcpp::stop("smooth_adj_offsets must start at 0");
+    if(view.offsets.back() != static_cast<int>(view.neighbors.size()))
+        Rcpp::stop("smooth_adj_offsets must end at length(smooth_adj_vertices)");
+    for(int i = 0; i < n; i++){
+        if(view.offsets[static_cast<size_t>(i)] > view.offsets[static_cast<size_t>(i + 1)])
+            Rcpp::stop("smooth_adj_offsets must be nondecreasing");
+    }
+    for(size_t i = 0; i < view.neighbors.size(); i++){
+        int v = view.neighbors[i];
+        if(v < 0 || v >= n)
+            Rcpp::stop("smooth_adj_vertices must contain 0-based vertex ids within [0, nrow(coords) - 1]");
+    }
+    return view;
+}
+
 GeodesicMdsState evaluate_state(const std::vector<Point<>> &coords,
                                 const std::vector<GeodesicPairCache> &pairs,
                                 double eps2,
@@ -720,6 +765,7 @@ GeodesicMdsState evaluate_state(const std::vector<Point<>> &coords,
     state.energy = 0.0;
     state.gmdsEnergy = 0.0;
     state.anchorEnergy = 0.0;
+    state.smoothEnergy = 0.0;
     state.gradNorm2 = 0.0;
     state.gradient.assign(coords.size(), Point<>());
     for(size_t i = 0; i < state.gradient.size(); i++)
@@ -815,17 +861,67 @@ void accumulate_flat_pair_range(const std::vector<Point<>> &coords,
     }
 }
 
+void accumulate_flat_smoothness(const std::vector<Point<>> &coords,
+                                const FlatSmoothnessView &smoothness,
+                                double smoothWeight,
+                                std::vector<Point<>> &gradient,
+                                double &smoothEnergy)
+{
+    smoothEnergy = 0.0;
+    if(!smoothness.enabled() || smoothWeight <= 0.0)
+        return;
+
+    std::vector<Point<>> residual(coords.size());
+    for(size_t i = 0; i < residual.size(); i++)
+        residual[i].set_to_zero();
+
+    for(size_t i = 0; i < coords.size(); i++){
+        int begin = smoothness.offsets[i];
+        int end = smoothness.offsets[i + 1];
+        int degree = end - begin;
+        if(degree <= 0)
+            continue;
+
+        Point<> average;
+        average.set_to_zero();
+        for(int edgeIndex = begin; edgeIndex < end; edgeIndex++)
+            average += coords[static_cast<size_t>(smoothness.neighbors[edgeIndex])];
+        average /= static_cast<double>(degree);
+
+        residual[i] = coords[i] - average;
+        smoothEnergy += residual[i].fnorm2();
+        gradient[i] += residual[i] * (2.0 * smoothWeight);
+    }
+
+    for(size_t i = 0; i < coords.size(); i++){
+        int begin = smoothness.offsets[i];
+        int end = smoothness.offsets[i + 1];
+        int degree = end - begin;
+        if(degree <= 0)
+            continue;
+
+        Point<> shared = residual[i] * (2.0 * smoothWeight / static_cast<double>(degree));
+        for(int edgeIndex = begin; edgeIndex < end; edgeIndex++)
+            gradient[static_cast<size_t>(smoothness.neighbors[edgeIndex])] -= shared;
+    }
+
+    smoothEnergy *= smoothWeight;
+}
+
 GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                                      const FlatGeodesicCacheView &cache,
+                                     const FlatSmoothnessView &smoothness,
                                      double eps2,
                                      const std::vector<Point<>> *anchor,
                                      double anchorWeight,
+                                     double smoothWeight,
                                      int requestedThreads)
 {
     GeodesicMdsState state;
     state.energy = 0.0;
     state.gmdsEnergy = 0.0;
     state.anchorEnergy = 0.0;
+    state.smoothEnergy = 0.0;
     state.gradNorm2 = 0.0;
     state.gradient.assign(coords.size(), Point<>());
     for(size_t i = 0; i < state.gradient.size(); i++)
@@ -886,6 +982,12 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
         }
     }
 
+    accumulate_flat_smoothness(coords,
+                               smoothness,
+                               smoothWeight,
+                               state.gradient,
+                               state.smoothEnergy);
+
     if(anchor && anchorWeight > 0.0){
         double rawPenalty = 0.0;
         for(size_t i = 0; i < coords.size(); i++){
@@ -896,7 +998,7 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
         state.anchorEnergy = anchorWeight * rawPenalty;
     }
 
-    state.energy = state.gmdsEnergy + state.anchorEnergy;
+    state.energy = state.gmdsEnergy + state.anchorEnergy + state.smoothEnergy;
     for(size_t i = 0; i < state.gradient.size(); i++)
         state.gradNorm2 += state.gradient[i].fnorm2();
 
@@ -907,20 +1009,24 @@ Rcpp::DataFrame build_trace_df(const std::vector<int> &iteration,
                                const std::vector<double> &energy,
                                const std::vector<double> &gmds_energy,
                                const std::vector<double> &anchor_energy,
+                               const std::vector<double> &smooth_energy,
                                const std::vector<double> &gradient_norm,
                                const std::vector<double> &step,
                                const std::vector<bool> &accepted,
-                               const std::vector<double> &anchor_weight)
+                               const std::vector<double> &anchor_weight,
+                               const std::vector<double> &smooth_weight)
 {
     return Rcpp::DataFrame::create(
         Rcpp::_["iteration"] = iteration,
         Rcpp::_["energy"] = energy,
         Rcpp::_["gmds_energy"] = gmds_energy,
         Rcpp::_["anchor_energy"] = anchor_energy,
+        Rcpp::_["smooth_energy"] = smooth_energy,
         Rcpp::_["gradient_norm"] = gradient_norm,
         Rcpp::_["step"] = step,
         Rcpp::_["accepted"] = accepted,
         Rcpp::_["anchor_weight"] = anchor_weight,
+        Rcpp::_["smooth_weight"] = smooth_weight,
         Rcpp::_["stringsAsFactors"] = false
     );
 }
@@ -993,10 +1099,12 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
 
@@ -1008,10 +1116,12 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(0.0);
+    trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
@@ -1042,10 +1152,12 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(0.0);
+        trace_smooth_weight.push_back(0.0);
 
         if(!accepted)
             break;
@@ -1067,10 +1179,12 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
-                                          trace_anchor_weight),
+                                          trace_anchor_weight,
+                                          trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol())
     );
 }
@@ -1135,10 +1249,12 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
 
@@ -1156,10 +1272,12 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(anchorSchedule[0]);
+    trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
         double iterAnchorWeight = anchorSchedule[static_cast<size_t>(iter)];
@@ -1204,10 +1322,12 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(iterAnchorWeight);
+        trace_smooth_weight.push_back(0.0);
 
         if(!accepted)
             break;
@@ -1229,12 +1349,15 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
-                                          trace_anchor_weight),
+                                          trace_anchor_weight,
+                                          trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol()),
-        Rcpp::_["final_anchor_weight"] = trace_anchor_weight.back()
+        Rcpp::_["final_anchor_weight"] = trace_anchor_weight.back(),
+        Rcpp::_["final_smoothness_weight"] = trace_smooth_weight.back()
     );
 }
 
@@ -1257,6 +1380,9 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     bool return_trace,
     Rcpp::Nullable<Rcpp::NumericMatrix> anchor_coords = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericVector> anchor_weights = R_NilValue,
+    Rcpp::IntegerVector smooth_adj_offsets = Rcpp::IntegerVector(),
+    Rcpp::IntegerVector smooth_adj_vertices = Rcpp::IntegerVector(),
+    Rcpp::Nullable<Rcpp::NumericVector> smooth_weights = R_NilValue,
     int n_threads = 0)
 {
     if(coords.ncol() != 2 && coords.ncol() != 3)
@@ -1317,16 +1443,24 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         anchor = matrix_to_points(anchorMat);
     }
     std::vector<double> anchorSchedule = resolve_anchor_schedule(anchor_weights, max_iter);
+    FlatSmoothnessView smoothness = build_flat_smoothness_view(
+        smooth_adj_offsets,
+        smooth_adj_vertices,
+        coords.nrow()
+    );
+    std::vector<double> smoothSchedule = resolve_anchor_schedule(smooth_weights, max_iter);
     int resolvedThreads = resolve_gmds_thread_count(n_threads, cache.pairCount());
 
     std::vector<int> trace_iteration;
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
 
@@ -1336,28 +1470,35 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     GeodesicMdsState state = evaluate_flat_state(
         current,
         cache,
+        smoothness,
         eps2,
         useAnchor ? &anchor : nullptr,
         anchorSchedule[0],
+        smoothSchedule[0],
         resolvedThreads
     );
     trace_iteration.push_back(0);
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_smooth_energy.push_back(state.smoothEnergy);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(anchorSchedule[0]);
+    trace_smooth_weight.push_back(smoothSchedule[0]);
 
     for(int iter = 1; iter <= max_iter; iter++){
         double iterAnchorWeight = anchorSchedule[static_cast<size_t>(iter)];
+        double iterSmoothWeight = smoothSchedule[static_cast<size_t>(iter)];
         state = evaluate_flat_state(
             current,
             cache,
+            smoothness,
             eps2,
             useAnchor ? &anchor : nullptr,
             iterAnchorWeight,
+            iterSmoothWeight,
             resolvedThreads
         );
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
@@ -1378,9 +1519,11 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
             candidate = evaluate_flat_state(
                 proposal,
                 cache,
+                smoothness,
                 eps2,
                 useAnchor ? &anchor : nullptr,
                 iterAnchorWeight,
+                iterSmoothWeight,
                 resolvedThreads
             );
             double targetEnergy = state.energy - armijo_factor * step * state.gradNorm2;
@@ -1395,10 +1538,12 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_smooth_energy.push_back(accepted ? candidate.smoothEnergy : state.smoothEnergy);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(iterAnchorWeight);
+        trace_smooth_weight.push_back(iterSmoothWeight);
 
         if(!accepted)
             break;
@@ -1420,12 +1565,15 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
-                                          trace_anchor_weight),
+                                          trace_anchor_weight,
+                                          trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol()),
         Rcpp::_["final_anchor_weight"] = trace_anchor_weight.back(),
+        Rcpp::_["final_smoothness_weight"] = trace_smooth_weight.back(),
         Rcpp::_["n_threads_used"] = resolvedThreads
     );
 }
