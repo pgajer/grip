@@ -42,6 +42,53 @@ test_that("geodesic MDS preparation is deterministic and augments disconnected k
   expect_equal(length(unique(comp)), 1L)
 })
 
+test_that("graph-first geodesic MDS preparation matches the data-native wrapper", {
+  data <- rbind(
+    c(0, 0),
+    c(1, 0),
+    c(2, 0.2),
+    c(0.2, 1.1),
+    c(1.3, 1.2)
+  )
+
+  built <- grip:::grip.prepare.geodesic.mds.graph(data = data, k = 2L, connect = "mst")
+  prepared.graph <- grip.prepare.graph.geodesic.mds(
+    edges = built$edges,
+    n = nrow(data),
+    edge_weights = built$edge_weights,
+    tie_mode = "average"
+  )
+  prepared.data <- grip.prepare.geodesic.mds(
+    data = data,
+    k = 2L,
+    connect = "mst",
+    tie_mode = "average"
+  )
+
+  expect_s3_class(prepared.graph, "grip_gmds_prepared")
+  expect_identical(prepared.graph$graph_build_mode, "graph_input")
+  expect_identical(prepared.data$graph_build_mode, "symmetric_knn")
+
+  common.fields <- c(
+    "n", "edges", "edge_targets", "pair_matrix", "pair_graph_distance",
+    "path_vertices", "path_edges", "path_edge_weights", "pair_path_count_log",
+    "flat_pair_edge_offsets", "flat_edge_u", "flat_edge_v", "flat_edge_coeff",
+    "graph_diameter", "distance_matrix", "pair_mode", "tie_mode"
+  )
+  for (field in common.fields) {
+    expect_equal(prepared.graph[[field]], prepared.data[[field]], info = field)
+  }
+
+  coords <- cbind(
+    x = seq_len(nrow(data)),
+    y = c(0, 1, -0.5, 0.75, -1.25)
+  )
+  score.graph <- grip.score.geodesic.mds(coords, prepared = prepared.graph)
+  score.data <- grip.score.geodesic.mds(coords, prepared = prepared.data)
+  expect_equal(score.graph$gmds.raw_stress[[1L]], score.data$gmds.raw_stress[[1L]])
+  expect_equal(score.graph$gmds.energy[[1L]], score.data$gmds.energy[[1L]])
+})
+
 test_that("compiled geodesic MDS optimizer decreases path stress on a perturbed path", {
   edges <- edges.path(5L)
   canonical <- cbind(

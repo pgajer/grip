@@ -513,6 +513,29 @@ grip.edges.from.adj.list <- function(adj.list) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
+grip.edge.weights.from.adj.list <- function(adj.list, weight.list = NULL) {
+  edges <- list()
+  weights <- numeric(0L)
+  for (u in seq_along(adj.list)) {
+    nb <- adj.list[[u]]
+    if (length(nb) == 0L) next
+    keep <- nb > u
+    if (!any(keep)) next
+    chosen <- nb[keep]
+    edges[[length(edges) + 1L]] <- cbind(rep.int(u, length(chosen)), chosen)
+    if (is.null(weight.list)) {
+      weights <- c(weights, rep.int(1, length(chosen)))
+    } else {
+      weights <- c(weights, as.double(weight.list[[u]][keep]))
+    }
+  }
+  out.edges <- .normalize_undirected_edges(.bind_edges(edges))
+  if (nrow(out.edges) == 0L) {
+    return(numeric(0L))
+  }
+  as.double(weights)
+}
+
 grip.make.adj.list <- function(edges, n) {
   adj <- vector("list", n)
   for (i in seq_len(nrow(edges))) {
@@ -1002,6 +1025,16 @@ grip.validate.geodesic.mds.prepared <- function(prepared, coords = NULL) {
   prepared
 }
 
+grip.graph.hop.distance.matrix <- function(adj.list) {
+  n <- length(adj.list)
+  if (n == 0L) {
+    return(matrix(numeric(), nrow = 0L, ncol = 0L))
+  }
+  do.call(rbind, lapply(seq_len(n), function(source) {
+    grip.bfs.distances(adj.list, source)
+  }))
+}
+
 grip.prepare.geodesic.kk.base <- function(edges = NULL,
                                           n = NULL,
                                           adj_list = NULL,
@@ -1034,6 +1067,7 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
   adj.list <- sorted$adj_list
   weight.list <- sorted$weight_list
   edges <- grip.edges.from.adj.list(adj.list)
+  edge.targets <- grip.edge.weights.from.adj.list(adj.list, weight.list)
 
   trees <- lapply(seq_len(validated$n), function(source) {
     grip.shortest.path.tree(adj.list, weight.list, source)
@@ -1047,6 +1081,7 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
   list(
     n = validated$n,
     edges = edges,
+    edge_targets = edge.targets,
     adj_list = adj.list,
     weight_list = weight.list,
     trees = trees,
@@ -1818,6 +1853,7 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
   out <- list(
     n = base$n,
     edges = base$edges,
+    edge_targets = base$edge_targets,
     adj_list = base$adj_list,
     weight_list = base$weight_list,
     pair_matrix = pair.matrix,
@@ -2621,6 +2657,114 @@ grip.geodesic.mds.anchor.schedule <- function(max_iter,
   )
 }
 
+grip.build.graph.repulsion.cache <- function(prepared,
+                                             repulsion_quantile = 0.60,
+                                             repulsion_scale = 0.20,
+                                             repulsion_cap_quantile = 0.90,
+                                             repulsion_hop_min = 3L) {
+  grip.validate.scalar(repulsion_quantile, "repulsion_quantile", lower = 0, upper = 1)
+  grip.validate.scalar(repulsion_scale, "repulsion_scale", lower = 0)
+  grip.validate.scalar(repulsion_cap_quantile, "repulsion_cap_quantile", lower = 0, upper = 1)
+  repulsion_hop_min <- grip.validate.count(repulsion_hop_min, "repulsion_hop_min")
+  if (repulsion_hop_min < 2L) {
+    stop("repulsion_hop_min must be at least 2")
+  }
+
+  pair.matrix <- prepared$pair_matrix
+  graph.dist <- as.double(prepared$pair_graph_distance)
+  if (nrow(pair.matrix) == 0L) {
+    return(list(
+      repulsion_pair_matrix = matrix(integer(), ncol = 2L),
+      repulsion_target = numeric(0L),
+      repulsion_source_distance = numeric(0L),
+      repulsion_threshold = NA_real_,
+      repulsion_cap = NA_real_,
+      repulsion_hop_min = repulsion_hop_min
+    ))
+  }
+
+  hop.matrix <- prepared$hop_distance_matrix
+  if (is.null(hop.matrix)) {
+    hop.matrix <- grip.graph.hop.distance.matrix(prepared$adj_list)
+  }
+  hop.dist <- hop.matrix[cbind(pair.matrix[, 1L], pair.matrix[, 2L])]
+  eligible <- is.finite(graph.dist) & graph.dist > 0 & is.finite(hop.dist) & hop.dist >= repulsion_hop_min
+  if (!any(eligible)) {
+    return(list(
+      repulsion_pair_matrix = matrix(integer(), ncol = 2L),
+      repulsion_target = numeric(0L),
+      repulsion_source_distance = numeric(0L),
+      repulsion_threshold = NA_real_,
+      repulsion_cap = NA_real_,
+      repulsion_hop_min = repulsion_hop_min
+    ))
+  }
+
+  eligible.dist <- graph.dist[eligible]
+  threshold <- as.double(stats::quantile(eligible.dist, probs = repulsion_quantile, names = FALSE))
+  cap <- as.double(stats::quantile(eligible.dist, probs = repulsion_cap_quantile, names = FALSE))
+  keep <- eligible & graph.dist >= threshold
+  target <- repulsion_scale * pmin(graph.dist[keep], cap)
+
+  list(
+    repulsion_pair_matrix = pair.matrix[keep, , drop = FALSE],
+    repulsion_target = as.double(target),
+    repulsion_source_distance = graph.dist[keep],
+    repulsion_threshold = threshold,
+    repulsion_cap = cap,
+    repulsion_hop_min = repulsion_hop_min,
+    hop_distance_matrix = hop.matrix
+  )
+}
+
+grip.geodesic.mds.ensure.graph.term.cache <- function(prepared,
+                                                      repulsion_weight = 0,
+                                                      repulsion_quantile = 0.60,
+                                                      repulsion_scale = 0.20,
+                                                      repulsion_cap_quantile = 0.90,
+                                                      repulsion_hop_min = 3L) {
+  if (is.null(prepared$graph_edge_matrix)) {
+    prepared$graph_edge_matrix <- prepared$edges
+  }
+  if (is.null(prepared$graph_edge_target)) {
+    prepared$graph_edge_target <- if (!is.null(prepared$edge_targets)) {
+      as.double(prepared$edge_targets)
+    } else {
+      grip.edge.weights.from.adj.list(prepared$adj_list, prepared$weight_list)
+    }
+  }
+
+  if (is.finite(repulsion_weight) && repulsion_weight > 0) {
+    settings <- list(
+      repulsion_quantile = as.double(repulsion_quantile),
+      repulsion_scale = as.double(repulsion_scale),
+      repulsion_cap_quantile = as.double(repulsion_cap_quantile),
+      repulsion_hop_min = as.integer(repulsion_hop_min)
+    )
+    needs.cache <- is.null(prepared$repulsion_pair_matrix) ||
+      is.null(prepared$repulsion_target) ||
+      !isTRUE(identical(prepared$repulsion_settings, settings))
+    if (needs.cache) {
+      cache <- grip.build.graph.repulsion.cache(
+        prepared = prepared,
+        repulsion_quantile = repulsion_quantile,
+        repulsion_scale = repulsion_scale,
+        repulsion_cap_quantile = repulsion_cap_quantile,
+        repulsion_hop_min = repulsion_hop_min
+      )
+      prepared$repulsion_pair_matrix <- cache$repulsion_pair_matrix
+      prepared$repulsion_target <- cache$repulsion_target
+      prepared$repulsion_source_distance <- cache$repulsion_source_distance
+      prepared$repulsion_threshold <- cache$repulsion_threshold
+      prepared$repulsion_cap <- cache$repulsion_cap
+      prepared$repulsion_settings <- settings
+      prepared$hop_distance_matrix <- cache$hop_distance_matrix
+    }
+  }
+
+  prepared
+}
+
 grip.geodesic.mds.anchor.stats <- function(coords,
                                            anchor_coords = NULL,
                                            anchor_weight = 0) {
@@ -2638,6 +2782,154 @@ grip.geodesic.mds.anchor.stats <- function(coords,
     raw_penalty = sum(diff^2),
     energy = as.double(anchor_weight) * sum(diff^2),
     gradient = 2 * as.double(anchor_weight) * diff
+  )
+}
+
+grip.geodesic.mds.edge.spring.stats <- function(coords,
+                                                prepared,
+                                                edge_length_epsilon = 1e-8,
+                                                edge_spring_weight = 0,
+                                                graph_edge_matrix = NULL,
+                                                graph_edge_target = NULL) {
+  grip.validate.scalar(edge_spring_weight, "edge_spring_weight", lower = 0)
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  if (!is.finite(edge_spring_weight) || edge_spring_weight <= 0) {
+    return(list(
+      edge_spring_weight = as.double(edge_spring_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = grad,
+      edge_count = 0L
+    ))
+  }
+
+  edge.matrix <- graph_edge_matrix
+  if (is.null(edge.matrix)) {
+    edge.matrix <- prepared$graph_edge_matrix
+  }
+  if (is.null(edge.matrix)) {
+    edge.matrix <- prepared$edges
+  }
+  edge.matrix <- as.matrix(edge.matrix)
+  if (nrow(edge.matrix) == 0L) {
+    return(list(
+      edge_spring_weight = as.double(edge_spring_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = grad,
+      edge_count = 0L
+    ))
+  }
+
+  edge.target <- graph_edge_target
+  if (is.null(edge.target)) {
+    edge.target <- prepared$graph_edge_target
+  }
+  if (is.null(edge.target)) {
+    edge.target <- if (!is.null(prepared$edge_targets)) {
+      as.double(prepared$edge_targets)
+    } else {
+      grip.edge.weights.from.adj.list(prepared$adj_list, prepared$weight_list)
+    }
+  }
+  edge.target <- as.double(edge.target)
+  if (length(edge.target) != nrow(edge.matrix)) {
+    stop("graph_edge_target must be parallel to graph_edge_matrix")
+  }
+
+  diffs <- coords[edge.matrix[, 1L], , drop = FALSE] - coords[edge.matrix[, 2L], , drop = FALSE]
+  edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+  resid <- edge.lengths - edge.target
+  unit.vecs <- diffs / edge.lengths
+  for (j in seq_len(nrow(edge.matrix))) {
+    u <- edge.matrix[j, 1L]
+    v <- edge.matrix[j, 2L]
+    step <- as.double(edge_spring_weight) * resid[[j]] * unit.vecs[j, ]
+    grad[u, ] <- grad[u, ] + step
+    grad[v, ] <- grad[v, ] - step
+  }
+
+  raw.penalty <- sum(resid^2)
+  list(
+    edge_spring_weight = as.double(edge_spring_weight),
+    raw_penalty = raw.penalty,
+    energy = 0.5 * as.double(edge_spring_weight) * raw.penalty,
+    gradient = grad,
+    edge_count = nrow(edge.matrix)
+  )
+}
+
+grip.geodesic.mds.repulsion.stats <- function(coords,
+                                              prepared,
+                                              edge_length_epsilon = 1e-8,
+                                              repulsion_weight = 0,
+                                              repulsion_pair_matrix = NULL,
+                                              repulsion_target = NULL) {
+  grip.validate.scalar(repulsion_weight, "repulsion_weight", lower = 0)
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  if (!is.finite(repulsion_weight) || repulsion_weight <= 0) {
+    return(list(
+      repulsion_weight = as.double(repulsion_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = grad,
+      pair_count = 0L,
+      active_pair_count = 0L
+    ))
+  }
+
+  pair.matrix <- repulsion_pair_matrix
+  if (is.null(pair.matrix)) {
+    pair.matrix <- prepared$repulsion_pair_matrix
+  }
+  target <- repulsion_target
+  if (is.null(target)) {
+    target <- prepared$repulsion_target
+  }
+  if (is.null(pair.matrix) || is.null(target)) {
+    stop("repulsion pair cache is missing; call grip.geodesic.mds.ensure.graph.term.cache() first")
+  }
+
+  pair.matrix <- as.matrix(pair.matrix)
+  target <- as.double(target)
+  if (nrow(pair.matrix) == 0L) {
+    return(list(
+      repulsion_weight = as.double(repulsion_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = grad,
+      pair_count = 0L,
+      active_pair_count = 0L
+    ))
+  }
+  if (length(target) != nrow(pair.matrix)) {
+    stop("repulsion_target must be parallel to repulsion_pair_matrix")
+  }
+
+  diffs <- coords[pair.matrix[, 1L], , drop = FALSE] - coords[pair.matrix[, 2L], , drop = FALSE]
+  pair.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+  resid <- pmax(target - pair.lengths, 0)
+  active <- which(resid > 0)
+  if (length(active) > 0L) {
+    unit.vecs <- diffs[active, , drop = FALSE] / pair.lengths[active]
+    for (idx in seq_along(active)) {
+      row <- active[[idx]]
+      u <- pair.matrix[row, 1L]
+      v <- pair.matrix[row, 2L]
+      step <- -as.double(repulsion_weight) * resid[[row]] * unit.vecs[idx, ]
+      grad[u, ] <- grad[u, ] + step
+      grad[v, ] <- grad[v, ] - step
+    }
+  }
+
+  raw.penalty <- sum(resid^2)
+  list(
+    repulsion_weight = as.double(repulsion_weight),
+    raw_penalty = raw.penalty,
+    energy = 0.5 * as.double(repulsion_weight) * raw.penalty,
+    gradient = grad,
+    pair_count = nrow(pair.matrix),
+    active_pair_count = length(active)
   )
 }
 
@@ -2725,7 +3017,21 @@ grip.geodesic.mds.energy.gradient <- function(coords,
                                               edge_length_epsilon = 1e-8,
                                               anchor_coords = NULL,
                                               anchor_weight = 0,
-                                              smoothness_weight = 0) {
+                                              smoothness_weight = 0,
+                                              edge_spring_weight = 0,
+                                              repulsion_weight = 0,
+                                              repulsion_quantile = 0.60,
+                                              repulsion_scale = 0.20,
+                                              repulsion_cap_quantile = 0.90,
+                                              repulsion_hop_min = 3L) {
+  prepared <- grip.geodesic.mds.ensure.graph.term.cache(
+    prepared = prepared,
+    repulsion_weight = repulsion_weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
+  )
   g <- as.double(prepared$pair_graph_distance)
   n.pairs <- length(g)
   grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
@@ -2738,20 +3044,42 @@ grip.geodesic.mds.energy.gradient <- function(coords,
       anchor_coords = anchor_coords,
       anchor_weight = anchor_weight
     )
+    edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
+      coords = coords,
+      prepared = prepared,
+      edge_length_epsilon = edge_length_epsilon,
+      edge_spring_weight = edge_spring_weight
+    )
+    repulsion.stats <- grip.geodesic.mds.repulsion.stats(
+      coords = coords,
+      prepared = prepared,
+      edge_length_epsilon = edge_length_epsilon,
+      repulsion_weight = repulsion_weight
+    )
     smooth.stats <- grip.geodesic.mds.smoothness.stats(
       coords = coords,
       prepared = prepared,
       smoothness_weight = smoothness_weight
     )
+    total.grad <- anchor.stats$gradient + edge.spring.stats$gradient +
+      repulsion.stats$gradient + smooth.stats$gradient
     return(list(
-      energy = anchor.stats$energy + smooth.stats$energy,
+      energy = anchor.stats$energy + edge.spring.stats$energy +
+        repulsion.stats$energy + smooth.stats$energy,
       gmds_energy = 0,
       anchor_energy = anchor.stats$energy,
+      edge_spring_energy = edge.spring.stats$energy,
+      repulsion_energy = repulsion.stats$energy,
       smooth_energy = smooth.stats$energy,
       anchor_raw_penalty = anchor.stats$raw_penalty,
+      edge_spring_raw_penalty = edge.spring.stats$raw_penalty,
+      edge_spring_edge_count = edge.spring.stats$edge_count,
+      repulsion_raw_penalty = repulsion.stats$raw_penalty,
+      repulsion_pair_count = repulsion.stats$pair_count,
+      repulsion_active_pair_count = repulsion.stats$active_pair_count,
       smooth_raw_penalty = smooth.stats$raw_penalty,
-      gradient = anchor.stats$gradient + smooth.stats$gradient,
-      gradient_norm = sqrt(sum((anchor.stats$gradient + smooth.stats$gradient)^2)),
+      gradient = total.grad,
+      gradient_norm = sqrt(sum(total.grad^2)),
       path_lengths = path.lengths,
       target = g
     ))
@@ -2766,15 +3094,15 @@ grip.geodesic.mds.energy.gradient <- function(coords,
     diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
     edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
     h <- sum(coeffs * edge.lengths)
-    path.lengths[[i]] <- h
-    resid <- h - g[[i]]
+    path.lengths[i] <- h
+    resid <- h - g[i]
     gmds.energy <- gmds.energy + 0.5 * resid^2
     unit.vecs <- diffs / edge.lengths
     for (j in seq_len(nrow(edges))) {
       u <- edges[j, 1L]
       v <- edges[j, 2L]
-      grad[u, ] <- grad[u, ] + resid * coeffs[[j]] * unit.vecs[j, ]
-      grad[v, ] <- grad[v, ] - resid * coeffs[[j]] * unit.vecs[j, ]
+      grad[u, ] <- grad[u, ] + resid * coeffs[j] * unit.vecs[j, ]
+      grad[v, ] <- grad[v, ] - resid * coeffs[j] * unit.vecs[j, ]
     }
   }
 
@@ -2783,19 +3111,40 @@ grip.geodesic.mds.energy.gradient <- function(coords,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight
   )
+  edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon,
+    edge_spring_weight = edge_spring_weight
+  )
+  repulsion.stats <- grip.geodesic.mds.repulsion.stats(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon,
+    repulsion_weight = repulsion_weight
+  )
   smooth.stats <- grip.geodesic.mds.smoothness.stats(
     coords = coords,
     prepared = prepared,
     smoothness_weight = smoothness_weight
   )
-  grad <- grad + anchor.stats$gradient + smooth.stats$gradient
+  grad <- grad + anchor.stats$gradient + edge.spring.stats$gradient +
+    repulsion.stats$gradient + smooth.stats$gradient
 
   list(
-    energy = gmds.energy + anchor.stats$energy + smooth.stats$energy,
+    energy = gmds.energy + anchor.stats$energy + edge.spring.stats$energy +
+      repulsion.stats$energy + smooth.stats$energy,
     gmds_energy = gmds.energy,
     anchor_energy = anchor.stats$energy,
+    edge_spring_energy = edge.spring.stats$energy,
+    repulsion_energy = repulsion.stats$energy,
     smooth_energy = smooth.stats$energy,
     anchor_raw_penalty = anchor.stats$raw_penalty,
+    edge_spring_raw_penalty = edge.spring.stats$raw_penalty,
+    edge_spring_edge_count = edge.spring.stats$edge_count,
+    repulsion_raw_penalty = repulsion.stats$raw_penalty,
+    repulsion_pair_count = repulsion.stats$pair_count,
+    repulsion_active_pair_count = repulsion.stats$active_pair_count,
     smooth_raw_penalty = smooth.stats$raw_penalty,
     gradient = grad,
     gradient_norm = sqrt(sum(grad^2)),
@@ -2809,13 +3158,39 @@ grip.geodesic.mds.score.stats <- function(coords,
                                           edge_length_epsilon = 1e-8,
                                           anchor_coords = NULL,
                                           anchor_weight = 0,
-                                          smoothness_weight = 0) {
+                                          smoothness_weight = 0,
+                                          edge_spring_weight = 0,
+                                          repulsion_weight = 0,
+                                          repulsion_quantile = 0.60,
+                                          repulsion_scale = 0.20,
+                                          repulsion_cap_quantile = 0.90,
+                                          repulsion_hop_min = 3L) {
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  prepared <- grip.geodesic.mds.ensure.graph.term.cache(
+    prepared = prepared,
+    repulsion_weight = repulsion_weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
+  )
   g <- as.double(prepared$pair_graph_distance)
   anchor.stats <- grip.geodesic.mds.anchor.stats(
     coords = coords,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight
+  )
+  edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon,
+    edge_spring_weight = edge_spring_weight
+  )
+  repulsion.stats <- grip.geodesic.mds.repulsion.stats(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon,
+    repulsion_weight = repulsion_weight
   )
   smooth.stats <- grip.geodesic.mds.smoothness.stats(
     coords = coords,
@@ -2826,11 +3201,21 @@ grip.geodesic.mds.score.stats <- function(coords,
   if (length(g) == 0L) {
     return(list(
       n.pairs = 0L,
-      energy = anchor.stats$energy + smooth.stats$energy,
+      energy = anchor.stats$energy + edge.spring.stats$energy +
+        repulsion.stats$energy + smooth.stats$energy,
       gmds.energy = 0,
       anchor.weight = anchor.stats$anchor_weight,
       anchor.raw.penalty = anchor.stats$raw_penalty,
       anchor.energy = anchor.stats$energy,
+      edge.spring.weight = edge.spring.stats$edge_spring_weight,
+      edge.spring.raw.penalty = edge.spring.stats$raw_penalty,
+      edge.spring.energy = edge.spring.stats$energy,
+      edge.spring.edge.count = edge.spring.stats$edge_count,
+      repulsion.weight = repulsion.stats$repulsion_weight,
+      repulsion.raw.penalty = repulsion.stats$raw_penalty,
+      repulsion.energy = repulsion.stats$energy,
+      repulsion.pair.count = repulsion.stats$pair_count,
+      repulsion.active.pair.count = repulsion.stats$active_pair_count,
       smooth.weight = smooth.stats$smoothness_weight,
       smooth.raw.penalty = smooth.stats$raw_penalty,
       smooth.energy = smooth.stats$energy,
@@ -2858,11 +3243,21 @@ grip.geodesic.mds.score.stats <- function(coords,
 
   list(
     n.pairs = length(g),
-    energy = 0.5 * raw.stress + anchor.stats$energy + smooth.stats$energy,
+    energy = 0.5 * raw.stress + anchor.stats$energy + edge.spring.stats$energy +
+      repulsion.stats$energy + smooth.stats$energy,
     gmds.energy = 0.5 * raw.stress,
     anchor.weight = anchor.stats$anchor_weight,
     anchor.raw.penalty = anchor.stats$raw_penalty,
     anchor.energy = anchor.stats$energy,
+    edge.spring.weight = edge.spring.stats$edge_spring_weight,
+    edge.spring.raw.penalty = edge.spring.stats$raw_penalty,
+    edge.spring.energy = edge.spring.stats$energy,
+    edge.spring.edge.count = edge.spring.stats$edge_count,
+    repulsion.weight = repulsion.stats$repulsion_weight,
+    repulsion.raw.penalty = repulsion.stats$raw_penalty,
+    repulsion.energy = repulsion.stats$energy,
+    repulsion.pair.count = repulsion.stats$pair_count,
+    repulsion.active.pair.count = repulsion.stats$active_pair_count,
     smooth.weight = smooth.stats$smoothness_weight,
     smooth.raw.penalty = smooth.stats$raw_penalty,
     smooth.energy = smooth.stats$energy,
@@ -2904,14 +3299,26 @@ grip.geodesic.mds.evaluate.state <- function(coords,
                                              edge_length_epsilon = 1e-8,
                                              anchor_coords = NULL,
                                              anchor_weight = 0,
-                                             smoothness_weight = 0) {
+                                             smoothness_weight = 0,
+                                             edge_spring_weight = 0,
+                                             repulsion_weight = 0,
+                                             repulsion_quantile = 0.60,
+                                             repulsion_scale = 0.20,
+                                             repulsion_cap_quantile = 0.90,
+                                             repulsion_hop_min = 3L) {
   grip.geodesic.mds.energy.gradient(
     coords = coords,
     prepared = prepared,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight,
-    smoothness_weight = smoothness_weight
+    smoothness_weight = smoothness_weight,
+    edge_spring_weight = edge_spring_weight,
+    repulsion_weight = repulsion_weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
   )
 }
 
@@ -2929,17 +3336,107 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
   fit
 }
 
+#' Prepare a graph-first geodesic-MDS path cache
+#'
+#' \code{grip.prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
+#' geodesic cache for an arbitrary connected weighted graph. This is the
+#' graph-first entry point corresponding to the manuscript's definition of GMDS
+#' on a connected weighted graph together with a chosen geodesic family
+#' \eqn{(G, \Gamma)}.
+#'
+#' The graph can be supplied either as an edge list plus parallel weights or as
+#' an adjacency-list representation. The returned object stores the all-pairs
+#' graph distances, the chosen shortest-path family, and the flattened edge-path
+#' cache reused by the GMDS scorer and optimizer.
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
+#'   \code{length(adj_list)}. If omitted with \code{edges}, defaults to
+#'   \code{max(edges)}.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#' @param tie_mode Shortest-path aggregation mode. \code{"single"} uses one
+#'   deterministic chosen shortest path per pair. \code{"average"} replaces
+#'   each tied shortest-path family by the exact uniform average over all
+#'   shortest paths between the pair.
+#'
+#' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
+#'   top of the existing full geodesic path-cache structure.
+#' @export
+grip.prepare.graph.geodesic.mds <- function(edges = NULL,
+                                            n = NULL,
+                                            adj_list = NULL,
+                                            weight_list = NULL,
+                                            edge_weights = NULL,
+                                            tie_mode = c("single", "average")) {
+  tie_mode <- match.arg(tie_mode)
+  base <- grip.prepare.geodesic.kk.base(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    caller = "grip.prepare.graph.geodesic.mds"
+  )
+  pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
+  cache <- grip.build.geodesic.mds.path.cache(
+    pair.matrix = pair.matrix,
+    adj.list = base$adj_list,
+    weight.list = base$weight_list,
+    dist.matrix = base$distance_matrix,
+    parents = base$parents,
+    tie_mode = tie_mode
+  )
+  flat.cache <- if (!is.null(cache$flat_pair_edge_offsets)) {
+    cache[c("flat_pair_edge_offsets", "flat_edge_u", "flat_edge_v", "flat_edge_coeff")]
+  } else {
+    grip.flatten.geodesic.path.cache(
+      path.edges = cache$path_edges,
+      path.edge.weights = cache$path_edge_weights
+    )
+  }
+  prepared <- list(
+    n = base$n,
+    edges = base$edges,
+    edge_targets = base$edge_targets,
+    adj_list = base$adj_list,
+    weight_list = base$weight_list,
+    pair_matrix = pair.matrix,
+    pair_graph_distance = cache$pair_graph_distance,
+    path_vertices = cache$path_vertices,
+    path_edges = cache$path_edges,
+    path_edge_weights = cache$path_edge_weights,
+    pair_path_count_log = cache$pair_path_count_log,
+    flat_pair_edge_offsets = flat.cache$flat_pair_edge_offsets,
+    flat_edge_u = flat.cache$flat_edge_u,
+    flat_edge_v = flat.cache$flat_edge_v,
+    flat_edge_coeff = flat.cache$flat_edge_coeff,
+    graph_diameter = base$graph_diameter,
+    distance_matrix = base$distance_matrix,
+    pair_mode = "all_pairs",
+    graph_build_mode = "graph_input",
+    tie_mode = tie_mode
+  )
+  class(prepared) <- c("grip_gmds_prepared", "grip_gkk_prepared", "grip_geodesic_kk_prepared", "list")
+  prepared
+}
+
 #' Prepare a geodesic-MDS graph and fixed path family from data
 #'
 #' \code{grip.prepare.geodesic.mds()} builds a deterministic symmetric
 #' \eqn{k}-nearest-neighbor graph from an input data matrix, augments it to
-#' connectedness when requested, and then prepares the full all-pairs chosen
-#' geodesic cache used by the geodesic-MDS scorer and optimizer.
+#' connectedness when requested, and then delegates to
+#' \code{\link{grip.prepare.graph.geodesic.mds}()} to prepare the full all-pairs
+#' chosen geodesic cache used by the geodesic-MDS scorer and optimizer.
 #'
 #' The current implementation uses Euclidean distances in the input space to
 #' weight graph edges. If the symmetric \eqn{k}-NN graph is disconnected and
 #' \code{connect = "mst"}, the Euclidean minimum spanning tree is unioned with
-#' the \eqn{k}-NN graph before the full path cache is built.
+#' the \eqn{k}-NN graph before the full path cache is built. This function is
+#' the data-native convenience wrapper; the graph-first API is
+#' \code{\link{grip.prepare.graph.geodesic.mds}()}.
 #'
 #' @param data Numeric matrix whose rows are observations.
 #' @param k Symmetric \eqn{k}-NN neighborhood size.
@@ -2963,59 +3460,21 @@ grip.prepare.geodesic.mds <- function(data,
     k = k,
     connect = connect
   )
-  base <- grip.prepare.geodesic.kk.base(
+  prepared <- grip.prepare.graph.geodesic.mds(
     edges = built$edges,
     n = nrow(built$data),
     edge_weights = built$edge_weights,
-    caller = "grip.prepare.geodesic.mds"
-  )
-  pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
-  cache <- grip.build.geodesic.mds.path.cache(
-    pair.matrix = pair.matrix,
-    adj.list = base$adj_list,
-    weight.list = base$weight_list,
-    dist.matrix = base$distance_matrix,
-    parents = base$parents,
     tie_mode = tie_mode
   )
-  flat.cache <- if (!is.null(cache$flat_pair_edge_offsets)) {
-    cache[c("flat_pair_edge_offsets", "flat_edge_u", "flat_edge_v", "flat_edge_coeff")]
-  } else {
-    grip.flatten.geodesic.path.cache(
-      path.edges = cache$path_edges,
-      path.edge.weights = cache$path_edge_weights
-    )
-  }
-  prepared <- list(
-    n = base$n,
-    edges = base$edges,
-    adj_list = base$adj_list,
-    weight_list = base$weight_list,
-    pair_matrix = pair.matrix,
-    pair_graph_distance = cache$pair_graph_distance,
-    path_vertices = cache$path_vertices,
-    path_edges = cache$path_edges,
-    path_edge_weights = cache$path_edge_weights,
-    pair_path_count_log = cache$pair_path_count_log,
-    flat_pair_edge_offsets = flat.cache$flat_pair_edge_offsets,
-    flat_edge_u = flat.cache$flat_edge_u,
-    flat_edge_v = flat.cache$flat_edge_v,
-    flat_edge_coeff = flat.cache$flat_edge_coeff,
-    graph_diameter = base$graph_diameter,
-    distance_matrix = base$distance_matrix,
-    pair_mode = "all_pairs",
-    input_data = built$data,
-    k = built$k,
-    connect = built$connect,
-    knn_distance_matrix = built$distance_matrix,
-    knn_edges = built$knn_edges,
-    knn_edge_weights = built$knn_edge_weights,
-    mst_added_edges = built$mst_added_edges,
-    mst_added_edge_weights = built$mst_added_edge_weights,
-    graph_build_mode = "symmetric_knn",
-    tie_mode = tie_mode
-  )
-  class(prepared) <- c("grip_gmds_prepared", "grip_gkk_prepared", "grip_geodesic_kk_prepared", "list")
+  prepared$input_data <- built$data
+  prepared$k <- built$k
+  prepared$connect <- built$connect
+  prepared$knn_distance_matrix <- built$distance_matrix
+  prepared$knn_edges <- built$knn_edges
+  prepared$knn_edge_weights <- built$knn_edge_weights
+  prepared$mst_added_edges <- built$mst_added_edges
+  prepared$mst_added_edge_weights <- built$mst_added_edge_weights
+  prepared$graph_build_mode <- "symmetric_knn"
   prepared
 }
 
@@ -3024,11 +3483,14 @@ grip.prepare.geodesic.mds <- function(data,
 #' \code{grip.score.geodesic.mds()} evaluates an embedding using the fixed-path
 #' geodesic-MDS criterion from the manuscript: the target for each unordered
 #' vertex pair is the corresponding graph geodesic itself, with no fitted scale
-#' factor and no KK-style inverse-distance weighting.
+#' factor and no KK-style inverse-distance weighting. This Phase 1 extension
+#' also allows a graph-generic edge-spring term and a graph-distance-aware
+#' one-sided repulsion term to be included in the reported total energy.
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional prepared geodesic object from
-#'   \code{\link{grip.prepare.geodesic.mds}()} or
+#'   \code{\link{grip.prepare.graph.geodesic.mds}()},
+#'   \code{\link{grip.prepare.geodesic.mds}()}, or
 #'   \code{\link{grip.prepare.geodesic.kk}()}.
 #' @param data Optional data matrix used when \code{prepared} is omitted.
 #' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
@@ -3043,6 +3505,18 @@ grip.prepare.geodesic.mds <- function(data,
 #' @param anchor_weight Non-negative anchor weight \eqn{\lambda}.
 #' @param smoothness_weight Non-negative local smoothness weight \eqn{\mu}
 #'   applied to \eqn{\sum_i \|z_i - |N(i)|^{-1}\sum_{j \in N(i)} z_j\|^2}.
+#' @param edge_spring_weight Non-negative coefficient for the graph-edge spring
+#'   term \eqn{\frac{\beta}{2}\sum_{(u,v)\in E}(\|z_u-z_v\|-w_{uv})^2}.
+#' @param repulsion_weight Non-negative coefficient for the graph-distance-aware
+#'   repulsion term applied to graph-distant vertex pairs.
+#' @param repulsion_quantile Graph-distance quantile used to select the
+#'   repulsion pair family from all eligible nonlocal pairs.
+#' @param repulsion_scale Positive scale factor converting graph distances into
+#'   one-sided Euclidean separation targets.
+#' @param repulsion_cap_quantile Upper graph-distance quantile used to cap the
+#'   repulsion targets before scaling.
+#' @param repulsion_hop_min Minimum graph hop distance required for a pair to be
+#'   eligible for the repulsion family.
 #' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
 #'
 #' @return A one-row data frame summarizing the geodesic-MDS fit.
@@ -3057,6 +3531,12 @@ grip.score.geodesic.mds <- function(coords,
                                     anchor_coords = NULL,
                                     anchor_weight = 0,
                                     smoothness_weight = 0,
+                                    edge_spring_weight = 0,
+                                    repulsion_weight = 0,
+                                    repulsion_quantile = 0.60,
+                                    repulsion_scale = 0.20,
+                                    repulsion_cap_quantile = 0.90,
+                                    repulsion_hop_min = 3L,
                                     return_pair_details = FALSE) {
   coords <- grip.validate.coords(coords)
   tie_mode <- match.arg(tie_mode)
@@ -3069,6 +3549,14 @@ grip.score.geodesic.mds <- function(coords,
     )
   }
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  prepared <- grip.geodesic.mds.ensure.graph.term.cache(
+    prepared = prepared,
+    repulsion_weight = repulsion_weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
+  )
   anchor.coords <- if (is.null(anchor_coords)) NULL else {
     grip.geodesic.mds.resolve.anchor(
       anchor_mode = "user",
@@ -3084,7 +3572,13 @@ grip.score.geodesic.mds <- function(coords,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = anchor_weight,
-    smoothness_weight = smoothness_weight
+    smoothness_weight = smoothness_weight,
+    edge_spring_weight = edge_spring_weight,
+    repulsion_weight = repulsion_weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
   )
 
   out <- data.frame(
@@ -3100,6 +3594,15 @@ grip.score.geodesic.mds <- function(coords,
     anchor.weight = stats$anchor.weight,
     anchor.raw.penalty = stats$anchor.raw.penalty,
     anchor.energy = stats$anchor.energy,
+    edge.spring.weight = stats$edge.spring.weight,
+    edge.spring.raw.penalty = stats$edge.spring.raw.penalty,
+    edge.spring.energy = stats$edge.spring.energy,
+    edge.spring.edge.count = stats$edge.spring.edge.count,
+    repulsion.weight = stats$repulsion.weight,
+    repulsion.raw.penalty = stats$repulsion.raw.penalty,
+    repulsion.energy = stats$repulsion.energy,
+    repulsion.pair.count = stats$repulsion.pair.count,
+    repulsion.active.pair.count = stats$repulsion.active.pair.count,
     smooth.weight = stats$smooth.weight,
     smooth.raw.penalty = stats$smooth.raw.penalty,
     smooth.energy = stats$smooth.energy,
@@ -3119,12 +3622,16 @@ grip.score.geodesic.mds <- function(coords,
 #' \code{grip.optimize.geodesic.mds()} optimizes a fixed-path geodesic-MDS
 #' objective using deterministic gradient descent with Armijo backtracking. By
 #' default it initializes from classical MDS on the graph geodesic distance
-#' matrix and then runs a compiled optimizer.
+#' matrix and then runs a compiled optimizer. In this Phase 1 prototype, the
+#' optional graph-edge spring and graph-distance-aware repulsion terms are
+#' implemented in the R optimizer path; requesting either of them forces a
+#' fallback from \code{engine = "cpp"} to \code{engine = "r"}.
 #'
 #' @param coords Optional numeric coordinate matrix with 2 or 3 columns. If
 #'   omitted, coordinates are initialized according to \code{init}.
 #' @param prepared Optional prepared object from
-#'   \code{\link{grip.prepare.geodesic.mds}()} or
+#'   \code{\link{grip.prepare.graph.geodesic.mds}()},
+#'   \code{\link{grip.prepare.geodesic.mds}()}, or
 #'   \code{\link{grip.prepare.geodesic.kk}()}.
 #' @param data Optional input data matrix used when \code{prepared} is omitted.
 #' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
@@ -3153,6 +3660,25 @@ grip.score.geodesic.mds <- function(coords,
 #'   end of the continuation schedule.
 #' @param smoothness_continuation Continuation schedule for the smoothness
 #'   weight. The same options and semantics as \code{continuation}.
+#' @param edge_spring_weight Initial non-negative graph-edge spring weight.
+#' @param edge_spring_weight_end Final non-negative edge-spring weight used at
+#'   the end of the continuation schedule.
+#' @param edge_spring_continuation Continuation schedule for the edge-spring
+#'   weight. The same options and semantics as \code{continuation}.
+#' @param repulsion_weight Initial non-negative graph-distance-aware repulsion
+#'   weight.
+#' @param repulsion_weight_end Final non-negative repulsion weight used at the
+#'   end of the continuation schedule.
+#' @param repulsion_continuation Continuation schedule for the repulsion
+#'   weight. The same options and semantics as \code{continuation}.
+#' @param repulsion_quantile Graph-distance quantile used to define the
+#'   repulsion pair family.
+#' @param repulsion_scale Positive scale factor converting selected graph
+#'   distances into one-sided Euclidean separation targets.
+#' @param repulsion_cap_quantile Upper graph-distance quantile used to cap the
+#'   repulsion targets before scaling.
+#' @param repulsion_hop_min Minimum graph hop distance required for a pair to be
+#'   eligible for repulsion.
 #' @param engine Optimization engine: \code{"cpp"} or \code{"r"}.
 #' @param max_iter Maximum number of gradient-descent iterations.
 #' @param edge_length_epsilon Small non-negative stabilizer added inside each
@@ -3189,6 +3715,16 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
                                        smoothness_weight = 0,
                                        smoothness_weight_end = smoothness_weight,
                                        smoothness_continuation = c("constant", "linear", "geometric"),
+                                       edge_spring_weight = 0,
+                                       edge_spring_weight_end = edge_spring_weight,
+                                       edge_spring_continuation = c("constant", "linear", "geometric"),
+                                       repulsion_weight = 0,
+                                       repulsion_weight_end = repulsion_weight,
+                                       repulsion_continuation = c("constant", "linear", "geometric"),
+                                       repulsion_quantile = 0.60,
+                                       repulsion_scale = 0.20,
+                                       repulsion_cap_quantile = 0.90,
+                                       repulsion_hop_min = 3L,
                                        engine = c("cpp", "r"),
                                        max_iter = 16L,
                                        edge_length_epsilon = 1e-8,
@@ -3206,6 +3742,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   anchor_mode <- match.arg(anchor_mode)
   continuation <- match.arg(continuation)
   smoothness_continuation <- match.arg(smoothness_continuation)
+  edge_spring_continuation <- match.arg(edge_spring_continuation)
+  repulsion_continuation <- match.arg(repulsion_continuation)
   engine <- match.arg(engine)
   grip.validate.scalar(max_iter, "max_iter", lower = 0)
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
@@ -3219,6 +3757,17 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   grip.validate.scalar(anchor_weight_end, "anchor_weight_end", lower = 0)
   grip.validate.scalar(smoothness_weight, "smoothness_weight", lower = 0)
   grip.validate.scalar(smoothness_weight_end, "smoothness_weight_end", lower = 0)
+  grip.validate.scalar(edge_spring_weight, "edge_spring_weight", lower = 0)
+  grip.validate.scalar(edge_spring_weight_end, "edge_spring_weight_end", lower = 0)
+  grip.validate.scalar(repulsion_weight, "repulsion_weight", lower = 0)
+  grip.validate.scalar(repulsion_weight_end, "repulsion_weight_end", lower = 0)
+  grip.validate.scalar(repulsion_quantile, "repulsion_quantile", lower = 0, upper = 1)
+  grip.validate.scalar(repulsion_scale, "repulsion_scale", lower = 0)
+  grip.validate.scalar(repulsion_cap_quantile, "repulsion_cap_quantile", lower = 0, upper = 1)
+  repulsion_hop_min <- grip.validate.count(repulsion_hop_min, "repulsion_hop_min")
+  if (repulsion_hop_min < 2L) {
+    stop("repulsion_hop_min must be at least 2")
+  }
   if (identical(anchor_mode, "none") && (anchor_weight > 0 || anchor_weight_end > 0)) {
     stop("anchor_mode must not be 'none' when anchor_weight or anchor_weight_end is positive")
   }
@@ -3277,6 +3826,26 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     weight_end = smoothness_weight_end,
     continuation = smoothness_continuation
   )
+  edge.spring.schedule <- grip.geodesic.mds.weight.schedule(
+    max_iter = max_iter,
+    weight = edge_spring_weight,
+    weight_end = edge_spring_weight_end,
+    continuation = edge_spring_continuation
+  )
+  repulsion.schedule <- grip.geodesic.mds.weight.schedule(
+    max_iter = max_iter,
+    weight = repulsion_weight,
+    weight_end = repulsion_weight_end,
+    continuation = repulsion_continuation
+  )
+  prepared <- grip.geodesic.mds.ensure.graph.term.cache(
+    prepared = prepared,
+    repulsion_weight = max(repulsion.schedule),
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
+  )
 
   if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
     score <- grip.score.geodesic.mds(
@@ -3285,7 +3854,13 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = anchor.schedule[[1L]],
-      smoothness_weight = smoothness.schedule[[1L]]
+      smoothness_weight = smoothness.schedule[[1L]],
+      edge_spring_weight = edge.spring.schedule[[1L]],
+      repulsion_weight = repulsion.schedule[[1L]],
+      repulsion_quantile = repulsion_quantile,
+      repulsion_scale = repulsion_scale,
+      repulsion_cap_quantile = repulsion_cap_quantile,
+      repulsion_hop_min = repulsion_hop_min
     )
     return(list(
       coords = coords,
@@ -3296,13 +3871,21 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
       smoothness_schedule = smoothness.schedule,
+      edge_spring_schedule = edge.spring.schedule,
+      repulsion_schedule = repulsion.schedule,
       final_anchor_weight = anchor.schedule[[1L]],
       final_smoothness_weight = smoothness.schedule[[1L]],
+      final_edge_spring_weight = edge.spring.schedule[[1L]],
+      final_repulsion_weight = repulsion.schedule[[1L]],
       n_threads_used = 1L
     ))
   }
 
   if (identical(engine, "cpp")) {
+    if (any(edge.spring.schedule > 0) || any(repulsion.schedule > 0)) {
+      warning("edge_spring_weight/repulsion_weight are currently implemented only in the R engine; falling back to the R engine")
+      engine <- "r"
+    }
     if (any(smoothness.schedule > 0) &&
         (is.null(prepared$flat_pair_edge_offsets) ||
          is.null(prepared$flat_edge_u) ||
@@ -3374,7 +3957,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = final.anchor.weight,
-      smoothness_weight = opt$final_smoothness_weight
+      smoothness_weight = opt$final_smoothness_weight,
+      edge_spring_weight = 0,
+      repulsion_weight = 0
     )
     return(list(
       coords = opt$coords,
@@ -3385,8 +3970,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
       smoothness_schedule = smoothness.schedule,
+      edge_spring_schedule = edge.spring.schedule,
+      repulsion_schedule = repulsion.schedule,
       final_anchor_weight = final.anchor.weight,
       final_smoothness_weight = opt$final_smoothness_weight,
+      final_edge_spring_weight = 0,
+      final_repulsion_weight = 0,
       n_threads_used = opt$n_threads_used
     ))
   }
@@ -3400,18 +3989,28 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = anchor.schedule[[1L]],
-    smoothness_weight = smoothness.schedule[[1L]]
+    smoothness_weight = smoothness.schedule[[1L]],
+    edge_spring_weight = edge.spring.schedule[[1L]],
+    repulsion_weight = repulsion.schedule[[1L]],
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
   )
   trace.rows[[1L]] <- data.frame(
     iteration = 0L,
     energy = state$energy,
     gmds_energy = state$gmds_energy,
     anchor_energy = state$anchor_energy,
+    edge_spring_energy = state$edge_spring_energy,
+    repulsion_energy = state$repulsion_energy,
     smooth_energy = state$smooth_energy,
     gradient_norm = state$gradient_norm,
     step = NA_real_,
     accepted = TRUE,
     anchor_weight = anchor.schedule[[1L]],
+    edge_spring_weight = edge.spring.schedule[[1L]],
+    repulsion_weight = repulsion.schedule[[1L]],
     smooth_weight = smoothness.schedule[[1L]],
     stringsAsFactors = FALSE
   )
@@ -3420,13 +4019,21 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   for (iter in seq_len(max_iter)) {
     iter.anchor.weight <- anchor.schedule[[iter + 1L]]
     iter.smooth.weight <- smoothness.schedule[[iter + 1L]]
+    iter.edge.spring.weight <- edge.spring.schedule[[iter + 1L]]
+    iter.repulsion.weight <- repulsion.schedule[[iter + 1L]]
     state <- grip.geodesic.mds.evaluate.state(
       coords = current,
       prepared = prepared,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = iter.anchor.weight,
-      smoothness_weight = iter.smooth.weight
+      smoothness_weight = iter.smooth.weight,
+      edge_spring_weight = iter.edge.spring.weight,
+      repulsion_weight = iter.repulsion.weight,
+      repulsion_quantile = repulsion_quantile,
+      repulsion_scale = repulsion_scale,
+      repulsion_cap_quantile = repulsion_cap_quantile,
+      repulsion_hop_min = repulsion_hop_min
     )
     if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
       break
@@ -3447,7 +4054,13 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         edge_length_epsilon = edge_length_epsilon,
         anchor_coords = anchor.coords,
         anchor_weight = iter.anchor.weight,
-        smoothness_weight = iter.smooth.weight
+        smoothness_weight = iter.smooth.weight,
+        edge_spring_weight = iter.edge.spring.weight,
+        repulsion_weight = iter.repulsion.weight,
+        repulsion_quantile = repulsion_quantile,
+        repulsion_scale = repulsion_scale,
+        repulsion_cap_quantile = repulsion_cap_quantile,
+        repulsion_hop_min = repulsion_hop_min
       )
       target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
       if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
@@ -3465,11 +4078,15 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       energy = if (accepted) candidate.state$energy else state$energy,
       gmds_energy = if (accepted) candidate.state$gmds_energy else state$gmds_energy,
       anchor_energy = if (accepted) candidate.state$anchor_energy else state$anchor_energy,
+      edge_spring_energy = if (accepted) candidate.state$edge_spring_energy else state$edge_spring_energy,
+      repulsion_energy = if (accepted) candidate.state$repulsion_energy else state$repulsion_energy,
       smooth_energy = if (accepted) candidate.state$smooth_energy else state$smooth_energy,
       gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
       step = if (accepted) step else NA_real_,
       accepted = accepted,
       anchor_weight = iter.anchor.weight,
+      edge_spring_weight = iter.edge.spring.weight,
+      repulsion_weight = iter.repulsion.weight,
       smooth_weight = iter.smooth.weight,
       stringsAsFactors = FALSE
     )
@@ -3485,10 +4102,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
   if (!isTRUE(return_trace)) {
-    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "smooth_energy", "gradient_norm", "step", "accepted", "anchor_weight", "smooth_weight"), drop = FALSE]
+    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "edge_spring_energy", "repulsion_energy", "smooth_energy", "gradient_norm", "step", "accepted", "anchor_weight", "edge_spring_weight", "repulsion_weight", "smooth_weight"), drop = FALSE]
     accepted.frames <- list(current)
   }
   final.anchor.weight <- trace.df$anchor_weight[[nrow(trace.df)]]
+  final.edge.spring.weight <- trace.df$edge_spring_weight[[nrow(trace.df)]]
+  final.repulsion.weight <- trace.df$repulsion_weight[[nrow(trace.df)]]
   final.smooth.weight <- trace.df$smooth_weight[[nrow(trace.df)]]
   score <- grip.score.geodesic.mds(
     coords = current,
@@ -3496,7 +4115,13 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = final.anchor.weight,
-    smoothness_weight = final.smooth.weight
+    smoothness_weight = final.smooth.weight,
+    edge_spring_weight = final.edge.spring.weight,
+    repulsion_weight = final.repulsion.weight,
+    repulsion_quantile = repulsion_quantile,
+    repulsion_scale = repulsion_scale,
+    repulsion_cap_quantile = repulsion_cap_quantile,
+    repulsion_hop_min = repulsion_hop_min
   )
 
   list(
@@ -3508,8 +4133,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     anchor_coords = anchor.coords,
     anchor_schedule = anchor.schedule,
     smoothness_schedule = smoothness.schedule,
+    edge_spring_schedule = edge.spring.schedule,
+    repulsion_schedule = repulsion.schedule,
     final_anchor_weight = final.anchor.weight,
     final_smoothness_weight = final.smooth.weight,
+    final_edge_spring_weight = final.edge.spring.weight,
+    final_repulsion_weight = final.repulsion.weight,
     n_threads_used = 1L
   )
 }

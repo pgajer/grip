@@ -31,12 +31,15 @@ A prepared object with class \code{"grip_gmds_prepared"} layered on
 \description{
 \code{grip.prepare.geodesic.mds()} builds a deterministic symmetric
 \eqn{k}-nearest-neighbor graph from an input data matrix, augments it to
-connectedness when requested, and then prepares the full all-pairs chosen
-geodesic cache used by the geodesic-MDS scorer and optimizer.
+connectedness when requested, and then delegates to
+\code{\link{grip.prepare.graph.geodesic.mds}()} to prepare the full all-pairs
+chosen geodesic cache used by the geodesic-MDS scorer and optimizer.
 }
 \details{
 The current implementation uses Euclidean distances in the input space to
 weight graph edges. If the symmetric \eqn{k}-NN graph is disconnected and
 \code{connect = "mst"}, the Euclidean minimum spanning tree is unioned with
-the \eqn{k}-NN graph before the full path cache is built.
+the \eqn{k}-NN graph before the full path cache is built. This function is
+the data-native convenience wrapper; the graph-first API is
+\code{\link{grip.prepare.graph.geodesic.mds}()}.
 }

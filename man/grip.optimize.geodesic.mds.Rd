@@ -18,6 +18,23 @@ grip.optimize.geodesic.mds(
   anchor_weight = 0,
   anchor_weight_end = anchor_weight,
   continuation = c("constant", "linear", "geometric"),
+  smoothness_weight = 0,
+  smoothness_weight_end = smoothness_weight,
+  smoothness_continuation = c("constant", "linear", "geometric"),
+  edge_spring_weight = 0,
+  edge_spring_weight_end = edge_spring_weight,
+  edge_spring_continuation = c("constant", "linear", "geometric"),
+  repulsion_weight = 0,
+  repulsion_weight_end = repulsion_weight,
+  repulsion_continuation = c("constant", "linear", "geometric"),
+  repulsion_quantile = 0.6,
+  repulsion_scale = 0.2,
+  repulsion_cap_quantile = 0.9,
+  repulsion_hop_min = 3L,
+  bending_stencils = NULL,
+  bending_weight = 0,
+  bending_weight_end = bending_weight,
+  bending_continuation = c("constant", "linear", "geometric"),
   engine = c("cpp", "r"),
   max_iter = 16L,
   edge_length_epsilon = 1e-08,
@@ -26,6 +43,7 @@ grip.optimize.geodesic.mds(
   armijo_factor = 1e-04,
   grad_tol = 1e-08,
   min_step = 1e-08,
+  n_threads = 0L,
   recenter = TRUE,
   return_trace = FALSE,
   seed = NULL
@@ -36,7 +54,8 @@ grip.optimize.geodesic.mds(
 omitted, coordinates are initialized according to \code{init}.}
 
 \item{prepared}{Optional prepared object from
-\code{\link{grip.prepare.geodesic.mds}()} or
+\code{\link{grip.prepare.graph.geodesic.mds}()},
+\code{\link{grip.prepare.geodesic.mds}()}, or
 \code{\link{grip.prepare.geodesic.kk}()}.}
 
 \item{data}{Optional input data matrix used when \code{prepared} is omitted.}
@@ -72,6 +91,43 @@ the continuation schedule.}
 \code{"geometric"} gradually relax the tether from
 \code{anchor_weight} to \code{anchor_weight_end}.}
 
+\item{smoothness_weight}{Initial non-negative local smoothness weight.}
+
+\item{smoothness_weight_end}{Final non-negative smoothness weight used at the
+end of the continuation schedule.}
+
+\item{smoothness_continuation}{Continuation schedule for the smoothness
+weight. The same options and semantics as \code{continuation}.}
+
+\item{edge_spring_weight}{Initial non-negative graph-edge spring weight.}
+
+\item{edge_spring_weight_end}{Final non-negative edge-spring weight used at
+the end of the continuation schedule.}
+
+\item{edge_spring_continuation}{Continuation schedule for the edge-spring
+weight. The same options and semantics as \code{continuation}.}
+
+\item{repulsion_weight}{Initial non-negative graph-distance-aware repulsion
+weight.}
+
+\item{repulsion_weight_end}{Final non-negative repulsion weight used at the
+end of the continuation schedule.}
+
+\item{repulsion_continuation}{Continuation schedule for the repulsion
+weight. The same options and semantics as \code{continuation}.}
+
+\item{repulsion_quantile}{Graph-distance quantile used to define the
+repulsion pair family.}
+
+\item{repulsion_scale}{Positive scale factor converting selected graph
+distances into one-sided Euclidean separation targets.}
+
+\item{repulsion_cap_quantile}{Upper graph-distance quantile used to cap the
+repulsion targets before scaling.}
+
+\item{repulsion_hop_min}{Minimum graph hop distance required for a pair to be
+eligible for repulsion.}
+
 \item{engine}{Optimization engine: \code{"cpp"} or \code{"r"}.}
 
 \item{max_iter}{Maximum number of gradient-descent iterations.}
@@ -89,6 +145,10 @@ embedded edge length.}
 
 \item{min_step}{Positive minimum accepted line-search step.}
 
+\item{n_threads}{Number of CPU threads used by the flattened compiled
+optimizer. \code{0} picks an automatic value and \code{1} forces serial
+evaluation.}
+
 \item{recenter}{If \code{TRUE}, recenter accepted proposals to zero mean.}
 
 \item{return_trace}{If \code{TRUE}, include per-iteration diagnostics and
@@ -104,5 +164,8 @@ A list with \code{coords}, \code{trace}, \code{frames},
 \code{grip.optimize.geodesic.mds()} optimizes a fixed-path geodesic-MDS
 objective using deterministic gradient descent with Armijo backtracking. By
 default it initializes from classical MDS on the graph geodesic distance
-matrix and then runs a compiled optimizer.
+matrix and then runs a compiled optimizer. In this Phase 1 prototype, the
+optional graph-edge spring and graph-distance-aware repulsion terms are
+implemented in the R optimizer path; requesting either of them forces a
+fallback from \code{engine = "cpp"} to \code{engine = "r"}.
 }

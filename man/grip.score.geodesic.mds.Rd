@@ -14,6 +14,15 @@ grip.score.geodesic.mds(
   edge_length_epsilon = 1e-08,
   anchor_coords = NULL,
   anchor_weight = 0,
+  smoothness_weight = 0,
+  edge_spring_weight = 0,
+  repulsion_weight = 0,
+  repulsion_quantile = 0.6,
+  repulsion_scale = 0.2,
+  repulsion_cap_quantile = 0.9,
+  repulsion_hop_min = 3L,
+  bending_stencils = NULL,
+  bending_weight = 0,
   return_pair_details = FALSE
 )
 }
@@ -21,7 +30,8 @@ grip.score.geodesic.mds(
 \item{coords}{Numeric coordinate matrix with 2 or 3 columns.}
 
 \item{prepared}{Optional prepared geodesic object from
-\code{\link{grip.prepare.geodesic.mds}()} or
+\code{\link{grip.prepare.graph.geodesic.mds}()},
+\code{\link{grip.prepare.geodesic.mds}()}, or
 \code{\link{grip.prepare.geodesic.kk}()}.}
 
 \item{data}{Optional data matrix used when \code{prepared} is omitted.}
@@ -42,6 +52,27 @@ tether term \eqn{\lambda \|Z - A\|_F^2}.}
 
 \item{anchor_weight}{Non-negative anchor weight \eqn{\lambda}.}
 
+\item{smoothness_weight}{Non-negative local smoothness weight \eqn{\mu}
+applied to \eqn{\sum_i \|z_i - |N(i)|^{-1}\sum_{j \in N(i)} z_j\|^2}.}
+
+\item{edge_spring_weight}{Non-negative coefficient for the graph-edge spring
+term \eqn{\frac{\beta}{2}\sum_{(u,v)\in E}(\|z_u-z_v\|-w_{uv})^2}.}
+
+\item{repulsion_weight}{Non-negative coefficient for the graph-distance-aware
+repulsion term applied to graph-distant vertex pairs.}
+
+\item{repulsion_quantile}{Graph-distance quantile used to select the
+repulsion pair family from all eligible nonlocal pairs.}
+
+\item{repulsion_scale}{Positive scale factor converting graph distances into
+one-sided Euclidean separation targets.}
+
+\item{repulsion_cap_quantile}{Upper graph-distance quantile used to cap the
+repulsion targets before scaling.}
+
+\item{repulsion_hop_min}{Minimum graph hop distance required for a pair to be
+eligible for the repulsion family.}
+
 \item{return_pair_details}{If \code{TRUE}, attach per-pair residual details.}
 }
 \value{
@@ -51,5 +82,7 @@ A one-row data frame summarizing the geodesic-MDS fit.
 \code{grip.score.geodesic.mds()} evaluates an embedding using the fixed-path
 geodesic-MDS criterion from the manuscript: the target for each unordered
 vertex pair is the corresponding graph geodesic itself, with no fitted scale
-factor and no KK-style inverse-distance weighting.
+factor and no KK-style inverse-distance weighting. This Phase 1 extension
+also allows a graph-generic edge-spring term and a graph-distance-aware
+one-sided repulsion term to be included in the reported total energy.
 }
