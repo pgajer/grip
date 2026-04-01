@@ -2584,29 +2584,41 @@ grip.geodesic.mds.resolve.anchor <- function(anchor_mode,
   out
 }
 
+grip.geodesic.mds.weight.schedule <- function(max_iter,
+                                              weight,
+                                              weight_end = weight,
+                                              continuation = c("constant", "linear", "geometric")) {
+  continuation <- match.arg(continuation)
+  weight <- as.double(weight)
+  weight_end <- as.double(weight_end)
+  grip.validate.scalar(weight, "weight", lower = 0)
+  grip.validate.scalar(weight_end, "weight_end", lower = 0)
+  if (max_iter <= 0L) {
+    return(weight)
+  }
+  s <- seq.int(0, max_iter) / max_iter
+  if (identical(continuation, "constant")) {
+    return(rep.int(weight, max_iter + 1L))
+  }
+  if (identical(continuation, "linear")) {
+    return((1 - s) * weight + s * weight_end)
+  }
+  if (weight <= 0 || weight_end <= 0) {
+    stop("geometric continuation requires weight and weight_end to both be > 0")
+  }
+  weight * (weight_end / weight)^s
+}
+
 grip.geodesic.mds.anchor.schedule <- function(max_iter,
                                               anchor_weight,
                                               anchor_weight_end = anchor_weight,
                                               continuation = c("constant", "linear", "geometric")) {
-  continuation <- match.arg(continuation)
-  anchor_weight <- as.double(anchor_weight)
-  anchor_weight_end <- as.double(anchor_weight_end)
-  grip.validate.scalar(anchor_weight, "anchor_weight", lower = 0)
-  grip.validate.scalar(anchor_weight_end, "anchor_weight_end", lower = 0)
-  if (max_iter <= 0L) {
-    return(anchor_weight)
-  }
-  s <- seq.int(0, max_iter) / max_iter
-  if (identical(continuation, "constant")) {
-    return(rep.int(anchor_weight, max_iter + 1L))
-  }
-  if (identical(continuation, "linear")) {
-    return((1 - s) * anchor_weight + s * anchor_weight_end)
-  }
-  if (anchor_weight <= 0 || anchor_weight_end <= 0) {
-    stop("geometric continuation requires anchor_weight and anchor_weight_end to both be > 0")
-  }
-  anchor_weight * (anchor_weight_end / anchor_weight)^s
+  grip.geodesic.mds.weight.schedule(
+    max_iter = max_iter,
+    weight = anchor_weight,
+    weight_end = anchor_weight_end,
+    continuation = continuation
+  )
 }
 
 grip.geodesic.mds.anchor.stats <- function(coords,
@@ -2629,11 +2641,91 @@ grip.geodesic.mds.anchor.stats <- function(coords,
   )
 }
 
+grip.flatten.adj.list.zero.based <- function(adj_list) {
+  n <- length(adj_list)
+  deg <- lengths(adj_list)
+  offsets <- integer(n + 1L)
+  if (n > 0L) {
+    offsets[-1L] <- cumsum(as.integer(deg))
+  }
+  vertices <- integer(sum(as.integer(deg)))
+  cursor <- 0L
+  for (i in seq_len(n)) {
+    nbrs <- as.integer(adj_list[[i]])
+    if (length(nbrs) == 0L) {
+      next
+    }
+    idx <- seq.int(cursor + 1L, cursor + length(nbrs))
+    vertices[idx] <- nbrs - 1L
+    cursor <- cursor + length(nbrs)
+  }
+  list(
+    flat_adj_offsets = offsets,
+    flat_adj_vertices = vertices
+  )
+}
+
+grip.geodesic.mds.smoothness.stats <- function(coords,
+                                               prepared,
+                                               smoothness_weight = 0) {
+  if (!is.finite(smoothness_weight) || smoothness_weight <= 0) {
+    return(list(
+      smoothness_weight = as.double(smoothness_weight),
+      raw_penalty = 0,
+      energy = 0,
+      gradient = matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+    ))
+  }
+
+  adj.list <- prepared$adj_list
+  if (is.null(adj.list) || length(adj.list) != nrow(coords)) {
+    stop("prepared must contain an adjacency list parallel to coords for smoothness regularization")
+  }
+
+  residual <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
+  raw.penalty <- 0
+
+  for (i in seq_len(nrow(coords))) {
+    nbrs <- adj.list[[i]]
+    if (length(nbrs) == 0L) {
+      next
+    }
+    local.resid <- coords[i, ] - colMeans(coords[nbrs, , drop = FALSE])
+    residual[i, ] <- local.resid
+    raw.penalty <- raw.penalty + sum(local.resid^2)
+  }
+
+  grad <- 2 * as.double(smoothness_weight) * residual
+  for (i in seq_len(nrow(coords))) {
+    nbrs <- adj.list[[i]]
+    deg <- length(nbrs)
+    if (deg == 0L) {
+      next
+    }
+    grad[nbrs, ] <- grad[nbrs, , drop = FALSE] -
+      matrix(
+        (2 * as.double(smoothness_weight) / deg) * residual[i, ],
+        nrow = deg,
+        ncol = ncol(coords),
+        byrow = TRUE
+      )
+  }
+
+  list(
+    smoothness_weight = as.double(smoothness_weight),
+    raw_penalty = raw.penalty,
+    energy = as.double(smoothness_weight) * raw.penalty,
+    gradient = grad
+  )
+}
+
 grip.geodesic.mds.energy.gradient <- function(coords,
                                               prepared,
                                               edge_length_epsilon = 1e-8,
                                               anchor_coords = NULL,
-                                              anchor_weight = 0) {
+                                              anchor_weight = 0,
+                                              smoothness_weight = 0) {
   g <- as.double(prepared$pair_graph_distance)
   n.pairs <- length(g)
   grad <- matrix(0, nrow = nrow(coords), ncol = ncol(coords))
@@ -2646,13 +2738,20 @@ grip.geodesic.mds.energy.gradient <- function(coords,
       anchor_coords = anchor_coords,
       anchor_weight = anchor_weight
     )
+    smooth.stats <- grip.geodesic.mds.smoothness.stats(
+      coords = coords,
+      prepared = prepared,
+      smoothness_weight = smoothness_weight
+    )
     return(list(
-      energy = anchor.stats$energy,
+      energy = anchor.stats$energy + smooth.stats$energy,
       gmds_energy = 0,
       anchor_energy = anchor.stats$energy,
+      smooth_energy = smooth.stats$energy,
       anchor_raw_penalty = anchor.stats$raw_penalty,
-      gradient = anchor.stats$gradient,
-      gradient_norm = sqrt(sum(anchor.stats$gradient^2)),
+      smooth_raw_penalty = smooth.stats$raw_penalty,
+      gradient = anchor.stats$gradient + smooth.stats$gradient,
+      gradient_norm = sqrt(sum((anchor.stats$gradient + smooth.stats$gradient)^2)),
       path_lengths = path.lengths,
       target = g
     ))
@@ -2684,13 +2783,20 @@ grip.geodesic.mds.energy.gradient <- function(coords,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight
   )
-  grad <- grad + anchor.stats$gradient
+  smooth.stats <- grip.geodesic.mds.smoothness.stats(
+    coords = coords,
+    prepared = prepared,
+    smoothness_weight = smoothness_weight
+  )
+  grad <- grad + anchor.stats$gradient + smooth.stats$gradient
 
   list(
-    energy = gmds.energy + anchor.stats$energy,
+    energy = gmds.energy + anchor.stats$energy + smooth.stats$energy,
     gmds_energy = gmds.energy,
     anchor_energy = anchor.stats$energy,
+    smooth_energy = smooth.stats$energy,
     anchor_raw_penalty = anchor.stats$raw_penalty,
+    smooth_raw_penalty = smooth.stats$raw_penalty,
     gradient = grad,
     gradient_norm = sqrt(sum(grad^2)),
     path_lengths = path.lengths,
@@ -2702,7 +2808,8 @@ grip.geodesic.mds.score.stats <- function(coords,
                                           prepared,
                                           edge_length_epsilon = 1e-8,
                                           anchor_coords = NULL,
-                                          anchor_weight = 0) {
+                                          anchor_weight = 0,
+                                          smoothness_weight = 0) {
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
   g <- as.double(prepared$pair_graph_distance)
   anchor.stats <- grip.geodesic.mds.anchor.stats(
@@ -2710,15 +2817,23 @@ grip.geodesic.mds.score.stats <- function(coords,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight
   )
+  smooth.stats <- grip.geodesic.mds.smoothness.stats(
+    coords = coords,
+    prepared = prepared,
+    smoothness_weight = smoothness_weight
+  )
 
   if (length(g) == 0L) {
     return(list(
       n.pairs = 0L,
-      energy = anchor.stats$energy,
+      energy = anchor.stats$energy + smooth.stats$energy,
       gmds.energy = 0,
       anchor.weight = anchor.stats$anchor_weight,
       anchor.raw.penalty = anchor.stats$raw_penalty,
       anchor.energy = anchor.stats$energy,
+      smooth.weight = smooth.stats$smoothness_weight,
+      smooth.raw.penalty = smooth.stats$raw_penalty,
+      smooth.energy = smooth.stats$energy,
       raw_stress = NA_real_,
       stress = NA_real_,
       rmse = NA_real_,
@@ -2743,11 +2858,14 @@ grip.geodesic.mds.score.stats <- function(coords,
 
   list(
     n.pairs = length(g),
-    energy = 0.5 * raw.stress + anchor.stats$energy,
+    energy = 0.5 * raw.stress + anchor.stats$energy + smooth.stats$energy,
     gmds.energy = 0.5 * raw.stress,
     anchor.weight = anchor.stats$anchor_weight,
     anchor.raw.penalty = anchor.stats$raw_penalty,
     anchor.energy = anchor.stats$energy,
+    smooth.weight = smooth.stats$smoothness_weight,
+    smooth.raw.penalty = smooth.stats$raw_penalty,
+    smooth.energy = smooth.stats$energy,
     raw_stress = raw.stress,
     stress = if (is.finite(denom) && denom > 0) sqrt(raw.stress / denom) else NA_real_,
     rmse = sqrt(mean(resid^2)),
@@ -2785,13 +2903,15 @@ grip.geodesic.mds.evaluate.state <- function(coords,
                                              prepared,
                                              edge_length_epsilon = 1e-8,
                                              anchor_coords = NULL,
-                                             anchor_weight = 0) {
+                                             anchor_weight = 0,
+                                             smoothness_weight = 0) {
   grip.geodesic.mds.energy.gradient(
     coords = coords,
     prepared = prepared,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor_coords,
-    anchor_weight = anchor_weight
+    anchor_weight = anchor_weight,
+    smoothness_weight = smoothness_weight
   )
 }
 
@@ -2921,6 +3041,8 @@ grip.prepare.geodesic.mds <- function(data,
 #' @param anchor_coords Optional anchor embedding used to add the quadratic
 #'   tether term \eqn{\lambda \|Z - A\|_F^2}.
 #' @param anchor_weight Non-negative anchor weight \eqn{\lambda}.
+#' @param smoothness_weight Non-negative local smoothness weight \eqn{\mu}
+#'   applied to \eqn{\sum_i \|z_i - |N(i)|^{-1}\sum_{j \in N(i)} z_j\|^2}.
 #' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
 #'
 #' @return A one-row data frame summarizing the geodesic-MDS fit.
@@ -2934,6 +3056,7 @@ grip.score.geodesic.mds <- function(coords,
                                     edge_length_epsilon = 1e-8,
                                     anchor_coords = NULL,
                                     anchor_weight = 0,
+                                    smoothness_weight = 0,
                                     return_pair_details = FALSE) {
   coords <- grip.validate.coords(coords)
   tie_mode <- match.arg(tie_mode)
@@ -2960,7 +3083,8 @@ grip.score.geodesic.mds <- function(coords,
     prepared = prepared,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
-    anchor_weight = anchor_weight
+    anchor_weight = anchor_weight,
+    smoothness_weight = smoothness_weight
   )
 
   out <- data.frame(
@@ -2976,6 +3100,9 @@ grip.score.geodesic.mds <- function(coords,
     anchor.weight = stats$anchor.weight,
     anchor.raw.penalty = stats$anchor.raw.penalty,
     anchor.energy = stats$anchor.energy,
+    smooth.weight = stats$smooth.weight,
+    smooth.raw.penalty = stats$smooth.raw.penalty,
+    smooth.energy = stats$smooth.energy,
     tie.mode = if (!is.null(prepared$tie_mode)) prepared$tie_mode else "single",
     stringsAsFactors = FALSE
   )
@@ -3021,6 +3148,11 @@ grip.score.geodesic.mds <- function(coords,
 #'   \code{"constant"}, the tether weight stays fixed; \code{"linear"} and
 #'   \code{"geometric"} gradually relax the tether from
 #'   \code{anchor_weight} to \code{anchor_weight_end}.
+#' @param smoothness_weight Initial non-negative local smoothness weight.
+#' @param smoothness_weight_end Final non-negative smoothness weight used at the
+#'   end of the continuation schedule.
+#' @param smoothness_continuation Continuation schedule for the smoothness
+#'   weight. The same options and semantics as \code{continuation}.
 #' @param engine Optimization engine: \code{"cpp"} or \code{"r"}.
 #' @param max_iter Maximum number of gradient-descent iterations.
 #' @param edge_length_epsilon Small non-negative stabilizer added inside each
@@ -3054,6 +3186,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
                                        anchor_weight = 0,
                                        anchor_weight_end = anchor_weight,
                                        continuation = c("constant", "linear", "geometric"),
+                                       smoothness_weight = 0,
+                                       smoothness_weight_end = smoothness_weight,
+                                       smoothness_continuation = c("constant", "linear", "geometric"),
                                        engine = c("cpp", "r"),
                                        max_iter = 16L,
                                        edge_length_epsilon = 1e-8,
@@ -3070,6 +3205,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   tie_mode <- match.arg(tie_mode)
   anchor_mode <- match.arg(anchor_mode)
   continuation <- match.arg(continuation)
+  smoothness_continuation <- match.arg(smoothness_continuation)
   engine <- match.arg(engine)
   grip.validate.scalar(max_iter, "max_iter", lower = 0)
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
@@ -3081,6 +3217,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   grip.validate.scalar(n_threads, "n_threads", lower = 0)
   grip.validate.scalar(anchor_weight, "anchor_weight", lower = 0)
   grip.validate.scalar(anchor_weight_end, "anchor_weight_end", lower = 0)
+  grip.validate.scalar(smoothness_weight, "smoothness_weight", lower = 0)
+  grip.validate.scalar(smoothness_weight_end, "smoothness_weight_end", lower = 0)
   if (identical(anchor_mode, "none") && (anchor_weight > 0 || anchor_weight_end > 0)) {
     stop("anchor_mode must not be 'none' when anchor_weight or anchor_weight_end is positive")
   }
@@ -3126,13 +3264,19 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   anchor.schedule <- if (is.null(anchor.coords)) {
     rep.int(0, max_iter + 1L)
   } else {
-    grip.geodesic.mds.anchor.schedule(
+    grip.geodesic.mds.weight.schedule(
       max_iter = max_iter,
-      anchor_weight = anchor_weight,
-      anchor_weight_end = anchor_weight_end,
+      weight = anchor_weight,
+      weight_end = anchor_weight_end,
       continuation = continuation
     )
   }
+  smoothness.schedule <- grip.geodesic.mds.weight.schedule(
+    max_iter = max_iter,
+    weight = smoothness_weight,
+    weight_end = smoothness_weight_end,
+    continuation = smoothness_continuation
+  )
 
   if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
     score <- grip.score.geodesic.mds(
@@ -3140,7 +3284,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       prepared = prepared,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
-      anchor_weight = anchor.schedule[[1L]]
+      anchor_weight = anchor.schedule[[1L]],
+      smoothness_weight = smoothness.schedule[[1L]]
     )
     return(list(
       coords = coords,
@@ -3150,12 +3295,30 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       score = score,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
+      smoothness_schedule = smoothness.schedule,
       final_anchor_weight = anchor.schedule[[1L]],
+      final_smoothness_weight = smoothness.schedule[[1L]],
       n_threads_used = 1L
     ))
   }
 
   if (identical(engine, "cpp")) {
+    if (any(smoothness.schedule > 0) &&
+        (is.null(prepared$flat_pair_edge_offsets) ||
+         is.null(prepared$flat_edge_u) ||
+         is.null(prepared$flat_edge_v) ||
+         is.null(prepared$flat_edge_coeff))) {
+      warning("smoothness regularization requires the flattened cache; falling back to the R engine")
+      engine <- "r"
+    }
+  }
+
+  if (identical(engine, "cpp")) {
+    smooth.flat <- if (any(smoothness.schedule > 0)) {
+      grip.flatten.adj.list.zero.based(prepared$adj_list)
+    } else {
+      list(flat_adj_offsets = integer(), flat_adj_vertices = integer())
+    }
     opt <- if (!is.null(prepared$flat_pair_edge_offsets) &&
                !is.null(prepared$flat_edge_u) &&
                !is.null(prepared$flat_edge_v) &&
@@ -3178,6 +3341,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         return_trace = return_trace,
         anchor_coords = anchor.coords,
         anchor_weights = anchor.schedule,
+        smooth_adj_offsets = smooth.flat$flat_adj_offsets,
+        smooth_adj_vertices = smooth.flat$flat_adj_vertices,
+        smooth_weights = smoothness.schedule,
         n_threads = n_threads
       )
     } else {
@@ -3207,7 +3373,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       prepared = prepared,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
-      anchor_weight = final.anchor.weight
+      anchor_weight = final.anchor.weight,
+      smoothness_weight = opt$final_smoothness_weight
     )
     return(list(
       coords = opt$coords,
@@ -3217,7 +3384,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       score = score,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
+      smoothness_schedule = smoothness.schedule,
       final_anchor_weight = final.anchor.weight,
+      final_smoothness_weight = opt$final_smoothness_weight,
       n_threads_used = opt$n_threads_used
     ))
   }
@@ -3230,29 +3399,34 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     prepared = prepared,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
-    anchor_weight = anchor.schedule[[1L]]
+    anchor_weight = anchor.schedule[[1L]],
+    smoothness_weight = smoothness.schedule[[1L]]
   )
   trace.rows[[1L]] <- data.frame(
     iteration = 0L,
     energy = state$energy,
     gmds_energy = state$gmds_energy,
     anchor_energy = state$anchor_energy,
+    smooth_energy = state$smooth_energy,
     gradient_norm = state$gradient_norm,
     step = NA_real_,
     accepted = TRUE,
     anchor_weight = anchor.schedule[[1L]],
+    smooth_weight = smoothness.schedule[[1L]],
     stringsAsFactors = FALSE
   )
   used <- 1L
 
   for (iter in seq_len(max_iter)) {
     iter.anchor.weight <- anchor.schedule[[iter + 1L]]
+    iter.smooth.weight <- smoothness.schedule[[iter + 1L]]
     state <- grip.geodesic.mds.evaluate.state(
       coords = current,
       prepared = prepared,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
-      anchor_weight = iter.anchor.weight
+      anchor_weight = iter.anchor.weight,
+      smoothness_weight = iter.smooth.weight
     )
     if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
       break
@@ -3272,7 +3446,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         prepared = prepared,
         edge_length_epsilon = edge_length_epsilon,
         anchor_coords = anchor.coords,
-        anchor_weight = iter.anchor.weight
+        anchor_weight = iter.anchor.weight,
+        smoothness_weight = iter.smooth.weight
       )
       target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
       if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
@@ -3290,10 +3465,12 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       energy = if (accepted) candidate.state$energy else state$energy,
       gmds_energy = if (accepted) candidate.state$gmds_energy else state$gmds_energy,
       anchor_energy = if (accepted) candidate.state$anchor_energy else state$anchor_energy,
+      smooth_energy = if (accepted) candidate.state$smooth_energy else state$smooth_energy,
       gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
       step = if (accepted) step else NA_real_,
       accepted = accepted,
       anchor_weight = iter.anchor.weight,
+      smooth_weight = iter.smooth.weight,
       stringsAsFactors = FALSE
     )
 
@@ -3308,16 +3485,18 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
   if (!isTRUE(return_trace)) {
-    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "gradient_norm", "step", "accepted", "anchor_weight"), drop = FALSE]
+    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "smooth_energy", "gradient_norm", "step", "accepted", "anchor_weight", "smooth_weight"), drop = FALSE]
     accepted.frames <- list(current)
   }
   final.anchor.weight <- trace.df$anchor_weight[[nrow(trace.df)]]
+  final.smooth.weight <- trace.df$smooth_weight[[nrow(trace.df)]]
   score <- grip.score.geodesic.mds(
     coords = current,
     prepared = prepared,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
-    anchor_weight = final.anchor.weight
+    anchor_weight = final.anchor.weight,
+    smoothness_weight = final.smooth.weight
   )
 
   list(
@@ -3328,7 +3507,9 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     score = score,
     anchor_coords = anchor.coords,
     anchor_schedule = anchor.schedule,
+    smoothness_schedule = smoothness.schedule,
     final_anchor_weight = final.anchor.weight,
+    final_smoothness_weight = final.smooth.weight,
     n_threads_used = 1L
   )
 }
