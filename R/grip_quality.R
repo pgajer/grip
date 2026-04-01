@@ -2675,6 +2675,9 @@ grip.build.graph.repulsion.cache <- function(prepared,
   if (nrow(pair.matrix) == 0L) {
     return(list(
       repulsion_pair_matrix = matrix(integer(), ncol = 2L),
+      flat_repulsion_u = integer(0L),
+      flat_repulsion_v = integer(0L),
+      flat_repulsion_target = numeric(0L),
       repulsion_target = numeric(0L),
       repulsion_source_distance = numeric(0L),
       repulsion_threshold = NA_real_,
@@ -2692,6 +2695,9 @@ grip.build.graph.repulsion.cache <- function(prepared,
   if (!any(eligible)) {
     return(list(
       repulsion_pair_matrix = matrix(integer(), ncol = 2L),
+      flat_repulsion_u = integer(0L),
+      flat_repulsion_v = integer(0L),
+      flat_repulsion_target = numeric(0L),
       repulsion_target = numeric(0L),
       repulsion_source_distance = numeric(0L),
       repulsion_threshold = NA_real_,
@@ -2708,6 +2714,9 @@ grip.build.graph.repulsion.cache <- function(prepared,
 
   list(
     repulsion_pair_matrix = pair.matrix[keep, , drop = FALSE],
+    flat_repulsion_u = as.integer(pair.matrix[keep, 1L] - 1L),
+    flat_repulsion_v = as.integer(pair.matrix[keep, 2L] - 1L),
+    flat_repulsion_target = as.double(target),
     repulsion_target = as.double(target),
     repulsion_source_distance = graph.dist[keep],
     repulsion_threshold = threshold,
@@ -2753,6 +2762,9 @@ grip.geodesic.mds.ensure.graph.term.cache <- function(prepared,
         repulsion_hop_min = repulsion_hop_min
       )
       prepared$repulsion_pair_matrix <- cache$repulsion_pair_matrix
+      prepared$flat_repulsion_u <- cache$flat_repulsion_u
+      prepared$flat_repulsion_v <- cache$flat_repulsion_v
+      prepared$flat_repulsion_target <- cache$flat_repulsion_target
       prepared$repulsion_target <- cache$repulsion_target
       prepared$repulsion_source_distance <- cache$repulsion_source_distance
       prepared$repulsion_threshold <- cache$repulsion_threshold
@@ -3915,17 +3927,23 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     } else {
       numeric(0L)
     }
-    repulsion.u <- if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
+    repulsion.u <- if (!is.null(prepared$flat_repulsion_u)) {
+      as.integer(prepared$flat_repulsion_u)
+    } else if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
       as.integer(prepared$repulsion_pair_matrix[, 1L] - 1L)
     } else {
       integer(0L)
     }
-    repulsion.v <- if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
+    repulsion.v <- if (!is.null(prepared$flat_repulsion_v)) {
+      as.integer(prepared$flat_repulsion_v)
+    } else if (!is.null(prepared$repulsion_pair_matrix) && nrow(prepared$repulsion_pair_matrix) > 0L) {
       as.integer(prepared$repulsion_pair_matrix[, 2L] - 1L)
     } else {
       integer(0L)
     }
-    repulsion.target <- if (!is.null(prepared$repulsion_target)) {
+    repulsion.target <- if (!is.null(prepared$flat_repulsion_target)) {
+      as.double(prepared$flat_repulsion_target)
+    } else if (!is.null(prepared$repulsion_target)) {
       as.double(prepared$repulsion_target)
     } else {
       numeric(0L)
@@ -4046,6 +4064,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     anchor_energy = state$anchor_energy,
     edge_spring_energy = state$edge_spring_energy,
     repulsion_energy = state$repulsion_energy,
+    repulsion_pair_count = state$repulsion_pair_count,
+    repulsion_active_pair_count = state$repulsion_active_pair_count,
     smooth_energy = state$smooth_energy,
     gradient_norm = state$gradient_norm,
     step = NA_real_,
@@ -4122,6 +4142,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       anchor_energy = if (accepted) candidate.state$anchor_energy else state$anchor_energy,
       edge_spring_energy = if (accepted) candidate.state$edge_spring_energy else state$edge_spring_energy,
       repulsion_energy = if (accepted) candidate.state$repulsion_energy else state$repulsion_energy,
+      repulsion_pair_count = if (accepted) candidate.state$repulsion_pair_count else state$repulsion_pair_count,
+      repulsion_active_pair_count = if (accepted) candidate.state$repulsion_active_pair_count else state$repulsion_active_pair_count,
       smooth_energy = if (accepted) candidate.state$smooth_energy else state$smooth_energy,
       gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
       step = if (accepted) step else NA_real_,
@@ -4144,7 +4166,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
   if (!isTRUE(return_trace)) {
-    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "edge_spring_energy", "repulsion_energy", "smooth_energy", "gradient_norm", "step", "accepted", "anchor_weight", "edge_spring_weight", "repulsion_weight", "smooth_weight"), drop = FALSE]
+    trace.df <- trace.df[, c("iteration", "energy", "gmds_energy", "anchor_energy", "edge_spring_energy", "repulsion_energy", "repulsion_pair_count", "repulsion_active_pair_count", "smooth_energy", "gradient_norm", "step", "accepted", "anchor_weight", "edge_spring_weight", "repulsion_weight", "smooth_weight"), drop = FALSE]
     accepted.frames <- list(current)
   }
   final.anchor.weight <- trace.df$anchor_weight[[nrow(trace.df)]]

@@ -34,6 +34,8 @@ struct GeodesicMdsState {
     double anchorEnergy;
     double edgeSpringEnergy;
     double repulsionEnergy;
+    int repulsionPairCount;
+    int repulsionActivePairCount;
     double smoothEnergy;
     double gradNorm2;
     std::vector<Point<>> gradient;
@@ -979,9 +981,11 @@ void accumulate_flat_repulsion(const std::vector<Point<>> &coords,
                                double eps2,
                                double repulsionWeight,
                                std::vector<Point<>> &gradient,
-                               double &repulsionEnergy)
+                               double &repulsionEnergy,
+                               int &activePairCount)
 {
     repulsionEnergy = 0.0;
+    activePairCount = 0;
     if(!repulsion.enabled() || repulsionWeight <= 0.0)
         return;
 
@@ -995,6 +999,7 @@ void accumulate_flat_repulsion(const std::vector<Point<>> &coords,
         double resid = repulsion.target[pairIndex] - len;
         if(resid <= 0.0)
             continue;
+        activePairCount++;
         rawPenalty += resid * resid;
         if(len <= 0.0)
             continue;
@@ -1025,6 +1030,8 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
     state.anchorEnergy = 0.0;
     state.edgeSpringEnergy = 0.0;
     state.repulsionEnergy = 0.0;
+    state.repulsionPairCount = static_cast<int>(repulsion.pairCount());
+    state.repulsionActivePairCount = 0;
     state.smoothEnergy = 0.0;
     state.gradNorm2 = 0.0;
     state.gradient.assign(coords.size(), Point<>());
@@ -1102,7 +1109,8 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                               eps2,
                               repulsionWeight,
                               state.gradient,
-                              state.repulsionEnergy);
+                              state.repulsionEnergy,
+                              state.repulsionActivePairCount);
 
     if(anchor && anchorWeight > 0.0){
         double rawPenalty = 0.0;
@@ -1128,6 +1136,8 @@ Rcpp::DataFrame build_trace_df(const std::vector<int> &iteration,
                                const std::vector<double> &anchor_energy,
                                const std::vector<double> &edge_spring_energy,
                                const std::vector<double> &repulsion_energy,
+                               const std::vector<int> &repulsion_pair_count,
+                               const std::vector<int> &repulsion_active_pair_count,
                                const std::vector<double> &smooth_energy,
                                const std::vector<double> &gradient_norm,
                                const std::vector<double> &step,
@@ -1144,6 +1154,8 @@ Rcpp::DataFrame build_trace_df(const std::vector<int> &iteration,
         Rcpp::_["anchor_energy"] = anchor_energy,
         Rcpp::_["edge_spring_energy"] = edge_spring_energy,
         Rcpp::_["repulsion_energy"] = repulsion_energy,
+        Rcpp::_["repulsion_pair_count"] = repulsion_pair_count,
+        Rcpp::_["repulsion_active_pair_count"] = repulsion_active_pair_count,
         Rcpp::_["smooth_energy"] = smooth_energy,
         Rcpp::_["gradient_norm"] = gradient_norm,
         Rcpp::_["step"] = step,
@@ -1226,6 +1238,8 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     std::vector<double> trace_anchor_energy;
     std::vector<double> trace_edge_spring_energy;
     std::vector<double> trace_repulsion_energy;
+    std::vector<int> trace_repulsion_pair_count;
+    std::vector<int> trace_repulsion_active_pair_count;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
@@ -1247,6 +1261,8 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     trace_anchor_energy.push_back(state.anchorEnergy);
     trace_edge_spring_energy.push_back(0.0);
     trace_repulsion_energy.push_back(0.0);
+    trace_repulsion_pair_count.push_back(0);
+    trace_repulsion_active_pair_count.push_back(0);
     trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
@@ -1287,6 +1303,8 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
         trace_edge_spring_energy.push_back(0.0);
         trace_repulsion_energy.push_back(0.0);
+        trace_repulsion_pair_count.push_back(0);
+        trace_repulsion_active_pair_count.push_back(0);
         trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
@@ -1318,6 +1336,8 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
                                           trace_anchor_energy,
                                           trace_edge_spring_energy,
                                           trace_repulsion_energy,
+                                          trace_repulsion_pair_count,
+                                          trace_repulsion_active_pair_count,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
@@ -1392,6 +1412,8 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     std::vector<double> trace_anchor_energy;
     std::vector<double> trace_edge_spring_energy;
     std::vector<double> trace_repulsion_energy;
+    std::vector<int> trace_repulsion_pair_count;
+    std::vector<int> trace_repulsion_active_pair_count;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
@@ -1419,6 +1441,8 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     trace_anchor_energy.push_back(state.anchorEnergy);
     trace_edge_spring_energy.push_back(0.0);
     trace_repulsion_energy.push_back(0.0);
+    trace_repulsion_pair_count.push_back(0);
+    trace_repulsion_active_pair_count.push_back(0);
     trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
@@ -1473,6 +1497,8 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
         trace_edge_spring_energy.push_back(0.0);
         trace_repulsion_energy.push_back(0.0);
+        trace_repulsion_pair_count.push_back(0);
+        trace_repulsion_active_pair_count.push_back(0);
         trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
@@ -1504,6 +1530,8 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
                                           trace_anchor_energy,
                                           trace_edge_spring_energy,
                                           trace_repulsion_energy,
+                                          trace_repulsion_pair_count,
+                                          trace_repulsion_active_pair_count,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
@@ -1656,6 +1684,8 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     std::vector<double> trace_anchor_energy;
     std::vector<double> trace_edge_spring_energy;
     std::vector<double> trace_repulsion_energy;
+    std::vector<int> trace_repulsion_pair_count;
+    std::vector<int> trace_repulsion_active_pair_count;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
@@ -1690,6 +1720,8 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     trace_anchor_energy.push_back(state.anchorEnergy);
     trace_edge_spring_energy.push_back(state.edgeSpringEnergy);
     trace_repulsion_energy.push_back(state.repulsionEnergy);
+    trace_repulsion_pair_count.push_back(state.repulsionPairCount);
+    trace_repulsion_active_pair_count.push_back(state.repulsionActivePairCount);
     trace_smooth_energy.push_back(state.smoothEnergy);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
@@ -1761,6 +1793,8 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
         trace_edge_spring_energy.push_back(accepted ? candidate.edgeSpringEnergy : state.edgeSpringEnergy);
         trace_repulsion_energy.push_back(accepted ? candidate.repulsionEnergy : state.repulsionEnergy);
+        trace_repulsion_pair_count.push_back(accepted ? candidate.repulsionPairCount : state.repulsionPairCount);
+        trace_repulsion_active_pair_count.push_back(accepted ? candidate.repulsionActivePairCount : state.repulsionActivePairCount);
         trace_smooth_energy.push_back(accepted ? candidate.smoothEnergy : state.smoothEnergy);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
@@ -1792,6 +1826,8 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
                                           trace_anchor_energy,
                                           trace_edge_spring_energy,
                                           trace_repulsion_energy,
+                                          trace_repulsion_pair_count,
+                                          trace_repulsion_active_pair_count,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
@@ -1806,5 +1842,65 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         Rcpp::_["final_repulsion_weight"] = trace_repulsion_weight.back(),
         Rcpp::_["final_smoothness_weight"] = trace_smooth_weight.back(),
         Rcpp::_["n_threads_used"] = resolvedThreads
+    );
+}
+
+// [[Rcpp::export]]
+Rcpp::List grip_geodesic_mds_flat_repulsion_stats_cpp(
+    Rcpp::IntegerVector repulsion_u,
+    Rcpp::IntegerVector repulsion_v,
+    Rcpp::NumericVector repulsion_target,
+    Rcpp::NumericMatrix coords,
+    double edge_length_epsilon = 1e-8,
+    double repulsion_weight = 1.0)
+{
+    if(coords.ncol() != 2 && coords.ncol() != 3)
+        Rcpp::stop("coords must have 2 or 3 columns");
+    if(coords.nrow() <= 0)
+        Rcpp::stop("coords must have at least one row");
+    for(int i = 0; i < coords.size(); i++){
+        if(!std::isfinite(coords[i]))
+            Rcpp::stop("coords must contain only finite values");
+    }
+    if(!std::isfinite(edge_length_epsilon) || edge_length_epsilon < 0.0)
+        Rcpp::stop("edge_length_epsilon must be finite and >= 0");
+    if(!std::isfinite(repulsion_weight) || repulsion_weight < 0.0)
+        Rcpp::stop("repulsion_weight must be finite and >= 0");
+    if(repulsion_u.size() != repulsion_v.size() ||
+       repulsion_u.size() != repulsion_target.size())
+        Rcpp::stop("repulsion arrays must have the same length");
+    for(int i = 0; i < repulsion_u.size(); i++){
+        if(repulsion_u[i] < 0 || repulsion_u[i] >= coords.nrow() ||
+           repulsion_v[i] < 0 || repulsion_v[i] >= coords.nrow())
+            Rcpp::stop("repulsion arrays must use 0-based vertex ids within [0, nrow(coords) - 1]");
+        if(!std::isfinite(repulsion_target[i]) || repulsion_target[i] < 0.0)
+            Rcpp::stop("repulsion_target must contain finite values >= 0");
+    }
+
+    FlatRepulsionView repulsion{
+        Rcpp::as<std::vector<int>>(repulsion_u),
+        Rcpp::as<std::vector<int>>(repulsion_v),
+        Rcpp::as<std::vector<double>>(repulsion_target)
+    };
+    std::vector<Point<>> current = matrix_to_points(coords);
+    std::vector<Point<>> gradient(current.size());
+    for(size_t i = 0; i < gradient.size(); i++)
+        gradient[i].set_to_zero();
+    double energy = 0.0;
+    int activePairCount = 0;
+    accumulate_flat_repulsion(current,
+                              repulsion,
+                              edge_length_epsilon * edge_length_epsilon,
+                              repulsion_weight,
+                              gradient,
+                              energy,
+                              activePairCount);
+
+    return Rcpp::List::create(
+        Rcpp::_["repulsion_weight"] = repulsion_weight,
+        Rcpp::_["energy"] = energy,
+        Rcpp::_["gradient"] = points_to_matrix(gradient, coords.ncol()),
+        Rcpp::_["pair_count"] = static_cast<int>(repulsion.pairCount()),
+        Rcpp::_["active_pair_count"] = activePairCount
     );
 }
