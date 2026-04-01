@@ -32,6 +32,8 @@ struct GeodesicMdsState {
     double energy;
     double gmdsEnergy;
     double anchorEnergy;
+    double edgeSpringEnergy;
+    double repulsionEnergy;
     double smoothEnergy;
     double gradNorm2;
     std::vector<Point<>> gradient;
@@ -62,6 +64,38 @@ struct FlatSmoothnessView {
     size_t vertexCount() const
     {
         return offsets.empty() ? 0 : offsets.size() - 1;
+    }
+};
+
+struct FlatEdgePenaltyView {
+    std::vector<int> u;
+    std::vector<int> v;
+    std::vector<double> target;
+
+    bool enabled() const
+    {
+        return !u.empty();
+    }
+
+    size_t edgeCount() const
+    {
+        return u.size();
+    }
+};
+
+struct FlatRepulsionView {
+    std::vector<int> u;
+    std::vector<int> v;
+    std::vector<double> target;
+
+    bool enabled() const
+    {
+        return !u.empty();
+    }
+
+    size_t pairCount() const
+    {
+        return u.size();
     }
 };
 
@@ -765,6 +799,8 @@ GeodesicMdsState evaluate_state(const std::vector<Point<>> &coords,
     state.energy = 0.0;
     state.gmdsEnergy = 0.0;
     state.anchorEnergy = 0.0;
+    state.edgeSpringEnergy = 0.0;
+    state.repulsionEnergy = 0.0;
     state.smoothEnergy = 0.0;
     state.gradNorm2 = 0.0;
     state.gradient.assign(coords.size(), Point<>());
@@ -908,19 +944,87 @@ void accumulate_flat_smoothness(const std::vector<Point<>> &coords,
     smoothEnergy *= smoothWeight;
 }
 
+void accumulate_flat_edge_springs(const std::vector<Point<>> &coords,
+                                  const FlatEdgePenaltyView &edgePenalty,
+                                  double eps2,
+                                  double edgeSpringWeight,
+                                  std::vector<Point<>> &gradient,
+                                  double &edgeSpringEnergy)
+{
+    edgeSpringEnergy = 0.0;
+    if(!edgePenalty.enabled() || edgeSpringWeight <= 0.0)
+        return;
+
+    double rawPenalty = 0.0;
+    for(size_t edgeIndex = 0; edgeIndex < edgePenalty.edgeCount(); edgeIndex++){
+        int u = edgePenalty.u[edgeIndex];
+        int v = edgePenalty.v[edgeIndex];
+        Point<> diff = coords[static_cast<size_t>(u)] -
+                       coords[static_cast<size_t>(v)];
+        double len = std::sqrt(diff.fnorm2() + eps2);
+        double resid = len - edgePenalty.target[edgeIndex];
+        rawPenalty += resid * resid;
+        if(len <= 0.0)
+            continue;
+        Point<> stepVec = diff * (edgeSpringWeight * resid / len);
+        gradient[static_cast<size_t>(u)] += stepVec;
+        gradient[static_cast<size_t>(v)] -= stepVec;
+    }
+
+    edgeSpringEnergy = 0.5 * edgeSpringWeight * rawPenalty;
+}
+
+void accumulate_flat_repulsion(const std::vector<Point<>> &coords,
+                               const FlatRepulsionView &repulsion,
+                               double eps2,
+                               double repulsionWeight,
+                               std::vector<Point<>> &gradient,
+                               double &repulsionEnergy)
+{
+    repulsionEnergy = 0.0;
+    if(!repulsion.enabled() || repulsionWeight <= 0.0)
+        return;
+
+    double rawPenalty = 0.0;
+    for(size_t pairIndex = 0; pairIndex < repulsion.pairCount(); pairIndex++){
+        int u = repulsion.u[pairIndex];
+        int v = repulsion.v[pairIndex];
+        Point<> diff = coords[static_cast<size_t>(u)] -
+                       coords[static_cast<size_t>(v)];
+        double len = std::sqrt(diff.fnorm2() + eps2);
+        double resid = repulsion.target[pairIndex] - len;
+        if(resid <= 0.0)
+            continue;
+        rawPenalty += resid * resid;
+        if(len <= 0.0)
+            continue;
+        Point<> stepVec = diff * (-repulsionWeight * resid / len);
+        gradient[static_cast<size_t>(u)] += stepVec;
+        gradient[static_cast<size_t>(v)] -= stepVec;
+    }
+
+    repulsionEnergy = 0.5 * repulsionWeight * rawPenalty;
+}
+
 GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                                      const FlatGeodesicCacheView &cache,
                                      const FlatSmoothnessView &smoothness,
+                                     const FlatEdgePenaltyView &edgePenalty,
+                                     const FlatRepulsionView &repulsion,
                                      double eps2,
                                      const std::vector<Point<>> *anchor,
                                      double anchorWeight,
                                      double smoothWeight,
+                                     double edgeSpringWeight,
+                                     double repulsionWeight,
                                      int requestedThreads)
 {
     GeodesicMdsState state;
     state.energy = 0.0;
     state.gmdsEnergy = 0.0;
     state.anchorEnergy = 0.0;
+    state.edgeSpringEnergy = 0.0;
+    state.repulsionEnergy = 0.0;
     state.smoothEnergy = 0.0;
     state.gradNorm2 = 0.0;
     state.gradient.assign(coords.size(), Point<>());
@@ -987,6 +1091,18 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                                smoothWeight,
                                state.gradient,
                                state.smoothEnergy);
+    accumulate_flat_edge_springs(coords,
+                                 edgePenalty,
+                                 eps2,
+                                 edgeSpringWeight,
+                                 state.gradient,
+                                 state.edgeSpringEnergy);
+    accumulate_flat_repulsion(coords,
+                              repulsion,
+                              eps2,
+                              repulsionWeight,
+                              state.gradient,
+                              state.repulsionEnergy);
 
     if(anchor && anchorWeight > 0.0){
         double rawPenalty = 0.0;
@@ -998,7 +1114,8 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
         state.anchorEnergy = anchorWeight * rawPenalty;
     }
 
-    state.energy = state.gmdsEnergy + state.anchorEnergy + state.smoothEnergy;
+    state.energy = state.gmdsEnergy + state.anchorEnergy + state.edgeSpringEnergy +
+        state.repulsionEnergy + state.smoothEnergy;
     for(size_t i = 0; i < state.gradient.size(); i++)
         state.gradNorm2 += state.gradient[i].fnorm2();
 
@@ -1009,11 +1126,15 @@ Rcpp::DataFrame build_trace_df(const std::vector<int> &iteration,
                                const std::vector<double> &energy,
                                const std::vector<double> &gmds_energy,
                                const std::vector<double> &anchor_energy,
+                               const std::vector<double> &edge_spring_energy,
+                               const std::vector<double> &repulsion_energy,
                                const std::vector<double> &smooth_energy,
                                const std::vector<double> &gradient_norm,
                                const std::vector<double> &step,
                                const std::vector<bool> &accepted,
                                const std::vector<double> &anchor_weight,
+                               const std::vector<double> &edge_spring_weight,
+                               const std::vector<double> &repulsion_weight,
                                const std::vector<double> &smooth_weight)
 {
     return Rcpp::DataFrame::create(
@@ -1021,11 +1142,15 @@ Rcpp::DataFrame build_trace_df(const std::vector<int> &iteration,
         Rcpp::_["energy"] = energy,
         Rcpp::_["gmds_energy"] = gmds_energy,
         Rcpp::_["anchor_energy"] = anchor_energy,
+        Rcpp::_["edge_spring_energy"] = edge_spring_energy,
+        Rcpp::_["repulsion_energy"] = repulsion_energy,
         Rcpp::_["smooth_energy"] = smooth_energy,
         Rcpp::_["gradient_norm"] = gradient_norm,
         Rcpp::_["step"] = step,
         Rcpp::_["accepted"] = accepted,
         Rcpp::_["anchor_weight"] = anchor_weight,
+        Rcpp::_["edge_spring_weight"] = edge_spring_weight,
+        Rcpp::_["repulsion_weight"] = repulsion_weight,
         Rcpp::_["smooth_weight"] = smooth_weight,
         Rcpp::_["stringsAsFactors"] = false
     );
@@ -1099,11 +1224,15 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_edge_spring_energy;
+    std::vector<double> trace_repulsion_energy;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_edge_spring_weight;
+    std::vector<double> trace_repulsion_weight;
     std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
@@ -1116,11 +1245,15 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_edge_spring_energy.push_back(0.0);
+    trace_repulsion_energy.push_back(0.0);
     trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(0.0);
+    trace_edge_spring_weight.push_back(0.0);
+    trace_repulsion_weight.push_back(0.0);
     trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
@@ -1152,11 +1285,15 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_edge_spring_energy.push_back(0.0);
+        trace_repulsion_energy.push_back(0.0);
         trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(0.0);
+        trace_edge_spring_weight.push_back(0.0);
+        trace_repulsion_weight.push_back(0.0);
         trace_smooth_weight.push_back(0.0);
 
         if(!accepted)
@@ -1179,11 +1316,15 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_edge_spring_energy,
+                                          trace_repulsion_energy,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
                                           trace_anchor_weight,
+                                          trace_edge_spring_weight,
+                                          trace_repulsion_weight,
                                           trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol())
     );
@@ -1249,11 +1390,15 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_edge_spring_energy;
+    std::vector<double> trace_repulsion_energy;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_edge_spring_weight;
+    std::vector<double> trace_repulsion_weight;
     std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
@@ -1272,11 +1417,15 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_edge_spring_energy.push_back(0.0);
+    trace_repulsion_energy.push_back(0.0);
     trace_smooth_energy.push_back(0.0);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(anchorSchedule[0]);
+    trace_edge_spring_weight.push_back(0.0);
+    trace_repulsion_weight.push_back(0.0);
     trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
@@ -1322,11 +1471,15 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_edge_spring_energy.push_back(0.0);
+        trace_repulsion_energy.push_back(0.0);
         trace_smooth_energy.push_back(0.0);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(iterAnchorWeight);
+        trace_edge_spring_weight.push_back(0.0);
+        trace_repulsion_weight.push_back(0.0);
         trace_smooth_weight.push_back(0.0);
 
         if(!accepted)
@@ -1349,14 +1502,20 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_edge_spring_energy,
+                                          trace_repulsion_energy,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
                                           trace_anchor_weight,
+                                          trace_edge_spring_weight,
+                                          trace_repulsion_weight,
                                           trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol()),
         Rcpp::_["final_anchor_weight"] = trace_anchor_weight.back(),
+        Rcpp::_["final_edge_spring_weight"] = trace_edge_spring_weight.back(),
+        Rcpp::_["final_repulsion_weight"] = trace_repulsion_weight.back(),
         Rcpp::_["final_smoothness_weight"] = trace_smooth_weight.back()
     );
 }
@@ -1383,6 +1542,14 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     Rcpp::IntegerVector smooth_adj_offsets = Rcpp::IntegerVector(),
     Rcpp::IntegerVector smooth_adj_vertices = Rcpp::IntegerVector(),
     Rcpp::Nullable<Rcpp::NumericVector> smooth_weights = R_NilValue,
+    Rcpp::IntegerVector graph_edge_u = Rcpp::IntegerVector(),
+    Rcpp::IntegerVector graph_edge_v = Rcpp::IntegerVector(),
+    Rcpp::NumericVector graph_edge_target = Rcpp::NumericVector(),
+    Rcpp::Nullable<Rcpp::NumericVector> edge_spring_weights = R_NilValue,
+    Rcpp::IntegerVector repulsion_u = Rcpp::IntegerVector(),
+    Rcpp::IntegerVector repulsion_v = Rcpp::IntegerVector(),
+    Rcpp::NumericVector repulsion_target = Rcpp::NumericVector(),
+    Rcpp::Nullable<Rcpp::NumericVector> repulsion_weights = R_NilValue,
     int n_threads = 0)
 {
     if(coords.ncol() != 2 && coords.ncol() != 3)
@@ -1412,6 +1579,26 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     for(int i = 0; i < pair_graph_distance.size(); i++){
         if(!std::isfinite(pair_graph_distance[i]) || pair_graph_distance[i] <= 0.0)
             Rcpp::stop("pair_graph_distance must contain finite values > 0");
+    }
+    if(graph_edge_u.size() != graph_edge_v.size() ||
+       graph_edge_u.size() != graph_edge_target.size())
+        Rcpp::stop("graph edge arrays must have the same length");
+    for(int i = 0; i < graph_edge_u.size(); i++){
+        if(graph_edge_u[i] < 0 || graph_edge_u[i] >= coords.nrow() ||
+           graph_edge_v[i] < 0 || graph_edge_v[i] >= coords.nrow())
+            Rcpp::stop("graph edge arrays must use 0-based vertex ids within [0, nrow(coords) - 1]");
+        if(!std::isfinite(graph_edge_target[i]) || graph_edge_target[i] <= 0.0)
+            Rcpp::stop("graph_edge_target must contain finite values > 0");
+    }
+    if(repulsion_u.size() != repulsion_v.size() ||
+       repulsion_u.size() != repulsion_target.size())
+        Rcpp::stop("repulsion arrays must have the same length");
+    for(int i = 0; i < repulsion_u.size(); i++){
+        if(repulsion_u[i] < 0 || repulsion_u[i] >= coords.nrow() ||
+           repulsion_v[i] < 0 || repulsion_v[i] >= coords.nrow())
+            Rcpp::stop("repulsion arrays must use 0-based vertex ids within [0, nrow(coords) - 1]");
+        if(!std::isfinite(repulsion_target[i]) || repulsion_target[i] < 0.0)
+            Rcpp::stop("repulsion_target must contain finite values >= 0");
     }
 
     validate_geodesic_mds_args(max_iter,
@@ -1449,17 +1636,33 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         coords.nrow()
     );
     std::vector<double> smoothSchedule = resolve_anchor_schedule(smooth_weights, max_iter);
+    FlatEdgePenaltyView edgePenalty{
+        Rcpp::as<std::vector<int>>(graph_edge_u),
+        Rcpp::as<std::vector<int>>(graph_edge_v),
+        Rcpp::as<std::vector<double>>(graph_edge_target)
+    };
+    std::vector<double> edgeSpringSchedule = resolve_anchor_schedule(edge_spring_weights, max_iter);
+    FlatRepulsionView repulsion{
+        Rcpp::as<std::vector<int>>(repulsion_u),
+        Rcpp::as<std::vector<int>>(repulsion_v),
+        Rcpp::as<std::vector<double>>(repulsion_target)
+    };
+    std::vector<double> repulsionSchedule = resolve_anchor_schedule(repulsion_weights, max_iter);
     int resolvedThreads = resolve_gmds_thread_count(n_threads, cache.pairCount());
 
     std::vector<int> trace_iteration;
     std::vector<double> trace_energy;
     std::vector<double> trace_gmds_energy;
     std::vector<double> trace_anchor_energy;
+    std::vector<double> trace_edge_spring_energy;
+    std::vector<double> trace_repulsion_energy;
     std::vector<double> trace_smooth_energy;
     std::vector<double> trace_gradient_norm;
     std::vector<double> trace_step;
     std::vector<bool> trace_accepted;
     std::vector<double> trace_anchor_weight;
+    std::vector<double> trace_edge_spring_weight;
+    std::vector<double> trace_repulsion_weight;
     std::vector<double> trace_smooth_weight;
     std::vector<std::vector<Point<>>> accepted_frames;
     accepted_frames.push_back(current);
@@ -1471,34 +1674,48 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         current,
         cache,
         smoothness,
+        edgePenalty,
+        repulsion,
         eps2,
         useAnchor ? &anchor : nullptr,
         anchorSchedule[0],
         smoothSchedule[0],
+        edgeSpringSchedule[0],
+        repulsionSchedule[0],
         resolvedThreads
     );
     trace_iteration.push_back(0);
     trace_energy.push_back(state.energy);
     trace_gmds_energy.push_back(state.gmdsEnergy);
     trace_anchor_energy.push_back(state.anchorEnergy);
+    trace_edge_spring_energy.push_back(state.edgeSpringEnergy);
+    trace_repulsion_energy.push_back(state.repulsionEnergy);
     trace_smooth_energy.push_back(state.smoothEnergy);
     trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
     trace_step.push_back(NA_REAL);
     trace_accepted.push_back(true);
     trace_anchor_weight.push_back(anchorSchedule[0]);
+    trace_edge_spring_weight.push_back(edgeSpringSchedule[0]);
+    trace_repulsion_weight.push_back(repulsionSchedule[0]);
     trace_smooth_weight.push_back(smoothSchedule[0]);
 
     for(int iter = 1; iter <= max_iter; iter++){
         double iterAnchorWeight = anchorSchedule[static_cast<size_t>(iter)];
         double iterSmoothWeight = smoothSchedule[static_cast<size_t>(iter)];
+        double iterEdgeSpringWeight = edgeSpringSchedule[static_cast<size_t>(iter)];
+        double iterRepulsionWeight = repulsionSchedule[static_cast<size_t>(iter)];
         state = evaluate_flat_state(
             current,
             cache,
             smoothness,
+            edgePenalty,
+            repulsion,
             eps2,
             useAnchor ? &anchor : nullptr,
             iterAnchorWeight,
             iterSmoothWeight,
+            iterEdgeSpringWeight,
+            iterRepulsionWeight,
             resolvedThreads
         );
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
@@ -1520,10 +1737,14 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
                 proposal,
                 cache,
                 smoothness,
+                edgePenalty,
+                repulsion,
                 eps2,
                 useAnchor ? &anchor : nullptr,
                 iterAnchorWeight,
                 iterSmoothWeight,
+                iterEdgeSpringWeight,
+                iterRepulsionWeight,
                 resolvedThreads
             );
             double targetEnergy = state.energy - armijo_factor * step * state.gradNorm2;
@@ -1538,11 +1759,15 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         trace_energy.push_back(accepted ? candidate.energy : state.energy);
         trace_gmds_energy.push_back(accepted ? candidate.gmdsEnergy : state.gmdsEnergy);
         trace_anchor_energy.push_back(accepted ? candidate.anchorEnergy : state.anchorEnergy);
+        trace_edge_spring_energy.push_back(accepted ? candidate.edgeSpringEnergy : state.edgeSpringEnergy);
+        trace_repulsion_energy.push_back(accepted ? candidate.repulsionEnergy : state.repulsionEnergy);
         trace_smooth_energy.push_back(accepted ? candidate.smoothEnergy : state.smoothEnergy);
         trace_gradient_norm.push_back(std::sqrt(accepted ? candidate.gradNorm2 : state.gradNorm2));
         trace_step.push_back(accepted ? step : NA_REAL);
         trace_accepted.push_back(accepted);
         trace_anchor_weight.push_back(iterAnchorWeight);
+        trace_edge_spring_weight.push_back(iterEdgeSpringWeight);
+        trace_repulsion_weight.push_back(iterRepulsionWeight);
         trace_smooth_weight.push_back(iterSmoothWeight);
 
         if(!accepted)
@@ -1565,14 +1790,20 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
                                           trace_energy,
                                           trace_gmds_energy,
                                           trace_anchor_energy,
+                                          trace_edge_spring_energy,
+                                          trace_repulsion_energy,
                                           trace_smooth_energy,
                                           trace_gradient_norm,
                                           trace_step,
                                           trace_accepted,
                                           trace_anchor_weight,
+                                          trace_edge_spring_weight,
+                                          trace_repulsion_weight,
                                           trace_smooth_weight),
         Rcpp::_["frames"] = build_frame_list(accepted_frames, coords.ncol()),
         Rcpp::_["final_anchor_weight"] = trace_anchor_weight.back(),
+        Rcpp::_["final_edge_spring_weight"] = trace_edge_spring_weight.back(),
+        Rcpp::_["final_repulsion_weight"] = trace_repulsion_weight.back(),
         Rcpp::_["final_smoothness_weight"] = trace_smooth_weight.back(),
         Rcpp::_["n_threads_used"] = resolvedThreads
     );
