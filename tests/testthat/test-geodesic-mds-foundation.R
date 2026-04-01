@@ -2,6 +2,11 @@ path_raw_stress <- function(score_df) {
   as.double(score_df$gmds.raw_stress[[1L]])
 }
 
+edge_lengths_from_coords <- function(edges, coords) {
+  diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+  sqrt(rowSums(diffs^2))
+}
+
 test_that("path graphs admit exact zero-stress realizations", {
   prepared <- grip.prepare.graph.geodesic.mds(
     edges = edges.path(4L),
@@ -69,6 +74,53 @@ test_that("shared-edge triangles show nonunique exact GMDS minima", {
   expect_lt(path_raw_stress(score_separated), 1e-12)
   expect_lt(path_raw_stress(score_overlapped), 1e-12)
   expect_gt(sum((coords_separated - coords_overlapped)^2), 1)
+})
+
+test_that("selected tree examples admit exact zero-stress realizations", {
+  star.edges <- matrix(
+    c(
+      1L, 2L,
+      1L, 3L,
+      1L, 4L,
+      1L, 5L
+    ),
+    ncol = 2L,
+    byrow = TRUE
+  )
+  star.coords <- rbind(
+    c(0.0, 0.0),
+    c(1.0, 0.0),
+    c(-2.0, 0.0),
+    c(0.0, 1.5),
+    c(0.0, -0.75)
+  )
+  star.prepared <- grip.prepare.graph.geodesic.mds(
+    edges = star.edges,
+    n = 5L,
+    edge_weights = edge_lengths_from_coords(star.edges, star.coords),
+    tie_mode = "single"
+  )
+  star.score <- grip.score.geodesic.mds(coords = star.coords, prepared = star.prepared)
+  expect_lt(path_raw_stress(star.score), 1e-12)
+
+  tree.edges <- edges.kary.tree(k = 2L, depth = 2L)
+  tree.coords <- rbind(
+    c(0.0, 0.0),
+    c(-1.0, 1.0),
+    c(1.25, 0.8),
+    c(-2.0, 2.0),
+    c(-0.1, 2.3),
+    c(0.4, 2.1),
+    c(2.2, 1.9)
+  )
+  tree.prepared <- grip.prepare.graph.geodesic.mds(
+    edges = tree.edges,
+    n = nrow(tree.coords),
+    edge_weights = edge_lengths_from_coords(tree.edges, tree.coords),
+    tie_mode = "single"
+  )
+  tree.score <- grip.score.geodesic.mds(coords = tree.coords, prepared = tree.prepared)
+  expect_lt(path_raw_stress(tree.score), 1e-12)
 })
 
 test_that("tie_mode average records tied shortest paths on a square", {
@@ -148,4 +200,116 @@ test_that("tie_mode average is relabeling-invariant on the square objective", {
   score_b <- grip.score.geodesic.mds(coords = square_coords[perm, , drop = FALSE], prepared = prepared_b)
 
   expect_equal(path_raw_stress(score_a), path_raw_stress(score_b), tolerance = 1e-12)
+})
+
+test_that("diamond ties document single-mode label dependence and average-mode invariance", {
+  diamond_edges <- matrix(
+    c(
+      1L, 2L,
+      1L, 3L,
+      2L, 4L,
+      3L, 4L
+    ),
+    ncol = 2L,
+    byrow = TRUE
+  )
+  perm <- c(1L, 3L, 2L, 4L)
+  diamond_edges_perm <- matrix(perm[diamond_edges], ncol = 2L)
+  coords <- rbind(
+    c(0.0, 0.0),
+    c(1.0, 0.0),
+    c(0.0, 3.0),
+    c(1.0, 1.0)
+  )
+
+  prepared_single <- grip.prepare.graph.geodesic.mds(
+    edges = diamond_edges,
+    n = 4L,
+    edge_weights = rep(1, 4L),
+    tie_mode = "single"
+  )
+  prepared_single_perm <- grip.prepare.graph.geodesic.mds(
+    edges = diamond_edges_perm,
+    n = 4L,
+    edge_weights = rep(1, 4L),
+    tie_mode = "single"
+  )
+  prepared_average <- grip.prepare.graph.geodesic.mds(
+    edges = diamond_edges,
+    n = 4L,
+    edge_weights = rep(1, 4L),
+    tie_mode = "average"
+  )
+  prepared_average_perm <- grip.prepare.graph.geodesic.mds(
+    edges = diamond_edges_perm,
+    n = 4L,
+    edge_weights = rep(1, 4L),
+    tie_mode = "average"
+  )
+
+  pair_idx <- which(prepared_average$pair_matrix[, 1L] == 1L & prepared_average$pair_matrix[, 2L] == 4L)
+  expect_length(pair_idx, 1L)
+  expect_equal(exp(prepared_average$pair_path_count_log[[pair_idx]]), 2, tolerance = 1e-12)
+  expect_equal(sort(grip:::grip.path.edge.coefficients(prepared_average, pair_idx, nrow(prepared_average$path_edges[[pair_idx]]))), rep(0.5, 4L))
+
+  score_single_a <- grip.score.geodesic.mds(coords = coords, prepared = prepared_single)
+  score_single_b <- grip.score.geodesic.mds(coords = coords[perm, , drop = FALSE], prepared = prepared_single_perm)
+  score_average_a <- grip.score.geodesic.mds(coords = coords, prepared = prepared_average)
+  score_average_b <- grip.score.geodesic.mds(coords = coords[perm, , drop = FALSE], prepared = prepared_average_perm)
+
+  expect_gt(abs(path_raw_stress(score_single_a) - path_raw_stress(score_single_b)), 1)
+  expect_equal(path_raw_stress(score_average_a), path_raw_stress(score_average_b), tolerance = 1e-12)
+})
+
+test_that("3x3 lattice patches restore symmetry under tie_mode average", {
+  lattice_edges <- edges.mesh(3L, 3L)
+  perm <- c(1L, 4L, 7L, 2L, 5L, 8L, 3L, 6L, 9L)
+  lattice_edges_perm <- matrix(perm[lattice_edges], ncol = 2L)
+  coords <- cbind(
+    c(0, 1, 2,
+      0, 1, 2,
+      0, 1, 2),
+    c(0.0, 0.4, 0.0,
+      1.5, 1.8, 1.3,
+      2.7, 2.9, 2.5)
+  )
+
+  prepared_single <- grip.prepare.graph.geodesic.mds(
+    edges = lattice_edges,
+    n = 9L,
+    edge_weights = rep(1, nrow(lattice_edges)),
+    tie_mode = "single"
+  )
+  prepared_single_perm <- grip.prepare.graph.geodesic.mds(
+    edges = lattice_edges_perm,
+    n = 9L,
+    edge_weights = rep(1, nrow(lattice_edges_perm)),
+    tie_mode = "single"
+  )
+  prepared_average <- grip.prepare.graph.geodesic.mds(
+    edges = lattice_edges,
+    n = 9L,
+    edge_weights = rep(1, nrow(lattice_edges)),
+    tie_mode = "average"
+  )
+  prepared_average_perm <- grip.prepare.graph.geodesic.mds(
+    edges = lattice_edges_perm,
+    n = 9L,
+    edge_weights = rep(1, nrow(lattice_edges_perm)),
+    tie_mode = "average"
+  )
+
+  pair_idx <- which(prepared_average$pair_matrix[, 1L] == 1L & prepared_average$pair_matrix[, 2L] == 9L)
+  expect_length(pair_idx, 1L)
+  expect_equal(exp(prepared_average$pair_path_count_log[[pair_idx]]), 6, tolerance = 1e-12)
+  expect_equal(sum(prepared_average$path_edge_weights[[pair_idx]]), 4, tolerance = 1e-12)
+  expect_equal(nrow(prepared_average$path_edges[[pair_idx]]), 12L)
+
+  score_single_a <- grip.score.geodesic.mds(coords = coords, prepared = prepared_single)
+  score_single_b <- grip.score.geodesic.mds(coords = coords[perm, , drop = FALSE], prepared = prepared_single_perm)
+  score_average_a <- grip.score.geodesic.mds(coords = coords, prepared = prepared_average)
+  score_average_b <- grip.score.geodesic.mds(coords = coords[perm, , drop = FALSE], prepared = prepared_average_perm)
+
+  expect_gt(abs(path_raw_stress(score_single_a) - path_raw_stress(score_single_b)), 0.1)
+  expect_equal(path_raw_stress(score_average_a), path_raw_stress(score_average_b), tolerance = 1e-12)
 })
