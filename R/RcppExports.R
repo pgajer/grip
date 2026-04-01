@@ -21,6 +21,10 @@ grip_optimize_geodesic_mds_flat_cpp <- function(flat_pair_edge_offsets, flat_edg
     .Call(`_grip_grip_optimize_geodesic_mds_flat_cpp`, flat_pair_edge_offsets, flat_edge_u, flat_edge_v, flat_edge_coeff, pair_graph_distance, coords, max_iter, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, recenter, return_trace, anchor_coords, anchor_weights, smooth_adj_offsets, smooth_adj_vertices, smooth_weights, graph_edge_u, graph_edge_v, graph_edge_target, edge_spring_weights, repulsion_u, repulsion_v, repulsion_target, repulsion_weights, n_threads)
 }
 
+grip_geodesic_mds_flat_repulsion_stats_cpp <- function(repulsion_u, repulsion_v, repulsion_target, coords, edge_length_epsilon = 1e-8, repulsion_weight = 1.0) {
+    .Call(`_grip_grip_geodesic_mds_flat_repulsion_stats_cpp`, repulsion_u, repulsion_v, repulsion_target, coords, edge_length_epsilon, repulsion_weight)
+}
+
 grip_layout_cpp <- function(edges, edge_weights, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed) {
     .Call(`_grip_grip_layout_cpp`, edges, edge_weights, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed)
 }

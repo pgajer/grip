@@ -141,6 +141,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_geodesic_mds_flat_repulsion_stats_cpp
+Rcpp::List grip_geodesic_mds_flat_repulsion_stats_cpp(Rcpp::IntegerVector repulsion_u, Rcpp::IntegerVector repulsion_v, Rcpp::NumericVector repulsion_target, Rcpp::NumericMatrix coords, double edge_length_epsilon, double repulsion_weight);
+RcppExport SEXP _grip_grip_geodesic_mds_flat_repulsion_stats_cpp(SEXP repulsion_uSEXP, SEXP repulsion_vSEXP, SEXP repulsion_targetSEXP, SEXP coordsSEXP, SEXP edge_length_epsilonSEXP, SEXP repulsion_weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type repulsion_u(repulsion_uSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type repulsion_v(repulsion_vSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type repulsion_target(repulsion_targetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< double >::type edge_length_epsilon(edge_length_epsilonSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_weight(repulsion_weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_geodesic_mds_flat_repulsion_stats_cpp(repulsion_u, repulsion_v, repulsion_target, coords, edge_length_epsilon, repulsion_weight));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_layout_cpp
 Rcpp::NumericMatrix grip_layout_cpp(Rcpp::IntegerMatrix edges, Rcpp::Nullable<Rcpp::NumericVector> edge_weights, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed);
 RcppExport SEXP _grip_grip_layout_cpp(SEXP edgesSEXP, SEXP edge_weightsSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
@@ -312,6 +328,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_optimize_geodesic_mds_adj_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_adj_cpp, 12},
     {"_grip_grip_optimize_geodesic_mds_cache_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_cache_cpp, 15},
     {"_grip_grip_optimize_geodesic_mds_flat_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_cpp, 29},
+    {"_grip_grip_geodesic_mds_flat_repulsion_stats_cpp", (DL_FUNC) &_grip_grip_geodesic_mds_flat_repulsion_stats_cpp, 6},
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
     {"_grip_grip_layout_globalrep_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_adj_cpp, 34},
