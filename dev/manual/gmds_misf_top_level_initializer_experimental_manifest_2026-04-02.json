@@ -3,9 +3,10 @@
   "date": "2026-04-02",
   "status": "planned_only",
   "project_root": "/Users/pgajer/current_projects/grip",
-  "purpose": "Evaluate whether existing graph-drawing layouts in grip, including KK, FR, and GRIP, provide better top-level MISF basins for subsequent GMDS correction than cMDS.",
+  "purpose": "Evaluate whether existing graph-drawing layouts in grip, especially the new weighted GRIP sister API with in-core multiscale LGKK refinement, provide better top-level MISF basins for subsequent GMDS correction than cMDS.",
   "core_questions": [
     "Which initializer gives the most plausible top MISF scaffold?",
+    "Do weighted GRIP variants outperform the unweighted GRIP baseline on these weighted geometric graphs?",
     "Which initializer remains stable under a short regularized-GMDS plus pure-GMDS correction?",
     "Does a better top-level seed improve the full MISF-GMDS pipeline?",
     "If top-level improvement is insufficient, do lower MISF levels also need graph-drawing-based placement?"
@@ -32,7 +33,21 @@
     "kk",
     "fr",
     "grip",
+    "weighted_grip",
+    "weighted_grip_core_lgkk",
+    "weighted_grip_polish_lgkk",
     "edge_relaxation"
+  ],
+  "weighted_layout_references": [
+    "/Users/pgajer/current_projects/grip/R/grip_layout_weighted.R",
+    "/Users/pgajer/current_projects/grip/src/MishWeighted.cpp",
+    "/Users/pgajer/current_projects/grip/src/grip_rcpp.cpp",
+    "/Users/pgajer/current_projects/grip/tests/testthat/test-layout-weighted-globalrep.R",
+    "/Users/pgajer/current_projects/grip/tests/testthat/test-layout-weighted-trace.R",
+    "/Users/pgajer/current_projects/grip/tools/benchmark-weighted-grip-family-panel.R",
+    "/Users/pgajer/current_projects/grip/output/pdf/weighted_grip_phase5_report_2026-04-02.tex",
+    "/Users/pgajer/current_projects/grip/output/pdf/render-weighted-grip-phase5-report.py",
+    "/Users/pgajer/current_projects/grip/output/pdf/render-weighted-grip-phase5-gallery-html.R"
   ],
   "correction_pipeline": {
     "stage_1": {
@@ -59,7 +74,7 @@
       "id": "A",
       "title": "Top-level initializer benchmark",
       "goal": "Compare top-level MISF seeds before any GMDS correction.",
-      "runs": "3 families x 5 initializers x 1 deterministic seed",
+      "runs": "3 families x 8 initializers x 1 deterministic seed",
       "required_outputs": [
         "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-top-level-initializers-2026-04-02/",
         "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_top_level_initializer_report_2026-04-02.tex",
@@ -92,7 +107,7 @@
       "id": "D",
       "title": "Lower-level placement benchmark",
       "goal": "Compare lower-level placement variants after top-level seeding is improved.",
-      "runs": "best top-level strategy x current insertion vs GRIP vs KK vs optional FR placement",
+      "runs": "best top-level strategy x current insertion vs weighted GRIP vs weighted KK vs GRIP vs KK vs optional FR placement",
       "required_outputs": [
         "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-lower-level-placement-2026-04-02/",
         "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_lower_level_placement_report_2026-04-02.tex",
@@ -108,6 +123,7 @@
       "within each phase, group by graph family",
       "show reference first",
       "show one card per initializer or stage",
+      "include weighted trace stages when the initializer itself is multistage",
       "include metrics in card title/subtitle",
       "use consistent alignment and camera angle"
     ],
@@ -125,6 +141,7 @@
   ],
   "acceptance_criteria": [
     "At least one non-cMDS initializer clearly improves top-level rho and visual plausibility.",
+    "At least one weighted GRIP variant beats unweighted GRIP on the weighted paraboloid families.",
     "The best seed plus short GMDS correction remains stable and does not immediately collapse.",
     "The corresponding full MISF pipeline beats the current baseline on at least one regular paraboloid family.",
     "Each experiment phase ships with its corresponding interactive HTML output."
