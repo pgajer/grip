@@ -220,6 +220,70 @@ test_that("MISF level insertion yields finite layouts on regular and irregular p
   }
 })
 
+test_that("layout-based MISF level placement keeps higher-level anchors fixed", {
+  bundle <- mesh.surface.graph(
+    6, 6,
+    surface = "paraboloid",
+    amplitude = 0.2,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    num_nbrs = 8L,
+    dim = 3L,
+    top_level_mode = "solve",
+    top_level_restarts = 2L,
+    top_level_max_iter = 3L,
+    seed = 10L
+  )
+  coords <- prepared$top_level_fit$coords_full
+  level <- prepared$top_level_level - 1L
+  anchors <- grip:::grip.geodesic.misf.previous.level.vertices(prepared, level)
+  anchors <- anchors[stats::complete.cases(coords[anchors, , drop = FALSE])]
+
+  methods <- c("kk", "weighted_kk", "fr", "grip", "weighted_grip")
+  for (method in methods) {
+    placed <- grip:::grip.geodesic.misf.place.level.with.layout(
+      prepared = prepared,
+      coords = coords,
+      level = level,
+      method = method,
+      weighted_preset = "mesh",
+      grip_args = list(
+        placement = "barycenter",
+        rounds = 32L,
+        final_rounds = 48L,
+        num_init = 6L,
+        num_nbrs = 8L,
+        r = 0.08,
+        s = 5.5,
+        repulsion_factor = 1.2
+      ),
+      weighted_args = list(
+        rounds = 48L,
+        final_rounds = 64L,
+        num_init = 6L,
+        num_nbrs = 8L
+      ),
+      fr_niter = 200L,
+      seed = 19L
+    )
+
+    expect_true(all(is.finite(placed$coords[placed$placed_vertices, , drop = FALSE])), info = method)
+    expect_equal(
+      placed$coords[anchors, , drop = FALSE],
+      coords[anchors, , drop = FALSE],
+      tolerance = 1e-8,
+      info = method
+    )
+  }
+})
+
 test_that("MISF sparse level-pair builder respects the active level", {
   bundle <- mesh.surface.graph(
     6, 6,

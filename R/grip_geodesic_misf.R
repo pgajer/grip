@@ -249,6 +249,243 @@ grip.geodesic.misf.partial.coords <- function(coords, vertex_ids, n) {
   out
 }
 
+grip.geodesic.misf.build.layout.graph <- function(distance_matrix, k = 6L) {
+  distance_matrix <- as.matrix(distance_matrix)
+  n <- nrow(distance_matrix)
+  if (!is.numeric(distance_matrix) || n != ncol(distance_matrix)) {
+    stop("distance_matrix must be a square numeric matrix")
+  }
+  if (n <= 1L) {
+    return(list(
+      n = as.integer(n),
+      edges = matrix(integer(), ncol = 2L),
+      edge_weights = numeric(0L),
+      adj_list = vector("list", n),
+      weight_list = vector("list", n)
+    ))
+  }
+
+  k <- grip.validate.count(k, "k")
+  k <- min(k, n - 1L)
+  knn.edges <- grip.knn.edge.matrix(distance_matrix, k = k)
+  mst.edges <- grip.minimum.spanning.tree.edges(distance_matrix)
+  final.edges <- grip.union.edge.matrix(knn.edges, mst.edges)
+  edge.weights <- grip.edge.weights.from.distance.matrix(final.edges, distance_matrix)
+  built <- grip.build.adj.from.edges(final.edges, n = n, edge_weights = edge.weights)
+
+  list(
+    n = as.integer(n),
+    edges = final.edges,
+    edge_weights = edge.weights,
+    adj_list = built$adj_list,
+    weight_list = built$weight_list
+  )
+}
+
+grip.geodesic.misf.local.start.coords <- function(coords,
+                                                  active_vertices,
+                                                  anchor_vertices,
+                                                  seed = NULL) {
+  coords <- as.matrix(coords)
+  active.vertices <- as.integer(active_vertices)
+  anchor.vertices <- as.integer(anchor_vertices)
+  dim <- ncol(coords)
+  out <- matrix(NA_real_, nrow = length(active.vertices), ncol = dim)
+  anchor.local <- match(anchor.vertices, active.vertices)
+  out[anchor.local, ] <- coords[anchor.vertices, , drop = FALSE]
+
+  pending.local <- which(!stats::complete.cases(out))
+  if (!length(pending.local)) {
+    return(out)
+  }
+
+  anchor.coords <- out[anchor.local, , drop = FALSE]
+  center <- if (nrow(anchor.coords)) {
+    colMeans(anchor.coords)
+  } else {
+    rep(0, dim)
+  }
+  scale <- if (nrow(anchor.coords) >= 2L) {
+    stats::median(stats::dist(anchor.coords))
+  } else {
+    1
+  }
+  if (!is.finite(scale) || scale <= 0) {
+    scale <- 1
+  }
+  if (!is.null(seed)) {
+    set.seed(as.integer(seed))
+  }
+  noise <- matrix(stats::rnorm(length(pending.local) * dim, sd = 0.05 * scale), ncol = dim)
+  out[pending.local, ] <- matrix(center, nrow = length(pending.local), ncol = dim, byrow = TRUE) + noise
+  storage.mode(out) <- "double"
+  out
+}
+
+grip.geodesic.misf.align.active.layout.to.anchors <- function(active_coords,
+                                                              anchor_local,
+                                                              target_anchor_coords,
+                                                              allow.reflection = TRUE) {
+  active.coords <- as.matrix(active_coords)
+  anchor.local <- as.integer(anchor_local)
+  target.anchor.coords <- as.matrix(target_anchor_coords)
+  if (!length(anchor.local)) {
+    return(active.coords)
+  }
+  if (length(anchor.local) != nrow(target.anchor.coords)) {
+    stop("anchor_local and target_anchor_coords must have matching sizes")
+  }
+
+  source.anchor <- active.coords[anchor.local, , drop = FALSE]
+  src.meta <- grip.normalize.coords.with.meta(source.anchor)
+  dst.meta <- grip.normalize.coords.with.meta(target.anchor.coords)
+  cross <- t(src.meta$normalized) %*% dst.meta$normalized
+  sv <- svd(cross)
+  rot <- sv$u %*% t(sv$v)
+  if (!allow.reflection && ncol(rot) > 1L && det(rot) < 0) {
+    fix <- diag(ncol(rot))
+    fix[ncol(fix), ncol(fix)] <- -1
+    rot <- sv$u %*% fix %*% t(sv$v)
+  }
+
+  src.all <- sweep(active.coords, 2L, src.meta$center, check.margin = FALSE) / src.meta$radius
+  aligned <- src.all %*% rot
+  sweep(aligned * dst.meta$radius, 2L, dst.meta$center, FUN = "+", check.margin = FALSE)
+}
+
+grip.geodesic.misf.place.level.with.layout <- function(prepared,
+                                                       coords = NULL,
+                                                       level = NULL,
+                                                       method = c("kk", "weighted_kk", "fr", "grip", "weighted_grip"),
+                                                       layout_k = 6L,
+                                                       weighted_preset = NULL,
+                                                       grip_args = list(),
+                                                       weighted_args = list(),
+                                                       fr_niter = 800L,
+                                                       seed = NULL) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  coords <- grip.geodesic.misf.validate.partial.coords(coords, prepared)
+  method <- match.arg(method)
+  layout_k <- grip.validate.count(layout_k, "layout_k")
+  fr_niter <- grip.validate.count(fr_niter, "fr_niter")
+  if (!is.null(seed)) {
+    seed <- grip.validate.count(seed, "seed")
+  }
+  if (!requireNamespace("igraph", quietly = TRUE)) {
+    stop("Package 'igraph' is required for layout-based MISF placement")
+  }
+
+  if (is.null(level)) {
+    level <- prepared$top_level_level - 1L
+  }
+  level.index <- grip.geodesic.misf.level.to.index(prepared$misf, level)
+  level.id <- as.integer(level.index - 1L)
+  active.vertices <- grip.geodesic.misf.active.level.vertices(prepared, level.id)
+  anchor.vertices <- grip.geodesic.misf.previous.level.vertices(prepared, level.id)
+  anchor.vertices <- anchor.vertices[stats::complete.cases(coords[anchor.vertices, , drop = FALSE])]
+  placed.vertices <- setdiff(active.vertices, anchor.vertices)
+  if (!length(placed.vertices)) {
+    return(list(
+      level = level.id,
+      method = method,
+      coords = coords,
+      active_vertices = active.vertices,
+      anchor_vertices = anchor.vertices,
+      placed_vertices = integer(0L),
+      layout_graph = grip.geodesic.misf.build.layout.graph(
+        prepared$distance_matrix[active.vertices, active.vertices, drop = FALSE],
+        k = layout_k
+      ),
+      local_coords = coords[active.vertices, , drop = FALSE],
+      aligned_active_coords = coords[active.vertices, , drop = FALSE]
+    ))
+  }
+
+  active.distance <- prepared$distance_matrix[active.vertices, active.vertices, drop = FALSE]
+  layout.graph <- grip.geodesic.misf.build.layout.graph(active.distance, k = layout_k)
+  local.start <- grip.geodesic.misf.local.start.coords(
+    coords = coords,
+    active_vertices = active.vertices,
+    anchor_vertices = anchor.vertices,
+    seed = seed
+  )
+  graph.obj <- igraph::graph_from_edgelist(layout.graph$edges, directed = FALSE)
+
+  local.coords <- switch(
+    method,
+    kk = {
+      igraph::layout_with_kk(
+        graph.obj,
+        coords = local.start,
+        dim = ncol(coords)
+      )
+    },
+    weighted_kk = {
+      igraph::layout_with_kk(
+        graph.obj,
+        coords = local.start,
+        dim = ncol(coords),
+        weights = layout.graph$edge_weights
+      )
+    },
+    fr = {
+      igraph::layout_with_fr(
+        graph.obj,
+        coords = local.start,
+        dim = ncol(coords),
+        niter = as.integer(fr_niter)
+      )
+    },
+    grip = {
+      args <- c(
+        list(
+          edges = layout.graph$edges,
+          n = layout.graph$n,
+          dim = ncol(coords),
+          seed = seed
+        ),
+        grip_args
+      )
+      do.call(grip.layout.globalrep, args)
+    },
+    weighted_grip = {
+      args <- c(
+        list(
+          edges = layout.graph$edges,
+          edge_weights = layout.graph$edge_weights,
+          n = layout.graph$n,
+          dim = ncol(coords),
+          seed = seed
+        ),
+        if (!is.null(weighted_preset)) list(preset = weighted_preset) else list(),
+        weighted_args
+      )
+      do.call(grip.layout.globalrep.weighted, args)
+    }
+  )
+  local.coords <- as.matrix(local.coords)
+  aligned.active <- grip.geodesic.misf.align.active.layout.to.anchors(
+    active_coords = local.coords,
+    anchor_local = match(anchor.vertices, active.vertices),
+    target_anchor_coords = coords[anchor.vertices, , drop = FALSE]
+  )
+
+  placed.local <- match(placed.vertices, active.vertices)
+  coords[placed.vertices, ] <- aligned.active[placed.local, , drop = FALSE]
+
+  list(
+    level = level.id,
+    method = method,
+    coords = coords,
+    active_vertices = active.vertices,
+    anchor_vertices = anchor.vertices,
+    placed_vertices = as.integer(placed.vertices),
+    layout_graph = layout.graph,
+    local_coords = local.coords,
+    aligned_active_coords = aligned.active
+  )
+}
+
 grip.geodesic.misf.default.anchor.count <- function(dim) {
   as.integer(max(grip.validate.count(dim, "dim") + 1L, 6L))
 }
