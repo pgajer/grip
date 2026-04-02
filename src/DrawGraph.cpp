@@ -102,6 +102,8 @@ DrawGraph::DrawGraph(const Graph &_graph,
                 : LGKK_SCOPE_ALL),
   lgkkActiveLimit(std::max<size_tt>(1, _lgkkActiveLimit)),
   activeVertCount(0),
+  misfLevel(0),
+  initMishHeight(0),
   currentRoundInLevel(0),
   finalAnchorReady(false),
   traceMode(TRACE_NONE),
@@ -190,6 +192,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
         misfLevel = 0;
     } else 
         create_misf();
+    initMishHeight = misfLevel;
     
     // resetting marked array values for BFSs in the main part of
     // the program - MishEngine(s).cpp

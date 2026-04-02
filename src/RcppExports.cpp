@@ -249,6 +249,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_build_misf_adj_cpp
+Rcpp::List grip_build_misf_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int num_init, int num_nbrs, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_build_misf_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type adj_list(adj_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type weight_list(weight_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
+    Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_build_misf_adj_cpp(adj_list, weight_list, n, num_init, num_nbrs, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_layout_trace_adj_cpp
 Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
 RcppExport SEXP _grip_grip_layout_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
@@ -332,6 +348,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
     {"_grip_grip_layout_globalrep_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_adj_cpp, 34},
+    {"_grip_grip_build_misf_adj_cpp", (DL_FUNC) &_grip_grip_build_misf_adj_cpp, 6},
     {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {NULL, NULL, 0}

@@ -1,0 +1,306 @@
+{
+  "name": "GMDS MISF Geodesic-Isometry Manifest",
+  "date": "2026-04-02",
+  "status": "planned_only",
+  "project_root": "/Users/pgajer/current_projects/grip",
+  "purpose": "Replace cMDS-based GMDS initialization on difficult graph families with a MISF-based coarse-to-fine geodesic-isometry pipeline that reuses GRIP's MISF scaffold while keeping pure GMDS as the numerical core objective.",
+  "motivation": {
+    "summary": [
+      "Recent paraboloid experiments indicate that pure GMDS can recover the smooth surface when started in the right basin.",
+      "The dominant practical failure mode on regular orthogonal meshes is poor basin selection from cMDS, not absence of a smooth GMDS solution.",
+      "MISF is the most promising next intervention because it provides a multiscale coarse-to-fine scaffold that can replace the global spectral initializer."
+    ],
+    "references": [
+      "/Users/pgajer/current_projects/grip/papers/A Fast Multi-Dimensional Algorithm for Drawing Large Graphs.pdf",
+      "/Users/pgajer/current_projects/grip/papers/GRIP: Graph dRawing with Intelligent Placement.pdf"
+    ],
+    "existing_code_anchors": [
+      "/Users/pgajer/current_projects/grip/src/DrawGraph.cpp",
+      "/Users/pgajer/current_projects/grip/src/MishEngine.cpp",
+      "/Users/pgajer/current_projects/grip/src/MishSupport.cpp",
+      "/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp",
+      "/Users/pgajer/current_projects/grip/R/grip_quality.R"
+    ]
+  },
+  "scope_boundaries": {
+    "included": [
+      "MISF extraction from existing GRIP internals",
+      "A new graph-first MISF-GMDS prepared-object layer",
+      "A top-level pure-GMDS solve on the coarsest MISF level",
+      "Geodesic-aware insertion of successive MISF levels",
+      "Sparse local GMDS refinement on each active MISF level",
+      "A final full-graph pure-GMDS polish",
+      "Paraboloid-first validation and reporting"
+    ],
+    "excluded_initially": [
+      "Rewriting the existing DrawGraph::mish_engine() into a GMDS engine",
+      "Changing the default behavior of grip.optimize.geodesic.mds()",
+      "Mesh-specific bending or anti-fold penalties",
+      "Broader cross-family benchmarks before the paraboloid story is coherent",
+      "Using cMDS as the default initializer for the new MISF pipeline"
+    ]
+  },
+  "proposed_public_api": {
+    "new_functions": [
+      {
+        "name": "grip.build.misf",
+        "kind": "R",
+        "status": "planned",
+        "purpose": "Expose the MISF structure of an arbitrary weighted graph."
+      },
+      {
+        "name": "grip.prepare.misf.geodesic.mds",
+        "kind": "R",
+        "status": "planned",
+        "purpose": "Build the MISF-aware prepared object used by the multiscale GMDS solver."
+      },
+      {
+        "name": "grip.optimize.misf.geodesic.mds",
+        "kind": "R",
+        "status": "planned",
+        "purpose": "Run the full MISF-based coarse-to-fine GMDS optimization."
+      },
+      {
+        "name": "grip.score.misf.geodesic.mds",
+        "kind": "R",
+        "status": "planned",
+        "purpose": "Score and summarize the final MISF-GMDS result and optional per-level trace."
+      }
+    ],
+    "deferred_integration": [
+      {
+        "name": "init = 'misf' in grip.optimize.geodesic.mds",
+        "status": "deferred_until_validated",
+        "purpose": "Add the multiscale initializer to the existing pure GMDS API only after the sibling pathway is stable."
+      }
+    ]
+  },
+  "algorithm_definition": {
+    "high_level_steps": [
+      "Build the MIS filtration V = V_0 ⊃ V_1 ⊃ ... ⊃ V_k from the weighted graph.",
+      "Solve pure GMDS on the induced top-level graph over V_k.",
+      "Insert vertices of V_i \\ V_{i+1} using weighted geodesic anchor trilateration against already placed coarse anchors.",
+      "After each level insertion, refine the active set V_i with a sparse pure-GMDS objective using local neighbors plus landmarks.",
+      "After reaching V_0, run a short global pure-GMDS polish."
+    ],
+    "top_level_objective": "F_top(Z) = 1/2 * sum_{u<v in V_k} (h_uv(Z) - g_uv)^2",
+    "insertion_objective": "P_t(z) = sum_{a in A_t} w_ta * (||z - z_a|| - d_G(t,a))^2",
+    "level_refinement_objective": "F_i(Z) = 1/2 * sum_{(u,v) in S_i} (h_uv(Z) - g_uv)^2"
+  },
+  "phases": [
+    {
+      "id": "P1",
+      "title": "MISF extraction layer",
+      "goal": "Expose GRIP's MISF structure in a graph-first reusable form.",
+      "files_to_modify": [
+        "/Users/pgajer/current_projects/grip/src/DrawGraph.h",
+        "/Users/pgajer/current_projects/grip/src/DrawGraph.cpp",
+        "/Users/pgajer/current_projects/grip/src/grip_rcpp.cpp",
+        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
+        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
+        "/Users/pgajer/current_projects/grip/NAMESPACE"
+      ],
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/R/grip_misf.R",
+        "/Users/pgajer/current_projects/grip/tests/testthat/test-grip-misf.R"
+      ],
+      "deliverables": [
+        "grip_build_misf_cpp low-level export",
+        "grip.build.misf high-level wrapper",
+        "deterministic MISF tests"
+      ],
+      "verification": [
+        "Correct level nesting",
+        "Deterministic seeded output",
+        "Consistency with internal GRIP state"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "P2",
+      "title": "Prepared object and top-level coarse GMDS solve",
+      "goal": "Replace cMDS/random top-level initialization by a pure GMDS solve on the coarsest MISF level.",
+      "files_to_modify": [
+        "/Users/pgajer/current_projects/grip/R/grip_quality.R",
+        "/Users/pgajer/current_projects/grip/NAMESPACE"
+      ],
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+      ],
+      "deliverables": [
+        "grip.prepare.misf.geodesic.mds",
+        "top-level induced-graph builder",
+        "top-level pure-GMDS restart solver"
+      ],
+      "verification": [
+        "Finite coarse coordinates",
+        "Lower top-level energy than random placement",
+        "Prepared object contains MISF and induced coarse-graph metadata"
+      ],
+      "depends_on": [
+        "P1"
+      ]
+    },
+    {
+      "id": "P3",
+      "title": "Geodesic insertion of new MISF levels",
+      "goal": "Insert successive levels using weighted geodesic anchor distances rather than GRIP's Euclidean graph-drawing insertion.",
+      "files_to_modify": [
+        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
+        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
+        "/Users/pgajer/current_projects/grip/NAMESPACE"
+      ],
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/src/geodesic_misf_rcpp.cpp",
+        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+      ],
+      "deliverables": [
+        "Compiled weighted trilateration helper",
+        "Anchor-selection policies",
+        "Levelwise insertion driver"
+      ],
+      "verification": [
+        "Exact or near-exact recovery on tiny realizable examples",
+        "Stable insertion on regular and irregular paraboloids",
+        "Deterministic anchor selection under fixed seeds"
+      ],
+      "depends_on": [
+        "P2"
+      ]
+    },
+    {
+      "id": "P4",
+      "title": "Sparse local GMDS refinement",
+      "goal": "Refine each active MISF level using sparse pure GMDS instead of local KK or FR.",
+      "files_to_modify": [
+        "/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp",
+        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
+        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
+        "/Users/pgajer/current_projects/grip/R/grip_quality.R",
+        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+      ],
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-misf.R"
+      ],
+      "deliverables": [
+        "Compiled sparse-subset pure-GMDS optimizer path",
+        "Levelwise sparse pair builder",
+        "Final global polish wrapper"
+      ],
+      "verification": [
+        "Numeric agreement with dense or R reference on small cases",
+        "Stable per-level energy decrease",
+        "Usable runtime on 12x12 and 15x15 paraboloids"
+      ],
+      "depends_on": [
+        "P3"
+      ]
+    },
+    {
+      "id": "P5",
+      "title": "High-level API and trace output",
+      "goal": "Expose MISF-GMDS as a clean experimental algorithm with per-level trace support.",
+      "files_to_modify": [
+        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R",
+        "/Users/pgajer/current_projects/grip/NAMESPACE"
+      ],
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/man/grip.build.misf.Rd",
+        "/Users/pgajer/current_projects/grip/man/grip.prepare.misf.geodesic.mds.Rd",
+        "/Users/pgajer/current_projects/grip/man/grip.optimize.misf.geodesic.mds.Rd",
+        "/Users/pgajer/current_projects/grip/man/grip.score.misf.geodesic.mds.Rd"
+      ],
+      "deliverables": [
+        "grip.optimize.misf.geodesic.mds",
+        "grip.score.misf.geodesic.mds",
+        "Trace and intermediate-frame output"
+      ],
+      "verification": [
+        "Docs build cleanly",
+        "Pure GMDS API unchanged",
+        "MISF-GMDS runs from graph-first prepared objects without cMDS"
+      ],
+      "depends_on": [
+        "P4"
+      ]
+    },
+    {
+      "id": "P6",
+      "title": "Paraboloid-first validation slice",
+      "goal": "Verify that MISF-GMDS improves basin selection on the graph families that motivated the work.",
+      "files_to_add": [
+        "/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-misf-paraboloid.R",
+        "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-paraboloid.R",
+        "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-paraboloid-html.R"
+      ],
+      "deliverables": [
+        "Paraboloid-focused benchmark report",
+        "Interactive 3D HTML panels",
+        "Regular vs irregular paraboloid comparison"
+      ],
+      "verification": [
+        "Direct comparison against cmdscale -> GMDS baseline",
+        "Metrics sigma, rho, eta, alpha_0.05, runtime",
+        "Qualitative 3D inspection of basin behavior"
+      ],
+      "depends_on": [
+        "P5"
+      ]
+    }
+  ],
+  "initial_defaults": {
+    "tie_mode": "average",
+    "top_level_restarts": 8,
+    "top_level_iterations": 16,
+    "insertion_anchor_scope": "previous_level_only",
+    "insertion_anchor_count": "max(dim + 1, 6)",
+    "level_pair_policy": "local_neighbors_plus_landmarks",
+    "final_global_polish_iterations": 8
+  },
+  "primary_benchmarks": [
+    {
+      "family": "regular_paraboloid_mesh",
+      "sizes": ["12x12", "15x15", "20x20"]
+    },
+    {
+      "family": "irregular_occupied_paraboloid_mesh",
+      "sizes": ["matched_to_regular"]
+    }
+  ],
+  "risks": [
+    {
+      "id": "R1",
+      "title": "MISF extraction does not expose enough internal structure",
+      "mitigation": "Prefer surfacing read-only accessors from DrawGraph before reimplementing MISF elsewhere."
+    },
+    {
+      "id": "R2",
+      "title": "Top-level coarse GMDS remains unstable",
+      "mitigation": "Use multiple restarts and keep a tiny anchor-to-best-restart diagnostic path available."
+    },
+    {
+      "id": "R3",
+      "title": "Sparse levelwise GMDS is too slow",
+      "mitigation": "Use local-neighbor plus landmark sparse pairs and keep pair budgets explicit."
+    },
+    {
+      "id": "R4",
+      "title": "MISF improves basin selection but not enough on regular grids",
+      "mitigation": "Benchmark regular and irregular paraboloids side by side before broadening to other families."
+    }
+  ],
+  "recommended_execution_order": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+  ],
+  "not_started_marker": {
+    "code_started": false,
+    "files_added": false,
+    "benchmarks_run": false,
+    "reports_generated": false
+  }
+}

@@ -508,6 +508,118 @@ Rcpp::NumericMatrix grip_layout_globalrep_adj_cpp(
 }
 
 // [[Rcpp::export]]
+Rcpp::List grip_build_misf_adj_cpp(Rcpp::List adj_list,
+                                   Rcpp::Nullable<Rcpp::List> weight_list,
+                                   int n,
+                                   int num_init,
+                                   int num_nbrs,
+                                   Rcpp::Nullable<int> seed)
+{
+    if(n <= 0)
+        Rcpp::stop("n must be positive");
+    if(adj_list.size() != n)
+        Rcpp::stop("adj_list length must match n");
+    bool useWeights = weight_list.isNotNull();
+    Rcpp::List weight_list_val;
+    if(useWeights){
+        weight_list_val = weight_list.get();
+        if(weight_list_val.size() != n)
+            Rcpp::stop("weight_list length must match n");
+    }
+    if(num_init <= 0)
+        num_init = 1;
+    if(num_nbrs <= 0)
+        Rcpp::stop("num_nbrs must be a positive integer");
+
+    std::vector<std::vector<size_tt>> adj(n);
+    std::vector<std::vector<coord_t>> weights;
+    if(useWeights)
+        weights.resize(n);
+    for(int i = 0; i < n; i++){
+        Rcpp::IntegerVector neigh = adj_list[i];
+        adj[i].reserve(neigh.size());
+        Rcpp::NumericVector w;
+        if(useWeights){
+            w = weight_list_val[i];
+            if(neigh.size() != w.size())
+                Rcpp::stop("weight_list must be parallel to adj_list");
+            weights[i].reserve(w.size());
+        }
+        for(int j = 0; j < neigh.size(); j++){
+            int v = neigh[j];
+            if(v <= 0 || v > n)
+                Rcpp::stop("adj_list must be 1-based and within [1, n]");
+            adj[i].push_back(static_cast<size_tt>(v - 1));
+            if(useWeights){
+                double wj = w[j];
+                if(!std::isfinite(wj) || wj <= 0.0)
+                    Rcpp::stop("weight_list must contain finite values > 0; invalid value %.17g at weight_list[[%d]][%d]",
+                               wj,
+                               i + 1,
+                               j + 1);
+                weights[i].push_back(static_cast<coord_t>(wj));
+            }
+        }
+    }
+
+    Graph graph;
+    unsigned int seed_val = seed.isNotNull()
+        ? static_cast<unsigned int>(Rcpp::as<int>(seed))
+        : static_cast<unsigned int>(std::time(nullptr));
+    graph.sfast_Rand(seed_val);
+    graph.from_adj_list(static_cast<size_tt>(n), adj, useWeights ? &weights : nullptr);
+
+    DrawGraph dg(graph,
+                 static_cast<size_tt>(2),
+                 static_cast<size_tt>(1),
+                 static_cast<size_tt>(1),
+                 static_cast<size_tt>(1),
+                 static_cast<size_tt>(num_init),
+                 static_cast<size_tt>(num_nbrs),
+                 0.0,
+                 0.0,
+                 0.0,
+                 PLACEMENT_BARYCENTER,
+                 false);
+
+    int level_count = static_cast<int>(dg.get_MisfHeight()) + 1;
+    Rcpp::List levels(level_count);
+    Rcpp::CharacterVector level_names(level_count);
+    Rcpp::IntegerVector misf_size(level_count);
+    Rcpp::IntegerVector num_nbrs_schedule(level_count);
+    for(int level = 0; level < level_count; level++){
+        int size = static_cast<int>(dg.get_MisfSize(static_cast<size_tt>(level)));
+        misf_size[level] = size;
+        num_nbrs_schedule[level] =
+            static_cast<int>(dg.get_NbrCount(static_cast<size_tt>(level)));
+        Rcpp::IntegerVector verts(size);
+        for(int i = 0; i < size; i++)
+            verts[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
+        levels[level] = verts;
+        level_names[level] = "V" + std::to_string(level);
+    }
+    levels.attr("names") = level_names;
+
+    Rcpp::IntegerVector mish_order(n);
+    Rcpp::IntegerVector vertex_depth(n);
+    for(int i = 0; i < n; i++){
+        mish_order[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
+        vertex_depth[i] =
+            static_cast<int>(dg.get_VertDepth(static_cast<size_tt>(i)));
+    }
+
+    return Rcpp::List::create(
+        Rcpp::_["levels"] = levels,
+        Rcpp::_["vertex_depth"] = vertex_depth,
+        Rcpp::_["mish_order"] = mish_order,
+        Rcpp::_["misf_size"] = misf_size,
+        Rcpp::_["num_nbrs_schedule"] = num_nbrs_schedule,
+        Rcpp::_["misf_height"] = level_count - 1,
+        Rcpp::_["top_level_size"] = misf_size[level_count - 1]
+    );
+}
+
+// [[Rcpp::export]]
 Rcpp::List grip_layout_trace_adj_cpp(Rcpp::List adj_list,
                                      Rcpp::Nullable<Rcpp::List> weight_list,
                                      int n,
