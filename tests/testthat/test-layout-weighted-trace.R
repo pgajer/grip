@@ -231,3 +231,45 @@ test_that("weighted trace rejects invalid presets", {
     "preset for grip.layout.trace.weighted must be NULL"
   )
 })
+
+test_that("weighted trace respects metric neighbor cap and matches weighted layout", {
+  graph <- torus.surface.graph(5, 5, surface = "pinched", amplitude = 0.18)
+  tr <- grip.layout.trace.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "torus",
+    metric_neighbor_cap = 16,
+    trace = "level",
+    trace.every = 1,
+    seed = 229
+  )
+  coords <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "torus",
+    metric_neighbor_cap = 16,
+    seed = 229
+  )
+
+  expect_identical(tr$final, coords)
+  expect_true(nrow(tr$meta) >= 2L)
+})
+
+test_that("weighted trace rejects invalid metric neighbor caps", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
+  expect_error(
+    grip.layout.trace.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      metric_neighbor_cap = -1,
+      seed = 233
+    ),
+    "metric_neighbor_cap must be a positive integer"
+  )
+})

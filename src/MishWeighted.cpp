@@ -22,6 +22,95 @@ double weighted_misf_radius(size_tt misfLevel)
 
 } // namespace
 
+void DrawGraph::traverse_weighted_shortest_paths(
+    size_tt root,
+    double cutoff,
+    size_tt maxSettled,
+    const std::function<bool(size_tt, double)> &visitor)
+{
+    const double inf = std::numeric_limits<double>::infinity();
+    if(root >= numOfVert)
+        return;
+
+    if(metricScratchDist.size() != numOfVert){
+        metricScratchDist.resize(numOfVert, inf);
+        metricScratchStamp.assign(numOfVert, 0);
+        metricScratchEpoch = 0;
+    }
+    metricScratchEpoch++;
+    if(metricScratchEpoch == 0){
+        std::fill(metricScratchStamp.begin(), metricScratchStamp.end(), 0);
+        metricScratchEpoch = 1;
+    }
+
+    struct QueueNode {
+        double dist;
+        size_tt vert;
+    };
+    struct QueueNodeGreater {
+        bool operator()(const QueueNode &lhs, const QueueNode &rhs) const
+        {
+            if(lhs.dist != rhs.dist)
+                return lhs.dist > rhs.dist;
+            return lhs.vert > rhs.vert;
+        }
+    };
+
+    auto get_dist = [&](size_tt vert){
+        return metricScratchStamp[vert] == metricScratchEpoch
+            ? metricScratchDist[vert]
+            : inf;
+    };
+    auto set_dist = [&](size_tt vert, double value){
+        metricScratchStamp[vert] = metricScratchEpoch;
+        metricScratchDist[vert] = value;
+    };
+
+    std::priority_queue<QueueNode,
+                        std::vector<QueueNode>,
+                        QueueNodeGreater> pq;
+    set_dist(root, 0.0);
+    pq.push(QueueNode{0.0, root});
+
+    size_tt settled = 0;
+    while(!pq.empty()){
+        QueueNode node = pq.top();
+        pq.pop();
+
+        double best = get_dist(node.vert);
+        if(node.dist > best + kMetricTol)
+            continue;
+        if(node.dist > cutoff + kMetricTol)
+            break;
+
+        if(node.vert != root){
+            settled++;
+            if(visitor(node.vert, node.dist))
+                break;
+            if(maxSettled > 0 && settled >= maxSettled)
+                break;
+        }
+
+        size_tt degLocal = graph.adjList[0][node.vert];
+        for(size_tt adjVert = 0; adjVert < degLocal; adjVert++){
+            size_tt overt = graph.adjList[node.vert + 1][adjVert];
+            double alt = node.dist + graph.get_edge_weight(node.vert, adjVert);
+            if(alt > cutoff + kMetricTol)
+                continue;
+            double overtBest = get_dist(overt);
+            double scale = std::max(1.0,
+                                    std::max(std::fabs(alt),
+                                             std::isfinite(overtBest)
+                                                 ? std::fabs(overtBest)
+                                                 : 0.0));
+            if(!std::isfinite(overtBest) || alt + kMetricTol * scale < overtBest){
+                set_dist(overt, alt);
+                pq.push(QueueNode{alt, overt});
+            }
+        }
+    }
+}
+
 void DrawGraph::compute_weighted_shortest_paths(size_tt root,
                                                 std::vector<double> &dist,
                                                 double cutoff) const
@@ -122,19 +211,21 @@ void DrawGraph::create_misf_weighted()
             size_tt newEl = mish[mishSizeCurrLevel++];
             vertDepth[newEl] = misfLevel;
 
-            std::vector<double> dist;
-            compute_weighted_shortest_paths(newEl, dist, radius);
-            std::vector<size_tt> ordered = ordered_vertices_by_metric(dist, newEl);
-            for(size_tt adj : ordered){
-                if(dist[adj] > radius + kMetricTol)
-                    break;
-                if(inv[adj] >= itr && inv[adj] < mishSizePrevLevel){
-                    std::swap(mish[itr], mish[inv[adj]]);
-                    inv[mish[inv[adj]]] = inv[adj];
-                    inv[mish[itr]] = itr;
-                    itr++;
-                }
-            }
+            traverse_weighted_shortest_paths(
+                newEl,
+                radius,
+                0,
+                [&](size_tt adj, double distAdj){
+                    if(distAdj > radius + kMetricTol)
+                        return true;
+                    if(inv[adj] >= itr && inv[adj] < mishSizePrevLevel){
+                        std::swap(mish[itr], mish[inv[adj]]);
+                        inv[mish[inv[adj]]] = inv[adj];
+                        inv[mish[itr]] = itr;
+                        itr++;
+                    }
+                    return false;
+                });
         }
 
         assert(misfLevel < log_2_n);
@@ -160,29 +251,28 @@ void DrawGraph::create_misf_weighted()
 
 double DrawGraph::metric_me_init_v1(size_tt root)
 {
-    std::vector<double> dist;
-    compute_weighted_shortest_paths(root, dist);
-    std::vector<size_tt> order = ordered_vertices_by_metric(dist, root);
-
     size_tt rootDepth = vertDepth[root];
     metricNbrs[root] = new std::vector<MetricNeighbor>[rootDepth + 1];
     metricNbrsDepth[root] = rootDepth + 1;
 
     size_tt bottomNbrsLayer = 0;
     double maxDist = 0.0;
-    for(size_tt overt : order){
-        maxDist = std::max(maxDist, dist[overt]);
-        size_tt limit = std::min(vertDepth[overt], rootDepth);
-        for(size_tt i = bottomNbrsLayer; i <= limit; i++){
-            if(metricNbrs[root][i].size() < nbr[i]){
-                metricNbrs[root][i].push_back(MetricNeighbor{overt, dist[overt]});
-            } else {
-                bottomNbrsLayer = i + 1;
+    traverse_weighted_shortest_paths(
+        root,
+        std::numeric_limits<double>::infinity(),
+        0,
+        [&](size_tt overt, double distOvert){
+            maxDist = std::max(maxDist, distOvert);
+            size_tt limit = std::min(vertDepth[overt], rootDepth);
+            for(size_tt i = bottomNbrsLayer; i <= limit; i++){
+                if(metricNbrs[root][i].size() < nbr[i]){
+                    metricNbrs[root][i].push_back(MetricNeighbor{overt, distOvert});
+                } else {
+                    bottomNbrsLayer = i + 1;
+                }
             }
-        }
-        if(bottomNbrsLayer > rootDepth)
-            break;
-    }
+            return false;
+        });
 
     return maxDist;
 }
@@ -630,10 +720,6 @@ Point<> DrawGraph::initial_position_least_squares_weighted(const size_tt *closeV
 
 void DrawGraph::metric_me_v1(size_tt root)
 {
-    std::vector<double> dist;
-    compute_weighted_shortest_paths(root, dist);
-    std::vector<size_tt> order = ordered_vertices_by_metric(dist, root);
-
     bool level0Insertion = (misfLevel == 0);
     size_tt numOfCloseVert = level0Insertion ? level0AnchorCount : insertionAnchorCount;
     if(numOfCloseVert == 0)
@@ -660,8 +746,12 @@ void DrawGraph::metric_me_v1(size_tt root)
     };
 
     auto finalizeInsertion = [&](size_tt anchorCount){
-        if(anchorCount == 0)
+        if(anchorCount == 0){
+            pos[root] = rand_Point();
+            oldDisp[root].set_to_zero();
+            oldDispNorm[root] = 0;
             return;
+        }
         select_insertion_anchor_subset_weighted(closeVert, closeVertDist, numOfCloseVert);
         anchorCount = std::min<size_tt>(anchorCount, closeVert.size());
         pos[root] = initial_position_mode_weighted(closeVert.data(),
@@ -694,44 +784,49 @@ void DrawGraph::metric_me_v1(size_tt root)
     metricNbrsDepth[root] = rootDepth + 1;
 
     size_tt bottomNbrsLayer = 0;
-    for(size_tt overt : order){
-        size_tt limit = std::min(vertDepth[overt], rootDepth);
-        for(size_tt i = bottomNbrsLayer; i <= limit; i++){
-            if(metricNbrs[root][i].size() < nbr[i]){
-                metricNbrs[root][i].push_back(MetricNeighbor{overt, dist[overt]});
-            } else {
-                bottomNbrsLayer = i + 1;
-            }
-        }
-
-        if(!closeVertDone && eligibleAnchor(overt)){
-            closeVert.push_back(overt);
-            closeVertDist.push_back(dist[overt]);
-
-            if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_FIRST){
-                if(closeVert.size() == numOfCloseVert){
-                    closeVertDone = true;
-                    finalizeInsertion(numOfCloseVert);
+    traverse_weighted_shortest_paths(
+        root,
+        std::numeric_limits<double>::infinity(),
+        metricNeighborCap,
+        [&](size_tt overt, double distOvert){
+            size_tt limit = std::min(vertDepth[overt], rootDepth);
+            for(size_tt i = bottomNbrsLayer; i <= limit; i++){
+                if(metricNbrs[root][i].size() < nbr[i]){
+                    metricNbrs[root][i].push_back(MetricNeighbor{overt, distOvert});
+                } else {
+                    bottomNbrsLayer = i + 1;
                 }
-            } else if(closeVert.size() == numOfCloseVert){
-                closeVertCutoffDist = dist[overt];
             }
-        }
 
-        if(!closeVertDone &&
-           insertionAnchorStrategy != INSERT_ANCHOR_STRATEGY_FIRST &&
-           closeVertCutoffDist > 0.0 &&
-           dist[overt] > closeVertCutoffDist + kMetricTol){
-            closeVertDone = true;
-            finalizeInsertion(closeVert.size());
-        }
+            if(!closeVertDone && eligibleAnchor(overt)){
+                closeVert.push_back(overt);
+                closeVertDist.push_back(distOvert);
 
-        if(closeVertDone && bottomNbrsLayer > rootDepth)
-            break;
-    }
+                if(insertionAnchorStrategy == INSERT_ANCHOR_STRATEGY_FIRST){
+                    if(closeVert.size() == numOfCloseVert){
+                        closeVertDone = true;
+                        finalizeInsertion(numOfCloseVert);
+                    }
+                } else if(closeVert.size() == numOfCloseVert){
+                    closeVertCutoffDist = distOvert;
+                }
+            }
+
+            if(!closeVertDone &&
+               insertionAnchorStrategy != INSERT_ANCHOR_STRATEGY_FIRST &&
+               closeVertCutoffDist > 0.0 &&
+               distOvert > closeVertCutoffDist + kMetricTol){
+                closeVertDone = true;
+                finalizeInsertion(closeVert.size());
+            }
+
+            return closeVertDone && bottomNbrsLayer > rootDepth;
+        });
 
     if(!closeVertDone && !closeVert.empty())
         finalizeInsertion(closeVert.size());
+    else if(!closeVertDone)
+        finalizeInsertion(0);
 }
 
 void DrawGraph::KK_spring_weighted_local_v1(const size_tt vert,

@@ -271,8 +271,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_layout_globalrep_weighted_adj_cpp
-Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed);
-RcppExport SEXP _grip_grip_layout_globalrep_weighted_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
+Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed, int metric_neighbor_cap);
+RcppExport SEXP _grip_grip_layout_globalrep_weighted_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP metric_neighbor_capSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -302,7 +302,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type final_mode(final_modeSEXP);
     Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed));
+    Rcpp::traits::input_parameter< int >::type metric_neighbor_cap(metric_neighbor_capSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed, metric_neighbor_cap));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -411,8 +412,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_layout_globalrep_weighted_trace_adj_cpp
-Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every);
-RcppExport SEXP _grip_grip_layout_globalrep_weighted_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP) {
+Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every, int metric_neighbor_cap);
+RcppExport SEXP _grip_grip_layout_globalrep_weighted_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP, SEXP metric_neighbor_capSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -444,7 +445,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< std::string >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< int >::type trace_every(trace_everySEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_trace_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed, trace, trace_every));
+    Rcpp::traits::input_parameter< int >::type metric_neighbor_cap(metric_neighbor_capSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_trace_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed, trace, trace_every, metric_neighbor_cap));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -460,12 +462,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
     {"_grip_grip_layout_globalrep_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_adj_cpp, 34},
-    {"_grip_grip_layout_globalrep_weighted_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_adj_cpp, 26},
+    {"_grip_grip_layout_globalrep_weighted_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_adj_cpp, 27},
     {"_grip_grip_build_misf_adj_cpp", (DL_FUNC) &_grip_grip_build_misf_adj_cpp, 6},
     {"_grip_grip_build_weighted_misf_adj_cpp", (DL_FUNC) &_grip_grip_build_weighted_misf_adj_cpp, 6},
     {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
-    {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 28},
+    {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 29},
     {NULL, NULL, 0}
 };
 

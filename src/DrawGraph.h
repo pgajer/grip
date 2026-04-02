@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "Point.h"
 #include "Graph.h"
@@ -174,6 +175,7 @@ class DrawGraph
     size_tt get_NumOfVert() const { return numOfVert; }
     Point<> *get_Pos() const { return pos; }
     void configure_trace(size_tt mode, size_tt every);
+    void configure_weighted_metric_search(size_tt maxSettled);
     const std::vector<std::vector<double>> &get_trace_frames() const { return traceFrames; }
     const std::vector<std::string> &get_trace_phases() const { return tracePhases; }
     const std::vector<int> &get_trace_level_indices() const { return traceLevelIndices; }
@@ -247,6 +249,10 @@ private:
     size_tt *nbrsDepth; // number of allocated levels per vertex
     std::vector<MetricNeighbor> **metricNbrs; // weighted neighborhood caches
     size_tt *metricNbrsDepth;
+    size_tt metricNeighborCap;
+    std::vector<double> metricScratchDist;
+    std::vector<uint32_t> metricScratchStamp;
+    uint32_t metricScratchEpoch;
     size_tt prevSize;
     
     size_tt prevMishSize;
@@ -436,6 +442,10 @@ private:
     void compute_weighted_shortest_paths(size_tt root,
                                          std::vector<double> &dist,
                                          double cutoff = std::numeric_limits<double>::infinity()) const;
+    void traverse_weighted_shortest_paths(size_tt root,
+                                          double cutoff,
+                                          size_tt maxSettled,
+                                          const std::function<bool(size_tt, double)> &visitor);
     std::vector<size_tt> ordered_vertices_by_metric(const std::vector<double> &dist,
                                                     size_tt root) const;
     size_tt lgkk_round_budget_for_layer(size_tt mishLayer) const;

@@ -205,6 +205,21 @@ grip.validate.weighted.layout.inputs <- function(edges = NULL,
   validated
 }
 
+grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NULL,
+                                                        caller = "grip.layout.weighted") {
+  if (is.null(metric_neighbor_cap)) {
+    return(0L)
+  }
+  if (!is.numeric(metric_neighbor_cap) || length(metric_neighbor_cap) != 1L || !is.finite(metric_neighbor_cap)) {
+    stop(sprintf("%s() metric_neighbor_cap must be NULL or a single finite numeric value", caller))
+  }
+  metric_neighbor_cap <- as.integer(metric_neighbor_cap)
+  if (is.na(metric_neighbor_cap) || metric_neighbor_cap <= 0L) {
+    stop(sprintf("%s() metric_neighbor_cap must be a positive integer when supplied", caller))
+  }
+  metric_neighbor_cap
+}
+
 #' Build a weighted MISF hierarchy
 #'
 #' \code{grip.build.misf.weighted()} builds the weighted max-independent-set
@@ -280,6 +295,12 @@ grip.build.misf.weighted <- function(edges = NULL,
 #'   \code{"tree"} targets intrinsic weighted trees, and \code{"carpet"} keeps
 #'   a high-neighborhood profile for carpet-like recursive lattices. Explicit
 #'   tuning arguments override the preset field by field.
+#' @param metric_neighbor_cap Optional cap on the number of settled Dijkstra
+#'   vertices used when building weighted neighborhood caches for inserted
+#'   vertices. \code{NULL} (default) keeps the exact weighted neighborhood
+#'   search, but now stops as soon as the required weighted neighbors and
+#'   anchors are filled. Supplying a positive integer enables an approximate
+#'   weighted neighborhood mode for larger graphs.
 #' @param length_normalization Global edge-length normalization:
 #'   \code{"median"} (default), \code{"mean"}, or \code{"none"}.
 #' @return A numeric matrix with \code{n} rows and \code{dim} columns.
@@ -314,6 +335,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
                                            lgkk_polish_rounds = 0L,
                                            lgkk_local_nbrs = 20L,
                                            lgkk_landmark_count = 8L,
+                                           metric_neighbor_cap = NULL,
                                            length_normalization = c("median", "mean", "none"),
                                            tinit_factor = 6,
                                            seed = 6,
@@ -384,6 +406,10 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
+    metric_neighbor_cap = metric_neighbor_cap,
+    caller = "grip.layout.globalrep.weighted"
+  )
 
   if (is.null(preset) && final_rounds_missing) {
     final_rounds <- grip.globalrep.default.final_rounds(n)
@@ -464,7 +490,8 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
       level0_local_kk_steps = level0_local_kk_steps,
       final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
-      seed = seed
+      seed = seed,
+      metric_neighbor_cap = metric_neighbor_cap
     )
     polished <- grip.apply.lgkk.polish(
       coords = coords,
@@ -569,6 +596,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
                                        lgkk_polish_rounds = 0L,
                                        lgkk_local_nbrs = 20L,
                                        lgkk_landmark_count = 8L,
+                                       metric_neighbor_cap = NULL,
                                        length_normalization = c("median", "mean", "none"),
                                        tinit_factor = 6,
                                        seed = 6,
@@ -655,6 +683,10 @@ grip.layout.trace.weighted <- function(edges = NULL,
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
+    metric_neighbor_cap = metric_neighbor_cap,
+    caller = "grip.layout.trace.weighted"
+  )
 
   if (is.null(preset) && final_rounds_missing) {
     final_rounds <- grip.globalrep.default.final_rounds(n)
@@ -745,7 +777,8 @@ grip.layout.trace.weighted <- function(edges = NULL,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,
     trace = trace,
-    trace_every = trace.every
+    trace_every = trace.every,
+    metric_neighbor_cap = metric_neighbor_cap
   )
 
   if (lgkk_polish_rounds > 0L) {
@@ -833,6 +866,7 @@ grip.layout.weighted <- function(edges = NULL,
                                  lgkk_polish_rounds = 0L,
                                  lgkk_local_nbrs = 20L,
                                  lgkk_landmark_count = 8L,
+                                 metric_neighbor_cap = NULL,
                                  length_normalization = c("median", "mean", "none"),
                                  tinit_factor = 6,
                                  seed = 6,
