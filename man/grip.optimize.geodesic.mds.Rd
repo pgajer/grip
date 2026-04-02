@@ -17,6 +17,7 @@ grip.optimize.geodesic.mds(
   anchor_coords = NULL,
   anchor_weight = 0,
   anchor_weight_end = anchor_weight,
+  anchor_vertex_weight = NULL,
   continuation = c("constant", "linear", "geometric"),
   smoothness_weight = 0,
   smoothness_weight_end = smoothness_weight,
@@ -85,6 +86,10 @@ distance matrix, \code{"initial"} tethers to the starting layout, and
 
 \item{anchor_weight_end}{Final non-negative tether weight used at the end of
 the continuation schedule.}
+
+\item{anchor_vertex_weight}{Optional non-negative per-vertex weights for the
+anchor term. This can be used to pin only selected vertices during
+refinement while leaving the remaining vertices free.}
 
 \item{continuation}{Continuation schedule for the tether weight. With
 \code{"constant"}, the tether weight stays fixed; \code{"linear"} and

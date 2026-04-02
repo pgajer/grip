@@ -135,3 +135,52 @@ test_that("geodesic MDS can optimize directly from data with cmdscale initializa
   expect_true(length(opt$frames) >= 1L)
   expect_true(is.finite(opt$score$gmds.stress[[1L]]))
 })
+
+test_that("per-vertex anchor pinning matches between the R and C++ GMDS engines", {
+  edges <- edges.path(5L)
+  prepared <- grip.prepare.geodesic.kk(edges = edges, n = 5L)
+  anchor.coords <- cbind(
+    x = 0:4,
+    y = rep(0, 5)
+  )
+  coords <- anchor.coords + cbind(
+    x = c(0.4, -0.3, 0.1, -0.2, 0.25),
+    y = c(0.2, -0.1, 0.3, -0.2, 0.15)
+  )
+  anchor.vertex.weight <- c(1, 1, 0, 0, 0)
+
+  fit.r <- grip.optimize.geodesic.mds(
+    coords = coords,
+    prepared = prepared,
+    init = "user",
+    anchor_mode = "user",
+    anchor_coords = anchor.coords,
+    anchor_weight = 0.2,
+    anchor_weight_end = 0.2,
+    anchor_vertex_weight = anchor.vertex.weight,
+    engine = "r",
+    max_iter = 1L,
+    initial_step = 0.05,
+    recenter = FALSE,
+    return_trace = TRUE
+  )
+  fit.cpp <- grip.optimize.geodesic.mds(
+    coords = coords,
+    prepared = prepared,
+    init = "user",
+    anchor_mode = "user",
+    anchor_coords = anchor.coords,
+    anchor_weight = 0.2,
+    anchor_weight_end = 0.2,
+    anchor_vertex_weight = anchor.vertex.weight,
+    engine = "cpp",
+    max_iter = 1L,
+    initial_step = 0.05,
+    recenter = FALSE,
+    return_trace = TRUE,
+    n_threads = 1L
+  )
+
+  expect_equal(unname(fit.cpp$coords), unname(fit.r$coords), tolerance = 1e-7)
+  expect_equal(fit.cpp$score$anchor.energy[[1L]], fit.r$score$anchor.energy[[1L]], tolerance = 1e-8)
+})

@@ -720,6 +720,384 @@ grip.geodesic.misf.insert.all.levels <- function(prepared,
   )
 }
 
+grip.geodesic.misf.active.level.vertices <- function(prepared, level) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  level.index <- grip.geodesic.misf.level.to.index(prepared$misf, level)
+  as.integer(prepared$misf$levels[[level.index]])
+}
+
+grip.geodesic.misf.induced_active_graph <- function(prepared, active_vertices) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  active.vertices <- as.integer(active_vertices)
+  if (!length(active.vertices)) {
+    stop("active_vertices must contain at least one vertex id")
+  }
+  if (any(!is.finite(active.vertices)) || any(active.vertices < 1L) || any(active.vertices > prepared$n)) {
+    stop("active_vertices must be valid 1-based vertex ids from prepared")
+  }
+  if (anyDuplicated(active.vertices)) {
+    stop("active_vertices must be unique")
+  }
+
+  local.count <- length(active.vertices)
+  global.to.local <- integer(prepared$n)
+  global.to.local[active.vertices] <- seq_len(local.count)
+  active.set <- logical(prepared$n)
+  active.set[active.vertices] <- TRUE
+
+  adj.list <- vector("list", local.count)
+  weight.list <- vector("list", local.count)
+  for (local.i in seq_along(active.vertices)) {
+    global.i <- active.vertices[[local.i]]
+    nbrs <- as.integer(prepared$adj_list[[global.i]])
+    weights <- as.double(prepared$weight_list[[global.i]])
+    keep <- active.set[nbrs]
+    adj.list[[local.i]] <- if (any(keep)) as.integer(global.to.local[nbrs[keep]]) else integer(0L)
+    weight.list[[local.i]] <- if (any(keep)) as.double(weights[keep]) else numeric(0L)
+  }
+
+  sorted <- grip.sort.adj.with.weights(adj.list, weight.list)
+  adj.list <- sorted$adj_list
+  weight.list <- sorted$weight_list
+  edges <- grip.edges.from.adj.list(adj.list)
+  edge.targets <- grip.edge.weights.from.adj.list(adj.list, weight.list)
+
+  list(
+    n = local.count,
+    vertex_ids = active.vertices,
+    global_to_local = global.to.local,
+    local_to_global = active.vertices,
+    adj_list = adj.list,
+    weight_list = weight.list,
+    edges = edges,
+    edge_targets = edge.targets
+  )
+}
+
+grip.geodesic.misf.prepare.active.level <- function(prepared,
+                                                    active_vertices,
+                                                    local_nbrs = 8L,
+                                                    landmark_count = 4L,
+                                                    pair_mode = c("sparse", "full")) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  pair_mode <- match.arg(pair_mode)
+  local_nbrs <- grip.validate.count(local_nbrs, "local_nbrs")
+  landmark_count <- grip.validate.count(landmark_count, "landmark_count")
+  active.vertices <- as.integer(active_vertices)
+
+  active.graph <- grip.geodesic.misf.induced_active_graph(prepared, active.vertices)
+  active.comp <- grip.connected.components(active.graph$adj_list, active.graph$n)
+  active.distance <- prepared$distance_matrix[active.vertices, active.vertices, drop = FALSE]
+  pair.matrix.local <- if (identical(pair_mode, "full")) {
+    grip.full.geodesic.kk.pair.matrix(length(active.vertices))
+  } else {
+    grip.landmark.geodesic.kk.pair.matrix(
+      dist.matrix = active.distance,
+      local_nbrs = local_nbrs,
+      landmark_count = landmark_count
+    )
+  }
+  pair.matrix <- if (nrow(pair.matrix.local) == 0L) {
+    matrix(integer(), ncol = 2L)
+  } else {
+    cbind(
+      as.integer(active.vertices[pair.matrix.local[, 1L]]),
+      as.integer(active.vertices[pair.matrix.local[, 2L]])
+    )
+  }
+  cache <- grip.build.geodesic.mds.path.cache(
+    pair.matrix = pair.matrix,
+    adj.list = prepared$adj_list,
+    weight.list = prepared$weight_list,
+    dist.matrix = prepared$distance_matrix,
+    parents = prepared$parents,
+    tie_mode = prepared$tie_mode,
+    cache_engine = "r"
+  )
+  flat.cache <- grip.flatten.geodesic.path.cache(
+    path.edges = cache$path_edges,
+    path.edge.weights = cache$path_edge_weights
+  )
+
+  out <- list(
+    n = prepared$n,
+    edges = prepared$edges,
+    edge_targets = prepared$edge_targets,
+    adj_list = prepared$adj_list,
+    weight_list = prepared$weight_list,
+    pair_matrix = pair.matrix,
+    pair_matrix_local = pair.matrix.local,
+    pair_graph_distance = cache$pair_graph_distance,
+    path_vertices = cache$path_vertices,
+    path_edges = cache$path_edges,
+    path_edge_weights = cache$path_edge_weights,
+    pair_path_count_log = cache$pair_path_count_log,
+    flat_pair_edge_offsets = flat.cache$flat_pair_edge_offsets,
+    flat_edge_u = flat.cache$flat_edge_u,
+    flat_edge_v = flat.cache$flat_edge_v,
+    flat_edge_coeff = flat.cache$flat_edge_coeff,
+    graph_diameter = prepared$graph_diameter,
+    distance_matrix = prepared$distance_matrix,
+    pair_mode = if (identical(pair_mode, "full")) "all_pairs" else "misf_sparse",
+    graph_build_mode = "misf_active_level",
+    tie_mode = prepared$tie_mode,
+    active_vertex_ids = active.graph$vertex_ids,
+    global_to_local = active.graph$global_to_local,
+    local_to_global = active.graph$local_to_global,
+    local_nbrs = local_nbrs,
+    landmark_count = landmark_count,
+    active_component = as.integer(active.comp)
+  )
+  class(out) <- c("grip_gmds_prepared", "grip_gkk_prepared", "grip_geodesic_kk_prepared", "list")
+  out
+}
+
+grip.geodesic.misf.build.level.pairs <- function(prepared,
+                                                 level = NULL,
+                                                 local_nbrs = 8L,
+                                                 landmark_count = 4L,
+                                                 pair_mode = c("sparse", "full")) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  pair_mode <- match.arg(pair_mode)
+  if (is.null(level)) {
+    level <- prepared$top_level_level
+  }
+  active.vertices <- grip.geodesic.misf.active.level.vertices(prepared, level)
+  active.prepared <- grip.geodesic.misf.prepare.active.level(
+    prepared = prepared,
+    active_vertices = active.vertices,
+    local_nbrs = local_nbrs,
+    landmark_count = landmark_count,
+    pair_mode = pair_mode
+  )
+  global.pair.matrix <- if (nrow(active.prepared$pair_matrix) == 0L) {
+    matrix(integer(), ncol = 2L)
+  } else if (!is.null(active.prepared$pair_matrix_local)) {
+    active.prepared$pair_matrix
+  } else {
+    active.prepared$pair_matrix
+  }
+  list(
+    level = as.integer(level),
+    active_vertices = active.vertices,
+    active_prepared = active.prepared,
+    pair_matrix = if (!is.null(active.prepared$pair_matrix_local)) active.prepared$pair_matrix_local else active.prepared$pair_matrix,
+    global_pair_matrix = matrix(as.integer(global.pair.matrix), ncol = 2L)
+  )
+}
+
+grip.geodesic.misf.refine.level <- function(prepared,
+                                            coords,
+                                            level = NULL,
+                                            local_nbrs = 8L,
+                                            landmark_count = 4L,
+                                            pair_mode = c("sparse", "full"),
+                                            anchor_weight = 0.05,
+                                            anchor_weight_end = anchor_weight,
+                                            continuation = c("constant", "linear", "geometric"),
+                                            max_iter = 8L,
+                                            engine = c("cpp", "r"),
+                                            edge_length_epsilon = 1e-8,
+                                            initial_step = 1.0,
+                                            step_shrink = 0.5,
+                                            armijo_factor = 1e-4,
+                                            grad_tol = 1e-8,
+                                            min_step = 1e-8,
+                                            n_threads = 0L,
+                                            recenter = TRUE,
+                                            return_trace = TRUE) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  coords <- grip.validate.coords(coords)
+  if (nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match prepared$n")
+  }
+  pair_mode <- match.arg(pair_mode)
+  continuation <- match.arg(continuation)
+  engine <- match.arg(engine)
+  if (is.null(level)) {
+    level <- prepared$top_level_level
+  }
+  level <- as.integer(level)
+
+  built <- grip.geodesic.misf.build.level.pairs(
+    prepared = prepared,
+    level = level,
+    local_nbrs = local_nbrs,
+    landmark_count = landmark_count,
+    pair_mode = pair_mode
+  )
+  active.vertices <- built$active_vertices
+
+  anchor.coords <- coords
+  anchor.vertex.weight <- numeric(nrow(coords))
+  inactive.vertices <- setdiff(seq_len(prepared$n), active.vertices)
+  if (length(inactive.vertices) > 0L) {
+    anchor.vertex.weight[inactive.vertices] <- 1
+  }
+  if (level < prepared$top_level_level) {
+    pinned.global <- prepared$misf$levels[[level + 2L]]
+    anchor.vertex.weight[pinned.global] <- 1
+  }
+  use.anchor <- any(anchor.vertex.weight > 0)
+
+  before <- grip.score.geodesic.mds(
+    coords = coords,
+    prepared = built$active_prepared
+  )
+  fit <- grip.optimize.geodesic.mds(
+    coords = coords,
+    prepared = built$active_prepared,
+    init = "user",
+    anchor_mode = if (use.anchor) "user" else "none",
+    anchor_coords = if (use.anchor) anchor.coords else NULL,
+    anchor_weight = if (use.anchor) anchor_weight else 0,
+    anchor_weight_end = if (use.anchor) anchor_weight_end else 0,
+    anchor_vertex_weight = if (use.anchor) anchor.vertex.weight else NULL,
+    continuation = continuation,
+    engine = engine,
+    max_iter = max_iter,
+    edge_length_epsilon = edge_length_epsilon,
+    initial_step = initial_step,
+    step_shrink = step_shrink,
+    armijo_factor = armijo_factor,
+    grad_tol = grad_tol,
+    min_step = min_step,
+    n_threads = n_threads,
+    recenter = recenter,
+    return_trace = return_trace
+  )
+  after <- grip.score.geodesic.mds(
+    coords = fit$coords,
+    prepared = built$active_prepared
+  )
+  coords <- fit$coords
+
+  list(
+    level = level,
+    active_vertices = active.vertices,
+    pinned_vertices = if (use.anchor) which(anchor.vertex.weight > 0) else integer(0L),
+    active_prepared = built$active_prepared,
+    pair_matrix = built$pair_matrix,
+    global_pair_matrix = built$global_pair_matrix,
+    coords = coords,
+    fit = fit,
+    before = before,
+    after = after,
+    anchor_vertex_weight = anchor.vertex.weight
+  )
+}
+
+grip.geodesic.misf.refine.all.levels <- function(prepared,
+                                                 coords,
+                                                 local_nbrs = 8L,
+                                                 landmark_count = 4L,
+                                                 pair_mode = c("sparse", "full"),
+                                                 anchor_weight = 0.05,
+                                                 anchor_weight_end = anchor_weight,
+                                                 continuation = c("constant", "linear", "geometric"),
+                                                 max_iter = 8L,
+                                                 engine = c("cpp", "r"),
+                                                 edge_length_epsilon = 1e-8,
+                                                 initial_step = 1.0,
+                                                 step_shrink = 0.5,
+                                                 armijo_factor = 1e-4,
+                                                 grad_tol = 1e-8,
+                                                 min_step = 1e-8,
+                                                 n_threads = 0L,
+                                                 recenter = TRUE,
+                                                 return_trace = TRUE) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  coords <- grip.validate.coords(coords)
+  pair_mode <- match.arg(pair_mode)
+  continuation <- match.arg(continuation)
+  engine <- match.arg(engine)
+
+  level.ids <- seq.int(from = prepared$top_level_level, to = 0L, by = -1L)
+  level.results <- vector("list", length(level.ids))
+  for (i in seq_along(level.ids)) {
+    level.results[[i]] <- grip.geodesic.misf.refine.level(
+      prepared = prepared,
+      coords = coords,
+      level = level.ids[[i]],
+      local_nbrs = local_nbrs,
+      landmark_count = landmark_count,
+      pair_mode = pair_mode,
+      anchor_weight = anchor_weight,
+      anchor_weight_end = anchor_weight_end,
+      continuation = continuation,
+      max_iter = max_iter,
+      engine = engine,
+      edge_length_epsilon = edge_length_epsilon,
+      initial_step = initial_step,
+      step_shrink = step_shrink,
+      armijo_factor = armijo_factor,
+      grad_tol = grad_tol,
+      min_step = min_step,
+      n_threads = n_threads,
+      recenter = recenter,
+      return_trace = return_trace
+    )
+    coords <- level.results[[i]]$coords
+  }
+
+  level.trace <- do.call(rbind, lapply(level.results, function(result) {
+    data.frame(
+      level = result$level,
+      active_n = length(result$active_vertices),
+      pair_n = nrow(result$pair_matrix),
+      before_energy = result$before$gmds.energy[[1L]],
+      after_energy = result$after$gmds.energy[[1L]],
+      after_stress = result$after$gmds.stress[[1L]],
+      stringsAsFactors = FALSE
+    )
+  }))
+
+  list(
+    coords = coords,
+    level_results = level.results,
+    level_trace = level.trace
+  )
+}
+
+grip.geodesic.misf.final.polish <- function(prepared,
+                                            coords,
+                                            max_iter = 8L,
+                                            engine = c("cpp", "r"),
+                                            edge_length_epsilon = 1e-8,
+                                            initial_step = 1.0,
+                                            step_shrink = 0.5,
+                                            armijo_factor = 1e-4,
+                                            grad_tol = 1e-8,
+                                            min_step = 1e-8,
+                                            n_threads = 0L,
+                                            recenter = TRUE,
+                                            return_trace = TRUE) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  coords <- grip.validate.coords(coords)
+  if (nrow(coords) != prepared$n) {
+    stop("nrow(coords) must match prepared$n")
+  }
+  engine <- match.arg(engine)
+  fit <- grip.optimize.geodesic.mds(
+    coords = coords,
+    prepared = prepared,
+    init = "user",
+    anchor_mode = "none",
+    engine = engine,
+    max_iter = max_iter,
+    edge_length_epsilon = edge_length_epsilon,
+    initial_step = initial_step,
+    step_shrink = step_shrink,
+    armijo_factor = armijo_factor,
+    grad_tol = grad_tol,
+    min_step = min_step,
+    n_threads = n_threads,
+    recenter = recenter,
+    return_trace = return_trace
+  )
+  fit
+}
+
 #' Prepare a MISF-based multiscale GMDS object
 #'
 #' `grip.prepare.misf.geodesic.mds()` augments the graph-first GMDS prepared

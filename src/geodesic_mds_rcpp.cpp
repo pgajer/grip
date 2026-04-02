@@ -762,6 +762,25 @@ std::vector<double> resolve_anchor_schedule(Rcpp::Nullable<Rcpp::NumericVector> 
     return out;
 }
 
+std::vector<double> resolve_anchor_vertex_weight(Rcpp::Nullable<Rcpp::NumericVector> anchor_vertex_weight,
+                                                 int n)
+{
+    if(anchor_vertex_weight.isNull())
+        return std::vector<double>();
+
+    Rcpp::NumericVector raw = anchor_vertex_weight.get();
+    if(raw.size() != n)
+        Rcpp::stop("anchor_vertex_weight must have length nrow(coords)");
+    std::vector<double> out(static_cast<size_t>(n));
+    for(int i = 0; i < n; i++){
+        double value = raw[i];
+        if(!std::isfinite(value) || value < 0.0)
+            Rcpp::stop("anchor_vertex_weight must contain finite values >= 0");
+        out[static_cast<size_t>(i)] = value;
+    }
+    return out;
+}
+
 FlatSmoothnessView build_flat_smoothness_view(Rcpp::IntegerVector smooth_adj_offsets,
                                               Rcpp::IntegerVector smooth_adj_vertices,
                                               int n)
@@ -1019,6 +1038,7 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                                      double eps2,
                                      const std::vector<Point<>> *anchor,
                                      double anchorWeight,
+                                     const std::vector<double> *anchorVertexWeight,
                                      double smoothWeight,
                                      double edgeSpringWeight,
                                      double repulsionWeight,
@@ -1115,9 +1135,14 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
     if(anchor && anchorWeight > 0.0){
         double rawPenalty = 0.0;
         for(size_t i = 0; i < coords.size(); i++){
+            double vertexWeight = 1.0;
+            if(anchorVertexWeight && !anchorVertexWeight->empty())
+                vertexWeight = (*anchorVertexWeight)[i];
+            if(vertexWeight <= 0.0)
+                continue;
             Point<> diff = coords[i] - (*anchor)[i];
-            rawPenalty += diff.fnorm2();
-            state.gradient[i] += diff * (2.0 * anchorWeight);
+            rawPenalty += vertexWeight * diff.fnorm2();
+            state.gradient[i] += diff * (2.0 * anchorWeight * vertexWeight);
         }
         state.anchorEnergy = anchorWeight * rawPenalty;
     }
@@ -1567,6 +1592,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     bool return_trace,
     Rcpp::Nullable<Rcpp::NumericMatrix> anchor_coords = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericVector> anchor_weights = R_NilValue,
+    Rcpp::Nullable<Rcpp::NumericVector> anchor_vertex_weight = R_NilValue,
     Rcpp::IntegerVector smooth_adj_offsets = Rcpp::IntegerVector(),
     Rcpp::IntegerVector smooth_adj_vertices = Rcpp::IntegerVector(),
     Rcpp::Nullable<Rcpp::NumericVector> smooth_weights = R_NilValue,
@@ -1658,6 +1684,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         anchor = matrix_to_points(anchorMat);
     }
     std::vector<double> anchorSchedule = resolve_anchor_schedule(anchor_weights, max_iter);
+    std::vector<double> anchorVertexWeight = resolve_anchor_vertex_weight(anchor_vertex_weight, coords.nrow());
     FlatSmoothnessView smoothness = build_flat_smoothness_view(
         smooth_adj_offsets,
         smooth_adj_vertices,
@@ -1709,6 +1736,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         eps2,
         useAnchor ? &anchor : nullptr,
         anchorSchedule[0],
+        anchorVertexWeight.empty() ? nullptr : &anchorVertexWeight,
         smoothSchedule[0],
         edgeSpringSchedule[0],
         repulsionSchedule[0],
@@ -1745,6 +1773,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
             eps2,
             useAnchor ? &anchor : nullptr,
             iterAnchorWeight,
+            anchorVertexWeight.empty() ? nullptr : &anchorVertexWeight,
             iterSmoothWeight,
             iterEdgeSpringWeight,
             iterRepulsionWeight,
@@ -1774,6 +1803,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
                 eps2,
                 useAnchor ? &anchor : nullptr,
                 iterAnchorWeight,
+                anchorVertexWeight.empty() ? nullptr : &anchorVertexWeight,
                 iterSmoothWeight,
                 iterEdgeSpringWeight,
                 iterRepulsionWeight,
