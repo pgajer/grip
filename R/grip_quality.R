@@ -2777,9 +2777,29 @@ grip.geodesic.mds.ensure.graph.term.cache <- function(prepared,
   prepared
 }
 
+grip.geodesic.mds.resolve.anchor.vertex.weight <- function(anchor_vertex_weight,
+                                                           coords) {
+  if (is.null(anchor_vertex_weight)) {
+    return(NULL)
+  }
+  weights <- as.double(anchor_vertex_weight)
+  if (length(weights) != nrow(coords)) {
+    stop("anchor_vertex_weight must have length nrow(coords)")
+  }
+  if (any(!is.finite(weights) | weights < 0)) {
+    stop("anchor_vertex_weight must contain finite values >= 0")
+  }
+  weights
+}
+
 grip.geodesic.mds.anchor.stats <- function(coords,
                                            anchor_coords = NULL,
-                                           anchor_weight = 0) {
+                                           anchor_weight = 0,
+                                           anchor_vertex_weight = NULL) {
+  anchor.vertex.weight <- grip.geodesic.mds.resolve.anchor.vertex.weight(
+    anchor_vertex_weight = anchor_vertex_weight,
+    coords = coords
+  )
   if (is.null(anchor_coords) || !is.finite(anchor_weight) || anchor_weight <= 0) {
     return(list(
       anchor_weight = as.double(anchor_weight),
@@ -2789,10 +2809,16 @@ grip.geodesic.mds.anchor.stats <- function(coords,
     ))
   }
   diff <- coords - anchor_coords
+  if (!is.null(anchor.vertex.weight)) {
+    diff <- diff * matrix(anchor.vertex.weight, nrow = nrow(coords), ncol = ncol(coords))
+    raw.penalty <- sum((coords - anchor_coords)^2 * anchor.vertex.weight)
+  } else {
+    raw.penalty <- sum(diff^2)
+  }
   list(
     anchor_weight = as.double(anchor_weight),
-    raw_penalty = sum(diff^2),
-    energy = as.double(anchor_weight) * sum(diff^2),
+    raw_penalty = raw.penalty,
+    energy = as.double(anchor_weight) * raw.penalty,
     gradient = 2 * as.double(anchor_weight) * diff
   )
 }
@@ -3029,6 +3055,7 @@ grip.geodesic.mds.energy.gradient <- function(coords,
                                               edge_length_epsilon = 1e-8,
                                               anchor_coords = NULL,
                                               anchor_weight = 0,
+                                              anchor_vertex_weight = NULL,
                                               smoothness_weight = 0,
                                               edge_spring_weight = 0,
                                               repulsion_weight = 0,
@@ -3054,7 +3081,8 @@ grip.geodesic.mds.energy.gradient <- function(coords,
     anchor.stats <- grip.geodesic.mds.anchor.stats(
       coords = coords,
       anchor_coords = anchor_coords,
-      anchor_weight = anchor_weight
+      anchor_weight = anchor_weight,
+      anchor_vertex_weight = anchor_vertex_weight
     )
     edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
       coords = coords,
@@ -3121,7 +3149,8 @@ grip.geodesic.mds.energy.gradient <- function(coords,
   anchor.stats <- grip.geodesic.mds.anchor.stats(
     coords = coords,
     anchor_coords = anchor_coords,
-    anchor_weight = anchor_weight
+    anchor_weight = anchor_weight,
+    anchor_vertex_weight = anchor_vertex_weight
   )
   edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
     coords = coords,
@@ -3170,6 +3199,7 @@ grip.geodesic.mds.score.stats <- function(coords,
                                           edge_length_epsilon = 1e-8,
                                           anchor_coords = NULL,
                                           anchor_weight = 0,
+                                          anchor_vertex_weight = NULL,
                                           smoothness_weight = 0,
                                           edge_spring_weight = 0,
                                           repulsion_weight = 0,
@@ -3190,7 +3220,8 @@ grip.geodesic.mds.score.stats <- function(coords,
   anchor.stats <- grip.geodesic.mds.anchor.stats(
     coords = coords,
     anchor_coords = anchor_coords,
-    anchor_weight = anchor_weight
+    anchor_weight = anchor_weight,
+    anchor_vertex_weight = anchor_vertex_weight
   )
   edge.spring.stats <- grip.geodesic.mds.edge.spring.stats(
     coords = coords,
@@ -3311,6 +3342,7 @@ grip.geodesic.mds.evaluate.state <- function(coords,
                                              edge_length_epsilon = 1e-8,
                                              anchor_coords = NULL,
                                              anchor_weight = 0,
+                                             anchor_vertex_weight = NULL,
                                              smoothness_weight = 0,
                                              edge_spring_weight = 0,
                                              repulsion_weight = 0,
@@ -3324,6 +3356,7 @@ grip.geodesic.mds.evaluate.state <- function(coords,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor_coords,
     anchor_weight = anchor_weight,
+    anchor_vertex_weight = anchor_vertex_weight,
     smoothness_weight = smoothness_weight,
     edge_spring_weight = edge_spring_weight,
     repulsion_weight = repulsion_weight,
@@ -3515,6 +3548,9 @@ grip.prepare.geodesic.mds <- function(data,
 #' @param anchor_coords Optional anchor embedding used to add the quadratic
 #'   tether term \eqn{\lambda \|Z - A\|_F^2}.
 #' @param anchor_weight Non-negative anchor weight \eqn{\lambda}.
+#' @param anchor_vertex_weight Optional non-negative per-vertex weights for the
+#'   anchor term. When supplied, only vertices with positive weights are
+#'   tethered, and each tether uses the corresponding multiplier.
 #' @param smoothness_weight Non-negative local smoothness weight \eqn{\mu}
 #'   applied to \eqn{\sum_i \|z_i - |N(i)|^{-1}\sum_{j \in N(i)} z_j\|^2}.
 #' @param edge_spring_weight Non-negative coefficient for the graph-edge spring
@@ -3542,6 +3578,7 @@ grip.score.geodesic.mds <- function(coords,
                                     edge_length_epsilon = 1e-8,
                                     anchor_coords = NULL,
                                     anchor_weight = 0,
+                                    anchor_vertex_weight = NULL,
                                     smoothness_weight = 0,
                                     edge_spring_weight = 0,
                                     repulsion_weight = 0,
@@ -3584,6 +3621,7 @@ grip.score.geodesic.mds <- function(coords,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = anchor_weight,
+    anchor_vertex_weight = anchor_vertex_weight,
     smoothness_weight = smoothness_weight,
     edge_spring_weight = edge_spring_weight,
     repulsion_weight = repulsion_weight,
@@ -3663,6 +3701,9 @@ grip.score.geodesic.mds <- function(coords,
 #' @param anchor_weight Initial non-negative tether weight.
 #' @param anchor_weight_end Final non-negative tether weight used at the end of
 #'   the continuation schedule.
+#' @param anchor_vertex_weight Optional non-negative per-vertex weights for the
+#'   anchor term. This can be used to pin only selected vertices during
+#'   refinement while leaving the remaining vertices free.
 #' @param continuation Continuation schedule for the tether weight. With
 #'   \code{"constant"}, the tether weight stays fixed; \code{"linear"} and
 #'   \code{"geometric"} gradually relax the tether from
@@ -3723,6 +3764,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
                                        anchor_coords = NULL,
                                        anchor_weight = 0,
                                        anchor_weight_end = anchor_weight,
+                                       anchor_vertex_weight = NULL,
                                        continuation = c("constant", "linear", "geometric"),
                                        smoothness_weight = 0,
                                        smoothness_weight_end = smoothness_weight,
@@ -3815,6 +3857,10 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   }
 
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  anchor.vertex.weight <- grip.geodesic.mds.resolve.anchor.vertex.weight(
+    anchor_vertex_weight = anchor_vertex_weight,
+    coords = coords
+  )
   anchor.coords <- grip.geodesic.mds.resolve.anchor(
     anchor_mode = anchor_mode,
     coords = coords,
@@ -3866,6 +3912,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = anchor.schedule[[1L]],
+      anchor_vertex_weight = anchor.vertex.weight,
       smoothness_weight = smoothness.schedule[[1L]],
       edge_spring_weight = edge.spring.schedule[[1L]],
       repulsion_weight = repulsion.schedule[[1L]],
@@ -3882,6 +3929,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       score = score,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
+      anchor_vertex_weight = anchor.vertex.weight,
       smoothness_schedule = smoothness.schedule,
       edge_spring_schedule = edge.spring.schedule,
       repulsion_schedule = repulsion.schedule,
@@ -3894,7 +3942,8 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
   }
 
   if (identical(engine, "cpp")) {
-    if ((any(smoothness.schedule > 0) ||
+    if ((!is.null(anchor.vertex.weight) ||
+         any(smoothness.schedule > 0) ||
          any(edge.spring.schedule > 0) ||
          any(repulsion.schedule > 0)) &&
         (is.null(prepared$flat_pair_edge_offsets) ||
@@ -3970,6 +4019,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         return_trace = return_trace,
         anchor_coords = anchor.coords,
         anchor_weights = anchor.schedule,
+        anchor_vertex_weight = anchor.vertex.weight,
         smooth_adj_offsets = smooth.flat$flat_adj_offsets,
         smooth_adj_vertices = smooth.flat$flat_adj_vertices,
         smooth_weights = smoothness.schedule,
@@ -4013,6 +4063,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = final.anchor.weight,
+      anchor_vertex_weight = anchor.vertex.weight,
       smoothness_weight = opt$final_smoothness_weight,
       edge_spring_weight = final.edge.spring.weight,
       repulsion_weight = final.repulsion.weight,
@@ -4029,6 +4080,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       score = score,
       anchor_coords = anchor.coords,
       anchor_schedule = anchor.schedule,
+      anchor_vertex_weight = anchor.vertex.weight,
       smoothness_schedule = smoothness.schedule,
       edge_spring_schedule = edge.spring.schedule,
       repulsion_schedule = repulsion.schedule,
@@ -4049,6 +4101,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = anchor.schedule[[1L]],
+    anchor_vertex_weight = anchor.vertex.weight,
     smoothness_weight = smoothness.schedule[[1L]],
     edge_spring_weight = edge.spring.schedule[[1L]],
     repulsion_weight = repulsion.schedule[[1L]],
@@ -4089,6 +4142,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       anchor_coords = anchor.coords,
       anchor_weight = iter.anchor.weight,
+      anchor_vertex_weight = anchor.vertex.weight,
       smoothness_weight = iter.smooth.weight,
       edge_spring_weight = iter.edge.spring.weight,
       repulsion_weight = iter.repulsion.weight,
@@ -4114,9 +4168,10 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
         coords = proposal,
         prepared = prepared,
         edge_length_epsilon = edge_length_epsilon,
-        anchor_coords = anchor.coords,
-        anchor_weight = iter.anchor.weight,
-        smoothness_weight = iter.smooth.weight,
+      anchor_coords = anchor.coords,
+      anchor_weight = iter.anchor.weight,
+      anchor_vertex_weight = anchor.vertex.weight,
+      smoothness_weight = iter.smooth.weight,
         edge_spring_weight = iter.edge.spring.weight,
         repulsion_weight = iter.repulsion.weight,
         repulsion_quantile = repulsion_quantile,
@@ -4179,6 +4234,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     edge_length_epsilon = edge_length_epsilon,
     anchor_coords = anchor.coords,
     anchor_weight = final.anchor.weight,
+    anchor_vertex_weight = anchor.vertex.weight,
     smoothness_weight = final.smooth.weight,
     edge_spring_weight = final.edge.spring.weight,
     repulsion_weight = final.repulsion.weight,
@@ -4196,6 +4252,7 @@ grip.optimize.geodesic.mds <- function(coords = NULL,
     score = score,
     anchor_coords = anchor.coords,
     anchor_schedule = anchor.schedule,
+    anchor_vertex_weight = anchor.vertex.weight,
     smoothness_schedule = smoothness.schedule,
     edge_spring_schedule = edge.spring.schedule,
     repulsion_schedule = repulsion.schedule,

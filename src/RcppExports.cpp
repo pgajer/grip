@@ -103,8 +103,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_optimize_geodesic_mds_flat_cpp
-Rcpp::List grip_optimize_geodesic_mds_flat_cpp(Rcpp::IntegerVector flat_pair_edge_offsets, Rcpp::IntegerVector flat_edge_u, Rcpp::IntegerVector flat_edge_v, Rcpp::NumericVector flat_edge_coeff, Rcpp::NumericVector pair_graph_distance, Rcpp::NumericMatrix coords, int max_iter, double edge_length_epsilon, double initial_step, double step_shrink, double armijo_factor, double grad_tol, double min_step, bool recenter, bool return_trace, Rcpp::Nullable<Rcpp::NumericMatrix> anchor_coords, Rcpp::Nullable<Rcpp::NumericVector> anchor_weights, Rcpp::IntegerVector smooth_adj_offsets, Rcpp::IntegerVector smooth_adj_vertices, Rcpp::Nullable<Rcpp::NumericVector> smooth_weights, Rcpp::IntegerVector graph_edge_u, Rcpp::IntegerVector graph_edge_v, Rcpp::NumericVector graph_edge_target, Rcpp::Nullable<Rcpp::NumericVector> edge_spring_weights, Rcpp::IntegerVector repulsion_u, Rcpp::IntegerVector repulsion_v, Rcpp::NumericVector repulsion_target, Rcpp::Nullable<Rcpp::NumericVector> repulsion_weights, int n_threads);
-RcppExport SEXP _grip_grip_optimize_geodesic_mds_flat_cpp(SEXP flat_pair_edge_offsetsSEXP, SEXP flat_edge_uSEXP, SEXP flat_edge_vSEXP, SEXP flat_edge_coeffSEXP, SEXP pair_graph_distanceSEXP, SEXP coordsSEXP, SEXP max_iterSEXP, SEXP edge_length_epsilonSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijo_factorSEXP, SEXP grad_tolSEXP, SEXP min_stepSEXP, SEXP recenterSEXP, SEXP return_traceSEXP, SEXP anchor_coordsSEXP, SEXP anchor_weightsSEXP, SEXP smooth_adj_offsetsSEXP, SEXP smooth_adj_verticesSEXP, SEXP smooth_weightsSEXP, SEXP graph_edge_uSEXP, SEXP graph_edge_vSEXP, SEXP graph_edge_targetSEXP, SEXP edge_spring_weightsSEXP, SEXP repulsion_uSEXP, SEXP repulsion_vSEXP, SEXP repulsion_targetSEXP, SEXP repulsion_weightsSEXP, SEXP n_threadsSEXP) {
+Rcpp::List grip_optimize_geodesic_mds_flat_cpp(Rcpp::IntegerVector flat_pair_edge_offsets, Rcpp::IntegerVector flat_edge_u, Rcpp::IntegerVector flat_edge_v, Rcpp::NumericVector flat_edge_coeff, Rcpp::NumericVector pair_graph_distance, Rcpp::NumericMatrix coords, int max_iter, double edge_length_epsilon, double initial_step, double step_shrink, double armijo_factor, double grad_tol, double min_step, bool recenter, bool return_trace, Rcpp::Nullable<Rcpp::NumericMatrix> anchor_coords, Rcpp::Nullable<Rcpp::NumericVector> anchor_weights, Rcpp::Nullable<Rcpp::NumericVector> anchor_vertex_weight, Rcpp::IntegerVector smooth_adj_offsets, Rcpp::IntegerVector smooth_adj_vertices, Rcpp::Nullable<Rcpp::NumericVector> smooth_weights, Rcpp::IntegerVector graph_edge_u, Rcpp::IntegerVector graph_edge_v, Rcpp::NumericVector graph_edge_target, Rcpp::Nullable<Rcpp::NumericVector> edge_spring_weights, Rcpp::IntegerVector repulsion_u, Rcpp::IntegerVector repulsion_v, Rcpp::NumericVector repulsion_target, Rcpp::Nullable<Rcpp::NumericVector> repulsion_weights, int n_threads);
+RcppExport SEXP _grip_grip_optimize_geodesic_mds_flat_cpp(SEXP flat_pair_edge_offsetsSEXP, SEXP flat_edge_uSEXP, SEXP flat_edge_vSEXP, SEXP flat_edge_coeffSEXP, SEXP pair_graph_distanceSEXP, SEXP coordsSEXP, SEXP max_iterSEXP, SEXP edge_length_epsilonSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijo_factorSEXP, SEXP grad_tolSEXP, SEXP min_stepSEXP, SEXP recenterSEXP, SEXP return_traceSEXP, SEXP anchor_coordsSEXP, SEXP anchor_weightsSEXP, SEXP anchor_vertex_weightSEXP, SEXP smooth_adj_offsetsSEXP, SEXP smooth_adj_verticesSEXP, SEXP smooth_weightsSEXP, SEXP graph_edge_uSEXP, SEXP graph_edge_vSEXP, SEXP graph_edge_targetSEXP, SEXP edge_spring_weightsSEXP, SEXP repulsion_uSEXP, SEXP repulsion_vSEXP, SEXP repulsion_targetSEXP, SEXP repulsion_weightsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -125,6 +125,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type return_trace(return_traceSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type anchor_coords(anchor_coordsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type anchor_weights(anchor_weightsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type anchor_vertex_weight(anchor_vertex_weightSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type smooth_adj_offsets(smooth_adj_offsetsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type smooth_adj_vertices(smooth_adj_verticesSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type smooth_weights(smooth_weightsSEXP);
@@ -137,7 +138,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type repulsion_target(repulsion_targetSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type repulsion_weights(repulsion_weightsSEXP);
     Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_optimize_geodesic_mds_flat_cpp(flat_pair_edge_offsets, flat_edge_u, flat_edge_v, flat_edge_coeff, pair_graph_distance, coords, max_iter, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, recenter, return_trace, anchor_coords, anchor_weights, smooth_adj_offsets, smooth_adj_vertices, smooth_weights, graph_edge_u, graph_edge_v, graph_edge_target, edge_spring_weights, repulsion_u, repulsion_v, repulsion_target, repulsion_weights, n_threads));
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_geodesic_mds_flat_cpp(flat_pair_edge_offsets, flat_edge_u, flat_edge_v, flat_edge_coeff, pair_graph_distance, coords, max_iter, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, recenter, return_trace, anchor_coords, anchor_weights, anchor_vertex_weight, smooth_adj_offsets, smooth_adj_vertices, smooth_weights, graph_edge_u, graph_edge_v, graph_edge_target, edge_spring_weights, repulsion_u, repulsion_v, repulsion_target, repulsion_weights, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -363,7 +364,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_build_tie_average_shortest_path_cache_cpp", (DL_FUNC) &_grip_grip_build_tie_average_shortest_path_cache_cpp, 4},
     {"_grip_grip_optimize_geodesic_mds_adj_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_adj_cpp, 12},
     {"_grip_grip_optimize_geodesic_mds_cache_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_cache_cpp, 15},
-    {"_grip_grip_optimize_geodesic_mds_flat_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_cpp, 29},
+    {"_grip_grip_optimize_geodesic_mds_flat_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_cpp, 30},
     {"_grip_grip_geodesic_mds_flat_repulsion_stats_cpp", (DL_FUNC) &_grip_grip_geodesic_mds_flat_repulsion_stats_cpp, 6},
     {"_grip_grip_geodesic_misf_insert_vertex_cpp", (DL_FUNC) &_grip_grip_geodesic_misf_insert_vertex_cpp, 10},
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},

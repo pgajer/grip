@@ -14,6 +14,7 @@ grip.score.geodesic.mds(
   edge_length_epsilon = 1e-08,
   anchor_coords = NULL,
   anchor_weight = 0,
+  anchor_vertex_weight = NULL,
   smoothness_weight = 0,
   edge_spring_weight = 0,
   repulsion_weight = 0,
@@ -51,6 +52,10 @@ embedded edge length.}
 tether term \eqn{\lambda \|Z - A\|_F^2}.}
 
 \item{anchor_weight}{Non-negative anchor weight \eqn{\lambda}.}
+
+\item{anchor_vertex_weight}{Optional non-negative per-vertex weights for the
+anchor term. When supplied, only vertices with positive weights are
+tethered, and each tether uses the corresponding multiplier.}
 
 \item{smoothness_weight}{Non-negative local smoothness weight \eqn{\mu}
 applied to \eqn{\sum_i \|z_i - |N(i)|^{-1}\sum_{j \in N(i)} z_j\|^2}.}

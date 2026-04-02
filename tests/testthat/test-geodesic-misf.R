@@ -219,3 +219,96 @@ test_that("MISF level insertion yields finite layouts on regular and irregular p
     expect_true(nrow(inserted$level_trace) >= 1L, info = case.name)
   }
 })
+
+test_that("MISF sparse level-pair builder respects the active level", {
+  bundle <- mesh.surface.graph(
+    6, 6,
+    surface = "paraboloid",
+    amplitude = 0.2,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    num_nbrs = 8L,
+    dim = 3L,
+    top_level_mode = "solve",
+    top_level_restarts = 2L,
+    top_level_max_iter = 3L,
+    seed = 3L
+  )
+  built <- grip:::grip.geodesic.misf.build.level.pairs(
+    prepared = prepared,
+    level = 1L,
+    local_nbrs = 3L,
+    landmark_count = 2L,
+    pair_mode = "sparse"
+  )
+
+  expect_equal(built$active_vertices, prepared$misf$levels[[2L]])
+  expect_s3_class(built$active_prepared, "grip_gmds_prepared")
+  expect_true(nrow(built$pair_matrix) > 0L)
+  expect_true(all(as.vector(built$global_pair_matrix) %in% built$active_vertices))
+  expect_equal(built$active_prepared$active_vertex_ids, built$active_vertices)
+})
+
+test_that("MISF sparse refinement lowers active-level energy and final polish lowers global energy", {
+  bundle <- mesh.surface.graph(
+    6, 6,
+    surface = "paraboloid",
+    amplitude = 0.25,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    num_nbrs = 8L,
+    dim = 3L,
+    top_level_mode = "solve",
+    top_level_restarts = 2L,
+    top_level_max_iter = 3L,
+    seed = 12L
+  )
+  inserted <- grip:::grip.geodesic.misf.insert.all.levels(
+    prepared = prepared,
+    anchor_policy = "prev_level_spread",
+    max_iter = 40L
+  )
+  before.global <- grip.score.geodesic.mds(inserted$coords, prepared = prepared)
+  refined <- grip:::grip.geodesic.misf.refine.level(
+    prepared = prepared,
+    coords = inserted$coords,
+    level = 0L,
+    local_nbrs = 4L,
+    landmark_count = 2L,
+    pair_mode = "sparse",
+    anchor_weight = 0.05,
+    max_iter = 4L,
+    engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE
+  )
+  polished <- grip:::grip.geodesic.misf.final.polish(
+    prepared = prepared,
+    coords = refined$coords,
+    max_iter = 4L,
+    engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE
+  )
+
+  expect_lte(refined$after$gmds.energy[[1L]], refined$before$gmds.energy[[1L]] + 1e-8)
+  expect_true(length(refined$pinned_vertices) > 0L)
+  expect_true(any(refined$anchor_vertex_weight > 0))
+  expect_true(all(is.finite(refined$coords)))
+  expect_true(all(is.finite(polished$coords)))
+  expect_lte(polished$score$gmds.energy[[1L]], before.global$gmds.energy[[1L]] + 1e-8)
+})
