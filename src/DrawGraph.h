@@ -157,6 +157,12 @@ class DrawGraph
     const std::vector<int> &get_trace_misf_levels() const { return traceMisfLevels; }
     const std::vector<int> &get_trace_rounds() const { return traceRounds; }
     const std::vector<int> &get_trace_active_counts() const { return traceActiveCounts; }
+    size_tt get_MisfHeight() const { return initMishHeight; }
+    size_tt get_MisfLevel() const { return misfLevel; }
+    size_tt get_Mish(size_tt idx) const { return mish[idx]; }
+    size_tt get_MisfSize(size_tt level) const { return misfSize[level]; }
+    size_tt get_VertDepth(size_tt vert) const { return vertDepth[vert]; }
+    size_tt get_NbrCount(size_tt level) const { return nbr[level]; }
     coord_t get_Edge(){ return edge; }
     coord_t get_Edge2(){ return edge2; }
     size_tt get_inv(size_tt vert){return inv[vert];}
