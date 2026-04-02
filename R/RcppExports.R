@@ -41,8 +41,16 @@ grip_layout_globalrep_adj_cpp <- function(adj_list, weight_list, n, dim, placeme
     .Call(`_grip_grip_layout_globalrep_adj_cpp`, adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, lgkk_multiscale_rounds, lgkk_rounds_coarse, lgkk_rounds_pre_final, lgkk_rounds_final, lgkk_local_nbrs, lgkk_landmark_count, lgkk_multiscale_scope, lgkk_active_limit, final_mode, tinit_factor, seed)
 }
 
+grip_layout_globalrep_weighted_adj_cpp <- function(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed) {
+    .Call(`_grip_grip_layout_globalrep_weighted_adj_cpp`, adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, final_mode, tinit_factor, seed)
+}
+
 grip_build_misf_adj_cpp <- function(adj_list, weight_list, n, num_init, num_nbrs, seed) {
     .Call(`_grip_grip_build_misf_adj_cpp`, adj_list, weight_list, n, num_init, num_nbrs, seed)
+}
+
+grip_build_weighted_misf_adj_cpp <- function(adj_list, weight_list, n, num_init, num_nbrs, seed) {
+    .Call(`_grip_grip_build_weighted_misf_adj_cpp`, adj_list, weight_list, n, num_init, num_nbrs, seed)
 }
 
 grip_layout_trace_adj_cpp <- function(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed, trace, trace_every) {

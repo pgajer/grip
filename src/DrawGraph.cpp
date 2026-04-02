@@ -45,7 +45,8 @@ DrawGraph::DrawGraph(const Graph &_graph,
                      size_tt _lgkkLocalNbrs,
                      size_tt _lgkkLandmarkCount,
                      size_tt _lgkkScope,
-                     size_tt _lgkkActiveLimit)
+                     size_tt _lgkkActiveLimit,
+                     bool _weightedCore)
 : createList(false),
   graph(_graph),
   dim(_dim),
@@ -101,6 +102,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
                 ? LGKK_SCOPE_COARSE
                 : LGKK_SCOPE_ALL),
   lgkkActiveLimit(std::max<size_tt>(1, _lgkkActiveLimit)),
+  weightedCore(_weightedCore),
   activeVertCount(0),
   misfLevel(0),
   initMishHeight(0),
@@ -190,7 +192,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
     if(numOfVert == numOfInitVert){
         misfSize[0] = numOfVert;
         misfLevel = 0;
-    } else 
+    } else if(weightedCore)
+        create_misf_weighted();
+    else
         create_misf();
     initMishHeight = misfLevel;
     
@@ -254,16 +258,28 @@ DrawGraph::DrawGraph(const Graph &_graph,
             
     nbrs = new size_tt**[numOfVert];
     nbrsDepth = new size_tt[numOfVert];
+    metricNbrs = new std::vector<MetricNeighbor>*[numOfVert];
+    metricNbrsDepth = new size_tt[numOfVert];
     for(size_tt i = 0; i < numOfVert; i++){
         nbrs[i] = nullptr;
         nbrsDepth[i] = 0;
+        metricNbrs[i] = nullptr;
+        metricNbrsDepth[i] = 0;
     }
     diam = 0;
+    double metricHeight = 0.0;
     size_tt height = 0;
     for(size_tt i = 0; i < numOfInitVert; i++){
-        height = bfs_me_init_v2(mish[i]);
-        if( diam < height )
-            diam = height;
+        if(weightedCore){
+            metricHeight = metric_me_init_v1(mish[i]);
+            size_tt roundedHeight = static_cast<size_tt>(std::ceil(metricHeight));
+            if( diam < roundedHeight )
+                diam = roundedHeight;
+        } else {
+            height = bfs_me_init_v2(mish[i]);
+            if( diam < height )
+                diam = height;
+        }
     }
     //debug("diam="<<diam);
         
@@ -378,10 +394,18 @@ DrawGraph::~DrawGraph(){
                     delete [] nbrs[i][j];
                 delete [] nbrs[i];
             }
-        }
-        delete [] nbrs;
+    }
+    delete [] nbrs;
     }
     delete [] nbrsDepth;
+    if(metricNbrs){
+        for(size_tt i = 0; i < numOfVert; i++){
+            if(metricNbrs[i])
+                delete [] metricNbrs[i];
+        }
+        delete [] metricNbrs;
+    }
+    delete [] metricNbrsDepth;
 
     delete [] vertDepth;
     delete [] nbr;

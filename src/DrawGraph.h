@@ -49,6 +49,11 @@ using size_tt = uint32_t;
 class DrawGraph 
 {
   public:
+    struct MetricNeighbor {
+        size_tt vert;
+        double dist;
+    };
+
       friend class MesaPlot;
     
     DrawGraph(const Graph &_graph,
@@ -82,7 +87,8 @@ class DrawGraph
               size_tt _lgkkLocalNbrs = 20,
               size_tt _lgkkLandmarkCount = 8,
               size_tt _lgkkScope = LGKK_SCOPE_ALL,
-              size_tt _lgkkActiveLimit = 4096);
+              size_tt _lgkkActiveLimit = 4096,
+              bool _weightedCore = false);
     
     ~DrawGraph();
 
@@ -91,28 +97,45 @@ class DrawGraph
     //
     size_tt bfs_me_init_v2(size_tt root);
     void bfs_me_v4(size_tt root);
+    double metric_me_init_v1(size_tt root);
+    void metric_me_v1(size_tt root);
     void bfs_cmisf(size_tt root,
                    std::queue<size_tt> *bfsVectQueue,
                    size_tt shift,   // bfsVector starts at dist shift from root
                    size_tt depthLim);
     void create_misf();  // version of create_mish() creating also vertDepth
+    void create_misf_weighted();
     void KK_spring_v4(const size_tt root,
                       size_tt *rootNbrsLayer,
                       size_tt mishLayer);
+    void KK_spring_weighted_v1(const size_tt root,
+                               const std::vector<MetricNeighbor> &rootNbrsLayer,
+                               size_tt mishLayer);
     void KK_spring_final(const size_tt root,
                          size_tt *rootNbrsLayer,
                          size_tt mishLayer);
+    void KK_spring_weighted_final_v1(const size_tt root,
+                                     const std::vector<MetricNeighbor> &rootNbrsLayer,
+                                     size_tt mishLayer);
     void FR_spring_v2(const size_tt vert,
                       size_tt *vertNbrs,
                       size_tt misfLayer);
+    void FR_spring_weighted_v1(const size_tt vert,
+                               const std::vector<MetricNeighbor> &vertNbrs,
+                               size_tt misfLayer);
     void KK_spring_local(const size_tt vert,
                          size_tt *closeVert,
                          size_tt *closeVertDist,
                          size_tt size);
+    void KK_spring_weighted_local_v1(const size_tt vert,
+                                     const size_tt *closeVert,
+                                     const double *closeVertDist,
+                                     size_tt size);
     void update_Local_Temp_v2( size_tt vert );
     void update_Local_Temp_v3( size_tt vert, coord_t r, coord_t s );
     
     void mish_engine();
+    void mish_engine_weighted();
     // FR_spring() is used in the GRIP layout core and utilizes
     // attractive/repulsive force schedule
     void FR_spring(const size_tt root,
@@ -222,6 +245,8 @@ private:
     size_tt *nbr;       // array of num of nbrs for each level of misf
     size_tt ***nbrs;    // storage of nbrs for corresponding levels
     size_tt *nbrsDepth; // number of allocated levels per vertex
+    std::vector<MetricNeighbor> **metricNbrs; // weighted neighborhood caches
+    size_tt *metricNbrsDepth;
     size_tt prevSize;
     
     size_tt prevMishSize;
@@ -253,6 +278,7 @@ private:
     size_tt lgkkLandmarkCount;
     size_tt lgkkScope;
     size_tt lgkkActiveLimit;
+    bool weightedCore;
     size_tt activeVertCount;
     size_tt misfLevel;
     size_tt initMishHeight;
@@ -383,17 +409,35 @@ private:
                                   const size_tt *closeVertDist,
                                   size_tt count,
                                   size_tt placement_mode);
+    Point<> initial_position_mode_weighted(const size_tt *closeVert,
+                                           const double *closeVertDist,
+                                           size_tt count,
+                                           size_tt placement_mode);
     Point<> initial_position_barycenter(const size_tt *closeVert,
                                         size_tt count);
     Point<> initial_position_circle(const size_tt *closeVert,
                                     const size_tt *closeVertDist,
                                     size_tt count);
+    Point<> initial_position_circle_weighted(const size_tt *closeVert,
+                                             const double *closeVertDist,
+                                             size_tt count);
     Point<> initial_position_least_squares(const size_tt *closeVert,
                                            const size_tt *closeVertDist,
                                            size_tt count);
+    Point<> initial_position_least_squares_weighted(const size_tt *closeVert,
+                                                    const double *closeVertDist,
+                                                    size_tt count);
     void select_insertion_anchor_subset(std::vector<size_tt> &anchors,
                                         std::vector<size_tt> &anchorDist,
                                         size_tt targetCount);
+    void select_insertion_anchor_subset_weighted(std::vector<size_tt> &anchors,
+                                                 std::vector<double> &anchorDist,
+                                                 size_tt targetCount);
+    void compute_weighted_shortest_paths(size_tt root,
+                                         std::vector<double> &dist,
+                                         double cutoff = std::numeric_limits<double>::infinity()) const;
+    std::vector<size_tt> ordered_vertices_by_metric(const std::vector<double> &dist,
+                                                    size_tt root) const;
     size_tt lgkk_round_budget_for_layer(size_tt mishLayer) const;
     bool should_run_multiscale_lgkk(size_tt activeCount,
                                     size_tt mishLayer) const;

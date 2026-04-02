@@ -1,0 +1,132 @@
+{
+  "name": "GMDS MISF Top-Level Initializer Experimental Manifest",
+  "date": "2026-04-02",
+  "status": "planned_only",
+  "project_root": "/Users/pgajer/current_projects/grip",
+  "purpose": "Evaluate whether existing graph-drawing layouts in grip, including KK, FR, and GRIP, provide better top-level MISF basins for subsequent GMDS correction than cMDS.",
+  "core_questions": [
+    "Which initializer gives the most plausible top MISF scaffold?",
+    "Which initializer remains stable under a short regularized-GMDS plus pure-GMDS correction?",
+    "Does a better top-level seed improve the full MISF-GMDS pipeline?",
+    "If top-level improvement is insufficient, do lower MISF levels also need graph-drawing-based placement?"
+  ],
+  "families_phase1": [
+    {
+      "id": "regular_paraboloid_12",
+      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "label": "Regular paraboloid mesh 12x12"
+    },
+    {
+      "id": "regular_paraboloid_15",
+      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "label": "Regular paraboloid mesh 15x15"
+    },
+    {
+      "id": "irregular_rectangle_paraboloid_15",
+      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "label": "Irregular rectangle paraboloid 15x15"
+    }
+  ],
+  "initializer_pool": [
+    "cmdscale",
+    "kk",
+    "fr",
+    "grip",
+    "edge_relaxation"
+  ],
+  "correction_pipeline": {
+    "stage_1": {
+      "method": "anchor_regularized_gmds",
+      "anchor_weight_start": 0.1,
+      "anchor_weight_end": 0.02,
+      "continuation": "linear",
+      "max_iter": 8
+    },
+    "stage_2": {
+      "method": "pure_gmds",
+      "max_iter": 8
+    }
+  },
+  "metrics": [
+    "sigma_geo",
+    "rho",
+    "eta",
+    "alpha_0.05",
+    "runtime"
+  ],
+  "phases": [
+    {
+      "id": "A",
+      "title": "Top-level initializer benchmark",
+      "goal": "Compare top-level MISF seeds before any GMDS correction.",
+      "runs": "3 families x 5 initializers x 1 deterministic seed",
+      "required_outputs": [
+        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-top-level-initializers-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_top_level_initializer_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_top_level_initializer_3d_2026-04-02.html"
+      ]
+    },
+    {
+      "id": "B",
+      "title": "Top-level initializer plus GMDS correction benchmark",
+      "goal": "Test which seeds remain good after short regularized and pure GMDS correction.",
+      "runs": "3 families x best 2 initializers from Phase A x 3 stages",
+      "required_outputs": [
+        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-top-level-corrections-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_top_level_correction_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_top_level_corrections_3d_2026-04-02.html"
+      ]
+    },
+    {
+      "id": "C",
+      "title": "Full MISF pipeline benchmark",
+      "goal": "Propagate the best top-level strategies through the full multiscale pipeline.",
+      "runs": "3 families x baseline current pipeline x best 1-2 top-level strategies",
+      "required_outputs": [
+        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-full-pipeline-initializers-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_full_pipeline_initializer_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_full_pipeline_3d_2026-04-02.html"
+      ]
+    },
+    {
+      "id": "D",
+      "title": "Lower-level placement benchmark",
+      "goal": "Compare lower-level placement variants after top-level seeding is improved.",
+      "runs": "best top-level strategy x current insertion vs GRIP vs KK vs optional FR placement",
+      "required_outputs": [
+        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-lower-level-placement-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_lower_level_placement_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_lower_level_placement_3d_2026-04-02.html"
+      ]
+    }
+  ],
+  "html_requirements": {
+    "mandatory": true,
+    "technology": "rglwidget",
+    "organization": [
+      "group by experiment phase",
+      "within each phase, group by graph family",
+      "show reference first",
+      "show one card per initializer or stage",
+      "include metrics in card title/subtitle",
+      "use consistent alignment and camera angle"
+    ],
+    "preferred_delivery": "single combined HTML if size is manageable; otherwise one HTML per phase"
+  },
+  "scripts_to_add_when_executed": [
+    "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-top-level-initializers.R",
+    "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-top-level-corrections.R",
+    "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-full-pipeline-initializers.R",
+    "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-lower-level-placement.R",
+    "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-top-level-initializers-html.R",
+    "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-top-level-corrections-html.R",
+    "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-full-pipeline-html.R",
+    "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-lower-level-placement-html.R"
+  ],
+  "acceptance_criteria": [
+    "At least one non-cMDS initializer clearly improves top-level rho and visual plausibility.",
+    "The best seed plus short GMDS correction remains stable and does not immediately collapse.",
+    "The corresponding full MISF pipeline beats the current baseline on at least one regular paraboloid family.",
+    "Each experiment phase ships with its corresponding interactive HTML output."
+  ]
+}
