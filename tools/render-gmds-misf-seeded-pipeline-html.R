@@ -11,9 +11,9 @@ setwd(repo_root)
 
 options(rgl.useNULL = TRUE)
 
-manual_root <- file.path(repo_root, "dev", "manual")
-tmp_dir <- file.path(manual_root, "tmp", "gmds-misf-seeded-pipeline-2026-04-02")
-interactive_dir <- file.path(manual_root, "interactive-prototypes")
+design_root <- file.path(repo_root, "dev", "design")
+tmp_dir <- file.path(design_root, "tmp", "gmds-misf-seeded-pipeline-2026-04-02")
+interactive_dir <- file.path(design_root, "interactive-prototypes")
 output_html <- file.path(
   interactive_dir,
   "gmds_misf_seeded_pipeline_3d_2026-04-02.html"

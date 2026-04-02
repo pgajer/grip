@@ -952,10 +952,10 @@ write_tracked_summary <- function(path,
     lines,
     "",
     "Primary outputs:",
-    sprintf("- Stage-1 summary: `dev/manual/tmp/%s/stage1-summary.md`", run_tag),
-    sprintf("- Stage-2 summary: `dev/manual/tmp/%s/stage2-summary.md`", run_tag),
-    sprintf("- Stage-2 candidate CSV: `dev/manual/tmp/%s/stage2-candidate-summary.csv`", run_tag),
-    sprintf("- Stage-2 family CSV: `dev/manual/tmp/%s/stage2-family-summary.csv`", run_tag)
+    sprintf("- Stage-1 summary: `dev/design/tmp/%s/stage1-summary.md`", run_tag),
+    sprintf("- Stage-2 summary: `dev/design/tmp/%s/stage2-summary.md`", run_tag),
+    sprintf("- Stage-2 candidate CSV: `dev/design/tmp/%s/stage2-candidate-summary.csv`", run_tag),
+    sprintf("- Stage-2 family CSV: `dev/design/tmp/%s/stage2-family-summary.csv`", run_tag)
   )
   writeLines(lines, con = path)
 }

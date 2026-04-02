@@ -505,8 +505,8 @@ The app should contain an in-app gallery sourced from a fixed list of presets.
 
 This gallery should mirror the generated R Markdown/HTML gallery:
 
-- [graph_geometry_gallery_2026-03-31.Rmd](/Users/pgajer/current_projects/grip/dev/manual/graph_geometry_gallery_2026-03-31.Rmd)
-- [graph_geometry_gallery_2026-03-31.html](/Users/pgajer/current_projects/grip/dev/manual/graph_geometry_gallery_2026-03-31.html)
+- [graph_geometry_gallery_2026-03-31.Rmd](/Users/pgajer/current_projects/grip/dev/design/graph_geometry_gallery_2026-03-31.Rmd)
+- [graph_geometry_gallery_2026-03-31.html](/Users/pgajer/current_projects/grip/dev/design/graph_geometry_gallery_2026-03-31.html)
 
 Recommendation:
 
