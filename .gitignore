@@ -37,7 +37,9 @@ Archives/package-root/main
 # Local LaTeX scratch artifacts
 *.aux
 *.log
+*.out
 *.fdb_latexmk
 *.fls
 *.synctex.gz
 /gmds_v2_paraboloid_regularized_report_2026-04-01.pdf
+/gmds_misf_top_level_initializer_report_2026-04-02.pdf
