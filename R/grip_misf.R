@@ -128,6 +128,7 @@ grip.build.misf <- function(edges = NULL,
   out
 }
 
+#' @export
 print.grip_misf <- function(x, ...) {
   cat("<grip_misf>\n")
   cat("  n:", x$n, "\n")
