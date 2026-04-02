@@ -88,6 +88,195 @@
   coords
 }
 
+.irregular.rectangle.unit_scalar <- function(x, name, upper = 1) {
+  x <- .as_finite_scalar(x, name)
+  if (x < 0 || x > upper) {
+    stop(sprintf("%s must lie in [0, %s]", name, format(upper, trim = TRUE)),
+         call. = FALSE)
+  }
+  x
+}
+
+.irregular.rectangle.axis.breakpoints <- function(n,
+                                                  scale = 1,
+                                                  irregularity = 0.2,
+                                                  phase = 0,
+                                                  min_step_ratio = 0.3,
+                                                  axis = c("col", "row")) {
+  n <- .as_whole_number(n, "n", min = 1L)
+  scale <- .as_positive_scalar(scale, "scale")
+  irregularity <- .irregular.rectangle.unit_scalar(irregularity, "irregularity")
+  phase <- .as_finite_scalar(phase, "phase")
+  min_step_ratio <- .irregular.rectangle.unit_scalar(min_step_ratio, "min_step_ratio")
+  if (min_step_ratio <= 0) {
+    stop("min_step_ratio must be > 0", call. = FALSE)
+  }
+  axis <- match.arg(axis)
+
+  if (n == 1L) {
+    return(0)
+  }
+
+  s <- ((seq_len(n - 1L) - 0.5) / (n - 1L))
+  raw <- switch(
+    axis,
+    col = 1 + irregularity * (
+      0.65 * cos(2 * pi * s + phase) +
+        0.35 * sin(4 * pi * s + 0.5 * phase)
+    ),
+    row = 1 + irregularity * (
+      0.65 * sin(2 * pi * s + phase) +
+        0.35 * cos(4 * pi * s + 0.5 * phase)
+    )
+  )
+  steps <- pmax(as.double(raw), min_step_ratio)
+  cum <- c(0, cumsum(steps))
+  -scale + 2 * scale * cum / cum[[length(cum)]]
+}
+
+.irregular.rectangle.signed_area <- function(p0, p1, p2) {
+  (p1[[1L]] - p0[[1L]]) * (p2[[2L]] - p0[[2L]]) -
+    (p1[[2L]] - p0[[2L]]) * (p2[[1L]] - p0[[1L]])
+}
+
+.irregular.rectangle.validate.planar.coords <- function(coords,
+                                                        coords_regular,
+                                                        h,
+                                                        w) {
+  if (h < 2L || w < 2L) {
+    return(invisible(coords))
+  }
+
+  tol <- 1e-10
+  ref_area <- .irregular.rectangle.signed_area(
+    coords_regular[1L, ],
+    coords_regular[2L, ],
+    coords_regular[w + 1L, ]
+  )
+  ref_sign <- sign(ref_area)
+  if (!is.finite(ref_area) || ref_sign == 0) {
+    stop("regular rectangle reference orientation is degenerate", call. = FALSE)
+  }
+
+  for (i in seq_len(h - 1L)) {
+    for (j in seq_len(w - 1L)) {
+      id00 <- (i - 1L) * w + j
+      id10 <- id00 + 1L
+      id01 <- id00 + w
+      id11 <- id01 + 1L
+      area1 <- .irregular.rectangle.signed_area(
+        coords[id00, ],
+        coords[id10, ],
+        coords[id01, ]
+      )
+      area2 <- .irregular.rectangle.signed_area(
+        coords[id10, ],
+        coords[id11, ],
+        coords[id01, ]
+      )
+      if (!all(is.finite(c(area1, area2))) ||
+          abs(area1) <= tol || abs(area2) <= tol ||
+          sign(area1) != ref_sign || sign(area2) != ref_sign) {
+        stop(
+          "irregular rectangle parameters produce a locally inverted or degenerate cell; reduce interior_warp or shear",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
+  invisible(coords)
+}
+
+.irregular.rectangle.param.details <- function(h,
+                                               w = h,
+                                               x_scale = 1,
+                                               y_scale = 1,
+                                               row_irregularity = 0.20,
+                                               col_irregularity = 0.20,
+                                               row_phase = 0.35,
+                                               col_phase = 0.65,
+                                               interior_warp = 0.08,
+                                               shear = 0,
+                                               min_step_ratio = 0.30) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  x_scale <- .as_positive_scalar(x_scale, "x_scale")
+  y_scale <- .as_positive_scalar(y_scale, "y_scale")
+  row_irregularity <- .irregular.rectangle.unit_scalar(row_irregularity, "row_irregularity")
+  col_irregularity <- .irregular.rectangle.unit_scalar(col_irregularity, "col_irregularity")
+  row_phase <- .as_finite_scalar(row_phase, "row_phase")
+  col_phase <- .as_finite_scalar(col_phase, "col_phase")
+  interior_warp <- .irregular.rectangle.unit_scalar(interior_warp, "interior_warp")
+  shear <- .as_finite_scalar(shear, "shear")
+  min_step_ratio <- .irregular.rectangle.unit_scalar(min_step_ratio, "min_step_ratio")
+  if (min_step_ratio <= 0) {
+    stop("min_step_ratio must be > 0", call. = FALSE)
+  }
+
+  coords_regular <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale
+  )
+  col_breaks <- .irregular.rectangle.axis.breakpoints(
+    n = w,
+    scale = x_scale,
+    irregularity = col_irregularity,
+    phase = col_phase,
+    min_step_ratio = min_step_ratio,
+    axis = "col"
+  )
+  row_breaks <- rev(.irregular.rectangle.axis.breakpoints(
+    n = h,
+    scale = y_scale,
+    irregularity = row_irregularity,
+    phase = row_phase,
+    min_step_ratio = min_step_ratio,
+    axis = "row"
+  ))
+
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(col_breaks[[j]], row_breaks[[i]])
+    }
+  }
+
+  if (interior_warp > 0) {
+    u_bar <- coords_regular[, 1L] / x_scale
+    v_bar <- coords_regular[, 2L] / y_scale
+    envelope <- (1 - u_bar^2) * (1 - v_bar^2)
+    coords[, 1L] <- coords[, 1L] +
+      interior_warp * x_scale * envelope *
+      sin(pi * v_bar) * cos(pi * u_bar + col_phase)
+    coords[, 2L] <- coords[, 2L] +
+      interior_warp * y_scale * envelope *
+      sin(pi * u_bar) * cos(pi * v_bar + row_phase)
+  }
+
+  if (shear != 0) {
+    coords[, 1L] <- coords[, 1L] + shear * coords[, 2L]
+  }
+
+  colnames(coords) <- c("u", "v")
+  .irregular.rectangle.validate.planar.coords(
+    coords = coords,
+    coords_regular = coords_regular,
+    h = h,
+    w = w
+  )
+
+  list(
+    coords = coords,
+    coords_regular = coords_regular,
+    row_breaks = as.double(row_breaks),
+    col_breaks = as.double(col_breaks)
+  )
+}
+
 .cylinder.param.coords <- function(h, w, radius = 1, height = 2) {
   h <- .as_whole_number(h, "h", min = 1L)
   w <- .as_whole_number(w, "w", min = 3L)
@@ -3756,6 +3945,251 @@ mesh.surface.graph <- function(h,
                     w)
   )
   class(out) <- c("grip_mesh_surface_graph", "list")
+  out
+}
+
+#' Irregular rectangle surface helpers
+#'
+#' Convenience helpers that keep ordinary rectangular-mesh adjacency but replace
+#' the regular parameter grid by a deterministic irregular rectangle. The
+#' resulting family stays simply connected and rectangular in topology while
+#' breaking the strongest row/column symmetries of the lattice.
+#'
+#' `irregular.rectangle.param.coords()` returns the irregular planar parameter
+#' coordinates.
+#' `irregular.rectangle.surface.embedding()` lifts those coordinates into
+#' \eqn{\mathbb{R}^3}.
+#' `irregular.rectangle.surface.graph()` returns a reusable weighted-graph
+#' bundle with the induced Euclidean edge lengths.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Surface family used for the lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq_u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq_v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x_scale Positive horizontal scaling of the parameter domain.
+#' @param y_scale Positive vertical scaling of the parameter domain.
+#' @param row_irregularity Irregularity level for the row spacing. Must lie in
+#'   \code{[0, 1]}.
+#' @param col_irregularity Irregularity level for the column spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param row_phase Finite phase shift for the deterministic row-spacing
+#'   perturbation.
+#' @param col_phase Finite phase shift for the deterministic column-spacing
+#'   perturbation.
+#' @param interior_warp Non-negative interior warp strength. Must lie in
+#'   \code{[0, 1]}. The warp vanishes on the boundary.
+#' @param shear Finite affine shear applied after the boundary-vanishing warp.
+#'   Larger values can force a validation error if the mesh cells invert.
+#' @param min_step_ratio Positive lower bound for the perturbed row and column
+#'   interval lengths, expressed relative to the unperturbed interval scale.
+#'   Must lie in \code{(0, 1]}.
+#' @param connectivity Mesh neighborhood rule passed to \code{edges.mesh()}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' \code{irregular.rectangle.param.coords()} returns an \code{n x 2} numeric
+#' matrix with columns \code{u} and \code{v}.
+#'
+#' \code{irregular.rectangle.surface.embedding()} returns an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.rectangle.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected rectangular-mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the irregular 2D parameter coordinates,
+#'   \item \code{coords_regular_param}: the underlying regular 2D parameter
+#'     coordinates used to define the boundary-vanishing warp,
+#'   \item \code{row_breaks}: per-row parameter coordinates in row order,
+#'   \item \code{col_breaks}: per-column parameter coordinates in column order,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.rectangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen mesh connectivity rule,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_rectangle_surface_helpers
+NULL
+
+#' @rdname irregular_rectangle_surface_helpers
+#' @export
+irregular.rectangle.param.coords <- function(h,
+                                             w = h,
+                                             x_scale = 1,
+                                             y_scale = 1,
+                                             row_irregularity = 0.20,
+                                             col_irregularity = 0.20,
+                                             row_phase = 0.35,
+                                             col_phase = 0.65,
+                                             interior_warp = 0.08,
+                                             shear = 0,
+                                             min_step_ratio = 0.30) {
+  .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    row_irregularity = row_irregularity,
+    col_irregularity = col_irregularity,
+    row_phase = row_phase,
+    col_phase = col_phase,
+    interior_warp = interior_warp,
+    shear = shear,
+    min_step_ratio = min_step_ratio
+  )$coords
+}
+
+#' @rdname irregular_rectangle_surface_helpers
+#' @export
+irregular.rectangle.surface.embedding <- function(h,
+                                                  w = h,
+                                                  surface = c("flat", "saddle", "paraboloid", "ripple"),
+                                                  amplitude = 0.75,
+                                                  freq_u = 1,
+                                                  freq_v = 1,
+                                                  x_scale = 1,
+                                                  y_scale = 1,
+                                                  row_irregularity = 0.20,
+                                                  col_irregularity = 0.20,
+                                                  row_phase = 0.35,
+                                                  col_phase = 0.65,
+                                                  interior_warp = 0.08,
+                                                  shear = 0,
+                                                  min_step_ratio = 0.30) {
+  surface <- match.arg(surface)
+  amplitude <- .as_finite_scalar(amplitude, "amplitude")
+  freq_u <- .as_positive_scalar(freq_u, "freq_u")
+  freq_v <- .as_positive_scalar(freq_v, "freq_v")
+
+  param <- .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    row_irregularity = row_irregularity,
+    col_irregularity = col_irregularity,
+    row_phase = row_phase,
+    col_phase = col_phase,
+    interior_warp = interior_warp,
+    shear = shear,
+    min_step_ratio = min_step_ratio
+  )
+  u <- param$coords[, 1L]
+  v <- param$coords[, 2L]
+  z <- switch(
+    surface,
+    flat = rep.int(0, length(u)),
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_rectangle_surface_helpers
+#' @export
+irregular.rectangle.surface.graph <- function(h,
+                                              w = h,
+                                              surface = c("flat", "saddle", "paraboloid", "ripple"),
+                                              amplitude = 0.75,
+                                              freq_u = 1,
+                                              freq_v = 1,
+                                              x_scale = 1,
+                                              y_scale = 1,
+                                              row_irregularity = 0.20,
+                                              col_irregularity = 0.20,
+                                              row_phase = 0.35,
+                                              col_phase = 0.65,
+                                              interior_warp = 0.08,
+                                              shear = 0,
+                                              min_step_ratio = 0.30,
+                                              connectivity = c("orthogonal", "diagonal"),
+                                              normalize = c("median", "mean", "none")) {
+  h <- .as_whole_number(h, "h", min = 1L)
+  w <- .as_whole_number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  normalize <- match.arg(normalize)
+
+  param <- .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    row_irregularity = row_irregularity,
+    col_irregularity = col_irregularity,
+    row_phase = row_phase,
+    col_phase = col_phase,
+    interior_warp = interior_warp,
+    shear = shear,
+    min_step_ratio = min_step_ratio
+  )
+  edges <- edges.mesh(h, w, connectivity = connectivity)
+  coords_surface <- irregular.rectangle.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    x_scale = x_scale,
+    y_scale = y_scale,
+    row_irregularity = row_irregularity,
+    col_irregularity = col_irregularity,
+    row_phase = row_phase,
+    col_phase = col_phase,
+    interior_warp = interior_warp,
+    shear = shear,
+    min_step_ratio = min_step_ratio
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = param$coords,
+    coords_regular_param = param$coords_regular,
+    row_breaks = param$row_breaks,
+    col_breaks = param$col_breaks,
+    weight_scale = weights$weight_scale,
+    family = "irregular.rectangle",
+    surface = surface,
+    connectivity = connectivity,
+    row_irregularity = row_irregularity,
+    col_irregularity = col_irregularity,
+    row_phase = row_phase,
+    col_phase = col_phase,
+    interior_warp = interior_warp,
+    shear = shear,
+    min_step_ratio = min_step_ratio,
+    normalize = normalize,
+    label = sprintf("%s %s irregular rectangle %dx%d",
+                    tools::toTitleCase(surface),
+                    connectivity,
+                    h,
+                    w)
+  )
+  class(out) <- c("grip_irregular_rectangle_surface_graph", "list")
   out
 }
 

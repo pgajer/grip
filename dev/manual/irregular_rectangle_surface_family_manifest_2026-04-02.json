@@ -1,0 +1,83 @@
+{
+  "name": "irregular_rectangle_surface_family",
+  "date": "2026-04-02",
+  "status": "planned_only",
+  "purpose": [
+    "Add a simply connected irregular rectangular family that preserves ordinary rectangular-mesh topology.",
+    "Break lattice symmetry without introducing holes or nontrivial topology.",
+    "Provide a cleaner MISF-GMDS test family than occupied or perforated meshes."
+  ],
+  "public_api": [
+    {
+      "name": "irregular.rectangle.param.coords",
+      "kind": "exported",
+      "signature": "irregular.rectangle.param.coords(h, w = h, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)"
+    },
+    {
+      "name": "irregular.rectangle.surface.embedding",
+      "kind": "exported",
+      "signature": "irregular.rectangle.surface.embedding(h, w = h, surface = c(\"flat\", \"saddle\", \"paraboloid\", \"ripple\"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)"
+    },
+    {
+      "name": "irregular.rectangle.surface.graph",
+      "kind": "exported",
+      "signature": "irregular.rectangle.surface.graph(h, w = h, surface = c(\"flat\", \"saddle\", \"paraboloid\", \"ripple\"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30, connectivity = c(\"orthogonal\", \"diagonal\"), normalize = c(\"median\", \"mean\", \"none\"))"
+    }
+  ],
+  "construction_rules": {
+    "adjacency": "Reuse edges.mesh(h, w, connectivity = ...).",
+    "axis_irregularity": "Perturb positive horizontal and vertical interval weights deterministically, clip by min_step_ratio, then renormalize cumulative sums to keep boundary endpoints fixed.",
+    "interior_warp": "Apply a smooth warp multiplied by a boundary-vanishing envelope so the boundary remains rectangular.",
+    "surface_lift": "Reuse flat/saddle/paraboloid/ripple lifts after the irregular planar coordinates are built.",
+    "edge_weights": "Use induced Euclidean edge lengths with the existing normalization helper."
+  },
+  "defaults": {
+    "row_irregularity": 0.2,
+    "col_irregularity": 0.2,
+    "row_phase": 0.35,
+    "col_phase": 0.65,
+    "interior_warp": 0.08,
+    "shear": 0.0,
+    "min_step_ratio": 0.3
+  },
+  "expected_bundle_fields": [
+    "edges",
+    "n",
+    "edge_weights",
+    "coords_surface",
+    "coords_param",
+    "coords_regular_param",
+    "weight_scale",
+    "family",
+    "surface",
+    "connectivity",
+    "row_breaks",
+    "col_breaks",
+    "row_irregularity",
+    "col_irregularity",
+    "row_phase",
+    "col_phase",
+    "interior_warp",
+    "shear",
+    "min_step_ratio",
+    "label"
+  ],
+  "write_set": [
+    "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+    "/Users/pgajer/current_projects/grip/tests/testthat/test-graph-helpers.R",
+    "/Users/pgajer/current_projects/grip/NAMESPACE",
+    "/Users/pgajer/current_projects/grip/man",
+    "/Users/pgajer/current_projects/grip/dev/manual/graph_families_generated_in_thread_2026-03-31.md"
+  ],
+  "recommended_benchmarks": [
+    "regular flat rectangle vs irregular flat rectangle",
+    "regular paraboloid rectangle vs irregular paraboloid rectangle",
+    "cmdscale -> GMDS vs MISF-GMDS on both regular and irregular rectangles",
+    "sizes 12x12, 15x15, 20x20"
+  ],
+  "non_goals": [
+    "Do not change topology.",
+    "Do not introduce holes, slits, or disconnected occupancy masks.",
+    "Do not add a separate square-only API."
+  ]
+}
