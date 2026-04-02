@@ -12,6 +12,11 @@
 //**************************************************************
 void DrawGraph::mish_engine()
 {
+    if(weightedCore){
+        mish_engine_weighted();
+        return;
+    }
+
     bool firstRound = true;
     size_tt csize = numOfInitVert;
     size_tt ctr = 0;
