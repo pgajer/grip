@@ -1,8 +1,8 @@
 ---
-title: "GRIP Layout Examples"
+title: "Getting Started with grip"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{GRIP Layout Examples}
+  %\VignetteIndexEntry{Getting Started with grip}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,171 +11,87 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 8,
+  fig.width = 8.5,
   fig.height = 5.2
 )
-
-options(rgl.useNULL = TRUE)
-
-if (requireNamespace("rgl", quietly = TRUE)) {
-  rgl::setupKnitr(autoprint = TRUE)
-}
 ```
 
-## Why this vignette is different
+## What this vignette covers
 
-This vignette is a synthetic gallery rather than a minimal API reference. The
-goal is to show the graph families where the current package has been tuned and
-validated during development:
+`grip` now supports three closely related layout workflows:
 
-- `preset = "mesh"` for rectangular lattice graphs,
-- `preset = "carpet"` for Sierpinski-carpet-like graphs,
-- `preset = "tree"` for symmetric force-directed tree layouts,
-- `preset = "torus"` for 3D torus and cylinder layouts,
-- explicit tuned parameters for a 3D Sierpinski tetrahedron example.
+- `grip.layout()` for the current quality-first multiscale GRIP engine,
+- `grip.layout.legacy()` for the historical GRIP behavior,
+- `grip.layout.weighted()` for geometry-aware layouts of weighted graphs.
 
-For real-data workflows and layout scoring, see the separate vignettes
-`Choosing Layouts for Real Data` and `Selecting Layouts on the Coarsened
-HMP/U01 Graph`.
+This vignette is the shortest path through that structure. It shows:
+
+- a first unweighted layout,
+- the difference between the current and legacy entry points,
+- a first weighted layout where edge lengths matter,
+- and a compact trace example.
+
+For deeper workflows, see the real-data, weighted-layouts, and interactive
+vignettes.
 
 ```{r}
 library(grip)
 ```
 
-## Warm-up: even a cycle benefits from tuning
-
-The core interface is still simple: pass an edge list and the number of
-vertices to `grip.layout()`. But this is also a nice place to show why the
-comparison tools matter. On an 18-cycle, the untuned default can be visibly far
-from a regular polygon, while a tiny local search around a more suitable
-initial placement almost solves the problem.
+The helper functions below keep the figures compact.
 
 ```{r}
-edges <- edges.cycle(18)
+plot.layout.pair <- function(coords.left,
+                             coords.right,
+                             edges,
+                             titles,
+                             projection = NULL,
+                             vertex.cols = c("black", "black"),
+                             edge.col = "gray82") {
+  op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
+  on.exit(par(op), add = TRUE)
 
-cycle.cmp <- grip.compare.layouts(
-  edges = edges,
-  n = 18,
-  dim = 2,
-  candidates = list(
-    default = list(),
-    circle = list(placement = "circle"),
-    circle_refined = list(
-      placement = "circle",
-      rounds = 64L,
-      final_rounds = 128L,
-      num_init = 6L,
-      num_nbrs = 8L,
-      r = 0.05,
-      s = 4.5,
-      repulsion_factor = 1.25
-    ),
-    bary_refined = list(
-      placement = "barycenter",
-      rounds = 64L,
-      final_rounds = 128L,
-      num_init = 6L,
-      num_nbrs = 8L,
-      r = 0.05,
-      s = 4.5,
-      repulsion_factor = 1.25
-    )
-  ),
-  seeds = 1:3,
-  return.layouts = TRUE
-)
-
-knitr::kable(cycle.cmp$summary[, c(
-  "candidate",
-  "sampled.stress.mean",
-  "edge.length.cv.mean",
-  "sampled.nonedge.sep.ratio.mean",
-  "score.composite"
-)])
-```
-
-The composite score ranks the candidates from best to worst. Lower stress and
-lower edge-length CV are better; higher non-edge separation ratio is better.
-Even on this small graph, the refined candidates noticeably outperform the
-default.
-
-```{r fig.width=10.5, fig.height=4.2}
-cycle.best <- cycle.cmp$summary$candidate[[1L]]
-cycle.2d.default <- cycle.cmp$layouts$default[[1L]]
-cycle.2d.best <- cycle.cmp$layouts[[cycle.best]][[1L]]
-
-op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
-on.exit(par(op), add = TRUE)
-
-grip.plot(cycle.2d.default, edges, main = "Cycle default", pch = 16, cex = 0.7)
-grip.plot(cycle.2d.best, edges, main = paste("Cycle tuned:", cycle.best), pch = 16, cex = 0.7)
-```
-
-## A small preset map
-
-The table below summarizes the presets currently shipped with the package and
-the graph families they were tuned for.
-
-| Family | Good starting point | What it tends to help with |
-|:--|:--|:--|
-| Rectangular grid or lattice | `preset = "mesh"` | More regular spacing and cleaner boundaries |
-| Fractal carpet-like graph | `preset = "carpet"` | Better separation of holes and recursive cells |
-| Tree-like graph | `preset = "tree"` | More symmetric branching structure |
-| 3D torus or cylinder-like graph | `preset = "torus"` | Cleaner tubular or toroidal geometry |
-| 3D tetrahedral Sierpinski graph | Explicit tuned parameters | Better simplex-like separation in 3D |
-
-## Plot helpers for 3D layouts
-
-The 3D examples below are shown as `rglwidget` widgets when the optional `rgl`
-package is available. That makes the vignette more faithful to the actual 3D
-geometry: you can rotate the layout rather than relying on a single static
-projection. The `make.rglwidget.graph` helper below builds these widgets; the
-`plot.trace.frame` helper is used later for trace visualisation. Both are local
-to this vignette. For static 3D figures without `rgl`, use
-`grip.plot(projection = "ortho")` or `grip.project.3d()` instead.
-
-```{r}
-make.rglwidget.graph <- function(coords,
-                                 edges,
-                                 theta = 35,
-                                 phi = 22,
-                                 zoom = 0.8,
-                                 point.col = "#1F3B73",
-                                 edge.col = "gray80",
-                                 point.size = 5,
-                                 width = 800,
-                                 height = 520) {
-  if (!requireNamespace("rgl", quietly = TRUE)) {
-    return("Install the optional 'rgl' package to see the interactive 3D widget here.")
-  }
-
-  rgl::open3d(useNULL = TRUE)
-  rgl::bg3d(color = "white")
-
-  apply(edges, 1, function(e) {
-    rgl::segments3d(
-      coords[e, 1],
-      coords[e, 2],
-      coords[e, 3],
-      color = edge.col
-    )
-  })
-
-  rgl::points3d(
-    coords[, 1],
-    coords[, 2],
-    coords[, 3],
-    color = point.col,
-    size = point.size
+  grip.plot(
+    coords.left, edges,
+    projection = projection,
+    main = titles[[1]],
+    vertex.col = vertex.cols[[1]],
+    edge.col = edge.col
   )
-
-  rgl::view3d(theta = theta, phi = phi, zoom = zoom)
-  widget <- rgl::rglwidget(width = width, height = height)
-  rgl::close3d()
-  widget
+  grip.plot(
+    coords.right, edges,
+    projection = projection,
+    main = titles[[2]],
+    vertex.col = vertex.cols[[2]],
+    edge.col = edge.col
+  )
 }
 
-plot.trace.frame <- function(coords, edges, main = "", pch = 16, cex = 0.55) {
+plot.layout.triptych <- function(coords.list,
+                                 edges,
+                                 titles,
+                                 projection = NULL,
+                                 vertex.cols = rep("black", length(coords.list)),
+                                 edge.col = "gray82") {
+  op <- par(
+    mfrow = c(1, length(coords.list)),
+    mar = c(1.2, 1.2, 3, 1.2),
+    bg = "white"
+  )
+  on.exit(par(op), add = TRUE)
+
+  for (i in seq_along(coords.list)) {
+    grip.plot(
+      coords.list[[i]], edges,
+      projection = projection,
+      main = titles[[i]],
+      vertex.col = vertex.cols[[i]],
+      edge.col = edge.col
+    )
+  }
+}
+
+plot.trace.frame <- function(coords, edges, main = "") {
   active <- stats::complete.cases(coords[, 1:2, drop = FALSE])
   xy <- coords[active, 1:2, drop = FALSE]
 
@@ -204,215 +120,240 @@ plot.trace.frame <- function(coords, edges, main = "", pch = 16, cex = 0.55) {
       graphics::segments(
         coords[e[1], 1], coords[e[1], 2],
         coords[e[2], 1], coords[e[2], 2],
-        col = "gray80"
+        col = "gray82"
       )
     })
   }
 
-  points(xy[, 1], xy[, 2], pch = pch, cex = cex, col = "black")
+  points(xy[, 1], xy[, 2], pch = 16, cex = 0.55, col = "black")
 }
 ```
 
-## Tuned 2D families
+## A first unweighted layout
 
-Each subsection below generates a default layout and a preset layout for the
-same graph, plotted side by side so the difference is easy to spot.
-
-### Mesh
-
-The mesh preset was tuned on regular lattice graphs. On a `10 x 10` mesh it
-produces visibly more uniform spacing than the generic defaults.
-
-```{r fig.width=10.5, fig.height=4.2}
-edges <- edges.mesh(10, 10)
-
-mesh.2d.default <- grip.layout(edges, n = 100, dim = 2, seed = 11)
-mesh.2d.preset <- grip.layout(edges, n = 100, dim = 2, preset = "mesh", seed = 11)
-
-op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
-on.exit(par(op), add = TRUE)
-
-grip.plot(mesh.2d.default, edges, main = "Mesh default", pch = 16, cex = 0.45)
-grip.plot(mesh.2d.preset, edges, main = "Mesh preset", pch = 16, cex = 0.45)
-```
-
-### Sierpinski carpet
-
-The carpet preset was tuned on level 3 and 4 Sierpinski carpets. This family is
-a good stress test because it combines a dense recursive interior with large
-holes that should remain visually open.
-
-```{r fig.width=10.5, fig.height=4.2}
-edges <- edges.sierpinski.carpet(3)
-n <- max(edges)
-
-carpet.2d.default <- grip.layout(edges, n = n, dim = 2, seed = 12)
-carpet.2d.preset <- grip.layout(edges, n = n, dim = 2, preset = "carpet", seed = 12)
-
-op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
-on.exit(par(op), add = TRUE)
-
-grip.plot(carpet.2d.default, edges, main = "Carpet default", pch = 16, cex = 0.28)
-grip.plot(carpet.2d.preset, edges, main = "Carpet preset", pch = 16, cex = 0.28)
-```
-
-### Binary tree
-
-The tree preset was tuned to encourage more symmetric force-directed tree
-layouts. It is not a dendrogram layout; it is still a GRIP force-directed
-layout, just with a more tree-friendly parameter profile.
-
-```{r fig.width=10.5, fig.height=4.2}
-edges <- edges.kary.tree(2, 6)
-n <- max(edges)
-
-tree.2d.default <- grip.layout(edges, n = n, dim = 2, seed = 13)
-tree.2d.preset <- grip.layout(edges, n = n, dim = 2, preset = "tree", seed = 13)
-
-op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3.2, 1.2))
-on.exit(par(op), add = TRUE)
-
-grip.plot(tree.2d.default, edges, main = "Tree default", pch = 16, cex = 0.45)
-grip.plot(tree.2d.preset, edges, main = "Tree preset", pch = 16, cex = 0.45)
-```
-
-## Tuned 3D families
-
-The same default-versus-tuned comparison extends to three dimensions. Rotate the
-interactive widgets to appreciate how the tuned parameters recover the expected
-geometry.
-
-### Cylinder
-
-The torus preset was validated on torus graphs, but it also works well on
-cylinders. This makes a good interactive example because the tubular geometry
-is easy to inspect by rotation.
+For an ordinary unweighted graph, `grip.layout()` is the default starting
+point. Here is a small mesh in 2D.
 
 ```{r}
-edges <- edges.cylinder(8, 12)
-n <- max(edges)
+mesh.edges <- edges.mesh(5, 5)
+mesh.coords <- grip.layout(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  preset = "mesh",
+  seed = 1
+)
 
-cylinder.3d.default <- grip.layout(edges, n = n, dim = 3, seed = 21)
-cylinder.3d.preset <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 21)
+mesh.score <- grip.score.layout(mesh.coords, edges = mesh.edges, n = 25)
+knitr::kable(mesh.score[, c(
+  "sampled.stress",
+  "edge.length.cv",
+  "sampled.nonedge.sep.ratio"
+)], digits = 3)
 ```
 
-The default layout tends to flatten or twist the cylinder, while the torus
-preset recovers the expected tubular shape.
-
-Default cylinder layout:
-
-```{r}
-make.rglwidget.graph(cylinder.3d.default, edges)
-```
-
-Tuned cylinder layout:
-
-```{r}
-make.rglwidget.graph(cylinder.3d.preset, edges)
-```
-
-### Sierpinski tetrahedron
-
-We do not currently expose a tetrahedron preset, but development tuning found a
-strong 3D parameter region for this family. The explicit parameter set below is
-the current best validated tetrahedron example in the package workflow.
-
-```{r}
-edges <- edges.sierpinski.tetrahedron(4)
-n <- max(edges)
-
-tetrahedron.3d.default <- grip.layout(edges, n = n, dim = 3, seed = 22)
-tetrahedron.3d.tuned <- grip.layout(
-  edges, n = n, dim = 3,
-  placement = "barycenter",
-  rounds = 128,
-  final_rounds = 192,
-  num_init = 12,
-  num_nbrs = 16,
-  r = 0.07,
-  s = 9.0,
-  repulsion_factor = 1.5,
-  seed = 22
+```{r fig.width=5.2, fig.height=4.6}
+grip.plot(
+  mesh.coords,
+  mesh.edges,
+  main = "Current GRIP on a 5x5 mesh",
+  pch = 16,
+  cex = 0.65,
+  edge.col = "gray82"
 )
 ```
 
-Compare the default, which often collapses the four tetrahedral faces into a
-flatter shape, with the tuned version that opens up the simplex structure.
+For small and medium unweighted graphs, that is often all you need:
 
-Default tetrahedron layout:
+- choose `dim = 2` or `dim = 3`,
+- optionally start from a preset,
+- and score or compare a few candidate settings if the graph is important.
+
+## Current GRIP versus legacy GRIP
+
+The package still keeps the historical entry point through
+`grip.layout.legacy()`. That is useful for backward-compatible reproduction,
+but the main package path is the current `grip.layout()` engine.
 
 ```{r}
-make.rglwidget.graph(tetrahedron.3d.default, edges)
+mesh.current <- grip.layout(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  preset = "mesh",
+  seed = 2
+)
+
+mesh.legacy <- grip.layout.legacy(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  seed = 2
+)
 ```
 
-Tuned tetrahedron layout:
+```{r fig.width=9.4, fig.height=4.2}
+plot.layout.pair(
+  mesh.legacy,
+  mesh.current,
+  edges = mesh.edges,
+  titles = c("legacy", "current"),
+  vertex.cols = c("black", "#1F3B73")
+)
+```
+
+The practical distinction is:
+
+- use `grip.layout.legacy()` when you need the historical local-force behavior,
+- use `grip.layout()` for the current package default,
+- use `grip.layout.trace()` when you want to inspect how a layout forms.
+
+## When edge lengths matter: weighted GRIP
+
+Some graphs carry real geometry in their edge lengths. In those cases, the
+combinatorial graph alone is not the whole story. The weighted sister API keeps
+the same multiscale spirit while making the hierarchy and refinement steps
+length-aware.
+
+The example below starts from a rectangular mesh whose edge lengths are induced
+by a curved 3D saddle surface.
 
 ```{r}
-make.rglwidget.graph(tetrahedron.3d.tuned, edges)
+weighted.mesh <- mesh.surface.graph(
+  5, 5,
+  surface = "saddle",
+  amplitude = 0.9
+)
+
+coords.combinatorial <- grip.layout(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  dim = 3,
+  preset = "mesh",
+  seed = 3
+)
+
+coords.weighted <- grip.layout.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  seed = 3
+)
+
+gkk.prepared <- grip.prepare.geodesic.kk(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights
+)
+
+gkk.summary <- do.call(
+  rbind,
+  list(
+    cbind(
+      method = "Combinatorial GRIP",
+      grip.score.geodesic.kk(
+        coords.combinatorial,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP",
+      grip.score.geodesic.kk(
+        coords.weighted,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    )
+  )
+)
+
+knitr::kable(gkk.summary, digits = 3)
 ```
+
+```{r fig.width=12.6, fig.height=4.2}
+plot.layout.triptych(
+  list(
+    weighted.mesh$coords_surface,
+    coords.combinatorial,
+    coords.weighted
+  ),
+  edges = weighted.mesh$edges,
+  titles = c("Target geometry", "Combinatorial GRIP", "Weighted GRIP"),
+  projection = "ortho",
+  vertex.cols = c("#555555", "black", "#1F3B73")
+)
+```
+
+This is the basic rule of thumb:
+
+- if the graph is fundamentally unweighted, start with `grip.layout()`,
+- if the edge lengths encode geometry you care about, start with
+  `grip.layout.weighted()`,
+- and keep 3D in mind for weighted geometric families, because many of them are
+  intrinsically awkward in 2D.
 
 ## Tracing a layout
 
-`grip.layout.trace()` records how the multiscale GRIP layout evolves. The trace
-is especially useful when you want to understand how new vertices enter the
-layout and how the later refinement stages clean up the geometry.
+`grip.layout.trace()` records snapshots of the current multiscale solve. That
+is useful for debugging, teaching, and understanding why a parameter setting is
+working or failing.
 
 ```{r}
-edges <- edges.mesh(6, 6)
-mesh.2d.trace <- grip.layout.trace(
-  edges,
-  n = max(edges),
+mesh.trace <- grip.layout.trace(
+  mesh.edges,
+  n = 25,
   dim = 2,
   preset = "mesh",
-  seed = 31,
-  trace = "level"
+  rounds = 12,
+  final_rounds = 16,
+  trace = "level",
+  diagnostics = "light",
+  seed = 4
 )
 
-head(mesh.2d.trace$meta)
+knitr::kable(mesh.trace$meta)
+knitr::kable(mesh.trace$diagnostics[, c(
+  "frame",
+  "edge.length.cv",
+  "sampled.nonedge.sep.ratio"
+)], digits = 3)
 ```
 
-The four panels below show the mesh layout at four stages of the multiscale
-process. The coarsest level places only a handful of representative vertices;
-successive refinement stages interpolate the remaining vertices and improve
-spacing until the full grid emerges.
+```{r fig.width=10.5, fig.height=3.8}
+sel <- c(1L, max(2L, floor(length(mesh.trace$frames) / 2)), length(mesh.trace$frames))
 
-```{r fig.width=10.5, fig.height=8}
-frame.idx <- unique(c(
-  1L,
-  max(2L, floor(length(mesh.2d.trace$frames) / 3)),
-  max(3L, floor(2 * length(mesh.2d.trace$frames) / 3)),
-  length(mesh.2d.trace$frames)
-))
-
-frame.labels <- c(
-  "Coarsest start",
-  "Early refinement",
-  "Late refinement",
-  "Final layout"
-)
-
-op <- par(mfrow = c(2, 2), mar = c(1.2, 1.2, 3.0, 1.2))
+op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
 on.exit(par(op), add = TRUE)
 
-for (i in seq_along(frame.idx)) {
+for (idx in sel) {
   plot.trace.frame(
-    mesh.2d.trace$frames[[frame.idx[[i]]]],
-    # In early trace frames, only active vertices are shown.
-    edges,
-    main = frame.labels[[i]],
-    cex = 0.45
+    mesh.trace$frames[[idx]],
+    mesh.edges,
+    main = paste(
+      mesh.trace$meta$phase[[idx]],
+      "(frame", idx, ")"
+    )
   )
 }
 ```
 
+When you need the same idea for weighted graphs, use
+`grip.layout.trace.weighted()`.
+
 ## Where to go next
 
-This vignette shows the synthetic families where the current package has the
-strongest tuned examples. The scoring metrics used throughout --- sampled
-stress, edge-length CV, and non-edge separation ratio --- are computed by
-`grip.score.layout()` and aggregated by `grip.compare.layouts()`. For
-real-data selection workflows:
-
-- use `grip.compare.layouts()` and `grip.score.layout()`,
-- compare defaults, presets, and small local searches in 3D,
-- then inspect the real-data vignettes for worked examples.
+- `Weighted Graph Layouts with grip` covers the weighted sister API in more
+  detail.
+- `Choosing Layouts for Real Data` focuses on layout search and scoring.
+- `Interactive Exploration with gripui` covers the package's Shiny tools.
+- `Synthetic Graph Families and Geometries` explains the growing benchmark and
+  geometry library.
