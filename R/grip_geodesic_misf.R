@@ -5,6 +5,218 @@ grip.validate.misf.geodesic.prepared <- function(prepared, coords = NULL) {
   grip.validate.geodesic.mds.prepared(prepared, coords = coords)
 }
 
+grip.validate.misf.geodesic.fit <- function(fit) {
+  if (!inherits(fit, "grip_misf_gmds_fit")) {
+    stop("fit must be an object from grip.optimize.misf.geodesic.mds()")
+  }
+  fit
+}
+
+grip.resolve.misf.geodesic.prepared <- function(prepared = NULL,
+                                                edges = NULL,
+                                                n = NULL,
+                                                adj_list = NULL,
+                                                weight_list = NULL,
+                                                edge_weights = NULL,
+                                                tie_mode = NULL,
+                                                num_init = 24L,
+                                                num_nbrs = 20L,
+                                                dim = NULL,
+                                                top_level_restarts = 8L,
+                                                top_level_max_iter = 16L,
+                                                top_level_engine = c("cpp", "r"),
+                                                seed = 6L) {
+  top_level_engine <- match.arg(top_level_engine)
+  if (is.null(prepared)) {
+    resolved.dim <- if (is.null(dim)) 2L else grip.validate.count(dim, "dim")
+    resolved.tie.mode <- if (is.null(tie_mode)) "average" else {
+      match.arg(tie_mode, c("single", "average"))
+    }
+    return(grip.prepare.misf.geodesic.mds(
+      edges = edges,
+      n = n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights,
+      tie_mode = resolved.tie.mode,
+      num_init = num_init,
+      num_nbrs = num_nbrs,
+      dim = resolved.dim,
+      top_level_mode = "skip",
+      top_level_restarts = top_level_restarts,
+      top_level_max_iter = top_level_max_iter,
+      top_level_engine = top_level_engine,
+      seed = seed
+    ))
+  }
+  if (inherits(prepared, "grip_misf_gmds_prepared")) {
+    return(grip.validate.misf.geodesic.prepared(prepared))
+  }
+  prepared <- grip.validate.geodesic.mds.prepared(prepared)
+  resolved.dim <- if (is.null(dim)) 2L else grip.validate.count(dim, "dim")
+  resolved.tie.mode <- if (is.null(tie_mode)) {
+    if (!is.null(prepared$tie_mode)) prepared$tie_mode else "average"
+  } else {
+    match.arg(tie_mode, c("single", "average"))
+  }
+  grip.prepare.misf.geodesic.mds(
+    n = prepared$n,
+    adj_list = prepared$adj_list,
+    weight_list = prepared$weight_list,
+    tie_mode = resolved.tie.mode,
+    num_init = num_init,
+    num_nbrs = num_nbrs,
+    dim = resolved.dim,
+    top_level_mode = "skip",
+    top_level_restarts = top_level_restarts,
+    top_level_max_iter = top_level_max_iter,
+    top_level_engine = top_level_engine,
+    seed = seed
+  )
+}
+
+grip.geodesic.misf.expand.top.level.frames <- function(top_level_fit, n) {
+  if (is.null(top_level_fit$frames) || !length(top_level_fit$frames)) {
+    return(list())
+  }
+  lapply(top_level_fit$frames, function(frame) {
+    grip.geodesic.misf.partial.coords(
+      coords = frame,
+      vertex_ids = top_level_fit$vertex_ids,
+      n = n
+    )
+  })
+}
+
+grip.geodesic.misf.frame.count <- function(frames) {
+  if (is.null(frames)) {
+    return(0L)
+  }
+  as.integer(length(frames))
+}
+
+grip.geodesic.misf.collect.level.frames <- function(level_results) {
+  if (!length(level_results)) {
+    return(list())
+  }
+  stats::setNames(
+    lapply(level_results, `[[`, "coords"),
+    paste0("level_", vapply(level_results, function(result) result$level, integer(1L)))
+  )
+}
+
+grip.geodesic.misf.collect.insertion.vertex.trace <- function(level_results) {
+  if (!length(level_results)) {
+    return(data.frame())
+  }
+  rows <- lapply(level_results, `[[`, "vertex_trace")
+  rows <- Filter(function(row) !is.null(row) && nrow(row) > 0L, rows)
+  if (!length(rows)) {
+    return(data.frame())
+  }
+  do.call(rbind, rows)
+}
+
+grip.geodesic.misf.build.stage.trace <- function(prepared,
+                                                 top_level_fit,
+                                                 top_level_elapsed,
+                                                 top_level_frames,
+                                                 insertion,
+                                                 insertion_elapsed,
+                                                 insertion_frames,
+                                                 refinement,
+                                                 refinement_elapsed,
+                                                 refinement_frames,
+                                                 final_polish,
+                                                 final_polish_elapsed) {
+  rows <- list()
+
+  rows[[length(rows) + 1L]] <- data.frame(
+    stage = "top_level",
+    level = prepared$top_level_level,
+    active_n = length(prepared$top_level_vertices),
+    inserted_n = 0L,
+    pair_n = length(top_level_fit$prepared$pair_graph_distance),
+    energy = top_level_fit$score$gmds.energy[[1L]],
+    stress = top_level_fit$score$gmds.stress[[1L]],
+    mean_objective = NA_real_,
+    max_grad_norm = NA_real_,
+    all_converged = NA,
+    elapsed_sec = as.double(top_level_elapsed),
+    trace_rows = if (is.null(top_level_fit$trace)) 0L else nrow(top_level_fit$trace),
+    frame_count = grip.geodesic.misf.frame.count(top_level_frames),
+    stringsAsFactors = FALSE
+  )
+
+  if (!is.null(insertion$level_trace) && nrow(insertion$level_trace) > 0L) {
+    insert.rows <- data.frame(
+      stage = "insertion",
+      level = insertion$level_trace$level,
+      active_n = NA_integer_,
+      inserted_n = insertion$level_trace$inserted,
+      pair_n = NA_integer_,
+      energy = insertion$level_trace$mean_objective,
+      stress = NA_real_,
+      mean_objective = insertion$level_trace$mean_objective,
+      max_grad_norm = insertion$level_trace$max_grad_norm,
+      all_converged = insertion$level_trace$all_converged,
+      elapsed_sec = NA_real_,
+      trace_rows = insertion$level_trace$inserted,
+      frame_count = 1L,
+      stringsAsFactors = FALSE
+    )
+    if (nrow(insert.rows) > 0L) {
+      insert.rows$elapsed_sec[[nrow(insert.rows)]] <- as.double(insertion_elapsed)
+      rows[[length(rows) + 1L]] <- insert.rows
+    }
+  }
+
+  if (!is.null(refinement$level_trace) && nrow(refinement$level_trace) > 0L) {
+    refine.trace.rows <- vapply(refinement$level_results, function(result) {
+      if (is.null(result$fit$trace)) 0L else nrow(result$fit$trace)
+    }, integer(1L))
+    refine.rows <- data.frame(
+      stage = "refinement",
+      level = refinement$level_trace$level,
+      active_n = refinement$level_trace$active_n,
+      inserted_n = 0L,
+      pair_n = refinement$level_trace$pair_n,
+      energy = refinement$level_trace$after_energy,
+      stress = refinement$level_trace$after_stress,
+      mean_objective = NA_real_,
+      max_grad_norm = NA_real_,
+      all_converged = NA,
+      elapsed_sec = NA_real_,
+      trace_rows = refine.trace.rows,
+      frame_count = 1L,
+      stringsAsFactors = FALSE
+    )
+    if (nrow(refine.rows) > 0L) {
+      refine.rows$elapsed_sec[[nrow(refine.rows)]] <- as.double(refinement_elapsed)
+      rows[[length(rows) + 1L]] <- refine.rows
+    }
+  }
+
+  rows[[length(rows) + 1L]] <- data.frame(
+    stage = "final_polish",
+    level = 0L,
+    active_n = prepared$n,
+    inserted_n = 0L,
+    pair_n = length(prepared$pair_graph_distance),
+    energy = final_polish$score$gmds.energy[[1L]],
+    stress = final_polish$score$gmds.stress[[1L]],
+    mean_objective = NA_real_,
+    max_grad_norm = NA_real_,
+    all_converged = NA,
+    elapsed_sec = as.double(final_polish_elapsed),
+    trace_rows = if (is.null(final_polish$trace)) 0L else nrow(final_polish$trace),
+    frame_count = grip.geodesic.misf.frame.count(final_polish$frames),
+    stringsAsFactors = FALSE
+  )
+
+  do.call(rbind, rows)
+}
+
 grip.geodesic.misf.level.to.index <- function(misf, level = NULL) {
   if (is.null(level)) {
     return(length(misf$levels))
@@ -1223,6 +1435,17 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
   prepared$insertion_anchor_count <- grip.geodesic.misf.default.anchor.count(dim)
   prepared$insertion_anchor_weight_mode <- "inverse_graph_distance_sq"
   prepared$insertion_max_iter <- 64L
+  prepared$refinement_local_nbrs <- 8L
+  prepared$refinement_landmark_count <- 4L
+  prepared$refinement_pair_mode <- "sparse"
+  prepared$refinement_anchor_weight <- 0.05
+  prepared$refinement_anchor_weight_end <- 0.05
+  prepared$refinement_continuation <- "constant"
+  prepared$refinement_max_iter <- 8L
+  prepared$refinement_engine <- top_level_engine
+  prepared$final_polish_max_iter <- 8L
+  prepared$final_polish_engine <- top_level_engine
+  prepared$misf_seed <- seed
   prepared$top_level_fit <- NULL
   class(prepared) <- c("grip_misf_gmds_prepared", class(prepared))
 
@@ -1237,4 +1460,526 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
     )
   }
   prepared
+}
+
+#' Optimize an embedding with the MISF-based GMDS pipeline
+#'
+#' `grip.optimize.misf.geodesic.mds()` runs the experimental multiscale GMDS
+#' pipeline built on top of GRIP's maximal independent set filtration (MISF).
+#' It solves the coarsest MISF level with pure GMDS, inserts successive levels
+#' by geodesic anchor trilateration, refines each active level with sparse pure
+#' GMDS, and finishes with a short full-graph pure-GMDS polish.
+#'
+#' The function accepts either a graph-first GMDS prepared object from
+#' [grip.prepare.graph.geodesic.mds()], a MISF-GMDS prepared object from
+#' [grip.prepare.misf.geodesic.mds()], or raw graph inputs.
+#'
+#' @param prepared Optional prepared object. This can be either a graph-first
+#'   GMDS prepared object or a MISF-GMDS prepared object.
+#' @param edges Two-column integer matrix of edges (1-based vertex ids) used
+#'   when `prepared` is omitted.
+#' @param n Number of vertices used when `prepared` is omitted.
+#' @param adj_list Optional adjacency list used when `prepared` is omitted.
+#' @param weight_list Optional edge-weight list parallel to `adj_list`.
+#' @param edge_weights Optional positive edge-weight vector parallel to `edges`.
+#' @param tie_mode Optional shortest-path aggregation mode used when a new MISF
+#'   prepared object must be built.
+#' @param num_init MISF top-level target size used when a new MISF prepared
+#'   object must be built.
+#' @param num_nbrs MISF neighborhood schedule parameter used when a new MISF
+#'   prepared object must be built.
+#' @param dim Optional target embedding dimension. If omitted, reuse the
+#'   dimension stored in `prepared` when available.
+#' @param top_level_restarts Number of random restarts used by the coarse
+#'   top-level pure-GMDS solve.
+#' @param top_level_max_iter Maximum number of top-level pure-GMDS iterations
+#'   per restart.
+#' @param top_level_engine Engine used by the top-level pure-GMDS solve.
+#' @param insertion_anchor_policy Anchor-selection policy used during the
+#'   insertion stage.
+#' @param insertion_anchor_count Number of anchors used for each inserted
+#'   vertex. If omitted, reuse the stored MISF-GMDS default.
+#' @param insertion_anchor_weight_mode Anchor-weight schedule used during the
+#'   insertion stage.
+#' @param insertion_max_iter Maximum number of trilateration iterations per
+#'   inserted vertex.
+#' @param refinement_local_nbrs Number of sparse local graph-neighbor pairs used
+#'   during active-level refinement.
+#' @param refinement_landmark_count Number of sparse landmark pairs used during
+#'   active-level refinement.
+#' @param refinement_pair_mode Sparse pair policy used during level refinement.
+#' @param refinement_anchor_weight Initial anchor weight used to pin previously
+#'   placed vertices during active-level refinement.
+#' @param refinement_anchor_weight_end Final anchor weight used at the end of
+#'   the level-refinement continuation schedule.
+#' @param refinement_continuation Continuation schedule used during active-level
+#'   refinement.
+#' @param refinement_max_iter Maximum number of sparse pure-GMDS iterations per
+#'   active level.
+#' @param refinement_engine Engine used during active-level refinement.
+#' @param final_polish_max_iter Maximum number of full-graph pure-GMDS polish
+#'   iterations.
+#' @param final_polish_engine Engine used during the final full-graph polish.
+#' @param edge_length_epsilon Small non-negative stabilizer added inside
+#'   embedded edge lengths during the refinement and final-polish stages.
+#' @param n_threads Number of compiled-engine threads used by the refinement and
+#'   final-polish stages.
+#' @param return_trace If `TRUE`, include detailed per-stage traces.
+#' @param return_frames If `TRUE`, retain intermediate coordinate frames for the
+#'   multiscale stages.
+#' @param seed Optional integer seed reused when a top-level restart solve must
+#'   be computed.
+#'
+#' @return A list of class `"grip_misf_gmds_fit"` containing the final
+#'   coordinates, the prepared MISF-GMDS object, stage summaries, optional
+#'   detailed traces, and optional intermediate frames.
+#' @export
+grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
+                                            edges = NULL,
+                                            n = NULL,
+                                            adj_list = NULL,
+                                            weight_list = NULL,
+                                            edge_weights = NULL,
+                                            tie_mode = NULL,
+                                            num_init = 24L,
+                                            num_nbrs = 20L,
+                                            dim = NULL,
+                                            top_level_restarts = NULL,
+                                            top_level_max_iter = NULL,
+                                            top_level_engine = NULL,
+                                            insertion_anchor_policy = NULL,
+                                            insertion_anchor_count = NULL,
+                                            insertion_anchor_weight_mode = NULL,
+                                            insertion_max_iter = NULL,
+                                            refinement_local_nbrs = NULL,
+                                            refinement_landmark_count = NULL,
+                                            refinement_pair_mode = NULL,
+                                            refinement_anchor_weight = NULL,
+                                            refinement_anchor_weight_end = NULL,
+                                            refinement_continuation = NULL,
+                                            refinement_max_iter = NULL,
+                                            refinement_engine = NULL,
+                                            final_polish_max_iter = NULL,
+                                            final_polish_engine = NULL,
+                                            edge_length_epsilon = 1e-8,
+                                            n_threads = 0L,
+                                            return_trace = FALSE,
+                                            return_frames = FALSE,
+                                            seed = 6L) {
+  if (!is.null(seed)) {
+    seed <- grip.validate.count(seed, "seed")
+  }
+
+  dim.resolved <- if (is.null(dim) && !is.null(prepared) && inherits(prepared, "grip_misf_gmds_prepared")) {
+    prepared$top_level_dim
+  } else if (is.null(dim)) {
+    2L
+  } else {
+    grip.validate.count(dim, "dim")
+  }
+  if (!(dim.resolved %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+
+  top.level.restarts <- if (is.null(top_level_restarts) && !is.null(prepared) && inherits(prepared, "grip_misf_gmds_prepared")) {
+    prepared$top_level_restarts
+  } else if (is.null(top_level_restarts)) {
+    8L
+  } else {
+    grip.validate.misf.count(top_level_restarts, "top_level_restarts", lower = 1L)
+  }
+  top.level.max.iter <- if (is.null(top_level_max_iter) && !is.null(prepared) && inherits(prepared, "grip_misf_gmds_prepared")) {
+    prepared$top_level_max_iter
+  } else if (is.null(top_level_max_iter)) {
+    16L
+  } else {
+    grip.validate.scalar(top_level_max_iter, "top_level_max_iter", lower = 0)
+    as.integer(round(top_level_max_iter))
+  }
+  top.level.engine <- if (is.null(top_level_engine) && !is.null(prepared) && inherits(prepared, "grip_misf_gmds_prepared")) {
+    prepared$top_level_engine
+  } else if (is.null(top_level_engine)) {
+    "cpp"
+  } else {
+    match.arg(top_level_engine, c("cpp", "r"))
+  }
+
+  prepared <- grip.resolve.misf.geodesic.prepared(
+    prepared = prepared,
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    tie_mode = tie_mode,
+    num_init = num_init,
+    num_nbrs = num_nbrs,
+    dim = dim.resolved,
+    top_level_restarts = top.level.restarts,
+    top_level_max_iter = top.level.max.iter,
+    top_level_engine = top.level.engine,
+    seed = seed
+  )
+
+  insertion.anchor.policy <- if (is.null(insertion_anchor_policy)) {
+    prepared$insertion_anchor_policy
+  } else {
+    match.arg(insertion_anchor_policy, c("prev_level_first", "prev_level_distance_band", "prev_level_spread"))
+  }
+  insertion.anchor.count <- if (is.null(insertion_anchor_count)) {
+    prepared$insertion_anchor_count
+  } else {
+    grip.validate.misf.count(insertion_anchor_count, "insertion_anchor_count", lower = 1L)
+  }
+  insertion.anchor.weight.mode <- if (is.null(insertion_anchor_weight_mode)) {
+    prepared$insertion_anchor_weight_mode
+  } else {
+    match.arg(insertion_anchor_weight_mode, c("inverse_graph_distance_sq", "uniform"))
+  }
+  insertion.max.iter <- if (is.null(insertion_max_iter)) {
+    prepared$insertion_max_iter
+  } else {
+    grip.validate.scalar(insertion_max_iter, "insertion_max_iter", lower = 0)
+    as.integer(round(insertion_max_iter))
+  }
+
+  refinement.local.nbrs <- if (is.null(refinement_local_nbrs)) {
+    prepared$refinement_local_nbrs
+  } else {
+    grip.validate.count(refinement_local_nbrs, "refinement_local_nbrs")
+  }
+  refinement.landmark.count <- if (is.null(refinement_landmark_count)) {
+    prepared$refinement_landmark_count
+  } else {
+    grip.validate.count(refinement_landmark_count, "refinement_landmark_count")
+  }
+  refinement.pair.mode <- if (is.null(refinement_pair_mode)) {
+    prepared$refinement_pair_mode
+  } else {
+    match.arg(refinement_pair_mode, c("sparse", "full"))
+  }
+  refinement.anchor.weight <- if (is.null(refinement_anchor_weight)) {
+    prepared$refinement_anchor_weight
+  } else {
+    grip.validate.scalar(refinement_anchor_weight, "refinement_anchor_weight", lower = 0)
+    as.double(refinement_anchor_weight)
+  }
+  refinement.anchor.weight.end <- if (is.null(refinement_anchor_weight_end)) {
+    if (!is.null(prepared$refinement_anchor_weight_end)) prepared$refinement_anchor_weight_end else refinement.anchor.weight
+  } else {
+    grip.validate.scalar(refinement_anchor_weight_end, "refinement_anchor_weight_end", lower = 0)
+    as.double(refinement_anchor_weight_end)
+  }
+  refinement.schedule <- if (is.null(refinement_continuation)) {
+    prepared$refinement_continuation
+  } else {
+    match.arg(refinement_continuation, c("constant", "linear", "geometric"))
+  }
+  refinement.max.iter <- if (is.null(refinement_max_iter)) {
+    prepared$refinement_max_iter
+  } else {
+    grip.validate.scalar(refinement_max_iter, "refinement_max_iter", lower = 0)
+    as.integer(round(refinement_max_iter))
+  }
+  refinement.engine.resolved <- if (is.null(refinement_engine)) {
+    prepared$refinement_engine
+  } else {
+    match.arg(refinement_engine, c("cpp", "r"))
+  }
+
+  final.polish.max.iter <- if (is.null(final_polish_max_iter)) {
+    prepared$final_polish_max_iter
+  } else {
+    grip.validate.scalar(final_polish_max_iter, "final_polish_max_iter", lower = 0)
+    as.integer(round(final_polish_max_iter))
+  }
+  final.polish.engine <- if (is.null(final_polish_engine)) {
+    prepared$final_polish_engine
+  } else {
+    match.arg(final_polish_engine, c("cpp", "r"))
+  }
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+  grip.validate.scalar(n_threads, "n_threads", lower = 0)
+  n_threads <- as.integer(round(n_threads))
+
+  need.top.trace <- isTRUE(return_trace) || isTRUE(return_frames)
+  need.top.solve <- is.null(prepared$top_level_fit)
+  if (!need.top.solve) {
+    need.top.solve <- ncol(prepared$top_level_fit$coords) != dim.resolved
+    if (!need.top.solve && isTRUE(return_trace)) {
+      need.top.solve <- is.null(prepared$top_level_fit$trace) || nrow(prepared$top_level_fit$trace) == 0L
+    }
+    if (!need.top.solve && isTRUE(return_frames)) {
+      need.top.solve <- is.null(prepared$top_level_fit$frames) || length(prepared$top_level_fit$frames) <= 1L
+    }
+  }
+
+  top.level.elapsed <- 0
+  if (need.top.solve) {
+    top.level.start <- proc.time()[["elapsed"]]
+    prepared$top_level_fit <- grip.geodesic.misf.solve.top.level(
+      prepared = prepared,
+      dim = dim.resolved,
+      n_restarts = top.level.restarts,
+      max_iter = top.level.max.iter,
+      engine = top.level.engine,
+      edge_length_epsilon = edge_length_epsilon,
+      n_threads = n_threads,
+      return_trace = need.top.trace,
+      seed = seed
+    )
+    top.level.elapsed <- proc.time()[["elapsed"]] - top.level.start
+  }
+  top.level.fit <- prepared$top_level_fit
+  coords <- top.level.fit$coords_full
+
+  insertion.elapsed <- 0
+  if (any(!is.finite(coords))) {
+    insertion.start <- proc.time()[["elapsed"]]
+    insertion <- grip.geodesic.misf.insert.all.levels(
+      prepared = prepared,
+      coords = coords,
+      anchor_policy = insertion.anchor.policy,
+      anchor_count = insertion.anchor.count,
+      anchor_weight_mode = insertion.anchor.weight.mode,
+      max_iter = insertion.max.iter
+    )
+    insertion.elapsed <- proc.time()[["elapsed"]] - insertion.start
+  } else {
+    insertion <- list(
+      coords = coords,
+      level_results = list(),
+      level_trace = data.frame()
+    )
+  }
+
+  refinement.start <- proc.time()[["elapsed"]]
+  refinement <- grip.geodesic.misf.refine.all.levels(
+    prepared = prepared,
+    coords = insertion$coords,
+    local_nbrs = refinement.local.nbrs,
+    landmark_count = refinement.landmark.count,
+    pair_mode = refinement.pair.mode,
+    anchor_weight = refinement.anchor.weight,
+    anchor_weight_end = refinement.anchor.weight.end,
+    continuation = refinement.schedule,
+    max_iter = refinement.max.iter,
+    engine = refinement.engine.resolved,
+    edge_length_epsilon = edge_length_epsilon,
+    n_threads = n_threads,
+    return_trace = isTRUE(return_trace) || isTRUE(return_frames)
+  )
+  refinement.elapsed <- proc.time()[["elapsed"]] - refinement.start
+
+  final.polish.start <- proc.time()[["elapsed"]]
+  final.polish <- grip.geodesic.misf.final.polish(
+    prepared = prepared,
+    coords = refinement$coords,
+    max_iter = final.polish.max.iter,
+    engine = final.polish.engine,
+    edge_length_epsilon = edge_length_epsilon,
+    n_threads = n_threads,
+    return_trace = isTRUE(return_trace) || isTRUE(return_frames)
+  )
+  final.polish.elapsed <- proc.time()[["elapsed"]] - final.polish.start
+
+  top.level.frames <- if (isTRUE(return_frames)) {
+    grip.geodesic.misf.expand.top.level.frames(top.level.fit, prepared$n)
+  } else {
+    NULL
+  }
+  insertion.level.frames <- if (isTRUE(return_frames)) {
+    grip.geodesic.misf.collect.level.frames(insertion$level_results)
+  } else {
+    NULL
+  }
+  refinement.level.frames <- if (isTRUE(return_frames)) {
+    grip.geodesic.misf.collect.level.frames(refinement$level_results)
+  } else {
+    NULL
+  }
+  stage.trace <- grip.geodesic.misf.build.stage.trace(
+    prepared = prepared,
+    top_level_fit = top.level.fit,
+    top_level_elapsed = top.level.elapsed,
+    top_level_frames = top.level.frames,
+    insertion = insertion,
+    insertion_elapsed = insertion.elapsed,
+    insertion_frames = insertion.level.frames,
+    refinement = refinement,
+    refinement_elapsed = refinement.elapsed,
+    refinement_frames = refinement.level.frames,
+    final_polish = final.polish,
+    final_polish_elapsed = final.polish.elapsed
+  )
+
+  trace.detail <- if (isTRUE(return_trace)) {
+    list(
+      top_level_trace = top.level.fit$trace,
+      top_restart_summary = top.level.fit$restart_summary,
+      insertion_level_trace = insertion$level_trace,
+      insertion_vertex_trace = grip.geodesic.misf.collect.insertion.vertex.trace(insertion$level_results),
+      refinement_level_trace = refinement$level_trace,
+      final_polish_trace = final.polish$trace
+    )
+  } else {
+    NULL
+  }
+  frames <- if (isTRUE(return_frames)) {
+    list(
+      top_level = top.level.frames,
+      after_top_level = top.level.fit$coords_full,
+      insertion_levels = insertion.level.frames,
+      after_insertion = insertion$coords,
+      refinement_levels = refinement.level.frames,
+      after_refinement = refinement$coords,
+      final_polish = final.polish$frames,
+      final = final.polish$coords
+    )
+  } else {
+    NULL
+  }
+
+  fit <- list(
+    coords = final.polish$coords,
+    prepared = prepared,
+    top_level_fit = top.level.fit,
+    insertion = insertion,
+    refinement = refinement,
+    final_polish = final.polish,
+    stage_trace = stage.trace,
+    trace = trace.detail,
+    frames = frames,
+    timing = list(
+      top_level = as.double(top.level.elapsed),
+      insertion = as.double(insertion.elapsed),
+      refinement = as.double(refinement.elapsed),
+      final_polish = as.double(final.polish.elapsed),
+      total = as.double(top.level.elapsed + insertion.elapsed + refinement.elapsed + final.polish.elapsed)
+    )
+  )
+  class(fit) <- c("grip_misf_gmds_fit", "list")
+  fit$score <- grip.score.misf.geodesic.mds(fit = fit, return_trace = isTRUE(return_trace))
+  fit
+}
+
+#' Score a MISF-based GMDS fit
+#'
+#' `grip.score.misf.geodesic.mds()` summarizes the final full-graph GMDS fit
+#' together with multiscale stage metadata from
+#' [grip.optimize.misf.geodesic.mds()].
+#'
+#' @param fit Optional fit from [grip.optimize.misf.geodesic.mds()].
+#' @param coords Optional final coordinate matrix used when `fit` is omitted.
+#' @param prepared Optional MISF-GMDS prepared object used when `fit` is
+#'   omitted.
+#' @param edge_length_epsilon Small non-negative stabilizer added inside each
+#'   embedded edge length when rescoring `coords`.
+#' @param return_trace If `TRUE`, attach the multiscale trace tables as list
+#'   columns.
+#'
+#' @return A one-row data frame with final GMDS metrics and MISF-stage summary
+#'   fields. When `return_trace = TRUE`, the trace tables are attached as list
+#'   columns.
+#' @export
+grip.score.misf.geodesic.mds <- function(fit = NULL,
+                                         coords = NULL,
+                                         prepared = NULL,
+                                         edge_length_epsilon = 1e-8,
+                                         return_trace = FALSE) {
+  top.level.fit <- NULL
+  insertion <- NULL
+  refinement <- NULL
+  final.polish <- NULL
+  stage.trace <- data.frame()
+  timing <- list(
+    top_level = NA_real_,
+    insertion = NA_real_,
+    refinement = NA_real_,
+    final_polish = NA_real_,
+    total = NA_real_
+  )
+
+  if (!is.null(fit)) {
+    fit <- grip.validate.misf.geodesic.fit(fit)
+    if (is.null(prepared)) {
+      prepared <- fit$prepared
+    }
+    if (is.null(coords)) {
+      coords <- fit$coords
+    }
+    top.level.fit <- fit$top_level_fit
+    insertion <- fit$insertion
+    refinement <- fit$refinement
+    final.polish <- fit$final_polish
+    if (!is.null(fit$stage_trace)) {
+      stage.trace <- fit$stage_trace
+    }
+    if (!is.null(fit$timing)) {
+      timing <- fit$timing
+    }
+  }
+
+  coords <- grip.validate.coords(coords)
+  prepared <- grip.validate.misf.geodesic.prepared(prepared, coords = coords)
+  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
+
+  final.score <- grip.score.geodesic.mds(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
+  names(final.score) <- paste0("final.", names(final.score))
+
+  insertion.level.count <- if (!is.null(insertion) && !is.null(insertion$level_trace)) {
+    nrow(insertion$level_trace)
+  } else if (prepared$top_level_level > 0L) {
+    prepared$top_level_level
+  } else {
+    0L
+  }
+  inserted.vertex.count <- if (!is.null(insertion) && !is.null(insertion$level_trace) && nrow(insertion$level_trace) > 0L) {
+    sum(insertion$level_trace$inserted)
+  } else {
+    max(0L, prepared$n - length(prepared$top_level_vertices))
+  }
+  refinement.level.count <- if (!is.null(refinement) && !is.null(refinement$level_trace)) {
+    nrow(refinement$level_trace)
+  } else {
+    0L
+  }
+
+  out <- data.frame(
+    multiscale.mode = "misf",
+    n = prepared$n,
+    dim = ncol(coords),
+    top.level = prepared$top_level_level,
+    top.level.n = length(prepared$top_level_vertices),
+    top.level.energy = if (!is.null(top.level.fit)) top.level.fit$score$gmds.energy[[1L]] else NA_real_,
+    top.level.stress = if (!is.null(top.level.fit)) top.level.fit$score$gmds.stress[[1L]] else NA_real_,
+    insertion.level.count = as.integer(insertion.level.count),
+    inserted.vertex.count = as.integer(inserted.vertex.count),
+    refinement.level.count = as.integer(refinement.level.count),
+    final.polish.trace.rows = if (!is.null(final.polish) && !is.null(final.polish$trace)) nrow(final.polish$trace) else NA_integer_,
+    elapsed.top.level = as.double(timing$top_level),
+    elapsed.insertion = as.double(timing$insertion),
+    elapsed.refinement = as.double(timing$refinement),
+    elapsed.final.polish = as.double(timing$final_polish),
+    elapsed.total = as.double(timing$total),
+    stringsAsFactors = FALSE
+  )
+  out <- cbind(out, final.score)
+
+  if (isTRUE(return_trace)) {
+    out$stage.trace <- list(stage.trace)
+    out$top.restart.summary <- list(if (!is.null(top.level.fit)) top.level.fit$restart_summary else data.frame())
+    out$insertion.level.trace <- list(if (!is.null(insertion)) insertion$level_trace else data.frame())
+    out$insertion.vertex.trace <- list(
+      if (!is.null(insertion)) grip.geodesic.misf.collect.insertion.vertex.trace(insertion$level_results) else data.frame()
+    )
+    out$refinement.level.trace <- list(if (!is.null(refinement)) refinement$level_trace else data.frame())
+    out$final.polish.trace <- list(if (!is.null(final.polish)) final.polish$trace else data.frame())
+  }
+
+  out
 }

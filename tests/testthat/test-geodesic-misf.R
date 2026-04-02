@@ -312,3 +312,91 @@ test_that("MISF sparse refinement lowers active-level energy and final polish lo
   expect_true(all(is.finite(polished$coords)))
   expect_lte(polished$score$gmds.energy[[1L]], before.global$gmds.energy[[1L]] + 1e-8)
 })
+
+test_that("high-level MISF-GMDS optimizer runs from a graph-first prepared object", {
+  edges <- edges.mesh(4, 4)
+  graph.prepared <- grip.prepare.graph.geodesic.mds(
+    edges = edges,
+    n = 16L,
+    tie_mode = "average"
+  )
+
+  fit <- grip.optimize.misf.geodesic.mds(
+    prepared = graph.prepared,
+    num_init = 4L,
+    num_nbrs = 6L,
+    dim = 2L,
+    top_level_restarts = 2L,
+    top_level_max_iter = 2L,
+    insertion_max_iter = 24L,
+    refinement_local_nbrs = 3L,
+    refinement_landmark_count = 2L,
+    refinement_max_iter = 2L,
+    refinement_engine = "cpp",
+    final_polish_max_iter = 2L,
+    final_polish_engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE,
+    return_frames = TRUE,
+    seed = 21L
+  )
+
+  expect_s3_class(fit, "grip_misf_gmds_fit")
+  expect_s3_class(fit$prepared, "grip_misf_gmds_prepared")
+  expect_equal(dim(fit$coords), c(16L, 2L))
+  expect_true(all(is.finite(fit$coords)))
+  expect_true(is.data.frame(fit$stage_trace))
+  expect_true(all(c("top_level", "final_polish") %in% fit$stage_trace$stage))
+  expect_true(is.list(fit$trace))
+  expect_true(is.list(fit$frames))
+  expect_true(is.matrix(fit$frames$after_top_level))
+  expect_true(is.matrix(fit$frames$final))
+  expect_true(nrow(fit$score) == 1L)
+  expect_true(is.finite(fit$score$final.gmds.energy[[1L]]))
+})
+
+test_that("MISF-GMDS scorer summarizes fits and direct coords consistently", {
+  edges <- edges.mesh(4, 4)
+  graph.prepared <- grip.prepare.graph.geodesic.mds(
+    edges = edges,
+    n = 16L,
+    tie_mode = "average"
+  )
+
+  fit <- grip.optimize.misf.geodesic.mds(
+    prepared = graph.prepared,
+    num_init = 4L,
+    num_nbrs = 6L,
+    dim = 2L,
+    top_level_restarts = 2L,
+    top_level_max_iter = 2L,
+    insertion_max_iter = 24L,
+    refinement_local_nbrs = 3L,
+    refinement_landmark_count = 2L,
+    refinement_max_iter = 2L,
+    refinement_engine = "cpp",
+    final_polish_max_iter = 2L,
+    final_polish_engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE,
+    seed = 22L
+  )
+
+  score.fit <- grip.score.misf.geodesic.mds(fit = fit, return_trace = TRUE)
+  score.direct <- grip.score.misf.geodesic.mds(
+    coords = fit$coords,
+    prepared = fit$prepared
+  )
+
+  expect_equal(score.fit$multiscale.mode[[1L]], "misf")
+  expect_equal(score.fit$top.level.n[[1L]], length(fit$prepared$top_level_vertices))
+  expect_equal(score.fit$inserted.vertex.count[[1L]], fit$prepared$n - length(fit$prepared$top_level_vertices))
+  expect_true(is.data.frame(score.fit$stage.trace[[1L]]))
+  expect_true(is.data.frame(score.fit$top.restart.summary[[1L]]))
+  expect_true(is.data.frame(score.fit$refinement.level.trace[[1L]]))
+  expect_equal(
+    score.fit$final.gmds.energy[[1L]],
+    score.direct$final.gmds.energy[[1L]],
+    tolerance = 1e-10
+  )
+})
