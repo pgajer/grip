@@ -3,6 +3,7 @@ test_that("graph family catalog covers the implemented explorer families", {
 
   expected <- c(
     "mesh",
+    "irregular_rectangle",
     "cylinder",
     "torus",
     "sphere",

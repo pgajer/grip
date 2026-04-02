@@ -492,6 +492,97 @@ gripui_graph_family_catalog <- function() {
         ripple = list(surface = "ripple", amplitude = 0.55, freq_u = 2L, freq_v = 2L)
       )
     ),
+    irregular_rectangle = .gripui.family.simple.desc(
+      id = "irregular_rectangle",
+      label = "Irregular rectangle surface",
+      category = "Irregular lifted lattices",
+      function_name = "irregular.rectangle.surface.graph",
+      summary = "Simply connected rectangular mesh with deterministic irregular planar spacing and smooth lifted-surface geometry.",
+      implementation = graph_impl,
+      arg_ids = c(
+        "h", "w", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale",
+        "row_irregularity", "col_irregularity", "row_phase", "col_phase",
+        "interior_warp", "shear", "min_step_ratio", "connectivity", "normalize"
+      ),
+      params = c(
+        list(
+          .gripui.family.param.int("h", "Height", 8L, 2L, 32L),
+          .gripui.family.param.int("w", "Width", 8L, 2L, 32L),
+          .gripui.family.param.choice(
+            "connectivity",
+            "Connectivity",
+            "orthogonal",
+            c("orthogonal", "diagonal"),
+            group = "Topology"
+          ),
+          .gripui.family.param.double(
+            "row_irregularity",
+            "Row irregularity",
+            0.20,
+            0,
+            0.9,
+            0.05,
+            group = "Irregularity",
+            help = "Controls deterministic nonuniform spacing along rows."
+          ),
+          .gripui.family.param.double(
+            "col_irregularity",
+            "Column irregularity",
+            0.20,
+            0,
+            0.9,
+            0.05,
+            group = "Irregularity",
+            help = "Controls deterministic nonuniform spacing along columns."
+          ),
+          .gripui.family.param.double("row_phase", "Row phase", 0.35, 0, 2, 0.05, group = "Irregularity"),
+          .gripui.family.param.double("col_phase", "Column phase", 0.65, 0, 2, 0.05, group = "Irregularity"),
+          .gripui.family.param.double(
+            "interior_warp",
+            "Interior warp",
+            0.08,
+            0,
+            0.5,
+            0.02,
+            group = "Irregularity",
+            help = "Smooth boundary-vanishing warp applied before lifting."
+          ),
+          .gripui.family.param.double(
+            "shear",
+            "Shear",
+            0,
+            -0.75,
+            0.75,
+            0.05,
+            group = "Irregularity"
+          ),
+          .gripui.family.param.double(
+            "min_step_ratio",
+            "Min step ratio",
+            0.30,
+            0.05,
+            0.95,
+            0.05,
+            group = "Irregularity",
+            help = "Lower bound on local row/column spacing after irregularization."
+          )
+        ),
+        .gripui.family.surface2d.params(
+          c("paraboloid", "saddle", "ripple", "flat"),
+          amplitude_default = 0.75
+        )
+      ),
+      presets = list(
+        square = list(h = 8L, w = 8L),
+        flat = list(surface = "flat", amplitude = 0),
+        more_irregular = list(
+          row_irregularity = 0.35,
+          col_irregularity = 0.35,
+          interior_warp = 0.14
+        ),
+        diagonal = list(connectivity = "diagonal")
+      )
+    ),
     cylinder = .gripui.family.simple.desc(
       id = "cylinder",
       label = "Cylinder surface",
