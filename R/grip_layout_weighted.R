@@ -369,6 +369,283 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   grip.pack.component.layouts(layouts = layouts, comp = comp, n = n, dim = dim)
 }
 
+#' Trace a weighted geometry-aware GRIP layout
+#'
+#' \code{grip.layout.trace.weighted()} records the weighted GRIP Phase 2 layout
+#' trajectory. It mirrors \code{\link{grip.layout.trace}()} but uses the
+#' weighted GRIP sister core introduced in Phase 1.
+#'
+#' @inheritParams grip.layout.globalrep.weighted
+#' @inheritParams grip.layout.trace
+#' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
+#'   \code{trace.every}, and \code{diagnostics}. \code{final} is the final
+#'   coordinate matrix. \code{frames} is a list of coordinate matrices with
+#'   \code{NA} rows for vertices that have not yet been introduced by GRIP.
+#'   \code{meta} is a data frame describing each frame with columns
+#'   \code{frame}, \code{phase}, \code{level_index}, \code{misf_level},
+#'   \code{round_in_level}, and \code{active_vertices}. When diagnostics are
+#'   requested, \code{diagnostics} is a data frame parallel to \code{meta} that
+#'   appends per-frame quality metrics such as \code{edge.length.cv},
+#'   \code{sampled.nonedge.sep.ratio}, and optional \code{procrustes.rmse}.
+#' @export
+grip.layout.trace.weighted <- function(edges = NULL,
+                                       n = NULL,
+                                       adj_list = NULL,
+                                       weight_list = NULL,
+                                       edge_weights = NULL,
+                                       dim = 3,
+                                       placement = c("barycenter", "circle"),
+                                       preset = NULL,
+                                       rounds = 160,
+                                       final_rounds = 384,
+                                       num_init = 24,
+                                       num_nbrs = 20,
+                                       r = 0.03,
+                                       s = 7.5,
+                                       repulsion_factor = 2.5,
+                                       coarse_repulsion_factor = 1.5,
+                                       coarse_repulsion_sample = 16,
+                                       coarse_repulsion_exact_below = 64,
+                                       final_anchor_factor = 0,
+                                       final_move_scale_after_first = 1,
+                                       final_mode = c("fr", "kk_repulse"),
+                                       insertion_anchor_count = 3,
+                                       insertion_anchor_scope = c("any_higher", "prev_misf"),
+                                       insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                                       level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+                                       level0_anchor_count = insertion_anchor_count,
+                                       level0_local_kk_steps = 3,
+                                       lgkk_polish_rounds = 0L,
+                                       lgkk_local_nbrs = 20L,
+                                       lgkk_landmark_count = 8L,
+                                       length_normalization = c("median", "mean", "none"),
+                                       tinit_factor = 6,
+                                       seed = 6,
+                                       trace = c("round", "level"),
+                                       trace.every = 1,
+                                       diagnostics = c("none", "light", "full"),
+                                       target_coords = NULL,
+                                       diagnostic_sample_size_nonedge = 1000L,
+                                       diagnostic_sample_size_stress = 500L,
+                                       diagnostic_nonedge_seed = 1L,
+                                       diagnostic_stress_seed = 1L) {
+  placement_missing <- missing(placement)
+  rounds_missing <- missing(rounds)
+  final_rounds_missing <- missing(final_rounds)
+  num_init_missing <- missing(num_init)
+  num_nbrs_missing <- missing(num_nbrs)
+  r_missing <- missing(r)
+  s_missing <- missing(s)
+  repulsion_factor_missing <- missing(repulsion_factor)
+
+  if (!is.null(preset)) {
+    stop("weighted GRIP presets are not implemented yet; use preset = NULL")
+  }
+
+  resolved <- grip.resolve.preset(
+    preset = NULL,
+    dim = dim,
+    placement = placement,
+    placement_missing = placement_missing,
+    rounds = rounds,
+    rounds_missing = rounds_missing,
+    final_rounds = final_rounds,
+    final_rounds_missing = final_rounds_missing,
+    num_init = num_init,
+    num_init_missing = num_init_missing,
+    num_nbrs = num_nbrs,
+    num_nbrs_missing = num_nbrs_missing,
+    r = r,
+    r_missing = r_missing,
+    s = s,
+    s_missing = s_missing,
+    repulsion_factor = repulsion_factor,
+    repulsion_factor_missing = repulsion_factor_missing
+  )
+  placement <- resolved$placement
+  rounds <- resolved$rounds
+  final_rounds <- resolved$final_rounds
+  num_init <- resolved$num_init
+  num_nbrs <- resolved$num_nbrs
+  r <- resolved$r
+  s <- resolved$s
+  repulsion_factor <- resolved$repulsion_factor
+  placement <- match.arg(placement)
+  final_mode <- match.arg(final_mode)
+  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
+  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
+  level0_insertion_mode <- match.arg(level0_insertion_mode)
+  trace <- match.arg(trace)
+  diagnostics <- match.arg(diagnostics)
+
+  if (!is.numeric(trace.every) || length(trace.every) != 1L || !is.finite(trace.every)) {
+    stop("trace.every must be a single finite numeric value")
+  }
+  trace.every <- as.integer(trace.every)
+  if (is.na(trace.every) || trace.every <= 0L) {
+    stop("trace.every must be a positive integer")
+  }
+
+  validated <- grip.validate.weighted.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = dim,
+    placement = placement,
+    seed = seed,
+    length_normalization = length_normalization,
+    caller = "grip.layout.trace.weighted"
+  )
+  adj_list <- validated$adj_list
+  weight_list <- validated$weight_list
+  n <- validated$n
+  dim <- validated$dim
+  seed <- validated$seed
+
+  if (final_rounds_missing) {
+    final_rounds <- grip.globalrep.default.final_rounds(n)
+  }
+
+  tuning <- grip.validate.globalrep.tuning.inputs(
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor,
+    coarse_repulsion_factor = coarse_repulsion_factor,
+    coarse_repulsion_sample = coarse_repulsion_sample,
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_anchor_factor = final_anchor_factor,
+    final_move_scale_after_first = final_move_scale_after_first,
+    insertion_anchor_count = insertion_anchor_count,
+    insertion_anchor_scope = insertion_anchor_scope,
+    insertion_anchor_strategy = insertion_anchor_strategy,
+    level0_insertion_mode = level0_insertion_mode,
+    level0_anchor_count = level0_anchor_count,
+    level0_local_kk_steps = level0_local_kk_steps
+  )
+  num_nbrs <- tuning$num_nbrs
+  r <- tuning$r
+  s <- tuning$s
+  repulsion_factor <- tuning$repulsion_factor
+  coarse_repulsion_factor <- tuning$coarse_repulsion_factor
+  coarse_repulsion_sample <- tuning$coarse_repulsion_sample
+  coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
+  final_anchor_factor <- tuning$final_anchor_factor
+  final_move_scale_after_first <- tuning$final_move_scale_after_first
+  insertion_anchor_count <- tuning$insertion_anchor_count
+  insertion_anchor_scope <- tuning$insertion_anchor_scope
+  insertion_anchor_strategy <- tuning$insertion_anchor_strategy
+  level0_insertion_mode <- tuning$level0_insertion_mode
+  level0_anchor_count <- tuning$level0_anchor_count
+  level0_local_kk_steps <- tuning$level0_local_kk_steps
+
+  lgkk <- grip.validate.lgkk.polish.inputs(
+    lgkk_polish_rounds = lgkk_polish_rounds,
+    lgkk_multiscale_rounds = 0L,
+    lgkk_rounds_coarse = 0L,
+    lgkk_rounds_pre_final = 0L,
+    lgkk_rounds_final = 0L,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096L
+  )
+  lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
+  lgkk_landmark_count <- lgkk$lgkk_landmark_count
+
+  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  n.comp <- length(unique(comp))
+  if (n.comp != 1L) {
+    stop(sprintf(
+      "grip.layout.trace.weighted() currently supports only connected graphs; input graph has %d connected components.",
+      n.comp
+    ))
+  }
+
+  out <- grip_layout_globalrep_weighted_trace_adj_cpp(
+    adj_list = adj_list,
+    weight_list = weight_list,
+    n = n,
+    dim = dim,
+    placement = placement,
+    rounds = as.integer(rounds),
+    final_rounds = as.integer(final_rounds),
+    num_init = as.integer(num_init),
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor,
+    coarse_repulsion_factor = coarse_repulsion_factor,
+    coarse_repulsion_sample = coarse_repulsion_sample,
+    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
+    final_anchor_factor = final_anchor_factor,
+    final_move_scale_after_first = final_move_scale_after_first,
+    insertion_anchor_count = insertion_anchor_count,
+    insertion_anchor_scope = insertion_anchor_scope,
+    insertion_anchor_strategy = insertion_anchor_strategy,
+    level0_insertion_mode = level0_insertion_mode,
+    level0_anchor_count = level0_anchor_count,
+    level0_local_kk_steps = level0_local_kk_steps,
+    final_mode = final_mode,
+    tinit_factor = as.integer(tinit_factor),
+    seed = seed,
+    trace = trace,
+    trace_every = trace.every
+  )
+
+  if (lgkk_polish_rounds > 0L) {
+    polished <- grip.apply.lgkk.polish(
+      coords = out$final,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      rounds = lgkk_polish_rounds,
+      lgkk_local_nbrs = lgkk_local_nbrs,
+      lgkk_landmark_count = lgkk_landmark_count,
+      return_trace = TRUE
+    )
+    if (length(polished$frames) > 1L) {
+      add.frames <- polished$frames[-1L]
+      add.meta <- data.frame(
+        frame = seq.int(nrow(out$meta) + 1L, nrow(out$meta) + length(add.frames)),
+        phase = rep("lgkk", length(add.frames)),
+        level_index = rep(tail(out$meta$level_index, 1L), length(add.frames)),
+        misf_level = rep(tail(out$meta$misf_level, 1L), length(add.frames)),
+        round_in_level = seq_len(length(add.frames)),
+        active_vertices = rep(n, length(add.frames)),
+        stringsAsFactors = FALSE
+      )
+      out$frames <- c(out$frames, add.frames)
+      out$meta <- rbind(out$meta, add.meta)
+    } else {
+      out$frames[[length(out$frames)]] <- polished$coords
+    }
+    out$final <- polished$coords
+    out$lgkk.polish <- polished$trace
+  } else {
+    out$lgkk.polish <- data.frame()
+  }
+
+  out$trace <- trace
+  out$trace.every <- trace.every
+  out$diagnostics <- grip.trace.compute.diagnostics(
+    frames = out$frames,
+    meta = out$meta,
+    adj.list = adj_list,
+    weight.list = weight_list,
+    diagnostics = diagnostics,
+    target.coords = target_coords,
+    sample.size.nonedge = diagnostic_sample_size_nonedge,
+    sample.size.stress = diagnostic_sample_size_stress,
+    nonedge.seed = diagnostic_nonedge_seed,
+    stress.seed = diagnostic_stress_seed
+  )
+  class(out) <- c("grip_layout_trace", class(out))
+  out
+}
+
 #' Alias of \code{grip.layout.globalrep.weighted()}
 #'
 #' @inheritParams grip.layout.globalrep.weighted
