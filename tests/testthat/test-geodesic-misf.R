@@ -89,3 +89,133 @@ test_that("grip.geodesic.misf.induced_level_graph accepts explicit level selecti
     prepared$distance_matrix[level.vertices, level.vertices, drop = FALSE]
   )
 })
+
+test_that("compiled MISF insertion recovers a realizable point from anchor distances", {
+  anchor.coords <- rbind(
+    c(0, 0),
+    c(2, 0),
+    c(0, 2),
+    c(2, 2)
+  )
+  target <- c(1.25, 0.75)
+  anchor.dist <- sqrt(rowSums((anchor.coords - matrix(target, nrow = 4L, ncol = 2L, byrow = TRUE))^2))
+
+  fit <- grip:::grip_geodesic_misf_insert_vertex_cpp(
+    anchor_coords = anchor.coords,
+    anchor_distance = anchor.dist,
+    anchor_weights = rep(1, 4L),
+    max_iter = 80L
+  )
+
+  expect_equal(as.double(fit$coord), target, tolerance = 1e-6)
+  expect_lte(fit$objective, 1e-10)
+})
+
+test_that("MISF anchor selection is deterministic and previous-level restricted", {
+  bundle <- mesh.surface.graph(
+    5, 5,
+    surface = "paraboloid",
+    amplitude = 0.2,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    num_init = 5L,
+    num_nbrs = 8L,
+    dim = 3L,
+    top_level_mode = "solve",
+    top_level_restarts = 2L,
+    top_level_max_iter = 2L,
+    seed = 4L
+  )
+  coords <- prepared$top_level_fit$coords_full
+  level <- prepared$top_level_level - 1L
+  vertex <- grip:::grip.geodesic.misf.level.insert.vertices(prepared, level)[[1L]]
+
+  first1 <- grip:::grip.geodesic.misf.select.anchors(
+    prepared = prepared,
+    coords = coords,
+    vertex = vertex,
+    level = level,
+    anchor_policy = "prev_level_first",
+    anchor_count = 4L
+  )
+  first2 <- grip:::grip.geodesic.misf.select.anchors(
+    prepared = prepared,
+    coords = coords,
+    vertex = vertex,
+    level = level,
+    anchor_policy = "prev_level_first",
+    anchor_count = 4L
+  )
+  spread1 <- grip:::grip.geodesic.misf.select.anchors(
+    prepared = prepared,
+    coords = coords,
+    vertex = vertex,
+    level = level,
+    anchor_policy = "prev_level_spread",
+    anchor_count = 4L
+  )
+  spread2 <- grip:::grip.geodesic.misf.select.anchors(
+    prepared = prepared,
+    coords = coords,
+    vertex = vertex,
+    level = level,
+    anchor_policy = "prev_level_spread",
+    anchor_count = 4L
+  )
+  prev.level <- prepared$misf$levels[[level + 2L]]
+
+  expect_identical(first1$anchor_ids, first2$anchor_ids)
+  expect_identical(spread1$anchor_ids, spread2$anchor_ids)
+  expect_true(all(first1$anchor_ids %in% prev.level))
+  expect_true(all(spread1$anchor_ids %in% prev.level))
+})
+
+test_that("MISF level insertion yields finite layouts on regular and irregular paraboloids", {
+  regular <- mesh.surface.graph(
+    6, 6,
+    surface = "paraboloid",
+    amplitude = 0.25,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  irregular <- occupied.mesh.surface.graph(
+    keep = keep.asymmetric.notches(6, 6, notch_depth = 2, notch_width = 1),
+    surface = "paraboloid",
+    amplitude = 0.25,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+
+  cases <- list(regular = regular, irregular = irregular)
+  for (case.name in names(cases)) {
+    bundle <- cases[[case.name]]
+    prepared <- grip.prepare.misf.geodesic.mds(
+      edges = bundle$edges,
+      n = bundle$n,
+      edge_weights = bundle$edge_weights,
+      tie_mode = "average",
+      num_init = 6L,
+      num_nbrs = 8L,
+      dim = 3L,
+      top_level_mode = "solve",
+      top_level_restarts = 2L,
+      top_level_max_iter = 3L,
+      seed = 8L
+    )
+    inserted <- grip:::grip.geodesic.misf.insert.all.levels(
+      prepared = prepared,
+      anchor_policy = "prev_level_spread",
+      max_iter = 40L
+    )
+
+    expect_equal(dim(inserted$coords), c(bundle$n, 3L), info = case.name)
+    expect_true(all(is.finite(inserted$coords)), info = case.name)
+    expect_true(nrow(inserted$level_trace) >= 1L, info = case.name)
+  }
+})
