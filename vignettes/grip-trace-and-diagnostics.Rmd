@@ -1,0 +1,256 @@
+---
+title: "Tracing and Diagnosing Layouts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tracing and Diagnosing Layouts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8.8,
+  fig.height = 5.2
+)
+```
+
+## Why trace a layout?
+
+Most graph-layout functions return only the final coordinate matrix. That is
+enough for plotting, but it hides the most useful debugging information:
+
+- how the multiscale hierarchy opened,
+- whether the geometry stabilized gradually or abruptly,
+- whether a parameter setting improved edge-length regularity or only moved the
+  final picture around,
+- and whether a weighted solve is actually getting closer to the intended
+  metric geometry.
+
+The trace APIs in `grip` make those questions visible:
+
+- `grip.layout.trace()` for combinatorial layouts,
+- `grip.layout.trace.weighted()` for weighted geometry-aware layouts.
+
+```{r}
+library(grip)
+```
+
+```{r}
+plot.trace.frame <- function(coords, edges, main = "", vertex.col = "black") {
+  active <- stats::complete.cases(coords[, 1:2, drop = FALSE])
+  xy <- coords[active, 1:2, drop = FALSE]
+
+  xlim <- range(xy[, 1])
+  ylim <- range(xy[, 2])
+  xpad <- 0.08 * diff(xlim)
+  ypad <- 0.08 * diff(ylim)
+  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
+  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
+
+  plot(
+    xy[, 1], xy[, 2],
+    type = "n",
+    asp = 1,
+    axes = FALSE,
+    xlab = "",
+    ylab = "",
+    xlim = xlim + c(-xpad, xpad),
+    ylim = ylim + c(-ypad, ypad),
+    main = main
+  )
+
+  active.edges <- edges[active[edges[, 1]] & active[edges[, 2]], , drop = FALSE]
+  if (nrow(active.edges) > 0) {
+    apply(active.edges, 1, function(e) {
+      graphics::segments(
+        coords[e[1], 1], coords[e[1], 2],
+        coords[e[2], 1], coords[e[2], 2],
+        col = "gray82"
+      )
+    })
+  }
+
+  points(xy[, 1], xy[, 2], pch = 16, cex = 0.55, col = vertex.col)
+}
+
+pick.trace.frames <- function(trace.obj) {
+  n <- length(trace.obj$frames)
+  unique(c(1L, max(2L, floor((n + 1L) / 2L)), n))
+}
+```
+
+## A first combinatorial trace
+
+The example below traces a 2D layout of a small mesh. Using
+`trace = "level"` keeps the vignette readable by recording the coarse
+initialization, the start of each new level, and the final layout.
+
+```{r}
+mesh.edges <- edges.mesh(5, 5)
+
+mesh.trace <- grip.layout.trace(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  preset = "mesh",
+  rounds = 12,
+  final_rounds = 16,
+  trace = "level",
+  diagnostics = "light",
+  seed = 1
+)
+
+knitr::kable(mesh.trace$meta)
+knitr::kable(mesh.trace$diagnostics[, c(
+  "frame",
+  "edge.length.cv",
+  "median.edge.length",
+  "sampled.nonedge.sep.ratio"
+)], digits = 3)
+```
+
+```{r fig.width=10.5, fig.height=3.8}
+sel <- pick.trace.frames(mesh.trace)
+
+op <- par(mfrow = c(1, length(sel)), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
+on.exit(par(op), add = TRUE)
+
+for (idx in sel) {
+  plot.trace.frame(
+    mesh.trace$frames[[idx]],
+    mesh.edges,
+    main = paste(mesh.trace$meta$phase[[idx]], "(frame", idx, ")")
+  )
+}
+```
+
+The two most useful tables are:
+
+- `meta`, which explains where each frame came from,
+- `diagnostics`, which tracks simple quality signals frame by frame.
+
+## Level traces versus round traces
+
+When you need more detail, `trace = "round"` records intermediate refinement
+rounds within each active level.
+
+```{r}
+mesh.trace.round <- grip.layout.trace(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  preset = "mesh",
+  rounds = 6,
+  final_rounds = 8,
+  trace = "round",
+  trace.every = 4,
+  diagnostics = "light",
+  seed = 1
+)
+
+data.frame(
+  trace_mode = c("level", "round"),
+  n.frames = c(length(mesh.trace$frames), length(mesh.trace.round$frames))
+)
+```
+
+Use:
+
+- `trace = "level"` for most reporting and teaching,
+- `trace = "round"` when you are diagnosing a tuning issue.
+
+## Weighted traces
+
+Weighted traces answer a slightly different question. Instead of only asking
+whether the layout becomes visually cleaner, we can also ask whether it moves
+toward a target geometry.
+
+Here the graph is a mesh whose edge lengths come from a curved 3D saddle
+surface.
+
+```{r}
+weighted.mesh <- mesh.surface.graph(
+  4, 4,
+  surface = "saddle",
+  amplitude = 0.8
+)
+
+weighted.trace <- grip.layout.trace.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  rounds = 8,
+  final_rounds = 12,
+  trace = "level",
+  diagnostics = "light",
+  target_coords = weighted.mesh$coords_surface,
+  seed = 2
+)
+
+knitr::kable(weighted.trace$meta)
+knitr::kable(weighted.trace$diagnostics[, c(
+  "frame",
+  "edge.length.cv",
+  "sampled.nonedge.sep.ratio",
+  "procrustes.rmse"
+)], digits = 3)
+```
+
+```{r fig.width=10.8, fig.height=3.8}
+sel.w <- pick.trace.frames(weighted.trace)
+
+op <- par(mfrow = c(1, length(sel.w)), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
+on.exit(par(op), add = TRUE)
+
+for (idx in sel.w) {
+  frame.xy <- grip.project.3d(weighted.trace$frames[[idx]], azimuth = 35, elevation = 20)
+  plot.trace.frame(
+    frame.xy,
+    weighted.mesh$edges,
+    main = paste(weighted.trace$meta$phase[[idx]], "(frame", idx, ")"),
+    vertex.col = "#1F3B73"
+  )
+}
+```
+
+The important extra column is `procrustes.rmse`. When a meaningful target
+geometry exists, it gives a direct per-frame measure of whether the layout is
+getting closer to that target up to rigid motion and scale.
+
+## Trace objects are analysis objects
+
+A trace object is more than a list of pictures. It can support:
+
+- frame-by-frame diagnostics,
+- manual inspection of where a solve destabilizes,
+- teaching demonstrations of the multiscale hierarchy,
+- and regression checks for future algorithm changes.
+
+The most useful components are:
+
+- `final`: the final coordinate matrix,
+- `frames`: the stored coordinate frames,
+- `meta`: frame provenance,
+- `diagnostics`: per-frame metrics,
+- `lgkk.polish`: optional post-layout LGKK result when enabled.
+
+## Practical guidance
+
+- Start with `trace = "level"` and `diagnostics = "light"`.
+- Use `trace = "round"` only when you need finer-grained debugging.
+- Supply `target_coords` when a meaningful geometric target exists.
+- Prefer weighted traces for weighted graph families; they are much more
+  interpretable than tracing the combinatorial solver on a graph with
+  nontrivial edge lengths.
+
+## Where to go next
+
+- `Getting Started with grip` gives the short overview of the main APIs.
+- `Weighted Graph Layouts with grip` focuses on weighted solving and scoring.
+- `Choosing Layouts for Real Data` shows how trace fits into a real-data
+  selection workflow.
+
