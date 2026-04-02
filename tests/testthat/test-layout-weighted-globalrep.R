@@ -183,3 +183,189 @@ test_that("weighted MISF helper is deterministic and normalization-aware", {
   expect_true(is.finite(misf1$weight_scale))
   expect_identical(misf1$length_normalization, "median")
 })
+
+test_that("weighted mesh preset matches the explicit tuning profile", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.5)
+  coords_preset <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    preset = "mesh",
+    seed = 101
+  )
+  coords_explicit <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 128,
+    final_rounds = 128,
+    num_init = 12,
+    num_nbrs = 20,
+    r = 0.10,
+    s = 4.5,
+    repulsion_factor = 1.5,
+    seed = 101
+  )
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("weighted cylinder preset matches the explicit tuning profile", {
+  graph <- cylinder.surface.graph(4, 6, surface = "hourglass", amplitude = 0.25)
+  coords_preset <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "cylinder",
+    seed = 103
+  )
+  coords_explicit <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 160,
+    final_rounds = 224,
+    num_init = 14,
+    num_nbrs = 22,
+    r = 0.08,
+    s = 5.8,
+    repulsion_factor = 1.10,
+    seed = 103
+  )
+  expect_identical(coords_preset, coords_explicit)
+})
+
+test_that("weighted sphere and irregular presets match explicit tuning profiles", {
+  sphere <- sphere.surface.graph(4, 5, surface = "ellipsoid", amplitude = 0.15)
+  irregular <- irregular.annulus.surface.graph(
+    rings = 4,
+    outer_count = 16,
+    surface = "folded",
+    amplitude = 0.25
+  )
+
+  sphere_preset <- grip.layout.weighted(
+    edges = sphere$edges,
+    edge_weights = sphere$edge_weights,
+    n = sphere$n,
+    dim = 3,
+    preset = "sphere",
+    seed = 107
+  )
+  sphere_explicit <- grip.layout.weighted(
+    edges = sphere$edges,
+    edge_weights = sphere$edge_weights,
+    n = sphere$n,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 176,
+    final_rounds = 240,
+    num_init = 14,
+    num_nbrs = 24,
+    r = 0.06,
+    s = 6.5,
+    repulsion_factor = 0.90,
+    seed = 107
+  )
+
+  irregular_preset <- grip.layout.weighted(
+    edges = irregular$edges,
+    edge_weights = irregular$edge_weights,
+    n = irregular$n,
+    dim = 3,
+    preset = "irregular",
+    seed = 109
+  )
+  irregular_explicit <- grip.layout.weighted(
+    edges = irregular$edges,
+    edge_weights = irregular$edge_weights,
+    n = irregular$n,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 192,
+    final_rounds = 256,
+    num_init = 18,
+    num_nbrs = 24,
+    r = 0.05,
+    s = 6.5,
+    repulsion_factor = 1.10,
+    seed = 109
+  )
+
+  expect_identical(sphere_preset, sphere_explicit)
+  expect_identical(irregular_preset, irregular_explicit)
+})
+
+test_that("weighted tree preset matches explicit tuning profile and overrides cleanly", {
+  tree <- kary.tree.weighted.graph(k = 2, depth = 3)
+  coords_preset <- grip.layout.weighted(
+    edges = tree$edges,
+    edge_weights = tree$edge_weights,
+    n = tree$n,
+    dim = 2,
+    preset = "tree",
+    seed = 113
+  )
+  coords_explicit <- grip.layout.weighted(
+    edges = tree$edges,
+    edge_weights = tree$edge_weights,
+    n = tree$n,
+    dim = 2,
+    placement = "circle",
+    rounds = 64,
+    final_rounds = 160,
+    num_init = 28,
+    num_nbrs = 8,
+    r = 0.05,
+    s = 7.5,
+    repulsion_factor = 0.0,
+    seed = 113
+  )
+  coords_override <- grip.layout.weighted(
+    edges = tree$edges,
+    edge_weights = tree$edge_weights,
+    n = tree$n,
+    dim = 2,
+    preset = "tree",
+    repulsion_factor = 0.5,
+    seed = 127
+  )
+  coords_override_explicit <- grip.layout.weighted(
+    edges = tree$edges,
+    edge_weights = tree$edge_weights,
+    n = tree$n,
+    dim = 2,
+    placement = "circle",
+    rounds = 64,
+    final_rounds = 160,
+    num_init = 28,
+    num_nbrs = 8,
+    r = 0.05,
+    s = 7.5,
+    repulsion_factor = 0.5,
+    seed = 127
+  )
+
+  expect_identical(coords_preset, coords_explicit)
+  expect_identical(coords_override, coords_override_explicit)
+})
+
+test_that("invalid weighted preset is rejected", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
+  expect_error(
+    grip.layout.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      preset = "bogus",
+      seed = 131
+    ),
+    "preset for grip.layout.globalrep.weighted must be NULL"
+  )
+})

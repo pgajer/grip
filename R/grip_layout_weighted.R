@@ -29,6 +29,147 @@ grip.normalize.weight_list <- function(weight_list,
   )
 }
 
+grip.normalize.weighted.preset <- function(preset, fn = "grip.layout.weighted") {
+  if (is.null(preset)) {
+    return(NULL)
+  }
+  allowed <- c("carpet", "mesh", "cylinder", "torus", "sphere", "irregular", "tree")
+  if (!is.character(preset) || length(preset) != 1L || is.na(preset)) {
+    stop(sprintf(
+      "preset for %s must be NULL, %s",
+      fn,
+      paste(sprintf("'%s'", allowed), collapse = ", ")
+    ))
+  }
+  if (preset %in% allowed) {
+    return(preset)
+  }
+  stop(sprintf(
+    "preset for %s must be NULL, %s",
+    fn,
+    paste(sprintf("'%s'", allowed), collapse = ", ")
+  ))
+}
+
+grip.weighted.carpet.preset.defaults <- function() {
+  grip.carpet.preset.defaults()
+}
+
+grip.weighted.mesh.preset.defaults <- function() {
+  grip.mesh.preset.defaults()
+}
+
+grip.weighted.cylinder.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 160L,
+    final_rounds = 224L,
+    num_init = 14L,
+    num_nbrs = 22L,
+    r = 0.08,
+    s = 5.8,
+    repulsion_factor = 1.10
+  )
+}
+
+grip.weighted.torus.preset.defaults <- function() {
+  grip.torus.preset.defaults()
+}
+
+grip.weighted.sphere.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 176L,
+    final_rounds = 240L,
+    num_init = 14L,
+    num_nbrs = 24L,
+    r = 0.06,
+    s = 6.5,
+    repulsion_factor = 0.90
+  )
+}
+
+grip.weighted.irregular.preset.defaults <- function() {
+  list(
+    placement = "barycenter",
+    rounds = 192L,
+    final_rounds = 256L,
+    num_init = 18L,
+    num_nbrs = 24L,
+    r = 0.05,
+    s = 6.5,
+    repulsion_factor = 1.10
+  )
+}
+
+grip.weighted.tree.preset.defaults <- function(dim = 2L) {
+  grip.tree.preset.defaults(dim = dim)
+}
+
+grip.resolve.weighted.preset <- function(preset,
+                                         dim = 2L,
+                                         placement,
+                                         placement_missing,
+                                         rounds,
+                                         rounds_missing,
+                                         final_rounds,
+                                         final_rounds_missing,
+                                         num_init,
+                                         num_init_missing,
+                                         num_nbrs,
+                                         num_nbrs_missing,
+                                         r,
+                                         r_missing,
+                                         s,
+                                         s_missing,
+                                         repulsion_factor,
+                                         repulsion_factor_missing) {
+  if (is.null(preset)) {
+    return(list(
+      placement = placement,
+      rounds = rounds,
+      final_rounds = final_rounds,
+      num_init = num_init,
+      num_nbrs = num_nbrs,
+      r = r,
+      s = s,
+      repulsion_factor = repulsion_factor
+    ))
+  }
+
+  defaults <- switch(
+    preset,
+    carpet = grip.weighted.carpet.preset.defaults(),
+    mesh = grip.weighted.mesh.preset.defaults(),
+    cylinder = grip.weighted.cylinder.preset.defaults(),
+    torus = grip.weighted.torus.preset.defaults(),
+    sphere = grip.weighted.sphere.preset.defaults(),
+    irregular = grip.weighted.irregular.preset.defaults(),
+    tree = grip.weighted.tree.preset.defaults(dim = dim),
+    stop("unknown weighted preset")
+  )
+
+  if (placement_missing) placement <- defaults$placement
+  if (rounds_missing) rounds <- defaults$rounds
+  if (final_rounds_missing) final_rounds <- defaults$final_rounds
+  if (num_init_missing) num_init <- defaults$num_init
+  if (num_nbrs_missing) num_nbrs <- defaults$num_nbrs
+  if (r_missing) r <- defaults$r
+  if (s_missing) s <- defaults$s
+  if (repulsion_factor_missing) repulsion_factor <- defaults$repulsion_factor
+
+  list(
+    placement = placement,
+    rounds = rounds,
+    final_rounds = final_rounds,
+    num_init = num_init,
+    num_nbrs = num_nbrs,
+    r = r,
+    s = s,
+    repulsion_factor = repulsion_factor
+  )
+}
+
 grip.validate.weighted.layout.inputs <- function(edges = NULL,
                                                  n = NULL,
                                                  adj_list = NULL,
@@ -130,6 +271,15 @@ grip.build.misf.weighted <- function(edges = NULL,
 #' refinement forces.
 #'
 #' @inheritParams grip.layout.globalrep
+#' @param preset Optional weighted tuning preset. \code{NULL} uses the
+#'   quality-first defaults for the weighted core. \code{"mesh"} targets
+#'   rectangular and near-mesh weighted surfaces, \code{"cylinder"} targets
+#'   cylindrical grids, \code{"torus"} targets wrapped surface grids,
+#'   \code{"sphere"} targets closed near-spherical meshes,
+#'   \code{"irregular"} targets irregular manifold-like weighted families,
+#'   \code{"tree"} targets intrinsic weighted trees, and \code{"carpet"} keeps
+#'   a high-neighborhood profile for carpet-like recursive lattices. Explicit
+#'   tuning arguments override the preset field by field.
 #' @param length_normalization Global edge-length normalization:
 #'   \code{"median"} (default), \code{"mean"}, or \code{"none"}.
 #' @return A numeric matrix with \code{n} rows and \code{dim} columns.
@@ -177,12 +327,13 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  if (!is.null(preset)) {
-    stop("weighted GRIP presets are not implemented yet; use preset = NULL")
-  }
+  preset <- grip.normalize.weighted.preset(
+    preset,
+    fn = "grip.layout.globalrep.weighted"
+  )
 
-  resolved <- grip.resolve.preset(
-    preset = NULL,
+  resolved <- grip.resolve.weighted.preset(
+    preset = preset,
     dim = dim,
     placement = placement,
     placement_missing = placement_missing,
@@ -234,7 +385,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   dim <- validated$dim
   seed <- validated$seed
 
-  if (final_rounds_missing) {
+  if (is.null(preset) && final_rounds_missing) {
     final_rounds <- grip.globalrep.default.final_rounds(n)
   }
 
@@ -438,12 +589,13 @@ grip.layout.trace.weighted <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  if (!is.null(preset)) {
-    stop("weighted GRIP presets are not implemented yet; use preset = NULL")
-  }
+  preset <- grip.normalize.weighted.preset(
+    preset,
+    fn = "grip.layout.trace.weighted"
+  )
 
-  resolved <- grip.resolve.preset(
-    preset = NULL,
+  resolved <- grip.resolve.weighted.preset(
+    preset = preset,
     dim = dim,
     placement = placement,
     placement_missing = placement_missing,
@@ -504,7 +656,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
   dim <- validated$dim
   seed <- validated$seed
 
-  if (final_rounds_missing) {
+  if (is.null(preset) && final_rounds_missing) {
     final_rounds <- grip.globalrep.default.final_rounds(n)
   }
 

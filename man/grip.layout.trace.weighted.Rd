@@ -66,16 +66,15 @@ weights must be finite and strictly positive.}
 
 \item{placement}{Initial placement strategy. "circle" is only used for 2D.}
 
-\item{preset}{Optional tuning preset. \code{NULL} uses the quality-first
-defaults. \code{"carpet"} applies a preset tuned for
-Sierpinski-carpet-like graphs and validated on carpet levels 3 and 4.
-\code{"mesh"} applies a preset tuned for rectangular lattice graphs and
-validated on 8x8 and 12x12 mesh layouts. \code{"torus"} applies a preset
-tuned for 3D torus layouts and validated on torus sizes from 8x8 through
-20x20. \code{"tree"} applies a preset tuned for symmetric force-directed
-layouts of tree-like graphs and validated on binary trees of depths 5 and
-6. Presets only fill in tuning arguments that you did not supply
-explicitly.}
+\item{preset}{Optional weighted tuning preset. \code{NULL} uses the
+quality-first defaults for the weighted core. \code{"mesh"} targets
+rectangular and near-mesh weighted surfaces, \code{"cylinder"} targets
+cylindrical grids, \code{"torus"} targets wrapped surface grids,
+\code{"sphere"} targets closed near-spherical meshes,
+\code{"irregular"} targets irregular manifold-like weighted families,
+\code{"tree"} targets intrinsic weighted trees, and \code{"carpet"} keeps
+a high-neighborhood profile for carpet-like recursive lattices. Explicit
+tuning arguments override the preset field by field.}
 
 \item{rounds}{Initial rounds for refinement.}
 
