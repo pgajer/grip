@@ -273,3 +273,103 @@ test_that("weighted trace rejects invalid metric neighbor caps", {
     "metric_neighbor_cap must be a positive integer"
   )
 })
+
+test_that("weighted trace final matches weighted layout for multiscale LGKK", {
+  graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
+  tr <- grip.layout.trace.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    trace = "round",
+    trace.every = 1,
+    seed = 239
+  )
+  coords <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    seed = 239
+  )
+
+  expect_identical(tr$final, coords)
+  expect_true(any(tr$meta$phase == "lgkk"))
+})
+
+test_that("weighted trace final matches weighted layout for staged multiscale LGKK", {
+  graph <- cylinder.surface.graph(5, 6, surface = "hourglass", amplitude = 0.25)
+  tr <- grip.layout.trace.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 6,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    trace = "round",
+    trace.every = 1,
+    seed = 241
+  )
+  coords <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 6,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 241
+  )
+
+  expect_identical(tr$final, coords)
+  expect_true(any(tr$meta$phase == "lgkk"))
+})

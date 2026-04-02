@@ -44,7 +44,7 @@ A list with weighted MISF levels, \code{vertex_depth},
 }
 \description{
 \code{grip.build.misf.weighted()} builds the weighted max-independent-set
-filtration used by the weighted GRIP Phase 1 layout core. It is primarily a
+filtration used by the weighted GRIP layout core. It is primarily a
 developer and benchmarking helper for comparing weighted and combinatorial
 hierarchies on the same graph.
 }

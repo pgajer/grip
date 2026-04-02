@@ -532,6 +532,14 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
     std::string level0_insertion_mode,
     int level0_anchor_count,
     int level0_local_kk_steps,
+    int lgkk_multiscale_rounds,
+    int lgkk_rounds_coarse,
+    int lgkk_rounds_pre_final,
+    int lgkk_rounds_final,
+    int lgkk_local_nbrs,
+    int lgkk_landmark_count,
+    std::string lgkk_multiscale_scope,
+    int lgkk_active_limit,
     std::string final_mode,
     int tinit_factor,
     Rcpp::Nullable<int> seed,
@@ -562,13 +570,13 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
                                    final_anchor_factor,
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   1,
+                                   lgkk_multiscale_rounds,
+                                   lgkk_rounds_coarse,
+                                   lgkk_rounds_pre_final,
+                                   lgkk_rounds_final,
+                                   lgkk_local_nbrs,
+                                   lgkk_landmark_count,
+                                   lgkk_active_limit,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -617,6 +625,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
     size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
     size_tt insertion_strategy = insertion_anchor_strategy_from_string(insertion_anchor_strategy);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
+    size_tt lgkk_scope = lgkk_scope_from_string(lgkk_multiscale_scope);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -642,14 +651,14 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps),
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 LGKK_SCOPE_ALL,
-                 1,
+                 static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_rounds_coarse),
+                 static_cast<size_tt>(lgkk_rounds_pre_final),
+                 static_cast<size_tt>(lgkk_rounds_final),
+                 static_cast<size_tt>(lgkk_local_nbrs),
+                 static_cast<size_tt>(lgkk_landmark_count),
+                 lgkk_scope,
+                 static_cast<size_tt>(lgkk_active_limit),
                  true);
     dg.configure_weighted_metric_search(static_cast<size_tt>(metric_neighbor_cap));
 
@@ -1275,6 +1284,14 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     std::string level0_insertion_mode,
     int level0_anchor_count,
     int level0_local_kk_steps,
+    int lgkk_multiscale_rounds,
+    int lgkk_rounds_coarse,
+    int lgkk_rounds_pre_final,
+    int lgkk_rounds_final,
+    int lgkk_local_nbrs,
+    int lgkk_landmark_count,
+    std::string lgkk_multiscale_scope,
+    int lgkk_active_limit,
     std::string final_mode,
     int tinit_factor,
     Rcpp::Nullable<int> seed,
@@ -1311,13 +1328,13 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
                                    final_anchor_factor,
                                    final_move_scale_after_first,
                                    insertion_anchor_count,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   0,
-                                   1,
+                                   lgkk_multiscale_rounds,
+                                   lgkk_rounds_coarse,
+                                   lgkk_rounds_pre_final,
+                                   lgkk_rounds_final,
+                                   lgkk_local_nbrs,
+                                   lgkk_landmark_count,
+                                   lgkk_active_limit,
                                    level0_anchor_count,
                                    level0_local_kk_steps);
     if(rounds <= 0)
@@ -1366,6 +1383,7 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     size_tt insertion_scope = insertion_anchor_scope_from_string(insertion_anchor_scope);
     size_tt insertion_strategy = insertion_anchor_strategy_from_string(insertion_anchor_strategy);
     size_tt level0_mode = level0_insertion_mode_from_string(level0_insertion_mode);
+    size_tt lgkk_scope = lgkk_scope_from_string(lgkk_multiscale_scope);
 
     DrawGraph dg(graph,
                  static_cast<size_tt>(dim),
@@ -1391,14 +1409,14 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
                  level0_mode,
                  static_cast<size_tt>(level0_anchor_count),
                  static_cast<size_tt>(level0_local_kk_steps),
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 0,
-                 LGKK_SCOPE_ALL,
-                 1,
+                 static_cast<size_tt>(lgkk_multiscale_rounds),
+                 static_cast<size_tt>(lgkk_rounds_coarse),
+                 static_cast<size_tt>(lgkk_rounds_pre_final),
+                 static_cast<size_tt>(lgkk_rounds_final),
+                 static_cast<size_tt>(lgkk_local_nbrs),
+                 static_cast<size_tt>(lgkk_landmark_count),
+                 lgkk_scope,
+                 static_cast<size_tt>(lgkk_active_limit),
                  true);
     dg.configure_weighted_metric_search(static_cast<size_tt>(metric_neighbor_cap));
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,

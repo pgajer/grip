@@ -446,3 +446,127 @@ test_that("invalid weighted metric neighbor cap is rejected", {
     "metric_neighbor_cap must be a positive integer"
   )
 })
+
+test_that("weighted globalrep multiscale LGKK knobs can change the layout", {
+  graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
+  coords_base <- grip.layout.globalrep.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 0,
+    seed = 167
+  )
+  coords_lgkk <- grip.layout.globalrep.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 2,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 4,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512,
+    seed = 167
+  )
+
+  expect_gt(max(abs(coords_base - coords_lgkk)), 1e-6)
+})
+
+test_that("weighted globalrep staged LGKK budgets can change layouts", {
+  graph <- cylinder.surface.graph(5, 6, surface = "hourglass", amplitude = 0.25)
+  coords_shared <- grip.layout.globalrep.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 3,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 6,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 173
+  )
+  coords_staged <- grip.layout.globalrep.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    coarse_repulsion_factor = 0.3,
+    coarse_repulsion_sample = 8,
+    coarse_repulsion_exact_below = 32,
+    lgkk_multiscale_rounds = 0,
+    lgkk_rounds_coarse = 1,
+    lgkk_rounds_pre_final = 2,
+    lgkk_rounds_final = 4,
+    lgkk_local_nbrs = 6,
+    lgkk_landmark_count = 6,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 4096,
+    seed = 173
+  )
+
+  expect_gt(max(abs(coords_shared - coords_staged)), 1e-6)
+})
+
+test_that("weighted globalrep validates multiscale LGKK round budgets", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
+  expect_error(
+    grip.layout.globalrep.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      lgkk_rounds_coarse = -1,
+      seed = 179
+    ),
+    "lgkk_rounds_coarse must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      lgkk_rounds_pre_final = -1,
+      seed = 181
+    ),
+    "lgkk_rounds_pre_final must be a non-negative integer"
+  )
+  expect_error(
+    grip.layout.globalrep.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      lgkk_rounds_final = -1,
+      seed = 183
+    ),
+    "lgkk_rounds_final must be a non-negative integer"
+  )
+})
