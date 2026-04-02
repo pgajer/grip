@@ -369,3 +369,80 @@ test_that("invalid weighted preset is rejected", {
     "preset for grip.layout.globalrep.weighted must be NULL"
   )
 })
+
+test_that("weighted metric neighbor cap preserves exact results when sufficiently large", {
+  graph <- torus.surface.graph(5, 5, surface = "pinched", amplitude = 0.18)
+  coords_exact <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "torus",
+    seed = 151
+  )
+  coords_capped <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "torus",
+    metric_neighbor_cap = 128,
+    seed = 151
+  )
+
+  expect_identical(coords_exact, coords_capped)
+})
+
+test_that("weighted metric neighbor cap yields deterministic approximate layouts", {
+  graph <- irregular.annulus.surface.graph(
+    rings = 5,
+    outer_count = 18,
+    surface = "folded",
+    amplitude = 0.3
+  )
+  coords1 <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "irregular",
+    metric_neighbor_cap = 8,
+    seed = 157
+  )
+  coords2 <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "irregular",
+    metric_neighbor_cap = 8,
+    seed = 157
+  )
+  coords_exact <- grip.layout.weighted(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    preset = "irregular",
+    seed = 157
+  )
+
+  expect_true(all(is.finite(coords1)))
+  expect_identical(coords1, coords2)
+  expect_gt(max(abs(coords1 - coords_exact)), 1e-8)
+})
+
+test_that("invalid weighted metric neighbor cap is rejected", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
+  expect_error(
+    grip.layout.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      metric_neighbor_cap = 0,
+      seed = 163
+    ),
+    "metric_neighbor_cap must be a positive integer"
+  )
+})

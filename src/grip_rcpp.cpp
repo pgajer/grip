@@ -534,7 +534,8 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
     int level0_local_kk_steps,
     std::string final_mode,
     int tinit_factor,
-    Rcpp::Nullable<int> seed)
+    Rcpp::Nullable<int> seed,
+    int metric_neighbor_cap)
 {
     if(dim != 2 && dim != 3)
         Rcpp::stop("dim must be 2 or 3");
@@ -576,6 +577,8 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
         final_rounds = 1;
     if(tinit_factor <= 0)
         tinit_factor = 1;
+    if(metric_neighbor_cap < 0)
+        Rcpp::stop("metric_neighbor_cap must be >= 0");
 
     std::vector<std::vector<size_tt>> adj(n);
     std::vector<std::vector<coord_t>> weights(n);
@@ -648,6 +651,7 @@ Rcpp::NumericMatrix grip_layout_globalrep_weighted_adj_cpp(
                  LGKK_SCOPE_ALL,
                  1,
                  true);
+    dg.configure_weighted_metric_search(static_cast<size_tt>(metric_neighbor_cap));
 
     dg.mish_engine();
 
@@ -1275,7 +1279,8 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     int tinit_factor,
     Rcpp::Nullable<int> seed,
     std::string trace,
-    int trace_every)
+    int trace_every,
+    int metric_neighbor_cap)
 {
     if(dim != 2 && dim != 3)
         Rcpp::stop("dim must be 2 or 3");
@@ -1321,6 +1326,8 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
         final_rounds = 1;
     if(tinit_factor <= 0)
         tinit_factor = 1;
+    if(metric_neighbor_cap < 0)
+        Rcpp::stop("metric_neighbor_cap must be >= 0");
 
     std::vector<std::vector<size_tt>> adj(n);
     std::vector<std::vector<coord_t>> weights(n);
@@ -1393,6 +1400,7 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
                  LGKK_SCOPE_ALL,
                  1,
                  true);
+    dg.configure_weighted_metric_search(static_cast<size_tt>(metric_neighbor_cap));
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
                        static_cast<size_tt>(trace_every));
 

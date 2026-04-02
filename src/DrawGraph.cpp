@@ -102,6 +102,8 @@ DrawGraph::DrawGraph(const Graph &_graph,
                 ? LGKK_SCOPE_COARSE
                 : LGKK_SCOPE_ALL),
   lgkkActiveLimit(std::max<size_tt>(1, _lgkkActiveLimit)),
+  metricNeighborCap(0),
+  metricScratchEpoch(0),
   weightedCore(_weightedCore),
   activeVertCount(0),
   misfLevel(0),
@@ -302,6 +304,11 @@ void DrawGraph::configure_trace(size_tt mode, size_tt every)
     traceMisfLevels.clear();
     traceRounds.clear();
     traceActiveCounts.clear();
+}
+
+void DrawGraph::configure_weighted_metric_search(size_tt maxSettled)
+{
+    metricNeighborCap = maxSettled;
 }
 
 void DrawGraph::capture_trace_snapshot(const char *phase,

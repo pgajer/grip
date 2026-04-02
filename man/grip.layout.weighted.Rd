@@ -35,6 +35,7 @@ grip.layout.weighted(
   lgkk_polish_rounds = 0L,
   lgkk_local_nbrs = 20L,
   lgkk_landmark_count = 8L,
+  metric_neighbor_cap = NULL,
   length_normalization = c("median", "mean", "none"),
   tinit_factor = 6,
   seed = 6,
@@ -159,6 +160,13 @@ vertex in the LGKK sparse local set when either LGKK stage is enabled.}
 \item{lgkk_landmark_count}{Number of farthest-point landmarks retained per
 vertex in the LGKK sparse long-range set when either LGKK stage is
 enabled.}
+
+\item{metric_neighbor_cap}{Optional cap on the number of settled Dijkstra
+vertices used when building weighted neighborhood caches for inserted
+vertices. \code{NULL} (default) keeps the exact weighted neighborhood
+search, but now stops as soon as the required weighted neighbors and
+anchors are filled. Supplying a positive integer enables an approximate
+weighted neighborhood mode for larger graphs.}
 
 \item{length_normalization}{Global edge-length normalization:
 \code{"median"} (default), \code{"mean"}, or \code{"none"}.}
