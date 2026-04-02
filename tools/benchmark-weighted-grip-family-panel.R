@@ -7,9 +7,9 @@ out_arg <- grep("^--out=", args, value = TRUE)
 out_override <- if (length(out_arg) > 0L) sub("^--out=", "", out_arg[[1L]]) else NULL
 
 run_tag <- if (smoke) {
-  sprintf("weighted-grip-phase3-smoke-%s", format(Sys.Date(), "%Y-%m-%d"))
+  sprintf("weighted-grip-phase5-smoke-%s", format(Sys.Date(), "%Y-%m-%d"))
 } else {
-  sprintf("weighted-grip-phase3-family-panel-%s", format(Sys.Date(), "%Y-%m-%d"))
+  sprintf("weighted-grip-phase5-family-panel-%s", format(Sys.Date(), "%Y-%m-%d"))
 }
 
 repo_root <- normalizePath(".", winslash = "/", mustWork = TRUE)
@@ -51,60 +51,113 @@ benchmark_cfg <- list(
   lgkk_max_iter = if (smoke) 4L else 10L,
   lgkk_local_nbrs = if (smoke) 8L else 10L,
   lgkk_landmark_count = if (smoke) 8L else 10L,
+  weighted_core_lgkk_rounds = if (smoke) 1L else 3L,
+  weighted_core_lgkk_scope = "all",
+  weighted_core_lgkk_active_limit = if (smoke) 512L else 4096L,
   weighted_lgkk_polish_rounds = if (smoke) 4L else 8L,
   stress_sample = if (smoke) 500L else 1500L,
   jitter_xy = 0.08,
   jitter_z = 0.08
 )
 
-family_configs <- list(
+family_configs_all <- list(
   list(
     id = "mesh",
     label = "Mesh saddle",
     preset = "mesh",
-    builder = function() mesh.surface.graph(8, 8, surface = "saddle", amplitude = 0.75)
+    builder = function() mesh.surface.graph(
+      if (smoke) 6 else 8,
+      if (smoke) 6 else 8,
+      surface = "saddle",
+      amplitude = 0.75
+    )
   ),
   list(
     id = "cylinder",
     label = "Cylinder hourglass",
     preset = "cylinder",
-    builder = function() cylinder.surface.graph(8, 12, surface = "hourglass", amplitude = 0.30)
+    builder = function() cylinder.surface.graph(
+      if (smoke) 6 else 8,
+      if (smoke) 8 else 12,
+      surface = "hourglass",
+      amplitude = 0.30
+    )
   ),
   list(
     id = "torus",
     label = "Torus pinched",
     preset = "torus",
-    builder = function() torus.surface.graph(8, 8, surface = "pinched", amplitude = 0.22)
+    builder = function() torus.surface.graph(
+      if (smoke) 6 else 8,
+      if (smoke) 6 else 8,
+      surface = "pinched",
+      amplitude = 0.22
+    )
   ),
   list(
     id = "sphere",
     label = "Sphere wavy",
     preset = "sphere",
-    builder = function() sphere.surface.graph(8, 10, surface = "wavy", amplitude = 0.18)
+    builder = function() sphere.surface.graph(
+      if (smoke) 6 else 8,
+      if (smoke) 8 else 10,
+      surface = "wavy",
+      amplitude = 0.18
+    )
+  ),
+  list(
+    id = "sierpinski_carpet",
+    label = "Sierpinski carpet ripple",
+    preset = "carpet",
+    builder = function() sierpinski.carpet.surface.graph(
+      level = 2,
+      surface = "ripple",
+      amplitude = 0.70,
+      freq_u = 2,
+      freq_v = 1
+    )
+  ),
+  list(
+    id = "cube_channel_network",
+    label = "Cube channel network twisted",
+    preset = "irregular",
+    builder = function() cube.channel.network.surface.graph(
+      level = if (smoke) 1 else 2,
+      surface = "twisted",
+      amplitude = 0.16,
+      twist = 0.55
+    )
   ),
   list(
     id = "irregular_annulus",
     label = "Irregular annulus folded",
     preset = "irregular",
     builder = function() irregular.annulus.surface.graph(
-      rings = 6,
-      outer_count = 24,
+      rings = if (smoke) 5 else 6,
+      outer_count = if (smoke) 18 else 24,
       surface = "folded",
       amplitude = 0.45
     )
   ),
   list(
-    id = "irregular_sphere",
-    label = "Irregular sphere ellipsoid",
+    id = "irregular_torus",
+    label = "Irregular torus pinched",
     preset = "irregular",
-    builder = function() irregular.sphere.surface.graph(
-      bands = 6,
-      equator_count = 18,
-      surface = "ellipsoid",
-      amplitude = 0.20
+    builder = function() irregular.torus.surface.graph(
+      major_rings = if (smoke) 6 else 7,
+      tube_count = if (smoke) 10 else 14,
+      surface = "pinched",
+      amplitude = 0.18
     )
   )
 )
+
+family_configs <- if (smoke) {
+  keep <- c("mesh", "torus", "sierpinski_carpet", "cube_channel_network", "irregular_torus")
+  family_configs_all[vapply(family_configs_all, function(cfg) cfg$id %in% keep, logical(1L))]
+} else {
+  family_configs_all
+}
 
 fmt_num <- function(x, digits = 4L) {
   ifelse(is.finite(x), formatC(x, format = "f", digits = digits), "NA")
@@ -381,6 +434,27 @@ evaluate_case <- function(spec, dim, seed) {
   row_wgrip$runtime_sec <- unname(timed_wgrip[["elapsed"]])
   out$wgrip <- row_wgrip
 
+  timed_wgrip_core_lgkk <- system.time({
+    coords_wgrip_core_lgkk <- grip.layout.globalrep.weighted(
+      edges = spec$edges,
+      edge_weights = spec$edge_weights,
+      n = spec$n,
+      dim = dim,
+      preset = spec$preset,
+      lgkk_multiscale_rounds = benchmark_cfg$weighted_core_lgkk_rounds,
+      lgkk_local_nbrs = benchmark_cfg$lgkk_local_nbrs,
+      lgkk_landmark_count = benchmark_cfg$lgkk_landmark_count,
+      lgkk_multiscale_scope = benchmark_cfg$weighted_core_lgkk_scope,
+      lgkk_active_limit = benchmark_cfg$weighted_core_lgkk_active_limit,
+      seed = seed_method(3L)
+    )
+  })
+  row_wgrip_core_lgkk <- score_layout(spec, coords_wgrip_core_lgkk, dim = dim, seed = seed)
+  row_wgrip_core_lgkk$method <- "wgrip_core_lgkk"
+  row_wgrip_core_lgkk$method_label <- "Weighted GRIP + core LGKK"
+  row_wgrip_core_lgkk$runtime_sec <- unname(timed_wgrip_core_lgkk[["elapsed"]])
+  out$wgrip_core_lgkk <- row_wgrip_core_lgkk
+
   timed_wgrip_lgkk <- system.time({
     coords_wgrip_lgkk <- grip.layout.globalrep.weighted(
       edges = spec$edges,
@@ -391,14 +465,14 @@ evaluate_case <- function(spec, dim, seed) {
       lgkk_polish_rounds = benchmark_cfg$weighted_lgkk_polish_rounds,
       lgkk_local_nbrs = benchmark_cfg$lgkk_local_nbrs,
       lgkk_landmark_count = benchmark_cfg$lgkk_landmark_count,
-      seed = seed_method(3L)
+      seed = seed_method(4L)
     )
   })
   row_wgrip_lgkk <- score_layout(spec, coords_wgrip_lgkk, dim = dim, seed = seed)
-  row_wgrip_lgkk$method <- "wgrip_lgkk"
-  row_wgrip_lgkk$method_label <- "Weighted GRIP + LGKK"
+  row_wgrip_lgkk$method <- "wgrip_polish_lgkk"
+  row_wgrip_lgkk$method_label <- "Weighted GRIP + polish LGKK"
   row_wgrip_lgkk$runtime_sec <- unname(timed_wgrip_lgkk[["elapsed"]])
-  out$wgrip_lgkk <- row_wgrip_lgkk
+  out$wgrip_polish_lgkk <- row_wgrip_lgkk
 
   timed_kk <- system.time({
     coords_kk <- igraph::layout_with_kk(
@@ -449,11 +523,12 @@ evaluate_case <- function(spec, dim, seed) {
 write_metric_plot <- function(summary_df, metric, ylab, path, log_scale = FALSE) {
   families <- vapply(family_configs, `[[`, "", "id")
   family_labels <- vapply(family_configs, `[[`, "", "label")
-  method_order <- c("grip", "wgrip", "wgrip_lgkk", "kk", "gkk", "lgkk")
+  method_order <- c("grip", "wgrip", "wgrip_core_lgkk", "wgrip_polish_lgkk", "kk", "gkk", "lgkk")
   method_labels <- c(
     grip = "GRIP",
     wgrip = "Weighted GRIP",
-    wgrip_lgkk = "Weighted GRIP + LGKK",
+    wgrip_core_lgkk = "Weighted GRIP + core LGKK",
+    wgrip_polish_lgkk = "Weighted GRIP + polish LGKK",
     kk = "KK",
     gkk = "KK->GKK",
     lgkk = "KK->LGKK"
@@ -461,7 +536,8 @@ write_metric_plot <- function(summary_df, metric, ylab, path, log_scale = FALSE)
   method_cols <- c(
     grip = "#6c757d",
     wgrip = "#355070",
-    wgrip_lgkk = "#588157",
+    wgrip_core_lgkk = "#588157",
+    wgrip_polish_lgkk = "#2a9d8f",
     kk = "#9c6644",
     gkk = "#bc6c25",
     lgkk = "#6a4c93"
@@ -545,7 +621,7 @@ write_metric_plot <- function(summary_df, metric, ylab, path, log_scale = FALSE)
   }
 
   graphics::mtext(
-    "Phase 3 weighted GRIP family benchmark",
+    "Phase 5 weighted GRIP family benchmark",
     outer = TRUE,
     cex = 1.15,
     font = 2
@@ -555,7 +631,12 @@ write_metric_plot <- function(summary_df, metric, ylab, path, log_scale = FALSE)
 
 write_readme <- function(path, specs, summary_df) {
   lines <- c(
-    "# Weighted GRIP Phase 3 benchmark",
+    "# Weighted GRIP Phase 5 benchmark",
+    "",
+    sprintf("- Weighted core LGKK rounds: `%d`", benchmark_cfg$weighted_core_lgkk_rounds),
+    sprintf("- Weighted core LGKK scope: `%s`", benchmark_cfg$weighted_core_lgkk_scope),
+    sprintf("- Weighted core LGKK active limit: `%d`", benchmark_cfg$weighted_core_lgkk_active_limit),
+    sprintf("- Weighted post LGKK polish rounds: `%d`", benchmark_cfg$weighted_lgkk_polish_rounds),
     "",
     sprintf("- Run tag: `%s`", run_tag),
     sprintf("- Smoke mode: `%s`", if (smoke) "yes" else "no"),
@@ -567,9 +648,9 @@ write_readme <- function(path, specs, summary_df) {
   )
   for (spec in specs) {
     lines <- c(
-      lines,
-      sprintf("- `%s`: %s, preset `%s`, n = %d, m = %d", spec$family_id, spec$family_label, spec$preset, spec$n, nrow(spec$edges))
-    )
+        lines,
+        sprintf("- `%s`: %s, preset `%s`, n = %d, m = %d", spec$family_id, spec$family_label, spec$preset, spec$n, nrow(spec$edges))
+      )
   }
   lines <- c(
     lines,
@@ -661,4 +742,4 @@ write_metric_plot(
 )
 write_readme(file.path(output_root, "README.md"), specs = family_specs, summary_df = summary_df)
 
-message(sprintf("Weighted GRIP Phase 3 benchmark completed: %s", output_root))
+message(sprintf("Weighted GRIP Phase 5 benchmark completed: %s", output_root))

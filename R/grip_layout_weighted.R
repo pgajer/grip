@@ -223,7 +223,7 @@ grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NU
 #' Build a weighted MISF hierarchy
 #'
 #' \code{grip.build.misf.weighted()} builds the weighted max-independent-set
-#' filtration used by the weighted GRIP Phase 1 layout core. It is primarily a
+#' filtration used by the weighted GRIP layout core. It is primarily a
 #' developer and benchmarking helper for comparing weighted and combinatorial
 #' hierarchies on the same graph.
 #'
@@ -279,11 +279,11 @@ grip.build.misf.weighted <- function(edges = NULL,
 
 #' Compute a weighted geometry-aware GRIP layout
 #'
-#' \code{grip.layout.globalrep.weighted()} is the Phase 1 weighted counterpart
-#' to \code{\link{grip.layout.globalrep}()}. It keeps the current combinatorial
+#' \code{grip.layout.globalrep.weighted()} is the weighted counterpart to
+#' \code{\link{grip.layout.globalrep}()}. It keeps the current combinatorial
 #' GRIP entry points intact and runs a separate weighted multiscale core that
-#' uses edge lengths in the filtration, local neighborhoods, insertion, and
-#' refinement forces.
+#' uses edge lengths in the filtration, local neighborhoods, insertion,
+#' refinement forces, and optional in-core multiscale LGKK refinement.
 #'
 #' @inheritParams grip.layout.globalrep
 #' @param preset Optional weighted tuning preset. \code{NULL} uses the
@@ -333,8 +333,14 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
                                            level0_anchor_count = insertion_anchor_count,
                                            level0_local_kk_steps = 3,
                                            lgkk_polish_rounds = 0L,
+                                           lgkk_multiscale_rounds = 0L,
+                                           lgkk_rounds_coarse = NULL,
+                                           lgkk_rounds_pre_final = NULL,
+                                           lgkk_rounds_final = NULL,
                                            lgkk_local_nbrs = 20L,
                                            lgkk_landmark_count = 8L,
+                                           lgkk_multiscale_scope = c("all", "coarse"),
+                                           lgkk_active_limit = 4096L,
                                            metric_neighbor_cap = NULL,
                                            length_normalization = c("median", "mean", "none"),
                                            tinit_factor = 6,
@@ -387,6 +393,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   insertion_anchor_scope <- match.arg(insertion_anchor_scope)
   insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
   level0_insertion_mode <- match.arg(level0_insertion_mode)
+  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.weighted.layout.inputs(
@@ -450,18 +457,24 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
 
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
-    lgkk_multiscale_rounds = 0L,
-    lgkk_rounds_coarse = 0L,
-    lgkk_rounds_pre_final = 0L,
-    lgkk_rounds_final = 0L,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = "all",
-    lgkk_active_limit = 4096L
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
+  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
+  lgkk_rounds_final <- lgkk$lgkk_rounds_final
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
+  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
+  lgkk_active_limit <- lgkk$lgkk_active_limit
 
   layout.adj <- function(adj_list, weight_list, n) {
     coords <- grip_layout_globalrep_weighted_adj_cpp(
@@ -488,6 +501,14 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
       level0_insertion_mode = level0_insertion_mode,
       level0_anchor_count = level0_anchor_count,
       level0_local_kk_steps = level0_local_kk_steps,
+      lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+      lgkk_rounds_coarse = lgkk_rounds_coarse,
+      lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+      lgkk_rounds_final = lgkk_rounds_final,
+      lgkk_local_nbrs = lgkk_local_nbrs,
+      lgkk_landmark_count = lgkk_landmark_count,
+      lgkk_multiscale_scope = lgkk_multiscale_scope,
+      lgkk_active_limit = lgkk_active_limit,
       final_mode = final_mode,
       tinit_factor = as.integer(tinit_factor),
       seed = seed,
@@ -549,9 +570,10 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
 
 #' Trace a weighted geometry-aware GRIP layout
 #'
-#' \code{grip.layout.trace.weighted()} records the weighted GRIP Phase 2 layout
+#' \code{grip.layout.trace.weighted()} records the weighted GRIP layout
 #' trajectory. It mirrors \code{\link{grip.layout.trace}()} but uses the
-#' weighted GRIP sister core introduced in Phase 1.
+#' weighted GRIP sister core, including optional in-core multiscale LGKK
+#' refinement.
 #'
 #' @inheritParams grip.layout.globalrep.weighted
 #' @inheritParams grip.layout.trace
@@ -594,8 +616,14 @@ grip.layout.trace.weighted <- function(edges = NULL,
                                        level0_anchor_count = insertion_anchor_count,
                                        level0_local_kk_steps = 3,
                                        lgkk_polish_rounds = 0L,
+                                       lgkk_multiscale_rounds = 0L,
+                                       lgkk_rounds_coarse = NULL,
+                                       lgkk_rounds_pre_final = NULL,
+                                       lgkk_rounds_final = NULL,
                                        lgkk_local_nbrs = 20L,
                                        lgkk_landmark_count = 8L,
+                                       lgkk_multiscale_scope = c("all", "coarse"),
+                                       lgkk_active_limit = 4096L,
                                        metric_neighbor_cap = NULL,
                                        length_normalization = c("median", "mean", "none"),
                                        tinit_factor = 6,
@@ -657,6 +685,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
   level0_insertion_mode <- match.arg(level0_insertion_mode)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
+  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
 
   if (!is.numeric(trace.every) || length(trace.every) != 1L || !is.finite(trace.every)) {
     stop("trace.every must be a single finite numeric value")
@@ -727,18 +756,24 @@ grip.layout.trace.weighted <- function(edges = NULL,
 
   lgkk <- grip.validate.lgkk.polish.inputs(
     lgkk_polish_rounds = lgkk_polish_rounds,
-    lgkk_multiscale_rounds = 0L,
-    lgkk_rounds_coarse = 0L,
-    lgkk_rounds_pre_final = 0L,
-    lgkk_rounds_final = 0L,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
     lgkk_local_nbrs = lgkk_local_nbrs,
     lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = "all",
-    lgkk_active_limit = 4096L
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit
   )
   lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
+  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
+  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
+  lgkk_rounds_final <- lgkk$lgkk_rounds_final
   lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
   lgkk_landmark_count <- lgkk$lgkk_landmark_count
+  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
+  lgkk_active_limit <- lgkk$lgkk_active_limit
 
   comp <- grip.connected.components(adj_list = adj_list, n = n)
   n.comp <- length(unique(comp))
@@ -773,6 +808,14 @@ grip.layout.trace.weighted <- function(edges = NULL,
     level0_insertion_mode = level0_insertion_mode,
     level0_anchor_count = level0_anchor_count,
     level0_local_kk_steps = level0_local_kk_steps,
+    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
+    lgkk_rounds_coarse = lgkk_rounds_coarse,
+    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
+    lgkk_rounds_final = lgkk_rounds_final,
+    lgkk_local_nbrs = lgkk_local_nbrs,
+    lgkk_landmark_count = lgkk_landmark_count,
+    lgkk_multiscale_scope = lgkk_multiscale_scope,
+    lgkk_active_limit = lgkk_active_limit,
     final_mode = final_mode,
     tinit_factor = as.integer(tinit_factor),
     seed = seed,
@@ -864,8 +907,14 @@ grip.layout.weighted <- function(edges = NULL,
                                  level0_anchor_count = insertion_anchor_count,
                                  level0_local_kk_steps = 3,
                                  lgkk_polish_rounds = 0L,
+                                 lgkk_multiscale_rounds = 0L,
+                                 lgkk_rounds_coarse = NULL,
+                                 lgkk_rounds_pre_final = NULL,
+                                 lgkk_rounds_final = NULL,
                                  lgkk_local_nbrs = 20L,
                                  lgkk_landmark_count = 8L,
+                                 lgkk_multiscale_scope = c("all", "coarse"),
+                                 lgkk_active_limit = 4096L,
                                  metric_neighbor_cap = NULL,
                                  length_normalization = c("median", "mean", "none"),
                                  tinit_factor = 6,
