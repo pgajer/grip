@@ -33,3 +33,11 @@ src/symbols.rds
 # Legacy archive build artifacts
 Archives/package-root/*.o
 Archives/package-root/main
+
+# Local LaTeX scratch artifacts
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+/gmds_v2_paraboloid_regularized_report_2026-04-01.pdf
