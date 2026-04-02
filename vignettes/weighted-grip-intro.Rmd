@@ -1,0 +1,343 @@
+---
+title: "Weighted Graph Layouts with grip"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Weighted Graph Layouts with grip}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8.8,
+  fig.height = 5.3
+)
+```
+
+## Why weighted layouts deserve their own vignette
+
+Classical GRIP is fundamentally combinatorial: it sees the graph topology and
+uses graph-distance neighborhoods, but it does not treat edge lengths as a
+first-class geometric signal throughout the multiscale hierarchy.
+
+That is exactly why `grip` now includes a weighted sister API:
+
+- `grip.layout.weighted()`
+- `grip.layout.globalrep.weighted()`
+- `grip.layout.trace.weighted()`
+- `grip.build.misf.weighted()`
+
+Use these when edge lengths represent geometry you care about rather than just
+optional metadata.
+
+```{r}
+library(grip)
+```
+
+```{r}
+plot.layout.triptych <- function(coords.list,
+                                 edges,
+                                 titles,
+                                 projection = NULL,
+                                 vertex.cols = rep("black", length(coords.list)),
+                                 edge.col = "gray82") {
+  op <- par(
+    mfrow = c(1, length(coords.list)),
+    mar = c(1.2, 1.2, 3, 1.2),
+    bg = "white"
+  )
+  on.exit(par(op), add = TRUE)
+
+  for (i in seq_along(coords.list)) {
+    grip.plot(
+      coords.list[[i]], edges,
+      projection = projection,
+      main = titles[[i]],
+      vertex.col = vertex.cols[[i]],
+      edge.col = edge.col
+    )
+  }
+}
+```
+
+## A first weighted surface example
+
+The helper below creates a plain mesh topology whose edge lengths are induced
+by a curved 3D surface. The topology stays simple, but the intended metric is
+no longer the flat grid metric.
+
+```{r}
+surface.mesh <- mesh.surface.graph(
+  5, 5,
+  surface = "saddle",
+  amplitude = 0.9
+)
+
+coords.unweighted <- grip.layout(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
+
+coords.weighted <- grip.layout.weighted(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  edge_weights = surface.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
+
+gkk.prepared <- grip.prepare.geodesic.kk(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  edge_weights = surface.mesh$edge_weights
+)
+
+surface.summary <- do.call(
+  rbind,
+  list(
+    cbind(
+      method = "Combinatorial GRIP",
+      grip.score.geodesic.kk(
+        coords.unweighted,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP",
+      grip.score.geodesic.kk(
+        coords.weighted,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    )
+  )
+)
+
+knitr::kable(surface.summary, digits = 3)
+```
+
+```{r fig.width=12.8, fig.height=4.2}
+plot.layout.triptych(
+  list(
+    surface.mesh$coords_surface,
+    coords.unweighted,
+    coords.weighted
+  ),
+  edges = surface.mesh$edges,
+  titles = c("Target geometry", "Combinatorial GRIP", "Weighted GRIP"),
+  projection = "ortho",
+  vertex.cols = c("#666666", "black", "#1F3B73")
+)
+```
+
+The important pattern is not that one method always wins on every graph. It is
+that weighted GRIP is solving a different problem: it tries to respect the
+graph's edge-length geometry, not only its combinatorial adjacency structure.
+
+## 2D versus 3D on the same weighted graph
+
+For many weighted geometric families, 3D is the more informative target space.
+The graph metric can be difficult or impossible to represent faithfully in 2D
+without substantial distortion.
+
+```{r}
+coords.weighted.2d <- grip.layout.weighted(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  edge_weights = surface.mesh$edge_weights,
+  dim = 2,
+  preset = "mesh",
+  seed = 2
+)
+
+coords.weighted.3d <- grip.layout.weighted(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  edge_weights = surface.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  seed = 2
+)
+
+dim.summary <- do.call(
+  rbind,
+  list(
+    cbind(
+      dim = "2D",
+      grip.score.geodesic.kk(
+        coords.weighted.2d,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      dim = "3D",
+      grip.score.geodesic.kk(
+        coords.weighted.3d,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rmse",
+        "gkk.mean.abs.path.error",
+        "gkk.mean.rel.path.error"
+      )]
+    )
+  )
+)
+
+knitr::kable(dim.summary, digits = 3)
+```
+
+```{r fig.width=10.2, fig.height=4.3}
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
+on.exit(par(op), add = TRUE)
+
+grip.plot(
+  coords.weighted.2d,
+  surface.mesh$edges,
+  main = "Weighted GRIP in 2D",
+  vertex.col = "black",
+  edge.col = "gray82"
+)
+
+grip.plot(
+  coords.weighted.3d,
+  surface.mesh$edges,
+  projection = "ortho",
+  main = "Weighted GRIP in 3D",
+  vertex.col = "#1F3B73",
+  edge.col = "gray82"
+)
+```
+
+This is why the weighted benchmark work in `grip` treats 3D as the primary
+track and 2D as an informative limitation track.
+
+## Weighted presets
+
+The weighted API keeps explicit presets tuned for the major weighted-family
+classes currently shipped with the package.
+
+| Family class | Good weighted preset | Typical use |
+|:--|:--|:--|
+| Lifted mesh surfaces | `preset = "mesh"` | Rectangular weighted surfaces |
+| Cylindrical grids | `preset = "cylinder"` | Open wrapped surfaces |
+| Toroidal grids | `preset = "torus"` | Closed wrapped surfaces |
+| Near-spherical surfaces | `preset = "sphere"` | Closed surface families |
+| Irregular manifolds and porous families | `preset = "irregular"` | Non-lattice weighted manifolds |
+| Intrinsic weighted trees | `preset = "tree"` | Edge-length-driven tree geometry |
+| Recursive carpet-like lattices | `preset = "carpet"` | Recursive hole-rich weighted grids |
+
+These presets are starting points, not declarations that the graph belongs to a
+single correct family.
+
+## Intrinsic weighted trees
+
+Weighted families do not need to come from ambient surfaces. They can also be
+intrinsically weighted. The example below keeps the topology of a binary tree
+but assigns edge lengths by depth and branch position.
+
+```{r}
+tree.graph <- kary.tree.weighted.graph(
+  k = 2,
+  depth = 4,
+  depth_rule = "geometric",
+  depth_decay = 0.82,
+  branch_rule = "linear",
+  branch_spread = 0.25
+)
+
+tree.coords <- grip.layout.weighted(
+  tree.graph$edges,
+  n = tree.graph$n,
+  edge_weights = tree.graph$edge_weights,
+  dim = 2,
+  preset = "tree",
+  seed = 3
+)
+
+knitr::kable(
+  head(tree.graph$edge_table[, c(
+    "parent",
+    "child",
+    "child_depth",
+    "branch_index",
+    "edge_weight"
+  )]),
+  digits = 3
+)
+```
+
+```{r fig.width=5.4, fig.height=4.6}
+grip.plot(
+  tree.coords,
+  tree.graph$edges,
+  main = "Intrinsic weighted tree",
+  vertex.col = "#1F3B73",
+  edge.col = "gray80",
+  pch = 16,
+  cex = 0.55
+)
+```
+
+This kind of example is useful because the geometry lives in the edge lengths
+themselves rather than in a chosen 3D embedding.
+
+## Trace and geodesic refinement hooks
+
+The weighted API also supports:
+
+- `grip.layout.trace.weighted()` for traced weighted solves,
+- `lgkk_polish_rounds` for post-layout landmark geodesic KK refinement,
+- `lgkk_multiscale_rounds` and the stage-specific LGKK controls for in-core
+  multiscale refinement.
+
+Here is the smallest traced weighted example pattern:
+
+```{r eval=FALSE}
+surface.trace <- grip.layout.trace.weighted(
+  surface.mesh$edges,
+  n = surface.mesh$n,
+  edge_weights = surface.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  trace = "level",
+  diagnostics = "light",
+  seed = 1
+)
+
+head(surface.trace$meta)
+head(surface.trace$diagnostics)
+```
+
+For small or medium weighted graphs where geodesic fidelity matters strongly,
+it is often worth comparing:
+
+- weighted GRIP alone,
+- weighted GRIP + core LGKK,
+- weighted GRIP + polish LGKK,
+- and the KK->GKK or KK->LGKK baselines.
+
+## Where to go next
+
+- `Getting Started with grip` shows how the weighted API fits into the broader
+  package.
+- `Choosing Layouts for Real Data` focuses on candidate search and scoring.
+- `Tracing and Diagnosing Layouts` covers the trace APIs in more detail.
+- `Synthetic Graph Families and Geometries` explains the benchmark-family
+  library that supports these weighted workflows.
