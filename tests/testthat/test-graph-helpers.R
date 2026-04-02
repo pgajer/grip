@@ -393,6 +393,108 @@ test_that("mesh surface graph supports diagonal connectivity", {
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
 })
 
+test_that("irregular rectangle parameter coordinates are deterministic and ordered", {
+  coords1 <- irregular.rectangle.param.coords(
+    5, 6,
+    row_irregularity = 0.22,
+    col_irregularity = 0.18,
+    interior_warp = 0.06
+  )
+  coords2 <- irregular.rectangle.param.coords(
+    5, 6,
+    row_irregularity = 0.22,
+    col_irregularity = 0.18,
+    interior_warp = 0.06
+  )
+
+  expect_equal(coords1, coords2)
+  expect_true(is.matrix(coords1))
+  expect_true(all(is.finite(coords1)))
+  expect_equal(dim(coords1), c(30L, 2L))
+  expect_equal(colnames(coords1), c("u", "v"))
+
+  u_mat <- matrix(coords1[, 1L], nrow = 5L, ncol = 6L, byrow = TRUE)
+  v_mat <- matrix(coords1[, 2L], nrow = 5L, ncol = 6L, byrow = TRUE)
+  expect_true(all(apply(u_mat, 1L, function(x) all(diff(x) > 0))))
+  expect_true(all(apply(v_mat, 2L, function(x) all(diff(x) < 0))))
+  expect_equal(u_mat[, 1L], rep(-1, 5L), tolerance = 1e-10)
+  expect_equal(u_mat[, 6L], rep(1, 5L), tolerance = 1e-10)
+  expect_equal(v_mat[1L, ], rep(1, 6L), tolerance = 1e-10)
+  expect_equal(v_mat[5L, ], rep(-1, 6L), tolerance = 1e-10)
+})
+
+test_that("irregular rectangle surface embedding supports flat and curved lifts", {
+  flat <- irregular.rectangle.surface.embedding(
+    4, 5,
+    surface = "flat",
+    row_irregularity = 0.2,
+    col_irregularity = 0.15
+  )
+  curved <- irregular.rectangle.surface.embedding(
+    4, 5,
+    surface = "paraboloid",
+    amplitude = 0.7,
+    row_irregularity = 0.2,
+    col_irregularity = 0.15
+  )
+
+  expect_equal(dim(flat), c(20L, 3L))
+  expect_equal(colnames(flat), c("x", "y", "z"))
+  expect_true(all(flat[, 3L] == 0))
+  expect_true(all(is.finite(curved)))
+  expect_gt(max(abs(curved[, 3L])), 0)
+})
+
+test_that("irregular rectangle surface graph returns normalized positive edge weights", {
+  spec <- irregular.rectangle.surface.graph(
+    5, 6,
+    surface = "paraboloid",
+    amplitude = 0.8,
+    row_irregularity = 0.2,
+    col_irregularity = 0.15,
+    interior_warp = 0.07,
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_irregular_rectangle_surface_graph")
+  expect_equal(spec$edges, edges.mesh(5, 6))
+  expect_equal(spec$n, 30L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_gt(stats::sd(spec$edge_weights), 0)
+  expect_equal(dim(spec$coords_surface), c(30L, 3L))
+  expect_equal(dim(spec$coords_param), c(30L, 2L))
+  expect_equal(dim(spec$coords_regular_param), c(30L, 2L))
+  expect_equal(length(spec$row_breaks), 5L)
+  expect_equal(length(spec$col_breaks), 6L)
+  expect_equal(spec$family, "irregular.rectangle")
+  expect_equal(spec$surface, "paraboloid")
+  expect_equal(spec$connectivity, "orthogonal")
+  expect_gt(max(abs(spec$coords_param - spec$coords_regular_param)), 1e-6)
+})
+
+test_that("irregular rectangle surface graph supports diagonal connectivity and square cases", {
+  spec <- irregular.rectangle.surface.graph(
+    4, 4,
+    surface = "ripple",
+    amplitude = 0.5,
+    freq_u = 1.5,
+    freq_v = 0.75,
+    connectivity = "diagonal",
+    row_irregularity = 0.18,
+    col_irregularity = 0.18
+  )
+
+  expect_equal(spec$edges, edges.mesh(4, 4, connectivity = "diagonal"))
+  expect_equal(spec$connectivity, "diagonal")
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(spec$n, 16L)
+})
+
 test_that("cylinder surface embedding returns finite 3D coordinates", {
   coords <- cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
 

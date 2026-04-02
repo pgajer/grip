@@ -33,6 +33,23 @@ Parameters:
 - `x_scale`, `y_scale`: anisotropic scaling of the parameter grid before lifting.
 - `normalize`: edge-weight normalization mode for the weighted-graph wrapper.
 
+### 1.1a Irregular rectangle surface family
+
+| Function | Signature | Implementation |
+|---|---|---|
+| `irregular.rectangle.param.coords` | `irregular.rectangle.param.coords(h, w = h, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R) |
+| `irregular.rectangle.surface.embedding` | `irregular.rectangle.surface.embedding(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R) |
+| `irregular.rectangle.surface.graph` | `irregular.rectangle.surface.graph(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30, normalize = c("median", "mean", "none"))` | [graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R) |
+
+Parameters:
+- `h`, `w`: rectangle height and width in grid cells; squares are the special case `h = w`.
+- `row_irregularity`, `col_irregularity`: deterministic irregularity levels for row and column spacing.
+- `row_phase`, `col_phase`: phase offsets used in the spacing perturbations.
+- `interior_warp`: boundary-vanishing interior warp strength.
+- `shear`: optional affine shear applied after the interior warp.
+- `min_step_ratio`: lower bound on perturbed row/column interval lengths.
+- `surface`, `amplitude`, `freq_u`, `freq_v`, `x_scale`, `y_scale`, `normalize`: same role as in the regular mesh family, except that `surface` also allows `flat`.
+
 ### 1.2 Cylinder surface family
 
 | Function | Signature | Implementation |
