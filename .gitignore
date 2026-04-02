@@ -15,12 +15,20 @@ CRAN-SUBMISSION
 output/
 tmp/
 dev/blog/
-dev/grip_paper/
-dev/manual/figures/
-dev/manual/pdf/
-dev/manual/tmp/
 dev/prompts/
 dev/social/
+dev/design/figures/
+dev/design/pdf/
+dev/design/tmp/
+dev/papers/r-journal/drafts/
+dev/papers/r-journal/figures/
+dev/papers/r-journal/figure_scripts/
+dev/papers/r-journal/rendered/
+dev/papers/methods/drafts/
+dev/papers/methods/figures/
+dev/papers/methods/figure_scripts/
+dev/papers/methods/rendered/
+dev/papers/gmds/
 
 # Compiled artifacts
 src/*.o
