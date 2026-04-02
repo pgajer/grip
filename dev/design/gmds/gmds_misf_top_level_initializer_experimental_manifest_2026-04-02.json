@@ -76,9 +76,9 @@
       "goal": "Compare top-level MISF seeds before any GMDS correction.",
       "runs": "3 families x 8 initializers x 1 deterministic seed",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-top-level-initializers-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_top_level_initializer_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_top_level_initializer_3d_2026-04-02.html"
+        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-top-level-initializers-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_misf_top_level_initializer_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_top_level_initializer_3d_2026-04-02.html"
       ]
     },
     {
@@ -87,9 +87,9 @@
       "goal": "Test which seeds remain good after short regularized and pure GMDS correction.",
       "runs": "3 families x best 2 initializers from Phase A x 3 stages",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-top-level-corrections-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_top_level_correction_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_top_level_corrections_3d_2026-04-02.html"
+        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-top-level-corrections-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_misf_top_level_correction_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_top_level_corrections_3d_2026-04-02.html"
       ]
     },
     {
@@ -98,9 +98,9 @@
       "goal": "Propagate the best top-level strategies through the full multiscale pipeline.",
       "runs": "3 families x baseline current pipeline x best 1-2 top-level strategies",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-full-pipeline-initializers-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_full_pipeline_initializer_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_full_pipeline_3d_2026-04-02.html"
+        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-full-pipeline-initializers-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_misf_full_pipeline_initializer_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_full_pipeline_3d_2026-04-02.html"
       ]
     },
     {
@@ -109,9 +109,9 @@
       "goal": "Compare lower-level placement variants after top-level seeding is improved.",
       "runs": "best top-level strategy x current insertion vs weighted GRIP vs weighted KK vs GRIP vs KK vs optional FR placement",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/manual/tmp/gmds-misf-lower-level-placement-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_misf_lower_level_placement_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/manual/interactive-prototypes/gmds_misf_lower_level_placement_3d_2026-04-02.html"
+        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-lower-level-placement-2026-04-02/",
+        "/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_misf_lower_level_placement_report_2026-04-02.tex",
+        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_lower_level_placement_3d_2026-04-02.html"
       ]
     }
   ],

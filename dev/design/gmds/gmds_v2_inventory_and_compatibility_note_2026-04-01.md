@@ -70,9 +70,9 @@ The current design and experiment notes already point to a graph-first
 understanding of GMDS, but the code-level naming had not caught up fully. The
 main relevant notes are:
 
-- [geodesic_mds_infrastructure_design_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/manual/geodesic_mds_infrastructure_design_2026-03-31.md)
-- [gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/manual/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md)
-- [gmds_v2_four_phase_cleanup_design_2026-04-01.md](/Users/pgajer/current_projects/grip/dev/manual/gmds_v2_four_phase_cleanup_design_2026-04-01.md)
+- [geodesic_mds_infrastructure_design_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
+- [gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md)
+- [gmds_v2_four_phase_cleanup_design_2026-04-01.md](/Users/pgajer/current_projects/grip/dev/design/gmds_v2_four_phase_cleanup_design_2026-04-01.md)
 
 ## Compatibility Strategy
 

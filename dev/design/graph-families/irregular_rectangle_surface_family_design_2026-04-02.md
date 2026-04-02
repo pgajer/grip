@@ -310,7 +310,7 @@ Files to regenerate:
 
 Update the catalog note:
 
-- [graph_families_generated_in_thread_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/manual/graph_families_generated_in_thread_2026-03-31.md)
+- [graph_families_generated_in_thread_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/graph_families_generated_in_thread_2026-03-31.md)
 
 ### 4. Tests
 

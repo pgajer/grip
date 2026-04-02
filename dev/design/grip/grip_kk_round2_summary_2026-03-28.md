@@ -71,11 +71,11 @@ So the main practical conclusion from round 2 is:
 ## Artifacts
 
 Tracked planning document:
-- `dev/manual/grip_kk_round2_action_plan_2026-03-28.md`
+- `dev/design/grip_kk_round2_action_plan_2026-03-28.md`
 
 Generated experiment outputs:
-- `dev/manual/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.md`
-- `dev/manual/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.csv`
-- `dev/manual/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-contact-sheet.png`
-- `dev/manual/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-final-rounds-lines.png`
-- `dev/manual/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-tradeoff-scatter.png`
+- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.md`
+- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.csv`
+- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-contact-sheet.png`
+- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-final-rounds-lines.png`
+- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-tradeoff-scatter.png`

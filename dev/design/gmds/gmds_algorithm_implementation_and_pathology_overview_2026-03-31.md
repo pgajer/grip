@@ -179,7 +179,7 @@ Implementation:
 
 The detailed design note is:
 
-- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
+- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
 
 ### 6. First-Order Smoothness Regularization
 
@@ -364,11 +364,11 @@ Before the pathology studies, the first task was to decide how GMDS should fit i
 Key design notes:
 
 - infrastructure design:
-  - [`geodesic_mds_infrastructure_design_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/geodesic_mds_infrastructure_design_2026-03-31.md)
+  - [`geodesic_mds_infrastructure_design_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
 - infrastructure action plan:
-  - [`geodesic_mds_infrastructure_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/geodesic_mds_infrastructure_action_plan_2026-03-31.md)
+  - [`geodesic_mds_infrastructure_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_action_plan_2026-03-31.md)
 - cross-family comparison test-suite design:
-  - [`gmds_mds_comparison_test_suite_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/gmds_mds_comparison_test_suite_2026-03-31.md)
+  - [`gmds_mds_comparison_test_suite_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_mds_comparison_test_suite_2026-03-31.md)
 
 These notes established the main experimental baseline:
 
@@ -380,8 +380,8 @@ These notes established the main experimental baseline:
 
 Primary report:
 
-- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
-- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_mds_comparison_report_2026-03-31.tex)
+- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
+- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.tex)
 
 Driver:
 
@@ -409,7 +409,7 @@ This phase also clarified an important interpretation point:
 
 Design note:
 
-- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
+- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
 
 This note answered the first pathology question on orthogonal grids:
 
@@ -427,8 +427,8 @@ So after this point the remaining pathology story shifted away from flat grids a
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_pathology_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_pathology_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_pathology_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_pathology_report_2026-03-31.tex)
 
 Driver:
 
@@ -453,8 +453,8 @@ This was the first strong piece of evidence that the missing ingredient is not j
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_regularization_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_regularization_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_regularization_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_regularization_report_2026-03-31.tex)
 
 Driver:
 
@@ -476,8 +476,8 @@ This ruled out the simplest regularization hypothesis.
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_bending_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/manual/pdf/paraboloid_gmds_bending_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_bending_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_bending_report_2026-03-31.tex)
 
 Driver:
 
@@ -502,10 +502,10 @@ This is currently the strongest negative result:
 
 The performance concern was addressed in the later section of the Phase 1 report and in the related action-plan note:
 
-- [`gmds_performance_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/manual/gmds_performance_action_plan_2026-03-31.md)
+- [`gmds_performance_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_performance_action_plan_2026-03-31.md)
 - Phase 1 report performance section:
-  - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_mds_comparison_report_2026-03-31.tex)
-  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/manual/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
+  - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.tex)
+  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
 
 The main point was:
 
