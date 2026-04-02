@@ -145,3 +145,89 @@ test_that("weighted trace diagnostics are produced", {
   expect_true(all(c("edge.length.cv", "sampled.nonedge.sep.ratio", "sampled.stress") %in%
                     names(tr$diagnostics)))
 })
+
+test_that("weighted trace presets match explicit tuning profiles", {
+  mesh <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.45)
+  irregular <- irregular.annulus.surface.graph(
+    rings = 4,
+    outer_count = 16,
+    surface = "folded",
+    amplitude = 0.25
+  )
+
+  tr_mesh_preset <- grip.layout.trace.weighted(
+    edges = mesh$edges,
+    edge_weights = mesh$edge_weights,
+    n = mesh$n,
+    dim = 2,
+    preset = "mesh",
+    trace = "level",
+    trace.every = 1,
+    seed = 211
+  )
+  tr_mesh_explicit <- grip.layout.trace.weighted(
+    edges = mesh$edges,
+    edge_weights = mesh$edge_weights,
+    n = mesh$n,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 128,
+    final_rounds = 128,
+    num_init = 12,
+    num_nbrs = 20,
+    r = 0.10,
+    s = 4.5,
+    repulsion_factor = 1.5,
+    trace = "level",
+    trace.every = 1,
+    seed = 211
+  )
+
+  tr_irregular_preset <- grip.layout.trace.weighted(
+    edges = irregular$edges,
+    edge_weights = irregular$edge_weights,
+    n = irregular$n,
+    dim = 3,
+    preset = "irregular",
+    trace = "level",
+    trace.every = 1,
+    seed = 223
+  )
+  tr_irregular_explicit <- grip.layout.trace.weighted(
+    edges = irregular$edges,
+    edge_weights = irregular$edge_weights,
+    n = irregular$n,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 192,
+    final_rounds = 256,
+    num_init = 18,
+    num_nbrs = 24,
+    r = 0.05,
+    s = 6.5,
+    repulsion_factor = 1.10,
+    trace = "level",
+    trace.every = 1,
+    seed = 223
+  )
+
+  expect_identical(tr_mesh_preset$final, tr_mesh_explicit$final)
+  expect_identical(tr_mesh_preset$meta, tr_mesh_explicit$meta)
+  expect_identical(tr_irregular_preset$final, tr_irregular_explicit$final)
+  expect_identical(tr_irregular_preset$meta, tr_irregular_explicit$meta)
+})
+
+test_that("weighted trace rejects invalid presets", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
+  expect_error(
+    grip.layout.trace.weighted(
+      edges = graph$edges,
+      edge_weights = graph$edge_weights,
+      n = graph$n,
+      dim = 2,
+      preset = "bogus",
+      seed = 227
+    ),
+    "preset for grip.layout.trace.weighted must be NULL"
+  )
+})
