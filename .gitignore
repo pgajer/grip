@@ -18,8 +18,12 @@ dev/blog/
 dev/prompts/
 dev/social/
 dev/design/figures/
+dev/design/interactive-prototypes/
 dev/design/pdf/
 dev/design/tmp/
+dev/design/graph-families/*.html
+dev/design/grip/*layout-png-summary.csv
+dev/design/grip/*layouts-*.png
 dev/papers/r-journal/drafts/
 dev/papers/r-journal/figures/
 dev/papers/r-journal/figure_scripts/
