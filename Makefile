@@ -59,30 +59,30 @@ install: build
 	R CMD INSTALL $(TARBALL)
 
 readme-assets:
-	Rscript tools/generate-readme-assets.R
+	Rscript tools/pkg/generate-readme-assets.R
 
 readme-render:
-	Rscript tools/render-readme.R
+	Rscript tools/pkg/render-readme.R
 
 readme: readme-assets readme-render
 
 readme-html: readme-assets
-	Rscript tools/render-readme.R --html
+	Rscript tools/pkg/render-readme.R --html
 
 paper-pdf:
-	Rscript tools/render-paper.R
+	Rscript tools/reports/rjournal_paper/render-paper.R
 
 paper-html:
-	Rscript tools/render-paper.R --html-only --html
+	Rscript tools/reports/rjournal_paper/render-paper.R --html-only --html
 
 paper-all:
-	Rscript tools/render-paper.R --all
+	Rscript tools/reports/rjournal_paper/render-paper.R --all
 
 rchk:
 	@tools/check_rchk.sh
 
 winbuilder-release: build
-	Rscript tools/check-win-builder.R release
+	Rscript tools/pkg/check-win-builder.R release
 
 winbuilder-devel: build
-	Rscript tools/check-win-builder.R devel
+	Rscript tools/pkg/check-win-builder.R devel

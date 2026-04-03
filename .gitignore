@@ -12,14 +12,14 @@ CRAN-SUBMISSION
 .Rproj.user/
 .Rhistory
 .RData
-output/
+output/*
+!output/README.md
 tmp/
 dev/blog/
 dev/prompts/
 dev/social/
 dev/design/figures/
 dev/design/interactive-prototypes/
-dev/design/pdf/
 dev/design/tmp/
 dev/design/graph-families/*.html
 dev/design/grip/*layout-png-summary.csv
@@ -48,10 +48,10 @@ Archives/package-root/main
 
 # Local LaTeX scratch artifacts
 *.aux
+*.bbl
+*.blg
 *.log
 *.out
 *.fdb_latexmk
 *.fls
 *.synctex.gz
-/gmds_v2_paraboloid_regularized_report_2026-04-01.pdf
-/gmds_misf_top_level_initializer_report_2026-04-02.pdf
