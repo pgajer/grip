@@ -51,3 +51,4 @@
 ^_pkgdown\.yml$
 ^pkgdown$
 ^docs$
+^gmds_.*\.(aux|fdb_latexmk|fls|log|pdf|synctex\.gz)$

@@ -78,6 +78,12 @@ repulsion targets before scaling.}
 \item{repulsion_hop_min}{Minimum graph hop distance required for a pair to be
 eligible for the repulsion family.}
 
+\item{bending_stencils}{Optional list describing discrete bending stencils for
+the layout. Each stencil should identify the three vertices forming the
+local bending constraint and may optionally supply per-stencil weights.}
+
+\item{bending_weight}{Non-negative coefficient for the bending penalty term.}
+
 \item{return_pair_details}{If \code{TRUE}, attach per-pair residual details.}
 }
 \value{

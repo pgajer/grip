@@ -1807,8 +1807,8 @@ grip.layout.trace <- function(edges = NULL,
       add.meta <- data.frame(
         frame = seq.int(nrow(out$meta) + 1L, nrow(out$meta) + length(add.frames)),
         phase = rep("lgkk", length(add.frames)),
-        level_index = rep(tail(out$meta$level_index, 1L), length(add.frames)),
-        misf_level = rep(tail(out$meta$misf_level, 1L), length(add.frames)),
+        level_index = rep(utils::tail(out$meta$level_index, 1L), length(add.frames)),
+        misf_level = rep(utils::tail(out$meta$misf_level, 1L), length(add.frames)),
         round_in_level = seq_len(length(add.frames)),
         active_vertices = rep(n, length(add.frames)),
         stringsAsFactors = FALSE

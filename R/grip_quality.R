@@ -3565,6 +3565,10 @@ grip.prepare.geodesic.mds <- function(data,
 #'   repulsion targets before scaling.
 #' @param repulsion_hop_min Minimum graph hop distance required for a pair to be
 #'   eligible for the repulsion family.
+#' @param bending_stencils Optional list describing discrete bending stencils for
+#'   the layout. Each stencil should identify the three vertices forming the
+#'   local bending constraint and may optionally supply per-stencil weights.
+#' @param bending_weight Non-negative coefficient for the bending penalty term.
 #' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
 #'
 #' @return A one-row data frame summarizing the geodesic-MDS fit.
@@ -3732,6 +3736,14 @@ grip.score.geodesic.mds <- function(coords,
 #'   repulsion targets before scaling.
 #' @param repulsion_hop_min Minimum graph hop distance required for a pair to be
 #'   eligible for repulsion.
+#' @param bending_stencils Optional list describing discrete bending stencils for
+#'   the layout. Each stencil should identify the three vertices forming the
+#'   local bending constraint and may optionally supply per-stencil weights.
+#' @param bending_weight Initial non-negative bending penalty weight.
+#' @param bending_weight_end Final non-negative bending penalty weight used at
+#'   the end of the continuation schedule.
+#' @param bending_continuation Continuation schedule for the bending penalty
+#'   weight. The same options and semantics as \code{continuation}.
 #' @param engine Optimization engine: \code{"cpp"} or \code{"r"}.
 #' @param max_iter Maximum number of gradient-descent iterations.
 #' @param edge_length_epsilon Small non-negative stabilizer added inside each
