@@ -133,6 +133,18 @@ repulsion targets before scaling.}
 \item{repulsion_hop_min}{Minimum graph hop distance required for a pair to be
 eligible for repulsion.}
 
+\item{bending_stencils}{Optional list describing discrete bending stencils for
+the layout. Each stencil should identify the three vertices forming the
+local bending constraint and may optionally supply per-stencil weights.}
+
+\item{bending_weight}{Initial non-negative bending penalty weight.}
+
+\item{bending_weight_end}{Final non-negative bending penalty weight used at
+the end of the continuation schedule.}
+
+\item{bending_continuation}{Continuation schedule for the bending penalty
+weight. The same options and semantics as \code{continuation}.}
+
 \item{engine}{Optimization engine: \code{"cpp"} or \code{"r"}.}
 
 \item{max_iter}{Maximum number of gradient-descent iterations.}
