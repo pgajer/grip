@@ -1,8 +1,8 @@
 ---
-title: "Interactive Layout Exploration with gripui"
+title: "Interactive Exploration with gripui"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Interactive Layout Exploration with gripui}
+  %\VignetteIndexEntry{Interactive Exploration with gripui}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -23,44 +23,54 @@ gripui_available <- all(vapply(
   logical(1L),
   quietly = TRUE
 ))
-
-if (gripui_available && requireNamespace("rgl", quietly = TRUE)) {
-  rgl::setupKnitr(autoprint = TRUE)
-}
 ```
 
-## Overview
+## Two interactive workflows
 
-The `gripui` module provides a Shiny-based explorer for comparing graph
-layouts produced by `grip.compare.layouts()` or assembled from on-disk
-artifacts. The interface combines a scatter-plot "landscape" of layout quality
-scores, a filterable catalog table, and an interactive 2D or 3D viewer for the
-selected layout.
+`grip` now ships two different Shiny-based exploration workflows:
 
-The public API consists of six functions:
+1. the original **project explorer**, launched with `run_gripui()`, for
+   browsing realized layout catalogs;
+2. the **graph-family geometry explorer**, launched with `run_gripui_family()`,
+   for interactively generating and viewing synthetic graph families.
 
-| Function | Purpose |
-|:--|:--|
-| `gripui_project()` | Build a project from an in-memory graph and a layouts data frame |
-| `gripui_project_from_compare()` | Convert `grip.compare.layouts()` output directly |
-| `gripui_project_from_dir()` | Assemble a project from saved artifacts on disk |
-| `gripui_validate_project()` | Check a project object for structural correctness |
-| `gripui_app()` | Build the Shiny app object (for embedding or testing) |
-| `run_gripui()` | Launch the Shiny app in a browser |
+They solve different problems:
 
-All of these require the optional packages listed in `Suggests` (`shiny`,
-`bslib`, `DT`, `htmltools`, `rgl`). If any are missing, the functions stop
-with a clear message listing the missing packages.
+- use `run_gripui()` when you already have layout results and want to compare,
+  filter, and inspect them;
+- use `run_gripui_family()` when you want to browse the package's synthetic
+  graph-geometry library and its parameter space.
 
-## Quick start: from `grip.compare.layouts()`
+```{r}
+library(grip)
+```
 
-The most common entry point is to run a layout comparison and then explore the
-results interactively. The example below uses a small mesh graph so the
-vignette builds quickly, but the same pattern works for graphs of any size.
+## Optional dependencies
+
+Both apps rely on packages listed in `Suggests`:
+
+- `shiny`
+- `bslib`
+- `DT`
+- `htmltools`
+- `rgl`
+
+If any of these are missing, the app constructors stop with a clear message.
+
+## Part 1: the project explorer
+
+The project explorer is built around a normalized `gripui_project` object. The
+usual workflow is:
+
+1. generate layouts,
+2. wrap them into a project,
+3. launch the app.
+
+### Building a project from `grip.compare.layouts()`
+
+The shortest path is `gripui_project_from_compare()`.
 
 ```{r compare-example}
-library(grip)
-
 edges <- edges.mesh(5, 5)
 n <- 25L
 
@@ -71,30 +81,23 @@ cmp <- grip.compare.layouts(
   candidates = list(
     default = list(),
     tuned = list(
-      rounds = 40L,
-      final_rounds = 80L,
-      num_init = 4L,
-      num_nbrs = 6L,
-      r = 0.05,
-      s = 4.5
+      preset = "mesh",
+      rounds = 48L,
+      final_rounds = 96L
     )
   ),
-  seeds = 1:3,
+  seeds = 1:2,
   return.layouts = TRUE
 )
 
 knitr::kable(
   cmp$summary[, c("candidate", "sampled.stress.mean",
-                   "edge.length.cv.mean", "score.composite")],
+                  "edge.length.cv.mean", "score.composite")],
   digits = 4
 )
 ```
 
-With the comparison result in hand, `gripui_project_from_compare()` wraps it
-into a project object that the Shiny app understands. Passing a graph enables
-edge drawing and vertex-data coloring in the viewer.
-
-```{r project-from-compare, eval=gripui_available}
+```{r project-from-compare}
 adj <- vector("list", n)
 for (i in seq_len(nrow(edges))) {
   adj[[edges[i, 1L]]] <- c(adj[[edges[i, 1L]]], edges[i, 2L])
@@ -107,31 +110,24 @@ project <- gripui_project_from_compare(
   graph = graph,
   title = "5x5 mesh comparison"
 )
+
 project$meta$title
-nrow(project$layouts)
+knitr::kable(project$layouts[, c(
+  "layout_id", "candidate", "stage", "seed", "status", "availability"
+)])
 ```
 
-To launch the app you would call `run_gripui(project)`. Since vignettes
-cannot start a live Shiny session, the rest of this document illustrates the
-building blocks without calling `run_gripui()`.
+### Building a project by hand
 
-## Building a project by hand
+When the layouts come from another source, use `gripui_project()` directly.
 
-When layouts come from sources other than `grip.compare.layouts()` — for
-example from a custom pipeline or an external optimizer — you can build the
-project manually with `gripui_project()`.
-
-The `layouts` argument is a data frame with at least `candidate`, `stage`,
-`seed`, and `status` columns. Additional columns such as `coords_path`,
-`html_path`, and any numeric quality scores are picked up automatically.
-
-```{r manual-project, eval=gripui_available}
+```{r manual-project}
 layouts_df <- data.frame(
   candidate = c("run_a", "run_b"),
-  stage     = c("layout", "layout"),
-  seed      = c(1L, 2L),
-  status    = c("ok", "ok"),
-  my_score  = c(0.42, 0.37),
+  stage = c("layout", "layout"),
+  seed = c(1L, 2L),
+  status = c("ok", "ok"),
+  my_score = c(0.42, 0.37),
   stringsAsFactors = FALSE
 )
 
@@ -140,104 +136,136 @@ manual_project <- gripui_project(
   layouts = layouts_df,
   title = "Manual example"
 )
+
 manual_project$meta$title
-names(manual_project$layouts)
 ```
 
-The constructor normalizes column names, generates unique `layout_id` values,
-and marks each row as `interactive`, `artifact-only`, or `summary-only`
-depending on whether in-memory coordinates, on-disk coordinate files, or
-neither are available.
+### Validation and directory loading
 
-## Validation
+Two helpers round out the project workflow:
 
-`gripui_validate_project()` checks that the required columns are present, that
-`layout_id` values are unique, and that graph objects are structurally sound.
-It is called automatically by the constructor, but you can also call it
-explicitly after modifying a project.
+- `gripui_validate_project()` checks structure and consistency,
+- `gripui_project_from_dir()` assembles a project from saved artifacts on disk.
 
-```{r validate, eval=gripui_available}
+```{r validate-project}
 gripui_validate_project(project)
 ```
 
-If the graph is a named list of sub-graphs (for multi-stage projects), the
-validator also checks that every `graph_id` referenced in the layouts table
-resolves to a key in the graph list.
-
-## Loading a project from disk
-
-For larger projects where layout artifacts have been saved to a directory,
-`gripui_project_from_dir()` assembles the project by reading catalog TSVs,
-resolving relative paths, and attaching artifact manifests. This function
-currently recognizes two directory layouts:
-
-1. **Normalized bundle format** — a `catalog/layout_catalog.tsv` file with an
-   optional `graph/graph.rds` and `metadata/notes.md`.
-2. **HMP/U01 compatibility format** — stage-specific run tables
-   (`coarse_stage/coarse_stage_runs.tsv`, `full_stage1/full_stage1_runs.tsv`,
-   etc.) with optional visual manifests.
-
 ```r
-# Not run — requires a directory of saved outputs
+# Not run: requires a saved output directory
 project <- gripui_project_from_dir(
   root = "/path/to/saved/outputs",
-  title = "My HMP project"
+  title = "My saved search"
 )
 run_gripui(project)
 ```
 
-## The gripui Shiny interface
+### Launching the project explorer
 
-When launched, the app presents four panels:
+`gripui_app()` builds the app object, while `run_gripui()` launches it.
 
-1. **Sidebar** — stage filters, candidate search, axis and color pickers, and
-   edge-display toggle.
-2. **Landscape scatter plot** — plots any two numeric columns from the catalog
-   against each other, colored by a third variable. Clicking a point selects
-   that layout.
-3. **Viewer** — an interactive 3D `rgl` widget or a 2D base-graphics plot
-   depending on the coordinate dimensionality, with optional edge overlay and
-   vertex coloring by any column in `vertex_data`.
-4. **Catalog table** — a searchable, sortable `DT` datatable. Clicking a row
-   selects that layout.
+```{r app-objects, eval=gripui_available}
+project.app <- gripui_app(project)
+inherits(project.app, "shiny.appobj")
+```
 
-The landscape and the table stay synchronized: selecting a layout in either
-panel highlights it in both.
+```r
+run_gripui(project)
+```
 
-## Graph objects
+The project explorer is the right tool when you want:
 
-The `graph` argument accepted by the project constructors and the app is a
-list that may contain any combination of:
+- a catalog table of realized layouts,
+- a score landscape,
+- a synchronized 2D or 3D viewer,
+- and artifact-aware browsing of saved search results.
 
-| Field | Type | Purpose |
-|:--|:--|:--|
-| `adj_list` | list of integer vectors | Adjacency list for edge drawing |
-| `weight_list` | list of numeric vectors | Edge weights (same structure as `adj_list`) |
-| `vertex_data` | data frame | Per-vertex metadata for coloring |
-| `graph_info` | list | Graph-level metadata (currently informational) |
+## Part 2: the graph-family geometry explorer
 
-For multi-stage projects where different stages use different graphs (e.g., a
-coarsened graph and the full graph), pass a named list of such graph objects.
-The `graph_id` column in the layouts table is then used to look up the correct
-sub-graph for each row.
+The second app is geometry-first. Instead of browsing a catalog of realized
+layouts, it lets you interactively generate the synthetic graph families that
+support the package's testing and benchmark workflows.
 
-## Vertex coloring
+Its main entry points are:
 
-The viewer offers a "Viewer color" selector. The special value `"plain"` draws
-all vertices in a single color. Any column name from `vertex_data` enables
-data-driven coloring:
+- `gripui_graph_family_catalog()`
+- `gripui_family_app()`
+- `run_gripui_family()`
 
-- **Numeric columns** map to a sequential blue palette via
-  `grDevices::colorRampPalette()`. Non-finite values are drawn in gray.
-- **Categorical columns** map to `grDevices::hcl.colors()` with the "Dark 3"
-  palette. `NA` values are drawn in gray.
+### The family catalog
 
-## Tips for CRAN-compatible usage
+The catalog is a registry of family descriptors used by the geometry explorer.
+Each descriptor records the family name, category, presets, parameter controls,
+builder call, and source references.
 
-Because `gripui` depends on Shiny-ecosystem packages that are listed in
-`Suggests`, all the gripui functions guard their availability at runtime. If
-you write code that calls `gripui_app()` or `run_gripui()` in a context
-where those packages might not be installed (e.g., in a package that re-exports
-gripui functionality), wrap the call in a
-`if (requireNamespace("shiny", quietly = TRUE))` check or use `@examplesIf`
-in roxygen blocks, as the grip package itself does.
+```{r family-catalog}
+catalog <- gripui_graph_family_catalog()
+
+length(catalog)
+head(names(catalog))
+catalog$mesh$function_name
+```
+
+### What the family explorer is for
+
+The family explorer is useful when you want to:
+
+- browse the synthetic family collection,
+- change family parameters without writing code,
+- inspect 2D and 3D embeddings interactively,
+- compare several family presets side by side,
+- and recover the corresponding R call for a chosen example.
+
+This app is particularly helpful when designing benchmark suites or reviewing
+which graph families belong in a paper, test, or demo.
+
+### Launching the family explorer
+
+```{r family-app, eval=gripui_available}
+family.app <- gripui_family_app()
+inherits(family.app, "shiny.appobj")
+```
+
+```r
+run_gripui_family()
+```
+
+The geometry explorer includes:
+
+- an `Explore` mode for one family at a time,
+- a `Compare` mode for side-by-side family or preset panels,
+- a dynamic parameter sidebar that adapts to the current family,
+- interactive 3D viewing through `rgl`,
+- and graph/weight/geometry summaries for the generated example.
+
+## Which app should you use?
+
+Use `run_gripui()` when:
+
+- you already have layout results,
+- you want to compare candidates or saved searches,
+- you care about score tables and layout catalogs.
+
+Use `run_gripui_family()` when:
+
+- you want to inspect the synthetic family collection,
+- you are choosing benchmark families,
+- you want to understand or demo the package's geometry generators,
+- you need a quick interactive way to recover family-building calls.
+
+## Practical notes
+
+- The apps are optional-package features, so they are best launched in an
+  interactive R session rather than inside a scripted report.
+- `run_gripui_family()` is self-contained because it builds its own synthetic
+  examples from the family catalog.
+- `run_gripui()` is best thought of as a viewer for a prepared `gripui_project`.
+
+## Where to go next
+
+- `Getting Started with grip` introduces the main layout APIs.
+- `Synthetic Graph Families and Geometries` describes the family collection
+  that powers the geometry explorer.
+- `Choosing Layouts for Real Data` shows how the project explorer fits into a
+  real-data layout-selection workflow.
+
