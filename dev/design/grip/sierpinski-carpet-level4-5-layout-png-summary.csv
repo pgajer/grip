@@ -1,7 +1,0 @@
-"level","method_id","method_label","seed","timeout_sec","status","elapsed_sec","png_path"
-4,"grip.layout","grip.layout()",1,180,"ok",3.255,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-4-grip-layout-seed-1.png"
-4,"igraph_fr","igraph::layout_with_fr()",1,180,"ok",0.134,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-4-igraph-fr-seed-1.png"
-4,"igraph_kk","igraph::layout_with_kk()",1,180,"ok",23.546,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-4-igraph-kk-seed-1.png"
-5,"grip.layout","grip.layout()",1,300,"ok",22.542,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-5-grip-layout-seed-1.png"
-5,"igraph_fr","igraph::layout_with_fr()",1,300,"ok",1.309,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-5-igraph-fr-seed-1.png"
-5,"igraph_kk","igraph::layout_with_kk()",1,300,"timeout",NA,"dev/design/tmp/carpet-layout-timing-level4-5/png/sierpinski-carpet-level-5-igraph-kk-seed-1.png"
