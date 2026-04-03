@@ -1,5 +1,5 @@
 ---
-title: "Comparing grip with igraph and graphlayouts"
+title: "Comparing grip with Alternative Layout Engines"
 ---
 
 ```{r setup, include=FALSE}
@@ -12,28 +12,117 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
+## Why this comparison article was rewritten
 
-This article provides a reproducible, side-by-side comparison of graph layouts
-from three R packages --- **grip**, **igraph**, and **graphlayouts** --- on the
-same benchmark graphs, evaluated using the same quality metrics. The goal is not
-to declare a winner but to show where each tool does well and to illustrate how
-`grip.score.layout()` can score *any* layout, regardless of which package
-produced it. grip is complementary to igraph and graphlayouts, not a
-replacement.
+`grip` is no longer just an R implementation of the classical GRIP algorithm.
+The package now contains:
 
-## Precomputed results
+- the historical legacy solver,
+- the current quality-first GRIP engine,
+- weighted geometry-aware sister APIs,
+- and geodesic scoring and polishing utilities.
 
-The benchmarks in this article require igraph and graphlayouts, which are not
-grip dependencies. To keep the pkgdown build lightweight, all layouts, scores,
-and timing data are precomputed and bundled as an RDS file. The full
-reproduction script is at `inst/scripts/precompute-vs-alternatives.R` --- run
-it once in an R session that has all three packages installed, then rebuild the
-site.
+That means there are now **two different comparison questions**:
+
+1. how the current `grip` engine compares with other R layout engines on
+   ordinary unweighted graphs,
+2. how geometry-aware weighted `grip` methods behave on weighted graphs, where
+   plain topology is not the whole problem.
+
+This article treats those as separate tracks.
+
+```{r}
+library(grip)
+```
+
+## Shared scoring idea
+
+`grip.score.layout()` can score a realized layout from any source. That remains
+one of the most useful parts of the package, because it lets you compare
+candidate layouts even when they come from different packages.
+
+```{r score-helper, eval=FALSE}
+score_layout <- function(coords, edges, n,
+                         clusters = NULL,
+                         edge.crossings = "auto",
+                         sample.size.stress = 2000L,
+                         sample.size.nonedge = 5000L) {
+  grip.score.layout(
+    coords = coords,
+    edges = edges,
+    n = n,
+    clusters = clusters,
+    sample.size.stress = sample.size.stress,
+    sample.size.nonedge = sample.size.nonedge,
+    stress.seed = 42L,
+    nonedge.seed = 42L,
+    edge.crossings = edge.crossings
+  )
+}
+```
+
+For weighted geometry-aware graphs, the package also provides a stronger metric:
+
+- `grip.prepare.geodesic.kk()`
+- `grip.score.geodesic.kk()`
+
+Those are used in the second half of this article.
+
+```{r}
+plot_layout <- function(coords,
+                        edges,
+                        title,
+                        vertex.col = "#1F3B73",
+                        edge.col = "gray80",
+                        cex = 0.55) {
+  if (ncol(coords) == 2L) {
+    plot(
+      coords[, 1], coords[, 2],
+      asp = 1,
+      pch = 16,
+      cex = cex,
+      col = vertex.col,
+      xlab = "",
+      ylab = "",
+      axes = FALSE,
+      main = title
+    )
+    if (!is.null(edges) && nrow(edges) > 0) {
+      segments(
+        coords[edges[, 1], 1], coords[edges[, 1], 2],
+        coords[edges[, 2], 1], coords[edges[, 2], 2],
+        col = edge.col
+      )
+    }
+  } else {
+    grip.plot(
+      coords,
+      edges,
+      projection = "ortho",
+      azimuth = 35,
+      elevation = 22,
+      vertex.col = vertex.col,
+      edge.col = edge.col,
+      main = title
+    )
+  }
+}
+```
+
+## Track 1: external-package comparisons on unweighted graphs
+
+For this track the comparison remains package-to-package:
+
+- `igraph`
+- `graphlayouts`
+- `grip`
+
+To keep the article lightweight, the cross-package results are precomputed and
+bundled as an RDS file. The reproduction script is still:
+
+- `inst/scripts/precompute-vs-alternatives.R`
 
 ```{r load-results}
-library(grip)
-
 res.path <- system.file(
   "extdata", "vs_alternatives", "benchmark_results.rds",
   package = "grip"
@@ -47,349 +136,244 @@ if (!nzchar(res.path)) {
 res <- readRDS(res.path)
 ```
 
-## Helpers
+### Benchmark 1: Zachary karate club
 
-The precompute script uses the same scoring helper shown below. Every layout ---
-from igraph, graphlayouts, or grip --- is scored with `grip.score.layout()`
-using identical sample sizes and seeds.
-
-```{r score-helper, eval=FALSE}
-score_layout <- function(coords, edges, n,
-                         clusters = NULL,
-                         edge.crossings = "auto",
-                         sample.size.stress = 2000L,
-                         sample.size.nonedge = 5000L) {
-  grip.score.layout(
-    coords              = coords,
-    edges               = edges,
-    n                   = n,
-    clusters            = clusters,
-    sample.size.stress  = sample.size.stress,
-    sample.size.nonedge = sample.size.nonedge,
-    stress.seed         = 42L,
-    nonedge.seed        = 42L,
-    edge.crossings      = edge.crossings
-  )
-}
-```
-
-A plotting helper gives every panel a consistent look: base-R graphics, white
-background, `asp = 1`, no axis labels.
-
-```{r plot-helper}
-plot_layout <- function(coords, edges, title,
-                        vertex.col = "#1F3B73",
-                        edge.col = "gray80",
-                        cex = 0.5) {
-  plot(coords[, 1], coords[, 2],
-       asp = 1, pch = 16, cex = cex,
-       col = vertex.col, xlab = "", ylab = "",
-       axes = FALSE, main = title)
-  if (!is.null(edges) && nrow(edges) > 0) {
-    segments(coords[edges[, 1], 1], coords[edges[, 1], 2],
-             coords[edges[, 2], 1], coords[edges[, 2], 2],
-             col = edge.col)
-  }
-}
-```
-
-## Benchmark 1: Zachary karate club (`r res$karate$n` vertices, `r res$karate$m` edges)
-
-The Zachary karate club is a small, well-studied social network with known
-faction membership. It is small enough that all methods should perform well.
-
-The code below shows how each layout was computed. The igraph layouts use
-`layout_with_fr()`, `layout_with_kk()`, `layout_with_drl()`, and graphlayouts
-uses `layout_with_stress()`. grip runs with default parameters and with
-manually tuned parameters. None of grip's presets (`mesh`, `carpet`, `torus`,
-`tree`) match this dense social network, so we tune by hand: more iterations
-for convergence and stronger repulsion to spread the dense core.
-
-```{r karate-code, eval=FALSE}
-library(igraph)
-library(graphlayouts)
-
-karate.ig <- graph_from_edgelist(karate.edges, directed = FALSE)
-
-set.seed(1); karate.fr      <- layout_with_fr(karate.ig)
-set.seed(1); karate.kk      <- layout_with_kk(karate.ig)
-set.seed(1); karate.drl     <- layout_with_drl(karate.ig)
-set.seed(1); karate.stress  <- layout_with_stress(karate.ig)
-
-karate.grip.default <- grip.layout(karate.edges, n = karate.n, dim = 2, seed = 1)
-karate.grip.tuned   <- grip.layout(karate.edges, n = karate.n, dim = 2,
-                                    rounds = 128, final_rounds = 192,
-                                    num_nbrs = 16, repulsion_factor = 2.0,
-                                    r = 0.05, s = 5.0, seed = 1)
-```
-
-### Quality metrics
+This is still a useful small-graph sanity check. The graph is small enough that
+single-scale methods can compete directly.
 
 ```{r karate-table}
-karate.display <- res$karate$scores[, c("method", "sampled.stress",
-                                         "edge.length.cv", "edge.crossings",
-                                         "sampled.nonedge.sep.ratio",
-                                         "cluster.separation")]
-knitr::kable(karate.display, digits = 4, row.names = FALSE,
-             caption = "Karate club: quality metrics (lower stress/CV/crossings is better; higher separation is better)")
-```
+karate.display <- res$karate$scores[, c(
+  "method",
+  "sampled.stress",
+  "edge.length.cv",
+  "edge.crossings",
+  "sampled.nonedge.sep.ratio",
+  "cluster.separation"
+)]
 
-### Visual comparison
+knitr::kable(
+  karate.display,
+  digits = 4,
+  row.names = FALSE,
+  caption = "Karate club: unweighted comparison metrics."
+)
+```
 
 ```{r karate-plot, fig.width=12, fig.height=7.5}
 k <- res$karate
 par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(k$layouts$fr,           k$edges, "FR (igraph)",           cex = 0.6)
-plot_layout(k$layouts$kk,           k$edges, "KK (igraph)",           cex = 0.6)
-plot_layout(k$layouts$drl,          k$edges, "DrL (igraph)",          cex = 0.6)
-plot_layout(k$layouts$stress,       k$edges, "Stress (graphlayouts)", cex = 0.6)
-plot_layout(k$layouts$grip.default, k$edges, "grip default",          cex = 0.6)
-plot_layout(k$layouts$grip.tuned,    k$edges, "grip tuned",      cex = 0.6)
+plot_layout(k$layouts$fr,            k$edges, "FR (igraph)", cex = 0.6)
+plot_layout(k$layouts$kk,            k$edges, "KK (igraph)", cex = 0.6)
+plot_layout(k$layouts$drl,           k$edges, "DrL (igraph)", cex = 0.6)
+plot_layout(k$layouts$stress,        k$edges, "Stress (graphlayouts)", cex = 0.6)
+plot_layout(k$layouts$grip.default,  k$edges, "grip default", cex = 0.6)
+plot_layout(k$layouts$grip.tuned,    k$edges, "grip tuned", cex = 0.6)
 ```
 
-On a graph this small (34 vertices), grip's multiscale approach has very little
-coarsening hierarchy to work with, so it does not have a structural advantage
-over algorithms that operate at a single scale. Stress minimization (from
-graphlayouts) and Kamada-Kawai typically achieve low stress values here, which
-is expected given that they directly optimize a stress objective. The tuned grip
-layout uses stronger repulsion and more iterations to spread the dense core, but
-on a graph this small, general-purpose methods like FR and KK are hard to beat.
-This is an honest result: grip is designed for larger graphs, and its presets
-target specific graph families (meshes, carpets, trees) rather than small dense
-social networks.
+On graphs this small, `grip` does not have a special structural advantage.
+That is an honest result and a useful reminder: multiscale methods are not
+automatically best on every graph.
 
-## Benchmark 2: 12×12 rectangular mesh (`r res$mesh$n` vertices, `r res$mesh$m` edges)
+### Benchmark 2: 12x12 mesh
 
-A regular lattice is a structural benchmark: the ideal layout recovers the grid
-exactly, with uniform edge lengths and zero crossings.
-
-```{r mesh-code, eval=FALSE}
-mesh.edges <- edges.mesh(12, 12)
-mesh.ig <- graph_from_edgelist(mesh.edges, directed = FALSE)
-
-set.seed(1); mesh.fr      <- layout_with_fr(mesh.ig)
-set.seed(1); mesh.kk      <- layout_with_kk(mesh.ig)
-set.seed(1); mesh.drl     <- layout_with_drl(mesh.ig)
-set.seed(1); mesh.stress  <- layout_with_stress(mesh.ig)
-
-mesh.grip.default <- grip.layout(mesh.edges, n = mesh.n, dim = 2, seed = 1)
-mesh.grip.mesh    <- grip.layout(mesh.edges, n = mesh.n, dim = 2,
-                                  preset = "mesh", seed = 1)
-```
-
-### Quality metrics
+Meshes are a good structured topological benchmark because a strong layout
+should recover an orderly grid with uniform edge lengths and few or no
+crossings.
 
 ```{r mesh-table}
-mesh.display <- res$mesh$scores[, c("method", "sampled.stress",
-                                     "edge.length.cv", "edge.crossings",
-                                     "sampled.nonedge.sep.ratio")]
-knitr::kable(mesh.display, digits = 4, row.names = FALSE,
-             caption = "12x12 mesh: quality metrics")
-```
+mesh.display <- res$mesh$scores[, c(
+  "method",
+  "sampled.stress",
+  "edge.length.cv",
+  "edge.crossings",
+  "sampled.nonedge.sep.ratio"
+)]
 
-### Visual comparison
+knitr::kable(
+  mesh.display,
+  digits = 4,
+  row.names = FALSE,
+  caption = "12x12 mesh: unweighted comparison metrics."
+)
+```
 
 ```{r mesh-plot, fig.width=12, fig.height=7.5}
 m <- res$mesh
 par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(m$layouts$fr,           m$edges, "FR (igraph)",           cex = 0.5)
-plot_layout(m$layouts$kk,           m$edges, "KK (igraph)",           cex = 0.5)
-plot_layout(m$layouts$drl,          m$edges, "DrL (igraph)",          cex = 0.5)
-plot_layout(m$layouts$stress,       m$edges, "Stress (graphlayouts)", cex = 0.5)
-plot_layout(m$layouts$grip.default, m$edges, "grip default",          cex = 0.5)
-plot_layout(m$layouts$grip.mesh,    m$edges, "grip mesh preset",      cex = 0.5)
+plot_layout(m$layouts$fr,            m$edges, "FR (igraph)", cex = 0.5)
+plot_layout(m$layouts$kk,            m$edges, "KK (igraph)", cex = 0.5)
+plot_layout(m$layouts$drl,           m$edges, "DrL (igraph)", cex = 0.5)
+plot_layout(m$layouts$stress,        m$edges, "Stress (graphlayouts)", cex = 0.5)
+plot_layout(m$layouts$grip.default,  m$edges, "grip default", cex = 0.5)
+plot_layout(m$layouts$grip.mesh,     m$edges, "grip mesh preset", cex = 0.5)
 ```
 
-On lattice graphs, stress minimization and Kamada-Kawai both tend to recover
-near-perfect grids. grip's mesh preset is specifically tuned for this family and
-should produce very uniform edge lengths (low CV). Fruchterman-Reingold and DrL
-often introduce slight barrel distortion on regular meshes.
+This benchmark shows a different pattern from the karate graph: once the graph
+has a strong family structure, `grip` benefits from that structure through the
+family-tuned preset. At the same time, stress and KK remain very strong on a
+regular lattice.
 
-## Benchmark 3: Level-4 Sierpinski carpet (`r res$carpet$n` vertices, `r res$carpet$m` edges)
+### What the unweighted track tells us
 
-This fractal graph is large enough that algorithm scalability starts to matter.
-Edge-crossing computation is skipped (it would be extremely slow at this size).
+The external-package benchmark is still useful, but its scope is now clear:
 
-```{r carpet-code, eval=FALSE}
-carpet.edges <- edges.sierpinski.carpet(4)
-carpet.ig <- graph_from_edgelist(carpet.edges, directed = FALSE)
+- it compares engines on ordinary unweighted graphs,
+- it is a fair way to evaluate layout quality with a shared scoring function,
+- but it does not answer the geometry-aware weighted-layout question.
 
-set.seed(1); carpet.fr      <- layout_with_fr(carpet.ig)
-set.seed(1); carpet.kk      <- layout_with_kk(carpet.ig)
-set.seed(1); carpet.drl     <- layout_with_drl(carpet.ig)
-set.seed(1); carpet.stress  <- layout_with_stress(carpet.ig)
+That second question needs a different benchmark track.
 
-carpet.grip.default <- grip.layout(carpet.edges, n = carpet.n, dim = 2, seed = 1)
-carpet.grip.carpet  <- grip.layout(carpet.edges, n = carpet.n, dim = 2,
-                                    preset = "carpet", seed = 1)
-```
+## Track 2: geometry-aware comparisons on weighted graphs
 
-### Quality metrics
+For weighted graphs with meaningful edge lengths, a pure topology-only
+comparison is no longer enough. The weighted track in `grip` is built around:
 
-```{r carpet-table}
-carpet.display <- res$carpet$scores[, c("method", "sampled.stress",
-                                         "edge.length.cv",
-                                         "sampled.nonedge.sep.ratio")]
-knitr::kable(carpet.display, digits = 4, row.names = FALSE,
-             caption = "Level-4 Sierpinski carpet: quality metrics (edge crossings skipped)")
-```
+- `grip.layout.weighted()`
+- optional LGKK-based refinement
+- and full geodesic-KK scoring.
 
-### Timing
+The small example below is built and scored live in the vignette. It uses a
+plain mesh topology whose edge lengths are induced by a curved saddle surface.
 
-Timing depends on hardware, so treat these numbers as relative rather than
-absolute. All benchmarks were run on the same machine in a single R session.
+```{r weighted-case}
+weighted.mesh <- mesh.surface.graph(
+  5, 5,
+  surface = "saddle",
+  amplitude = 0.8
+)
 
-```{r carpet-timing}
-knitr::kable(res$carpet$timing, digits = 2, row.names = FALSE,
-             caption = "Level-4 Sierpinski carpet: elapsed time (seconds)")
-```
+coords.combinatorial <- grip.layout(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
 
-### Visual comparison
+coords.weighted <- grip.layout.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
 
-```{r carpet-plot, fig.width=12, fig.height=7.5}
-c4 <- res$carpet
-par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(c4$layouts$fr,           c4$edges, "FR (igraph)",           cex = 0.3)
-plot_layout(c4$layouts$kk,           c4$edges, "KK (igraph)",           cex = 0.3)
-plot_layout(c4$layouts$drl,          c4$edges, "DrL (igraph)",          cex = 0.3)
-plot_layout(c4$layouts$stress,       c4$edges, "Stress (graphlayouts)", cex = 0.3)
-plot_layout(c4$layouts$grip.default, c4$edges, "grip default",          cex = 0.3)
-plot_layout(c4$layouts$grip.carpet,  c4$edges, "grip carpet preset",    cex = 0.3)
-```
+coords.weighted.lgkk <- grip.layout.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  lgkk_polish_rounds = 6L,
+  seed = 1
+)
 
-The Sierpinski carpet has a self-similar hole structure that is a strong test of
-layout fidelity. grip's carpet preset is specifically tuned for this fractal
-family and should preserve the recursive holes more clearly. On a graph of this
-size, Kamada-Kawai can be slow (its time complexity is O(n²)), while DrL and
-grip's multiscale approach are designed to handle larger graphs efficiently.
+gkk.prepared <- grip.prepare.geodesic.kk(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights
+)
 
-## Benchmark 4: HMP microbial network (`r res$hmp$n` vertices, `r res$hmp$m` edges)
+weighted.summary <- do.call(
+  rbind,
+  list(
+    cbind(
+      method = "Combinatorial GRIP",
+      grip.score.geodesic.kk(
+        coords.combinatorial,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP",
+      grip.score.geodesic.kk(
+        coords.weighted,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP + LGKK polish",
+      grip.score.geodesic.kk(
+        coords.weighted.lgkk,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    )
+  )
+)
 
-This real-world co-occurrence network from the Human Microbiome Project has
-community labels (CST), making it a good test of cluster separation. It is also
-weighted, though we use unweighted versions for igraph/graphlayouts layouts to
-keep the comparison straightforward. For grip, we pass the full weighted graph.
-
-We skip `layout_with_kk()` for this benchmark because its O(n²) per-iteration
-cost makes it impractical for a graph with `r res$hmp$n` vertices and dense
-local connectivity.
-
-```{r hmp-code, eval=FALSE}
-data(hmp.u01.gc.coarse)
-hmp.ig <- graph_from_edgelist(hmp.edges, directed = FALSE)
-
-set.seed(1); hmp.fr     <- layout_with_fr(hmp.ig)
-set.seed(1); hmp.drl    <- layout_with_drl(hmp.ig)
-set.seed(1); hmp.stress <- layout_with_stress(hmp.ig)
-
-hmp.grip.default <- grip.layout(
-  adj_list = hmp.adj, weight_list = hmp.wt, n = hmp.n, dim = 2, seed = 1
+knitr::kable(
+  weighted.summary,
+  digits = 4,
+  row.names = FALSE,
+  caption = "Weighted mesh surface: geodesic-KK comparison metrics."
 )
 ```
 
-### Quality metrics
-
-```{r hmp-table}
-hmp.display <- res$hmp$scores[, c("method", "sampled.stress",
-                                   "edge.length.cv",
-                                   "sampled.nonedge.sep.ratio",
-                                   "cluster.separation")]
-knitr::kable(hmp.display, digits = 4, row.names = FALSE,
-             caption = "HMP microbial network: quality metrics (edge crossings skipped)")
-```
-
-### Timing
-
-```{r hmp-timing}
-knitr::kable(res$hmp$timing, digits = 2, row.names = FALSE,
-             caption = "HMP microbial network: elapsed time (seconds)")
-```
-
-### Visual comparison
-
-```{r hmp-plot, fig.width=10, fig.height=9}
-h <- res$hmp
-cst.levels <- sort(unique(h$cst))
-cst.cols   <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"),
-                        cst.levels)
-hmp.cst.col <- cst.cols[h$cst]
-
+```{r weighted-plot, fig.width=11.2, fig.height=8}
 par(mfrow = c(2, 2), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(h$layouts$fr,           h$edges, "FR (igraph)",
-            vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(h$layouts$drl,          h$edges, "DrL (igraph)",
-            vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(h$layouts$stress,       h$edges, "Stress (graphlayouts)",
-            vertex.col = hmp.cst.col, cex = 0.4)
-plot_layout(h$layouts$grip.default, h$edges, "grip default",
-            vertex.col = hmp.cst.col, cex = 0.4)
-
-legend("bottomleft", legend = cst.levels, col = cst.cols, pch = 16,
-       bty = "n", cex = 0.7, title = "CST")
+plot_layout(weighted.mesh$coords_surface, weighted.mesh$edges, "Target geometry")
+plot_layout(coords.combinatorial, weighted.mesh$edges, "Combinatorial GRIP")
+plot_layout(coords.weighted, weighted.mesh$edges, "Weighted GRIP")
+plot_layout(coords.weighted.lgkk, weighted.mesh$edges, "Weighted GRIP + LGKK polish")
 ```
 
-On a real biological network, cluster separation is the metric of primary
-interest. grip accepts the full weighted graph directly, which allows it to
-exploit edge-weight information during layout. The other methods are applied to
-the unweighted projection here, which may put them at a slight disadvantage on
-this particular graph.
+This weighted section is not a package-versus-package benchmark in the old
+sense. Instead, it answers the more relevant question for modern `grip`:
 
-## Discussion
+- what happens when the graph metric matters?
 
-Across these four benchmarks, several patterns emerge.
+On this example the progression is exactly what the current package design aims
+for:
 
-On small, well-connected graphs like the karate club, all methods produce
-comparable results. The differences are small enough that the choice of layout
-algorithm matters less than the choice of visual encoding. This is expected:
-when the graph fits comfortably in memory and has low diameter, most
-force-directed and stress-based methods converge to similar solutions.
+- combinatorial GRIP gives a topology-respecting layout,
+- weighted GRIP improves geodesic fidelity,
+- weighted GRIP plus LGKK polish improves it further.
 
-On structured graphs with a known ideal layout (the mesh, the Sierpinski
-carpet), grip's presets tend to produce lower stress and more uniform edge
-lengths. This is because the presets encode domain knowledge about the graph
-family --- tuned repulsion factors, iteration counts, and neighborhood sizes
-that help the multiscale solver find the right geometry. graphlayouts'
-`layout_with_stress()` also performs well on the mesh, since stress minimization
-is a natural fit for lattice graphs. Fruchterman-Reingold and DrL, which were
-designed for different use cases, sometimes introduce distortion on these
-regular structures.
+## So what should you compare with what?
 
-On the larger HMP network, scalability differences become apparent.
-Kamada-Kawai's O(n²) cost makes it impractical. DrL is fast but can sacrifice
-layout quality for speed. graphlayouts' stress minimization strikes a good
-balance between quality and performance on moderate-sized graphs. grip's
-multiscale approach is designed for this regime and can additionally exploit edge
-weights when available.
+For ordinary unweighted graphs:
 
-The key takeaway is not that grip is universally better, but that
-`grip.score.layout()` provides a principled way to compare layouts from any
-source. Rather than choosing a layout algorithm by eye, you can compute stress,
-edge-length uniformity, non-edge separation, and cluster separation for
-candidate layouts and make an informed decision. The scoring function works with
-any coordinate matrix and edge list --- it does not require that the layout was
-produced by grip.
+- compare `grip` with `igraph` and `graphlayouts`,
+- use `grip.score.layout()` to evaluate all of them on the same graph,
+- and expect the answer to depend on graph family and graph size.
 
-grip is best thought of as a complement to igraph and graphlayouts: install it
-alongside your existing graph tools, use its presets when your graph matches a
-known family, and use its scoring functions to evaluate and compare layouts
-regardless of origin.
+For weighted geometric graphs:
 
-## How to reproduce
+- start with `grip.layout.weighted()`,
+- use 3D as the primary layout space when the geometry demands it,
+- and evaluate candidate layouts with geodesic-aware criteria such as
+  `grip.score.geodesic.kk()`.
 
-To regenerate the precomputed results from scratch:
+That is the main conceptual change in the package since the original version of
+this article was written.
+
+## Reproducing the external benchmark bundle
+
+To regenerate the precomputed external-package results:
 
 ```{r reproduce, eval=FALSE}
-# In an R session with grip, igraph, and graphlayouts installed:
 source(system.file("scripts", "precompute-vs-alternatives.R", package = "grip"))
 ```
 
-The script saves results to `inst/extdata/vs_alternatives/benchmark_results.rds`.
-After running it, rebuild the pkgdown site to update this page.
+The weighted section of this article is generated directly inside the vignette,
+so it always reflects the current package implementation.
 
-## Session info
-
-The benchmarks were computed in:
+## Session info for the bundled external results
 
 ```{r session-info-precomputed}
 res$session_info
 ```
+
