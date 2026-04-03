@@ -419,6 +419,47 @@ test_that("high-level MISF-GMDS optimizer runs from a graph-first prepared objec
   expect_true(is.finite(fit$score$final.gmds.energy[[1L]]))
 })
 
+test_that("high-level MISF-GMDS optimizer supports weighted-KK lower-level placement", {
+  bundle <- mesh.surface.graph(
+    5, 5,
+    surface = "paraboloid",
+    amplitude = 0.2,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+
+  fit <- grip.optimize.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    num_nbrs = 8L,
+    dim = 3L,
+    top_level_restarts = 2L,
+    top_level_max_iter = 2L,
+    insertion_mode = "weighted_kk",
+    insertion_layout_k = 4L,
+    refinement_local_nbrs = 3L,
+    refinement_landmark_count = 2L,
+    refinement_max_iter = 2L,
+    refinement_engine = "cpp",
+    final_polish_max_iter = 2L,
+    final_polish_engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE,
+    seed = 31L
+  )
+
+  expect_s3_class(fit, "grip_misf_gmds_fit")
+  expect_true(all(is.finite(fit$coords)))
+  expect_true(any(fit$stage_trace$stage == "insertion"))
+  expect_true(all(is.na(fit$stage_trace$mean_objective[fit$stage_trace$stage == "insertion"])))
+  expect_equal(fit$prepared$insertion_mode, "weighted_kk")
+  expect_equal(fit$prepared$insertion_layout_k, 4L)
+  expect_true(is.finite(fit$score$final.gmds.energy[[1L]]))
+})
+
 test_that("MISF-GMDS scorer summarizes fits and direct coords consistently", {
   edges <- edges.mesh(4, 4)
   graph.prepared <- grip.prepare.graph.geodesic.mds(
