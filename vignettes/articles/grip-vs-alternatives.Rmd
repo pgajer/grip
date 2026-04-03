@@ -208,10 +208,12 @@ plot_layout(m$layouts$grip.default,  m$edges, "grip default", cex = 0.5)
 plot_layout(m$layouts$grip.mesh,     m$edges, "grip mesh preset", cex = 0.5)
 ```
 
-This benchmark shows a different pattern from the karate graph: once the graph
-has a strong family structure, `grip` benefits from that structure through the
-family-tuned preset. At the same time, stress and KK remain very strong on a
-regular lattice.
+This benchmark shows a different pattern from the karate graph: on a canonical
+structured family like a mesh, the current `grip` default is already robust and
+produces a clean uncrossed layout. The `mesh` preset still helps a bit, but it
+now acts as a modest family-specific refinement rather than a rescue from a bad
+default. At the same time, stress and KK remain very strong on a regular
+lattice.
 
 ### What the unweighted track tells us
 
@@ -376,4 +378,3 @@ so it always reflects the current package implementation.
 ```{r session-info-precomputed}
 res$session_info
 ```
-
