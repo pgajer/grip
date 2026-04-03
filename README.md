@@ -112,20 +112,24 @@ cmp <- grip.compare.layouts(edges, n = 100, dim = 2,
 cmp$summary[, c("candidate", "score.composite", "sampled.stress.mean")]
 ```
 
-## Vignettes and Articles
+## Documentation
 
-The package ships with several vignettes and articles, including:
+The package ships with four core vignettes:
 
-- **GRIP Layout Examples** — a gallery of tuned layouts for synthetic
-  graph families (mesh, carpet, tree, torus, tetrahedron) with
-  side-by-side default-vs-preset comparisons.
+- **Getting Started with grip** — the shortest path through the default
+  unweighted workflow, with guidance on when to switch to weighted,
+  trace, or comparison workflows.
+- **Weighted Graph Layouts with grip** — geometry-aware layouts,
+  geodesic scoring, and 2D-versus-3D decisions for weighted graphs.
 - **Choosing Layouts for Real Data** — a step-by-step workflow using the
-  Zachary karate club and Krackhardt kite benchmarks, covering preset
-  shortlisting, local parameter search, and metadata-aware scoring.
-- **HMP/U01 Weighted Graph Case Study** — a compact companion article
-  for the bundled 1,828-vertex microbial graph derived from the Human
-  Microbiome Project, focusing on object structure, provenance, and
-  precomputed search artifacts.
+  Zachary karate club and Krackhardt kite examples, plus a larger
+  weighted HMP/U01 case study.
+- **Tracing and Diagnosing Layouts** — frame-by-frame tracing for
+  understanding how a solve evolves.
+
+The pkgdown site also includes companion articles such as the
+interactive explorer guide, the HMP/U01 object-structure note, the
+comparison article, and the synthetic-family gallery.
 
 ## Citation
 

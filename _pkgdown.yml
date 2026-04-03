@@ -34,14 +34,18 @@ navbar:
     articles:
       text: Articles
       menu:
-        - text: Layout Examples
+        - text: Getting Started
           href: articles/grip-examples.html
+        - text: Weighted Layouts
+          href: articles/weighted-grip-intro.html
         - text: Choosing Layouts for Real Data
           href: articles/grip-real-data.html
-        - text: HMP/U01 Case Study
-          href: articles/hmp-u01-case-study.html
+        - text: Tracing and Diagnostics
+          href: articles/grip-trace-and-diagnostics.html
         - text: Interactive Explorer
           href: articles/gripui-explorer.html
+        - text: HMP/U01 Case Study
+          href: articles/hmp-u01-case-study.html
         - text: "Comparing with Alternatives"
           href: articles/grip-vs-alternatives.html
         - text: "---"

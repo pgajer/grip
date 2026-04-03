@@ -51,4 +51,6 @@
 ^_pkgdown\.yml$
 ^pkgdown$
 ^docs$
+^vignettes/articles($|/)
+^vignettes/.*\.html$
 ^gmds_.*\.(aux|fdb_latexmk|fls|log|pdf|synctex\.gz)$

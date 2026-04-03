@@ -1,0 +1,119 @@
+{
+  "name": "gmds_misf_phase_e_expansion",
+  "date": "2026-04-02",
+  "status": "planned_only",
+  "goal": "Expand the Phase E seeded MISF-GMDS evaluation from paraboloids to broader mesh geometries and then to additional graph families, with a PDF report and interactive 3D HTML for each block.",
+  "execution_order": [
+    {
+      "block_id": "block_1_mesh_geometries",
+      "priority": 1,
+      "families": [
+        "regular_rectangle_mesh",
+        "irregular_rectangle_mesh"
+      ],
+      "geometries": [
+        "flat",
+        "saddle",
+        "paraboloid",
+        "ripple"
+      ],
+      "sizes": [
+        "12x12",
+        "15x15",
+        "20x20_optional"
+      ],
+      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-mesh-geometries.R",
+      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-mesh-geometries-html.R",
+      "report_prefix": "gmds_misf_phase_e_mesh_geometries_report",
+      "html_prefix": "gmds_misf_phase_e_mesh_geometries_3d",
+      "decision_gate": "Proceed to Block 2 only after reviewing whether the current Phase E pipeline remains stable across all four surface geometries."
+    },
+    {
+      "block_id": "block_2_perforated_rectangles",
+      "priority": 2,
+      "families": [
+        "periodic_holes",
+        "slit_channels",
+        "asymmetric_notches"
+      ],
+      "geometries": [
+        "flat",
+        "paraboloid",
+        "saddle_optional"
+      ],
+      "sizes": [
+        "16x16",
+        "20x20"
+      ],
+      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-perforated-rectangles.R",
+      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-perforated-rectangles-html.R",
+      "report_prefix": "gmds_misf_phase_e_perforated_rectangles_report",
+      "html_prefix": "gmds_misf_phase_e_perforated_rectangles_3d",
+      "decision_gate": "Proceed to Block 3 only after reviewing whether the Phase E pipeline survives moderate topological complication in rectangle-like families."
+    },
+    {
+      "block_id": "block_3_annulus_sphere",
+      "priority": 3,
+      "families": [
+        "annulus",
+        "irregular_annulus",
+        "sphere",
+        "irregular_sphere"
+      ],
+      "geometries": [
+        "intrinsic_family_geometry"
+      ],
+      "sizes": [
+        "family_default_small",
+        "family_default_medium"
+      ],
+      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-annulus-sphere.R",
+      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-annulus-sphere-html.R",
+      "report_prefix": "gmds_misf_phase_e_annulus_sphere_report",
+      "html_prefix": "gmds_misf_phase_e_annulus_sphere_3d",
+      "decision_gate": "Use this block to decide whether the current Phase E seeded MISF-GMDS strategy generalizes beyond rectangle-derived families."
+    }
+  ],
+  "fixed_design": {
+    "tie_mode": "average",
+    "top_seed_pool": [
+      "cmdscale",
+      "kk",
+      "grip",
+      "weighted_grip",
+      "weighted_grip_polish_lgkk"
+    ],
+    "lower_level_placement": "weighted_kk",
+    "final_polish": "pure_gmds",
+    "report_every_block": true,
+    "interactive_html_every_block": true
+  },
+  "metrics": [
+    "sigma_geo",
+    "rho",
+    "eta",
+    "alpha_0.05_or_family_proxy",
+    "runtime",
+    "lookahead_sigma",
+    "lookahead_roughness",
+    "lookahead_alpha_0.05_or_family_proxy",
+    "proxy_selected_winner",
+    "oracle_best_sigma",
+    "oracle_best_rho"
+  ],
+  "deliverables": {
+    "per_block": [
+      "latex_report",
+      "pdf_report",
+      "interactive_rglwidget_html",
+      "html_dependency_folder",
+      "metrics_csv",
+      "compact_results_rds"
+    ]
+  },
+  "notes": [
+    "Render ripple families primarily in 3D; treat 2D ripple views as diagnostic only.",
+    "Keep reference-first ordering and stable camera settings in every HTML gallery.",
+    "Always include direct cmdscale->GMDS, best fixed-top weighted-KK control, proxy-selected Phase E run, and oracle-best-rho run when different."
+  ]
+}

@@ -1,10 +1,5 @@
 ---
 title: "HMP/U01 Weighted Graph Case Study"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{HMP/U01 Weighted Graph Case Study}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
