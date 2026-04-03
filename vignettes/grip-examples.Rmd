@@ -18,27 +18,30 @@ knitr::opts_chunk$set(
 
 ## What this vignette covers
 
-`grip` now supports three closely related layout workflows:
+`grip` has a small set of entry points that cover most package use:
 
-- `grip.layout()` for the current quality-first multiscale GRIP engine,
-- `grip.layout.legacy()` for the historical GRIP behavior,
-- `grip.layout.weighted()` for geometry-aware layouts of weighted graphs.
+- `grip.layout()` for ordinary unweighted graphs,
+- `grip.compare.layouts()` when you want to compare a short list of candidate
+  settings,
+- `grip.layout.legacy()` for backward-compatible reproduction,
+- `grip.layout.weighted()` when edge lengths carry geometry you want to keep.
 
-This vignette is the shortest path through that structure. It shows:
+This vignette is the shortest path through the default workflow. It shows how
+to:
 
-- a first unweighted layout,
-- the difference between the current and legacy entry points,
-- a first weighted layout where edge lengths matter,
-- and a compact trace example.
+- compute a first unweighted layout,
+- score it,
+- compare a few plausible candidates,
+- and decide when to switch to the specialist guides.
 
-For deeper workflows, see the real-data, weighted-layouts, and interactive
-vignettes.
+For weighted layouts, real-data search, tracing, and interactive exploration,
+the later guides go deeper.
 
 ```{r}
 library(grip)
 ```
 
-The helper functions below keep the figures compact.
+The helper below keeps side-by-side comparisons compact.
 
 ```{r}
 plot.layout.pair <- function(coords.left,
@@ -65,67 +68,6 @@ plot.layout.pair <- function(coords.left,
     vertex.col = vertex.cols[[2]],
     edge.col = edge.col
   )
-}
-
-plot.layout.triptych <- function(coords.list,
-                                 edges,
-                                 titles,
-                                 projection = NULL,
-                                 vertex.cols = rep("black", length(coords.list)),
-                                 edge.col = "gray82") {
-  op <- par(
-    mfrow = c(1, length(coords.list)),
-    mar = c(1.2, 1.2, 3, 1.2),
-    bg = "white"
-  )
-  on.exit(par(op), add = TRUE)
-
-  for (i in seq_along(coords.list)) {
-    grip.plot(
-      coords.list[[i]], edges,
-      projection = projection,
-      main = titles[[i]],
-      vertex.col = vertex.cols[[i]],
-      edge.col = edge.col
-    )
-  }
-}
-
-plot.trace.frame <- function(coords, edges, main = "") {
-  active <- stats::complete.cases(coords[, 1:2, drop = FALSE])
-  xy <- coords[active, 1:2, drop = FALSE]
-
-  xlim <- range(xy[, 1])
-  ylim <- range(xy[, 2])
-  xpad <- 0.08 * diff(xlim)
-  ypad <- 0.08 * diff(ylim)
-  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
-  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
-
-  plot(
-    xy[, 1], xy[, 2],
-    type = "n",
-    asp = 1,
-    axes = FALSE,
-    xlab = "",
-    ylab = "",
-    xlim = xlim + c(-xpad, xpad),
-    ylim = ylim + c(-ypad, ypad),
-    main = main
-  )
-
-  active.edges <- edges[active[edges[, 1]] & active[edges[, 2]], , drop = FALSE]
-  if (nrow(active.edges) > 0) {
-    apply(active.edges, 1, function(e) {
-      graphics::segments(
-        coords[e[1], 1], coords[e[1], 2],
-        coords[e[2], 1], coords[e[2], 2],
-        col = "gray82"
-      )
-    })
-  }
-
-  points(xy[, 1], xy[, 2], pch = 16, cex = 0.55, col = "black")
 }
 ```
 
@@ -156,7 +98,7 @@ knitr::kable(mesh.score[, c(
 grip.plot(
   mesh.coords,
   mesh.edges,
-  main = "Current GRIP on a 5x5 mesh",
+  main = "grip.layout() on a 5x5 mesh",
   pch = 16,
   cex = 0.65,
   edge.col = "gray82"
@@ -169,11 +111,45 @@ For small and medium unweighted graphs, that is often all you need:
 - optionally start from a preset,
 - and score or compare a few candidate settings if the graph is important.
 
+## Compare a few plausible candidates
+
+If the first picture matters, it is usually better to compare a short candidate
+list than to tune blindly. `grip.compare.layouts()` runs several seeds and
+summarizes the results in a score table.
+
+```{r}
+mesh.cmp <- grip.compare.layouts(
+  edges = mesh.edges,
+  n = 25,
+  dim = 2,
+  candidates = c("default", "mesh", "tree"),
+  seeds = 1:2,
+  sample.size.stress = 500L,
+  sample.size.nonedge = 1000L,
+  edge.crossings = "never"
+)
+
+knitr::kable(mesh.cmp$summary[, c(
+  "candidate",
+  "sampled.stress.mean",
+  "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean",
+  "score.composite"
+)], digits = 3)
+```
+
+That same pattern scales to real graphs:
+
+- shortlist a few plausible presets,
+- run several seeds,
+- inspect the summary table before choosing a favorite picture,
+- then search locally only if the graph is important enough to justify it.
+
 ## Current GRIP versus legacy GRIP
 
 The package still keeps the historical entry point through
 `grip.layout.legacy()`. That is useful for backward-compatible reproduction,
-but the main package path is the current `grip.layout()` engine.
+but the recommended path for new work is `grip.layout()`.
 
 ```{r}
 mesh.current <- grip.layout(
@@ -206,154 +182,33 @@ The practical distinction is:
 
 - use `grip.layout.legacy()` when you need the historical local-force behavior,
 - use `grip.layout()` for the current package default,
-- use `grip.layout.trace()` when you want to inspect how a layout forms.
+- and treat the legacy path as a reproduction tool rather than a new default.
 
-## When edge lengths matter: weighted GRIP
+## When should you switch workflows?
 
-Some graphs carry real geometry in their edge lengths. In those cases, the
-combinatorial graph alone is not the whole story. The weighted sister API keeps
-the same multiscale spirit while making the hierarchy and refinement steps
-length-aware.
+Start with `grip.layout()` when the graph is fundamentally unweighted and you
+mainly care about its combinatorial structure.
 
-The example below starts from a rectangular mesh whose edge lengths are induced
-by a curved 3D saddle surface.
+Switch to the other guides when the task changes:
 
-```{r}
-weighted.mesh <- mesh.surface.graph(
-  5, 5,
-  surface = "saddle",
-  amplitude = 0.9
-)
-
-coords.combinatorial <- grip.layout(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  dim = 3,
-  preset = "mesh",
-  seed = 3
-)
-
-coords.weighted <- grip.layout.weighted(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  seed = 3
-)
-
-gkk.prepared <- grip.prepare.geodesic.kk(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights
-)
-
-gkk.summary <- do.call(
-  rbind,
-  list(
-    cbind(
-      method = "Combinatorial GRIP",
-      grip.score.geodesic.kk(
-        coords.combinatorial,
-        prepared = gkk.prepared
-      )[, c(
-        "gkk.weighted.rmse",
-        "gkk.mean.abs.path.error",
-        "gkk.mean.rel.path.error"
-      )]
-    ),
-    cbind(
-      method = "Weighted GRIP",
-      grip.score.geodesic.kk(
-        coords.weighted,
-        prepared = gkk.prepared
-      )[, c(
-        "gkk.weighted.rmse",
-        "gkk.mean.abs.path.error",
-        "gkk.mean.rel.path.error"
-      )]
-    )
-  )
-)
-
-knitr::kable(gkk.summary, digits = 3)
-```
-
-```{r fig.width=12.6, fig.height=4.2}
-plot.layout.triptych(
-  list(
-    weighted.mesh$coords_surface,
-    coords.combinatorial,
-    coords.weighted
-  ),
-  edges = weighted.mesh$edges,
-  titles = c("Target geometry", "Combinatorial GRIP", "Weighted GRIP"),
-  projection = "ortho",
-  vertex.cols = c("#555555", "black", "#1F3B73")
-)
-```
-
-This is the basic rule of thumb:
-
-- if the graph is fundamentally unweighted, start with `grip.layout()`,
-- if the edge lengths encode geometry you care about, start with
-  `grip.layout.weighted()`,
-- and keep 3D in mind for weighted geometric families, because many of them are
-  intrinsically awkward in 2D.
-
-## Tracing a layout
-
-`grip.layout.trace()` records snapshots of the current multiscale solve. That
-is useful for debugging, teaching, and understanding why a parameter setting is
-working or failing.
-
-```{r}
-mesh.trace <- grip.layout.trace(
-  mesh.edges,
-  n = 25,
-  dim = 2,
-  preset = "mesh",
-  rounds = 12,
-  final_rounds = 16,
-  trace = "level",
-  diagnostics = "light",
-  seed = 4
-)
-
-knitr::kable(mesh.trace$meta)
-knitr::kable(mesh.trace$diagnostics[, c(
-  "frame",
-  "edge.length.cv",
-  "sampled.nonedge.sep.ratio"
-)], digits = 3)
-```
-
-```{r fig.width=10.5, fig.height=3.8}
-sel <- c(1L, max(2L, floor(length(mesh.trace$frames) / 2)), length(mesh.trace$frames))
-
-op <- par(mfrow = c(1, 3), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
-on.exit(par(op), add = TRUE)
-
-for (idx in sel) {
-  plot.trace.frame(
-    mesh.trace$frames[[idx]],
-    mesh.edges,
-    main = paste(
-      mesh.trace$meta$phase[[idx]],
-      "(frame", idx, ")"
-    )
-  )
-}
-```
-
-When you need the same idea for weighted graphs, use
-`grip.layout.trace.weighted()`.
+- use `grip.layout.weighted()` when edge lengths encode geometry you care
+  about,
+- use `grip.compare.layouts()` on real graphs when you want a disciplined
+  shortlist rather than a single run,
+- use `grip.layout.trace()` or `grip.layout.trace.weighted()` when you want to
+  inspect how a solve evolves,
+- use `run_gripui()` or `run_gripui_family()` in an interactive R session when
+  you want app-based exploration.
 
 ## Where to go next
 
-- `Weighted Graph Layouts with grip` covers the weighted sister API in more
-  detail.
-- `Choosing Layouts for Real Data` focuses on layout search and scoring.
-- `Interactive Exploration with gripui` covers the package's Shiny tools.
-- `Synthetic Graph Families and Geometries` explains the growing benchmark and
-  geometry library.
+- `Weighted Graph Layouts with grip` covers weighted solving, geodesic scoring,
+  and 2D-versus-3D decisions.
+- `Choosing Layouts for Real Data` focuses on candidate shortlisting, local
+  search, and real-data evaluation.
+- `Tracing and Diagnosing Layouts` covers trace objects and per-frame
+  diagnostics.
+- `Interactive Exploration with gripui` is a website article about the
+  package's Shiny tools.
+- `Synthetic Graph Families and Geometries` is a website article about the
+  benchmark and geometry library.

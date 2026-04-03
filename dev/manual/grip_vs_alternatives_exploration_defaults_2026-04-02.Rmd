@@ -1,0 +1,401 @@
+---
+title: "Exploring Default-Only Benchmark Candidates for grip vs Alternatives"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.retina = 2,
+  fig.width = 12,
+  fig.height = 7.5
+)
+```
+
+## Why this review document exists
+
+This is a review-only exploration document for revising the public article
+`Comparing grip with Alternative Layout Engines`.
+
+The main goals are:
+
+- use default settings only for all external layout engines and for `grip`,
+- look at a broader synthetic-family panel than karate plus mesh,
+- and identify two or three strong candidate benchmarks for the final vignette.
+
+This document intentionally does **not** use presets.
+
+```{r}
+library(grip)
+library(igraph)
+library(graphlayouts)
+```
+
+## Shared helpers
+
+```{r}
+as_coord_matrix <- function(layout_result) {
+  matrix(as.numeric(layout_result), ncol = ncol(layout_result))
+}
+
+score_layout <- function(coords, edges, n,
+                         edge.crossings = "auto",
+                         sample.size.stress = 2000L,
+                         sample.size.nonedge = 5000L) {
+  grip.score.layout(
+    coords = coords,
+    edges = edges,
+    n = n,
+    sample.size.stress = sample.size.stress,
+    sample.size.nonedge = sample.size.nonedge,
+    stress.seed = 42L,
+    nonedge.seed = 42L,
+    edge.crossings = edge.crossings
+  )
+}
+
+plot_layout <- function(coords,
+                        edges,
+                        title,
+                        vertex.col = "#1F3B73",
+                        edge.col = "gray80",
+                        cex = 0.5) {
+  plot(
+    coords[, 1], coords[, 2],
+    asp = 1,
+    pch = 16,
+    cex = cex,
+    col = vertex.col,
+    xlab = "",
+    ylab = "",
+    axes = FALSE,
+    main = title
+  )
+  if (!is.null(edges) && nrow(edges) > 0) {
+    segments(
+      coords[edges[, 1], 1], coords[edges[, 1], 2],
+      coords[edges[, 2], 1], coords[edges[, 2], 2],
+      col = edge.col
+    )
+  }
+}
+
+review_rank <- function(score_table) {
+  rank_sum <-
+    rank(score_table$sampled.stress, ties.method = "min") +
+    rank(score_table$edge.length.cv, ties.method = "min") +
+    rank(score_table$edge.crossings, ties.method = "min") +
+    rank(-score_table$sampled.nonedge.sep.ratio, ties.method = "min")
+  rank(rank_sum, ties.method = "min")
+}
+
+run_case <- function(case) {
+  built <- case$build()
+  edges <- built$edges
+  n <- built$n
+  ig <- igraph::graph_from_edgelist(edges, directed = FALSE)
+
+  set.seed(1); coords.fr <- as_coord_matrix(layout_with_fr(ig))
+  set.seed(1); coords.kk <- as_coord_matrix(layout_with_kk(ig))
+  set.seed(1); coords.drl <- as_coord_matrix(layout_with_drl(ig))
+  set.seed(1); coords.stress <- as_coord_matrix(layout_with_stress(ig))
+  coords.grip <- grip.layout(edges, n = n, dim = 2, seed = 1)
+
+  crossing.mode <- if (n <= 300L) "always" else "never"
+
+  scores <- rbind(
+    cbind(
+      method = "FR (igraph)",
+      score_layout(coords.fr, edges, n, edge.crossings = crossing.mode)
+    ),
+    cbind(
+      method = "KK (igraph)",
+      score_layout(coords.kk, edges, n, edge.crossings = crossing.mode)
+    ),
+    cbind(
+      method = "DrL (igraph)",
+      score_layout(coords.drl, edges, n, edge.crossings = crossing.mode)
+    ),
+    cbind(
+      method = "Stress (graphlayouts)",
+      score_layout(coords.stress, edges, n, edge.crossings = crossing.mode)
+    ),
+    cbind(
+      method = "grip default",
+      score_layout(coords.grip, edges, n, edge.crossings = crossing.mode)
+    )
+  )
+
+  scores <- as.data.frame(scores, stringsAsFactors = FALSE)
+  num.cols <- setdiff(names(scores), "method")
+  for (nm in num.cols) {
+    scores[[nm]] <- as.numeric(scores[[nm]])
+  }
+  scores$review.rank <- review_rank(scores)
+
+  list(
+    meta = data.frame(
+      case_id = case$id,
+      label = case$label,
+      family = case$family,
+      why = case$why,
+      n = n,
+      m = nrow(edges),
+      stringsAsFactors = FALSE
+    ),
+    edges = edges,
+    layouts = list(
+      fr = coords.fr,
+      kk = coords.kk,
+      drl = coords.drl,
+      stress = coords.stress,
+      grip.default = coords.grip
+    ),
+    scores = scores
+  )
+}
+
+plot_case_panel <- function(case.result) {
+  old.par <- par(no.readonly = TRUE)
+  on.exit(par(old.par), add = TRUE)
+  par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
+  plot_layout(case.result$layouts$fr, case.result$edges, "FR (igraph)")
+  plot_layout(case.result$layouts$kk, case.result$edges, "KK (igraph)")
+  plot_layout(case.result$layouts$drl, case.result$edges, "DrL (igraph)")
+  plot_layout(case.result$layouts$stress, case.result$edges, "Stress (graphlayouts)")
+  plot_layout(case.result$layouts$grip.default, case.result$edges, "grip default")
+
+  plot.new()
+  title("Case note", line = 0.5)
+  lines <- c(
+    sprintf("Family: %s", case.result$meta$family[[1L]]),
+    sprintf("n = %d, m = %d", case.result$meta$n[[1L]], case.result$meta$m[[1L]]),
+    "",
+    strwrap(case.result$meta$why[[1L]], width = 28)
+  )
+  text(
+    x = 0.03,
+    y = 0.95,
+    labels = paste(lines, collapse = "\n"),
+    adj = c(0, 1),
+    cex = 0.95
+  )
+}
+```
+
+## Candidate case panel
+
+The panel below is intentionally broad. It spans trees, wrapped lattices,
+fractals, triangulated manifolds, irregular manifolds, and a porous 3D-derived
+graph, all viewed through a 2D default-layout comparison.
+
+```{r}
+case.catalog <- list(
+  list(
+    id = "kary_tree",
+    label = "3-ary tree (depth 4)",
+    family = "tree",
+    why = "Acyclic branching benchmark. Useful for seeing whether default layouts keep hierarchy legible without tuning.",
+    build = function() {
+      edges <- edges.kary.tree(k = 3, depth = 4)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "cylinder",
+    label = "Cylinder 8 x 16",
+    family = "wrapped lattice",
+    why = "A mesh-like graph with one periodic direction and boundary effects in the other.",
+    build = function() {
+      edges <- edges.cylinder(h = 8, w = 16)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "torus",
+    label = "Torus 8 x 16",
+    family = "wrapped lattice",
+    why = "Doubly periodic surface graph. A strong candidate if we want a non-boundary surface instead of a plain mesh.",
+    build = function() {
+      edges <- edges.torus(h = 8, w = 16)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "sphere",
+    label = "Sphere 8 x 16",
+    family = "surface graph",
+    why = "Spherical adjacency introduces poles and non-grid local structure while staying quite interpretable.",
+    build = function() {
+      edges <- edges.sphere(h = 8, w = 16)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "sierpinski_triangle",
+    label = "Sierpinski triangle (level 4)",
+    family = "recursive fractal",
+    why = "Sparse self-similar triangular benchmark with strong hierarchy and obvious holes.",
+    build = function() {
+      edges <- edges.sierpinski.triangle(level = 4)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "sierpinski_carpet",
+    label = "Sierpinski carpet (level 2)",
+    family = "recursive fractal",
+    why = "Square fractal with holes and bottlenecks; much more interesting than a plain grid but still easy to read.",
+    build = function() {
+      edges <- edges.sierpinski.carpet(level = 2)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "vicsek",
+    label = "Vicsek cross fractal (level 3)",
+    family = "recursive fractal",
+    why = "Cross-shaped recursive benchmark with strong symmetry and narrow connectors.",
+    build = function() {
+      edges <- edges.vicsek(level = 3)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "triangulated_annulus",
+    label = "Triangulated annulus (resolution 8)",
+    family = "triangulated manifold",
+    why = "Boundary-rich triangulated surface without rectangular-grid bias.",
+    build = function() {
+      edges <- edges.triangulated.annulus(resolution = 8)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "irregular_annulus",
+    label = "Irregular annulus",
+    family = "irregular manifold",
+    why = "Point-sampled annulus with irregular valence and no lattice regularity.",
+    build = function() {
+      edges <- edges.irregular.annulus(rings = 6, outer_count = 24)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "irregular_torus",
+    label = "Irregular torus",
+    family = "irregular manifold",
+    why = "Point-sampled torus with irregular counts per ring, useful if we want a less lattice-biased torus benchmark.",
+    build = function() {
+      edges <- edges.irregular.torus(major_rings = 8, tube_count = 16)
+      list(edges = edges, n = max(edges))
+    }
+  ),
+  list(
+    id = "porous_cube",
+    label = "Porous cube channel network",
+    family = "porous 3D-derived graph",
+    why = "A non-surface topology coming from a cubical channel network. Interesting if we want a structurally rich graph that is not a classical surface.",
+    build = function() {
+      edges <- edges.cube.channel.network(level = 1, side = 5)
+      list(edges = edges, n = max(edges))
+    }
+  )
+)
+
+results <- lapply(case.catalog, run_case)
+names(results) <- vapply(case.catalog, `[[`, character(1), "id")
+
+case.overview <- do.call(
+  rbind,
+  lapply(results, function(x) {
+    grip.row <- x$scores[x$scores$method == "grip default", , drop = FALSE]
+    best.row <- x$scores[which.min(x$scores$review.rank), , drop = FALSE]
+    cbind(
+      x$meta,
+      grip_default_review_rank = grip.row$review.rank,
+      grip_default_crossings = grip.row$edge.crossings,
+      grip_default_stress = grip.row$sampled.stress,
+      best_method = best.row$method
+    )
+  })
+)
+
+knitr::kable(case.overview, digits = 3)
+```
+
+## Suggested shortlist for manual review
+
+This table is not meant to replace visual judgment. It is just a first-pass
+screen showing where the default `grip` layout is structurally competitive under
+the simple review rank used here.
+
+```{r}
+shortlist <- case.overview[
+  order(case.overview$grip_default_review_rank,
+        case.overview$grip_default_crossings,
+        case.overview$grip_default_stress),
+  c(
+    "label",
+    "family",
+    "grip_default_review_rank",
+    "grip_default_crossings",
+    "grip_default_stress",
+    "best_method"
+  )
+]
+
+knitr::kable(shortlist, digits = 3)
+```
+
+## Case-by-case review
+
+```{r candidate-review, results='asis', fig.width=12, fig.height=7.5}
+for (nm in names(results)) {
+  case.result <- results[[nm]]
+  cat("\n\n### ", case.result$meta$label[[1L]], "\n\n", sep = "")
+  cat(
+    case.result$meta$why[[1L]],
+    "\n\n",
+    sep = ""
+  )
+  print(
+    knitr::kable(
+      case.result$scores[
+        ,
+        c(
+          "method",
+          "sampled.stress",
+          "edge.length.cv",
+          "edge.crossings",
+          "sampled.nonedge.sep.ratio",
+          "review.rank"
+        )
+      ],
+      digits = 3,
+      row.names = FALSE
+    )
+  )
+  plot_case_panel(case.result)
+}
+```
+
+## Takeaway for the public vignette
+
+This exploration document is intended to help us decide which two or three
+synthetic examples belong in the public comparison article.
+
+The editorial rules for that next revision should be:
+
+- keep the public comparison track default-only,
+- use synthetic examples where `grip` default is at least credible,
+- avoid benchmarks whose main lesson is just that a preset exists,
+- and keep the weighted geometry-aware story separate from the external-package
+  default comparison.
+
+## Session info
+
+```{r}
+sessionInfo()
+```

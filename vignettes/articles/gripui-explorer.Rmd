@@ -1,10 +1,5 @@
 ---
 title: "Interactive Exploration with gripui"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Interactive Exploration with gripui}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -27,7 +22,7 @@ gripui_available <- all(vapply(
 
 ## Two interactive workflows
 
-`grip` now ships two different Shiny-based exploration workflows:
+`grip` includes two Shiny-based exploration workflows:
 
 1. the original **project explorer**, launched with `run_gripui()`, for
    browsing realized layout catalogs;
@@ -268,4 +263,3 @@ Use `run_gripui_family()` when:
   that powers the geometry explorer.
 - `Choosing Layouts for Real Data` shows how the project explorer fits into a
   real-data layout-selection workflow.
-
