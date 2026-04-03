@@ -1169,6 +1169,68 @@ grip.geodesic.misf.insert.all.levels <- function(prepared,
   )
 }
 
+grip.geodesic.misf.insert.all.levels.with.layout <- function(prepared,
+                                                             coords = NULL,
+                                                             method = c("kk", "weighted_kk", "fr", "grip", "weighted_grip"),
+                                                             layout_k = 6L,
+                                                             weighted_preset = NULL,
+                                                             grip_args = list(),
+                                                             weighted_args = list(),
+                                                             fr_niter = 800L,
+                                                             seed = NULL) {
+  prepared <- grip.validate.misf.geodesic.prepared(prepared)
+  coords <- grip.geodesic.misf.validate.partial.coords(coords, prepared)
+  method <- match.arg(method)
+  layout_k <- grip.validate.count(layout_k, "layout_k")
+  fr_niter <- grip.validate.count(fr_niter, "fr_niter")
+  if (!is.null(seed)) {
+    seed <- grip.validate.count(seed, "seed")
+  }
+
+  if (prepared$top_level_level <= 0L) {
+    return(list(
+      coords = coords,
+      level_results = list(),
+      level_trace = data.frame()
+    ))
+  }
+
+  level.ids <- seq.int(from = prepared$top_level_level - 1L, to = 0L, by = -1L)
+  level.results <- vector("list", length(level.ids))
+  level.trace.rows <- vector("list", length(level.ids))
+  for (i in seq_along(level.ids)) {
+    level.id <- level.ids[[i]]
+    level.seed <- if (is.null(seed)) NULL else as.integer(seed + i - 1L)
+    level.results[[i]] <- grip.geodesic.misf.place.level.with.layout(
+      prepared = prepared,
+      coords = coords,
+      level = level.id,
+      method = method,
+      layout_k = layout_k,
+      weighted_preset = weighted_preset,
+      grip_args = grip_args,
+      weighted_args = weighted_args,
+      fr_niter = fr_niter,
+      seed = level.seed
+    )
+    coords <- level.results[[i]]$coords
+    level.trace.rows[[i]] <- data.frame(
+      level = level.results[[i]]$level,
+      inserted = length(level.results[[i]]$placed_vertices),
+      mean_objective = NA_real_,
+      max_grad_norm = NA_real_,
+      all_converged = NA,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  list(
+    coords = coords,
+    level_results = level.results,
+    level_trace = do.call(rbind, level.trace.rows)
+  )
+}
+
 grip.geodesic.misf.active.level.vertices <- function(prepared, level) {
   prepared <- grip.validate.misf.geodesic.prepared(prepared)
   level.index <- grip.geodesic.misf.level.to.index(prepared$misf, level)
@@ -1672,6 +1734,12 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
   prepared$insertion_anchor_count <- grip.geodesic.misf.default.anchor.count(dim)
   prepared$insertion_anchor_weight_mode <- "inverse_graph_distance_sq"
   prepared$insertion_max_iter <- 64L
+  prepared$insertion_mode <- "geodesic"
+  prepared$insertion_layout_k <- 6L
+  prepared$insertion_weighted_preset <- NULL
+  prepared$insertion_grip_args <- list()
+  prepared$insertion_weighted_args <- list()
+  prepared$insertion_fr_niter <- 800L
   prepared$refinement_local_nbrs <- 8L
   prepared$refinement_landmark_count <- 4L
   prepared$refinement_pair_mode <- "sparse"
@@ -1704,8 +1772,9 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #' `grip.optimize.misf.geodesic.mds()` runs the experimental multiscale GMDS
 #' pipeline built on top of GRIP's maximal independent set filtration (MISF).
 #' It solves the coarsest MISF level with pure GMDS, inserts successive levels
-#' by geodesic anchor trilateration, refines each active level with sparse pure
-#' GMDS, and finishes with a short full-graph pure-GMDS polish.
+#' either by geodesic anchor trilateration or by layout-based active-level warm
+#' starts, refines each active level with sparse pure GMDS, and finishes with a
+#' short full-graph pure-GMDS polish.
 #'
 #' The function accepts either a graph-first GMDS prepared object from
 #' [grip.prepare.graph.geodesic.mds()], a MISF-GMDS prepared object from
@@ -1740,6 +1809,21 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #'   insertion stage.
 #' @param insertion_max_iter Maximum number of trilateration iterations per
 #'   inserted vertex.
+#' @param insertion_mode Lower-level placement mode. `"geodesic"` keeps the
+#'   original anchor-trilateration insertion, while the other modes use a
+#'   layout-based warm start on the active level before GMDS refinement.
+#' @param insertion_layout_k Neighborhood size used to build the sparse active
+#'   graph for layout-based insertion.
+#' @param insertion_weighted_preset Optional weighted GRIP preset forwarded to
+#'   `grip.layout.globalrep.weighted()` when `insertion_mode =
+#'   "weighted_grip"`.
+#' @param insertion_grip_args Optional named list of extra arguments forwarded
+#'   to `grip.layout.globalrep()` when `insertion_mode = "grip"`.
+#' @param insertion_weighted_args Optional named list of extra arguments
+#'   forwarded to `grip.layout.globalrep.weighted()` when `insertion_mode =
+#'   "weighted_grip"`.
+#' @param insertion_fr_niter Number of FR iterations used when `insertion_mode
+#'   = "fr"`.
 #' @param refinement_local_nbrs Number of sparse local graph-neighbor pairs used
 #'   during active-level refinement.
 #' @param refinement_landmark_count Number of sparse landmark pairs used during
@@ -1788,6 +1872,12 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
                                             insertion_anchor_count = NULL,
                                             insertion_anchor_weight_mode = NULL,
                                             insertion_max_iter = NULL,
+                                            insertion_mode = NULL,
+                                            insertion_layout_k = NULL,
+                                            insertion_weighted_preset = NULL,
+                                            insertion_grip_args = NULL,
+                                            insertion_weighted_args = NULL,
+                                            insertion_fr_niter = NULL,
                                             refinement_local_nbrs = NULL,
                                             refinement_landmark_count = NULL,
                                             refinement_pair_mode = NULL,
@@ -1879,6 +1969,52 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
     grip.validate.scalar(insertion_max_iter, "insertion_max_iter", lower = 0)
     as.integer(round(insertion_max_iter))
   }
+  insertion.mode <- if (is.null(insertion_mode)) {
+    prepared$insertion_mode
+  } else {
+    match.arg(insertion_mode, c("geodesic", "kk", "weighted_kk", "fr", "grip", "weighted_grip"))
+  }
+  insertion.layout.k <- if (is.null(insertion_layout_k)) {
+    prepared$insertion_layout_k
+  } else {
+    grip.validate.count(insertion_layout_k, "insertion_layout_k")
+  }
+  insertion.weighted.preset <- if (is.null(insertion_weighted_preset)) {
+    prepared$insertion_weighted_preset
+  } else {
+    as.character(insertion_weighted_preset)
+  }
+  insertion.grip.args <- if (is.null(insertion_grip_args)) {
+    prepared$insertion_grip_args
+  } else {
+    if (!is.list(insertion_grip_args)) {
+      stop("insertion_grip_args must be NULL or a list")
+    }
+    insertion_grip_args
+  }
+  insertion.weighted.args <- if (is.null(insertion_weighted_args)) {
+    prepared$insertion_weighted_args
+  } else {
+    if (!is.list(insertion_weighted_args)) {
+      stop("insertion_weighted_args must be NULL or a list")
+    }
+    insertion_weighted_args
+  }
+  insertion.fr.niter <- if (is.null(insertion_fr_niter)) {
+    prepared$insertion_fr_niter
+  } else {
+    grip.validate.count(insertion_fr_niter, "insertion_fr_niter")
+  }
+  prepared$insertion_anchor_policy <- insertion.anchor.policy
+  prepared$insertion_anchor_count <- insertion.anchor.count
+  prepared$insertion_anchor_weight_mode <- insertion.anchor.weight.mode
+  prepared$insertion_max_iter <- insertion.max.iter
+  prepared$insertion_mode <- insertion.mode
+  prepared$insertion_layout_k <- insertion.layout.k
+  prepared$insertion_weighted_preset <- insertion.weighted.preset
+  prepared$insertion_grip_args <- insertion.grip.args
+  prepared$insertion_weighted_args <- insertion.weighted.args
+  prepared$insertion_fr_niter <- insertion.fr.niter
 
   refinement.local.nbrs <- if (is.null(refinement_local_nbrs)) {
     prepared$refinement_local_nbrs
@@ -1973,14 +2109,28 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
   insertion.elapsed <- 0
   if (any(!is.finite(coords))) {
     insertion.start <- proc.time()[["elapsed"]]
-    insertion <- grip.geodesic.misf.insert.all.levels(
-      prepared = prepared,
-      coords = coords,
-      anchor_policy = insertion.anchor.policy,
-      anchor_count = insertion.anchor.count,
-      anchor_weight_mode = insertion.anchor.weight.mode,
-      max_iter = insertion.max.iter
-    )
+    insertion <- if (identical(insertion.mode, "geodesic")) {
+      grip.geodesic.misf.insert.all.levels(
+        prepared = prepared,
+        coords = coords,
+        anchor_policy = insertion.anchor.policy,
+        anchor_count = insertion.anchor.count,
+        anchor_weight_mode = insertion.anchor.weight.mode,
+        max_iter = insertion.max.iter
+      )
+    } else {
+      grip.geodesic.misf.insert.all.levels.with.layout(
+        prepared = prepared,
+        coords = coords,
+        method = insertion.mode,
+        layout_k = insertion.layout.k,
+        weighted_preset = insertion.weighted.preset,
+        grip_args = insertion.grip.args,
+        weighted_args = insertion.weighted.args,
+        fr_niter = insertion.fr.niter,
+        seed = seed
+      )
+    }
     insertion.elapsed <- proc.time()[["elapsed"]] - insertion.start
   } else {
     insertion <- list(

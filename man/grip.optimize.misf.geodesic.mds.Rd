@@ -22,6 +22,12 @@ grip.optimize.misf.geodesic.mds(
   insertion_anchor_count = NULL,
   insertion_anchor_weight_mode = NULL,
   insertion_max_iter = NULL,
+  insertion_mode = NULL,
+  insertion_layout_k = NULL,
+  insertion_weighted_preset = NULL,
+  insertion_grip_args = NULL,
+  insertion_weighted_args = NULL,
+  insertion_fr_niter = NULL,
   refinement_local_nbrs = NULL,
   refinement_landmark_count = NULL,
   refinement_pair_mode = NULL,
@@ -86,6 +92,27 @@ insertion stage.}
 \item{insertion_max_iter}{Maximum number of trilateration iterations per
 inserted vertex.}
 
+\item{insertion_mode}{Lower-level placement mode. `"geodesic"` keeps the
+original anchor-trilateration insertion, while the other modes use a
+layout-based warm start on the active level before GMDS refinement.}
+
+\item{insertion_layout_k}{Neighborhood size used to build the sparse active
+graph for layout-based insertion.}
+
+\item{insertion_weighted_preset}{Optional weighted GRIP preset forwarded to
+`grip.layout.globalrep.weighted()` when `insertion_mode =
+"weighted_grip"`.}
+
+\item{insertion_grip_args}{Optional named list of extra arguments forwarded
+to `grip.layout.globalrep()` when `insertion_mode = "grip"`.}
+
+\item{insertion_weighted_args}{Optional named list of extra arguments
+forwarded to `grip.layout.globalrep.weighted()` when `insertion_mode =
+"weighted_grip"`.}
+
+\item{insertion_fr_niter}{Number of FR iterations used when `insertion_mode
+= "fr"`.}
+
 \item{refinement_local_nbrs}{Number of sparse local graph-neighbor pairs used
 during active-level refinement.}
 
@@ -136,8 +163,9 @@ A list of class `"grip_misf_gmds_fit"` containing the final
 `grip.optimize.misf.geodesic.mds()` runs the experimental multiscale GMDS
 pipeline built on top of GRIP's maximal independent set filtration (MISF).
 It solves the coarsest MISF level with pure GMDS, inserts successive levels
-by geodesic anchor trilateration, refines each active level with sparse pure
-GMDS, and finishes with a short full-graph pure-GMDS polish.
+either by geodesic anchor trilateration or by layout-based active-level warm
+starts, refines each active level with sparse pure GMDS, and finishes with a
+short full-graph pure-GMDS polish.
 }
 \details{
 The function accepts either a graph-first GMDS prepared object from
