@@ -120,6 +120,17 @@ edge.matrix.from.adj <- function(adj.list) {
   }
   do.call(rbind, edges)
 }
+
+read.hmp.vignette.results <- function() {
+  path <- system.file(
+    "extdata", "hmp_u01_gc_coarse", "vignette_results.rds",
+    package = "grip"
+  )
+  if (!nzchar(path)) {
+    stop("could not locate bundled HMP/U01 vignette results")
+  }
+  readRDS(path)
+}
 ```
 
 ## Workflow 1: shortlist candidates on an unweighted real graph
@@ -361,6 +372,115 @@ with:
 because those make the weighted graph metric explicit rather than relying only
 on the general-purpose layout heuristics.
 
+## HMP/U01 as a large weighted case study
+
+The package also ships a larger, more realistic weighted example:
+`hmp.u01.gc.coarse`. This graph is large enough that a full search is too heavy
+for a regular vignette build, so the package includes bundled precomputed
+results for a representative 3D search.
+
+```{r}
+hmp.results <- read.hmp.vignette.results()
+hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
+hmp.cst <- hmp.u01.gc.coarse$vertex_data$cst
+hmp.cst.levels <- sort(unique(hmp.cst))
+hmp.cst.cols <- setNames(grDevices::hcl.colors(length(hmp.cst.levels), "Dark 3"),
+                         hmp.cst.levels)
+hmp.cst.col <- hmp.cst.cols[hmp.cst]
+
+hmp.case.info <- data.frame(
+  quantity = c(
+    "source dataset",
+    "representation",
+    "selected k",
+    "original giant-component vertices",
+    "coarsened vertices",
+    "weighted undirected edges"
+  ),
+  value = c(
+    hmp.u01.gc.coarse$graph_info$source_dataset,
+    hmp.u01.gc.coarse$graph_info$representation,
+    hmp.u01.gc.coarse$graph_info$selected_k,
+    hmp.u01.gc.coarse$graph_info$original_vertices,
+    hmp.u01.gc.coarse$graph_info$coarse_vertices,
+    hmp.u01.gc.coarse$graph_info$edge_count
+  ),
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(hmp.case.info)
+```
+
+The bundled preset comparison used three 3D candidates:
+
+- `default`
+- `tree`
+- `torus`
+
+```{r}
+hmp.preset.keep <- c(
+  "candidate",
+  "sampled.stress.mean",
+  "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean",
+  "cluster.separation.mean",
+  "score.composite"
+)
+
+knitr::kable(hmp.results$preset_summary[, hmp.preset.keep], digits = 3)
+```
+
+```{r fig.width=11.2, fig.height=4.4}
+plot.layout.triptych(
+  layouts = list(
+    hmp.results$layouts$preset$default,
+    hmp.results$layouts$preset$tree,
+    hmp.results$layouts$preset$torus
+  ),
+  edges = hmp.edges,
+  titles = c("default", "tree", "torus"),
+  vertex.cols = rep(list(hmp.cst.col), 3)
+)
+```
+
+For this graph, the useful next step was a small local search around the
+stronger region rather than a broad blind sweep.
+
+```{r}
+hmp.local.keep <- c(
+  "candidate",
+  "rounds",
+  "final.rounds",
+  "repulsion.factor",
+  "sampled.stress.mean",
+  "cluster.separation.mean",
+  "score.composite"
+)
+
+knitr::kable(
+  head(hmp.results$local_search_summary[, hmp.local.keep], 4),
+  digits = 3
+)
+```
+
+```{r fig.width=11.2, fig.height=4.4}
+top.local <- hmp.results$top_local_candidates
+plot.layout.triptych(
+  layouts = lapply(top.local, function(nm) hmp.results$layouts$local[[nm]]),
+  edges = hmp.edges,
+  titles = top.local,
+  vertex.cols = rep(list(hmp.cst.col), length(top.local))
+)
+```
+
+This is the large-graph weighted pattern in practice:
+
+- keep the graph weighted,
+- prefer 3D,
+- use a short preset shortlist,
+- then search locally around the strongest region,
+- and interpret the final layouts together with domain labels such as CST.
+
 ## Practical guidance
 
 - Use `grip.compare.layouts()` for unweighted or topology-first real graphs.
@@ -372,4 +492,3 @@ on the general-purpose layout heuristics.
   geodesic scoring when the graph is small enough for it to be practical.
 
 ## References
-
