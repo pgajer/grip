@@ -38,8 +38,8 @@ navbar:
           href: articles/grip-examples.html
         - text: Choosing Layouts for Real Data
           href: articles/grip-real-data.html
-        - text: HMP Microbial Network
-          href: articles/grip-hmp-u01-coarse.html
+        - text: HMP/U01 Case Study
+          href: articles/hmp-u01-case-study.html
         - text: Interactive Explorer
           href: articles/gripui-explorer.html
         - text: "Comparing with Alternatives"

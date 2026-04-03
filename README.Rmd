@@ -110,9 +110,9 @@ cmp <- grip.compare.layouts(edges, n = 100, dim = 2,
 cmp$summary[, c("candidate", "score.composite", "sampled.stress.mean")]
 ```
 
-## Vignettes
+## Vignettes and Articles
 
-The package ships with three vignettes:
+The package ships with several vignettes and articles, including:
 
 - **GRIP Layout Examples** --- a gallery of tuned layouts for synthetic graph
   families (mesh, carpet, tree, torus, tetrahedron) with side-by-side
@@ -120,9 +120,10 @@ The package ships with three vignettes:
 - **Choosing Layouts for Real Data** --- a step-by-step workflow using the
   Zachary karate club and Krackhardt kite benchmarks, covering preset
   shortlisting, local parameter search, and metadata-aware scoring.
-- **Selecting Layouts on the Coarsened HMP/U01 Graph** --- layout selection on
-  a bundled 1,828-vertex microbial graph derived from the Human Microbiome
-  Project, demonstrating the full comparison pipeline on real biological data.
+- **HMP/U01 Weighted Graph Case Study** --- a compact companion article for the
+  bundled 1,828-vertex microbial graph derived from the Human Microbiome
+  Project, focusing on object structure, provenance, and precomputed search
+  artifacts.
 
 ## Citation
 

@@ -1,8 +1,8 @@
 ---
-title: "HMP/U01 Weighted Graph Companion"
+title: "HMP/U01 Weighted Graph Case Study"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{HMP/U01 Weighted Graph Companion}
+  %\VignetteIndexEntry{HMP/U01 Weighted Graph Case Study}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## What this companion is for
+## What this article is for
 
 The main real-data workflow now lives in:
 
@@ -139,4 +139,3 @@ see:
 
 That vignette now contains the HMP/U01 case study in a form that sits directly
 alongside the smaller unweighted and weighted real-data examples.
-

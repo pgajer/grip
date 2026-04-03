@@ -481,6 +481,9 @@ This is the large-graph weighted pattern in practice:
 - then search locally around the strongest region,
 - and interpret the final layouts together with domain labels such as CST.
 
+For the HMP/U01-specific object structure, coarsening provenance, and bundled
+artifact paths, see the companion article `HMP/U01 Weighted Graph Case Study`.
+
 ## Practical guidance
 
 - Use `grip.compare.layouts()` for unweighted or topology-first real graphs.
