@@ -347,13 +347,13 @@ The focused regression coverage is in:
 The main experiment drivers are:
 
 - Phase 1 cross-family comparison:
-  - [`tools/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmark-gmds-mds-phase1.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
 - paraboloid pathology report:
-  - [`tools/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-pathology.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
 - paraboloid first-order regularization report:
-  - [`tools/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-regularization.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
 - paraboloid second-order bending report:
-  - [`tools/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-bending.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
 
 ## Experiment Sequence
 
@@ -380,12 +380,12 @@ These notes established the main experimental baseline:
 
 Primary report:
 
-- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
-- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.tex)
+- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
+- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmark-gmds-mds-phase1.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
 
 Main questions:
 
@@ -427,12 +427,12 @@ So after this point the remaining pathology story shifted away from flat grids a
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_pathology_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_pathology_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-pathology.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
 
 Main questions:
 
@@ -453,12 +453,12 @@ This was the first strong piece of evidence that the missing ingredient is not j
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_regularization_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_regularization_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-regularization.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
 
 Main question:
 
@@ -476,12 +476,12 @@ This ruled out the simplest regularization hypothesis.
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_bending_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/paraboloid_gmds_bending_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-bending.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
 
 Main question:
 
@@ -504,8 +504,8 @@ The performance concern was addressed in the later section of the Phase 1 report
 
 - [`gmds_performance_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_performance_action_plan_2026-03-31.md)
 - Phase 1 report performance section:
-  - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.tex)
-  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/dev/design/pdf/gmds_mds_comparison_report_2026-03-31.pdf)
+  - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
+  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
 
 The main point was:
 
@@ -592,8 +592,7 @@ That is why the next likely direction is not just more step-size tuning, and not
 
 ### Report generators
 
-- [`tools/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmark-gmds-mds-phase1.R)
-- [`tools/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-pathology.R)
-- [`tools/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-regularization.R)
-- [`tools/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmark-paraboloid-gmds-bending.R)
-
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)

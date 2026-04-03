@@ -1,0 +1,688 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts, mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={Kamada-Kawai and Fruchterman-Reingold Graph Layout Methods},
+  pdfauthor={Codex}
+}
+
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+\title{Kamada--Kawai and Fruchterman--Reingold Graph Layout Methods\\
+\large A Mathematical Comparison of Two Classical Force-Directed Layout Algorithms}
+\author{Generated for the \texttt{grip} project}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document explains in detail two classical force-directed graph layout
+methods: the Kamada--Kawai (KK) algorithm and the Fruchterman--Reingold (FR)
+algorithm. For each method, we describe the mathematical model, define the
+meaning of the main terms and parameters, write the update equations, and
+explain the optimization logic. We then compare the two methods in terms of
+their objectives, force laws, computational behavior, and practical strengths
+and weaknesses.
+\end{abstract}
+
+\section{Preliminaries and notation}
+
+Let
+\[
+G = (V, E)
+\]
+be an undirected graph with vertex set $V = \{1, 2, \dots, n\}$ and edge set
+$E$. A layout in two dimensions assigns each vertex $i \in V$ a position
+\[
+\vect{x}_i = (x_i, y_i)^\top \in \R^2.
+\]
+Collectively, the layout is
+\[
+X = (\vect{x}_1, \dots, \vect{x}_n).
+\]
+
+For any pair of vertices $i$ and $j$, define:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Euclidean distance in the drawing}
+\[
+r_{ij}(X) = \norm{\vect{x}_i - \vect{x}_j}.
+\]
+\item \textbf{Graph-theoretic distance}
+\[
+g_{ij},
+\]
+the length of a shortest path between $i$ and $j$ in the graph. In an
+unweighted graph this is the number of edges on a shortest path; in a weighted
+graph it can be the shortest weighted path length.
+\item \textbf{Graph diameter}
+\[
+D = \max_{i,j \in V} g_{ij},
+\]
+assuming the graph is connected.
+\end{itemize}
+
+Both KK and FR are \emph{force-directed} methods: they attempt to place
+vertices by balancing attractive and repulsive tendencies so that the final
+drawing reflects graph structure. The important difference is that KK is built
+around matching graph distances, whereas FR is built around balancing local
+forces to create a visually even drawing.
+
+\subsection{Meaning of the most common terms}
+
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.22\textwidth} >{\raggedright\arraybackslash}p{0.68\textwidth}}
+\toprule
+\textbf{Term} & \textbf{Meaning} \\
+\midrule
+Layout & The map from each vertex to a point in the plane. \\
+Euclidean distance $r_{ij}$ & The actual geometric distance between two vertices in the current drawing. \\
+Graph distance $g_{ij}$ & The shortest-path distance between two vertices in the graph itself. \\
+Ideal distance & A desired geometric separation between two vertices. In KK this depends on $g_{ij}$. In FR the global spacing parameter $k$ plays an analogous role. \\
+Attractive force & A force pulling adjacent or structurally related vertices closer. \\
+Repulsive force & A force pushing vertices apart to avoid crowding and overlap. \\
+Energy / objective & A scalar function the algorithm tries to reduce. KK has an explicit energy; FR is usually presented as an iterative force simulation rather than a single explicit objective. \\
+Temperature & A cap on how far a vertex may move in one FR iteration; it stabilizes the algorithm and gradually decreases. \\
+Convergence & The state in which updates become very small or a stopping rule is reached. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The Kamada--Kawai method}
+
+\subsection{Core idea}
+
+The Kamada--Kawai method treats the graph as a complete system of springs.
+Every pair of vertices $(i,j)$ is connected by a virtual spring, not only the
+edges in $E$. The desired spring length is proportional to the graph distance
+$g_{ij}$. Therefore:
+\begin{itemize}[leftmargin=1.5em]
+\item vertices that are close in the graph should be close in the picture,
+\item vertices that are far apart in the graph should be far apart in the picture.
+\end{itemize}
+
+This makes KK a graph-distance-preserving method. It is closely related to
+weighted stress minimization.
+
+\subsection{Ideal lengths and spring strengths}
+
+KK defines an ideal geometric length $\ell_{ij}$ and a spring constant
+$k_{ij}$ for every unordered pair $i \neq j$:
+\[
+\ell_{ij} = L_0 \, g_{ij}, \qquad L_0 = \frac{L}{D},
+\]
+and
+\[
+k_{ij} = \frac{K}{g_{ij}^2}.
+\]
+
+Here:
+\begin{itemize}[leftmargin=1.5em]
+\item $L$ is a user-chosen global scale for the drawing,
+\item $D$ is the graph diameter,
+\item $L_0$ converts graph distances into drawing-space distances,
+\item $K > 0$ is a global stiffness scale,
+\item $\ell_{ij}$ is the desired geometric distance between $i$ and $j$,
+\item $k_{ij}$ is the spring stiffness between $i$ and $j$.
+\end{itemize}
+
+The formula $k_{ij} = K / g_{ij}^2$ means short graph distances get stronger
+springs and large graph distances get weaker springs. Intuitively, nearby graph
+relationships are enforced more strongly than distant ones.
+
+\subsection{Energy function}
+
+KK defines the total energy
+\[
+E(X) = \frac{1}{2} \sum_{1 \le i < j \le n}
+k_{ij} \left(r_{ij}(X) - \ell_{ij}\right)^2.
+\]
+
+This formula is central. Each term has a precise meaning:
+\begin{itemize}[leftmargin=1.5em]
+\item $r_{ij}(X)$ is the current geometric distance in the layout,
+\item $\ell_{ij}$ is the desired distance implied by the graph,
+\item $r_{ij}(X) - \ell_{ij}$ is the distance error for that pair,
+\item $\left(r_{ij}(X) - \ell_{ij}\right)^2$ penalizes large errors more heavily,
+\item $k_{ij}$ weights that penalty by the importance of the pair,
+\item the sum adds these penalties across all pairs of vertices.
+\end{itemize}
+
+Therefore KK tries to make Euclidean distances match scaled graph distances.
+If $r_{ij}(X) = \ell_{ij}$ for every pair, then the energy is zero. In practice
+that is usually impossible, so the algorithm seeks a low-energy compromise.
+
+\subsection{Gradient with respect to one vertex}
+
+KK optimizes one vertex at a time. Fix a vertex $m$. Its contribution to the
+first derivatives is
+\[
+\frac{\partial E}{\partial x_m}
+= \sum_{\substack{i=1 \\ i \ne m}}^n
+k_{mi}
+\left[
+(x_m - x_i)
+- \ell_{mi}\frac{x_m - x_i}{r_{mi}}
+\right],
+\]
+\[
+\frac{\partial E}{\partial y_m}
+= \sum_{\substack{i=1 \\ i \ne m}}^n
+k_{mi}
+\left[
+(y_m - y_i)
+- \ell_{mi}\frac{y_m - y_i}{r_{mi}}
+\right],
+\]
+where
+\[
+r_{mi} = \sqrt{(x_m - x_i)^2 + (y_m - y_i)^2}.
+\]
+
+It is useful to define the local residual magnitude
+\[
+\Delta_m
+=
+\sqrt{
+\left(\frac{\partial E}{\partial x_m}\right)^2
++
+\left(\frac{\partial E}{\partial y_m}\right)^2
+}.
+\]
+
+Interpretation:
+\begin{itemize}[leftmargin=1.5em]
+\item $\Delta_m$ measures how far vertex $m$ is from local equilibrium,
+\item a large $\Delta_m$ means the forces around $m$ are still badly unbalanced,
+\item KK usually selects the vertex with the largest $\Delta_m$ and optimizes it next.
+\end{itemize}
+
+\subsection{Second derivatives and Newton step}
+
+KK uses a Newton--Raphson update for the selected vertex $m$. The relevant
+second derivatives are
+\[
+\frac{\partial^2 E}{\partial x_m^2}
+= \sum_{\substack{i=1 \\ i \ne m}}^n
+k_{mi}
+\left[
+1 - \ell_{mi}\frac{(y_m - y_i)^2}{r_{mi}^3}
+\right],
+\]
+\[
+\frac{\partial^2 E}{\partial y_m^2}
+= \sum_{\substack{i=1 \\ i \ne m}}^n
+k_{mi}
+\left[
+1 - \ell_{mi}\frac{(x_m - x_i)^2}{r_{mi}^3}
+\right],
+\]
+\[
+\frac{\partial^2 E}{\partial x_m \partial y_m}
+= \sum_{\substack{i=1 \\ i \ne m}}^n
+k_{mi}
+\ell_{mi}
+\frac{(x_m - x_i)(y_m - y_i)}{r_{mi}^3}.
+\]
+
+The Newton step $(\delta x_m, \delta y_m)$ solves
+\[
+\begin{bmatrix}
+\dfrac{\partial^2 E}{\partial x_m^2} &
+\dfrac{\partial^2 E}{\partial x_m \partial y_m} \\[1.2ex]
+\dfrac{\partial^2 E}{\partial x_m \partial y_m} &
+\dfrac{\partial^2 E}{\partial y_m^2}
+\end{bmatrix}
+\begin{bmatrix}
+\delta x_m \\ \delta y_m
+\end{bmatrix}
+=
+-
+\begin{bmatrix}
+\dfrac{\partial E}{\partial x_m} \\[1.2ex]
+\dfrac{\partial E}{\partial y_m}
+\end{bmatrix}.
+\]
+
+Then the vertex is updated by
+\[
+x_m \leftarrow x_m + \delta x_m,
+\qquad
+y_m \leftarrow y_m + \delta y_m.
+\]
+
+This is repeated until $\Delta_m$ becomes sufficiently small; then the
+algorithm chooses the next vertex with largest residual and continues.
+
+\subsection{Algorithmic outline}
+
+A standard KK workflow is:
+\begin{enumerate}[leftmargin=1.5em]
+\item Compute all-pairs shortest-path distances $g_{ij}$.
+\item Define $\ell_{ij}$ and $k_{ij}$ from $g_{ij}$.
+\item Start from an initial placement.
+\item Compute $\Delta_m$ for every vertex.
+\item Choose the vertex with largest $\Delta_m$.
+\item Apply Newton updates to that vertex until its local residual is small.
+\item Repeat until the largest residual in the graph is below a threshold.
+\end{enumerate}
+
+\subsection{Why the method works}
+
+KK works because it turns graph drawing into a continuous optimization problem.
+The graph tells us what pairwise distances \emph{should} be; the optimization
+tries to realize those distances geometrically. The method is especially good
+when preserving global graph distances matters.
+
+\subsection{Strengths and limitations}
+
+\textbf{Strengths}
+\begin{itemize}[leftmargin=1.5em]
+\item It has a clear mathematical objective.
+\item It often produces very good layouts for small and medium-sized graphs.
+\item It is especially strong on graphs where preserving shortest-path
+structure is visually meaningful.
+\end{itemize}
+
+\textbf{Limitations}
+\begin{itemize}[leftmargin=1.5em]
+\item It requires all-pairs shortest-path distances.
+\item The objective involves all pairs of vertices, so time and memory can grow quickly.
+\item It can become slow on large graphs.
+\item Like many nonconvex optimization methods, it can get trapped in local minima.
+\end{itemize}
+
+\subsection{Computational cost}
+
+If implemented naively:
+\begin{itemize}[leftmargin=1.5em]
+\item all-pairs shortest paths cost at least quadratic and often cubic time,
+\item the energy and derivatives involve all pairs, leading to roughly
+$O(n^2)$ work per global sweep,
+\item memory can also become $O(n^2)$ if all pairwise quantities are stored.
+\end{itemize}
+
+This is the main reason KK is often reserved for smaller graphs or used inside
+multilevel or approximate schemes.
+
+\section{The Fruchterman--Reingold method}
+
+\subsection{Core idea}
+
+The Fruchterman--Reingold method models a graph drawing using two competing
+forces:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Repulsion} between every pair of vertices, which spreads the graph out,
+\item \textbf{Attraction} along graph edges, which pulls adjacent vertices together.
+\end{itemize}
+
+Instead of matching graph distances directly, FR seeks a visually balanced state
+in which vertices are evenly distributed while edges stay reasonably short.
+
+\subsection{Global spacing parameter}
+
+FR introduces a single characteristic distance
+\[
+k = C \sqrt{\frac{A}{n}},
+\]
+where:
+\begin{itemize}[leftmargin=1.5em]
+\item $A$ is the area available for drawing,
+\item $n$ is the number of vertices,
+\item $C$ is a constant, often taken as $1$ in simplified descriptions,
+\item $k$ is the \emph{ideal spacing scale}.
+\end{itemize}
+
+The parameter $k$ is not a target distance for every pair in the same sense as
+KK's $\ell_{ij}$. Instead, it sets the overall length scale of the drawing. If
+the graph is drawn in a larger area, then $k$ grows; if more vertices are packed
+into the same area, then $k$ shrinks.
+
+\subsection{Force laws}
+
+Let
+\[
+\vect{\delta}_{ij} = \vect{x}_i - \vect{x}_j,
+\qquad
+r_{ij} = \norm{\vect{\delta}_{ij}}.
+\]
+
+The classical FR scalar force magnitudes are
+\[
+f_r(r) = \frac{k^2}{r}
+\qquad \text{(repulsive force)}
+\]
+and
+\[
+f_a(r) = \frac{r^2}{k}
+\qquad \text{(attractive force)}.
+\]
+
+To convert these scalar magnitudes into vectors, multiply by the unit direction
+\[
+\frac{\vect{\delta}_{ij}}{r_{ij}}.
+\]
+Thus the repulsive force on vertex $i$ from vertex $j$ is
+\[
+\vect{F}^{\text{rep}}_{ij}
+=
+\frac{\vect{\delta}_{ij}}{r_{ij}} f_r(r_{ij})
+=
+\frac{k^2}{r_{ij}^2}\,\vect{\delta}_{ij}.
+\]
+
+For an edge $(i,j) \in E$, the attractive force on vertex $i$ due to vertex $j$
+is
+\[
+\vect{F}^{\text{att}}_{ij}
+=
+-
+\frac{\vect{\delta}_{ij}}{r_{ij}} f_a(r_{ij})
+=
+-
+\frac{r_{ij}}{k}\,\vect{\delta}_{ij}.
+\]
+
+These formulas mean:
+\begin{itemize}[leftmargin=1.5em]
+\item very close vertices repel strongly because $f_r(r) = k^2/r$ grows as $r \to 0$,
+\item long edges attract strongly because $f_a(r) = r^2/k$ grows with $r$,
+\item the drawing is pushed toward a balance between spreading and coherence.
+\end{itemize}
+
+\subsection{Meaning of the terms in the FR formulas}
+
+\begin{itemize}[leftmargin=1.5em]
+\item $\vect{\delta}_{ij}$ is the displacement vector from vertex $j$ to vertex $i$.
+\item $r_{ij}$ is the current Euclidean distance between the two vertices.
+\item $k$ is the global ideal spacing scale.
+\item $f_r(r)$ is the scalar repulsive magnitude.
+\item $f_a(r)$ is the scalar attractive magnitude.
+\item $\vect{F}^{\text{rep}}_{ij}$ is the vector pushing $i$ away from $j$.
+\item $\vect{F}^{\text{att}}_{ij}$ is the vector pulling $i$ toward $j$ if $(i,j)$ is an edge.
+\end{itemize}
+
+An important observation is that if one informally equates the magnitudes
+$f_a(r)$ and $f_r(r)$, then
+\[
+\frac{r^2}{k} = \frac{k^2}{r}
+\quad \Longrightarrow \quad
+r = k.
+\]
+So $k$ represents a natural spacing scale at which attraction and repulsion are
+balanced in the simplest pairwise sense.
+
+\subsection{Displacement accumulation}
+
+At each iteration, FR accumulates a displacement vector for every vertex:
+\[
+\vect{d}_i =
+\sum_{\substack{j=1 \\ j \ne i}}^n \vect{F}^{\text{rep}}_{ij}
++
+\sum_{\substack{j:(i,j)\in E}} \vect{F}^{\text{att}}_{ij}.
+\]
+
+In practice, implementations often compute this in two stages:
+\begin{enumerate}[leftmargin=1.5em]
+\item add repulsive contributions for all vertex pairs,
+\item add attractive contributions for all edges.
+\end{enumerate}
+
+\subsection{Temperature-limited motion}
+
+FR does not usually take a raw unconstrained step. Instead, it limits the step
+size by a temperature parameter $t > 0$:
+\[
+\vect{x}_i \leftarrow \vect{x}_i
++
+\frac{\vect{d}_i}{\norm{\vect{d}_i}}
+\min\!\bigl(\norm{\vect{d}_i}, t\bigr).
+\]
+
+The terms in this update have the following meaning:
+\begin{itemize}[leftmargin=1.5em]
+\item $\vect{d}_i / \norm{\vect{d}_i}$ gives only the direction of motion,
+\item $\norm{\vect{d}_i}$ is the raw proposed movement magnitude,
+\item $\min(\norm{\vect{d}_i}, t)$ caps that motion by the current temperature,
+\item $t$ decreases over time according to a cooling schedule.
+\end{itemize}
+
+The temperature plays a role similar to simulated annealing:
+\begin{itemize}[leftmargin=1.5em]
+\item early iterations allow larger moves for global rearrangement,
+\item later iterations force smaller moves for stabilization and fine adjustment.
+\end{itemize}
+
+\subsection{Algorithmic outline}
+
+A standard FR workflow is:
+\begin{enumerate}[leftmargin=1.5em]
+\item Initialize vertex positions, often randomly.
+\item Set the drawing area $A$, the scale $k$, and an initial temperature $t$.
+\item For each iteration:
+  \begin{enumerate}[leftmargin=1.5em]
+  \item compute repulsive forces between all vertex pairs,
+  \item compute attractive forces along edges,
+  \item sum them into displacement vectors,
+  \item move each vertex by a temperature-limited step,
+  \item decrease the temperature.
+  \end{enumerate}
+\item Stop after a fixed number of iterations or when movements become small.
+\end{enumerate}
+
+\subsection{Why the method works}
+
+FR works by enforcing two visual principles:
+\begin{itemize}[leftmargin=1.5em]
+\item vertices should not collapse onto one another,
+\item adjacent vertices should remain close enough to reveal graph connectivity.
+\end{itemize}
+
+Because the attractive force acts only on edges, FR is more local than KK in
+its structural encoding. The global shape of the layout emerges from repeated
+force balancing rather than direct fitting of all graph distances.
+
+\subsection{Strengths and limitations}
+
+\textbf{Strengths}
+\begin{itemize}[leftmargin=1.5em]
+\item It is simple and intuitive.
+\item It often produces aesthetically pleasing drawings with good spacing.
+\item It is easy to implement and easy to modify.
+\item Many scalable variants exist, including multilevel, grid-based, and
+Barnes--Hut style accelerations.
+\end{itemize}
+
+\textbf{Limitations}
+\begin{itemize}[leftmargin=1.5em]
+\item The classical algorithm is still $O(n^2)$ per iteration because of all-pairs repulsion.
+\item It does not explicitly preserve graph-theoretic distances.
+\item Results can depend strongly on initialization, iteration count, and cooling schedule.
+\item Dense graphs or graphs with strong geometric regularity may require careful tuning.
+\end{itemize}
+
+\subsection{Computational cost}
+
+For the classical implementation:
+\begin{itemize}[leftmargin=1.5em]
+\item repulsion over all unordered pairs costs $O(n^2)$ per iteration,
+\item attraction over edges costs $O(m)$ per iteration,
+\item the total is typically $O(n^2 + m)$ per iteration.
+\end{itemize}
+
+Unlike KK, FR does not need all-pairs shortest paths, which is an important
+practical advantage.
+
+\section{Similarities between KK and FR}
+
+Although the two methods differ in important ways, they also share a common
+force-directed philosophy.
+
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{Both produce geometric embeddings of graphs.} Each algorithm maps
+vertices to points in $\R^2$ (or more generally $\R^d$).
+
+\item \textbf{Both are iterative optimization procedures.} Neither method jumps
+directly to the final answer. They repeatedly improve a layout.
+
+\item \textbf{Both balance attraction and separation.} In KK, this appears
+through spring energies whose minima enforce desired distances. In FR, it
+appears explicitly through attractive and repulsive forces.
+
+\item \textbf{Both are nonconvex.} Multiple local minima are possible, so the
+final drawing can depend on initialization and tuning.
+
+\item \textbf{Both can be computationally expensive in naive form.} KK and FR
+each involve all-pairs interactions in their classical formulations.
+
+\item \textbf{Both aim at readable graph drawings.} They seek layouts with low
+clutter, structural clarity, and visually meaningful geometry.
+\end{enumerate}
+
+\section{Differences between KK and FR}
+
+\subsection{Conceptual difference}
+
+The most important conceptual difference is:
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{KK is distance-matching.} It tries to realize graph shortest-path
+distances in Euclidean space.
+\item \textbf{FR is force-balancing.} It tries to balance generic attraction and
+repulsion to obtain an aesthetically organized picture.
+\end{itemize}
+
+\subsection{Mathematical difference}
+
+KK has an explicit global energy
+\[
+E(X) = \frac{1}{2} \sum_{i<j} k_{ij}(r_{ij} - \ell_{ij})^2,
+\]
+so its mathematics is very close to weighted stress minimization.
+
+FR, in its original form, is usually presented as a dynamical procedure with
+force calculations and a cooling schedule, not as a single explicit scalar
+objective minimized by Newton's method.
+
+\subsection{Structural information used}
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{KK uses all graph distances $g_{ij}$.} Every pair of vertices
+contributes structurally through $\ell_{ij}$ and $k_{ij}$.
+\item \textbf{FR uses edges for attraction and all pairs for repulsion.} It does
+not directly encode the full shortest-path metric of the graph.
+\end{itemize}
+
+\subsection{Update mechanics}
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{KK} selects one vertex with large residual and applies a local
+Newton solve using first and second derivatives.
+\item \textbf{FR} computes displacement vectors for all vertices and moves all of
+them each iteration with a temperature cap.
+\end{itemize}
+
+\subsection{Scale parameters}
+
+\begin{itemize}[leftmargin=1.5em]
+\item In \textbf{KK}, the desired length $\ell_{ij}$ depends on the pair $(i,j)$,
+and the stiffness $k_{ij}$ also depends on the pair.
+\item In \textbf{FR}, the parameter $k$ is a single global spacing scale.
+\end{itemize}
+
+\subsection{Practical behavior}
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{KK} often gives very good layouts for smaller graphs when global
+distance fidelity matters.
+\item \textbf{FR} is often easier to scale and is widely used as a general
+purpose graph drawing method, especially when paired with approximations or
+multilevel strategies.
+\end{itemize}
+
+\subsection{Comparison table}
+
+\begin{center}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.21\textwidth} >{\raggedright\arraybackslash}p{0.33\textwidth} >{\raggedright\arraybackslash}p{0.33\textwidth}}
+\toprule
+\textbf{Aspect} & \textbf{Kamada--Kawai} & \textbf{Fruchterman--Reingold} \\
+\midrule
+Primary viewpoint & Weighted spring energy minimization & Iterative force simulation with cooling \\
+Main structural signal & All-pairs shortest-path distances & Edge attraction plus all-pairs repulsion \\
+Key scale quantities & Pair-specific $\ell_{ij}$ and $k_{ij}$ & Global spacing parameter $k$ \\
+Optimization step & Vertex-wise Newton--Raphson updates & Global displacement updates for all vertices \\
+Typical strength & Strong distance preservation & Good visual balance and simple general-purpose behavior \\
+Typical weakness & Expensive on large graphs & Does not explicitly preserve graph distances \\
+Naive cost & All-pairs distances plus $O(n^2)$ interactions & $O(n^2 + m)$ per iteration \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{When each method is a good fit}
+
+\textbf{KK is often a good fit when}
+\begin{itemize}[leftmargin=1.5em]
+\item the graph is small or medium-sized,
+\item graph-theoretic distance preservation is important,
+\item one wants a mathematically explicit objective.
+\end{itemize}
+
+\textbf{FR is often a good fit when}
+\begin{itemize}[leftmargin=1.5em]
+\item one wants a simple and classical force-directed layout,
+\item visual spacing and symmetry are the primary goals,
+\item scalable approximations or multilevel variants are available.
+\end{itemize}
+
+\section{Conclusion}
+
+Kamada--Kawai and Fruchterman--Reingold are both foundational force-directed
+methods, but they solve different mathematical problems. KK asks for a drawing
+whose Euclidean distances reflect shortest-path distances in the graph. FR asks
+for a drawing in which attractive and repulsive forces reach a visually balanced
+equilibrium. Because of that difference, KK is more distance-faithful and more
+explicitly optimization-based, while FR is simpler, more heuristic, and often
+easier to adapt to larger-scale drawing pipelines.
+
+In modern graph layout systems, both methods remain important. KK provides a
+clean distance-based formulation, and FR provides a practical force-balancing
+template that has inspired many scalable descendants.
+
+\begin{thebibliography}{9}
+
+\bibitem{kamada1989}
+T. Kamada and S. Kawai.
+\newblock An algorithm for drawing general undirected graphs.
+\newblock \emph{Information Processing Letters}, 31(1):7--15, 1989.
+
+\bibitem{fr1991}
+T. M. J. Fruchterman and E. M. Reingold.
+\newblock Graph drawing by force-directed placement.
+\newblock \emph{Software: Practice and Experience}, 21(11):1129--1164, 1991.
+
+\bibitem{eades1984}
+P. Eades.
+\newblock A heuristic for graph drawing.
+\newblock \emph{Congressus Numerantium}, 42:149--160, 1984.
+
+\end{thebibliography}
+
+\end{document}

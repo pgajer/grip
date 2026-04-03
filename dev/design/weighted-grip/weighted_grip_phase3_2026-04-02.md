@@ -58,7 +58,7 @@ arguments override the preset cleanly.
 
 The new Phase 3 benchmark driver is:
 
-- `tools/benchmark-weighted-grip-family-panel.R`
+- `tools/benchmarks/gkk_lgkk_paper/benchmark-weighted-grip-family-panel.R`
 
 It compares these methods:
 
@@ -99,13 +99,13 @@ The script records:
 Full run from the repo root:
 
 ```sh
-Rscript tools/benchmark-weighted-grip-family-panel.R
+Rscript tools/benchmarks/gkk_lgkk_paper/benchmark-weighted-grip-family-panel.R
 ```
 
 Smoke run:
 
 ```sh
-Rscript tools/benchmark-weighted-grip-family-panel.R --smoke
+Rscript tools/benchmarks/gkk_lgkk_paper/benchmark-weighted-grip-family-panel.R --smoke
 ```
 
 The smoke run uses fewer seeds and fewer optimizer iterations and writes to a

@@ -1,0 +1,634 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts, mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={KK and FR implementations in the grip package},
+  pdfauthor={Codex}
+}
+
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+\title{How KK- and FR-style Layouts Are Implemented in the \texttt{grip} Package\\
+\large A Code-Based Comparison with the Original Kamada--Kawai and Fruchterman--Reingold Algorithms}
+\author{Generated from direct inspection of the current \texttt{grip} source tree}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This note describes precisely how KK- and FR-style layout updates are implemented
+inside the current \texttt{grip} package. The short answer to the motivating
+question is: yes, the package does \emph{not} implement the textbook full
+all-pairs Kamada--Kawai algorithm, and it also does \emph{not} implement the
+textbook full all-pairs Fruchterman--Reingold algorithm. Instead, the package
+uses a multiscale GRIP engine whose active kernels are local KK-style and
+local FR-style direction computations, optionally augmented by an exact-or-sampled
+active-set repulsion term. This document explains the exact code paths, the
+mathematical formulas implied by the code, and the differences from the original
+KK and FR methods.
+\end{abstract}
+
+\section{Executive summary}
+
+The most important conclusions are:
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{There is no full original KK implementation in the package core.}
+The code does not build an all-pairs shortest-path matrix, does not define the
+classical KK spring energy over all vertex pairs, and does not perform the
+classical Newton--Raphson per-vertex solve.
+
+\item \textbf{There is no full original FR implementation in the package core.}
+The active FR kernel uses edge-based attraction, but repulsion is restricted to
+a retained local BFS neighborhood rather than all other vertices.
+
+\item \textbf{The package has several KK-style routines, not just one.} The
+active code contains:
+  \begin{itemize}[leftmargin=1.5em]
+  \item \texttt{KK\_spring\_local()}, used only for warm-starting newly introduced vertices,
+  \item \texttt{KK\_spring\_v4()}, used on coarse and intermediate MISF levels,
+  \item \texttt{KK\_spring\_final()}, used on the finest level only when
+  \texttt{final\_mode = "kk\_repulse"}.
+  \end{itemize}
+
+\item \textbf{The extra long-range interaction in current \texttt{grip.layout()}
+is repulsion only.} It is not a full all-pairs KK spring model. The added term
+is an active-set repulsion over currently active vertices, computed either
+exactly or by uniform sampling with a scale correction.
+
+\item \textbf{The only FR routine used by the engine is \texttt{FR\_spring()}.}
+There is also a function \texttt{FR\_spring\_v2()}, but it is not called by the
+current engine.
+\end{enumerate}
+
+\section{Code paths and public entry points}
+
+The public R-level entry points map to two main C++ wrappers:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{grip.layout.legacy()} calls \texttt{grip\_layout\_adj\_cpp()}.
+\item \texttt{grip.layout()} forwards to \texttt{grip.layout.globalrep()}.
+\item \texttt{grip.layout.globalrep()} calls \texttt{grip\_layout\_globalrep\_adj\_cpp()}.
+\end{itemize}
+
+The relevant source paths are:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{R/grip\_layout.R}
+\item \texttt{src/grip\_rcpp.cpp}
+\item \texttt{src/DrawGraph.h}
+\item \texttt{src/DrawGraph.cpp}
+\item \texttt{src/MishEngine.cpp}
+\item \texttt{src/MishSupport.cpp}
+\end{itemize}
+
+\subsection{What the R wrappers expose}
+
+At the R level, the current primary API is:
+\[
+\texttt{grip.layout(..., final\_mode = c("fr", "kk\_repulse"),}
+\]
+\[
+\texttt{coarse\_repulsion\_factor, coarse\_repulsion\_sample,}
+\]
+\[
+\texttt{coarse\_repulsion\_exact\_below, final\_anchor\_factor,}
+\]
+\[
+\texttt{final\_move\_scale\_after\_first).}
+\]
+
+From the source:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{grip.layout()} is just a forwarder to
+\texttt{grip.layout.globalrep()}.
+\item \texttt{grip.layout.legacy()} preserves the historical local-force behavior.
+\item \texttt{final\_mode = "fr"} keeps the FR-style finest-level stage.
+\item \texttt{final\_mode = "kk\_repulse"} replaces that finest-level FR stage by
+a KK-style local update plus active-set repulsion.
+\end{itemize}
+
+\section{The shared GRIP engine structure}
+
+\subsection{MISF hierarchy}
+
+The engine is not ``run KK'' or ``run FR'' in the textbook sense. It is a
+multiscale GRIP engine built on a maximal independent set filtration (MISF).
+Vertices are introduced progressively from coarser to finer active sets.
+
+At each active level:
+\begin{enumerate}[leftmargin=1.5em]
+\item a subset of vertices is currently active,
+\item each active vertex has a retained neighborhood list,
+\item the engine applies a local force-style update routine to each active vertex,
+\item the resulting direction is converted into a move whose magnitude is controlled by
+a per-vertex local temperature.
+\end{enumerate}
+
+\subsection{Retained local neighborhoods}
+
+The local neighborhood structure is created by BFS. For every active root vertex
+$i$ and each MISF level $\ell$, the code stores up to
+\[
+\texttt{nbr}[\ell] \le \texttt{num\_nbrs}
+\]
+other vertices together with their BFS graph distances from $i$. The arrays
+\texttt{nbrs[root][level]} therefore contain truncated, local graph-distance
+information, not the full all-pairs graph metric.
+
+This point is essential: the core KK-style and FR-style updates in GRIP are
+based on these truncated local neighborhoods.
+
+\subsection{Local temperature and step normalization}
+
+Another major difference from textbook KK and FR is that the raw force-like
+vector in GRIP mostly determines \emph{direction}, not the final step size.
+
+Let $\vect{\Delta}_i^{(t)}$ be the raw displacement computed by one of the local
+kernels at round $t$. The code normalizes it to a fixed reference length
+\[
+e = \texttt{edge} = 32,
+\]
+so that the normalized direction is effectively
+\[
+\widehat{\vect{\Delta}}_i^{(t)} = e \, \frac{\vect{\Delta}_i^{(t)}}{\norm{\vect{\Delta}_i^{(t)}}}.
+\]
+
+Then a local heat variable $T_i$ is updated using the angle between consecutive
+directions. If
+\[
+c_i^{(t)} =
+\frac{
+\widehat{\vect{\Delta}}_i^{(t)} \cdot \widehat{\vect{\Delta}}_i^{(t-1)}
+}{
+\norm{\widehat{\vect{\Delta}}_i^{(t)}} \,
+\norm{\widehat{\vect{\Delta}}_i^{(t-1)}}
+},
+\]
+then the code updates heat approximately as
+\[
+T_i \leftarrow
+\begin{cases}
+T_i + T_i s r c_i^{(t)}, & \text{if the direction is consistent with the previous one},\\
+T_i + T_i r c_i^{(t)}, & \text{otherwise}.
+\end{cases}
+\]
+
+Finally, the actual position update is effectively
+\[
+\vect{x}_i \leftarrow \vect{x}_i + T_i \, \frac{\vect{\Delta}_i^{(t)}}{\norm{\vect{\Delta}_i^{(t)}}},
+\]
+possibly multiplied by an extra factor on late FR rounds when
+\texttt{final\_move\_scale\_after\_first} is active.
+
+So in GRIP:
+\begin{itemize}[leftmargin=1.5em]
+\item the kernel formulas determine direction and relative balance,
+\item the local heat schedule determines how far the vertex actually moves.
+\end{itemize}
+
+\section{KK-style implementations in \texttt{grip}}
+
+\subsection{\texttt{KK\_spring\_local()}: warm-start KK for new vertices}
+
+This routine is used only while introducing newly activated vertices at finer
+levels. Each new vertex is initialized from three nearby already-placed centers,
+then refined by three short local KK-style iterations.
+
+If the three reference vertices are $j \in C_i$ with stored graph distances
+$d_G(i,j)$, then the code computes
+\[
+\vect{\Delta}_i^{\text{KK-local}}
+=
+\sum_{j \in C_i}
+(\vect{x}_j - \vect{x}_i)
+\left(
+\frac{\norm{\vect{x}_j - \vect{x}_i}^2}{d_G(i,j)^2 e^2}
+- 1
+\right).
+\]
+
+This is ``KK-like'' in the sense that it tries to match the geometric distance
+to a target proportional to graph distance, but it is \emph{not} the classical
+KK gradient.
+
+\subsection{\texttt{KK\_spring\_v4()}: coarse/intermediate local KK}
+
+This is the active KK-style routine on all non-finest MISF levels. If
+$\mathcal{N}_{\ell}(i)$ is the retained BFS neighborhood of vertex $i$ at level
+$\ell$, then the raw displacement is
+\[
+\vect{\Delta}_{i,\ell}^{\text{KK}}
+=
+\sum_{j \in \mathcal{N}_{\ell}(i)}
+(\vect{x}_j - \vect{x}_i)
+\left(
+\frac{\norm{\vect{x}_j - \vect{x}_i}^2}{d_G(i,j)^2 e^2}
+- 1
+\right)
++
+\vect{R}_{i,\ell}^{\text{coarse}},
+\]
+where the coarse repulsion term $\vect{R}_{i,\ell}^{\text{coarse}}$ is present
+only in the global-repulsion engine and only when the repulsion factor is
+positive.
+
+\subsection{Exact and sampled active-set repulsion}
+
+The additional long-range term is repulsion only, over the \emph{currently
+active} vertex set $A_{\ell}$.
+
+Define
+\[
+\alpha_c = \texttt{coarseFedge2}
+= 0.05 \cdot \texttt{coarse\_repulsion\_factor} \cdot e^2.
+\]
+
+When the active-set size is small enough, GRIP uses exact active-set repulsion:
+\[
+\vect{R}_{i,\ell}^{\text{exact}}
+=
+\sum_{\substack{j \in A_{\ell}\\j \ne i}}
+\alpha_c
+\frac{\vect{x}_i - \vect{x}_j}{\norm{\vect{x}_i - \vect{x}_j}^2}.
+\]
+
+When the active set is larger, GRIP samples a subset $S_i \subset A_{\ell}\setminus\{i\}$
+uniformly without replacement, with
+\[
+|S_i| = \min(\texttt{coarse\_repulsion\_sample}, |A_{\ell}| - 1),
+\]
+and rescales the result by
+\[
+\frac{|A_{\ell}| - 1}{|S_i|}.
+\]
+The sampled repulsion is therefore
+\[
+\vect{R}_{i,\ell}^{\text{sampled}}
+=
+\frac{|A_{\ell}| - 1}{|S_i|}
+\sum_{j \in S_i}
+\alpha_c
+\frac{\vect{x}_i - \vect{x}_j}{\norm{\vect{x}_i - \vect{x}_j}^2}.
+\]
+
+This is the precise meaning of the package's ``sampled long-range interactions'':
+\begin{itemize}[leftmargin=1.5em]
+\item they are \emph{repulsive only},
+\item they are applied over the currently active set,
+\item they are exact below a threshold and sampled above it,
+\item they do \emph{not} create a full KK all-pairs spring system.
+\end{itemize}
+
+\subsection{\texttt{KK\_spring\_final()}: finest-level KK with repulsion}
+
+When \texttt{final\_mode = "kk\_repulse"}, the finest level uses
+\texttt{KK\_spring\_final()} instead of FR. Its local distance-matching term is
+the same as \texttt{KK\_spring\_v4()}, but now the active set is the full current
+finest-level set and the repulsion scale is
+\[
+\alpha_f = \texttt{fedge2}
+= 0.05 \cdot \texttt{repulsion\_factor} \cdot e^2.
+\]
+
+The raw displacement becomes
+\[
+\vect{\Delta}_i^{\text{KK-final}}
+=
+\sum_{j \in \mathcal{N}_{0}(i)}
+(\vect{x}_j - \vect{x}_i)
+\left(
+\frac{\norm{\vect{x}_j - \vect{x}_i}^2}{d_G(i,j)^2 e^2}
+- 1
+\right)
++
+\vect{R}_i^{\text{active}}(\alpha_f),
+\]
+where the repulsion $\vect{R}_i^{\text{active}}(\alpha_f)$ is again exact or
+sampled according to the same active-set threshold logic.
+
+\subsection{What GRIP KK is \emph{not}}
+
+Compared with the original Kamada--Kawai algorithm, the GRIP KK-style routines
+omit several defining pieces:
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{No all-pairs shortest-path matrix.} The code stores only truncated
+local BFS neighborhoods, not all graph distances $g_{ij}$.
+
+\item \textbf{No explicit KK energy.} There is no energy
+\[
+E(X) = \frac{1}{2} \sum_{i<j} k_{ij}\bigl(\norm{\vect{x}_i - \vect{x}_j} - \ell_{ij}\bigr)^2
+\]
+in the implementation.
+
+\item \textbf{No Newton--Raphson solve.} There is no per-vertex Hessian, no
+largest-gradient vertex selection, and no 2-by-2 Newton solve.
+
+\item \textbf{No full all-pairs springs.} The active force calculation is local,
+with optional repulsion added separately.
+
+\item \textbf{No weighted graph-distance KK.} Even when edge weights are present
+in the graph object, the KK-style BFS distances are hop-count distances from the
+unweighted adjacency traversal. The KK-style code does not read edge weights.
+\end{enumerate}
+
+So the correct description is:
+\begin{quote}
+GRIP implements local KK-style distance-matching kernels inside a multiscale
+engine, with optional exact-or-sampled active-set repulsion. It does not
+implement textbook full KK.
+\end{quote}
+
+\section{FR-style implementation in \texttt{grip}}
+
+\subsection{Which FR routine is actually used}
+
+The active engine calls \texttt{FR\_spring()} at the finest level when
+\texttt{final\_mode = "fr"}.
+
+There is also a function \texttt{FR\_spring\_v2()} in the codebase, but the
+current engine never calls it. It appears to be an older or alternate helper
+left in the source.
+
+\subsection{Active finest-level FR kernel}
+
+At the finest level, GRIP computes an FR-style raw displacement from three parts:
+\begin{enumerate}[leftmargin=1.5em]
+\item attractive force along actual graph edges,
+\item repulsive force over the retained local neighborhood only,
+\item optional anchor force pulling back toward the pre-final full-graph layout.
+\end{enumerate}
+
+\subsection{Attractive term}
+
+If $(i,j) \in E$, define
+\[
+\ell_{ij} =
+\begin{cases}
+e, & \text{if the graph is unweighted},\\
+e \, w_{ij}, & \text{if the graph stores edge weight } w_{ij}.
+\end{cases}
+\]
+
+Then GRIP's attractive contribution from edge $(i,j)$ is
+\[
+\vect{A}_{ij}^{\text{GRIP-FR}}
+=
+(\vect{x}_j - \vect{x}_i)
+\frac{\norm{\vect{x}_j - \vect{x}_i}^2}{\ell_{ij}^2}.
+\]
+
+Summing over adjacent vertices gives
+\[
+\vect{A}_i^{\text{GRIP-FR}}
+=
+\sum_{j:(i,j)\in E}
+(\vect{x}_j - \vect{x}_i)
+\frac{\norm{\vect{x}_j - \vect{x}_i}^2}{\ell_{ij}^2}.
+\]
+
+This term \emph{does} use edge weights, but only here. Large weights increase
+the effective desired length $\ell_{ij}$ and therefore weaken the attraction.
+
+\subsection{Repulsive term}
+
+Let
+\[
+\alpha_f = \texttt{fedge2}
+= 0.05 \cdot \texttt{repulsion\_factor} \cdot e^2.
+\]
+
+If $\mathcal{N}_{0}(i)$ is the retained finest-level local neighborhood of $i$,
+then the FR-style repulsive term used by GRIP is
+\[
+\vect{R}_i^{\text{GRIP-FR}}
+=
+\sum_{j \in \mathcal{N}_{0}(i)}
+\alpha_f
+\frac{\vect{x}_i - \vect{x}_j}{\norm{\vect{x}_i - \vect{x}_j}^2}.
+\]
+
+This is the key place where GRIP differs from textbook FR:
+\begin{itemize}[leftmargin=1.5em]
+\item the repulsion is not over all other vertices,
+\item it is only over the retained local BFS neighborhood,
+\item there is no Barnes--Hut style global approximation here,
+\item and there is no exact full all-pairs repulsion in the active FR stage.
+\end{itemize}
+
+\subsection{Optional anchor term}
+
+If \texttt{final\_anchor\_factor} is positive, GRIP stores the vertex positions
+at the start of the finest full-graph level and adds
+\[
+\vect{H}_i
+=
+\frac{\lambda}{e}
+\left(
+\vect{x}_i^{\text{anchor}} - \vect{x}_i
+\right),
+\qquad
+\lambda = \texttt{final\_anchor\_factor}.
+\]
+
+This term is not part of original FR. It is a GRIP-specific stabilizer for the
+final FR stage.
+
+\subsection{Complete GRIP FR raw displacement}
+
+Putting the pieces together, the active finest-level FR displacement is
+\[
+\vect{\Delta}_i^{\text{GRIP-FR}}
+=
+\vect{A}_i^{\text{GRIP-FR}}
++
+\vect{R}_i^{\text{GRIP-FR}}
++
+\vect{H}_i.
+\]
+
+After this, GRIP again normalizes the direction, applies its local heat-based
+step-size rule, and optionally damps later rounds by
+\texttt{final\_move\_scale\_after\_first} when that parameter is below $1$.
+
+\subsection{What GRIP FR is \emph{not}}
+
+Compared with textbook Fruchterman--Reingold, the GRIP FR stage differs in
+several important ways:
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{Repulsion is local, not all-pairs.} Classical FR uses repulsion
+between every pair of vertices; GRIP uses only the retained BFS neighborhood.
+
+\item \textbf{The attraction formula is not the textbook FR formula.} Original FR
+uses
+\[
+f_a(r) = \frac{r^2}{k},
+\qquad
+f_r(r) = \frac{k^2}{r}.
+\]
+In vector form, the classical attractive vector has magnitude proportional to
+$r^2/k$. In GRIP, the attractive vector has magnitude proportional to
+$r^3/\ell_{ij}^2$.
+
+\item \textbf{The step size is not controlled by a global temperature schedule.}
+GRIP uses per-vertex local heat values and direction consistency instead.
+
+\item \textbf{FR is only the finest-level kernel.} On coarser levels, the engine
+uses KK-style updates, not FR.
+\end{enumerate}
+
+So the correct description is:
+\begin{quote}
+GRIP implements a finest-level FR-style local edge-attraction/local-repulsion
+kernel inside the multiscale GRIP engine, not textbook full FR.
+\end{quote}
+
+\section{Legacy versus current default behavior}
+
+\subsection{\texttt{grip.layout.legacy()}}
+
+The legacy wrapper uses \texttt{grip\_layout\_adj\_cpp()} and constructs
+\texttt{DrawGraph} without the extra active-set repulsion parameters. In practice
+this means:
+\begin{itemize}[leftmargin=1.5em]
+\item coarse/intermediate levels use \texttt{KK\_spring\_v4()} with no added
+active-set repulsion,
+\item the finest level uses \texttt{FR\_spring()},
+\item there is no coarse global repulsion term,
+\item there is no final-stage anchor term,
+\item there is no \texttt{kk\_repulse} final mode exposed.
+\end{itemize}
+
+\subsection{\texttt{grip.layout()} / \texttt{grip.layout.globalrep()}}
+
+The current default wrapper uses \texttt{grip\_layout\_globalrep\_adj\_cpp()}.
+Compared with legacy behavior, it adds:
+\begin{itemize}[leftmargin=1.5em]
+\item exact-or-sampled active-set repulsion on coarse/intermediate KK levels,
+\item an optional final-stage switch between FR and KK-plus-repulsion,
+\item optional final anchor and post-first-round damping for the FR final stage.
+\end{itemize}
+
+Therefore the user intuition
+\begin{quote}
+``there is one local KK version and another KK version with sampled long-range
+interactions, but no full all-pairs KK''
+\end{quote}
+is essentially correct, but the precise refinement is:
+\begin{itemize}[leftmargin=1.5em]
+\item there are \emph{multiple} KK-style routines,
+\item the extra long-range piece is repulsion only,
+\item the long-range repulsion can be \emph{exact} or \emph{sampled},
+\item and the package still does not implement full textbook KK.
+\end{itemize}
+
+\section{Comparison with the original algorithms}
+
+\subsection{Original Kamada--Kawai versus GRIP KK}
+
+\begin{center}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.26\textwidth} >{\raggedright\arraybackslash}p{0.31\textwidth} >{\raggedright\arraybackslash}p{0.31\textwidth}}
+\toprule
+\textbf{Aspect} & \textbf{Original KK} & \textbf{GRIP KK-style routines} \\
+\midrule
+Pair set & All vertex pairs & Truncated BFS neighborhood only \\
+Graph distances & Full all-pairs shortest paths & Stored local BFS hop distances only \\
+Objective & Explicit spring energy & No explicit global energy in code \\
+Optimizer & Newton--Raphson per selected vertex & Direction computation plus local heat step \\
+Long-range term & Built into all-pairs springs & Optional extra active-set repulsion only \\
+Weights & Naturally compatible with weighted shortest paths & KK-style code does not read edge weights \\
+Use in engine & Standalone layout algorithm & Coarse/intermediate kernel; optional finest-level mode \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Original Fruchterman--Reingold versus GRIP FR}
+
+\begin{center}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.26\textwidth} >{\raggedright\arraybackslash}p{0.31\textwidth} >{\raggedright\arraybackslash}p{0.31\textwidth}}
+\toprule
+\textbf{Aspect} & \textbf{Original FR} & \textbf{GRIP FR-style routine} \\
+\midrule
+Repulsion & All-pairs & Retained local BFS neighborhood only \\
+Attraction & Edge-based, textbook FR law & Edge-based, but with GRIP's own vector formula \\
+Temperature & Global cooling schedule & Per-vertex local heat adaptation \\
+Weights & Usually added by variant design & Edge weights affect attraction length scale only \\
+Role in engine & Standalone layout algorithm & Finest-level kernel only \\
+Extra terms & None in original core & Optional anchor and late-round damping \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Direct answer to the original question}
+
+\textbf{Yes, essentially correct.}
+
+The current \texttt{grip} package does \emph{not} contain a full all-pairs
+Kamada--Kawai layout implementation. What it contains is:
+\begin{enumerate}[leftmargin=1.5em]
+\item a local KK-style warm-start routine for newly introduced vertices,
+\item a local KK-style multiscale refinement routine,
+\item an optional finest-level KK-style routine with exact-or-sampled active-set repulsion,
+\item a finest-level FR-style routine with local, not global, repulsion.
+\end{enumerate}
+
+The ``sampled long-range interactions'' are active-set repulsive corrections,
+not a full all-pairs KK spring model. Likewise, the FR stage is FR-style but not
+textbook all-pairs FR.
+
+\section{Code basis for this document}
+
+The statements above were derived from the current source tree, especially:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{R/grip\_layout.R}: public API and parameter semantics.
+\item \texttt{src/grip\_rcpp.cpp}: mapping from R wrappers to \texttt{DrawGraph}.
+\item \texttt{src/MishEngine.cpp}: level schedule and kernel selection logic.
+\item \texttt{src/MishSupport.cpp}: KK-style and FR-style formulas, plus exact
+and sampled active-set repulsion.
+\item \texttt{src/DrawGraph.cpp} and \texttt{src/DrawGraph.h}: constructor
+constants, neighborhood-size caps, local temperature schedule, and helper state.
+\end{itemize}
+
+\begin{thebibliography}{9}
+
+\bibitem{kamada1989}
+T. Kamada and S. Kawai.
+\newblock An algorithm for drawing general undirected graphs.
+\newblock \emph{Information Processing Letters}, 31(1):7--15, 1989.
+
+\bibitem{fr1991}
+T. M. J. Fruchterman and E. M. Reingold.
+\newblock Graph drawing by force-directed placement.
+\newblock \emph{Software: Practice and Experience}, 21(11):1129--1164, 1991.
+
+\bibitem{gajer2002}
+P. Gajer and S. G. Kobourov.
+\newblock GRIP: Graph dRawing with Intelligent Placement.
+\newblock \emph{Journal of Graph Algorithms and Applications}, 6(3):203--224, 2002.
+
+\bibitem{gajer2004}
+P. Gajer, M. T. Goodrich, and S. G. Kobourov.
+\newblock A multi-dimensional approach to force-directed layouts of large graphs.
+\newblock \emph{Computational Geometry}, 29(1):3--18, 2004.
+
+\end{thebibliography}
+
+\end{document}

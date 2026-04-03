@@ -1,0 +1,657 @@
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  pdftitle={Geodesic Kamada--Kawai implementation plan for grip},
+  pdfauthor={Codex}
+}
+
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\vect}[1]{\mathbf{#1}}
+
+\title{Geodesic Kamada--Kawai in \texttt{grip}\\
+\large Algorithm Details and Implementation Plan}
+\author{Generated from direct inspection of the current \texttt{grip} source tree}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This note turns the geodesic Kamada--Kawai (GKK) functional into a concrete
+implementation plan for \texttt{grip}. The package already has landmark geodesic
+Kamada--Kawai (LGKK) scoring and optimization in both R and C++. The missing
+piece is the full all-pairs GKK variant so that we can compare three objects on
+the same graphs: a classical KK objective based on chord length, a full GKK
+objective based on path length along the embedded graph, and the sparse LGKK
+approximation already present in the package. The main conclusion is that GKK
+fits naturally into the current codebase: once the all-pairs path cache is
+available, almost all of the existing LGKK path-length, scale-fitting, energy,
+and gradient machinery can be reused with only light refactoring.
+\end{abstract}
+
+\section{Goal}
+
+The target deliverable is a full all-pairs geodesic Kamada--Kawai implementation
+for connected weighted or unweighted graphs, together with a practical plan for
+an R reference implementation and a faster C++ backend with an R interface.
+
+The immediate purpose is comparison. We want to quantify when replacing the
+classical KK chord-length discrepancy by an embedded-path discrepancy actually
+improves preservation of graph geodesics, and what runtime cost is paid for that
+gain.
+
+The document therefore focuses on four questions:
+\begin{enumerate}[leftmargin=1.5em]
+\item What exactly is the GKK objective that \texttt{grip} should implement?
+\item How does that objective relate to the current LGKK code?
+\item What is the simplest implementation path that gives us a correct baseline
+first and a fast backend second?
+\item Which design decisions should be made explicitly before coding?
+\end{enumerate}
+
+\section{Algorithmic Definition}
+
+\subsection{Graph, embedding, and chosen shortest paths}
+
+Let $G = (V,E)$ be a connected graph with vertex set
+$V = \{1,\dots,n\}$. Let the graph distance between vertices $i$ and $j$ be
+$g_{ij}$. In the unweighted case this is hop count; in the weighted case it is
+the shortest-path distance induced by the positive edge weights.
+
+For each unordered pair $i < j$, choose one deterministic graph shortest path
+\[
+\gamma_{ij} = (v_0 = i, v_1, \dots, v_r = j).
+\]
+The current LGKK code already uses this model: it does not average over many
+shortest paths and it does not recompute the chosen path from the current
+embedding. The most natural full GKK implementation should keep that same rule.
+
+Given coordinates
+$X = (\vect{x}_1,\dots,\vect{x}_n)$ with $\vect{x}_i \in \RR^d$,
+define the embedded length of an edge $e = \{u,v\}$ by
+\[
+\lambda_e(X) = \sqrt{\norm{\vect{x}_u - \vect{x}_v}^2 + \varepsilon_{\mathrm{edge}}^2},
+\]
+where $\varepsilon_{\mathrm{edge}} \ge 0$ is the same small stabilizer already
+used by the LGKK code.
+
+The embedded geodesic length of the chosen shortest path $\gamma_{ij}$ is
+\[
+h_{ij}(X) = \sum_{e \in \gamma_{ij}} \lambda_e(X).
+\]
+
+\subsection{Full GKK energy}
+
+With global stiffness constant $K > 0$, graph-distance floor
+$\varepsilon_{\mathrm{dist}} > 0$, and scale factor $L_0 > 0$, define
+\[
+k_{ij} = \frac{K}{\max(g_{ij}, \varepsilon_{\mathrm{dist}})^2}
+\]
+and
+\[
+E_{\mathrm{GKK}}(X;L_0)
+=
+\frac{1}{2}
+\sum_{1 \le i < j \le n}
+k_{ij}\bigl(h_{ij}(X) - L_0 g_{ij}\bigr)^2.
+\]
+
+This is the direct geodesic analogue of the classical KK energy. The only
+structural change is that the discrepancy term uses path length measured along
+the current embedded graph rather than the direct Euclidean chord
+$\norm{\vect{x}_i-\vect{x}_j}$.
+
+\subsection{Analytic scale fitting}
+
+For scoring and for optimization with a scale-invariant objective, it is useful
+to fit $L_0$ analytically for the current layout. For fixed $X$,
+\[
+L_0^\star(X)
+=
+\operatorname*{arg\,min}_{L_0} E_{\mathrm{GKK}}(X;L_0)
+=
+\frac{\sum_{i<j} k_{ij} g_{ij} h_{ij}(X)}
+{\sum_{i<j} k_{ij} g_{ij}^2}.
+\]
+
+This is exactly the same algebra used in the existing LGKK scorer.
+
+The profiled objective is
+\[
+\widetilde{E}_{\mathrm{GKK}}(X) = E_{\mathrm{GKK}}(X;L_0^\star(X)).
+\]
+
+An important implementation fact is that the gradient of the profiled objective
+is still easy to compute: at $L_0^\star(X)$ we have
+$\partial E_{\mathrm{GKK}} / \partial L_0 = 0$, so the total derivative of
+$\widetilde{E}_{\mathrm{GKK}}$ is obtained by differentiating
+$E_{\mathrm{GKK}}(X;L_0)$ with $L_0$ held fixed at the optimal value. In
+practice this means we can recompute $L_0^\star$ at every evaluation without
+adding a derivative term for $dL_0^\star / dX$.
+
+\subsection{Gradient}
+
+For one pair $(i,j)$ with residual
+\[
+r_{ij}(X;L_0) = h_{ij}(X) - L_0 g_{ij},
+\]
+the pair contribution to the energy is
+\[
+\frac{1}{2}k_{ij} r_{ij}(X;L_0)^2.
+\]
+
+If an oriented edge $(u,v)$ belongs to $\gamma_{ij}$, then
+\[
+\nabla_{\vect{x}_u}\lambda_{\{u,v\}}(X)
+=
+\frac{\vect{x}_u - \vect{x}_v}{\lambda_{\{u,v\}}(X)},
+\qquad
+\nabla_{\vect{x}_v}\lambda_{\{u,v\}}(X)
+=
+-
+\frac{\vect{x}_u - \vect{x}_v}{\lambda_{\{u,v\}}(X)}.
+\]
+
+Hence
+\[
+\nabla_{\vect{x}_u} E_{\mathrm{GKK}}(X;L_0)
+=
+\sum_{i<j}
+k_{ij} r_{ij}(X;L_0)
+\sum_{e \in \gamma_{ij} \,:\, u \in e}
+\sigma(u,e)
+\frac{\vect{x}_{a(e)} - \vect{x}_{b(e)}}{\lambda_e(X)},
+\]
+where $\sigma(u,e) = +1$ if $u = a(e)$ and $\sigma(u,e) = -1$ if $u = b(e)$.
+
+This is the same pattern already implemented in \texttt{grip.lgkk.energy.gradient()}:
+\begin{enumerate}[leftmargin=1.5em]
+\item compute the embedded length of each edge on the chosen path,
+\item sum those edge lengths to get $h_{ij}(X)$,
+\item form the residual,
+\item distribute the residual back along the path edges.
+\end{enumerate}
+
+\subsection{Complexity}
+
+Define the total number of stored path-edge references by
+\[
+M = \sum_{1 \le i < j \le n} \bigl(|\gamma_{ij}| - 1\bigr).
+\]
+
+Then:
+\begin{itemize}[leftmargin=1.5em]
+\item all-pairs graph-distance computation costs
+$O(nm)$ for unweighted graphs with BFS from every source, or
+$O(nm \log n)$ for weighted graphs with Dijkstra from every source;
+\item storing the distance matrix costs $O(n^2)$ memory;
+\item storing all chosen paths explicitly costs $O(M)$ memory;
+\item one full energy or gradient evaluation costs $O(Md)$ arithmetic.
+\end{itemize}
+
+This is the main practical difference between GKK and LGKK. For the sparse LGKK
+variant, the pair count is closer to
+$O(n(\texttt{local\_nbrs} + \texttt{landmark\_count}))$; for full GKK it is
+$n(n-1)/2$, and on long-diameter graphs $M$ can be cubic in $n$.
+
+\section{What \texttt{grip} Already Has}
+
+Inspection of the current source tree shows that \texttt{grip} already contains
+most of the mathematical infrastructure needed by GKK.
+
+\subsection{R-level LGKK pieces}
+
+The key functions in \texttt{R/grip\_quality.R} are:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{grip.prepare.landmark.geodesic.kk()}
+\item \texttt{grip.score.landmark.geodesic.kk()}
+\item \texttt{grip.optimize.landmark.geodesic.kk()}
+\item \texttt{grip.lgkk.path.lengths()}
+\item \texttt{grip.lgkk.fit.scale()}
+\item \texttt{grip.lgkk.energy.gradient()}
+\end{itemize}
+
+These routines already do the following:
+\begin{enumerate}[leftmargin=1.5em]
+\item validate weighted and unweighted undirected graphs;
+\item sort adjacency for deterministic tie-breaking;
+\item compute deterministic shortest-path trees from every source;
+\item reconstruct a chosen shortest path for each retained pair;
+\item measure path length along the embedded graph;
+\item fit the global scale analytically;
+\item evaluate the geodesic energy and its gradient;
+\item optimize by deterministic gradient descent with backtracking.
+\end{enumerate}
+
+\subsection{Compiled LGKK pieces}
+
+The compiled multiscale LGKK code lives primarily in:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{src/DrawGraph.h}
+\item \texttt{src/MishSupport.cpp}
+\item \texttt{src/grip\_rcpp.cpp}
+\end{itemize}
+
+At each active MISF level, the current implementation:
+\begin{enumerate}[leftmargin=1.5em]
+\item computes active-set shortest-path distances,
+\item selects sparse local and landmark targets,
+\item reconstructs chosen shortest paths,
+\item fits an initial scale,
+\item runs a gradient-descent refinement over the sparse pair set.
+\end{enumerate}
+
+\subsection{Most important observation}
+
+The current LGKK scorer and optimizer are already generic in everything that
+matters except pair selection. Once a prepared object contains:
+\begin{itemize}[leftmargin=1.5em]
+\item a pair matrix,
+\item graph distances for those pairs,
+\item path vertices or path edges for those pairs,
+\end{itemize}
+the downstream code does not really care whether the pair set came from
+landmark sparsification or from the full all-pairs list.
+
+That means full GKK should be implemented by changing the preparation layer
+first, then lightly refactoring the shared energy machinery so LGKK and GKK
+call the same internal core.
+
+\section{Recommended Public API}
+
+The cleanest user-facing API is the full analogue of the existing LGKK API:
+\begin{align*}
+&\texttt{grip.prepare.geodesic.kk(...)} \\
+&\texttt{grip.score.geodesic.kk(...)} \\
+&\texttt{grip.optimize.geodesic.kk(...)}
+\end{align*}
+
+The prepared object should have class \texttt{"grip\_gkk\_prepared"} and should
+reuse the same broad schema as \texttt{"grip\_lgkk\_prepared"}:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{n}
+\item \texttt{edges}
+\item \texttt{adj\_list}
+\item \texttt{weight\_list}
+\item \texttt{pair\_matrix}
+\item \texttt{pair\_graph\_distance}
+\item \texttt{path\_vertices}
+\item \texttt{path\_edges}
+\item \texttt{graph\_diameter}
+\item \texttt{distance\_matrix}
+\end{itemize}
+
+The difference from LGKK is that \texttt{pair\_matrix} is now the full all-pairs
+set
+\[
+\{(i,j) : 1 \le i < j \le n\}.
+\]
+
+For scoring and optimization, the arguments should stay as close as possible to
+the existing LGKK names so that the comparison code is easy to write and easy to
+read. In particular, the following arguments can be retained with identical
+meaning:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{stiffness}
+\item \texttt{distance\_floor}
+\item \texttt{edge\_length\_epsilon}
+\item \texttt{max\_iter}
+\item \texttt{initial\_step}
+\item \texttt{step\_shrink}
+\item \texttt{armijo\_factor}
+\item \texttt{grad\_tol}
+\item \texttt{min\_step}
+\item \texttt{recenter}
+\item \texttt{return\_trace}
+\end{itemize}
+
+I also recommend adding one new scale-policy argument, for example
+\texttt{scale\_mode = c("profiled", "fixed\_initial", "user")}, because scale
+handling is one of the main choices that affects comparability.
+
+\section{Implementation Strategy}
+
+\subsection{Core idea}
+
+The implementation should be organized around a shared geodesic KK core and two
+pair-selection front ends:
+\begin{itemize}[leftmargin=1.5em]
+\item LGKK: sparse local-plus-landmark pair selection,
+\item GKK: full all-pairs selection.
+\end{itemize}
+
+This avoids copying the energy and gradient logic into a second code path.
+
+\subsection{Phase 1: R reference implementation}
+
+The fastest route to a correct baseline is an R implementation in
+\texttt{R/grip\_quality.R}. The main steps are:
+
+\begin{enumerate}[leftmargin=1.5em]
+\item Refactor the current LGKK preparation code into a reusable internal helper
+that computes sorted adjacency, all-source shortest-path trees, the full
+distance matrix, and parent arrays.
+
+\item Refactor the current downstream helpers so they are pair-set agnostic.
+Concretely, the current LGKK helpers for path lengths, analytic scale fitting,
+and energy-gradient evaluation should either be renamed to generic internal
+helpers or wrapped around a generic geodesic KK core.
+
+\item Implement \texttt{grip.prepare.geodesic.kk()} by constructing the all-pairs
+\texttt{pair\_matrix} and reconstructing one chosen path for every pair from the
+precomputed parent arrays.
+
+\item Implement \texttt{grip.score.geodesic.kk()} on top of the shared scorer.
+This should report the same style of summary as the LGKK scorer so that
+benchmark tables line up naturally.
+
+\item Implement \texttt{grip.optimize.geodesic.kk()} by reusing the current
+deterministic gradient-descent loop. The first optimizer does not need a new
+algorithm; it only needs the full pair set.
+\end{enumerate}
+
+This phase should give us a correct, readable, testable GKK reference
+implementation quickly.
+
+\subsection{Phase 2: compiled backend}
+
+The compiled backend should accelerate repeated energy and gradient evaluation,
+which is the true bottleneck during optimization. I do \emph{not} recommend
+putting the full all-pairs GKK implementation directly into the current
+\texttt{DrawGraph} multiscale engine as the first compiled step. That engine is
+organized around active-set refinement, while full GKK is a standalone
+all-pairs objective.
+
+Instead, the cleaner route is:
+\begin{enumerate}[leftmargin=1.5em]
+\item add a standalone C++ module, for example
+\texttt{src/GeodesicKk.h} and \texttt{src/GeodesicKk.cpp};
+\item expose Rcpp entry points from \texttt{src/grip\_rcpp.cpp};
+\item keep the public R API in R, with the C++ path hidden behind the same
+wrappers.
+\end{enumerate}
+
+For C++ efficiency, the prepared path cache should be flattened. Rather than a
+list of edge matrices, use arrays such as:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{pair\_offset}
+\item \texttt{path\_edge\_u}
+\item \texttt{path\_edge\_v}
+\item \texttt{pair\_graph\_distance}
+\end{itemize}
+so that the compiled evaluator can stream through contiguous memory.
+
+The C++ backend can be introduced in two layers:
+\begin{enumerate}[leftmargin=1.5em]
+\item compiled scoring and gradient from an R-prepared flattened cache;
+\item later, compiled preparation if the all-source shortest-path stage becomes
+the dominant cost on the graphs we care about.
+\end{enumerate}
+
+\subsection{Phase 3: comparison tooling}
+
+Once the R reference and compiled backend exist, add benchmark and comparison
+tools that evaluate at least:
+\begin{itemize}[leftmargin=1.5em]
+\item classical KK or the nearest available full KK reference,
+\item full GKK,
+\item sparse LGKK.
+\end{itemize}
+
+The comparison scripts should use the same starting coordinates, the same
+dimension, and the same stopping policy whenever possible. Otherwise differences
+in initialization may dominate differences in objective.
+
+\section{Concrete File-Level Plan}
+
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\linewidth} >{\raggedright\arraybackslash}p{0.62\linewidth}}
+\toprule
+Location & Planned work \\
+\midrule
+\texttt{R/grip\_quality.R} &
+Add \texttt{grip.prepare.geodesic.kk()},
+\texttt{grip.score.geodesic.kk()},
+\texttt{grip.optimize.geodesic.kk()}, and refactor the current LGKK helpers into
+generic geodesic KK internals shared by LGKK and GKK. \\
+\addlinespace
+\texttt{man/} &
+Generate Rd files for the three new public functions. \\
+\addlinespace
+\texttt{tests/testthat/}\newline\texttt{test-geodesic-kk.R} &
+Add exactness, determinism, optimizer-decrease, weighted-graph, and R-vs-C++
+agreement tests. \\
+\addlinespace
+\texttt{src/GeodesicKk.h}, \texttt{src/GeodesicKk.cpp} &
+Add standalone compiled scorer and optimizer helpers for the flattened all-pairs
+path cache. \\
+\addlinespace
+\texttt{src/grip\_rcpp.cpp}, \texttt{src/RcppExports.cpp}, \texttt{R/RcppExports.R} &
+Expose compiled helpers through Rcpp and wire them into the R wrappers. \\
+\addlinespace
+\texttt{tools/benchmarks/gkk\_lgkk\_paper/*.R} &
+Add timing and quality benchmarks comparing KK, GKK, and LGKK on small and
+medium graphs. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Design Decisions to Make Explicitly}
+
+\subsection*{1. Path-choice rule}
+
+\textbf{Question:} for each pair $(i,j)$, do we use one canonical shortest path
+or somehow combine multiple shortest paths?
+
+\textbf{Recommendation:} use one deterministic canonical shortest path, exactly
+as LGKK already does.
+
+\textbf{Reason:} it keeps the functional deterministic, keeps the prepared cache
+compact, matches the current code style, and avoids a much heavier objective.
+
+\subsection*{2. Scale handling}
+
+\textbf{Question:} should $L_0$ be profiled at every evaluation, fitted once at
+the initial layout, or supplied by the user?
+
+\textbf{Recommendation:} support all three modes, with \texttt{"profiled"} as the
+default for scoring and probably also for the final optimizer.
+
+\textbf{Reason:} profiled scale is mathematically clean, directly comparable
+across layouts, and does not complicate the gradient. The current LGKK optimizer
+fixes the initial scale for robustness, but GKK is a good opportunity to expose
+the scale policy explicitly.
+
+\subsection*{3. Optimizer family}
+
+\textbf{Question:} should GKK use a classical KK-style per-vertex Newton method,
+the current whole-layout gradient descent, or a quasi-Newton method such as
+L-BFGS?
+
+\textbf{Recommendation:} start with the current deterministic gradient descent.
+
+\textbf{Reason:} the existing LGKK optimizer already matches the geodesic path
+objective, is straightforward to validate, and is enough for a first correct
+implementation. A later L-BFGS upgrade can be added if convergence is too slow.
+
+\subsection*{4. Shared-core refactor versus duplicate code}
+
+\textbf{Question:} do we add separate GKK-specific energy code, or do we
+genericize the existing LGKK internals?
+
+\textbf{Recommendation:} genericize the existing internals.
+
+\textbf{Reason:} the mathematical core is already pair-set agnostic. Duplicating
+it would create unnecessary maintenance risk and make R-vs-LGKK comparisons less
+trustworthy.
+
+\subsection*{5. Prepared-object representation}
+
+\textbf{Question:} should the prepared object store only R-friendly lists of
+paths, or should it also store a flattened C++-friendly cache?
+
+\textbf{Recommendation:} keep the user-visible list structure, but allow optional
+flattened arrays inside the prepared object for compiled evaluation.
+
+\textbf{Reason:} this preserves readability at the R level and gives the C++
+backend contiguous storage without introducing external-pointer complexity on day
+one.
+
+\subsection*{6. Size guardrails}
+
+\textbf{Question:} what should happen on graphs where all-pairs GKK is too large?
+
+\textbf{Recommendation:} warn or error explicitly once pair count or total
+path-edge references exceed a configurable threshold; do not silently fall back
+to LGKK.
+
+\textbf{Reason:} silent fallback would make the comparison experiments ambiguous.
+
+\subsection*{7. Weighted and disconnected graphs}
+
+\textbf{Question:} which graph classes should the first version support?
+
+\textbf{Recommendation:} support weighted and unweighted connected graphs from
+the beginning; reject disconnected graphs initially, mirroring the current LGKK
+behavior.
+
+\textbf{Reason:} weighted support is already present in the current helper stack,
+while disconnected-graph semantics would require extra policy decisions about
+infinite distances and component placement.
+
+\subsection*{8. Standalone tool versus multiscale integration}
+
+\textbf{Question:} should full GKK be a standalone scorer/optimizer first, or a
+new multiscale refinement stage inside \texttt{grip.layout.globalrep()}?
+
+\textbf{Recommendation:} standalone first.
+
+\textbf{Reason:} the user need is comparison with KK and LGKK, not immediate
+integration into the production GRIP layout pipeline. A standalone tool is much
+easier to validate and benchmark.
+
+\subsection*{9. Comparison target for ``pure KK''}
+
+\textbf{Question:} what exactly is the KK baseline?
+
+\textbf{Recommendation:} decide this explicitly before benchmarking. Either
+implement a matching full classical KK reference in \texttt{grip} or use one
+external reference implementation with controlled initialization.
+
+\textbf{Reason:} the current package core is centered on GRIP-style local and
+multiscale routines rather than a textbook all-pairs KK solver, so the baseline
+must be pinned down carefully to make the GKK comparison meaningful.
+
+\section{Testing Plan}
+
+The first test file should mirror the structure of the current LGKK tests.
+Recommended tests are:
+\begin{enumerate}[leftmargin=1.5em]
+\item \textbf{Exact weighted path realization.} A path graph embedded with edge
+lengths proportional to the graph weights should give zero or near-zero GKK
+energy after scale fitting.
+
+\item \textbf{Deterministic preparation.} Repeated calls to
+\texttt{grip.prepare.geodesic.kk()} on the same graph should return identical
+pair matrices, distances, and chosen paths.
+
+\item \textbf{Scoring detects perturbation.} A canonical geometric graph such as
+a grid or Sierpinski-carpet graph should score better than a noisy perturbation
+under GKK.
+
+\item \textbf{Optimizer decreases objective.} The optimizer should reduce GKK
+energy and relative path error from a perturbed start.
+
+\item \textbf{R and C++ agreement.} The compiled backend should match the R
+reference to tight numeric tolerance on both energy and gradient-derived updates.
+
+\item \textbf{Weighted graph support.} Weighted graphs should be covered in both
+preparation and optimization tests.
+
+\item \textbf{Guardrail behavior.} Oversized graphs should emit the documented
+warning or error rather than failing later in the loop.
+\end{enumerate}
+
+\section{Benchmark Plan}
+
+To evaluate the advantage of GKK over classical KK and the approximation quality
+of LGKK, benchmark at least the following graph families:
+\begin{itemize}[leftmargin=1.5em]
+\item paths and ladders,
+\item rectangular grids,
+\item trees with long diameters,
+\item Sierpinski-carpet or other fractal-like grids,
+\item weighted road-like or corridor-like graphs,
+\item cycles with shortcuts or chord edges.
+\end{itemize}
+
+For each method, record:
+\begin{itemize}[leftmargin=1.5em]
+\item runtime,
+\item iteration count,
+\item final classical KK energy if available,
+\item final GKK energy,
+\item geodesic weighted RMSE and relative RMSE,
+\item sampled stress or another chord-based distortion metric,
+\item visual examples for a small representative subset.
+\end{itemize}
+
+This benchmark matrix is important because GKK is not expected to dominate KK on
+every metric. The hypothesis is narrower: GKK should better preserve graph
+geodesic structure, especially on graphs where a straight chord is a poor proxy
+for travel along the graph.
+
+\section{Recommended Order of Work}
+
+\begin{enumerate}[leftmargin=1.5em]
+\item Build the R reference implementation by reusing the current LGKK prepared
+schema and genericizing the scorer/gradient helpers.
+
+\item Add tests until the R version is trustworthy on exact, weighted, and
+perturbed examples.
+
+\item Add benchmark scripts and obtain first comparison results on small graphs.
+
+\item Implement the compiled scorer and optimizer over a flattened prepared cache.
+
+\item Compare R and C++ numerically, then rerun the benchmarks.
+
+\item Only after that, decide whether GKK should be integrated into the main
+global-rep layout pipeline or kept as a standalone comparison and polishing
+tool.
+\end{enumerate}
+
+\section{Conclusion}
+
+The full geodesic Kamada--Kawai method is a natural next step for
+\texttt{grip}. The package already contains almost everything needed:
+deterministic shortest-path preparation, path-based energy evaluation, analytic
+scale fitting, and a working geodesic optimizer. The missing part is mainly the
+all-pairs preparation layer and a small refactor that turns the existing LGKK
+machinery into a shared geodesic KK core.
+
+The most important practical message is this: GKK should be implemented first as
+a standalone all-pairs scorer and optimizer, not as an immediate extension of
+the multiscale engine. That route gives the cleanest comparison against KK and
+LGKK, keeps the code understandable, and lets us decide later whether the extra
+cost of full GKK is justified by measurable gains in geodesic preservation.
+
+\end{document}

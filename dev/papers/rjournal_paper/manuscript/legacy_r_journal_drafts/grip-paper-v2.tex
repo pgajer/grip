@@ -1,0 +1,786 @@
+% !TeX root = RJwrapper.tex
+\title{grip: Multiscale Graph Drawing and Layout Evaluation in R}
+
+
+\author{by Pawel Gajer and Jacques Ravel}
+
+\maketitle
+
+\abstract{%
+The \textbf{grip} package provides a comprehensive environment for
+multiscale graph drawing in R, supporting scalable 2D and 3D layouts for
+graphs ranging from tens to tens of thousands of vertices. The package
+has evolved from an R implementation of the classical GRIP algorithm into
+a family of multiscale layout engines spanning two distinct regimes:
+combinatorial GRIP for unweighted graph structure and weighted GRIP for
+graphs whose edge lengths encode geometry. The package offers a
+consistent R API backed by a C++ core via Rcpp, validated parameter
+presets for common graph families, a principled layout quality scoring
+framework, reproducible comparison workflows, per-level trace
+diagnostics, and a library of synthetic graph family generators covering
+grids, manifolds, fractal structures, trees, and porous 3D bodies. This
+article describes the package architecture, the user-facing APIs, the
+diagnostic and benchmarking infrastructure, and demonstrates
+representative workflows on synthetic and real-data examples.
+}
+
+\section{Introduction}\label{sec:introduction}
+
+Visualizing graphs (networks) is a fundamental task in data analysis
+across disciplines---from social network analysis to systems biology to
+knowledge graph exploration. Force-directed layout algorithms, which
+model vertices as charged particles and edges as springs, are the most
+widely used family of methods for producing readable graph drawings.
+Classical algorithms such as Fruchterman--Reingold
+\citep{fruchterman1991} and Kamada--Kawai \citep{kamada1989} produce good
+layouts for small graphs but scale poorly: their $O(n^2)$ or $O(n^3)$
+per-iteration cost becomes prohibitive beyond a few hundred vertices.
+
+For the large graphs routinely encountered in biological networks, social
+media analysis, and knowledge graph construction, multiscale methods are
+needed. The GRIP algorithm \citep{gajer2002, gajer2004} addresses this by
+building a hierarchy of progressively coarser vertex subsets using
+maximal independent set (MIS) filtrations, placing vertices
+coarse-to-fine, and refining with local force-directed iterations at each
+level. This yields near-linear time complexity in practice and produces
+high-quality layouts even for graphs with thousands of vertices.
+
+The R ecosystem offers several tools for graph layout. The \textbf{igraph}
+package \citep{csardi2006} provides Fruchterman--Reingold, Kamada--Kawai,
+and DrL implementations. The \textbf{ggraph} package \citep{pedersen2024}
+adds a grammar-of-graphics layer but delegates layout computation to
+igraph. The \textbf{graphlayouts} package \citep{schoch2024} implements
+stress-based layouts with pivot MDS initialization. However, a gap
+remains between layout \emph{generation} and layout \emph{assessment}: no
+existing R package combines scalable multiscale layout computation with a
+principled framework for quality evaluation, reproducible comparison
+workflows, and diagnostic tracing.
+
+The \textbf{grip} package addresses this gap. It began as an R
+implementation of classical GRIP and has evolved into a broader
+graph-drawing platform supporting:
+%
+\begin{itemize}
+\item a family of multiscale layout engines for both unweighted
+  (combinatorial) and weighted (geometry-aware) graphs,
+\item validated parameter presets for common graph families,
+\item a quality scoring framework that can evaluate layouts from any source,
+\item trace and diagnostic tooling for understanding multiscale behavior,
+\item a library of synthetic graph family generators for benchmarking, and
+\item 2D and 3D layout support with interactive and static visualization.
+\end{itemize}
+
+The author of this package (P.\ Gajer) is one of the original developers
+of the GRIP algorithm. This R implementation was motivated by the need
+for a well-tested, accessible version of GRIP within the R ecosystem,
+with the workflow tooling for quality assessment and reproducible layout
+selection that was not part of the original publications.
+
+The remainder of this article is organized as follows.
+Section~\ref{sec:evolution} traces the evolution of the package from
+a single-algorithm wrapper to a family of layout engines.
+Section~\ref{sec:architecture} describes the package architecture.
+Section~\ref{sec:apis} presents the user-facing layout APIs.
+Section~\ref{sec:families} covers the graph family generators and
+benchmark utilities. Section~\ref{sec:diagnostics} describes the
+layout diagnostics and comparison framework.
+Section~\ref{sec:examples} provides worked examples on synthetic and
+real data. Section~\ref{sec:comparison} compares \textbf{grip} with
+related R tools. Section~\ref{sec:discussion} discusses when to use
+each layout variant, and Section~\ref{sec:conclusion} concludes.
+
+
+\section{Evolution of the package}\label{sec:evolution}
+
+The \textbf{grip} package has passed through three distinct stages of
+development, each extending the scope of the layout engine while
+maintaining backward compatibility with earlier APIs.
+
+\paragraph{Stage 1: Classical GRIP.}
+The initial release implemented the GRIP algorithm as described in
+\citet{gajer2002} and \citet{gajer2004}: a maximal independent set (MIS)
+filtration hierarchy, coarse-to-fine vertex placement, and local
+force-directed refinement at each level. This engine is preserved as
+\texttt{grip.layout.legacy()} for backward compatibility.
+
+\paragraph{Stage 2: Quality-first GRIP with global repulsion.}
+The current default engine, accessible as \texttt{grip.layout()} (and
+its alias \texttt{grip.layout.globalrep()}), extends classical GRIP with
+several improvements aimed at layout quality:
+%
+\begin{itemize}
+\item coarse active-set global repulsion that reduces multiscale
+  foldovers on structured graph families,
+\item improved insertion-anchor strategies for vertex placement at each
+  level, including distance-band and spread-based selection,
+\item alternative final-stage refinement modes (Fruchterman--Reingold
+  or KK-with-repulsion),
+\item improved level-0 placement via optional local KK micro-polish, and
+\item optional post-layout and in-core landmark geodesic KK (LGKK)
+  refinement hooks.
+\end{itemize}
+
+\paragraph{Stage 3: Weighted geometry-aware GRIP.}
+The most recent addition is a weighted sister family of GRIP methods
+accessible through \texttt{grip.layout.weighted()} and its trace
+counterpart \texttt{grip.layout.trace.weighted()}. Weighted GRIP
+addresses a fundamental limitation of classical GRIP: because the
+original algorithm constructs its MIS hierarchy using combinatorial
+graph distance (hop count), it cannot preserve nontrivial edge-length
+geometry. The weighted variants replace combinatorial operations with
+geodesic-distance equivalents throughout the pipeline:
+%
+\begin{itemize}
+\item weighted MIS filtration via \texttt{grip.build.misf.weighted()},
+\item weighted neighborhood caches based on Dijkstra distances,
+\item weighted insertion anchors using geodesic least-squares fitting, and
+\item weighted local refinement forces proportional to edge-length targets.
+\end{itemize}
+
+The weighted API preserves the same parameter structure as the
+unweighted API and adds its own family of validated presets (mesh,
+cylinder, torus, sphere, irregular manifolds, tree, carpet). This
+sister-API design ensures that the combinatorial engine remains
+unchanged for users who do not need weighted layouts, while providing a
+parallel path for geometry-aware graph drawing.
+
+The package now supports two conceptually different multiscale layout
+regimes: combinatorial GRIP for unweighted graph structure, and weighted
+GRIP for graphs whose edge lengths encode geometry. This distinction is
+central to the package design and is reflected in the API, the presets,
+and the diagnostic tools.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/misf-hierarchy}
+\caption{MIS filtration hierarchy on a $6 \times 6$ mesh. Left: all 36
+  vertices at the finest level. Center: an intermediate filtration level
+  retaining a subset of vertices. Right: the coarsest level with only
+  the initial seed vertices. Active vertices are shown as solid dots;
+  inactive vertices as faint dots.}
+\label{fig:misf}
+\end{figure}
+
+
+\section{Package architecture}\label{sec:architecture}
+
+The \textbf{grip} package is organized in three layers: an R front-end
+providing the public API, a C++ back-end implementing the
+performance-critical multiscale engines, and a workflow layer providing
+scoring, comparison, and diagnostic tools.
+
+\subsection{R front-end}
+
+The R layer provides idiomatic entry points to the layout engines,
+parameter validation, preset resolution, disconnected-component
+handling, and result packaging. All layout functions accept graphs in
+either edge-list format (a two-column integer matrix) or adjacency-list
+format (a list of integer neighbor vectors), with optional parallel
+weight lists for weighted variants. The \texttt{seed} argument ensures
+full reproducibility of layouts.
+
+\subsection{C++ back-end}
+
+The computational core is implemented in C++ and accessed via Rcpp
+\citep{eddelbuettel2011}. This includes the MIS filtration construction,
+the coarse-to-fine placement loop, the local force-directed refinement
+iterations with adaptive temperature control, the coarse-level global
+repulsion computation, and the weighted variants of all these operations.
+The C++ layer also implements shortest-path computation (BFS for
+unweighted, Dijkstra for weighted) and the optional LGKK refinement
+engine.
+
+\subsection{Workflow layer}
+
+Beyond layout computation, the package provides a workflow layer for
+systematic layout evaluation:
+%
+\begin{itemize}
+\item \texttt{grip.score.layout()} computes quality metrics for
+  individual layouts,
+\item \texttt{grip.compare.layouts()} runs candidates across multiple
+  seeds and aggregates scores,
+\item \texttt{grip.layout.trace()} and \texttt{grip.layout.trace.weighted()}
+  capture per-level snapshots with optional diagnostics, and
+\item the graph family generators provide standardized test inputs for
+  benchmarking.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\linewidth]{../figures/architecture}
+\caption{Three-layer architecture of the \textbf{grip} package: R
+  front-end (public API, presets, result packaging), C++ back-end
+  (MIS filtration, force-directed engines, shortest paths), and
+  workflow layer (scoring, comparison, diagnostics, graph generators).
+  The workflow layer can score layouts from any source.}
+\label{fig:architecture}
+\end{figure}
+
+
+\section{User-facing layout APIs}\label{sec:apis}
+
+Table~\ref{tab:api-summary} summarizes the public layout functions
+organized by task. All functions return an $n \times d$ numeric matrix
+of vertex coordinates, where $d \in \{2, 3\}$.
+
+\begin{table}[ht]
+\centering
+\caption{Public layout functions in the \textbf{grip} package.}
+\label{tab:api-summary}
+\begin{tabular}{lllc}
+\toprule
+Function & Engine & Graph type & Trace \\
+\midrule
+\texttt{grip.layout()} & Current quality-first & Unweighted & No \\
+\texttt{grip.layout.trace()} & Current quality-first & Unweighted & Yes \\
+\texttt{grip.layout.weighted()} & Weighted geometry-aware & Weighted & No \\
+\texttt{grip.layout.trace.weighted()} & Weighted geometry-aware & Weighted & Yes \\
+\texttt{grip.layout.legacy()} & Classical GRIP & Unweighted & No \\
+\texttt{grip.layout.trace.legacy()} & Classical GRIP & Unweighted & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Core layout interface}
+
+The primary function \texttt{grip.layout()} accepts either an edge-list
+matrix or an adjacency list:
+
+\begin{verbatim}
+library(grip)
+
+# Edge-list input: 8x8 mesh in 2D
+edges <- edges.mesh(8, 8)
+coords <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+
+# Adjacency-list input with weights
+adj <- list(c(2L), c(1L, 3L), c(2L, 4L), c(3L))
+wts <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+coords <- grip.layout.weighted(adj_list = adj, weight_list = wts,
+                                n = 4, dim = 2, seed = 12)
+\end{verbatim}
+
+Key parameters shared across all engines include \texttt{dim} (layout
+dimension, 2 or 3), \texttt{placement} (initial arrangement:
+\texttt{"barycenter"} or \texttt{"circle"}), \texttt{rounds} and
+\texttt{final\_rounds} (refinement iteration counts), \texttt{num\_init}
+(vertices at the coarsest level), \texttt{num\_nbrs} (local
+neighborhood size), \texttt{r} and \texttt{s} (temperature adaptation
+parameters), \texttt{repulsion\_factor} (finest-level repulsion
+strength), and \texttt{seed} (for reproducibility).
+
+Disconnected graphs are handled automatically by default
+(\texttt{disconnected = "components"}): each connected component is laid
+out independently and the results are packed into a single coordinate
+matrix.
+
+\subsection{Parameter presets}
+
+Presets are validated parameter bundles for common graph families. Each
+preset sets sensible defaults; any argument supplied explicitly by the
+user overrides the corresponding preset value. The combinatorial engine
+ships four presets (mesh, carpet, tree, torus), while the weighted engine
+adds three more (cylinder, sphere, irregular manifolds). Table~\ref{tab:presets}
+lists the available presets.
+
+\begin{table}[ht]
+\centering
+\caption{Available parameter presets by engine.}
+\label{tab:presets}
+\begin{tabular}{llll}
+\toprule
+Preset & Engine & Target family & Tuned on \\
+\midrule
+\texttt{"mesh"} & Both & Rectangular grid & $8 \times 8$ to $12 \times 12$ \\
+\texttt{"carpet"} & Both & Sierpinski carpet & Level 3--4 \\
+\texttt{"tree"} & Both & Tree-like graphs & Binary trees, depth 5--6 \\
+\texttt{"torus"} & Both & 3D torus/cylinder & $8 \times 8$ to $20 \times 20$ \\
+\texttt{"cylinder"} & Weighted & Cylinder meshes & Various sizes \\
+\texttt{"sphere"} & Weighted & Sphere meshes & Triangulated spheres \\
+\texttt{"irregular"} & Weighted & Irregular manifolds & Irregular surfaces \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Multiscale trace}
+
+The trace functions capture snapshots of the layout at intermediate
+stages of the multiscale process, supporting animated visualizations
+and diagnostic inspection. The \texttt{trace} parameter controls
+granularity (\texttt{"level"} for coarser or \texttt{"round"} for
+finest snapshots), and optional per-frame diagnostics include
+edge-length CV, non-edge separation, stress, and Procrustes RMSE
+against a target layout.
+
+\begin{verbatim}
+edges <- edges.mesh(6, 6)
+tr <- grip.layout.trace(edges, n = 36, dim = 2,
+                         preset = "mesh", seed = 31,
+                         trace = "level")
+\end{verbatim}
+
+Each frame in \texttt{tr\$frames} contains coordinates for all
+vertices, with \texttt{NA} entries for vertices not yet introduced at
+that level. Figure~\ref{fig:trace} shows four stages of a mesh layout,
+from the initial coarse placement through progressive refinement.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/trace-mesh-6x6}
+\caption{Multiscale trace of a $6 \times 6$ mesh layout. From left to
+  right: coarsest initialization, early refinement, late refinement,
+  and final layout. Vertices not yet introduced appear as faint dots.}
+\label{fig:trace}
+\end{figure}
+
+\subsection{LGKK refinement hooks}
+
+Both the combinatorial and weighted engines support optional
+landmark geodesic KK (LGKK) refinement. LGKK uses a sparse set of
+farthest-point landmarks per vertex to compute approximate geodesic
+distances, then applies Kamada--Kawai-style gradient steps to improve
+geodesic fidelity. The integration is available as:
+%
+\begin{itemize}
+\item \texttt{lgkk\_polish\_rounds}: post-layout polish after the
+  multiscale solve completes,
+\item \texttt{lgkk\_rounds\_coarse}, \texttt{lgkk\_rounds\_pre\_final},
+  \texttt{lgkk\_rounds\_final}: in-core LGKK refinement at different
+  stages of the multiscale hierarchy.
+\end{itemize}
+
+The LGKK subsystem is also available as standalone functions
+(\texttt{grip.prepare.landmark.geodesic.kk()},
+\texttt{grip.score.landmark.geodesic.kk()},
+\texttt{grip.optimize.landmark.geodesic.kk()}) for users who wish to
+apply geodesic refinement to layouts from any source.
+
+\subsection{Plotting}
+
+The \texttt{grip.plot()} function provides a lightweight plotting helper.
+For 2D layouts, it draws vertices and edges using base graphics. For 3D
+layouts, it supports interactive viewing via the optional \textbf{rgl}
+package (\texttt{projection = "rgl"}) and static orthographic projection
+(\texttt{projection = "ortho"}) suitable for publications. The
+\texttt{grip.project.3d()} function applies an orthographic rotation
+defined by azimuth and elevation angles, returning a 2D projection
+matrix.
+
+
+\section{Graph families, geometry, and benchmark utilities}\label{sec:families}
+
+A distinctive feature of \textbf{grip} is its library of synthetic graph
+family generators, which serves both as a testing substrate and as a
+benchmarking resource. The package provides 29 edge-generator functions
+organized into several categories (Table~\ref{tab:families}).
+
+\begin{table}[ht]
+\centering
+\caption{Graph family generators in the \textbf{grip} package. Each
+function returns a two-column integer edge matrix. Families marked
+with~$\dagger$ also provide companion \texttt{.surface.embedding()}
+functions returning vertex coordinates.}
+\label{tab:families}
+\begin{tabular}{ll}
+\toprule
+Category & Generators \\
+\midrule
+Basic & \texttt{edges.path()}, \texttt{edges.cycle()} \\
+Regular grids & \texttt{edges.mesh()}, \texttt{edges.cylinder()}, \\
+              & \texttt{edges.torus()}, \texttt{edges.sphere()} \\
+Trees & \texttt{edges.kary.tree()} \\
+Irregular manifolds$^\dagger$ & \texttt{edges.irregular.ball()}, \texttt{edges.irregular.torus()}, \\
+                               & \texttt{edges.irregular.sphere()}, \texttt{edges.irregular.annulus()}, \\
+                               & \texttt{edges.irregular.pair.of.pants()}, \\
+                               & \texttt{edges.irregular.double.torus()}, \\
+                               & \texttt{edges.irregular.shell()} \\
+Fractal/recursive & \texttt{edges.sierpinski.triangle()}, \\
+                  & \texttt{edges.sierpinski.tetrahedron()}, \\
+                  & \texttt{edges.sierpinski.carpet()}, \\
+                  & \texttt{edges.vicsek()}, \texttt{edges.menger.sponge()} \\
+Porous 3D bodies$^\dagger$ & \texttt{edges.cube.periodic.tunnels()}, \\
+                            & \texttt{edges.cube.asymmetric.cavities()}, \\
+                            & \texttt{edges.cube.channel.network()} \\
+Polyhedra & \texttt{edges.cube()}, \texttt{edges.triangulated.polyhedron()}, \\
+          & \texttt{edges.triangulated.annulus()}, \\
+          & \texttt{edges.triangulated.pair.of.pants()} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The irregular manifold and porous 3D body families are particularly
+important for benchmarking weighted GRIP, because they provide graphs
+with nontrivial edge-length geometry and known ground-truth embeddings
+(via the companion \texttt{.surface.embedding()} functions). This
+enables quantitative evaluation of how well a layout algorithm preserves
+the intrinsic geometry of the underlying surface.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/preset-comparison}
+\caption{Effect of validated parameter presets on a level-3 Sierpinski
+  carpet. Left: default parameters. Right: the \texttt{"carpet"} preset,
+  which produces substantially lower stress and more uniform edge lengths.}
+\label{fig:preset}
+\end{figure}
+
+The fractal families (Sierpinski triangle, carpet, tetrahedron; Vicsek;
+Menger sponge) and the recursive mask generators
+(\texttt{edges.recursive.mask.grid()},
+\texttt{edges.recursive.triangle.mask()},
+\texttt{edges.recursive.cube.mask()}) provide graphs with challenging
+self-similar structure at controlled scales, useful for stress-testing
+multiscale algorithms.
+
+
+\section{Layout diagnostics and comparison}\label{sec:diagnostics}
+
+For real-world graphs---social networks, biological networks, knowledge
+graphs---there is typically no ground-truth embedding. Layout quality
+must be assessed through proxy metrics. The \textbf{grip} package
+provides a systematic workflow for this task.
+
+\subsection{Quality metrics}
+
+The \texttt{grip.score.layout()} function computes six metrics for any
+layout, regardless of how it was produced:
+
+\begin{table}[ht]
+\centering
+\caption{Layout quality metrics available in \texttt{grip.score.layout()}.}
+\label{tab:metrics}
+\begin{tabular}{lll}
+\toprule
+Metric & Measures & Better \\
+\midrule
+Sampled stress & Fidelity to graph distances & Lower \\
+Edge-length CV & Uniformity of edge lengths & Lower \\
+Non-edge separation & Spacing of non-neighbors & Higher \\
+Edge crossings & Readability (2D only) & Lower \\
+Cluster separation & Group visual separation & Higher \\
+Procrustes stability & Seed-to-seed reproducibility & Lower \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sampled stress measures the normalized RMSE between optimally scaled
+Euclidean distances and graph-theoretic distances for a random sample of
+vertex pairs (BFS for unweighted, Dijkstra for weighted). Edge-length
+CV reports the coefficient of variation of all edge lengths. Non-edge
+separation computes the ratio of the minimum sampled non-edge distance
+to the median edge length. Cluster separation (optional, requires
+external labels) reports the ratio of mean inter-cluster to mean
+intra-cluster distances. Procrustes stability aligns layouts from
+different seeds via Procrustes analysis and reports mean RMSE.
+
+\subsection{Comparison workflow}
+
+The \texttt{grip.compare.layouts()} function provides a systematic
+comparison pipeline:
+
+\begin{verbatim}
+edges <- edges.mesh(6, 6)
+cmp <- grip.compare.layouts(
+  edges = edges, n = 36, dim = 2,
+  candidates = c("default", "mesh"),
+  seeds = 1:3
+)
+\end{verbatim}
+
+This runs each candidate configuration across multiple seeds, computes
+per-run scores, and aggregates them into a summary table with
+rank-based composite scores. The function also supports a
+\texttt{search} interface for local parameter grid searches around a
+baseline configuration, enabling systematic exploration of the
+parameter space.
+
+The composite score uses configurable weights (default: stress 0.35,
+edge-length CV 0.20, non-edge separation 0.20, Procrustes stability
+0.15, edge crossings 0.05, cluster separation 0.05). It is useful as a
+screening tool for shortlisting candidates but should not be treated as
+the sole basis for layout selection.
+
+\subsection{Reproducibility}
+
+The \texttt{seed} parameter in all layout functions ensures that
+layouts are fully reproducible. The comparison workflow records seeds,
+parameter settings, and all metric values, enabling scripted pipelines
+that produce identical results across runs. The trace functions
+additionally record intermediate states, supporting detailed
+post-mortem analysis of the multiscale process.
+
+
+\section{Worked examples}\label{sec:examples}
+
+\subsection{Synthetic example: combinatorial versus weighted GRIP on a
+torus}\label{sec:ex-torus}
+
+The torus is a natural test case for weighted GRIP, because its
+intrinsic geometry assigns meaningful lengths to edges that the
+combinatorial engine ignores. We compare the two engines on a weighted
+$12 \times 12$ torus in 3D:
+
+\begin{verbatim}
+edges <- edges.torus(12, 12)
+n <- max(edges)
+
+# Combinatorial GRIP
+coords.comb <- grip.layout(edges, n = n, dim = 3,
+                            preset = "torus", seed = 1)
+
+# Weighted GRIP (using unit edge weights for comparison)
+edge_weights <- rep(1.0, nrow(edges))
+coords.wt <- grip.layout.weighted(edges, n = n, dim = 3,
+                                   edge_weights = edge_weights,
+                                   preset = "torus", seed = 1)
+\end{verbatim}
+
+For graphs with nontrivial edge-length geometry (e.g., meshes on curved
+surfaces), the weighted engine preserves geodesic distances that the
+combinatorial engine cannot represent. This distinction becomes
+significant for irregular manifolds and porous 3D bodies where
+edge lengths vary substantially.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/triptych-saddle}
+\caption{Combinatorial versus weighted GRIP on a $5 \times 5$ saddle
+  mesh in 3D. Left: the target surface geometry. Center: combinatorial
+  GRIP, which ignores edge-length information. Right: weighted GRIP,
+  which preserves the intrinsic geodesic distances.}
+\label{fig:triptych}
+\end{figure}
+
+\subsection{Real-data example: HMP microbial network}\label{sec:ex-hmp}
+
+The package bundles a coarsened real-world graph derived from the Human
+Microbiome Project (HMP) 16S amplicon analysis \citep{hmp2012}. The
+original giant connected component contained 6,474 vertices from an
+iterative $k$-nearest-neighbor graph with $k=3$ built on a $\geq 1\%$
+relative-abundance OTU table. Greedy graph coarsening in two rounds
+reduced this to 1,828 supernodes, preserving the large-scale topology
+including arm-like extensions corresponding to distinct community state
+types (CSTs).
+
+This dataset is large enough that interactive manual layout selection is
+impractical, making the systematic comparison workflow especially
+valuable. The full pipeline is documented in the package's HMP vignette.
+
+\begin{verbatim}
+data(hmp.u01.gc.coarse)
+cat("Vertices:", length(hmp.u01.gc.coarse$adj_list), "\n")
+#> Vertices: 1828
+cat("CST levels:", paste(sort(unique(
+  hmp.u01.gc.coarse$vertex_data$cst)), collapse = ", "), "\n")
+#> CST levels: I, II, III, IV-A, IV-B, IV-C, V
+\end{verbatim}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/hmp-layouts}
+\caption{Coarsened HMP microbial network (1,828 vertices) in 3D,
+  colored by community state type (CST). Three preset candidates are
+  compared: default, tree, and a local-search candidate. The tree and
+  local-search layouts show clearer CST separation in the arm-like
+  extensions of the graph.}
+\label{fig:hmp}
+\end{figure}
+
+\subsection{3D versus 2D: when the extra dimension matters}\label{sec:ex-3d}
+
+For graphs with inherently three-dimensional structure---tori, spheres,
+porous 3D bodies---forcing the layout into 2D necessarily introduces
+distortion. The \textbf{grip} package supports 3D layout natively, and
+the trace diagnostics can quantify the quality loss from dimensional
+reduction.
+
+\begin{verbatim}
+edges <- edges.torus(8, 8)
+n <- max(edges)
+
+coords.2d <- grip.layout(edges, n = n, dim = 2,
+                          preset = "torus", seed = 1)
+coords.3d <- grip.layout(edges, n = n, dim = 3,
+                          preset = "torus", seed = 1)
+
+score.2d <- grip.score.layout(coords.2d, edges = edges, n = n)
+score.3d <- grip.score.layout(coords.3d, edges = edges, n = n)
+\end{verbatim}
+
+In typical results, the 3D layout achieves substantially lower stress
+and higher non-edge separation than the 2D layout on graphs with 3D
+intrinsic structure, confirming that the extra dimension is not merely
+cosmetic.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/2d-vs-3d}
+\caption{Weighted GRIP on a $5 \times 5$ saddle mesh in 2D (left) and
+  3D (right). The 3D layout captures the intrinsic curvature of the
+  surface, while the 2D layout necessarily introduces distortion.}
+\label{fig:2d3d}
+\end{figure}
+
+
+\section{Comparison with related R tools}\label{sec:comparison}
+
+Table~\ref{tab:pkg-comparison} provides a practical comparison of
+\textbf{grip} with the three most relevant R packages for graph layout.
+
+\begin{table}[ht]
+\centering
+\caption{Feature comparison of R packages for graph layout.}
+\label{tab:pkg-comparison}
+\begin{tabular}{lcccc}
+\toprule
+Feature & \textbf{grip} & \textbf{igraph} & \textbf{ggraph} & \textbf{graphlayouts} \\
+\midrule
+Multiscale layout & Yes & DrL only & No & No \\
+3D layout & Yes & Limited & No & No \\
+Weighted geometry-aware & Yes & No & No & No \\
+Quality scoring & Yes & No & No & No \\
+Comparison workflow & Yes & No & No & No \\
+Trace diagnostics & Yes & No & No & No \\
+Graph family generators & Yes & Some & No & No \\
+Parameter presets & Yes & No & No & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The comparison should be understood as complementary rather than
+competitive. The \textbf{igraph} package provides a broader range of
+graph algorithms and analysis tools. The \textbf{ggraph} package excels
+at publication-quality static visualization using the grammar of
+graphics. The \textbf{graphlayouts} package provides fast stress-based
+layouts. The \textbf{grip} package focuses specifically on the layout
+computation and quality assessment problem, and its scoring functions
+can evaluate layouts computed by any package.
+
+To illustrate this complementarity, the quality metrics from
+\texttt{grip.score.layout()} can assess layouts produced by
+\textbf{igraph}'s algorithms:
+
+\begin{verbatim}
+# Score an igraph layout using grip metrics
+edges <- edges.mesh(8, 8)
+ig <- igraph::graph_from_edgelist(edges, directed = FALSE)
+coords.kk <- igraph::layout_with_kk(ig)
+score.kk <- grip.score.layout(coords.kk, edges = edges, n = 64)
+\end{verbatim}
+
+On small 2D social networks, classical igraph layouts (FR, KK) are
+typically stronger on stress and edge crossings, consistent with their
+design goals. The \textbf{grip} package's strengths emerge on larger
+graphs, structured graph families, 3D layouts, and in workflows
+requiring systematic parameter selection and quality assessment.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/comparison-panel-mesh}
+\caption{Layout comparison on a $12 \times 12$ mesh. Top row: FR, KK,
+  and DrL from \textbf{igraph}. Bottom row: stress minimization from
+  \textbf{graphlayouts}, and \textbf{grip} with default and mesh-preset
+  parameters. The mesh preset produces near-perfect grid recovery with
+  uniform edge lengths.}
+\label{fig:comparison-mesh}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{../figures/comparison-panel-carpet}
+\caption{Layout comparison on a level-4 Sierpinski carpet. Same method
+  arrangement as Figure~\ref{fig:comparison-mesh}. The carpet preset
+  preserves the recursive hole structure more faithfully than
+  general-purpose methods.}
+\label{fig:comparison-carpet}
+\end{figure}
+
+
+\section{Discussion}\label{sec:discussion}
+
+The \textbf{grip} package now supports two distinct multiscale layout
+regimes, and users should choose between them based on their data:
+
+\paragraph{When to use combinatorial GRIP.}
+The default \texttt{grip.layout()} is appropriate for unweighted graphs
+or graphs where edge weights do not represent meaningful geometric
+distances. This includes social networks, citation networks, and
+biological interaction networks where edges represent presence or
+absence of a relationship. The combinatorial engine is faster because
+it uses BFS rather than Dijkstra for distance computation.
+
+\paragraph{When to use weighted GRIP.}
+The weighted engine \texttt{grip.layout.weighted()} is appropriate when
+edge weights represent distances or similarities that should be
+preserved in the layout. This includes mesh graphs from surface
+discretizations, $k$-nearest-neighbor graphs built from distance
+matrices, and any graph where the edge lengths encode geometry.
+
+\paragraph{Sister APIs versus unified interface.}
+The package deliberately maintains separate APIs for the combinatorial
+and weighted engines rather than adding a mode switch to a single
+function. This design ensures backward compatibility, makes the
+distinction explicit in user code, and allows each engine to have its
+own validated presets and default parameters.
+
+\paragraph{Limitations.}
+The current implementation does not exploit GPU parallelism, so very
+large graphs (100,000+ vertices) may require substantial computation
+time. The edge crossing count is exact but $O(m^2)$, limiting its use
+to moderately sized graphs. The quality metrics are heuristic proxies,
+not formal optimality guarantees.
+
+\paragraph{Relation to companion papers.}
+The algorithmic novelty of the weighted GRIP variants---the weighted
+MISF construction, the geodesic refinement integration, and the
+systematic benchmark results---is the subject of a separate methods
+paper. The geodesic MDS functionality in the package
+(\texttt{grip.prepare.geodesic.mds()} and related functions) addresses
+a different use case and will be described separately.
+
+
+\section{Conclusion}\label{sec:conclusion}
+
+The \textbf{grip} package has evolved from an R implementation of the
+GRIP algorithm into a comprehensive environment for multiscale graph
+drawing. It now supports both combinatorial and geometry-aware
+multiscale layouts in 2D and 3D, provides a principled quality
+assessment framework, offers reproducible comparison workflows, and
+includes a rich library of synthetic graph families for benchmarking.
+The consistent API design, the C++ core for performance, and the
+diagnostic tooling make \textbf{grip} a practical platform for both
+applied graph visualization and graph-drawing research in R.
+
+The package source code is available at
+\url{https://github.com/pgajer/grip} and is being prepared for CRAN
+submission.
+
+\section{Acknowledgments}\label{sec:acknowledgments}
+
+The GRIP algorithm was originally developed in collaboration with
+Stephen G.\ Kobourov and Michael T.\ Goodrich. The HMP microbial
+network data were derived from publicly available Human Microbiome
+Project resources. Research reported in this publication was supported
+by grant number INV-048956 from the Gates Foundation.
+
+\bibliography{grip-paper}
+
+\address{%
+Pawel Gajer\\
+Center for Advanced Microbiome Research and Innovation (CAMRI),
+Institute for Genome Sciences, Department of Microbiology and
+Immunology, University of Maryland School of Medicine\\%
+Baltimore, Maryland, USA\\
+%
+\href{mailto:pgajer@gmail.com}{\nolinkurl{pgajer@gmail.com}}%
+}
+
+\address{%
+Jacques Ravel\\
+Center for Advanced Microbiome Research and Innovation (CAMRI),
+Institute for Genome Sciences, Department of Microbiology and
+Immunology, University of Maryland School of Medicine\\%
+Baltimore, Maryland, USA\\
+%
+}

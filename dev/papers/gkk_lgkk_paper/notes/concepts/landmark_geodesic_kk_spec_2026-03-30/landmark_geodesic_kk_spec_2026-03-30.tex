@@ -1,0 +1,511 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks = true,
+  linkcolor = blue,
+  urlcolor = blue,
+  citecolor = blue
+}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\filepath}[1]{\begingroup\urlstyle{tt}\nolinkurl{#1}\endgroup}
+\newcommand{\code}[1]{\begingroup\urlstyle{tt}\nolinkurl{#1}\endgroup}
+\newcommand{\vect}[1]{\mathbf{#1}}
+
+\title{Standalone Specification for a Landmark Geodesic Kamada--Kawai Solver\\
+\large v1 Prototype and v2 Fully Faithful Multiscale Target}
+\author{Codex design note for the \filepath{/Users/pgajer/current_projects/grip} repository}
+\date{March 30, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document turns the geodesic Kamada--Kawai idea into an implementation
+specification for the GRIP codebase. The immediate goal is a level-4 Sierpinski
+carpet prototype that is explicit enough to implement with no ambiguity. The
+longer-term goal is a fully faithful weighted multiscale variant that revisits
+GRIP's insertion and warm-start strategy so that it is consistent with a
+weighted geodesic energy. The document therefore specifies two versions:
+\code{v1}, which keeps GRIP's current MISF construction and insertion warm
+start unchanged and introduces the new landmark geodesic KK functional only in
+the level-refinement phase, and \code{v2}, which replaces the legacy
+hop-based insertion logic with a weight-aware strategy built from weighted
+shortest-path anchors, barycentric or least-squares placement, and landmark
+geodesic refinement on the active set.
+\end{abstract}
+
+\section{Purpose}
+
+The purpose of this document is to make the new algorithm explicit before
+implementation. In particular, it records:
+\begin{itemize}[leftmargin=1.4em]
+  \item the mathematical functional we want to optimize;
+  \item the exact sparse variant chosen for implementation;
+  \item the exact optimizer chosen for the first prototype;
+  \item how the solver plugs into GRIP's current multiscale pipeline;
+  \item which legacy pieces are intentionally retained in \code{v1};
+  \item which pieces are deferred to a more faithful \code{v2}.
+\end{itemize}
+
+The guiding question is:
+\begin{quote}
+Can a landmark geodesic KK refinement preserve the global symmetry and
+low-RMSE behavior we observed near the pre-final GRIP state, while improving
+local smoothness without paying the full cost of all-pairs classical KK?
+\end{quote}
+
+\section{Why This Algorithm Is Worth Testing}
+
+The current GRIP pipeline uses a multiscale MISF construction followed by
+coarse-level modified KK refinement and a finest-level endgame that currently
+uses FR by default and optionally \code{kk\_repulse}. The focused carpet
+experiments carried out earlier in this repository showed:
+\begin{itemize}[leftmargin=1.4em]
+  \item the pre-final multiscale state can be globally very good;
+  \item a tiny amount of finest-level smoothing helps;
+  \item longer final FR schedules increase smoothness but also increase
+    Procrustes RMSE on the level-4 carpet;
+  \item structural modifications of the final FR stage bend the tradeoff in the
+    right direction, but do not recover the near-KK RMSE regime.
+\end{itemize}
+
+This motivates testing a different final or level-refinement objective rather
+than continuing to search the same FR family.
+
+The proposed geodesic KK functional is attractive because it measures
+discrepancy between graph-theoretic target distances and \emph{path length in
+the embedded graph}, rather than straight-line chord length in the ambient
+space. That is especially natural for weighted graphs, where the intended graph
+metric is already encoded by edge weights.
+
+\section{Current GRIP Multiscale Behavior}
+
+The current GRIP multiscale insertion and refinement strategy matters because
+\code{v1} intentionally keeps part of it unchanged.
+
+\subsection{Current insertion and warm start}
+
+When a finer MISF level is opened, GRIP inserts newly activated vertices one at
+a time. The current implementation:
+\begin{enumerate}[leftmargin=1.8em]
+  \item performs a BFS from the new vertex over the graph;
+  \item collects the first three already-placed higher-level vertices as
+    anchors;
+  \item assigns an initial position using either barycenter placement or a
+    2D circle heuristic;
+  \item performs three tiny local KK-style refinement steps against those same
+    anchors;
+  \item after all new vertices are inserted, refines the whole active set at
+    that level.
+\end{enumerate}
+
+In the current codebase this logic lives primarily in:
+\begin{itemize}[leftmargin=1.4em]
+  \item \filepath{/Users/pgajer/current_projects/grip/src/MishSupport.cpp}
+    (\code{bfs\_me\_v4()} and \code{KK\_spring\_local()}),
+  \item \filepath{/Users/pgajer/current_projects/grip/src/DrawGraph.cpp}
+    (\code{initial\_position\_barycenter()} and
+    \code{initial\_position\_circle()}),
+  \item \filepath{/Users/pgajer/current_projects/grip/src/MishEngine.cpp}
+    (per-level opening and active-set refinement).
+\end{itemize}
+
+\subsection{Important limitation of the current warm start}
+
+The current insertion warm start is not fully consistent with the proposed
+geodesic weighted model:
+\begin{itemize}[leftmargin=1.4em]
+  \item it is built from hop-based BFS neighborhoods;
+  \item the circle placement heuristic interprets anchor distances as Euclidean
+    radii in the ambient space;
+  \item the micro-refinement is a legacy local KK step rather than a geodesic
+    energy descent.
+\end{itemize}
+
+This mismatch is acceptable for a first prototype if it is called out
+explicitly and kept outside the definition of the new functional.
+
+\section{Target Functional}
+
+\subsection{Weighted graph metric}
+
+Let $G=(V,E,w)$ be a connected weighted graph with vertex set
+$V=\{1,\dots,n\}$ and positive edge weights $w_e > 0$ for all $e \in E$.
+For vertices $i,j \in V$, let $g_{ij}$ denote the weighted shortest-path
+distance in the graph metric induced by $w$.
+
+Let $X = (\vect{x}_1,\dots,\vect{x}_n)$ with $\vect{x}_i \in \RR^d$ denote an
+drawing of the active graph.
+
+\subsection{Deterministic shortest-path choice}
+
+For every ordered source vertex $i$, \code{v1} chooses a deterministic
+shortest-path tree rooted at $i$:
+\begin{itemize}[leftmargin=1.4em]
+  \item run weighted Dijkstra from $i$;
+  \item when two predecessor choices give equal shortest-path distance, choose
+    the predecessor with the smallest vertex index;
+  \item reconstruct $\gamma_{ij}$ by following the predecessor chain from $j$
+    back to $i$.
+\end{itemize}
+
+This makes path selection explicit and reproducible. It also means the
+functional is defined with respect to fixed chosen shortest paths rather than
+the set of all possible equal-length shortest paths.
+
+\subsection{Embedded geodesic length}
+
+For an edge $e=\{u,v\}\in E$, define its embedded Euclidean length by
+\[
+|X(e)| = \norm{\vect{x}_u - \vect{x}_v}.
+\]
+
+Given the chosen graph shortest path $\gamma_{ij}$ from $i$ to $j$, define the
+embedded geodesic path length by
+\[
+h_{ij}(X) = \sum_{e \in \gamma_{ij}} |X(e)|.
+\]
+
+\subsection{Target lengths and stiffness}
+
+Let
+\[
+\ell_{ij} = L_0 g_{ij},
+\qquad
+L_0 = \frac{L}{D},
+\qquad
+k_{ij} = \frac{K}{\max(g_{ij}, \varepsilon_g)^2},
+\]
+where $D=\max_{i,j} g_{ij}$ is the weighted graph diameter on the active set,
+$L$ is a drawing scale constant, $K$ is a global stiffness constant, and
+$\varepsilon_g > 0$ is a small guard against division by zero.
+
+\subsection{Landmark-sparse geodesic energy}
+
+The all-pairs geodesic energy is conceptually clean but too expensive for the
+first implementation. We therefore define a sparse constraint set
+$\mathcal{S}_\ell$ on each active MISF level $\ell$.
+
+For every active vertex $i$, define:
+\begin{itemize}[leftmargin=1.4em]
+  \item a local set $N_q(i)$ of the $q$ nearest active vertices to $i$ in the
+    weighted graph metric;
+  \item a landmark set $L_M(i)$ of size $M$, chosen by deterministic
+    farthest-point sampling in weighted graph distance on the active set.
+\end{itemize}
+
+The v1 sparse pair set is
+\[
+\mathcal{S}_\ell
+=
+\bigl\{(i,j): i<j,\ j\in N_q(i)\cup L_M(i)
+\text{ or } i\in N_q(j)\cup L_M(j)\bigr\}.
+\]
+
+The v1 landmark geodesic KK energy on the active set is
+\[
+E_{\mathrm{LGKK}}(X)
+=
+\frac{1}{2}\sum_{(i,j)\in \mathcal{S}_\ell}
+k_{ij}\bigl(h_{ij}(X)-\ell_{ij}\bigr)^2.
+\]
+
+\section{Alternative Design Choices and Explicit v1 Choices}
+
+Several choices could have been made differently. They are recorded here so the
+implementation choice is explicit.
+
+\begin{table}[h]
+\centering
+\caption{Key design alternatives and the chosen v1 decision.}
+\label{tab:v1-choices}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}p{0.32\textwidth}>{\raggedright\arraybackslash}p{0.35\textwidth}@{}}
+\toprule
+Design axis & Alternatives considered & Chosen v1 decision \\
+\midrule
+Sparse long-range structure &
+Global landmark pool shared by all vertices; per-vertex landmark sets $L(i)$ &
+Use per-vertex landmark sets $L_M(i)$, because they are more faithful to the intended landmark-sparse functional and still manageable on the first carpet experiment. \\
+\addlinespace
+Local constraint set &
+Immediate graph neighbors only; $q$ nearest active vertices in graph metric &
+Use $q$ nearest active vertices in weighted graph distance to better match GRIP's multiscale local-neighborhood logic. \\
+\addlinespace
+Optimizer &
+Majorization; pure gradient descent; projected descent; warm-start polish on top of GRIP &
+Use warm-started gradient descent with backtracking line search, applied as the active-set level solver. \\
+\addlinespace
+Shortest-path choice &
+Arbitrary shortest path; random tie-breaking; deterministic canonical tie-breaking &
+Use deterministic canonical tie-breaking by smallest predecessor index. \\
+\addlinespace
+Integration point &
+Apply only as a final-stage polish; apply on every active MISF level &
+Apply on each active MISF level in place of the legacy level-refinement solver during the prototype experiment. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Gradient and Numerical Stabilization}
+
+Let $(i,j)\in\mathcal{S}_\ell$ and let
+\[
+E_{ij}(X)=\frac{1}{2}k_{ij}\bigl(h_{ij}(X)-\ell_{ij}\bigr)^2.
+\]
+Suppose $\gamma_{ij}$ is represented as an ordered path
+\[
+v_0=i,\ v_1,\ \dots,\ v_m=j.
+\]
+Define a stabilized edge length
+\[
+\phi_\varepsilon(\vect{a},\vect{b})
+=
+\sqrt{\norm{\vect{a}-\vect{b}}^2 + \varepsilon_x^2},
+\]
+with a small constant $\varepsilon_x > 0$.
+Then the stabilized path length is
+\[
+\tilde{h}_{ij}(X)
+=
+\sum_{t=0}^{m-1}\phi_\varepsilon(\vect{x}_{v_t},\vect{x}_{v_{t+1}}).
+\]
+
+The working implementation is allowed to optimize $\tilde{h}_{ij}$ instead of
+$h_{ij}$ directly to avoid singular derivatives when two vertices coincide.
+
+For a vertex $p$ on the path $\gamma_{ij}$, the pairwise gradient is
+\[
+\nabla_{\vect{x}_p} E_{ij}(X)
+=
+k_{ij}\bigl(\tilde{h}_{ij}(X)-\ell_{ij}\bigr)
+\sum_{e=\{u,v\}\in\gamma_{ij}:\,p\in\{u,v\}}
+\sigma_e(p)\frac{\vect{x}_u-\vect{x}_v}
+{\phi_\varepsilon(\vect{x}_u,\vect{x}_v)},
+\]
+where
+\[
+\sigma_e(p)=
+\begin{cases}
+1, & p=u,\\
+-1, & p=v.
+\end{cases}
+\]
+
+If $p$ is not on $\gamma_{ij}$, then $\nabla_{\vect{x}_p}E_{ij}(X)=0$.
+
+The full gradient is
+\[
+\nabla E_{\mathrm{LGKK}}(X)
+=
+\sum_{(i,j)\in\mathcal{S}_\ell} \nabla E_{ij}(X).
+\]
+
+\section{Optimizer}
+
+\subsection{Chosen v1 optimizer}
+
+The v1 optimizer is a warm-started deterministic gradient descent with
+backtracking line search:
+\begin{enumerate}[leftmargin=1.8em]
+  \item start from the current active-set coordinates inherited from the GRIP
+    multiscale process;
+  \item compute the full sparse gradient of $E_{\mathrm{LGKK}}$;
+  \item if the gradient norm is below tolerance, stop;
+  \item propose a step along $-\nabla E$;
+  \item use backtracking line search until the energy decreases;
+  \item accept the step, recenter the active layout to zero mean, and continue.
+\end{enumerate}
+
+The implementation will use fixed numerical defaults for:
+\begin{itemize}[leftmargin=1.4em]
+  \item maximum iterations per level;
+  \item Armijo decrease factor;
+  \item line-search shrink factor;
+  \item gradient-norm tolerance;
+  \item stabilization constants $\varepsilon_g$ and $\varepsilon_x$.
+\end{itemize}
+
+\subsection{Why this optimizer was chosen}
+
+This choice is deliberate:
+\begin{itemize}[leftmargin=1.4em]
+  \item it is straightforward to implement from the explicit gradient;
+  \item it is deterministic;
+  \item it can be warm-started from existing GRIP coordinates;
+  \item it isolates the new energy from unrelated changes in the insertion
+    logic;
+  \item it is good enough for the first level-4 carpet experiment.
+\end{itemize}
+
+Majorization or more specialized stress solvers may still be better long-term,
+but they are intentionally deferred.
+
+\section{Multiscale Integration}
+
+\subsection{v1 integration}
+
+The v1 prototype is intentionally conservative.
+
+\paragraph{Explicit v1 statement.}
+\emph{Version 1 retains GRIP's existing MISF construction and insertion warm
+start unchanged.} In particular, \code{v1} does \textbf{not} alter:
+\begin{itemize}[leftmargin=1.4em]
+  \item MISF construction;
+  \item BFS-based anchor discovery during insertion;
+  \item barycenter placement;
+  \item circle-heuristic placement;
+  \item the legacy local KK micro-polish used immediately after insertion.
+\end{itemize}
+
+In \code{v1}, the new landmark geodesic KK solver enters only as the
+\emph{active-set level-refinement step}. This choice is made to isolate the new
+functional in the first experiment.
+
+\subsection{v2 target}
+
+\paragraph{Explicit v2 statement.}
+\emph{Version 2 is intended to be a fully faithful weighted multiscale
+implementation.} It will revisit insertion and replace the legacy local KK warm
+start with a weight-aware alternative, likely built from:
+\begin{itemize}[leftmargin=1.4em]
+  \item weighted shortest-path anchors;
+  \item barycentric or least-squares anchor placement;
+  \item no circle heuristic;
+  \item landmark geodesic KK refinement on the active set.
+\end{itemize}
+
+The purpose of this v2 statement is to make it explicit that the v1 insertion
+pipeline is an engineering scaffold, not the intended final multiscale design.
+
+\paragraph{Asymmetry propagation note.}
+The level-4 carpet contact sheets generated during the current investigation
+suggest a specific failure mode worth tracking into later development: the best
+current GRIP-like layouts can retain a visibly skewed central void, whereas the
+\code{igraph::layout\_with\_kk()} reference produces a much more symmetric inner
+square. A plausible explanation is that asymmetry introduced during multiscale
+insertion propagates forward and is only partially corrected by later
+refinement. For that reason, if \code{v2} still shows central-hole skew after
+the geodesic KK solver is in place, insertion symmetry should be treated as a
+first-class debugging target rather than as a minor polishing issue.
+
+\section{Algorithm Specification}
+
+\subsection{v1 prototype algorithm}
+
+For each MISF level from coarse to fine:
+\begin{enumerate}[leftmargin=1.8em]
+  \item activate the next MISF level using the current GRIP machinery;
+  \item insert new vertices using GRIP's existing insertion routine unchanged;
+  \item form the active-set weighted graph;
+  \item compute weighted shortest-path distances on the active set;
+  \item build local sets $N_q(i)$ and landmark sets $L_M(i)$ for active
+    vertices;
+  \item assemble the sparse pair set $\mathcal{S}_\ell$ and the chosen shortest
+    paths $\gamma_{ij}$;
+  \item initialize the optimizer at the current active coordinates;
+  \item minimize $E_{\mathrm{LGKK}}$ on the active set by deterministic
+    gradient descent with backtracking;
+  \item continue to the next finer level.
+\end{enumerate}
+
+\subsection{Initial parameter defaults for the first prototype}
+
+The first prototype should expose these explicit defaults:
+\begin{itemize}[leftmargin=1.4em]
+  \item dimension: $d=2$ for the level-4 carpet experiment;
+  \item local-neighborhood size: $q = 20$;
+  \item per-vertex landmark count: $M = 8$ or $M = 16$ in the first sweep;
+  \item optimizer iterations per level: initially modest, e.g.\ 8, 16, 32;
+  \item deterministic tie-breaking everywhere.
+\end{itemize}
+
+These defaults are not claimed to be optimal. They are chosen to make the first
+experiment concrete and bounded.
+
+\section{Evaluation Protocol}
+
+Before the optimizer itself is trusted, the implementation should include an
+energy evaluator for $E_{\mathrm{LGKK}}$ and use it to score known layouts on
+the level-4 carpet:
+\begin{itemize}[leftmargin=1.4em]
+  \item canonical embedding;
+  \item true pre-final GRIP state;
+  \item one-round final FR state;
+  \item best Round-3 structural GRIP layout;
+  \item \code{igraph::layout\_with\_kk()}.
+\end{itemize}
+
+This is a ranking sanity check. If the new energy does not rank these layouts
+in a sensible way, the optimization stage should be revisited before deeper
+engineering.
+
+After the evaluator check, the first full optimization experiment should be:
+\begin{itemize}[leftmargin=1.4em]
+  \item graph family: Sierpinski carpet;
+  \item graph size: level 4;
+  \item comparison baselines: current GRIP, current best structural GRIP,
+    \code{igraph::layout\_with\_kk()};
+  \item metrics: Procrustes RMSE, edge-length CV, axis deviation, boundary
+    waviness, corridor waviness, hole-center error, runtime.
+\end{itemize}
+
+Immediately after the carpet test, at least one genuinely weighted graph test
+should be added, because the weighted-graph motivation is a central reason for
+this algorithm.
+
+\section{Success Criteria}
+
+The first prototype is successful if it satisfies all of the following:
+\begin{itemize}[leftmargin=1.4em]
+  \item the energy evaluator is deterministic and numerically stable;
+  \item the optimizer decreases $E_{\mathrm{LGKK}}$ reliably on the level-4
+    carpet;
+  \item the resulting layouts are competitive with current GRIP on the carpet;
+  \item the runtime remains far below a full all-pairs classical KK solve on
+    the same graph;
+  \item the code path is explicit enough that v2 can later replace the legacy
+    insertion logic without redesigning the energy.
+\end{itemize}
+
+\section{Open Items Explicitly Deferred}
+
+The following are intentionally out of scope for v1:
+\begin{itemize}[leftmargin=1.4em]
+  \item replacing MISF construction itself with a weight-aware filtration;
+  \item revisiting insertion anchors and removing the circle heuristic;
+  \item using majorization or second-order optimization;
+  \item averaging over multiple equal shortest paths instead of choosing one
+    deterministic path;
+  \item extending the first prototype beyond the bounded carpet-first
+    experiment.
+\end{itemize}
+
+\section{Recommendation}
+
+This document recommends the following implementation order:
+\begin{enumerate}[leftmargin=1.8em]
+  \item implement the sparse geodesic energy evaluator first;
+  \item validate its ranking behavior on the level-4 carpet;
+  \item implement the v1 level-refinement optimizer with current GRIP insertion
+    retained unchanged;
+  \item benchmark it against current GRIP and \code{igraph::layout\_with\_kk()};
+  \item only then begin the v2 work on weighted-consistent insertion.
+\end{enumerate}
+
+That order gives a clean, controlled first experiment while keeping the
+longer-term fully faithful weighted multiscale target explicit from the start.
+
+\end{document}

@@ -334,7 +334,7 @@ Add tests for:
 
 Files to extend after the family exists:
 
-- [benchmark-gmds-misf-paraboloid.R](/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-paraboloid.R)
+- [benchmark-gmds-misf-paraboloid.R](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R)
 - future MISF-GMDS reports
 
 The first benchmark use should compare:

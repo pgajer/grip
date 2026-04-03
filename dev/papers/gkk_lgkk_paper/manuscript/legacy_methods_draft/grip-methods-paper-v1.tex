@@ -1,0 +1,1352 @@
+% grip-methods-paper-v1.tex
+% Paper 2: Novel GRIP Methods Paper
+% Target venue: Journal of Graph Algorithms and Applications (JGAA)
+\documentclass[11pt,twocolumn]{article}
+
+\usepackage[margin=0.85in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\graphicspath{{../figures/}}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{dblfloatfix}  % fix figure*/table* placement in twocolumn
+% Pseudocode environment (no algorithm.sty dependency)
+\usepackage{fancyvrb}
+\newcommand{\kw}[1]{\textbf{#1}}
+\newcommand{\fn}[1]{\textsc{#1}}
+\newcommand{\cmnt}[1]{\textit{\(\triangleright\) #1}}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{natbib}
+\usepackage{url}
+
+% Aggressive float placement to keep figures near their references
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.8}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{4}
+\setcounter{totalnumber}{8}
+\setcounter{dbltopnumber}{4}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\vect}[1]{\mathbf{#1}}
+\newcommand{\grip}{\texttt{grip}}
+\newcommand{\bigO}{\mathcal{O}}
+
+\title{Geometry-Aware Multiscale Graph Drawing\\with Weighted GRIP}
+
+\author{
+  Pawel Gajer\thanks{Center for Advanced Microbiome Research and Innovation
+  (CAMRI), Institute for Genome Sciences, Department of Microbiology and
+  Immunology, University of Maryland School of Medicine, Baltimore, MD, USA.
+  \texttt{pgajer@gmail.com}}
+  \and
+  Jacques Ravel\thanks{Center for Advanced Microbiome Research and Innovation
+  (CAMRI), Institute for Genome Sciences, Department of Microbiology and
+  Immunology, University of Maryland School of Medicine, Baltimore, MD, USA.}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\begin{abstract}
+Classical GRIP is a multiscale graph drawing algorithm that builds a
+hierarchy of vertex subsets through maximal independent set (MIS)
+filtrations, places vertices coarse-to-fine, and refines with local
+force-directed iterations at each level.  Because it uses combinatorial
+graph distance (hop count) throughout its pipeline---in filtration
+construction, neighborhood caching, insertion, and refinement---it cannot
+preserve nontrivial edge-length geometry.  We present a family of
+extensions that transform GRIP from a purely combinatorial multiscale
+layout method into a geometry-aware multiscale family.  The main
+contributions are: (1)~a weighted multiscale hierarchy based on weighted
+MIS filtration construction using Dijkstra shortest-path radii;
+(2)~weighted neighborhood caches, insertion anchors, and local
+refinement forces driven by geodesic distances; (3)~coarse active-set
+global repulsion that reduces multiscale foldovers in both the
+combinatorial and weighted engines; (4)~integration of landmark geodesic
+Kamada--Kawai (LGKK) refinement both within the multiscale hierarchy
+(in-core) and as post-layout polish; and (5)~a systematic benchmark
+framework over weighted synthetic graph families with 3D as the primary
+evaluation space.  On a benchmark panel spanning meshes, tori, spheres,
+Sierpinski carpets, porous 3D bodies, and irregular manifolds, weighted
+GRIP with in-core LGKK refinement reduces mean full-geodesic-KK error by
+22\% over combinatorial GRIP in 3D, while weighted GRIP with post-layout
+LGKK polish achieves a 38\% reduction.  The KK-warm-started geodesic
+polishing family (KK$\to$LGKK) remains the accuracy ceiling, but
+weighted GRIP variants are substantially faster and require no external
+KK initialization.  All methods are implemented in the open-source R
+package \grip{} with a C++ core via Rcpp.
+\end{abstract}
+
+% ============================================================
+% 1. INTRODUCTION
+% ============================================================
+\section{Introduction}\label{sec:intro}
+
+Force-directed graph drawing is the most widely used family of methods
+for producing readable graph layouts.  Classical algorithms such as
+Fruchterman--Reingold (FR)~\citep{fruchterman1991} and
+Kamada--Kawai (KK)~\citep{kamada1989} produce high-quality layouts for
+small graphs, but their per-iteration cost of $\bigO(n^2)$ or
+$\bigO(n^3)$ becomes prohibitive beyond a few hundred vertices.
+
+Multiscale methods address this scalability barrier by constructing a
+hierarchy of progressively coarser vertex subsets, placing vertices
+coarse-to-fine, and refining with local force-directed iterations at each
+level.  The GRIP algorithm~\citep{gajer2002,gajer2004} achieves this
+through maximal independent set (MIS) filtrations, yielding near-linear
+time complexity in practice and good layouts even for graphs with
+thousands of vertices.  Related multiscale approaches include the work of
+Harel and Koren~\citep{harel2002} and the multilevel force-directed
+placement of Hu~\citep{hu2005}.
+
+However, classical GRIP is fundamentally \emph{combinatorial}.  Every
+operation in its pipeline---MIS filtration construction, neighborhood
+caching, vertex insertion, and local refinement---uses hop-count graph
+distance.  This design is natural for unweighted graphs, where the only
+meaningful distance between vertices is the number of edges on a shortest
+path.  But many graphs of practical interest carry nontrivial edge-length
+geometry: mesh discretizations of curved surfaces, $k$-nearest-neighbor
+graphs built from distance matrices, and biological networks with
+weighted similarity edges all have edge lengths that encode geometric
+information.  On such graphs, hop-count-based multiscale drawing cannot
+preserve the intrinsic metric, because the hierarchy does not see it.
+
+In this paper, we present a family of algorithmic extensions that
+transform GRIP from a purely combinatorial multiscale layout method into
+a \emph{geometry-aware multiscale family}.  The key idea is
+straightforward: replace combinatorial operations with geodesic-distance
+equivalents throughout the entire GRIP pipeline.  The resulting
+\emph{weighted GRIP} algorithm uses weighted MIS filtrations, weighted
+neighborhood caches, weighted insertion anchors, and weighted local
+refinement forces.  We further integrate landmark geodesic Kamada--Kawai
+(LGKK) refinement---a sparse geodesic stress minimizer---both within the
+multiscale hierarchy and as a post-layout polish step.
+
+We also describe improvements to the combinatorial engine that benefit
+both the unweighted and weighted variants: coarse active-set global
+repulsion to reduce multiscale foldovers, improved insertion-anchor
+strategies, and alternative final-stage refinement modes.
+
+Throughout this paper, we adopt 3D as the \emph{primary evaluation
+space}.  The weighted graph families in our benchmark panel---meshes on
+curved surfaces, tori, spheres, porous 3D bodies---are intrinsically
+geometric objects that live naturally in $\RR^3$.  Forcing their layouts
+into $\RR^2$ necessarily introduces a representation bottleneck.  We
+retain 2D as an informative \emph{limitation track} that quantifies the
+cost of dimensional reduction, but all primary conclusions are drawn from
+the 3D results.
+
+The methods described here are implemented in the open-source R package
+\grip{}~\citep{gajer2002}, with a C++ computational core accessed via
+Rcpp~\citep{eddelbuettel2011}.  A companion software
+paper~\citep{gripRpaper} describes the package architecture, user-facing
+APIs, and workflow tooling; the present paper focuses on the algorithmic
+innovations and their empirical evaluation.
+
+
+% ============================================================
+% 2. BACKGROUND
+% ============================================================
+\section{Background}\label{sec:background}
+
+\subsection{Classical GRIP}
+
+The GRIP algorithm~\citep{gajer2002,gajer2004} builds a hierarchy of
+vertex subsets through \emph{maximal independent set (MIS) filtrations}.
+Given a connected graph $G = (V, E)$ with $|V| = n$, the filtration is a
+nested sequence of vertex subsets
+\[
+  V = V_0 \supset V_1 \supset \cdots \supset V_L,
+\]
+where $V_L$ contains a small number of seed vertices and each $V_\ell$
+is a maximal independent set of $G$ restricted to the vertices that
+survived level~$\ell$.  The exclusion radius at level~$\ell$ is
+$2^{\ell-1}$ hops: no two vertices in $V_\ell$ are within that
+hop-count distance of each other.
+
+Layout proceeds coarse-to-fine.  The seed vertices $V_L$ are placed
+first (e.g., using random initialization or a small-graph layout).  At
+each subsequent level~$\ell$, the vertices in $V_{\ell} \setminus
+V_{\ell+1}$ are introduced one at a time.  Each newly introduced vertex
+is placed near its nearest already-placed neighbors (insertion anchors)
+and then refined with local Kamada--Kawai (KK) iterations that
+adjust its position relative to a cached neighborhood of nearby vertices.
+
+The neighborhood cache for each active vertex stores the $k$ nearest
+vertices (by hop count) that are already placed.  The local KK
+refinement uses these cached graph distances as target lengths, applying
+spring forces to bring the Euclidean layout distances into agreement with
+the graph-theoretic targets.
+
+At the finest level ($\ell = 0$), all vertices are active and a final
+round of refinement is applied.  In the original GRIP, this uses either
+local KK or Fruchterman--Reingold (FR) style forces.
+
+\subsection{Kamada--Kawai and Fruchterman--Reingold}
+
+The Kamada--Kawai (KK) algorithm~\citep{kamada1989} minimizes a stress
+energy that penalizes discrepancies between Euclidean layout distances
+and graph-theoretic target distances:
+\begin{equation}\label{eq:kk}
+  E_{\mathrm{KK}}(X)
+  = \frac{1}{2}\sum_{i < j}
+    k_{ij}\bigl(\norm{\vect{x}_i - \vect{x}_j} - \ell_{ij}\bigr)^2,
+\end{equation}
+where $\ell_{ij} = L_0 g_{ij}$ is the target distance (proportional to
+graph distance $g_{ij}$), $k_{ij} = K / g_{ij}^2$ is a stiffness
+weight, and $L_0 = L/D$ scales the graph diameter~$D$ to a drawing
+scale~$L$.
+
+The Fruchterman--Reingold (FR) algorithm~\citep{fruchterman1991} uses
+attractive spring forces along edges and repulsive forces between all
+vertex pairs, with a simulated annealing temperature schedule.  FR does
+not explicitly optimize a stress functional but produces layouts with
+uniform edge lengths and good vertex separation.
+
+\subsection{Geodesic distortion in weighted graphs}
+
+When a graph $G = (V, E, w)$ carries positive edge weights
+$w : E \to \RR_{> 0}$, the natural graph distance between vertices $i$
+and $j$ is the shortest-path distance $g_{ij}$ computed as the minimum
+total edge weight along any path from $i$ to~$j$.  For an embedding
+$X = (\vect{x}_1, \ldots, \vect{x}_n)$ in $\RR^d$, we can measure the
+\emph{embedding-induced geodesic distance} along a fixed graph shortest
+path $\gamma_{ij}$ as the sum of Euclidean edge lengths along that path:
+\begin{equation}\label{eq:geodesic}
+  h_{ij}(X) = \sum_{e \in \gamma_{ij}} \norm{\vect{x}_{u(e)} - \vect{x}_{v(e)}}.
+\end{equation}
+
+The classical KK energy~\eqref{eq:kk} compares the graph distance
+$g_{ij}$ with the straight-line chord distance
+$\norm{\vect{x}_i - \vect{x}_j}$, which can be a poor proxy for
+$h_{ij}(X)$ on non-planar or high-curvature graphs.  The
+\emph{geodesic KK} (GKK) energy replaces the chord distance with the
+embedding-induced geodesic distance:
+\begin{equation}\label{eq:gkk}
+  E_{\mathrm{geo}}(X)
+  = \frac{1}{2}\sum_{i < j}
+    k_{ij}\bigl(h_{ij}(X) - \ell_{ij}\bigr)^2.
+\end{equation}
+
+This full all-pairs geodesic functional is the most faithful measure of
+layout quality for weighted graphs, but it is expensive to evaluate and
+optimize for large graphs.
+
+\subsection{Landmark geodesic KK (LGKK)}
+
+The all-pairs GKK functional scales as $\bigO(n^2)$ in the number of
+vertex pairs.  A practical sparse approximation retains two kinds of
+vertex-pair interactions: (1)~local neighbors in the graph metric, and
+(2)~a small set of far-away landmark vertices selected by farthest-point
+sampling.  For each vertex~$i$, let $N(i)$ be its graph neighbors and
+$L(i)$ a set of $M$ landmark vertices obtained by greedy farthest-point
+sampling from~$i$.  The landmark-sparse geodesic KK (LGKK) functional
+sums over the union of these local and long-range pairs:
+\begin{equation}\label{eq:lgkk}
+  E_{\mathrm{land}}(X)
+  = \frac{1}{2}\sum_{(i,j) \in \mathcal{S}}
+    k_{ij}\bigl(h_{ij}(X) - \ell_{ij}\bigr)^2,
+\end{equation}
+where $\mathcal{S} = \{(i,j) : j \in N(i) \cup L(i) \text{ or } i \in
+N(j) \cup L(j)\}$.  This reduces the pair count from $\bigO(n^2)$ to
+$\bigO(n(k + M))$ while preserving both local edge-scale information and
+global shape constraints through the landmarks.
+
+
+% ============================================================
+% 3. LIMITATIONS OF CLASSICAL GRIP ON WEIGHTED GRAPHS
+% ============================================================
+\section{Limitations of Classical GRIP on Weighted Graphs}\label{sec:limitations}
+
+Classical GRIP loses edge-length geometry at four distinct points in its
+pipeline.  Understanding where the geometry is lost motivates the
+weighted redesign.
+
+\paragraph{Combinatorial MIS filtration.}
+The filtration hierarchy uses hop-count exclusion radii: level~$\ell$
+requires that no two retained vertices are within $2^{\ell-1}$ hops of
+each other.  On a weighted graph whose edges vary substantially in
+length, two vertices separated by many short edges may be metrically
+close, while two vertices separated by a single long edge may be
+metrically far.  The combinatorial filtration cannot distinguish these
+cases, producing coarsening levels that are geometrically uneven.
+
+\paragraph{Hop-count neighborhood caches.}
+The local neighborhood cache for each active vertex stores the $k$
+nearest vertices by hop count.  On a weighted graph, the $k$ nearest
+vertices by hop count may not be the $k$ nearest vertices by geodesic
+distance.  This means the local refinement forces at each level are
+driven by the wrong set of neighbors.
+
+\paragraph{Combinatorial insertion anchors.}
+When a new vertex is introduced at level~$\ell$, its initial position is
+computed from a small set of already-placed anchor vertices, selected as
+the nearest retained vertices by hop count.  On weighted graphs, these
+anchors may not be the geometrically nearest vertices, leading to poor
+initial placement.
+
+\paragraph{Hop-count refinement targets.}
+The local KK refinement at each level uses graph distances as target
+lengths.  In classical GRIP, these are hop-count distances, which do not
+reflect the weighted metric.  The refinement therefore pulls vertices
+toward positions that match the combinatorial structure but not the
+geometric structure of the graph.
+
+Together, these four points mean that classical GRIP treats all edges as
+having equal length, regardless of their weights.  The result is a layout
+that captures the \emph{topological} structure of the graph but not its
+\emph{metric} structure.  For graphs with meaningful edge-length
+geometry, this is a significant limitation.
+
+
+% ============================================================
+% 4. MODERN COMBINATORIAL GRIP IMPROVEMENTS
+% ============================================================
+\section{Modern Combinatorial GRIP Improvements}\label{sec:modern}
+
+Before describing the weighted extensions, we present improvements to the
+combinatorial engine that benefit both the unweighted and weighted
+variants.
+
+\subsection{Coarse active-set global repulsion}\label{sec:globalrep}
+
+The classical GRIP refinement at coarse levels uses only local
+KK forces computed from the cached neighborhood of each vertex.  Because
+these neighborhoods are small, distant active regions at coarse levels
+may drift toward each other and produce foldovers or self-overlaps before
+the finer levels can correct them.
+
+We address this by adding a weak global repulsion term on coarse MISF
+levels ($\ell > 0$).  Let $V_\ell$ denote the active vertex set at
+level~$\ell$ with $|V_\ell|$ active vertices.  For each active vertex
+$v$, we compute an additional repulsive displacement from the other
+active vertices:
+
+\begin{itemize}
+\item If $|V_\ell| \leq T_{\mathrm{exact}}$, repulsion is computed
+  exactly against all other active vertices.
+\item Otherwise, repulsion is approximated by sampling $s$ active
+  vertices uniformly at random and scaling by $(|V_\ell| - 1)/s$.
+\end{itemize}
+
+The repulsive force between vertices $v$ and $u$ uses an inverse-square
+form:
+\[
+  \vect{f}_{\mathrm{rep}}(v, u) =
+  \alpha \cdot \frac{0.05 \cdot \bar{e}^2}{\norm{\vect{x}_v - \vect{x}_u}^2}
+  \cdot \frac{\vect{x}_v - \vect{x}_u}{\norm{\vect{x}_v - \vect{x}_u}},
+\]
+where $\bar{e}$ is the mean edge length and $\alpha$ is the
+\texttt{coarse\_repulsion\_factor} parameter.  This displacement is added
+to the local KK displacement before temperature scaling.
+
+The coarse global repulsion is disabled at the finest level ($\ell = 0$),
+where the existing final-stage refinement (FR or KK-with-repulsion)
+handles vertex separation.
+
+\subsection{Improved insertion anchors}\label{sec:anchors}
+
+Classical GRIP selects insertion anchors by a first-found BFS rule:
+the first $K$ already-placed vertices encountered during BFS from the
+newly introduced vertex become its placement anchors.  This is
+order-sensitive and can produce geometrically skewed anchor sets.
+
+We introduce three alternative anchor-selection strategies:
+
+\begin{itemize}
+\item \textbf{Distance-band}: expand BFS until the $K$-th anchor's
+  distance band is exhausted, then select $K$ anchors from the full
+  candidate pool.
+\item \textbf{Balanced-band}: use the same band expansion, then
+  explicitly select a subset whose centroid is centered in the candidate
+  cloud while maintaining geometric spread.
+\item \textbf{Spread-previous}: restrict anchors to the immediately
+  previous MISF level and select for broad angular and geometric
+  coverage.
+\end{itemize}
+
+These strategies reduce the order-sensitivity of insertion and improve
+placement quality, especially on structured graph families where the BFS
+visit order can be systematically biased.
+
+\subsection{Alternative final-stage refinement}\label{sec:finalstage}
+
+The original GRIP uses FR-style forces for the final all-vertices
+refinement.  We add a \texttt{kk\_repulse} mode that replaces the FR
+final stage with KK-style local distance-matching updates combined with
+explicit active-set repulsion.  This mode maintains the stress-based
+distance targets through the final stage rather than switching to the
+purely spring-based FR model.
+
+Additionally, we introduce a \texttt{final\_anchor\_factor} that
+optionally anchors the final FR stage to the pre-final layout, preventing
+excessive drift during the final all-vertices pass, and a
+\texttt{final\_move\_scale\_after\_first} damping factor that reduces
+displacement magnitudes after the first final-stage round.
+
+
+% ============================================================
+% 5. WEIGHTED GRIP
+% ============================================================
+\section{Weighted GRIP}\label{sec:weighted}
+
+This section describes the core contribution: a geometry-aware weighted
+counterpart to the combinatorial GRIP pipeline.  The weighted engine
+replaces combinatorial operations with geodesic-distance equivalents at
+every stage while preserving the same multiscale coarse-to-fine
+structure.
+
+\subsection{Edge-length normalization}\label{sec:normalization}
+
+Before the weighted pipeline begins, edge lengths are globally normalized
+so that the median edge weight becomes~1.  This ensures that the
+weighted shortest-path radii used by the MISF hierarchy remain comparable
+to the combinatorial radii $1, 2, 4, \ldots$ that govern the classical
+filtration.  Mean normalization and no normalization are also supported.
+
+\subsection{Weighted MIS filtration}\label{sec:wmisf}
+
+The weighted MISF replaces the hop-count exclusion radius with a
+weighted shortest-path radius.  At level~$\ell$, the exclusion radius is
+$r_\ell = 2^{\ell-1}$ in the normalized weighted metric.  Two vertices
+are excluded from co-existing at level~$\ell$ if their weighted
+shortest-path distance (computed by Dijkstra in the full weighted graph)
+is less than $r_\ell$.
+
+This produces a coarsening hierarchy that respects the metric structure
+of the graph: metrically close vertices are separated early, and the
+spacing between retained vertices at each level is geometrically uniform
+rather than topologically uniform.
+
+The full procedure is given in Figure~\ref{alg:wmisf}.  The key
+difference from the combinatorial algorithm is in line~8: the
+neighborhood query uses Dijkstra shortest-path distance with a metric
+radius cutoff, rather than BFS with a hop-count cutoff.  The radius
+function $r(\ell) = 2^{\ell-1}$ produces the same geometric progression
+as in classical GRIP, but measured in the normalized weighted metric.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.93\columnwidth}{\small
+\textbf{Algorithm 1:} \fn{WeightedMISF}$(G, w, n_{\mathrm{init}})$\\[4pt]
+\textbf{Input:} Weighted graph $G=(V,E,w)$; target coarsest-level
+  size~$n_{\mathrm{init}}$\\
+\textbf{Output:} MISF level assignment $\mathrm{level}[v]$ for each
+  $v \in V$; level sizes $|V_0|, |V_1|, \ldots, |V_L|$\\[4pt]
+\begin{tabular}{@{\hspace{0pt}}r@{\;\;}l}
+1: & Normalize edge weights so $\mathrm{median}(w) = 1$ \\
+2: & $\mathrm{level}[v] \gets 0$ for all $v \in V$;
+     \; $\ell \gets 1$ \\
+3: & $C \gets V$ \cmnt{candidate set for removal} \\
+4: & \kw{while} $|C| > n_{\mathrm{init}}$ \kw{do} \\
+5: & \quad $r_\ell \gets 2^{\ell-1}$
+     \cmnt{weighted exclusion radius} \\
+6: & \quad Shuffle $C$ randomly (Fisher--Yates) \\
+7: & \quad \kw{for each} $v \in C$ in shuffled order \kw{do} \\
+8: & \quad\quad $B_v \gets \{u \in C : d_w(v,u) \leq r_\ell\}$
+     \cmnt{Dijkstra ball} \\
+9: & \quad\quad \kw{if} no vertex in $B_v \setminus \{v\}$
+     was already selected \kw{then} \\
+10: & \quad\quad\quad Mark $v$ as \emph{selected} for level~$\ell$ \\
+11: & \quad\quad\quad Mark all $u \in B_v \setminus \{v\}$ as
+     \emph{removable} \\
+12: & \quad\quad \kw{end if} \\
+13: & \quad \kw{end for} \\
+14: & \quad Move all removable vertices from $C$ to level~$\ell$:\\
+   & \quad\quad $\mathrm{level}[u] \gets \ell$ for each removable $u$ \\
+15: & \quad $\ell \gets \ell + 1$ \\
+16: & \kw{end while} \\
+17: & $L \gets \ell$; \; $V_L \gets C$
+     \cmnt{coarsest seeds} \\
+18: & \kw{return} $\mathrm{level}[\cdot]$, $\{|V_0|, \ldots, |V_L|\}$
+\end{tabular}
+}}
+\caption{Weighted MIS filtration construction.  The critical difference
+from classical GRIP is in line~8: the ball $B_v$ is defined by
+Dijkstra weighted shortest-path distance $d_w$ with metric radius
+$r_\ell$, rather than by BFS hop count.  Vertices are processed in
+random order within each level to avoid systematic ordering bias.}
+\label{alg:wmisf}
+\end{figure}
+
+\subsection{Weighted neighborhood caches}\label{sec:wcaches}
+
+For each active vertex at level~$\ell$, the weighted engine caches the
+$k$ nearest retained vertices by weighted shortest-path distance (rather
+than hop count).  These caches are built by running Dijkstra from each
+active vertex and collecting settled vertices in order of increasing
+geodesic distance.
+
+To reduce computational cost, the Dijkstra search uses
+\emph{settled-order early stopping}: it terminates as soon as the
+required neighborhood caches and insertion-anchor candidates are filled.
+This is exact because the Dijkstra frontier is processed in
+nondecreasing distance order.  Internal scratch arrays are reused across
+searches to avoid repeated allocation.
+
+For larger graphs, an optional \texttt{metric\_neighbor\_cap} parameter
+limits the number of settled Dijkstra vertices per search, providing an
+explicit approximation mode without changing the default exact semantics.
+
+\subsection{Weighted insertion}\label{sec:winsertion}
+
+When a new vertex $v$ is introduced at level~$\ell$, its initial position
+is computed from weighted insertion anchors: the nearest already-placed
+vertices by weighted shortest-path distance.  The same anchor-selection
+strategies described in Section~\ref{sec:anchors} are available in
+weighted form, with hop-count BFS replaced by Dijkstra traversal.
+
+The initial position is computed by one of three rules:
+\begin{itemize}
+\item \textbf{Barycenter}: the centroid of the anchor positions, weighted
+  by inverse geodesic distance.
+\item \textbf{Circle} (2D only): placement on a circle centered at the
+  weighted barycenter.
+\item \textbf{Least squares}: a multi-anchor least-squares fit that
+  minimizes the sum of squared discrepancies between Euclidean distances
+  to anchors and the corresponding weighted graph distances.
+\end{itemize}
+
+After initial placement, a small number of local KK micro-polish steps
+refine the position using weighted graph distances as targets.
+
+The full weighted insertion procedure is given in
+Figure~\ref{alg:winsertion}.  The anchor collection phase (lines~1--3)
+uses Dijkstra traversal in place of BFS, and the initial-position
+computation (lines~5--12) offers a least-squares mode that exploits
+the weighted distance information for multi-anchor geometric fitting.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.93\columnwidth}{\small
+\textbf{Algorithm 2:} \fn{WeightedInsert}$(v, \ell, X, G, w)$\\[4pt]
+\textbf{Input:} New vertex~$v$ at MISF level~$\ell$; current layout~$X$;
+  weighted graph $(G, w)$\\
+\textbf{Output:} Initial position $\vect{x}_v \in \RR^d$\\[4pt]
+\begin{tabular}{@{\hspace{0pt}}r@{\;\;}l}
+\multicolumn{2}{@{}l}{\cmnt{Phase 1: Anchor collection via Dijkstra}} \\
+1: & Run Dijkstra from $v$ in $(G, w)$ \\
+2: & Collect anchors $A = \{a_1, \ldots, a_K\}$: the first $K$ \\
+   & \quad already-placed vertices settled by Dijkstra, \\
+   & \quad restricted to levels $> \ell$ \\
+3: & Record $d_i = d_w(v, a_i)$ for each anchor $a_i$ \\[4pt]
+\multicolumn{2}{@{}l}{\cmnt{Phase 2: Initial position}} \\
+4: & \kw{if} placement mode = \texttt{least\_squares}
+     and $K > d$ \kw{then} \\
+5: & \quad Set up overdetermined system: for each $a_i$, \\
+   & \quad\quad $\norm{\vect{x}_v - \vect{x}_{a_i}}^2 \approx
+     (L_0 \cdot d_i)^2$ \\
+6: & \quad Form normal equations
+     $\vect{M}^{\!\top}\!\vect{M}\,\vect{x}_v
+     = \vect{M}^{\!\top}\!\vect{b}$ \\
+   & \quad\quad where row $i$: $\vect{m}_i = 2(\vect{x}_{a_i}
+     - \vect{x}_{a_1})$, \\
+   & \quad\quad $b_i = \norm{\vect{x}_{a_i}}^2
+     - \norm{\vect{x}_{a_1}}^2
+     - (L_0 d_i)^2 + (L_0 d_1)^2$ \\
+7: & \quad Solve via Gaussian elimination with pivoting \\
+8: & \quad \kw{if} system is singular \kw{then} fall back to
+     barycenter \\
+9: & \kw{else if} placement mode = \texttt{barycenter} \kw{then} \\
+10: & \quad $\vect{x}_v \gets \sum_{i=1}^{K}
+     \frac{d_i^{-1}}{\sum_j d_j^{-1}} \, \vect{x}_{a_i}$
+     \cmnt{inverse-distance weighted} \\
+11: & \kw{else} \cmnt{circle mode, 2D only} \\
+12: & \quad Place $\vect{x}_v$ on circle through anchor centroid \\
+13: & \kw{end if} \\[4pt]
+\multicolumn{2}{@{}l}{\cmnt{Phase 3: Local KK micro-polish}} \\
+14: & \kw{for} $t = 1, \ldots, t_{\mathrm{local}}$ \kw{do} \\
+15: & \quad $\vect{\delta} \gets \sum_{i=1}^{K}
+     \bigl(\frac{\norm{\vect{x}_v - \vect{x}_{a_i}}}{L_0 d_i}
+     - 1\bigr)
+     \cdot (\vect{x}_v - \vect{x}_{a_i})$ \\
+16: & \quad $\vect{x}_v \gets \vect{x}_v - \eta\,\vect{\delta}$
+     \cmnt{step with temperature $\eta$} \\
+17: & \kw{end for} \\
+18: & \kw{return} $\vect{x}_v$
+\end{tabular}
+}}
+\caption{Weighted vertex insertion.  Phase~1 collects anchor vertices
+using Dijkstra traversal (replacing BFS).  Phase~2 computes the initial
+position; the least-squares mode solves for the position whose
+Euclidean distances to anchors best match the scaled weighted
+graph distances.  Phase~3 applies a few local KK micro-polish steps
+using weighted distance targets.}
+\label{alg:winsertion}
+\end{figure}
+
+\subsection{Weighted local refinement}\label{sec:wrefinement}
+
+At each level~$\ell$, the weighted engine applies local KK-style
+refinement using the weighted neighborhood caches.  The target distance
+between vertex~$v$ and a cached neighbor~$u$ is the weighted
+shortest-path distance $g_{vu}$ (in the normalized metric), and the
+spring force pulls $v$ toward or away from $u$ to match this target.
+
+The temperature schedule, adaptive momentum, and displacement clamping
+follow the same structure as in the combinatorial engine, but the force
+magnitudes are computed from geodesic distances rather than hop counts.
+
+At the finest level ($\ell = 0$), the weighted engine supports the same
+final-stage modes as the combinatorial engine: FR with weighted
+edge-length targets, or KK-with-repulsion using weighted distances.
+
+\subsection{Coarse global repulsion in weighted GRIP}
+
+The coarse active-set global repulsion described in
+Section~\ref{sec:globalrep} is equally available in the weighted engine.
+The repulsive force computation is identical (it depends only on
+Euclidean positions, not on graph distances), so the same parameters
+control it in both engines.
+
+\subsection{Algorithmic summary}
+
+Table~\ref{tab:pipeline} summarizes the component-by-component
+differences between the combinatorial and weighted GRIP pipelines, and
+Figure~\ref{fig:pipeline} provides a visual flowchart.  The
+two engines share the same coarse-to-fine multiscale structure and the
+same parameter space; they differ in how distances are measured and how
+neighborhoods are constructed.
+
+\begin{table*}[!htb]
+\centering
+\caption{Component comparison between combinatorial GRIP and weighted
+  GRIP.  All shared components use identical implementations; divergent
+  components differ only in the distance metric used.}
+\label{tab:pipeline}
+\small
+\begin{tabular}{lll}
+\toprule
+Component & Combinatorial GRIP & Weighted GRIP \\
+\midrule
+MISF exclusion radius & Hop count ($2^{\ell-1}$ hops) & Weighted shortest path ($2^{\ell-1}$ in normalized metric) \\
+Distance computation & BFS & Dijkstra \\
+Neighborhood caches & $k$ nearest by hop count & $k$ nearest by weighted shortest path \\
+Insertion anchors & BFS-order selection & Dijkstra-order selection \\
+Local KK targets & Hop-count distance & Weighted shortest-path distance \\
+Final FR/KK-repulse & Hop-count neighborhoods & Weighted neighborhoods \\
+Coarse global repulsion & Euclidean (shared) & Euclidean (shared) \\
+Edge-length normalization & Not applicable & Median, mean, or none \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[!htb]
+\centering
+\includegraphics[width=0.82\textwidth]{pipeline-comparison.pdf}
+\caption{Side-by-side comparison of the combinatorial GRIP pipeline
+  (left, blue) and the weighted GRIP pipeline (right, green).  Shared
+  components---coarse global repulsion and optional LGKK
+  polish---are shown in gray and purple respectively.  The weighted
+  pipeline replaces BFS distances with Dijkstra distances throughout,
+  adds an explicit weight-normalization step, and uses
+  geodesic-aware radii for both MISF construction and neighborhood
+  caching.}
+\label{fig:pipeline}
+\end{figure*}
+
+% ============================================================
+% 6. GEODESIC REFINEMENT
+% ============================================================
+\section{Geodesic Refinement Inside Weighted GRIP}\label{sec:lgkk}
+
+The weighted GRIP engine described in Section~\ref{sec:weighted}
+produces geometry-aware layouts, but its refinement is still
+\emph{local}: each vertex is adjusted relative to a small neighborhood.
+Landmark geodesic KK (LGKK) provides a complementary
+\emph{semi-global} refinement that considers both local edge-scale
+fidelity and long-range landmark constraints.
+
+\subsection{Post-layout LGKK polish}
+
+The simplest integration is to apply LGKK as a post-processing step
+after the weighted GRIP solve completes.  The LGKK optimizer takes the
+weighted GRIP layout as its starting point, constructs the sparse pair
+set $\mathcal{S}$ (local neighbors plus farthest-point landmarks), and
+runs gradient descent on the landmark-sparse geodesic
+energy~\eqref{eq:lgkk} for a fixed number of iterations.
+
+This is controlled by the \texttt{lgkk\_polish\_rounds} parameter.  The
+key tuning knobs are the number of local neighbors
+(\texttt{lgkk\_local\_nbrs}) and the number of landmarks per vertex
+(\texttt{lgkk\_landmark\_count}).
+
+\subsection{In-core multiscale LGKK refinement}
+
+A more architecturally significant integration applies LGKK refinement
+\emph{within} the multiscale hierarchy, after each eligible MISF level
+completes its standard GRIP refinement rounds.  This allows the geodesic
+correction to operate on progressively larger active sets as the
+hierarchy unfolds, rather than waiting until the full graph is assembled.
+
+The in-core LGKK integration supports staged budgets:
+\begin{itemize}
+\item \texttt{lgkk\_rounds\_coarse}: LGKK rounds on coarse MISF levels
+  ($\ell > 1$),
+\item \texttt{lgkk\_rounds\_pre\_final}: LGKK rounds on the last coarse
+  level before the full graph opens ($\ell = 1$),
+\item \texttt{lgkk\_rounds\_final}: LGKK rounds after the full-graph
+  level completes ($\ell = 0$).
+\end{itemize}
+
+An \texttt{lgkk\_active\_limit} parameter skips the in-core LGKK stage
+on levels where the active set exceeds a threshold, preventing expensive
+geodesic cache construction on large intermediate levels.
+
+\subsection{Relation to full GKK}
+
+Full geodesic KK (GKK) optimizes the all-pairs geodesic
+energy~\eqref{eq:gkk}, using every vertex pair.  It serves as the
+accuracy reference in our benchmarks: the best achievable geodesic
+fidelity for a given graph and dimension.  LGKK is its sparse
+approximation, retaining local and landmark pairs only.  Weighted GRIP
+is the scalable multiscale engine that provides fast initial layouts.
+
+The recommended usage pattern is a cascade:
+\begin{enumerate}
+\item Weighted GRIP for fast geometry-aware initial layout,
+\item In-core LGKK for incremental geodesic correction during the
+  multiscale solve,
+\item Optional post-layout LGKK polish for additional refinement.
+\end{enumerate}
+
+For benchmarking, we also evaluate a KK-warm-started geodesic polish
+cascade (KK $\to$ GKK or KK $\to$ LGKK), which provides the
+highest-accuracy reference at the cost of requiring an external KK
+initialization and substantially higher runtime.
+
+
+% ============================================================
+% 7. EXPERIMENTAL DESIGN
+% ============================================================
+\section{Experimental Design}\label{sec:experiments}
+
+\subsection{Graph families}
+
+We evaluate on a panel of weighted synthetic graph families that span a
+range of geometric complexities.  Each family is generated by the
+\grip{} package's graph-family constructors, which produce graphs with
+known ground-truth embeddings.  The families are:
+
+\begin{enumerate}
+\item \textbf{Mesh} (saddle surface): $6 \times 6$ rectangular grid with
+  Euclidean edge weights induced by a saddle surface
+  ($z = x^2 - y^2$).  36 vertices, 60 edges.
+\item \textbf{Torus} (pinched): $6 \times 6$ toroidal grid with
+  curvature-varying edge weights.  36 vertices, 72 edges.
+\item \textbf{Sierpinski carpet} (ripple): level-3 Sierpinski carpet
+  with ripple-surface edge weights.  64 vertices, 88 edges.
+\item \textbf{Cube channel network} (twisted): 3D porous body with
+  twisted channel geometry.  104 vertices, 212 edges.
+\item \textbf{Irregular torus} (pinched): irregular triangulated torus
+  with pinch deformation.  60 vertices, 188 edges.
+\end{enumerate}
+
+These families cover regular grids (mesh), closed manifolds (torus),
+fractal structures (carpet), porous 3D bodies (cube channel), and
+irregular manifolds (irregular torus).  Edge-weight coefficients of
+variation range from 0.03 (near-uniform) to 0.55 (highly variable),
+ensuring that the benchmark tests geometry awareness across a range of
+metric complexities.
+
+\subsection{Methods}
+
+We compare seven methods organized into two families:
+
+\paragraph{GRIP family:}
+\begin{itemize}
+\item \textbf{GRIP}: combinatorial GRIP with coarse global repulsion
+  (the current default engine).
+\item \textbf{Weighted GRIP}: weighted GRIP with coarse global repulsion,
+  no LGKK refinement.
+\item \textbf{Weighted GRIP + core LGKK}: weighted GRIP with in-core
+  multiscale LGKK refinement.
+\item \textbf{Weighted GRIP + polish LGKK}: weighted GRIP with
+  post-layout LGKK polish.
+\end{itemize}
+
+\paragraph{KK family:}
+\begin{itemize}
+\item \textbf{KK}: Kamada--Kawai layout from igraph~\citep{csardi2006}
+  with edge weights.
+\item \textbf{KK $\to$ GKK}: KK layout polished by full geodesic KK
+  optimization (12 iterations, profiled scaling).
+\item \textbf{KK $\to$ LGKK}: KK layout polished by landmark geodesic
+  KK optimization (12 iterations, 8 local neighbors, 10 landmarks).
+\end{itemize}
+
+All KK-family methods share a common warm-start: a crude initial layout
+constructed from the flat parameter coordinates with small Gaussian noise,
+followed by weighted KK optimization.  This ensures that the KK baseline
+is already well-initialized before geodesic polishing begins.
+
+\subsection{Dimensions}
+
+Each case is evaluated in both $d = 3$ (primary track) and $d = 2$
+(limitation track).  The 3D track is primary because the benchmark
+families are intrinsically geometric objects; the 2D track quantifies the
+cost of forcing an intrinsically 3D metric into two dimensions.
+
+\subsection{Metrics}\label{sec:metrics}
+
+The primary quality metric is the \textbf{full GKK relative RMSE}: the
+root-mean-square relative error of the all-pairs geodesic KK energy,
+computed by \texttt{grip.score.geodesic.kk()} with profiled optimal
+scaling.  This measures how faithfully the embedding preserves the
+weighted graph metric as measured along embedded graph paths.
+
+We also report:
+\begin{itemize}
+\item \textbf{Classical KK relative RMSE}: the chord-based KK error,
+  measuring fidelity to the simpler straight-line distance model.
+\item \textbf{Procrustes RMSE}: alignment error against the ground-truth
+  surface embedding (3D) or parameter coordinates (2D).
+\item \textbf{Runtime}: wall-clock elapsed time in seconds.
+\end{itemize}
+
+\subsection{Seeds and reproducibility}
+
+All methods use deterministic seeding.  The GRIP-family methods use the
+\texttt{seed} parameter of the \grip{} package.  The KK-family methods
+use the same shared initial layout for each graph and dimension.
+Benchmark scripts and data are included in the package repository.
+
+
+% ============================================================
+% 8. RESULTS
+% ============================================================
+\section{Results}\label{sec:results}
+
+We organize results around five questions that characterize the
+contribution of each algorithmic component.
+
+\subsection{Does weighted GRIP improve geodesic fidelity over
+combinatorial GRIP?}
+
+Table~\ref{tab:overall-d3} shows the aggregate 3D results.  Weighted
+GRIP alone achieves a mean full-GKK relative RMSE of 0.231, compared
+with 0.189 for combinatorial GRIP.  This apparent increase reflects a
+tradeoff: weighted GRIP changes the optimization landscape by introducing
+geodesic distance targets, which can increase the geodesic error on some
+families where the combinatorial engine happens to find a configuration
+that scores well under the GKK metric by chance.
+
+However, when weighted GRIP is combined with LGKK refinement, the
+picture changes substantially.  Weighted GRIP with in-core LGKK achieves
+0.146, a 22.6\% reduction over combinatorial GRIP.  Weighted GRIP with
+post-layout LGKK polish reaches 0.118, a 37.7\% reduction.  The
+improvement is consistent across families
+(Table~\ref{tab:perfamily-d3-full}).
+
+\begin{table}[t]
+\centering
+\caption{Overall means for $d = 3$ across the benchmark panel.}
+\label{tab:overall-d3}
+\small
+\begin{tabular}{lrr}
+\toprule
+Method & GKK rel.\ RMSE & Runtime (s) \\
+\midrule
+GRIP                       & 0.189 & 0.042 \\
+Weighted GRIP              & 0.231 & 0.047 \\
+W.\ GRIP + core LGKK      & 0.146 & 0.055 \\
+W.\ GRIP + polish LGKK    & 0.118 & 0.216 \\
+KK                         & 0.045 & 0.003 \\
+KK $\to$ GKK              & 0.028 & 0.956 \\
+KK $\to$ LGKK             & 0.023 & 0.153 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{How much does coarse global repulsion help?}
+
+The coarse global repulsion is embedded in the ``GRIP'' baseline
+throughout our experiments (it is the current default engine).  Its
+effect was validated during development on structured families prone to
+multiscale foldovers.  In the mesh benchmark suite (3D, three mesh
+geometries at three sizes each), the global-repulsion engine reduced the
+incidence of foldover artifacts compared with the legacy engine
+(\texttt{grip.layout.legacy()}), particularly on the larger $12 \times
+12$ meshes where the coarsest MISF levels have enough active vertices for
+distant regions to interact.
+
+The benefit is structural rather than metric: global repulsion primarily
+prevents topological defects (folds, overlaps) that would otherwise
+require post-hoc correction, rather than directly improving the geodesic
+stress.
+
+\subsection{How much does LGKK refinement add to weighted GRIP?}
+
+Comparing the weighted GRIP variants in 3D (Table~\ref{tab:overall-d3}):
+
+\begin{itemize}
+\item In-core LGKK reduces the mean GKK relative RMSE from 0.231
+  (weighted GRIP alone) to 0.146, a 36.8\% improvement.
+\item Post-layout LGKK polish reduces it further to 0.118, a 49.0\%
+  improvement over weighted GRIP alone.
+\end{itemize}
+
+The in-core variant is architecturally more significant because it
+incorporates geodesic correction during the multiscale hierarchy rather
+than depending solely on terminal cleanup.  The post-layout variant
+achieves marginally better accuracy on this panel but at approximately
+$4\times$ the runtime of the in-core variant.
+
+\subsection{How close does weighted GRIP get to the KK family?}
+
+The KK-warm-started geodesic polishing family remains the accuracy
+ceiling.  In 3D, KK $\to$ LGKK achieves a mean GKK relative RMSE of
+0.023, compared with 0.118 for weighted GRIP + polish LGKK.  However,
+the KK family requires an external KK initialization step that itself
+costs nontrivial time on larger graphs, and the full GKK polish
+(KK $\to$ GKK) is roughly $4.4\times$ slower than the LGKK variant.
+
+The per-family results (Table~\ref{tab:perfamily-d3-full}) show that the gap
+between the GRIP and KK families varies by graph structure.  On the mesh
+family, which has nearly uniform edge weights and smooth geometry, the
+gap is largest.  On the irregular torus and carpet families, which have
+higher geometric complexity, the weighted GRIP + LGKK variants close
+more of the gap.
+
+Table~\ref{tab:perfamily-d3-full} provides the full per-family
+breakdown, and Figure~\ref{fig:perfamily-bars} visualizes the
+per-family comparison across all seven methods.
+
+\begin{table*}[!htb]
+\centering
+\caption{Full-GKK relative RMSE by method and family in $d = 3$.  Lower
+  is better.  The best result in each family is shown in bold.  The
+  ``GRIP-family best'' column gives the best result among the four
+  GRIP-family methods.}
+\label{tab:perfamily-d3-full}
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & \multicolumn{4}{c}{GRIP family} & \multicolumn{3}{c}{KK family} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-8}
+Family & GRIP & W.\ GRIP & + core & + polish
+       & KK & $\to$GKK & $\to$LGKK \\
+\midrule
+Mesh saddle     & 0.095 & 0.099 & 0.030 & 0.015
+                & 0.012 & \textbf{0.002} & 0.006 \\
+Torus pinched   & 0.142 & 0.168 & 0.130 & 0.121
+                & 0.074 & 0.041 & \textbf{0.039} \\
+Carpet ripple   & 0.172 & 0.174 & 0.161 & 0.135
+                & 0.058 & 0.041 & \textbf{0.031} \\
+Cube channel    & 0.072 & 0.079 & 0.038 & 0.016
+                & 0.036 & 0.011 & \textbf{0.006} \\
+Irreg.\ torus  & 0.462 & 0.635 & 0.373 & 0.302
+                & 0.044 & 0.045 & \textbf{0.032} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[!htb]
+\centering
+\includegraphics[width=0.92\textwidth]{fig4_gkk_rmse_bars.pdf}
+\caption{Full-GKK relative RMSE by graph family in $d = 3$, for all
+  seven methods.  Lower bars indicate better geodesic fidelity.  The
+  irregular torus is by far the most challenging family, with GRIP-family
+  methods remaining above 0.12 even after LGKK polish, while KK-family
+  methods reach below~0.05.  On the mesh family, weighted GRIP + polish
+  LGKK approaches the KK baselines.}
+\label{fig:perfamily-bars}
+\end{figure*}
+
+\subsection{Per-family analysis}\label{sec:perfamily}
+
+The five benchmark families exhibit qualitatively different responses to
+the weighted GRIP pipeline, and these differences illuminate the
+strengths and limitations of the approach.
+
+\paragraph{Mesh saddle.}
+The $6 \times 6$ saddle mesh has nearly uniform edge weights
+(edge-weight CV\,=\,0.03 after normalization) and smooth, low-curvature
+geometry.  This is the easiest family for all methods.  Pure KK already
+achieves 0.012 GKK relative RMSE, and KK\,$\to$\,GKK reduces it to
+0.002.  The GRIP family starts at 0.095 (combinatorial) and 0.099
+(weighted).  The near-identical scores for these two reflect the
+near-uniform weights: when all edges have similar length, weighted
+coarsening behaves similarly to hop-count coarsening.  LGKK refinement
+is effective here: in-core LGKK reduces the error to 0.030, and
+post-layout polish reaches 0.015---still $7.5\times$ the KK\,$\to$\,GKK
+result, but an $84\%$ reduction from raw GRIP.  The mesh is the family
+where the gap between multiscale and direct optimization is widest in
+relative terms, because the simple geometry allows KK to find a
+near-optimal solution cheaply.
+
+\paragraph{Torus pinched.}
+The closed toroidal manifold with curvature-varying (``pinched'') edge
+weights (CV\,=\,0.54) is substantially harder.  Combinatorial GRIP
+scores 0.142, and weighted GRIP is \emph{worse} at 0.168.  This is a
+case where the weighted coarsening changes the optimization landscape
+without improving the outcome---the weighted MISF hierarchy separates
+the pinched region differently, but the resulting initial layout is not
+closer to the geodesic optimum.  However, LGKK refinement recovers
+the situation: in-core LGKK brings the error to 0.130, and post-layout
+polish reaches 0.121.  The KK family achieves 0.039 (KK\,$\to$\,LGKK),
+about $3\times$ better.  The torus illustrates that for closed manifolds
+with high curvature variation, the multiscale engine provides a
+reasonable starting point but geodesic refinement is essential.
+
+\paragraph{Sierpinski carpet ripple.}
+The fractal carpet with ripple-surface weights (CV\,=\,0.48) is the
+most resistant family to \emph{all} methods.  Even KK\,$\to$\,LGKK only
+reaches 0.031.  Within the GRIP family, weighted GRIP (0.174) barely
+differs from combinatorial GRIP (0.172), suggesting that the fractal
+connectivity---not the edge-length variation---is the dominant source of
+difficulty.  The recursive hole structure creates long-range constraints
+that local multiscale refinement cannot easily resolve.  Post-layout
+LGKK polish reduces the error to 0.135, a 22\% improvement but still
+$4.3\times$ the KK-family ceiling.  This family highlights that
+fractal graph topology remains a challenge for multiscale methods
+regardless of whether they are geometry-aware.
+
+\paragraph{Cube channel network.}
+The 3D porous body with twisted channels (CV\,=\,0.03) is a graph
+where the multiscale approach works relatively well.  Combinatorial GRIP
+achieves 0.072, among the best GRIP-family scores across families.  The
+3D porous structure, with its relatively uniform edge weights and
+localized connectivity, suits multiscale coarsening.  Weighted GRIP is
+slightly worse at 0.079, but in-core LGKK brings it to 0.038, and
+post-layout polish reaches 0.016---only $2.8\times$ the
+KK\,$\to$\,LGKK result of 0.006.  This is the family where the
+weighted GRIP + LGKK pipeline comes closest to the KK-family accuracy in
+absolute terms.
+
+\paragraph{Irregular torus.}
+The irregular triangulated torus with pinch deformation (CV\,=\,0.55) is
+the hardest family for the GRIP pipeline.  Combinatorial GRIP scores
+0.462, and weighted GRIP is dramatically worse at 0.635.  The irregular
+triangulation creates a highly non-uniform mesh where the weighted MISF
+hierarchy struggles to find geometrically meaningful coarsening levels.
+LGKK refinement provides large improvements---in-core LGKK reduces
+the error to 0.373 (a 41\% drop from weighted GRIP), and post-layout
+polish reaches 0.302 (a 52\% drop)---but the residual error is still
+$9.3\times$ the KK\,$\to$\,LGKK result of 0.032.  This family
+represents the current frontier of difficulty for geometry-aware
+multiscale drawing: the irregular connectivity and high weight variation
+demand the kind of global optimization that multiscale methods are
+specifically designed to approximate.  On such graphs, the GRIP pipeline
+is best understood as a fast initializer for subsequent geodesic
+refinement rather than as a standalone solution.
+
+\subsection{What are the runtime tradeoffs?}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{fig5_pareto_scatter.pdf}
+\caption{Runtime--quality Pareto scatter in $d = 3$.  Each point
+  represents one (method, family) pair.  Color encodes method; marker
+  shape encodes graph family.  Methods closer to the lower-left corner
+  offer the best quality-for-time trade-off.  The GRIP-family methods
+  cluster at low runtimes but moderate quality; the KK $\to$ GKK
+  pipeline yields the best quality at higher runtime cost; KK $\to$ LGKK
+  and weighted GRIP + polish LGKK provide intermediate trade-offs.}
+\label{fig:pareto}
+\end{figure}
+
+Figure~\ref{fig:pareto} shows the runtime--quality trade-off as a
+scatter plot, and Table~\ref{tab:overall-d3} gives the aggregate
+numbers.
+Combinatorial GRIP and weighted GRIP are the fastest methods (0.042s and
+0.047s respectively), reflecting the near-linear scaling of the
+multiscale engine.  Adding in-core LGKK increases runtime modestly to
+0.055s.  Post-layout LGKK polish is more expensive at 0.216s, still
+substantially cheaper than the KK $\to$ GKK pipeline at 0.956s.
+
+The KK $\to$ LGKK combination (0.153s) is faster than weighted GRIP +
+polish LGKK (0.216s) on these small graphs, but this comparison is
+dominated by the KK initialization step, which scales as
+$\bigO(n^2 \cdot \text{iterations})$.  On larger graphs, the multiscale
+GRIP approach is expected to scale more favorably.
+
+\subsection{2D limitation track}
+
+Table~\ref{tab:overall-d2} shows the aggregate 2D results.  The same
+method ranking persists at the aggregate level---KK $\to$ LGKK achieves
+the lowest mean geodesic error, followed by KK $\to$ GKK, then the
+weighted GRIP + LGKK variants---but the absolute error levels are
+substantially higher.  This confirms the design decision to treat 3D as
+the primary evaluation space: the weighted families in our benchmark
+panel are intrinsically geometric objects, and 2D layouts systematically
+face a representation bottleneck.
+
+\begin{table}[t]
+\centering
+\caption{Overall means for $d = 2$ across the benchmark panel.}
+\label{tab:overall-d2}
+\small
+\begin{tabular}{lrr}
+\toprule
+Method & GKK rel.\ RMSE & Runtime (s) \\
+\midrule
+GRIP                       & 0.185 & 0.033 \\
+Weighted GRIP              & 0.246 & 0.054 \\
+W.\ GRIP + core LGKK      & 0.152 & 0.059 \\
+W.\ GRIP + polish LGKK    & 0.112 & 0.225 \\
+KK                         & 0.089 & 0.002 \\
+KK $\to$ GKK              & 0.066 & 1.007 \\
+KK $\to$ LGKK             & 0.054 & 0.158 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Per-family dimensional comparison}\label{sec:dimcompare}
+
+\begin{figure*}[!htb]
+\centering
+\includegraphics[width=0.92\textwidth]{fig7_2d_vs_3d.pdf}
+\caption{2D vs.\ 3D geodesic fidelity for three representative methods:
+  weighted GRIP + polish LGKK (the best GRIP-family variant), KK $\to$
+  LGKK, and KK $\to$ GKK.  Hatched bars show 2D results; solid bars
+  show 3D results.  Moving from 3D to 2D uniformly degrades quality,
+  but the degradation is most pronounced on families with complex
+  topology (torus, irregular torus) and less severe on the mesh.}
+\label{fig:dimcompare}
+\end{figure*}
+
+Table~\ref{tab:2dvs3d} compares the best GRIP-family and best KK-family
+results across dimensions for each graph family.  The comparison reveals
+two noteworthy patterns beyond the expected overall 3D advantage.
+
+\begin{table*}[!htb]
+\centering
+\caption{Best full-GKK relative RMSE by family, comparing $d = 2$ and
+  $d = 3$.  For each family, the best GRIP-family method (always
+  W.~GRIP + polish LGKK) and the best KK-family method are shown.
+  Families where the GRIP-family method \emph{beats} the KK-family
+  method in 2D are marked with~$\star$.}
+\label{tab:2dvs3d}
+\small
+\begin{tabular}{l rr c rr c}
+\toprule
+ & \multicolumn{2}{c}{Best GRIP-family} & &
+   \multicolumn{2}{c}{Best KK-family} & \\
+\cmidrule(lr){2-3} \cmidrule(lr){5-6}
+Family & $d{=}2$ & $d{=}3$ & $\Delta$ &
+         $d{=}2$ & $d{=}3$ & $\Delta$ \\
+\midrule
+Mesh saddle     & 0.015 & 0.015 & $0\%$
+                & 0.002 & 0.002 & $0\%$ \\
+Torus pinched${}^{\star}$
+                & 0.054 & 0.121 & $-55\%$
+                & 0.102 & 0.039 & $+161\%$ \\
+Carpet ripple   & 0.142 & 0.135 & $+6\%$
+                & 0.053 & 0.031 & $+71\%$ \\
+Cube channel${}^{\star}$
+                & 0.027 & 0.016 & $+72\%$
+                & 0.035 & 0.006 & $+517\%$ \\
+Irreg.\ torus  & 0.323 & 0.302 & $+7\%$
+                & 0.072 & 0.032 & $+125\%$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+First, the KK-family methods are \emph{far more sensitive to
+dimensionality} than the GRIP-family methods.  On the cube channel
+network, the best KK-family error increases by $517\%$ when moving from
+3D to 2D (0.006 $\to$ 0.035), while the best GRIP-family error
+increases by only $72\%$ (0.016 $\to$ 0.027).  On the torus, the
+KK-family error increases by $161\%$ (0.039 $\to$ 0.102), while the
+GRIP-family error actually \emph{decreases} by $55\%$
+(0.121 $\to$ 0.054).
+
+Second, on two families---the torus and the cube channel
+network---weighted GRIP + polish LGKK \emph{beats} KK $\to$ LGKK in
+2D.  On the pinched torus, the GRIP-family achieves 0.054 versus 0.102
+for the KK-family.  On the cube channel, the GRIP-family achieves 0.027
+versus 0.035.  These reversals do not occur in 3D, where the KK family
+consistently dominates.
+
+The explanation is that when forced into an insufficient ambient
+dimension, the KK-based chord-distance optimization can be misled:
+straight-line distances in $\RR^2$ become poor proxies for geodesic
+distances on an intrinsically 3D surface, and the KK optimizer can
+converge to a configuration that looks good under the chord metric but
+scores poorly under the geodesic metric.  The multiscale GRIP engine,
+which builds the layout incrementally through its coarsening hierarchy,
+appears to be less susceptible to this particular failure mode in reduced
+dimension.
+
+This observation does not change the primary recommendation to use 3D
+for these graph families; it does suggest that when 2D is unavoidable,
+the weighted GRIP + LGKK pipeline deserves consideration as an
+alternative to the KK-warm-start pathway.
+
+\subsection{Mesh benchmark: KK/GKK/LGKK baseline}
+
+A separate mesh-focused benchmark on three mesh geometries (saddle,
+paraboloid, ripple) at three sizes ($8 \times 8$, $10 \times 10$,
+$12 \times 12$) provides a more detailed picture of the geodesic
+polishing baselines.  In 3D:
+
+\begin{itemize}
+\item Mean full-GKK relative RMSE dropped from 0.025 (pure KK) to 0.007
+  (KK $\to$ GKK), a 73.7\% reduction.
+\item KK $\to$ LGKK achieved 0.007, capturing nearly all of the GKK
+  gain while being approximately $7\times$ faster.
+\item The geodesic improvements came with only a modest 3--4\% increase
+  in classical KK error, a mild tradeoff.
+\end{itemize}
+
+These results establish that LGKK is a strong practical approximation of
+full GKK, and that the small accuracy gap between them does not justify
+the much higher cost of full GKK for most applications.
+
+
+% ============================================================
+% 9. DISCUSSION
+% ============================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{When to use which variant}
+
+The results suggest a clear decision framework:
+
+\begin{itemize}
+\item For \textbf{unweighted graphs} or graphs where edge weights do not
+  encode geometry, use \textbf{combinatorial GRIP} (the default engine).
+  It is the fastest method and handles topological structure well.
+\item For \textbf{weighted graphs with meaningful edge lengths} where
+  speed is the primary concern, use \textbf{weighted GRIP} alone.  It
+  provides geometry-aware coarsening and refinement at minimal additional
+  cost.
+\item For \textbf{higher geodesic fidelity} on weighted graphs, use
+  \textbf{weighted GRIP with in-core LGKK}.  This provides the best
+  balance of speed and geodesic accuracy within the multiscale framework.
+\item For \textbf{maximum geodesic accuracy} without regard to runtime,
+  use the \textbf{KK $\to$ LGKK} pipeline as an external post-processing
+  step.
+\end{itemize}
+
+\subsection{Sister-API design}
+
+The \grip{} package maintains separate APIs for the combinatorial and
+weighted engines rather than adding a mode switch to a single function.
+This design ensures backward compatibility, makes the
+combinatorial/weighted distinction explicit in user code, and allows each
+engine to have its own validated parameter presets.  The parameter spaces
+are aligned: shared parameters have the same names and semantics, and
+weighted-specific parameters (normalization, metric neighbor cap) are
+additional rather than replacing existing ones.
+
+\subsection{Speed--quality tradeoffs}
+
+The GRIP-family methods occupy a different region of the
+speed--quality Pareto frontier than the KK-family methods.  On small
+graphs ($n < 200$), the KK-family is competitive in both speed and
+quality because the $\bigO(n^2)$ KK step is cheap at small~$n$.  On
+larger graphs, the near-linear scaling of the GRIP multiscale engine
+becomes the dominant advantage.
+
+The in-core LGKK integration is particularly efficient because it
+amortizes the geodesic cache construction across the multiscale
+hierarchy: caches are built incrementally as the active set grows, rather
+than being constructed from scratch on the full graph.
+
+\subsection{3D as primary evaluation space}
+
+Our benchmark consistently shows that 3D layouts achieve substantially
+lower geodesic error than 2D layouts on the same weighted graph families.
+This is not a limitation of any particular algorithm but a consequence of
+the intrinsic dimensionality of the test graphs.  For graphs derived from
+surfaces, meshes, and 3D bodies, the natural ambient dimension is three,
+and forcing the layout into two dimensions introduces irreducible
+distortion.
+
+This suggests that researchers working with weighted geometric graphs
+should consider 3D layout as the default evaluation space, with 2D used
+only when the application specifically requires planar display.
+
+\subsection{Limitations}
+
+The current weighted GRIP implementation does not exploit GPU parallelism,
+limiting scalability on very large graphs.  The Dijkstra-based weighted
+neighborhood construction is more expensive than BFS-based combinatorial
+neighborhoods, though the early-stopping and scratch-reuse optimizations
+in Phase~4 of the implementation substantially reduce this cost.  The
+benchmark panel covers only small to medium graphs (36--104 vertices); a
+broader evaluation at larger scales is an important direction for future
+work.
+
+The weighted GRIP engine can produce higher geodesic error than
+combinatorial GRIP on some families when used without LGKK refinement,
+because the weighted coarsening changes the optimization landscape in
+ways that do not always reduce the all-pairs geodesic stress.  LGKK
+refinement reliably corrects this, but users should be aware that
+weighted GRIP alone is not guaranteed to improve over combinatorial GRIP
+on every metric.
+
+
+% ============================================================
+% 10. CONCLUSION
+% ============================================================
+\section{Conclusion}\label{sec:conclusion}
+
+We have presented a family of extensions that transform GRIP from a
+purely combinatorial multiscale graph drawing algorithm into a
+geometry-aware multiscale family.  The key contributions are:
+
+\begin{enumerate}
+\item A \textbf{weighted multiscale hierarchy} based on weighted MIS
+  filtration using Dijkstra shortest-path radii, replacing hop-count
+  filtration.
+\item \textbf{Weighted neighborhood caches, insertion, and refinement}
+  driven by geodesic distances throughout the pipeline.
+\item \textbf{Coarse active-set global repulsion} that reduces multiscale
+  foldovers in both the combinatorial and weighted engines.
+\item \textbf{In-core and post-layout LGKK integration} that provides
+  semi-global geodesic refinement within the multiscale framework.
+\item A \textbf{systematic benchmark framework} over weighted synthetic
+  graph families in 3D.
+\end{enumerate}
+
+On a benchmark panel of five weighted graph families, weighted GRIP with
+in-core LGKK reduces the mean geodesic error by 22.6\% over
+combinatorial GRIP in 3D, while the post-layout LGKK variant achieves a
+37.7\% reduction.  The KK-warm-started geodesic polishing family remains
+the accuracy ceiling, but the weighted GRIP variants are substantially
+faster and do not require external initialization.
+
+All methods are implemented in the open-source \grip{} R package.  The
+sister-API design preserves backward compatibility with the existing
+combinatorial engine while providing a parallel path for geometry-aware
+graph drawing.  The package, benchmark scripts, and all data used in this
+paper are publicly available.
+
+
+% ============================================================
+% ACKNOWLEDGMENTS
+% ============================================================
+\section*{Acknowledgments}
+
+The GRIP algorithm was originally developed in collaboration with
+Stephen G.\ Kobourov and Michael T.\ Goodrich.  Research reported in
+this publication was supported by grant number INV-048956 from the Gates
+Foundation.
+
+
+% ============================================================
+% BIBLIOGRAPHY
+% ============================================================
+\bibliographystyle{plainnat}
+\bibliography{grip-methods-paper}
+
+\end{document}

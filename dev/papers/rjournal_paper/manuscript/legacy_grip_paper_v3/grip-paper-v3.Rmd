@@ -1,0 +1,786 @@
+---
+title: "Grip: Graph Drawing with Intelligent Placement in R"
+author:
+  - name: Pawel Gajer
+    affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
+    address: Baltimore, Maryland, USA
+    orcid: ~
+    email: pgajer@gmail.com
+  - name: Jacques Ravel
+    affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
+    address: Baltimore, Maryland, USA
+    orcid: ~
+    email: ~
+abstract: >
+  Grip is an R package for multiscale graph drawing and layout assessment. It
+  provides scalable 2D and 3D layouts for unweighted graphs, a weighted sister
+  API for graphs whose edge lengths encode geometry, package-supplied presets
+  for common graph families, and a workflow for comparing candidate layouts
+  with reproducible quality metrics. The package combines an R interface with a
+  C++ core via Rcpp and bundles graph generators, trace diagnostics, and real
+  and synthetic examples. This article focuses on the package interface, the
+  layout evaluation workflow, and the kinds of graph problems for which grip is
+  most useful, including a weighted geometric example and a large
+  microbial-network case study.
+preamble: |
+  \usepackage{amsmath}
+date: "2026-04-02"
+date_received: ~
+journal:
+  firstpage: 1
+  lastpage: ~
+slug: gajer-grip-v3
+bibliography: grip-paper-v3.bib
+output:
+  rjtools::rjournal_article:
+    self_contained: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = FALSE,
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center",
+  out.width = "100%",
+  message = FALSE,
+  warning = FALSE
+)
+
+paper.table.colnames <- c(
+  graph = "Graph",
+  candidate = "Cand",
+  method = "Meth",
+  dim = "Dim",
+  `n.vertices` = "nV",
+  `n.edges` = "nE",
+  `n.runs` = "Runs",
+  `elapsed.sec.mean` = "Sec",
+  `score.composite` = "Comp",
+  `sampled.stress` = "Stress",
+  `sampled.stress.mean` = "Stress",
+  `edge.length.cv` = "EdgeCV",
+  `edge.length.cv.mean` = "EdgeCV",
+  `sampled.nonedge.sep.ratio` = "NESR",
+  `sampled.nonedge.sep.ratio.mean` = "NESR",
+  `cluster.separation` = "ClSep",
+  `cluster.separation.mean` = "ClSep",
+  `stability.procrustes.mean` = "PStab",
+  `edge.crossings` = "Cross",
+  `gkk.weighted.rel.rmse` = "GKK Rel",
+  `gkk.weighted.rmse` = "GKK RMSE",
+  `gkk.mean.rel.path.error` = "Path Rel"
+)
+
+paper_table_caption <- function(title, abbreviations) {
+  paste0(title, " Abbrev.: ", abbreviations)
+}
+
+paper_kable <- function(x, caption, digits = 3) {
+  col.names <- unname(ifelse(
+    names(x) %in% names(paper.table.colnames),
+    paper.table.colnames[names(x)],
+    names(x)
+  ))
+  align <- c("l", rep("r", max(0, ncol(x) - 1L)))
+  knitr::kable(
+    x,
+    digits = digits,
+    col.names = col.names,
+    row.names = FALSE,
+    align = align,
+    caption = caption
+  )
+}
+
+find.extdata.file <- function(...) {
+  rel.path <- file.path(...)
+  candidates <- c(
+    system.file("extdata", rel.path, package = "grip"),
+    file.path("..", "..", "..", "..", "inst", "extdata", rel.path),
+    file.path("..", "..", "..", "inst", "extdata", rel.path),
+    file.path("inst", "extdata", rel.path)
+  )
+  path <- candidates[file.exists(candidates)][1L]
+  if (!length(path) || is.na(path) || !nzchar(path)) {
+    stop("could not locate ", rel.path)
+  }
+  path
+}
+
+read.extdata.csv <- function(file.name) {
+  utils::read.csv(find.extdata.file(file.name), stringsAsFactors = FALSE)
+}
+
+read.extdata.rds <- function(...) {
+  readRDS(find.extdata.file(...))
+}
+
+plot_layout_panel <- function(coords,
+                              edges,
+                              main,
+                              projection = NULL,
+                              vertex.col = "black",
+                              edge.col = "gray82",
+                              cex = 0.5) {
+  grip.plot(
+    coords, edges,
+    projection = projection,
+    vertex.col = vertex.col,
+    edge.col = edge.col,
+    pch = 16,
+    cex = cex,
+    main = main
+  )
+}
+
+edge.matrix.from.adj <- function(adj.list) {
+  edges <- list()
+  idx <- 0L
+  for (u in seq_along(adj.list)) {
+    nbrs <- adj.list[[u]][adj.list[[u]] > u]
+    for (v in nbrs) {
+      idx <- idx + 1L
+      edges[[idx]] <- c(u, v)
+    }
+  }
+  do.call(rbind, edges)
+}
+```
+
+# Introduction
+
+Graph layout is a practical problem for many R users, but it is not a single
+problem. Some graphs are small and unweighted, where classical single-scale
+methods can be excellent. Others are larger, or have strongly structured
+families such as grids and recursive carpets, where multiscale methods become
+useful. Still others are weighted graphs whose edge lengths carry geometry, so
+the goal is no longer only to display topology but also to respect a graph
+metric.
+
+The original GRIP algorithm [@gajer2002; @gajer2004] addresses the scalability
+part of this problem by constructing a hierarchy of maximal independent sets,
+placing vertices from coarse to fine resolution, and refining locally at each
+level. The grip package exposes this multiscale strategy in R through a C++
+core accessed with Rcpp [@eddelbuettel2011]. The package is aimed at package
+users rather than graph-drawing specialists: the focus is on usable interfaces,
+reproducible comparisons, and diagnostics that help users decide which layout
+to keep.
+
+This article makes three package-level points. First, grip now includes two
+closely related interfaces: a combinatorial API for topology-first graphs and a
+weighted API for graphs whose edge lengths encode geometry. Second, the package
+ships family-specific presets and a comparison workflow that evaluates
+candidate layouts across seeds with shared quality metrics. Third, the package
+bundles synthetic graph families, traced solves, and precomputed large-graph
+artifacts so that examples remain reproducible without turning the paper into a
+long-running benchmark job.
+
+The package is complementary to existing R tools rather than a replacement for
+them. igraph [@csardi2006] supplies several strong general-purpose layouts;
+ggraph [@pedersen2024] provides a plotting grammar for network graphics; and
+graphlayouts [@schoch2023] offers additional layout algorithms, including
+stress-based methods. The contribution of grip is the combination of multiscale
+layout generation, geometry-aware weighted layouts, and a scoring workflow that
+can also be used to assess layouts computed elsewhere.
+
+# Package overview
+
+At a high level, grip keeps the original GRIP idea of working from a coarse
+representation of the graph back to the full graph. The paper does not attempt
+to re-derive the algorithm in detail; instead, it focuses on the package
+interfaces that expose this strategy in a form suitable for routine R use.
+
+## Layout engines and interfaces
+
+The main layout functions are summarized in Table \@ref(tab:api-summary). All
+return an $n \times d$ numeric matrix of coordinates, where $d$ is 2 or 3.
+
+```{r api-summary, echo=FALSE}
+api.summary <- data.frame(
+  Function = c(
+    "grip.layout()",
+    "grip.layout.trace()",
+    "grip.layout.weighted()",
+    "grip.layout.trace.weighted()"
+  ),
+  Purpose = c(
+    "Combinatorial multiscale layout",
+    "Combinatorial layout with per-level snapshots",
+    "Weighted multiscale layout",
+    "Weighted layout with per-level snapshots"
+  ),
+  `Graph type` = c("Unweighted", "Unweighted", "Weighted", "Weighted"),
+  check.names = FALSE
+)
+
+knitr::kable(
+  api.summary,
+  row.names = FALSE,
+  align = c("l", "l", "l"),
+  caption = "Core layout interfaces in the grip package."
+)
+```
+
+The two APIs are intentionally separate. `grip.layout()` is the default entry
+point for unweighted or topology-first graphs. `grip.layout.weighted()` uses
+the same broad parameter vocabulary, but it treats edge lengths as part of the
+optimization problem and therefore solves a different task. The traced variants
+record intermediate states and diagnostics for inspection or animation.
+
+The package accepts graphs either as two-column integer edge matrices or as
+adjacency lists with optional parallel weight lists. A minimal example of both
+calling patterns is shown below.
+
+```{r api-examples, echo=TRUE}
+library(grip)
+
+edges <- edges.mesh(8, 8)
+coords.mesh <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+
+adj.list <- list(c(2L), c(1L, 3L), c(2L, 4L), c(3L))
+weight.list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+coords.weighted.small <- grip.layout.weighted(
+  adj_list = adj.list,
+  weight_list = weight.list,
+  n = 4,
+  dim = 2,
+  seed = 12
+)
+```
+
+The most important user-facing parameters are layout dimension, initialization
+placement, the number of multiscale and final refinement rounds, local
+neighborhood size, repulsion strength, and the random seed. The package also
+packs disconnected components by default, so disconnected graphs can still be
+laid out with a single call.
+
+## Presets, tracing, and graph families
+
+The package includes family-specific presets for common graph classes. The
+combinatorial interface provides presets for meshes, carpets, trees, and tori.
+The weighted interface adds presets for cylinders, spheres, irregular
+manifolds, and other families where graph geometry matters. These presets are
+starting points, not guarantees of optimality, but they are useful because they
+make the package easier to use on recurring graph families.
+
+The trace functions expose the coarse-to-fine solve explicitly. Figure
+\@ref(fig:trace) shows four trace frames for a small mesh layout.
+
+```{r trace, fig.cap="Multiscale trace of a 6x6 mesh. The four panels show the coarsest initialization, an early intermediate state, a late intermediate state, and the final layout.", fig.alt="Four panels showing a mesh layout evolving from a sparse coarse configuration to a regular grid-like final arrangement.", fig.width=10, fig.height=2.8}
+trace.edges <- edges.mesh(6, 6)
+trace.solve <- grip.layout.trace(
+  trace.edges, n = 36, dim = 2,
+  preset = "mesh", seed = 31,
+  trace = "level"
+)
+
+frame.idx <- unique(c(
+  1L,
+  max(2L, floor(length(trace.solve$frames) / 3)),
+  max(3L, floor(2 * length(trace.solve$frames) / 3)),
+  length(trace.solve$frames)
+))
+
+labels <- c("Coarsest start", "Early refinement", "Late refinement", "Final layout")
+op <- par(mfrow = c(1, 4), mar = c(1, 1, 2.5, 1))
+for (i in seq_along(frame.idx)) {
+  coords <- trace.solve$frames[[frame.idx[i]]]
+  active <- complete.cases(coords[, 1:2])
+  xy <- coords[active, 1:2, drop = FALSE]
+  active.edges <- trace.edges[active[trace.edges[, 1]] & active[trace.edges[, 2]], , drop = FALSE]
+
+  xlim <- range(xy[, 1])
+  ylim <- range(xy[, 2])
+  xpad <- max(0.08 * diff(xlim), 0.2)
+  ypad <- max(0.08 * diff(ylim), 0.2)
+
+  plot(xy[, 1], xy[, 2], type = "n", asp = 1, axes = FALSE,
+       xlab = "", ylab = "",
+       xlim = xlim + c(-xpad, xpad),
+       ylim = ylim + c(-ypad, ypad),
+       main = labels[i])
+  if (nrow(active.edges) > 0) {
+    segments(
+      coords[active.edges[, 1], 1], coords[active.edges[, 1], 2],
+      coords[active.edges[, 2], 1], coords[active.edges[, 2], 2],
+      col = "gray82"
+    )
+  }
+  points(xy[, 1], xy[, 2], pch = 16, cex = 0.6)
+}
+par(op)
+```
+
+The package also ships graph generators for regular grids, trees, recursive
+families such as Sierpinski carpets, and weighted geometric families generated
+from surfaces. These are helpful for examples, regression tests, and
+family-specific benchmarking.
+
+# Layout assessment workflow
+
+The strongest package-level feature of grip is not that it always produces the
+best layout on every graph. Rather, it gives users a reproducible way to score
+candidate layouts, compare them across seeds, and inspect the trade-offs
+between graph families and layout objectives.
+
+## Quality metrics
+
+Table \@ref(tab:metrics-table) summarizes the metrics returned by
+`grip.score.layout()`. The package uses them directly for single-layout scoring
+and for aggregate comparisons across seeds in `grip.compare.layouts()`.
+
+```{r metrics-table, echo=FALSE}
+metrics.table <- data.frame(
+  Metric = c(
+    "Sampled stress",
+    "Edge-length CV",
+    "Sampled non-edge separation",
+    "Edge crossings",
+    "Cluster separation",
+    "Procrustes stability"
+  ),
+  Meaning = c(
+    "Agreement between layout distances and graph distances",
+    "Uniformity of edge lengths",
+    "Breathing room between non-neighbors",
+    "Readability in 2D",
+    "Separation of known external groups",
+    "Seed-to-seed reproducibility"
+  ),
+  Better = c("Lower", "Lower", "Higher", "Lower", "Higher", "Lower"),
+  check.names = FALSE
+)
+
+knitr::kable(
+  metrics.table,
+  row.names = FALSE,
+  align = c("l", "l", "l"),
+  caption = "Quality metrics used by grip.score.layout()."
+)
+```
+
+`grip.compare.layouts()` runs multiple candidates across seeds, computes these
+metrics for each run, and returns both run-level and summary-level results. The
+summary includes mean quality metrics, a rank-based composite score, and a
+Procrustes stability estimate when multiple seeds are used.
+
+## Evidence for family-specific presets
+
+To make the preset claims concrete, Table \@ref(tab:preset-benchmark) compares
+the default layout settings with package-supplied presets on two structured
+families, each run across three seeds. The results are generated directly in
+the paper build.
+
+```{r preset-benchmark}
+mesh.edges <- edges.mesh(12, 12)
+mesh.compare <- grip.compare.layouts(
+  edges = mesh.edges,
+  n = 144,
+  dim = 2,
+  candidates = c("default", "mesh"),
+  seeds = 1:3,
+  edge.crossings = "always"
+)
+
+carpet.edges <- edges.sierpinski.carpet(3)
+carpet.n <- max(carpet.edges)
+carpet.compare <- grip.compare.layouts(
+  edges = carpet.edges,
+  n = carpet.n,
+  dim = 2,
+  candidates = c("default", "carpet"),
+  seeds = 1:3,
+  edge.crossings = "never"
+)
+
+preset.benchmark <- rbind(
+  transform(
+    mesh.compare$summary[, c(
+      "candidate", "n.runs", "elapsed.sec.mean", "sampled.stress.mean",
+      "edge.length.cv.mean", "sampled.nonedge.sep.ratio.mean",
+      "stability.procrustes.mean"
+    )],
+    graph = "12x12 mesh"
+  ),
+  transform(
+    carpet.compare$summary[, c(
+      "candidate", "n.runs", "elapsed.sec.mean", "sampled.stress.mean",
+      "edge.length.cv.mean", "sampled.nonedge.sep.ratio.mean",
+      "stability.procrustes.mean"
+    )],
+    graph = "Carpet level 3"
+  )
+)
+
+preset.benchmark <- preset.benchmark[, c(
+  "graph", "candidate", "n.runs", "elapsed.sec.mean",
+  "sampled.stress.mean", "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean", "stability.procrustes.mean"
+)]
+preset.benchmark$candidate <- factor(
+  preset.benchmark$candidate,
+  levels = c("default", "mesh", "carpet")
+)
+preset.benchmark <- preset.benchmark[order(preset.benchmark$graph, preset.benchmark$candidate), ]
+
+paper_kable(
+  preset.benchmark,
+  caption = paper_table_caption(
+    "Preset benchmark on two structured graph families, each averaged over three seeds.",
+    "Runs = number of seeds; Sec = mean elapsed seconds; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; NESR = sampled non-edge separation ratio; PStab = Procrustes stability."
+  ),
+  digits = 3
+)
+```
+
+These results show why the presets matter. On both graph families, the
+package-supplied preset reduces sampled stress, improves edge-length
+uniformity, increases non-edge separation, and is substantially more stable
+across seeds. The runtime cost is small relative to the improvement in layout
+quality on these families.
+
+# Worked examples
+
+## Family-specific improvement on a recursive graph
+
+Figure \@ref(fig:carpet-figure) visualizes the Sierpinski-carpet benchmark from
+the previous section. The figure is paired with the benchmark table so that the
+claim is visual and quantitative rather than purely visual.
+
+```{r carpet-figure, fig.cap="Level-3 Sierpinski carpet laid out with the default settings (left) and the carpet preset (right). The preset yields the lower-stress and more stable solution reported in Table \\@ref(tab:preset-benchmark).", fig.alt="Two panels showing a Sierpinski carpet graph. The default layout is more distorted, while the preset layout better preserves the recursive holes.", fig.width=10, fig.height=4.5}
+carpet.default.coords <- grip.layout(carpet.edges, n = carpet.n, dim = 2, seed = 12)
+carpet.preset.coords <- grip.layout(carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 12)
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+plot_layout_panel(carpet.default.coords, carpet.edges, "Default", cex = 0.3)
+plot_layout_panel(carpet.preset.coords, carpet.edges, "Carpet preset", cex = 0.3)
+par(op)
+```
+
+## Weighted graph with geometric edge lengths
+
+The weighted interface is easiest to motivate on a graph whose topology is
+simple but whose geometry is not. The example below uses a $5 \times 5$ mesh
+whose edge lengths are induced by a curved saddle surface. The graph topology
+is unchanged, but the intended metric is no longer the flat grid metric.
+
+The comparison includes three candidates: the combinatorial layout, the
+weighted layout, and the weighted layout followed by a small amount of LGKK
+polish. The scoring uses `grip.score.geodesic.kk()`, which evaluates the
+layout against the weighted graph metric.
+
+```{r weighted-summary}
+weighted.mesh <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
+
+coords.combinatorial <- grip.layout(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
+
+coords.weighted <- grip.layout.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  seed = 1
+)
+
+coords.weighted.lgkk <- grip.layout.weighted(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights,
+  dim = 3,
+  preset = "mesh",
+  lgkk_polish_rounds = 6L,
+  seed = 1
+)
+
+gkk.prepared <- grip.prepare.geodesic.kk(
+  weighted.mesh$edges,
+  n = weighted.mesh$n,
+  edge_weights = weighted.mesh$edge_weights
+)
+
+weighted.summary <- do.call(
+  rbind,
+  list(
+    cbind(
+      method = "Combinatorial GRIP",
+      grip.score.geodesic.kk(
+        coords.combinatorial,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP",
+      grip.score.geodesic.kk(
+        coords.weighted,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    ),
+    cbind(
+      method = "Weighted GRIP + LGKK polish",
+      grip.score.geodesic.kk(
+        coords.weighted.lgkk,
+        prepared = gkk.prepared
+      )[, c(
+        "gkk.weighted.rel.rmse",
+        "gkk.weighted.rmse",
+        "gkk.mean.rel.path.error"
+      )]
+    )
+  )
+)
+
+paper_kable(
+  weighted.summary,
+  caption = paper_table_caption(
+    "Weighted saddle-surface example scored with geodesic-KK criteria.",
+    "GKK Rel = weighted relative RMSE; GKK RMSE = weighted RMSE; Path Rel = mean relative path error."
+  ),
+  digits = 3
+)
+```
+
+On this example, the weighted solve lowers the weighted relative RMSE from
+`r round(weighted.summary$gkk.weighted.rel.rmse[1], 3)` to
+`r round(weighted.summary$gkk.weighted.rel.rmse[2], 3)`, and a short LGKK
+polish reduces it further to
+`r round(weighted.summary$gkk.weighted.rel.rmse[3], 3)`. This is the package
+argument for the weighted API: it is not only another parameter setting, but a
+different interface for graphs where edge lengths are part of the target.
+
+```{r weighted-figure, fig.cap="Weighted mesh example. Top left: target saddle geometry. Top right: combinatorial GRIP. Bottom left: weighted GRIP. Bottom right: weighted GRIP followed by LGKK polish.", fig.alt="A four-panel comparison of a saddle-surface mesh showing the target geometry, the combinatorial layout, the weighted layout, and the weighted layout with LGKK polish.", fig.width=11.2, fig.height=8}
+op <- par(mfrow = c(2, 2), mar = c(1, 1, 3, 1))
+plot_layout_panel(
+  weighted.mesh$coords_surface,
+  weighted.mesh$edges,
+  "Target geometry",
+  projection = "ortho",
+  vertex.col = "#666666"
+)
+plot_layout_panel(
+  coords.combinatorial,
+  weighted.mesh$edges,
+  "Combinatorial GRIP",
+  projection = "ortho"
+)
+plot_layout_panel(
+  coords.weighted,
+  weighted.mesh$edges,
+  "Weighted GRIP",
+  projection = "ortho",
+  vertex.col = "#1F3B73"
+)
+plot_layout_panel(
+  coords.weighted.lgkk,
+  weighted.mesh$edges,
+  "Weighted GRIP + LGKK",
+  projection = "ortho",
+  vertex.col = "#7A2E2E"
+)
+par(op)
+```
+
+## Large real-data example: HMP microbial network
+
+The package bundles a coarsened graph derived from Human Microbiome Project
+data [@hmp2012]. The original giant connected component had 6,474 vertices; the
+bundled coarsened graph has 1,828 vertices and 4,656 edges, which is large
+enough that ad hoc manual layout selection becomes impractical.
+
+```{r hmp-data}
+data(hmp.u01.gc.coarse)
+
+cat("Vertices:", length(hmp.u01.gc.coarse$adj_list), "\n")
+cat("Edges:", nrow(edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)), "\n")
+cat(
+  "CST levels:",
+  paste(sort(unique(hmp.u01.gc.coarse$vertex_data$cst)), collapse = ", "),
+  "\n"
+)
+```
+
+The full HMP workflow takes several minutes, so the package ships precomputed
+artifacts for the vignette and the paper. Table \@ref(tab:hmp-summary) reports
+three candidates: the default preset, the tree preset, and the strongest local
+search candidate by cluster-separation score among the bundled precomputed
+results.
+
+```{r hmp-summary}
+hmp.results <- read.extdata.rds("hmp_u01_gc_coarse", "vignette_results.rds")
+
+hmp.local.best.idx <- which.max(hmp.results$local_search_summary$cluster.separation.mean)
+hmp.local.best <- hmp.results$local_search_summary[hmp.local.best.idx, , drop = FALSE]
+hmp.display <- rbind(
+  transform(
+    hmp.results$preset_summary[hmp.results$preset_summary$candidate == "default", , drop = FALSE],
+    candidate = "default"
+  ),
+  transform(
+    hmp.results$preset_summary[hmp.results$preset_summary$candidate == "tree", , drop = FALSE],
+    candidate = "tree"
+  ),
+  transform(
+    hmp.local.best,
+    candidate = "local search"
+  )
+)
+
+hmp.display <- hmp.display[, c(
+  "candidate", "elapsed.sec.mean", "sampled.stress.mean",
+  "sampled.nonedge.sep.ratio.mean", "cluster.separation.mean",
+  "score.composite"
+)]
+
+paper_kable(
+  hmp.display,
+  caption = paper_table_caption(
+    "Precomputed HMP candidate summary for the bundled 1,828-vertex graph.",
+    "Sec = elapsed seconds; Stress = sampled stress; NESR = sampled non-edge separation ratio; ClSep = cluster separation; Comp = composite score."
+  ),
+  digits = 3
+)
+```
+
+The table shows a real trade-off. The default candidate has the lowest sampled
+stress among these three candidates, while the tree and local-search candidates
+produce substantially larger cluster-separation scores. That is exactly the
+kind of choice the comparison workflow is meant to surface: the package does
+not remove judgment, but it makes the trade-offs explicit.
+
+```{r hmp-figure, fig.cap="Precomputed 3D layouts for the HMP microbial network, colored by community state type. Left: default candidate. Middle: tree preset. Right: best precomputed local-search candidate by cluster-separation score.", fig.alt="Three orthographic 3D network layouts of the HMP graph colored by community state type, comparing default, tree, and local-search candidates.", fig.width=11, fig.height=4}
+hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
+hmp.cst <- hmp.u01.gc.coarse$vertex_data$cst
+cst.levels <- sort(unique(hmp.cst))
+cst.cols <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"), cst.levels)
+hmp.vertex.cols <- cst.cols[hmp.cst]
+hmp.local.name <- as.character(hmp.results$local_search_summary$candidate[hmp.local.best.idx])
+
+op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
+plot_layout_panel(
+  hmp.results$layouts$preset$default,
+  hmp.edges,
+  "Default",
+  projection = "ortho",
+  vertex.col = hmp.vertex.cols,
+  cex = 0.45
+)
+plot_layout_panel(
+  hmp.results$layouts$preset$tree,
+  hmp.edges,
+  "Tree preset",
+  projection = "ortho",
+  vertex.col = hmp.vertex.cols,
+  cex = 0.45
+)
+plot_layout_panel(
+  hmp.results$layouts$local[[hmp.local.name]],
+  hmp.edges,
+  "Local search",
+  projection = "ortho",
+  vertex.col = hmp.vertex.cols,
+  cex = 0.45
+)
+par(op)
+```
+
+# Comparison with other R tools
+
+For package evaluation, the most useful comparison is not a checklist of
+features but an evidence-based benchmark. Table \@ref(tab:karate-benchmark)
+therefore uses bundled precomputed results on the Zachary karate club graph
+[@zachary1977], scored with the same layout-quality metrics for all methods.
+
+```{r karate-benchmark}
+benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
+
+karate.display <- benchmark.results$karate$scores[, c(
+  "method",
+  "sampled.stress",
+  "edge.length.cv",
+  "sampled.nonedge.sep.ratio",
+  "cluster.separation",
+  "edge.crossings"
+)]
+
+paper_kable(
+  karate.display,
+  caption = paper_table_caption(
+    "Small-graph comparison on the Zachary karate club network using a shared scoring function.",
+    "Stress = sampled stress; EdgeCV = edge-length coefficient of variation; NESR = sampled non-edge separation ratio; ClSep = cluster separation; Cross = edge crossings."
+  ),
+  digits = 3
+)
+```
+
+This comparison is intentionally modest in tone. On a very small 2D social
+graph, single-scale methods from igraph and graphlayouts perform very well, and
+grip does not dominate them. That is an informative result. It supports the
+claim that grip is most useful as a multiscale and evaluation-oriented package,
+especially for structured graph families, weighted geometric graphs, and
+workflow-driven layout selection. It also illustrates why the scoring
+functions are valuable on their own: they can be used to assess layouts
+computed outside the package.
+
+# Reproducibility
+
+This article is written in R Markdown using the rjtools output format currently
+recommended by the journal. The tables and the small-graph figures are produced
+from evaluated code in the manuscript. The larger HMP case study and the
+external-package comparison both use bundled precomputed `.rds` artifacts so
+that the paper can be rendered quickly during review while still pointing to
+the scripts and vignettes that generate those artifacts.
+
+In the package source tree, the external comparison artifacts are created by
+`inst/scripts/precompute-vs-alternatives.R`, and the HMP workflow is described
+in the real-data vignette and the HMP case-study article. This split keeps the
+paper build practical without hiding how the heavier results were produced.
+
+# Discussion
+
+The manuscript-level conclusion is deliberately narrower than a methods paper.
+grip is useful because it combines multiscale layout generation with a
+reproducible assessment workflow, not because it wins every benchmark. The
+package is strongest in three settings:
+
+- unweighted graphs where a multiscale layout is appropriate and preset-guided
+  tuning is helpful;
+- weighted graphs whose edge lengths encode geometry and should therefore be
+  solved with the weighted sister API rather than treated as ordinary metadata;
+- analysis workflows where several plausible layouts must be compared
+  reproducibly rather than selected by eye.
+
+There are also clear limits. The preset library is finite, so some real graphs
+will still require manual tuning. The quality metrics are proxies for readable
+drawings rather than guarantees of optimality. Exact edge-crossing counts are
+expensive on dense 2D graphs, and the current implementation does not use GPU
+acceleration for very large problems. These are reasonable boundaries for a
+package paper and help clarify where the package fits in the current R
+ecosystem.
+
+The package source code, vignettes, and issue tracker are available at
+https://github.com/pgajer/grip.
+
+# Acknowledgments
+
+The GRIP algorithm was originally developed in collaboration with Stephen G.
+Kobourov and Michael T. Goodrich. The HMP microbial network data were derived
+from publicly available Human Microbiome Project resources. Research reported
+in this publication was supported by grant number INV-048956 from the Gates
+Foundation.

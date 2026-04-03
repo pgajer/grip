@@ -1,0 +1,6 @@
+grip
+igraph
+graphlayouts
+knitr
+rmarkdown
+rjtools

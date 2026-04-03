@@ -1,0 +1,223 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\vect}[1]{\mathbf{#1}}
+
+\title{A Geodesic Variant of the Kamada--Kawai Energy}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+
+The classical Kamada--Kawai (KK) energy is built from the discrepancy between graph
+distances and ambient Euclidean distances between embedded vertices. For an embedding
+$X = (\vect{x}_1,\dots,\vect{x}_n)$ with $\vect{x}_i \in \RR^d$, the standard model uses
+\[
+E_{\mathrm{KK}}(X)
+=
+\frac{1}{2}\sum_{1 \le i < j \le n}
+k_{ij}\bigl(\norm{\vect{x}_i-\vect{x}_j}-\ell_{ij}\bigr)^2,
+\]
+where
+\[
+\ell_{ij} = L_0 g_{ij},
+\qquad
+L_0 = \frac{L}{D},
+\qquad
+k_{ij} = \frac{K}{g_{ij}^2}.
+\]
+Here $g_{ij}$ is the graph distance between vertices $i$ and $j$, $D$ is the graph
+diameter, $L$ is the drawing scale, and $K$ is a global stiffness constant.
+
+This formulation is natural if the goal is to match graph-theoretic distances with
+straight-line distances in the ambient space. However, the graph itself carries an intrinsic
+one-dimensional geometry: movement from $i$ to $j$ takes place along graph edges rather
+than along the direct chord joining $\vect{x}_i$ and $\vect{x}_j$ in $\RR^d$. Because of this,
+the ambient Euclidean distance $\norm{\vect{x}_i-\vect{x}_j}$ can be too crude. Two vertices
+may be far apart along the graph but happen to lie close in the drawing, or vice versa.
+
+A more intrinsic alternative is to measure distance \emph{along the embedded graph}. In
+other words, once the graph is drawn in $\RR^d$, each edge inherits its Euclidean length,
+and the distance between two vertices is measured as the total length of a graph path in the
+embedding. This leads to a geodesic version of the KK energy that compares graph distance
+with embedding-induced path length rather than with naive straight-line separation.
+
+Classical KK and stress-majorization methods use graph distances as \emph{targets}, but the
+realized distance in the optimized functional is still the ambient Euclidean distance between
+vertex positions \cite{kamada1989algorithm,gansner2004stress}. Cohen proposed
+linear-network distance as an alternative target metric, but again compared that target to
+Euclidean inter-node distance rather than to path length measured along the drawn graph
+\cite{cohen1997drawing}; see also the explicit discussion in \cite{koren2003axis}. Sparse
+stress models are close in spirit to the landmark sparsification proposed here, but they
+likewise retain the standard Euclidean discrepancy term \cite{ortmann2017sparse}. A recent
+path-aware layout method, Path-Guided Stochastic Gradient Descent, also optimizes Euclidean
+layout distances against path-derived targets rather than against embedded path lengths
+\cite{heumos2024pangenome}. Outside graph drawing, Isomap is a conceptual cousin in that it
+uses graph geodesics in an MDS-style embedding, but those geodesics come from a fixed input
+graph rather than from edge lengths induced by the current drawing \cite{tenenbaum2000global}.
+In particular, \cite{gansner2004stress} is not a formulation of the present geodesic KK
+functional: its stress term is still based on $\norm{\vect{x}_i-\vect{x}_j}$, not on
+$h_{ij}(X)$.
+
+\section*{Embedding-Induced Geodesic Distance}
+
+Let $G=(V,E)$ be a connected graph with $V=\{1,\dots,n\}$. For every unordered pair
+$i<j$, fix once and for all a graph shortest path
+\[
+\gamma_{ij} \subseteq E
+\]
+between $i$ and $j$, where shortest path is understood with respect to the graph metric
+underlying $g_{ij}$. In an unweighted graph this means minimal number of edges, while in a
+weighted graph it means minimal total edge weight. If several graph shortest paths exist, one
+may choose any canonical representative, for example by a deterministic tie-breaking rule.
+
+For an edge $e=\{u,v\}\in E$, define its length in the embedding $X$ by
+\[
+|X(e)| = \norm{\vect{x}_u-\vect{x}_v}.
+\]
+The embedding-induced geodesic distance along the fixed graph shortest path $\gamma_{ij}$
+is then
+\[
+h_{ij}(X) = \sum_{e\in\gamma_{ij}} |X(e)|.
+\]
+
+This quantity is intrinsic to the drawn graph: it records the distance from $i$ to $j$
+measured by traveling along graph edges, using the lengths induced by the embedding.
+
+\section*{Geodesic KK Functional: Full All-Pairs Version}
+
+The full geodesic KK functional uses all unordered vertex pairs and is defined by
+\[
+E_{\mathrm{geo}}(X)
+=
+\frac{1}{2}\sum_{1 \le i < j \le n}
+k_{ij}\bigl(h_{ij}(X)-\ell_{ij}\bigr)^2,
+\]
+with the same target lengths and stiffnesses as in the classical model,
+\[
+\ell_{ij} = L_0 g_{ij},
+\qquad
+L_0 = \frac{L}{D},
+\qquad
+k_{ij} = \frac{K}{g_{ij}^2}.
+\]
+
+This is the direct analogue of the classical KK energy. It is the full model in the sense that
+every chosen shortest path $\gamma_{ij}$ contributes a term, and each such term uses all
+embedded edges belonging to that path through the quantity $h_{ij}(X)$.
+
+This energy has a simple interpretation. The quantity $g_{ij}$ is the shortest-path distance in
+the underlying graph metric. In the unweighted case, or when all graph edge weights are equal
+to one, $g_{ij}$ is simply the number of edges in a shortest path from $i$ to $j$. In the
+general weighted case, $g_{ij}$ is the sum of the prescribed graph edge lengths along a
+shortest path. Accordingly, the target value $\ell_{ij}=L_0 g_{ij}$ says that the
+embedding-induced geodesic distance along $\gamma_{ij}$ should be proportional to the
+original graph metric, with proportionality scale $L_0$. The functional therefore promotes
+drawings in which fixed graph shortest paths are realized by embedded polygonal chains whose
+total lengths are approximately proportional to their graph distances.
+
+Unlike the classical KK term, which only sees the chord $\norm{\vect{x}_i-\vect{x}_j}$, the
+geodesic term sees the actual route through the graph. This is especially attractive when
+the graph should be interpreted as a geometric network whose internal metric matters.
+
+It is useful to note that
+\[
+h_{ij}(X)
+=
+\sum_{e\in\gamma_{ij}} \norm{\vect{x}_{u(e)}-\vect{x}_{v(e)}},
+\]
+so the functional is a stress model on sums of edge lengths along fixed shortest paths. Since
+the paths $\gamma_{ij}$ are fixed, the derivatives can be assembled explicitly from path-edge
+incidence information. In particular, every pair $(i,j)$ contributes only through the edges
+contained in $\gamma_{ij}$, which makes implementation straightforward once the chosen
+paths are stored.
+
+\section*{Landmark-Sparse Geodesic KK Functional}
+
+The all-pairs functional is expensive for large graphs because it uses all $\binom{n}{2}$
+vertex pairs. A natural sparse alternative is to retain local interactions together with a small
+set of long-range landmark constraints.
+
+For each vertex $i$, let $N(i)$ denote the set of graph neighbors of $i$, and let $L(i)$ be a
+set of landmark vertices associated with $i$. The landmark set should contain a small number
+of vertices that are far from $i$ and well separated from one another. One convenient choice
+is farthest-point sampling in the graph metric:
+\begin{align*}
+l_1(i)
+&\in \operatorname*{arg\,max}_{v\in V} g_{iv}, \\
+l_{t+1}(i)
+&\in \operatorname*{arg\,max}_{v\in V}
+\min\bigl\{g_{iv}, g_{l_1(i)v}, \dots, g_{l_t(i)v}\bigr\}.
+\end{align*}
+Then
+\[
+L(i) = \{l_1(i),\dots,l_M(i)\}
+\]
+for a prescribed landmark count $M$.
+
+To avoid double counting, let
+\[
+\mathcal{S}
+=
+\bigl\{(i,j)\,:\, 1\le i<j\le n,\ \text{$j\in N(i)\cup L(i)$ or $i\in N(j)\cup L(j)$}\bigr\}.
+\]
+The landmark-sparse geodesic KK functional is
+\[
+E_{\mathrm{land}}(X)
+=
+\frac{1}{2}\sum_{(i,j)\in\mathcal{S}}
+k_{ij}\bigl(h_{ij}(X)-\ell_{ij}\bigr)^2.
+\]
+
+This sparse model keeps two kinds of geometric information:
+\begin{itemize}
+\item local edge-scale information through the neighbors $N(i)$,
+\item global shape information through the far-away landmark vertices $L(i)$.
+\end{itemize}
+
+The local terms encourage reasonable edge lengths and preserve nearby structure, while the
+landmark terms prevent the layout from drifting globally. In practice, this can reduce both
+memory use and optimization cost from quadratic scale to something much closer to linear
+in the number of edges plus the number of landmark constraints.
+
+\section*{Remarks}
+
+The proposed geodesic KK functional may be viewed as replacing the ambient metric of the
+drawing by the metric of the embedded graph itself. In this sense it is more intrinsic than the
+classical KK model. The all-pairs version gives the clean conceptual formulation, while the
+landmark version gives a practical large-scale approximation.
+
+Both versions retain the familiar KK ingredients $g_{ij}$, $\ell_{ij}$, and $k_{ij}$; the only
+change is the replacement of the naive Euclidean distance
+\[
+\norm{\vect{x}_i-\vect{x}_j}
+\]
+by the embedding-induced geodesic distance
+\[
+h_{ij}(X)=\sum_{e\in\gamma_{ij}} |X(e)|.
+\]
+This substitution aligns the energy with the internal geometry of the graph and therefore
+better reflects the metric structure that the drawing is intended to represent.
+
+\bibliographystyle{unsrt}
+\bibliography{geodesic_kk_refs}
+
+\end{document}

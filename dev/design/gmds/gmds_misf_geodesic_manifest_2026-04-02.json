@@ -11,8 +11,8 @@
       "MISF is the most promising next intervention because it provides a multiscale coarse-to-fine scaffold that can replace the global spectral initializer."
     ],
     "references": [
-      "/Users/pgajer/current_projects/grip/papers/A Fast Multi-Dimensional Algorithm for Drawing Large Graphs.pdf",
-      "/Users/pgajer/current_projects/grip/papers/GRIP: Graph dRawing with Intelligent Placement.pdf"
+      "/Users/pgajer/current_projects/grip/references/literature/graph_drawing/A Fast Multi-Dimensional Algorithm for Drawing Large Graphs.pdf",
+      "/Users/pgajer/current_projects/grip/references/literature/graph_drawing/GRIP: Graph dRawing with Intelligent Placement.pdf"
     ],
     "existing_code_anchors": [
       "/Users/pgajer/current_projects/grip/src/DrawGraph.cpp",
@@ -230,8 +230,8 @@
       "goal": "Verify that MISF-GMDS improves basin selection on the graph families that motivated the work.",
       "files_to_add": [
         "/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-misf-paraboloid.R",
-        "/Users/pgajer/current_projects/grip/tools/benchmark-gmds-misf-paraboloid.R",
-        "/Users/pgajer/current_projects/grip/tools/render-gmds-misf-paraboloid-html.R"
+        "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R",
+        "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-paraboloid-html.R"
       ],
       "deliverables": [
         "Paraboloid-focused benchmark report",

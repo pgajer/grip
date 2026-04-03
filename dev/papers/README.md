@@ -1,19 +1,20 @@
-# grip Publication Plan
+# Paper Workspaces
 
-Three papers from the grip package:
+Canonical paper workspaces:
 
-1. **R Journal paper** (`r-journal/`) — grip as an R package for multiscale graph drawing.
-   Software-centered: API, workflows, diagnostics, ecosystem comparison.
-   Target: The R Journal.
+- `dev/papers/rjournal_paper/`
+- `dev/papers/gkk_lgkk_paper/`
+- `dev/papers/geodesic_mds_paper/`
+- `dev/papers/shared/`
 
-2. **Novel methods paper** (`methods/`) — weighted GRIP and LGKK-enhanced multiscale drawing.
-   Algorithm-centered: weighted MISF, geodesic refinement, benchmark results.
-   Target: Journal of Graph Algorithms and Applications.
+Legacy directories still exist during migration:
 
-3. **Geodesic MDS paper** (`gmds/`) — deferred until Papers 1 and 2 stabilize.
-   Data-to-graph-to-embedding pipeline with geodesic-MDS objective.
+- `dev/papers/r-journal/`
+- `dev/papers/methods/`
+- `dev/papers/gmds/`
 
-See `grip_two_paper_strategy_2026-04-02.md` and `grip_papers.md` for full strategy details.
+Migration rule:
 
-Shared benchmark reports and .tex files used by multiple papers live in `../shared/benchmarks/`.
-The main benchmark .tex sources are in `~/current_projects/grip/output/pdf/`.
+- Do not place new manuscript assets in the legacy directories.
+- Use the canonical paper directories for all new work.
+- The legacy directories remain only until their contents are migrated.
