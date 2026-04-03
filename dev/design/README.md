@@ -21,6 +21,6 @@ Development-phase design notes, action plans, benchmarks, and prototypes organiz
 ## Notes
 
 - Keep reproducible generator scripts in `tools/`.
-- Keep generated HTML, PDF, image, and temporary benchmark outputs on a dedicated artifacts branch such as `codex/gmds-performance-pass-artifacts`, not on the merge branch.
+- Keep generated HTML, PDF, image, and temporary benchmark outputs on a dedicated artifacts branch such as `codex/gmds-artifacts`, not on the merge branch.
 - Do not commit generated assets until we explicitly choose final figures.
 - When an asset is finalized for user-facing docs, move it to `man/figures/` and reference from README or vignette.
