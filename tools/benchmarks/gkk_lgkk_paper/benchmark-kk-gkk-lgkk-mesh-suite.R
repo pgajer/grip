@@ -2,7 +2,7 @@
 
 run_tag <- "kk-gkk-lgkk-mesh-suite-2026-03-31"
 repo_root <- normalizePath(".", winslash = "/", mustWork = TRUE)
-output_root <- file.path(repo_root, "output", "benchmarks", run_tag)
+output_root <- file.path(repo_root, "output", "gkk_lgkk_paper", "benchmarks", run_tag)
 figure_dir <- file.path(output_root, "figures")
 table_dir <- file.path(output_root, "tables")
 data_dir <- file.path(output_root, "data")

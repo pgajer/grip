@@ -10,11 +10,18 @@ import pandas as pd
 
 REPO_ROOT = Path("/Users/pgajer/current_projects/grip")
 BENCHMARK_CANDIDATES = [
-    REPO_ROOT / "output" / "benchmarks" / "weighted-grip-phase5-family-panel-2026-04-02",
-    REPO_ROOT / "output" / "benchmarks" / "weighted-grip-phase5-smoke-check",
+    REPO_ROOT / "output" / "gkk_lgkk_paper" / "benchmarks" / "weighted-grip-phase5-family-panel-2026-04-02",
+    REPO_ROOT / "output" / "gkk_lgkk_paper" / "benchmarks" / "weighted-grip-phase5-smoke-check",
 ]
-PDF_ROOT = REPO_ROOT / "output" / "pdf"
-OUTPUT_TEX = PDF_ROOT / "weighted_grip_phase5_report_2026-04-02.tex"
+REPORT_ROOT = (
+    REPO_ROOT
+    / "output"
+    / "gkk_lgkk_paper"
+    / "reports"
+    / "benchmarks"
+    / "weighted_grip_phase5_report_2026-04-02"
+)
+OUTPUT_TEX = REPORT_ROOT / "weighted_grip_phase5_report_2026-04-02.tex"
 
 TEST_RESULTS = [
     {
@@ -314,8 +321,12 @@ def build_document(bench_root: Path, raw_df: pd.DataFrame, summary_df: pd.DataFr
     dims_text = ", ".join(map(str, dims))
     seeds_text = ", ".join(map(str, seeds))
 
-    fig_rel = Path("..") / "benchmarks" / bench_root.name / "figures" / "gkk_rel_rmse.png"
-    fig_runtime = Path("..") / "benchmarks" / bench_root.name / "figures" / "runtime_sec.png"
+    fig_rel = (
+        Path("..") / ".." / ".." / "benchmarks" / bench_root.name / "figures" / "gkk_rel_rmse.png"
+    )
+    fig_runtime = (
+        Path("..") / ".." / ".." / "benchmarks" / bench_root.name / "figures" / "runtime_sec.png"
+    )
     benchmark_scope = "full family panel" if "family-panel" in bench_root.name else "smoke validation panel"
 
     interp_text = "\n\n".join(
@@ -409,7 +420,7 @@ Figure~\ref{{fig:gkk-rel-rmse}} shows the main quality result. Lower is better. 
 The interactive 3D companion for this report is:
 
 \begin{{center}}
-\url{{/Users/pgajer/current_projects/grip/output/html/weighted_grip_phase5_layout_gallery_2026-04-02.html}}
+\url{{/Users/pgajer/current_projects/grip/output/gkk_lgkk_paper/html/weighted_grip_phase5_layout_gallery_2026-04-02.html}}
 \end{{center}}
 
 It organizes the primary 3D benchmark layouts by family for the representative benchmark seed 1, and includes the target geometry plus every benchmarked layout method used in Phase 5.
@@ -420,7 +431,7 @@ It organizes the primary 3D benchmark layouts by family for the representative b
 
 def main() -> None:
     bench_root, raw_df, summary_df = load_data()
-    PDF_ROOT.mkdir(parents=True, exist_ok=True)
+    REPORT_ROOT.mkdir(parents=True, exist_ok=True)
     tex = build_document(bench_root, raw_df, summary_df)
     OUTPUT_TEX.write_text(tex, encoding="utf-8")
     print(f"Wrote {OUTPUT_TEX}")

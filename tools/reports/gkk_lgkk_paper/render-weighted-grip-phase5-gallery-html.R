@@ -5,8 +5,8 @@ setwd(repo_root)
 
 options(rgl.useNULL = TRUE)
 
-benchmark_root <- file.path(repo_root, "output", "benchmarks", "weighted-grip-phase5-family-panel-2026-04-02")
-output_dir <- file.path(repo_root, "output", "html")
+benchmark_root <- file.path(repo_root, "output", "gkk_lgkk_paper", "benchmarks", "weighted-grip-phase5-family-panel-2026-04-02")
+output_dir <- file.path(repo_root, "output", "gkk_lgkk_paper", "html")
 output_html <- file.path(output_dir, "weighted_grip_phase5_layout_gallery_2026-04-02.html")
 
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)

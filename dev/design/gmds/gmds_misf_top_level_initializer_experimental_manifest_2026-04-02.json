@@ -110,7 +110,7 @@
       "runs": "best top-level strategy x current insertion vs weighted GRIP vs weighted KK vs GRIP vs KK vs optional FR placement",
       "required_outputs": [
         "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-lower-level-placement-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/orphans/gmds_misf_lower_level_placement_report_2026-04-02/",
+        "/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/orphans/gmds_misf_lower_level_placement_report_2026-04-02/",
         "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_lower_level_placement_3d_2026-04-02.html"
       ]
     }

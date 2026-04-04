@@ -12,4 +12,4 @@ Historical manuscript fragments still live under `dev/papers/methods/`, but the 
 
 - `dev/papers/gkk_lgkk_paper/notes/`
 - `dev/design/grip/notes/`
-- `output/reports/gkk_lgkk_paper/`
+- `output/gkk_lgkk_paper/`

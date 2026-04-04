@@ -12,4 +12,4 @@ Paper focus:
 Historical manuscript scaffolding still lives under `dev/papers/gmds/`, but the active report source bundles and rendered outputs now live under:
 
 - `dev/design/geodesic_mds/reports/`
-- `output/reports/geodesic_mds_paper/`
+- `output/geodesic_mds_paper/`

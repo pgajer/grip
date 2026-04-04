@@ -14,6 +14,9 @@ CRAN-SUBMISSION
 .RData
 output/*
 !output/README.md
+!output/*/
+output/*/*
+!output/*/README.md
 tmp/
 dev/blog/
 dev/prompts/

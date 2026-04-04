@@ -18,7 +18,7 @@ output_root <- if (!is.null(out_override) && nzchar(out_override)) {
 } else if (smoke) {
   file.path(tempdir(), run_tag)
 } else {
-  file.path(repo_root, "output", "benchmarks", run_tag)
+  file.path(repo_root, "output", "gkk_lgkk_paper", "benchmarks", run_tag)
 }
 figure_dir <- file.path(output_root, "figures")
 table_dir <- file.path(output_root, "tables")

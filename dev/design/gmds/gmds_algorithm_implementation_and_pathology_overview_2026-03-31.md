@@ -380,7 +380,7 @@ These notes established the main experimental baseline:
 
 Primary report:
 
-- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
+- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
 - LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
 
 Driver:
@@ -427,7 +427,7 @@ So after this point the remaining pathology story shifted away from flat grids a
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.pdf)
+- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.pdf)
 - LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.tex)
 
 Driver:
@@ -453,7 +453,7 @@ This was the first strong piece of evidence that the missing ingredient is not j
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.pdf)
+- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.pdf)
 - LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.tex)
 
 Driver:
@@ -476,7 +476,7 @@ This ruled out the simplest regularization hypothesis.
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.pdf)
+- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.pdf)
 - LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.tex)
 
 Driver:
@@ -505,7 +505,7 @@ The performance concern was addressed in the later section of the Phase 1 report
 - [`gmds_performance_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_performance_action_plan_2026-03-31.md)
 - Phase 1 report performance section:
   - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
-  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/reports/geodesic_mds_paper/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
+  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
 
 The main point was:
 

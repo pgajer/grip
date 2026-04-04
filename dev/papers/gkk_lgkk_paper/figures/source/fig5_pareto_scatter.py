@@ -10,11 +10,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[5]
+SUMMARY_PATH = (
+    REPO_ROOT
+    / "output"
+    / "gkk_lgkk_paper"
+    / "benchmarks"
+    / "weighted-grip-phase5-smoke-check"
+    / "data"
+    / "summary_metrics.csv"
+)
 
 # --- Load data ---
-df = pd.read_csv(
-    "/sessions/keen-magical-bell/mnt/grip/output/benchmarks/weighted-grip-phase5-smoke-check/data/summary_metrics.csv"
-)
+df = pd.read_csv(SUMMARY_PATH)
 df3 = df[(df["dim"] == 3) & (df["method"] != "start")].copy()
 
 # --- Method styling ---
