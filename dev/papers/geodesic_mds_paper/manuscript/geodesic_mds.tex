@@ -1,10 +1,9 @@
-\documentclass[twoside,11pt]{article}
-
-%% JMLR style
-\usepackage[nohyperref]{jmlr2e}
+\documentclass[11pt]{article}
 
 %% Standard packages
+\usepackage[letterpaper,left=1in,right=1in,top=1in,bottom=1.1in,includefoot,footskip=28pt]{geometry}
 \usepackage{amsmath, amssymb}
+\usepackage{amsthm}
 \usepackage{mathtools}
 \usepackage{bm}
 \usepackage{bbm}
@@ -17,6 +16,8 @@
 \usepackage{xcolor}
 \usepackage{microtype}
 \usepackage{natbib}
+\usepackage{fancyhdr}
+\usepackage{titling}
 \providecommand{\theHalgorithm}{\arabic{algorithm}}
 \providecommand{\theHfigure}{\arabic{figure}}
 
@@ -50,12 +51,32 @@
   \fbox{\parbox[c][0.18\textheight][c]{#1}{\centering\footnotesize #2}}%
 }
 \DeclareMathOperator*{\argmin}{arg\,min}
+\setlength{\droptitle}{-2.2em}
+\setlength{\headheight}{14pt}
+\pagestyle{plain}
 
-%% JMLR editor/author info
-\jmlrheading{1}{2025}{1--??}{??/25}{??/25}{??/25}{Gajer and Ravel}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}[section]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
 
-\ShortHeadings{Geodesic Multidimensional Scaling}{Gajer and Ravel}
-\firstpageno{1}
+\newenvironment{keywords}{%
+  \par\smallskip\noindent\textbf{Keywords: }\ignorespaces
+}{\par\smallskip}
+
+\newcommand{\paperaffiliationfooter}{%
+  \parbox{0.92\textwidth}{\centering\footnotesize
+  Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine, Baltimore, Maryland, USA.}%
+}
+
+\fancypagestyle{firstpage}{%
+  \fancyhf{}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+  \fancyfoot[C]{\paperaffiliationfooter}%
+}
 
 \providecommand{\manuscriptversion}{unversioned}
 \providecommand{\manuscriptbuildnumber}{NA}
@@ -68,17 +89,11 @@
 \title{Geodesic Multidimensional Scaling:\\
        Self-Consistent Dimensionality Reduction\\ via Graph Geodesic Distances}
 
-\author{\name Pawel Gajer \email pgajer@gmail.com \\
-        \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
-        Baltimore, Maryland, USA
-        \AND
-        \name Jacques Ravel \\
-        \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
-        Baltimore, Maryland, USA}
-
-\editor{Editor Name}
+\author{Pawel Gajer \and Jacques Ravel}
+\date{}
 
 \maketitle
+\thispagestyle{firstpage}
 \begin{center}
 \footnotesize
 Version \texttt{\manuscriptversion} \quad | \quad Build
@@ -86,7 +101,7 @@ Version \texttt{\manuscriptversion} \quad | \quad Build
 \texttt{\manuscriptcommit}\\
 Built \manuscriptbuilddatetime
 \end{center}
-\vspace{0.35em}
+\vspace{0.6em}
 
 %% ============================================================
 \begin{abstract}
@@ -167,7 +182,7 @@ distances converge to the true manifold geodesics as $n \to \infty$
 \citep{bernstein2000graph, tenenbaum2000global}, and the resulting embedding
 recovers the intrinsic geometry with high fidelity.
 
-\subsection{The Output-Side Inconsistency}
+\paragraph{The output-side inconsistency.}
 
 Despite this advance, Isomap retains a fundamental asymmetry that has not
 previously been identified as a source of systematic distortion.  On the
@@ -225,7 +240,7 @@ Figure~\ref{fig:star_bias} is intended to make this contrast visually explicit.
   \label{fig:star_bias}
 \end{figure}
 
-\subsection{Contributions}
+\paragraph{Contributions.}
 
 This paper introduces \emph{Geodesic MDS}, a reformulation of the metric
 MDS stress function that is self-consistent with respect to geodesic
@@ -263,7 +278,7 @@ distance.  Our contributions are as follows.
   metric geometry.
 \end{enumerate}
 
-\subsection{Relationship to Existing Work}
+\paragraph{Relationship to existing work.}
 
 Geodesic MDS is closely related to, but distinct from, several existing
 methods.  \emph{Isomap} \citep{tenenbaum2000global} uses graph geodesics
@@ -282,7 +297,7 @@ formulation proposed here---graph geodesics on the input side and
 embedded lengths of the corresponding fixed input geodesics on the output
 side---has not been previously proposed.
 
-\subsection{Organization}
+\paragraph{Organization.}
 
 The remainder of the paper is organized as follows.
 \cref{sec:background} reviews MDS, Isomap, and the $k$-NN graph construction.
@@ -1638,8 +1653,11 @@ optimization/basin selection rather than the formal definition of GMDS itself.
 %% BIBLIOGRAPHY
 %% ============================================================
 
-\acks{Research reported in this publication was supported by grant number INV-048956 from the Gates Foundation.}
+\section*{Acknowledgments}
+Research reported in this publication was supported by grant number
+INV-048956 from the Gates Foundation.
 
+\bibliographystyle{plainnat}
 \bibliography{geodesic_mds}
 
 \end{document}
