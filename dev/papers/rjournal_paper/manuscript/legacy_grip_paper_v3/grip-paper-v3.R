@@ -158,6 +158,37 @@ coords.weighted.small <- grip.layout.weighted(
 )
 
 
+## ----family-scope, echo=FALSE-------------------------------------------------
+family.scope <- data.frame(
+  Family = c(
+    "grip.layout*",
+    "geodesic.kk",
+    "landmark.geodesic.kk",
+    "misf.geodesic.mds"
+  ),
+  `Exported entry points` = c(
+    "grip.layout*()",
+    "grip.prepare/score/optimize.geodesic.kk()",
+    "grip.prepare/score/optimize.landmark.geodesic.kk()",
+    "grip.prepare/score/optimize.misf.geodesic.mds()"
+  ),
+  Role = c(
+    "Primary user-facing multiscale layout APIs for fast 2D and 3D graph embedding.",
+    "Full geodesic-KK scoring and optimization for weighted graph metrics, most useful for evaluation and smaller weighted problems.",
+    "Sparse landmark geodesic-KK approximation used for post-polish and experimental weighted refinement.",
+    "Experimental MISF-based geodesic-MDS pipeline rather than a standalone MISF geodesic-KK family."
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(
+  family.scope,
+  row.names = FALSE,
+  align = c("l", "l", "l"),
+  caption = "Scope of the main layout and geodesic optimization families in grip."
+)
+
+
 ## ----trace, fig.cap="Multiscale trace of a 6x6 mesh. The four panels show the coarsest initialization, an early intermediate state, a late intermediate state, and the final layout.", fig.alt="Four panels showing a mesh layout evolving from a sparse coarse configuration to a regular grid-like final arrangement.", fig.width=10, fig.height=2.8----
 trace.edges <- edges.mesh(6, 6)
 trace.solve <- grip.layout.trace(
@@ -201,6 +232,80 @@ for (i in seq_along(frame.idx)) {
   points(xy[, 1], xy[, 2], pch = 16, cex = 0.6)
 }
 par(op)
+
+
+## ----runtime-scale------------------------------------------------------------
+benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
+hmp.results <- read.extdata.rds("hmp_u01_gc_coarse", "vignette_results.rds")
+
+torus.edges <- edges.torus(20, 20)
+torus.elapsed <- system.time(
+  torus.coords <- grip.layout(
+    torus.edges,
+    n = max(torus.edges),
+    dim = 3,
+    preset = "torus",
+    seed = 1
+  )
+)[["elapsed"]]
+torus.score <- grip.score.layout(
+  torus.coords,
+  edges = torus.edges,
+  n = max(torus.edges),
+  sample.size.stress = 2000L,
+  sample.size.nonedge = 2000L,
+  edge.crossings = "never"
+)
+
+carpet.runtime <- merge(
+  benchmark.results$carpet$scores[
+    benchmark.results$carpet$scores$method == "grip carpet preset",
+    c("method", "n.vertices", "n.edges", "dim", "sampled.stress")
+  ],
+  benchmark.results$carpet$timing[
+    benchmark.results$carpet$timing$method == "grip carpet preset",
+    c("method", "elapsed.sec")
+  ],
+  by = "method"
+)
+
+hmp.default <- hmp.results$preset_summary[
+  hmp.results$preset_summary$candidate == "default",
+  ,
+  drop = FALSE
+]
+
+runtime.scale <- data.frame(
+  graph = c("20x20 torus", "Carpet level 4", "HMP/U01 coarse"),
+  dim = c(3L, carpet.runtime$dim, 3L),
+  `n.vertices` = c(max(torus.edges), carpet.runtime$n.vertices, 1828L),
+  `n.edges` = c(nrow(torus.edges), carpet.runtime$n.edges, 4656L),
+  context = c(
+    "Single 3D preset solve",
+    "Single 2D preset solve",
+    "Bundled weighted 3D default candidate"
+  ),
+  elapsed.sec = c(
+    unname(torus.elapsed),
+    carpet.runtime$elapsed.sec,
+    hmp.default$elapsed.sec.mean
+  ),
+  sampled.stress = c(
+    torus.score$sampled.stress[[1L]],
+    carpet.runtime$sampled.stress,
+    hmp.default$sampled.stress.mean
+  ),
+  check.names = FALSE
+)
+
+paper_kable(
+  runtime.scale,
+  caption = paper_table_caption(
+    "Representative 2D and 3D runtime scale for grip.",
+    "nV = number of vertices; nE = number of edges; Sec = elapsed seconds; Stress = sampled stress."
+  ),
+  digits = 3
+)
 
 
 ## ----metrics-table, echo=FALSE------------------------------------------------

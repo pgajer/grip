@@ -1,5 +1,5 @@
 % !TeX root = RJwrapper.tex
-\title{Grip: Graph Drawing with Intelligent Placement in R}
+\title{Grip: fast multiscale 2D and 3D graph layout in R}
 
 
 \author{by Pawel Gajer and Jacques Ravel}
@@ -7,51 +7,53 @@
 \maketitle
 
 \abstract{%
-Grip is an R package for multiscale graph drawing and layout assessment. It provides scalable 2D and 3D layouts for unweighted graphs, a weighted sister API for graphs whose edge lengths encode geometry, package-supplied presets for common graph families, and a workflow for comparing candidate layouts with reproducible quality metrics. The package combines an R interface with a C++ core via Rcpp and bundles graph generators, trace diagnostics, and real and synthetic examples. This article focuses on the package interface, the layout evaluation workflow, and the kinds of graph problems for which grip is most useful, including a weighted geometric example and a large microbial-network case study.
+Grip is an R package for fast multiscale graph layout in 2D and 3D. It brings the GRIP algorithm to R through a C++ core accessed with Rcpp, making it practical to generate layouts for graphs with hundreds to thousands of vertices, including structured synthetic families and larger weighted biological networks. The package provides a topology-first API for unweighted graphs, a weighted sister API for graphs whose edge lengths encode geometry, package-supplied presets for recurring graph families, and a workflow for scoring and comparing candidate layouts reproducibly. This article focuses on the package interface, representative runtime scale, the layout assessment workflow, and two example settings: a weighted geometric graph and a large microbial-network case study.
 }
 
 \section{Introduction}\label{introduction}
 
-Graph layout is a practical problem for many R users, but it is not a single
-problem. Some graphs are small and unweighted, where classical single-scale
-methods can be excellent. Others are larger, or have strongly structured
-families such as grids and recursive carpets, where multiscale methods become
-useful. Still others are weighted graphs whose edge lengths carry geometry, so
-the goal is no longer only to display topology but also to respect a graph
-metric.
+Many R users need graph layouts that are fast enough to be part of ordinary
+exploration rather than one-off figure preparation. That need becomes most
+acute once graphs grow beyond toy size, when repeated tuning of single-scale
+force-directed methods becomes expensive, and when analysts want 3D embeddings
+instead of only 2D drawings. The central package claim of grip is therefore
+practical speed: it makes multiscale 2D and 3D graph layout available in R for
+graphs large enough that manual trial-and-error is no longer convenient.
 
-The original GRIP algorithm \citep{gajer2002, gajer2004} addresses the scalability
-part of this problem by constructing a hierarchy of maximal independent sets,
-placing vertices from coarse to fine resolution, and refining locally at each
-level. The grip package exposes this multiscale strategy in R through a C++
-core accessed with Rcpp \citep{eddelbuettel2011}. The package is aimed at package
-users rather than graph-drawing specialists: the focus is on usable interfaces,
-reproducible comparisons, and diagnostics that help users decide which layout
-to keep.
+The original GRIP algorithm \citep{gajer2002, gajer2004} addresses this problem by
+constructing a hierarchy of maximal independent sets, placing vertices from
+coarse to fine resolution, and refining locally at each level. The grip package
+exposes this multiscale strategy in R through a C++ core accessed with Rcpp
+\citep{eddelbuettel2011}. In practice, that hierarchy is what makes it feasible to
+produce layouts for graphs with hundreds to thousands of vertices within an R
+workflow, including both 2D and 3D embeddings.
 
-This article makes three package-level points. First, grip now includes two
-closely related interfaces: a combinatorial API for topology-first graphs and a
-weighted API for graphs whose edge lengths encode geometry. Second, the package
-ships family-specific presets and a comparison workflow that evaluates
-candidate layouts across seeds with shared quality metrics. Third, the package
-bundles synthetic graph families, traced solves, and precomputed large-graph
-artifacts so that examples remain reproducible without turning the paper into a
-long-running benchmark job.
+This article makes three package-level points. First, grip provides fast
+multiscale layout generation through two closely related interfaces: a
+topology-first API for unweighted graphs and a weighted sister API for graphs
+whose edge lengths encode geometry. Second, the package ships family-specific
+presets, trace diagnostics, and graph generators that make larger layout jobs
+easier to run and inspect. Third, grip includes a comparison workflow that
+evaluates candidate layouts across seeds with shared quality metrics, so that
+layout selection is reproducible rather than purely visual.
 
 The package is complementary to existing R tools rather than a replacement for
 them. igraph \citep{csardi2006} supplies several strong general-purpose layouts;
 ggraph \citep{pedersen2024} provides a plotting grammar for network graphics; and
 graphlayouts \citep{schoch2023} offers additional layout algorithms, including
-stress-based methods. The contribution of grip is the combination of multiscale
-layout generation, geometry-aware weighted layouts, and a scoring workflow that
-can also be used to assess layouts computed elsewhere.
+stress-based methods. The contribution of grip is the combination of fast
+multiscale layout generation, geometry-aware weighted layouts, and a scoring
+workflow that can also be used to assess layouts computed elsewhere.
 
 \section{Package overview}\label{package-overview}
 
 At a high level, grip keeps the original GRIP idea of working from a coarse
 representation of the graph back to the full graph. The paper does not attempt
 to re-derive the algorithm in detail; instead, it focuses on the package
-interfaces that expose this strategy in a form suitable for routine R use.
+interfaces that expose this strategy in a form suitable for routine R use. The
+practical consequence of that hierarchy is speed: the package can produce 2D
+and 3D layouts quickly enough to support comparison workflows rather than only
+single final figures.
 
 \subsection{Layout engines and interfaces}\label{layout-engines-and-interfaces}
 
@@ -110,6 +112,39 @@ neighborhood size, repulsion strength, and the random seed. The package also
 packs disconnected components by default, so disconnected graphs can still be
 laid out with a single call.
 
+\subsection{Geodesic and multiscale families}\label{geodesic-and-multiscale-families}
+
+The package also includes geodesic scoring and optimization tools, but they are
+not all solving the same problem. Table \ref{tab:family-scope} summarizes the
+main exported families and their role in this manuscript.
+
+\begin{table}
+
+\caption{\label{tab:family-scope}Scope of the main layout and geodesic optimization families in grip.}
+\centering
+\begin{tabular}[t]{l|l|l}
+\hline
+Family & Exported entry points & Role\\
+\hline
+grip.layout* & grip.layout*() & Primary user-facing multiscale layout APIs for fast 2D and 3D graph embedding.\\
+\hline
+geodesic.kk & grip.prepare/score/optimize.geodesic.kk() & Full geodesic-KK scoring and optimization for weighted graph metrics, most useful for evaluation and smaller weighted problems.\\
+\hline
+landmark.geodesic.kk & grip.prepare/score/optimize.landmark.geodesic.kk() & Sparse landmark geodesic-KK approximation used for post-polish and experimental weighted refinement.\\
+\hline
+misf.geodesic.mds & grip.prepare/score/optimize.misf.geodesic.mds() & Experimental MISF-based geodesic-MDS pipeline rather than a standalone MISF geodesic-KK family.\\
+\hline
+\end{tabular}
+\end{table}
+
+This distinction matters for the paper. grip already includes pure geodesic-KK
+tools, standalone landmark geodesic-KK tools, and MISF-based GMDS tools. It
+also integrates LGKK refinement inside the main multiscale solver. However, the
+current package does not yet expose a separate standalone \texttt{grip.*misf*.geodesic.kk()}
+family, so this package paper keeps the main focus on the \texttt{grip.layout*()}
+interfaces and uses the geodesic tools mainly for weighted scoring and
+polishing.
+
 \subsection{Presets, tracing, and graph families}\label{presets-tracing-and-graph-families}
 
 The package includes family-specific presets for common graph classes. The
@@ -135,6 +170,38 @@ The package also ships graph generators for regular grids, trees, recursive
 families such as Sierpinski carpets, and weighted geometric families generated
 from surfaces. These are helpful for examples, regression tests, and
 family-specific benchmarking.
+
+\subsection{Representative runtime scale}\label{representative-runtime-scale}
+
+The main software claim of grip is practical runtime scale rather than a claim
+to dominate every other layout method on every graph. Table
+\ref{tab:runtime-scale} therefore summarizes three representative layouts that
+cover both 2D and 3D settings. The torus row is evaluated directly in the paper
+build, while the larger carpet and HMP rows use bundled package artifacts so
+that the manuscript remains quick to render.
+
+\begin{table}
+
+\caption{\label{tab:runtime-scale}Representative 2D and 3D runtime scale for grip. Abbrev.: nV = number of vertices; nE = number of edges; Sec = elapsed seconds; Stress = sampled stress.}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r}
+\hline
+Graph & Dim & nV & nE & context & elapsed.sec & Stress\\
+\hline
+20x20 torus & 3 & 400 & 800 & Single 3D preset solve & 0.349 & 35.709\\
+\hline
+Carpet level 4 & 2 & 4096 & 6424 & Single 2D preset solve & 2.184 & 175.422\\
+\hline
+HMP/U01 coarse & 3 & 1828 & 4656 & Bundled weighted 3D default candidate & 12.247 & 93.923\\
+\hline
+\end{tabular}
+\end{table}
+
+These rows are not intended as a formal benchmark against all alternatives.
+They show the practical regime the package is designed for: graphs with
+hundreds to thousands of vertices, including 3D embeddings and a weighted
+real-data example, can be laid out in seconds rather than forcing users into a
+slow manual tuning loop.
 
 \section{Layout assessment workflow}\label{layout-assessment-workflow}
 
@@ -192,13 +259,13 @@ the paper build.
 \hline
 Graph & Cand & Runs & Sec & Stress & EdgeCV & NESR & PStab\\
 \hline
-12x12 mesh & default & 3 & 0.648 & 41.956 & 0.122 & 0.134 & 0.490\\
+12x12 mesh & default & 3 & 0.612 & 41.956 & 0.122 & 0.134 & 0.490\\
 \hline
-12x12 mesh & mesh & 3 & 0.689 & 19.785 & 0.050 & 1.214 & 0.005\\
+12x12 mesh & mesh & 3 & 0.727 & 19.785 & 0.050 & 1.214 & 0.005\\
 \hline
-Carpet level 3 & default & 3 & 0.218 & 133.750 & 0.208 & 0.048 & 0.562\\
+Carpet level 3 & default & 3 & 0.217 & 133.750 & 0.208 & 0.048 & 0.562\\
 \hline
-Carpet level 3 & carpet & 3 & 0.623 & 54.504 & 0.120 & 1.090 & 0.014\\
+Carpet level 3 & carpet & 3 & 0.606 & 54.504 & 0.120 & 1.090 & 0.014\\
 \hline
 \end{tabular}
 \end{table}
@@ -277,7 +344,9 @@ different interface for graphs where edge lengths are part of the target.
 The package bundles a coarsened graph derived from Human Microbiome Project
 data \citep{hmp2012}. The original giant connected component had 6,474 vertices; the
 bundled coarsened graph has 1,828 vertices and 4,656 edges, which is large
-enough that ad hoc manual layout selection becomes impractical.
+enough that ad hoc manual layout selection becomes impractical. This example is
+included not only for biological realism but also because it shows that a
+weighted 3D workflow at this graph size is still practical inside R.
 
 \begin{verbatim}
 #> Vertices: 1828
@@ -285,11 +354,13 @@ enough that ad hoc manual layout selection becomes impractical.
 #> CST levels: I, II, III, IV-A, IV-B, IV-C, V
 \end{verbatim}
 
-The full HMP workflow takes several minutes, so the package ships precomputed
-artifacts for the vignette and the paper. Table \ref{tab:hmp-summary} reports
-three candidates: the default preset, the tree preset, and the strongest local
-search candidate by cluster-separation score among the bundled precomputed
-results.
+The full HMP workflow uses repeated scoring and candidate comparison, so the
+package ships precomputed artifacts for the vignette and the paper. Even in
+that broader workflow, the bundled default weighted candidate runs in about
+12.2
+seconds. Table \ref{tab:hmp-summary} reports three candidates: the default
+preset, the tree preset, and the strongest local-search candidate by
+cluster-separation score among the bundled precomputed results.
 
 \begin{table}
 
@@ -308,11 +379,12 @@ local search & 12.732 & 96.333 & 0.205 & 3.407 & 0.333\\
 \end{tabular}
 \end{table}
 
-The table shows a real trade-off. The default candidate has the lowest sampled
-stress among these three candidates, while the tree and local-search candidates
-produce substantially larger cluster-separation scores. That is exactly the
-kind of choice the comparison workflow is meant to surface: the package does
-not remove judgment, but it makes the trade-offs explicit.
+The table shows a real trade-off. The default candidate is the fastest of the
+three and has the lowest sampled stress, while the tree and local-search
+candidates produce substantially larger cluster-separation scores. That is
+exactly the kind of choice the comparison workflow is meant to surface: speed
+makes it practical to inspect several plausible 3D layouts, but the package
+still leaves the final selection explicit and evidence-based.
 
 \begin{figure}
 
@@ -356,7 +428,8 @@ grip tuned & 18.123 & 0.285 & 0.118 & 0.561 & 246\\
 This comparison is intentionally modest in tone. On a very small 2D social
 graph, single-scale methods from igraph and graphlayouts perform very well, and
 grip does not dominate them. That is an informative result. It supports the
-claim that grip is most useful as a multiscale and evaluation-oriented package,
+claim that grip is most useful as a fast multiscale and evaluation-oriented
+package,
 especially for structured graph families, weighted geometric graphs, and
 workflow-driven layout selection. It also illustrates why the scoring
 functions are valuable on their own: they can be used to assess layouts
@@ -379,15 +452,15 @@ paper build practical without hiding how the heavier results were produced.
 \section{Discussion}\label{discussion}
 
 The manuscript-level conclusion is deliberately narrower than a methods paper.
-grip is useful because it combines multiscale layout generation with a
-reproducible assessment workflow, not because it wins every benchmark. The
-package is strongest in three settings:
+grip is useful because it brings fast multiscale 2D and 3D layout generation
+and a reproducible assessment workflow into R, not because it wins every
+benchmark. The package is strongest in three settings:
 
 \begin{itemize}
 \tightlist
 \item
-  unweighted graphs where a multiscale layout is appropriate and preset-guided
-  tuning is helpful;
+  graphs large enough that single-scale manual tuning becomes slow, especially
+  when 3D embeddings are useful;
 \item
   weighted graphs whose edge lengths encode geometry and should therefore be
   solved with the weighted sister API rather than treated as ordinary metadata;
