@@ -51,6 +51,28 @@
 
 
 \usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{etoolbox}
+\providecommand{\manuscriptversion}{unversioned}
+\providecommand{\manuscriptbuildnumber}{NA}
+\providecommand{\manuscriptcommit}{unknown}
+\providecommand{\manuscriptbuilddatetime}{unknown}
+\InputIfFileExists{build/manuscript_build_info.tex}{}{}
+\newcommand{\grippaperbuildstamp}{%
+  \par
+  \vspace{-0.35em}%
+  \begin{center}%
+  \scriptsize\color{gray!75}%
+  Version \texttt{\manuscriptversion}\enspace | \enspace
+  Build \texttt{\manuscriptbuildnumber}\enspace | \enspace
+  Commit \texttt{\manuscriptcommit}\\
+  Built \manuscriptbuilddatetime
+  \end{center}%
+  \vspace{0.35em}%
+}
+\makeatletter
+\apptocmd{\maketitle}{\grippaperbuildstamp}{}{}
+\makeatother
 
 
 \begin{document}

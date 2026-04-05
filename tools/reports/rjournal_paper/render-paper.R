@@ -56,6 +56,8 @@ if (is.null(selected)) {
 
 paper_dir <- normalizePath(selected$dir, mustWork = TRUE)
 input_file <- selected$input
+build_dir <- file.path(paper_dir, "build")
+build_info_tex <- file.path(build_dir, "manuscript_build_info.tex")
 
 old_wd <- getwd()
 on.exit(setwd(old_wd), add = TRUE)
@@ -68,6 +70,48 @@ timestamped <- !("--no-timestamp" %in% args)
 
 timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S")
 base_name <- tools::file_path_sans_ext(input_file)
+
+escape_tex <- function(x) {
+  x <- gsub("\\\\", "\\\\textbackslash{}", x)
+  x <- gsub("([#$%&_{}])", "\\\\\\1", x, perl = TRUE)
+  x <- gsub("~", "\\\\textasciitilde{}", x, fixed = TRUE)
+  x <- gsub("\\^", "\\\\textasciicircum{}", x, perl = TRUE)
+  x
+}
+
+write_build_info <- function() {
+  dir.create(build_dir, recursive = TRUE, showWarnings = FALSE)
+
+  git_version <- tryCatch(
+    system2("git", c("-C", repo_root, "describe", "--tags", "--always", "--dirty"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "unversioned"
+  )
+  if (!length(git_version)) git_version <- "unversioned"
+
+  git_build_number <- tryCatch(
+    system2("git", c("-C", repo_root, "rev-list", "--count", "HEAD"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "NA"
+  )
+  if (!length(git_build_number)) git_build_number <- "NA"
+
+  git_commit <- tryCatch(
+    system2("git", c("-C", repo_root, "rev-parse", "--short", "HEAD"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "unknown"
+  )
+  if (!length(git_commit)) git_commit <- "unknown"
+
+  build_datetime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+
+  lines <- c(
+    sprintf("\\renewcommand{\\manuscriptversion}{%s}", escape_tex(git_version[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptbuildnumber}{%s}", escape_tex(git_build_number[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptcommit}{%s}", escape_tex(git_commit[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptbuilddatetime}{%s}", escape_tex(build_datetime))
+  )
+  writeLines(lines, build_info_tex, useBytes = TRUE)
+}
+
+write_build_info()
 
 output_name <- function(ext) {
   if (timestamped) {

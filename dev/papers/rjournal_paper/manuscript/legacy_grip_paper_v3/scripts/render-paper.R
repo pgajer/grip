@@ -8,6 +8,14 @@ if (!requireNamespace("rjtools", quietly = TRUE)) {
   stop("Package 'rjtools' is required to render the R Journal paper.")
 }
 
+args_full <- commandArgs(trailingOnly = FALSE)
+file_arg <- grep("^--file=", args_full, value = TRUE)
+if (!length(file_arg)) {
+  stop("Could not determine the path to this script.")
+}
+
+script_dir <- dirname(normalizePath(sub("^--file=", "", file_arg[1L])))
+repo_root <- normalizePath(file.path(script_dir, "..", "..", "..", "..", ".."), mustWork = TRUE)
 input_file <- "grip-paper-v3.Rmd"
 if (!file.exists(input_file)) {
   stop(input_file, " was not found in the current working directory.")
@@ -20,6 +28,50 @@ timestamped <- !("--no-timestamp" %in% args)
 
 timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S")
 base_name <- tools::file_path_sans_ext(input_file)
+build_dir <- file.path(getwd(), "build")
+build_info_tex <- file.path(build_dir, "manuscript_build_info.tex")
+
+escape_tex <- function(x) {
+  x <- gsub("\\\\", "\\\\textbackslash{}", x)
+  x <- gsub("([#$%&_{}])", "\\\\\\1", x, perl = TRUE)
+  x <- gsub("~", "\\\\textasciitilde{}", x, fixed = TRUE)
+  x <- gsub("\\^", "\\\\textasciicircum{}", x, perl = TRUE)
+  x
+}
+
+write_build_info <- function() {
+  dir.create(build_dir, recursive = TRUE, showWarnings = FALSE)
+
+  git_version <- tryCatch(
+    system2("git", c("-C", repo_root, "describe", "--tags", "--always", "--dirty"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "unversioned"
+  )
+  if (!length(git_version)) git_version <- "unversioned"
+
+  git_build_number <- tryCatch(
+    system2("git", c("-C", repo_root, "rev-list", "--count", "HEAD"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "NA"
+  )
+  if (!length(git_build_number)) git_build_number <- "NA"
+
+  git_commit <- tryCatch(
+    system2("git", c("-C", repo_root, "rev-parse", "--short", "HEAD"), stdout = TRUE, stderr = FALSE),
+    error = function(e) "unknown"
+  )
+  if (!length(git_commit)) git_commit <- "unknown"
+
+  build_datetime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+
+  lines <- c(
+    sprintf("\\renewcommand{\\manuscriptversion}{%s}", escape_tex(git_version[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptbuildnumber}{%s}", escape_tex(git_build_number[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptcommit}{%s}", escape_tex(git_commit[[1L]])),
+    sprintf("\\renewcommand{\\manuscriptbuilddatetime}{%s}", escape_tex(build_datetime))
+  )
+  writeLines(lines, build_info_tex, useBytes = TRUE)
+}
+
+write_build_info()
 
 output_name <- function(ext) {
   if (timestamped) {
