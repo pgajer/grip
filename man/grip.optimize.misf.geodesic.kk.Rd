@@ -36,6 +36,9 @@ grip.optimize.misf.geodesic.kk(
   refinement_full_limit = NULL,
   refinement_local_nbrs = NULL,
   refinement_landmark_count = NULL,
+  refinement_anchor_weight = NULL,
+  refinement_anchor_weight_end = NULL,
+  refinement_continuation = NULL,
   refinement_max_iter = NULL,
   final_pair_mode = NULL,
   final_full_limit = NULL,
@@ -79,8 +82,7 @@ geodesic-KK prepared object or a MISF-GKK prepared object.}
 \item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
 `grip.build.misf`.}
 
-\item{dim}{Target embedding dimension (`2` or `3`) for the future multiscale
-solve.}
+\item{dim}{Target embedding dimension (`2` or `3`) for the multiscale solve.}
 
 \item{top_level_pair_mode}{Optional override for the top-level pair policy.}
 
@@ -93,11 +95,10 @@ neighborhood size.}
 \item{top_level_landmark_count}{Optional override for the sparse top-level
 landmark count.}
 
-\item{top_level_restarts}{Planned number of top-level restarts for the future
-optimizer.}
+\item{top_level_restarts}{Number of top-level restarts used by the coarse
+MISF-GKK solve.}
 
-\item{top_level_max_iter}{Planned top-level iteration budget for the future
-optimizer.}
+\item{top_level_max_iter}{Top-level iteration budget.}
 
 \item{top_level_init}{Optional override for the top-level initializer.}
 
@@ -135,6 +136,15 @@ size.}
 
 \item{refinement_landmark_count}{Optional active-level sparse landmark count.}
 
+\item{refinement_anchor_weight}{Optional initial anchor weight used to pin
+inactive and coarser-level vertices during KK refinement.}
+
+\item{refinement_anchor_weight_end}{Optional final anchor weight used at the
+end of the active-level continuation schedule.}
+
+\item{refinement_continuation}{Optional continuation schedule used for the
+active-level anchor penalty.}
+
 \item{refinement_max_iter}{Optional active-level refinement iteration budget.}
 
 \item{final_pair_mode}{Optional final full-graph pair policy.}
@@ -169,20 +179,21 @@ embedded edge length.}
 \item{recenter}{If `TRUE`, recenter accepted proposals to zero mean after
 each accepted step.}
 
-\item{return_trace}{If `TRUE`, retain detailed stage traces when the solver is
-implemented.}
+\item{return_trace}{If `TRUE`, retain detailed stage traces.}
 
-\item{return_frames}{If `TRUE`, retain intermediate coordinate frames when
-the solver is implemented.}
+\item{return_frames}{If `TRUE`, retain intermediate coordinate frames.}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
 \value{
-This scaffold currently stops with a not-yet-implemented error after
-  validating or building the corresponding prepared object.
+A list with `coords`, `prepared`, the per-stage multiscale results,
+  the stage trace, optional trace/frame details, timing, and the final MISF
+  score summary.
 }
 \description{
-`grip.optimize.misf.geodesic.kk()` is currently scaffolded but not yet
-implemented. The public signature is in place so the future multiscale
-geodesic-KK solver can be added without another API rename.
+`grip.optimize.misf.geodesic.kk()` runs a multiscale MISF-based geodesic-KK
+pipeline. It solves the top MISF graph with either full GKK or sparse LGKK,
+inserts lower-level vertices with the existing MISF placement helpers, refines
+each active MISF level under a GKK/LGKK objective, and finishes with a final
+full-graph polish.
 }

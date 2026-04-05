@@ -2,7 +2,7 @@
 % Please edit documentation in R/grip_geodesic_misf_kk.R
 \name{grip.score.misf.geodesic.kk}
 \alias{grip.score.misf.geodesic.kk}
-\title{Score a MISF-based geodesic-KK scaffold}
+\title{Score a MISF-based geodesic-KK fit}
 \usage{
 grip.score.misf.geodesic.kk(
   fit = NULL,
@@ -33,8 +33,8 @@ grip.score.misf.geodesic.kk(
 \item{edge_length_epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{score_pair_mode}{Requested scoring pair policy. The current scaffold
-always falls back to exact full geodesic-KK scoring.}
+\item{score_pair_mode}{Requested scoring pair policy: `"full"`,
+`"landmark"`, or `"auto"`.}
 
 \item{score_full_limit}{Active-set size threshold used when
 `score_pair_mode = "auto"`.}
@@ -48,13 +48,15 @@ LGKK-based scoring.}
 \item{return_trace}{If `TRUE`, attach any trace tables stored inside `fit`.}
 }
 \value{
-A one-row data frame with final full-graph geodesic-KK metrics and
-  MISF-stage summary fields. If `return_trace = TRUE`, trace list-columns are
-  attached when available.
+A one-row data frame with final MISF-GKK summary fields and either
+  full-GKK or landmark-GKK score columns, depending on the resolved scoring
+  policy. If `return_trace = TRUE`, trace list-columns are attached when
+  available.
 }
 \description{
 `grip.score.misf.geodesic.kk()` summarizes external coordinates against a
-MISF-GKK prepared object using the current exact geodesic-KK scorer. The
-multiscale optimizer itself is not implemented yet, so this scaffold focuses
-on the final full-graph score and the prepared MISF metadata.
+MISF-GKK prepared object using either the exact full geodesic-KK scorer or
+the sparse landmark geodesic-KK scorer, depending on `score_pair_mode`. When
+a full MISF-GKK fit is supplied, the function also carries over the
+multiscale stage metadata and any trace tables retained by the optimizer.
 }

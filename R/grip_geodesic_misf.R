@@ -1,6 +1,10 @@
 grip.validate.misf.geodesic.prepared <- function(prepared, coords = NULL) {
-  if (!inherits(prepared, "grip_misf_gmds_prepared")) {
-    stop("prepared must be an object from grip.prepare.misf.geodesic.mds()")
+  if (!(inherits(prepared, "grip_misf_gmds_prepared") ||
+        inherits(prepared, "grip_misf_gkk_prepared"))) {
+    stop(
+      "prepared must be an object from grip.prepare.misf.geodesic.mds() ",
+      "or grip.prepare.misf.geodesic.kk()"
+    )
   }
   grip.validate.geodesic.mds.prepared(prepared, coords = coords)
 }
