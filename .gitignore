@@ -36,6 +36,7 @@ dev/papers/methods/figures/
 dev/papers/methods/figure_scripts/
 dev/papers/methods/rendered/
 dev/papers/gmds/
+dev/papers/geodesic_mds_paper/build/
 
 # Compiled artifacts
 src/*.o
