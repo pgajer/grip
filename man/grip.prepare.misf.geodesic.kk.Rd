@@ -45,11 +45,11 @@ grip.prepare.misf.geodesic.kk(
 \item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
 `grip.build.misf`.}
 
-\item{dim}{Target embedding dimension (`2` or `3`) for the future multiscale
-solve.}
+\item{dim}{Target embedding dimension (`2` or `3`) for the multiscale solve.}
 
-\item{top_level_mode}{Either `"solve"` or `"skip"`. The current scaffold
-records the requested mode but does not yet execute the top-level solve.}
+\item{top_level_mode}{Either `"solve"` or `"skip"`. When set to `"solve"`,
+the top MISF level is optimized immediately and stored in
+`prepared$top_level_fit`.}
 
 \item{top_level_pair_mode}{Pair policy for the top MISF level: `"auto"`,
 `"full"`, or `"landmark"`.}
@@ -63,29 +63,28 @@ per vertex in the sparse top-level LGKK cache.}
 \item{top_level_landmark_count}{Number of farthest-point landmarks retained
 per vertex in the sparse top-level LGKK cache.}
 
-\item{top_level_restarts}{Planned number of top-level restarts for the future
-optimizer.}
+\item{top_level_restarts}{Number of top-level restarts used by the coarse
+MISF-GKK solve.}
 
-\item{top_level_max_iter}{Planned top-level iteration budget for the future
-optimizer.}
+\item{top_level_max_iter}{Top-level iteration budget.}
 
-\item{top_level_init}{Planned top-level initializer (`"cmdscale"` or
-`"random"`).}
+\item{top_level_init}{Top-level initializer (`"cmdscale"` or `"random"`).}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
 \value{
 An object of class `"grip_misf_gkk_prepared"` layered on top of the
   full geodesic-KK prepared structure, with added MISF metadata, top-level
-  coarse-graph caches, and stored default controls for the future MISF-GKK
+  coarse-graph caches, and stored default controls for the MISF-GKK
   optimizer.
 }
 \description{
-`grip.prepare.misf.geodesic.kk()` scaffolds a MISF-based geodesic-KK
-prepared object by layering the maximal independent set filtration (MISF) on
-top of the existing full geodesic-KK cache. The current scaffold builds the
-graph metadata, the top-level coarse graph, and the exact and sparse
-top-level prepared objects, but it does not yet run the multiscale solve.
+`grip.prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
+geodesic-KK pipeline by layering the maximal independent set filtration
+(MISF) on top of the existing full geodesic-KK cache. The prepared object
+stores the graph metadata, the top-level coarse graph, the exact and sparse
+top-level prepared caches, and the default controls used by the multiscale
+MISF-GKK optimizer.
 }
 \examples{
 edges <- edges.mesh(4, 4)
