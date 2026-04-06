@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <ctime>
 #include <cmath>
+#include <limits>
+#include <queue>
+#include <vector>
 
 #include "Graph.h"
 #include "DrawGraph.h"
@@ -127,6 +130,174 @@ size_tt lgkk_scope_from_string(const std::string &scope)
     if(scope == "coarse")
         return LGKK_SCOPE_COARSE;
     Rcpp::stop("lgkk_multiscale_scope must be 'all' or 'coarse'");
+}
+
+size_tt strict_misf_required_hops(size_tt level)
+{
+    if(level == 0)
+        return 1;
+    return static_cast<size_tt>(std::pow(2.0, static_cast<double>(level - 1))) + 1;
+}
+
+size_tt strict_misf_required_radius(size_tt level)
+{
+    if(level <= 1)
+        return 1;
+    return static_cast<size_tt>(std::pow(2.0, static_cast<double>(level - 1)));
+}
+
+size_tt strict_misf_prefix_unweighted(const std::vector<size_tt> &top_vertices,
+                                      const std::vector<std::vector<size_tt>> &adj,
+                                      size_tt level)
+{
+    if(level == 0 || top_vertices.size() < 2)
+        return top_vertices.size();
+
+    const size_tt depth_limit = strict_misf_required_hops(level) - 1;
+    std::vector<int> in_prefix(adj.size(), -1);
+    std::vector<int> seen(adj.size(), -1);
+    int epoch = 0;
+
+    for(size_tt idx = 0; idx < top_vertices.size(); idx++){
+        size_tt root = top_vertices[idx];
+        if(idx > 0){
+            epoch++;
+            std::queue<std::pair<size_tt, size_tt>> q;
+            q.push(std::make_pair(root, static_cast<size_tt>(0)));
+            seen[root] = epoch;
+
+            while(!q.empty()){
+                std::pair<size_tt, size_tt> node = q.front();
+                q.pop();
+                if(node.second >= depth_limit)
+                    continue;
+
+                const std::vector<size_tt> &nbrs = adj[node.first];
+                for(size_tt nbr : nbrs){
+                    if(seen[nbr] == epoch)
+                        continue;
+                    seen[nbr] = epoch;
+                    if(in_prefix[nbr] >= 0 && static_cast<size_tt>(in_prefix[nbr]) < idx)
+                        return idx;
+                    q.push(std::make_pair(nbr, node.second + 1));
+                }
+            }
+        }
+        in_prefix[root] = static_cast<int>(idx);
+    }
+
+    return top_vertices.size();
+}
+
+size_tt strict_misf_prefix_weighted(const std::vector<size_tt> &top_vertices,
+                                    const std::vector<std::vector<size_tt>> &adj,
+                                    const std::vector<std::vector<coord_t>> &weights,
+                                    size_tt level)
+{
+    if(level == 0 || top_vertices.size() < 2)
+        return top_vertices.size();
+
+    const double radius =
+        static_cast<double>(strict_misf_required_radius(level));
+    const double tol = 1e-10;
+    const double inf = std::numeric_limits<double>::infinity();
+    std::vector<int> in_prefix(adj.size(), -1);
+
+    for(size_tt idx = 0; idx < top_vertices.size(); idx++){
+        size_tt root = top_vertices[idx];
+        if(idx > 0){
+            std::vector<double> dist(adj.size(), inf);
+            struct Node {
+                double dist;
+                size_tt vert;
+            };
+            struct Greater {
+                bool operator()(const Node &lhs, const Node &rhs) const
+                {
+                    if(lhs.dist != rhs.dist)
+                        return lhs.dist > rhs.dist;
+                    return lhs.vert > rhs.vert;
+                }
+            };
+
+            std::priority_queue<Node, std::vector<Node>, Greater> pq;
+            dist[root] = 0.0;
+            pq.push(Node{0.0, root});
+
+            while(!pq.empty()){
+                Node node = pq.top();
+                pq.pop();
+                if(node.dist > dist[node.vert] + tol)
+                    continue;
+                if(node.dist > radius + tol)
+                    break;
+
+                if(node.vert != root &&
+                   in_prefix[node.vert] >= 0 &&
+                   static_cast<size_tt>(in_prefix[node.vert]) < idx)
+                    return idx;
+
+                const std::vector<size_tt> &nbrs = adj[node.vert];
+                const std::vector<coord_t> &nbr_w = weights[node.vert];
+                for(size_t j = 0; j < nbrs.size(); j++){
+                    size_tt nbr = nbrs[j];
+                    double alt = node.dist + static_cast<double>(nbr_w[j]);
+                    if(alt > radius + tol)
+                        continue;
+                    if(alt + tol < dist[nbr]){
+                        dist[nbr] = alt;
+                        pq.push(Node{alt, nbr});
+                    }
+                }
+            }
+        }
+        in_prefix[root] = static_cast<int>(idx);
+    }
+
+    return top_vertices.size();
+}
+
+void trim_synthetic_top_level(std::vector<std::vector<size_tt>> &levels,
+                              std::vector<int> &vertex_depth,
+                              std::vector<int> &misf_size,
+                              const std::vector<std::vector<size_tt>> &adj)
+{
+    if(levels.size() < 2)
+        return;
+
+    const size_tt top_level = levels.size() - 1;
+    std::vector<size_tt> full_top = levels[top_level];
+    const size_tt strict_size =
+        strict_misf_prefix_unweighted(full_top, adj, top_level);
+    if(strict_size >= full_top.size())
+        return;
+
+    for(size_t idx = strict_size; idx < full_top.size(); idx++)
+        vertex_depth[full_top[idx]] = static_cast<int>(top_level - 1);
+    levels[top_level].resize(strict_size);
+    misf_size[top_level] = static_cast<int>(strict_size);
+}
+
+void trim_synthetic_top_level_weighted(std::vector<std::vector<size_tt>> &levels,
+                                       std::vector<int> &vertex_depth,
+                                       std::vector<int> &misf_size,
+                                       const std::vector<std::vector<size_tt>> &adj,
+                                       const std::vector<std::vector<coord_t>> &weights)
+{
+    if(levels.size() < 2)
+        return;
+
+    const size_tt top_level = levels.size() - 1;
+    std::vector<size_tt> full_top = levels[top_level];
+    const size_tt strict_size =
+        strict_misf_prefix_weighted(full_top, adj, weights, top_level);
+    if(strict_size >= full_top.size())
+        return;
+
+    for(size_t idx = strict_size; idx < full_top.size(); idx++)
+        vertex_depth[full_top[idx]] = static_cast<int>(top_level - 1);
+    levels[top_level].resize(strict_size);
+    misf_size[top_level] = static_cast<int>(strict_size);
 }
 
 } // namespace
@@ -751,30 +922,46 @@ Rcpp::List grip_build_misf_adj_cpp(Rcpp::List adj_list,
                  false);
 
     int level_count = static_cast<int>(dg.get_MisfHeight()) + 1;
-    Rcpp::List levels(level_count);
+    std::vector<std::vector<size_tt>> level_vertices(level_count);
+    std::vector<int> strict_vertex_depth(n);
+    std::vector<int> strict_misf_size(level_count);
     Rcpp::CharacterVector level_names(level_count);
-    Rcpp::IntegerVector misf_size(level_count);
     Rcpp::IntegerVector num_nbrs_schedule(level_count);
     for(int level = 0; level < level_count; level++){
         int size = static_cast<int>(dg.get_MisfSize(static_cast<size_tt>(level)));
-        misf_size[level] = size;
+        strict_misf_size[level] = size;
         num_nbrs_schedule[level] =
             static_cast<int>(dg.get_NbrCount(static_cast<size_tt>(level)));
-        Rcpp::IntegerVector verts(size);
+        std::vector<size_tt> verts(size);
         for(int i = 0; i < size; i++)
-            verts[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
-        levels[level] = verts;
+            verts[i] = dg.get_Mish(static_cast<size_tt>(i));
+        level_vertices[level] = verts;
         level_names[level] = "V" + std::to_string(level);
     }
-    levels.attr("names") = level_names;
 
     Rcpp::IntegerVector mish_order(n);
-    Rcpp::IntegerVector vertex_depth(n);
     for(int i = 0; i < n; i++){
         mish_order[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
-        vertex_depth[i] =
+        strict_vertex_depth[i] =
             static_cast<int>(dg.get_VertDepth(static_cast<size_tt>(i)));
     }
+
+    trim_synthetic_top_level(level_vertices, strict_vertex_depth, strict_misf_size, adj);
+
+    Rcpp::List levels(level_count);
+    Rcpp::IntegerVector misf_size(level_count);
+    Rcpp::IntegerVector vertex_depth(n);
+    for(int level = 0; level < level_count; level++){
+        const std::vector<size_tt> &verts = level_vertices[level];
+        misf_size[level] = strict_misf_size[level];
+        Rcpp::IntegerVector verts_r(verts.size());
+        for(size_t i = 0; i < verts.size(); i++)
+            verts_r[i] = static_cast<int>(verts[i]) + 1;
+        levels[level] = verts_r;
+    }
+    levels.attr("names") = level_names;
+    for(int i = 0; i < n; i++)
+        vertex_depth[i] = strict_vertex_depth[i];
 
     return Rcpp::List::create(
         Rcpp::_["levels"] = levels,
@@ -876,30 +1063,52 @@ Rcpp::List grip_build_weighted_misf_adj_cpp(Rcpp::List adj_list,
                  true);
 
     int level_count = static_cast<int>(dg.get_MisfHeight()) + 1;
-    Rcpp::List levels(level_count);
+    std::vector<std::vector<size_tt>> level_vertices(level_count);
+    std::vector<int> strict_vertex_depth(n);
+    std::vector<int> strict_misf_size(level_count);
     Rcpp::CharacterVector level_names(level_count);
-    Rcpp::IntegerVector misf_size(level_count);
     Rcpp::IntegerVector num_nbrs_schedule(level_count);
     for(int level = 0; level < level_count; level++){
         int size = static_cast<int>(dg.get_MisfSize(static_cast<size_tt>(level)));
-        misf_size[level] = size;
+        strict_misf_size[level] = size;
         num_nbrs_schedule[level] =
             static_cast<int>(dg.get_NbrCount(static_cast<size_tt>(level)));
-        Rcpp::IntegerVector verts(size);
+        std::vector<size_tt> verts(size);
         for(int i = 0; i < size; i++)
-            verts[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
-        levels[level] = verts;
+            verts[i] = dg.get_Mish(static_cast<size_tt>(i));
+        level_vertices[level] = verts;
         level_names[level] = "V" + std::to_string(level);
     }
-    levels.attr("names") = level_names;
 
     Rcpp::IntegerVector mish_order(n);
-    Rcpp::IntegerVector vertex_depth(n);
     for(int i = 0; i < n; i++){
         mish_order[i] = static_cast<int>(dg.get_Mish(static_cast<size_tt>(i))) + 1;
-        vertex_depth[i] =
+        strict_vertex_depth[i] =
             static_cast<int>(dg.get_VertDepth(static_cast<size_tt>(i)));
     }
+
+    trim_synthetic_top_level_weighted(
+        level_vertices,
+        strict_vertex_depth,
+        strict_misf_size,
+        adj,
+        weights
+    );
+
+    Rcpp::List levels(level_count);
+    Rcpp::IntegerVector misf_size(level_count);
+    Rcpp::IntegerVector vertex_depth(n);
+    for(int level = 0; level < level_count; level++){
+        const std::vector<size_tt> &verts = level_vertices[level];
+        misf_size[level] = strict_misf_size[level];
+        Rcpp::IntegerVector verts_r(verts.size());
+        for(size_t i = 0; i < verts.size(); i++)
+            verts_r[i] = static_cast<int>(verts[i]) + 1;
+        levels[level] = verts_r;
+    }
+    levels.attr("names") = level_names;
+    for(int i = 0; i < n; i++)
+        vertex_depth[i] = strict_vertex_depth[i];
 
     return Rcpp::List::create(
         Rcpp::_["levels"] = levels,

@@ -394,7 +394,7 @@ save_filtration_grid <- function(case_results,
       graphics::mtext(case_result$case$short_label, side = 2L, line = 1.0, outer = FALSE, las = 1, cex = 0.92)
     }
     graphics::mtext(
-      "MISF filtration shown on the 2D mesh geometry",
+      "MIS filtration shown on the 2D mesh geometry",
       side = 3L,
       outer = TRUE,
       line = -0.3,
@@ -811,7 +811,7 @@ saveRDS(
 interactive_html <- file.path(interactive_dir, "misf_gmds_multiscale_embeddings_2026-04-02.html")
 save_interactive_html(case_results, interactive_html)
 
-message("Wrote MISF filtration figure: ", filtration_pdf)
+message("Wrote MIS filtration figure: ", filtration_pdf)
 message("Wrote stage figures: ", paste(vapply(stage_files, `[[`, character(1L), "pdf"), collapse = ", "))
 message("Wrote stage metrics CSV: ", metrics_csv)
 message("Wrote stage bundle: ", bundle_rds)
