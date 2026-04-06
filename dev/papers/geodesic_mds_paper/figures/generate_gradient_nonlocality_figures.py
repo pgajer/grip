@@ -43,20 +43,20 @@ def draw_nodes(ax, positions, labels, special=None):
 
 
 def paths_panel(out_path: Path):
-    fig, ax = plt.subplots(figsize=(5.1, 4.0))
+    fig, ax = plt.subplots(figsize=(5.1, 3.2))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
 
     pos = {
-        "a": (0.10, 0.70),
-        "b": (0.18, 0.33),
-        "u": (0.34, 0.56),
-        "l": (0.51, 0.45),
-        "c": (0.70, 0.46),
-        "d": (0.88, 0.69),
-        "e": (0.89, 0.26),
-        "r": (0.55, 0.16),
+        "a": (0.10, 0.75),
+        "b": (0.18, 0.38),
+        "u": (0.34, 0.61),
+        "l": (0.51, 0.50),
+        "c": (0.70, 0.51),
+        "d": (0.88, 0.74),
+        "e": (0.89, 0.31),
+        "r": (0.55, 0.21),
     }
     labels = {
         "a": (r"$i_1$", (-0.05, 0.09)),
@@ -71,25 +71,9 @@ def paths_panel(out_path: Path):
     base_edges = [("a", "u"), ("b", "l"), ("u", "l"), ("l", "c"), ("c", "d"), ("c", "e"), ("l", "r")]
     active_edges = [("a", "u"), ("u", "l"), ("b", "l"), ("l", "c"), ("c", "d"), ("c", "e")]
 
-    ax.text(0.5, 0.97, r"(a) Active shortest paths through $\ell$", ha="center", va="top", fontsize=15, fontweight="bold")
-    ax.text(
-        0.5,
-        0.90,
-        r"only endpoint pairs whose active shortest path contains $\ell$ contribute to the gradient at $\mathbf{z}_\ell$",
-        ha="center",
-        va="top",
-        fontsize=9.8,
-        color=TEXT,
-    )
-
     draw_edges(ax, pos, base_edges, color=EDGE, lw=2.4, zorder=1)
     draw_edges(ax, pos, active_edges, color=HILITE, lw=4.8, zorder=2)
     draw_nodes(ax, pos, labels, special={"l"})
-
-    ax.text(0.23, 0.57, r"$(i_1,j_1)$", color=HILITE, fontsize=11)
-    ax.text(0.26, 0.42, r"$(i_1,j_2)$", color=HILITE, fontsize=11)
-    ax.text(0.25, 0.24, r"$(i_2,j_1)$", color=HILITE, fontsize=11)
-    ax.text(0.61, 0.05, r"the force on $\ell$ comes from these far-endpoint pairs, not just its immediate neighbors", ha="center", va="center", fontsize=9.5, color=TEXT)
 
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
 
