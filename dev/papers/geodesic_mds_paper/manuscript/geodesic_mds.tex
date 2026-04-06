@@ -1341,6 +1341,7 @@ optimizer whose sole role is the initial placement of
 $V_\ell \setminus V_{\ell+1}$.  The manuscript should therefore describe the
 current implementation in exactly those terms.
 
+\clearpage
 \subsubsection*{Paraboloid case studies}
 The multiscale experiments are best read as three case studies of the
 initial-placement/refinement cycle just described.  In each case the left
@@ -1398,7 +1399,7 @@ The final full-graph polish changes little ($\rho = 0.4546$).  Thus
 it shows that the multiscale schedule can remain trapped in the wrong basin
 from the coarsest level onward.
 
-\begin{figure}[t]
+\begin{figure}[p]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_regular_12x12.pdf}
   \caption{Regular $12\times 12$ paraboloid under MISF-GMDS.  Each row
@@ -1407,6 +1408,7 @@ from the coarsest level onward.
   refinement.}
   \label{fig:misf_stages_regular_12x12}
 \end{figure}
+\clearpage
 
 \emph{Regular $15\times 15$ paraboloid.}
 The larger regular mesh exhibits the same phenomenon even more strongly.  Its
@@ -1422,7 +1424,7 @@ from the $12\times 12$ case: increasing the size of the regular mesh does not
 stabilize the present MISF-GMDS schedule, because the top-level scaffold is
 already qualitatively wrong.
 
-\begin{figure}[t]
+\begin{figure}[p]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_regular_15x15.pdf}
   \caption{Regular $15\times 15$ paraboloid under MISF-GMDS.  Each row
@@ -1431,6 +1433,7 @@ already qualitatively wrong.
   refinement.}
   \label{fig:misf_stages_regular_15x15}
 \end{figure}
+\clearpage
 
 \emph{Irregular $15\times 15$ paraboloid.}
 The irregular rectangle keeps the same broad geometry but breaks the lattice
@@ -1448,7 +1451,7 @@ generic enough.  Taken together, the three case studies suggest that the main
 difficulty is not curvature alone but the interaction between the optimization
 landscape and the strong symmetry of the regular rectangular meshes.
 
-\begin{figure}[t]
+\begin{figure}[p]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_irregular_rectangle_15x15.pdf}
   \caption{Irregular $15\times 15$ rectangle lifted to a paraboloid under
@@ -1457,6 +1460,7 @@ landscape and the strong symmetry of the regular rectangular meshes.
   corresponding sparse GMDS refinement.}
   \label{fig:misf_stages_irregular_15x15}
 \end{figure}
+\clearpage
 
 \subsection{Relationship to Metric Geometry}
 \label{sec:metric_geometry}
