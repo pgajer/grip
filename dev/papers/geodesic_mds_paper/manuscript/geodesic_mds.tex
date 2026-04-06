@@ -109,18 +109,21 @@ Multidimensional scaling (MDS) seeks a low-dimensional embedding of
 a set of points that faithfully reproduces a given pairwise dissimilarity
 matrix.  Classical and metric MDS measure faithfulness via the discrepancy
 between the input dissimilarities and the \emph{Euclidean} distances among
-the embedded points.  Isomap improved upon MDS for curved-manifold data by
+the embedded points.  Isomap improved upon MDS for structured data whose
+relevant geometry is not well captured by ambient Euclidean distance by
 replacing Euclidean input dissimilarities with shortest-path distances on a
 $k$-nearest-neighbor ($k$-NN) graph, thereby approximating intrinsic
-manifold geodesics.  However, Isomap retains Euclidean distances on the
+shortest-path geometry.  However, Isomap retains Euclidean distances on the
 \emph{output} side, creating a fundamental asymmetry: input distances are
 geodesic, but the fidelity criterion is Euclidean.  We argue that this
 asymmetry is not merely an aesthetic inconsistency but a systematic source
-of distortion whenever the data carry genuine graph or manifold structure.
+of distortion whenever the data carry genuine graph, branching, or
+bottleneck structure.
 
-We propose \emph{Geodesic MDS}, a self-consistent formulation in which the
-input dissimilarities are graph geodesics and the output fidelity criterion
-measures the embedded lengths of those same input-side geodesics.  The
+We propose \emph{Geodesic MDS}, a self-consistent formulation for
+shortest-path metric spaces equipped with a chosen geodesic family.  The
+input dissimilarities are geodesic distances, and the output fidelity criterion
+measures the embedded lengths of the corresponding input-side geodesics.  The
 embedding is sought in $\R^d$ such that a fixed family of shortest paths
 chosen from the input $k$-NN graph retains its path-length geometry as
 closely as possible after embedding.  We derive a closed-form
@@ -139,7 +142,7 @@ visualization.
 \begin{keywords}
   multidimensional scaling, dimensionality reduction, geodesic distance,
   graph metric, $k$-nearest neighbor graph, Isomap, SMACOF, metric geometry,
-  manifold learning, stress function
+  structured data geometry, stress function
 \end{keywords}
 
 %% ============================================================
@@ -162,22 +165,27 @@ vandermaaten2008tsne, mcinnes2018umap}.
 When the input data are given as a matrix $\bX \in \R^{n \times m}$ of $n$
 observations in a high-dimensional ambient space $\R^m$, the most common
 choice is $\delta_{ij} = \norm{\bx_i - \bx_j}_{\R^m}$, the Euclidean
-distance in the original space.  This is appropriate when the data are
-believed to lie in a linear subspace of $\R^m$, so that Euclidean distances
-faithfully reflect intrinsic structure.  However, when the data lie on or
-near a nonlinear manifold embedded in $\R^m$, straight-line Euclidean
+distance in the original space.  This is appropriate only when ambient
+Euclidean distance already reflects the meaningful geometry of the data.
+But the fact that the observations are represented in $\R^m$ does not by
+itself justify that choice: many real datasets have curved, branching,
+bottlenecked, hole-rich, or otherwise strongly structured geometry for
+which the relevant relationships are governed by paths through the data
+rather than by straight lines in the ambient coordinates.  In such cases,
+straight-line Euclidean
 distances are poor proxies for the intrinsic distances that govern the
 geometry of the data: two points near opposite ends of a curved surface
-may be close in ambient Euclidean distance but far apart along the surface.
+may be close in ambient Euclidean distance but far apart along the surface,
+and the appropriate geodesic structure must be estimated from the data.
 
 This limitation motivated \emph{Isomap}
-\citep{tenenbaum2000global}, one of the most influential manifold learning
+\citep{tenenbaum2000global}, one of the most influential nonlinear
 algorithms.  Isomap approximates the intrinsic geodesic distance between
 points by constructing a $k$-nearest-neighbor ($k$-NN) graph on the data,
 computing all-pairs shortest paths on this graph (weighted by Euclidean
 edge lengths), and then feeding these graph-geodesic dissimilarities
 $\delta_{ij} = \dknn(\bx_i, \bx_j)$ into classical MDS.  For data lying on
-a smooth, sufficiently sampled Riemannian manifold, the graph-geodesic
+the special case of a smooth, sufficiently sampled Riemannian manifold, the graph-geodesic
 distances converge to the true manifold geodesics as $n \to \infty$
 \citep{bernstein2000graph, tenenbaum2000global}, and the resulting embedding
 recovers the intrinsic geometry with high fidelity.
@@ -210,7 +218,7 @@ the input and output sides of the embedding problem.
   \end{tabular}
 \end{center}
 
-For data living on a smooth manifold with slowly varying curvature this
+For data whose intrinsic geometry is smooth and slowly varying, this
 asymmetry causes only a small error: nearby embedded points have
 approximately equal Euclidean and geodesic distances.  But for data with
 genuine graph or tree structure, where the topology enforces that all
@@ -440,7 +448,7 @@ corresponding embedded path lengths $\demb_G(i,j;\bZ)$.
 \label{sec:isomap}
 
 \emph{Isomap} \citep{tenenbaum2000global} addresses the limitation of MDS
-on nonlinear manifold-structured data by replacing Euclidean input
+on structured data whose relevant geometry is not well captured by ambient Euclidean distance by replacing Euclidean input
 dissimilarities with approximations of intrinsic geodesic distances.
 Given $\bX \in \R^{n \times m}$, the algorithm proceeds in three steps:
 
@@ -462,7 +470,7 @@ Given $\bX \in \R^{n \times m}$, the algorithm proceeds in three steps:
 \end{enumerate}
 
 \paragraph{Convergence theory.}
-For data sampled i.i.d.\ from a compact Riemannian manifold $(M, g)$
+In the special case of data sampled i.i.d.\ from a compact Riemannian manifold $(M, g)$
 embedded in $\R^m$, the graph-geodesic distance $\dknn(i,j)$ converges
 to the Riemannian geodesic distance $d_M(i,j)$ as $n \to \infty$, provided
 $k$ grows appropriately with $n$ \citep{bernstein2000graph,
@@ -473,9 +481,10 @@ of $M$ into a Euclidean space (when one exists) \citep{tenenbaum2000global}.
 \paragraph{The output-side limitation.}
 Despite this theoretical guarantee, Isomap measures the fidelity of the
 embedding by Euclidean distances $\norm{\bz_i - \bz_j}$ between embedded
-points, not by path-length distances along the embedded manifold.  For a
-smooth manifold this is a minor issue: the manifold in the embedding is
-nearly flat if $d$ is chosen correctly, so Euclidean and geodesic distances
+points, not by path-length distances along the embedded graph or geometric
+scaffold.  For data whose intrinsic geometry is smooth and locally nearly
+flat, this is a minor issue: the embedding is locally almost Euclidean, so
+Euclidean and geodesic distances
 are approximately equal.  For discrete graph metrics, branching metrics
 (trees, stars), or data with topological bottlenecks, the discrepancy is
 fundamental, as we elaborate in \cref{sec:geodesic_mds}.
@@ -528,16 +537,18 @@ $k$ is one of the main geometric ideas of the paper.
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.98\linewidth]{../figures/fig_k_regimes.pdf}
-  \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the manifold and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
+  \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the underlying geometry and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
   \label{fig:k_regimes}
 \end{figure}
 
-\subsection{Manifold Learning and Related Methods}
+\subsection{Structured-Data Embedding and Related Methods}
 \label{sec:manifold_learning}
 
-The broader context of our work is \emph{manifold learning}: the project
-of finding low-dimensional representations of high-dimensional data assumed
-to lie near a low-dimensional manifold.  Beyond Isomap, influential methods
+The broader context of our work is the literature often grouped under
+\emph{manifold learning}.  Many real datasets are not well modeled as
+samples from a manifold in the strict sense, but the common goal is still
+to find low-dimensional representations of high-dimensional data with
+non-Euclidean local or shortest-path structure.  Beyond Isomap, influential methods
 include Locally Linear Embedding (LLE) \citep{roweis2000nonlinear},
 Laplacian Eigenmaps \citep{belkin2003laplacian}, Hessian Eigenmaps
 \citep{donoho2003hessian}, Diffusion Maps \citep{coifman2006diffusion},
@@ -545,7 +556,7 @@ $t$-SNE \citep{vandermaaten2008tsne}, and UMAP \citep{mcinnes2018umap}.
 With the exception of diffusion maps (which define an intrinsic distance via
 Markov chain commute times), all of these methods use Euclidean distances
 on the output side, making the inconsistency identified here relevant to the
-entire manifold learning literature.
+broader nonlinear-embedding literature.
 
 Graph drawing methods, particularly Kamada-Kawai \citep{kamada1989algorithm}
 and Fruchterman-Reingold \citep{fruchterman1991graph}, are also related.
