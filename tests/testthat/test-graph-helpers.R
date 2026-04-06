@@ -495,6 +495,110 @@ test_that("irregular rectangle surface graph supports diagonal connectivity and 
   expect_equal(spec$n, 16L)
 })
 
+test_that("sampled rectangle helpers are reproducible and respect bounds", {
+  coords1 <- sampled.rectangle.param.coords(
+    n = 12,
+    xmin = -2,
+    xmax = 3,
+    ymin = -1,
+    ymax = 4,
+    seed = 42
+  )
+  coords2 <- sampled.rectangle.param.coords(
+    n = 12,
+    xmin = -2,
+    xmax = 3,
+    ymin = -1,
+    ymax = 4,
+    seed = 42
+  )
+  embed <- sampled.rectangle.surface.embedding(
+    n = 12,
+    xmin = -2,
+    xmax = 3,
+    ymin = -1,
+    ymax = 4,
+    seed = 42,
+    surface = "folded",
+    amplitude = 0.6
+  )
+
+  expect_equal(coords1, coords2)
+  expect_equal(dim(coords1), c(12L, 2L))
+  expect_true(all(coords1[, 1L] >= -2 & coords1[, 1L] <= 3))
+  expect_true(all(coords1[, 2L] >= -1 & coords1[, 2L] <= 4))
+  expect_equal(dim(embed), c(12L, 3L))
+  expect_equal(colnames(embed), c("x", "y", "z"))
+  expect_true(all(is.finite(embed)))
+  expect_gt(max(embed[, 3L]) - min(embed[, 3L]), 0)
+})
+
+test_that("sampled rectangle surface graph returns normalized positive iKNN weights", {
+  spec <- sampled.rectangle.surface.graph(
+    n = 40,
+    k = 5,
+    xmin = -1.5,
+    xmax = 1.5,
+    ymin = -0.5,
+    ymax = 2,
+    seed = 7,
+    surface = "paraboloid",
+    amplitude = 0.8,
+    graph_space = "surface",
+    normalize = "mean"
+  )
+
+  expect_s3_class(spec, "grip_sampled_rectangle_surface_graph")
+  expect_equal(spec$n, 40L)
+  expect_true(is.matrix(spec$edges))
+  expect_equal(ncol(spec$edges), 2L)
+  expect_equal(length(spec$edge_weights), nrow(spec$edges))
+  expect_true(all(is.finite(spec$edge_weights)))
+  expect_true(all(spec$edge_weights > 0))
+  expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
+  expect_equal(length(spec$raw_edge_weights), nrow(spec$edges))
+  expect_equal(length(spec$iknn_witness_edge_weights), nrow(spec$edges))
+  expect_equal(dim(spec$coords_surface), c(40L, 3L))
+  expect_equal(dim(spec$coords_param), c(40L, 2L))
+  expect_equal(dim(spec$coords_param_unit), c(40L, 2L))
+  expect_equal(spec$family, "sampled.rectangle")
+  expect_equal(spec$surface, "paraboloid")
+  expect_equal(spec$graph_space, "surface")
+  expect_equal(spec$k, 5L)
+  expect_false(isTRUE(all.equal(spec$raw_edge_weights, spec$iknn_witness_edge_weights)))
+})
+
+test_that("sampled rectangle surface graphs reuse one sample across k values", {
+  seq_spec <- sampled.rectangle.surface.graphs(
+    n = 36,
+    k = c(3, 6),
+    xmin = -1,
+    xmax = 2,
+    ymin = -2,
+    ymax = 1,
+    seed = 11,
+    surface = "ripple",
+    amplitude = 0.5,
+    freq_u = 2,
+    freq_v = 3,
+    graph_space = "param"
+  )
+
+  expect_s3_class(seq_spec, "grip_sampled_rectangle_surface_graphs")
+  expect_equal(seq_spec$k, c(3L, 6L))
+  expect_equal(names(seq_spec$graphs), c("k3", "k6"))
+  expect_equal(dim(seq_spec$coords_surface), c(36L, 3L))
+  expect_equal(dim(seq_spec$coords_param), c(36L, 2L))
+  expect_equal(dim(seq_spec$k_statistics), c(2L, 5L))
+  expect_equal(seq_spec$family, "sampled.rectangle")
+  expect_equal(seq_spec$graph_space, "param")
+  expect_equal(seq_spec$graphs$k3$coords_param, seq_spec$coords_param)
+  expect_equal(seq_spec$graphs$k6$coords_surface, seq_spec$coords_surface)
+  expect_equal(length(seq_spec$graphs$k3$iknn_witness_edge_weights), nrow(seq_spec$graphs$k3$edges))
+  expect_true(all(vapply(seq_spec$graphs, function(g) all(g$edge_weights > 0), logical(1L))))
+  expect_true(nrow(seq_spec$graphs$k6$edges) >= nrow(seq_spec$graphs$k3$edges))
+})
+
 test_that("cylinder surface embedding returns finite 3D coordinates", {
   coords <- cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
 
