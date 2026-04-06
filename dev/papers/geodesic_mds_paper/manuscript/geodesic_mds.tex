@@ -130,8 +130,8 @@ geometric scale parameter that continuously interpolates between a sparse
 tree-like regime and standard metric MDS.  The resulting method is
 practically implemented by replacing one line in a standard MDS pipeline
 and adds no asymptotic complexity.  We situate the proposal within the
-metric geometry literature---connecting it to minimum metric realizations,
-tight spans, and metric spanners---and discuss applications to
+metric geometry literature by connecting it to minimum metric realizations,
+tight spans, and metric spanners, and discuss applications to
 high-dimensional compositional data, phylogenetic embeddings, and network
 visualization.
 \end{abstract}
@@ -186,7 +186,7 @@ recovers the intrinsic geometry with high fidelity.
 
 Despite this advance, Isomap retains a fundamental asymmetry that has not
 previously been identified as a source of systematic distortion.  On the
-\emph{input} side, distances are geodesic---shortest paths through the data
+\emph{input} side, distances are geodesic, meaning shortest paths through the data
 graph.  On the \emph{output} side, the stress function measures faithfulness
 via \emph{Euclidean} distances between embedded points.  This means that
 Isomap optimizes an embedding in which the distance between $\bz_i$ and
@@ -213,9 +213,9 @@ the input and output sides of the embedding problem.
 For data living on a smooth manifold with slowly varying curvature this
 asymmetry causes only a small error: nearby embedded points have
 approximately equal Euclidean and geodesic distances.  But for data with
-genuine graph or tree structure---where the topology enforces that all
+genuine graph or tree structure, where the topology enforces that all
 paths between certain pairs of points must pass through bottleneck
-vertices---the Euclidean output distance is a systematic \emph{underestimate}
+vertices, the Euclidean output distance is a systematic \emph{underestimate}
 of the embedded length of the relevant graph geodesic (by the triangle inequality, with
 equality only when points are collinear in the embedding space).
 
@@ -225,7 +225,7 @@ $v_1$ and $v_2$ is $\delta(v_1, v_2) = 2$ (through $c$).  Any faithful
 embedding must respect the topological constraint that the only path from
 $v_1$ to $v_2$ passes through $c$.  Standard MDS and Isomap both try to
 place $\bz_{v_1}$ and $\bz_{v_2}$ at Euclidean distance $2$ apart, which
-is perfectly achievable in $\R^2$---but doing so forces the embedded arms
+is perfectly achievable in $\R^2$, but doing so forces the embedded arms
 to be nearly collinear, misrepresenting the star topology.  The \emph{correct}
 criterion is that the \emph{path-length distance along the embedded arms}
 from $\bz_{v_1}$ to $\bz_{v_2}$ equals $\norm{\bz_{v_1} - \bz_c} +
@@ -293,9 +293,9 @@ into $\ell_p$ spaces but does not define a stress function or optimization
 criterion.  \emph{Diffusion maps} \citep{coifman2006diffusion} define a
 Markov-chain-based distance that is intrinsic to the data graph but again
 uses Euclidean output distances.  To our knowledge, the self-consistent
-formulation proposed here---graph geodesics on the input side and
+formulation proposed here, with graph geodesics on the input side and
 embedded lengths of the corresponding fixed input geodesics on the output
-side---has not been previously proposed.
+side, has not been previously proposed.
 
 \paragraph{Organization.}
 
@@ -473,7 +473,7 @@ of $M$ into a Euclidean space (when one exists) \citep{tenenbaum2000global}.
 \paragraph{The output-side limitation.}
 Despite this theoretical guarantee, Isomap measures the fidelity of the
 embedding by Euclidean distances $\norm{\bz_i - \bz_j}$ between embedded
-points---not by path-length distances along the embedded manifold.  For a
+points, not by path-length distances along the embedded manifold.  For a
 smooth manifold this is a minor issue: the manifold in the embedding is
 nearly flat if $d$ is chosen correctly, so Euclidean and geodesic distances
 are approximately equal.  For discrete graph metrics, branching metrics
@@ -484,7 +484,7 @@ fundamental, as we elaborate in \cref{sec:geodesic_mds}.
 \label{sec:knn_graph}
 
 The $k$-NN graph $\Gk$ constructed in step 1 of Isomap can be understood
-as a \emph{metric graph}---a weighted graph whose path metric approximates
+as a \emph{metric graph}, a weighted graph whose path metric approximates
 some underlying geodesic metric space.  Several observations are relevant
 for our construction.
 
@@ -547,8 +547,8 @@ Markov chain commute times), all of these methods use Euclidean distances
 on the output side, making the inconsistency identified here relevant to the
 entire manifold learning literature.
 
-Graph drawing methods---particularly Kamada-Kawai \citep{kamada1989algorithm}
-and Fruchterman-Reingold \citep{fruchterman1991graph}---are also related.
+Graph drawing methods, particularly Kamada-Kawai \citep{kamada1989algorithm}
+and Fruchterman-Reingold \citep{fruchterman1991graph}, are also related.
 Kamada-Kawai minimizes a stress between graph-theoretic shortest-path
 distances (in the unweighted graph) and Euclidean distances in the 2D
 drawing, which is structurally similar to Isomap applied to an unweighted
@@ -573,7 +573,7 @@ We begin by articulating the principle that motivates the proposed method.
   $\gamma_{ij}$ in $G$.  An embedding $f: X \to \R^d$ is
   \emph{self-consistent} with respect to $(G, \Gamma)$, where
   $\Gamma = \{\gamma_{ij}\}_{i<j}$, if the fidelity of the embedding is
-  measured by the path length of the image $f(\gamma_{ij})$---i.e., by the
+  measured by the path length of the image $f(\gamma_{ij})$, that is, by the
   sum of Euclidean edge lengths along that same input-side geodesic.
 \end{definition}
 
@@ -1361,19 +1361,19 @@ regular rectangular mesh.
     regular $12\times 12$ & $V_2$ & 20  & 0.8450 & 0.5735 \\
     regular $12\times 12$ & $V_1$ & 50  & 0.6810 & 0.5431 \\
     regular $12\times 12$ & $V_0$ & 144 & 0.5685 & 0.4543 \\
-    regular $12\times 12$ & final & 144 & ---    & 0.4546 \\
+    regular $12\times 12$ & final & 144 & n/a    & 0.4546 \\
     \midrule
     regular $15\times 15$ & $V_3$ & 13  & 0.9268 & 0.7982 \\
     regular $15\times 15$ & $V_2$ & 28  & 0.8841 & 0.7366 \\
     regular $15\times 15$ & $V_1$ & 84  & 0.7193 & 0.6106 \\
     regular $15\times 15$ & $V_0$ & 225 & 0.6870 & 0.6308 \\
-    regular $15\times 15$ & final & 225 & ---    & 0.6174 \\
+    regular $15\times 15$ & final & 225 & n/a    & 0.6174 \\
     \midrule
     irregular $15\times 15$ & $V_3$ & 11  & 0.2994 & 0.2281 \\
     irregular $15\times 15$ & $V_2$ & 32  & 0.2741 & 0.2349 \\
     irregular $15\times 15$ & $V_1$ & 81  & 0.2345 & 0.1987 \\
     irregular $15\times 15$ & $V_0$ & 225 & 0.2167 & 0.1950 \\
-    irregular $15\times 15$ & final & 225 & ---    & 0.1837 \\
+    irregular $15\times 15$ & final & 225 & n/a    & 0.1837 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -1577,7 +1577,7 @@ help.  The answer is now fairly clear:
     \midrule
     regular paraboloid $12\times 12$ & $(0.0492, 0.3257)$ & $(0.0221, 0.3214)$ & $(0.0109, 0.0904)$ \\
     regular paraboloid $15\times 15$ & $(0.0519, 0.2317)$ & $(0.0183, 0.2286)$ & $(0.0148, 0.0726)$ \\
-    irregular rectangle paraboloid $15\times 15$ & $(0.2872, 0.1845)$ & --- & $(0.0951, 0.0889)$ \\
+    irregular rectangle paraboloid $15\times 15$ & $(0.2872, 0.1845)$ & n/a & $(0.0951, 0.0889)$ \\
     \bottomrule
   \end{tabular}
 \end{table}
