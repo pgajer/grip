@@ -1,0 +1,38 @@
+{
+  "phase": "G",
+  "title": "Deferred Portfolio Selection for Seeded MISF-GMDS",
+  "date": "2026-04-05",
+  "status": "implemented_and_executed",
+  "question": "Does delaying the seed decision until whole-graph candidate embeddings are available outperform the earlier Phase E and Phase F selectors on the mesh-geometry panel?",
+  "fixed_pipeline": {
+    "top_correction": "anchor-regularized GMDS",
+    "lower_level_placement": "weighted_kk",
+    "refinement": "sparse GMDS",
+    "final_polish": "pure GMDS"
+  },
+  "candidate_ids": [
+    "cmdscale",
+    "kk",
+    "grip",
+    "weighted_grip",
+    "weighted_grip_polish_lgkk"
+  ],
+  "phase_g_score": [
+    "final_sigma",
+    "final_roughness",
+    "final_edge_floor",
+    "final_area_q05_ratio"
+  ],
+  "panel": {
+    "regular_12x12": ["flat", "saddle", "paraboloid", "ripple"],
+    "regular_15x15": ["flat", "saddle", "paraboloid", "ripple"],
+    "irregular_rectangle_15x15": ["flat", "saddle", "paraboloid", "ripple"]
+  },
+  "artifacts": {
+    "benchmark": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-g-deferred-portfolio.R",
+    "renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-g-deferred-portfolio-html.R",
+    "report_source_dir": "/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_misf_phase_g_deferred_portfolio_report_2026-04-05",
+    "tmp_dir": "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-phase-g-deferred-portfolio-2026-04-05",
+    "interactive_dir": "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes"
+  }
+}

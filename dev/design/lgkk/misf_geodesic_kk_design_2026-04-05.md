@@ -2,7 +2,7 @@
 
 Date: 2026-04-05
 
-Status: **Planned only. Not started.**
+Status: **Implemented baseline public family. Paper-grade benchmarking still pending.**
 
 ## Purpose
 
@@ -18,7 +18,7 @@ The motivating package-level conclusion is:
 - the package already includes MISF-based multiscale GMDS,
 - but it does **not** yet expose a standalone MISF-based geodesic-KK family.
 
-The next method-family addition should therefore be a multiscale
+The next method-family addition was therefore a multiscale
 **MISF-geodesic-KK** pipeline that reuses GRIP's maximal independent set
 filtration as a scaffold for scalable weighted geodesic-KK optimization.
 

@@ -164,19 +164,22 @@ family.scope <- data.frame(
     "grip.layout*",
     "geodesic.kk",
     "landmark.geodesic.kk",
+    "misf.geodesic.kk",
     "misf.geodesic.mds"
   ),
   `Exported entry points` = c(
     "grip.layout*()",
     "grip.prepare/score/optimize.geodesic.kk()",
     "grip.prepare/score/optimize.landmark.geodesic.kk()",
+    "grip.prepare/score/optimize.misf.geodesic.kk()",
     "grip.prepare/score/optimize.misf.geodesic.mds()"
   ),
   Role = c(
     "Primary user-facing multiscale layout APIs for fast 2D and 3D graph embedding.",
     "Full geodesic-KK scoring and optimization for weighted graph metrics, most useful for evaluation and smaller weighted problems.",
-    "Sparse landmark geodesic-KK approximation used for post-polish and experimental weighted refinement.",
-    "Experimental MISF-based geodesic-MDS pipeline rather than a standalone MISF geodesic-KK family."
+    "Sparse landmark geodesic-KK approximation used for post-polish and scalable weighted refinement.",
+    "MISF-based multiscale geodesic-KK family for coarse-to-fine weighted optimization, refinement, and scoring.",
+    "MISF-based geodesic-MDS family for multiscale weighted embedding under a related geodesic stress objective."
   ),
   check.names = FALSE
 )

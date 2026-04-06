@@ -294,19 +294,22 @@ family.scope <- data.frame(
     "grip.layout*",
     "geodesic.kk",
     "landmark.geodesic.kk",
+    "misf.geodesic.kk",
     "misf.geodesic.mds"
   ),
   `Exported entry points` = c(
     "grip.layout*()",
     "grip.prepare/score/optimize.geodesic.kk()",
     "grip.prepare/score/optimize.landmark.geodesic.kk()",
+    "grip.prepare/score/optimize.misf.geodesic.kk()",
     "grip.prepare/score/optimize.misf.geodesic.mds()"
   ),
   Role = c(
     "Primary user-facing multiscale layout APIs for fast 2D and 3D graph embedding.",
     "Full geodesic-KK scoring and optimization for weighted graph metrics, most useful for evaluation and smaller weighted problems.",
-    "Sparse landmark geodesic-KK approximation used for post-polish and experimental weighted refinement.",
-    "Experimental MISF-based geodesic-MDS pipeline rather than a standalone MISF geodesic-KK family."
+    "Sparse landmark geodesic-KK approximation used for post-polish and scalable weighted refinement.",
+    "MISF-based multiscale geodesic-KK family for coarse-to-fine weighted optimization, refinement, and scoring.",
+    "MISF-based geodesic-MDS family for multiscale weighted embedding under a related geodesic stress objective."
   ),
   check.names = FALSE
 )
@@ -319,13 +322,21 @@ knitr::kable(
 )
 ```
 
-This distinction matters for the paper. grip already includes pure geodesic-KK
-tools, standalone landmark geodesic-KK tools, and MISF-based GMDS tools. It
-also integrates LGKK refinement inside the main multiscale solver. However, the
-current package does not yet expose a separate standalone `grip.*misf*.geodesic.kk()`
-family, so this package paper keeps the main focus on the `grip.layout*()`
-interfaces and uses the geodesic tools mainly for weighted scoring and
-polishing.
+This distinction matters for the paper. grip now includes pure geodesic-KK
+tools, standalone landmark geodesic-KK tools, a standalone MISF-based
+geodesic-KK family, and MISF-based GMDS tools. The new MISF-GKK family extends
+the package's multiscale geodesic toolkit, especially for weighted graphs where
+coarse-to-fine geodesic optimization is useful. Even so, this package paper
+keeps the main focus on the `grip.layout*()` interfaces, because they remain
+the clearest user-facing expression of the package's main strength: fast 2D and
+3D graph layout at practical runtime scale.
+
+For advanced users, `grip.prepare/score/optimize.misf.geodesic.kk()` now
+provides a multistage pipeline that combines MISF coarsening, top-level
+geodesic-KK or landmark geodesic-KK solving, coarse-to-fine insertion, anchored
+active-level refinement, and final geodesic polish. That family is important
+for the package's longer-term weighted-layout scope, but it is secondary to the
+main manuscript story, which is routine large-graph layout and assessment in R.
 
 ## Presets, tracing, and graph families
 
@@ -930,6 +941,14 @@ benchmark. The package is strongest in three settings:
   solved with the weighted sister API rather than treated as ordinary metadata;
 - analysis workflows where several plausible layouts must be compared
   reproducibly rather than selected by eye.
+
+The package now also includes a fuller advanced geodesic toolbox than the main
+text emphasizes, including exact GKK, sparse LGKK, MISF-GKK, and MISF-GMDS
+families. That broader toolkit matters for users working with weighted graph
+metrics, but for an R Journal package paper the most persuasive message is
+still the practical one: `grip.layout*()` makes fast multiscale 2D and 3D
+layout available in ordinary R workflows, and the scoring utilities make the
+resulting choices inspectable.
 
 There are also clear limits. The preset library is finite, so some real graphs
 will still require manual tuning. The quality metrics are proxies for readable

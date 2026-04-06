@@ -130,20 +130,30 @@ grip.layout* & grip.layout*() & Primary user-facing multiscale layout APIs for f
 \hline
 geodesic.kk & grip.prepare/score/optimize.geodesic.kk() & Full geodesic-KK scoring and optimization for weighted graph metrics, most useful for evaluation and smaller weighted problems.\\
 \hline
-landmark.geodesic.kk & grip.prepare/score/optimize.landmark.geodesic.kk() & Sparse landmark geodesic-KK approximation used for post-polish and experimental weighted refinement.\\
+landmark.geodesic.kk & grip.prepare/score/optimize.landmark.geodesic.kk() & Sparse landmark geodesic-KK approximation used for post-polish and scalable weighted refinement.\\
 \hline
-misf.geodesic.mds & grip.prepare/score/optimize.misf.geodesic.mds() & Experimental MISF-based geodesic-MDS pipeline rather than a standalone MISF geodesic-KK family.\\
+misf.geodesic.kk & grip.prepare/score/optimize.misf.geodesic.kk() & MISF-based multiscale geodesic-KK family for coarse-to-fine weighted optimization, refinement, and scoring.\\
+\hline
+misf.geodesic.mds & grip.prepare/score/optimize.misf.geodesic.mds() & MISF-based geodesic-MDS family for multiscale weighted embedding under a related geodesic stress objective.\\
 \hline
 \end{tabular}
 \end{table}
 
-This distinction matters for the paper. grip already includes pure geodesic-KK
-tools, standalone landmark geodesic-KK tools, and MISF-based GMDS tools. It
-also integrates LGKK refinement inside the main multiscale solver. However, the
-current package does not yet expose a separate standalone \texttt{grip.*misf*.geodesic.kk()}
-family, so this package paper keeps the main focus on the \texttt{grip.layout*()}
-interfaces and uses the geodesic tools mainly for weighted scoring and
-polishing.
+This distinction matters for the paper. grip now includes pure geodesic-KK
+tools, standalone landmark geodesic-KK tools, a standalone MISF-based
+geodesic-KK family, and MISF-based GMDS tools. The new MISF-GKK family extends
+the package's multiscale geodesic toolkit, especially for weighted graphs where
+coarse-to-fine geodesic optimization is useful. Even so, this package paper
+keeps the main focus on the \texttt{grip.layout*()} interfaces, because they remain
+the clearest user-facing expression of the package's main strength: fast 2D and
+3D graph layout at practical runtime scale.
+
+For advanced users, \texttt{grip.prepare/score/optimize.misf.geodesic.kk()} now
+provides a multistage pipeline that combines MISF coarsening, top-level
+geodesic-KK or landmark geodesic-KK solving, coarse-to-fine insertion, anchored
+active-level refinement, and final geodesic polish. That family is important
+for the package's longer-term weighted-layout scope, but it is secondary to the
+main manuscript story, which is routine large-graph layout and assessment in R.
 
 \subsection{Presets, tracing, and graph families}\label{presets-tracing-and-graph-families}
 
@@ -188,7 +198,7 @@ that the manuscript remains quick to render.
 \hline
 Graph & Dim & nV & nE & context & elapsed.sec & Stress\\
 \hline
-20x20 torus & 3 & 400 & 800 & Single 3D preset solve & 0.349 & 35.709\\
+20x20 torus & 3 & 400 & 800 & Single 3D preset solve & 0.343 & 35.709\\
 \hline
 Carpet level 4 & 2 & 4096 & 6424 & Single 2D preset solve & 2.184 & 175.422\\
 \hline
@@ -259,13 +269,13 @@ the paper build.
 \hline
 Graph & Cand & Runs & Sec & Stress & EdgeCV & NESR & PStab\\
 \hline
-12x12 mesh & default & 3 & 0.612 & 41.956 & 0.122 & 0.134 & 0.490\\
+12x12 mesh & default & 3 & 0.616 & 41.956 & 0.122 & 0.134 & 0.490\\
 \hline
-12x12 mesh & mesh & 3 & 0.727 & 19.785 & 0.050 & 1.214 & 0.005\\
+12x12 mesh & mesh & 3 & 0.671 & 19.785 & 0.050 & 1.214 & 0.005\\
 \hline
-Carpet level 3 & default & 3 & 0.217 & 133.750 & 0.208 & 0.048 & 0.562\\
+Carpet level 3 & default & 3 & 0.219 & 133.750 & 0.208 & 0.048 & 0.562\\
 \hline
-Carpet level 3 & carpet & 3 & 0.606 & 54.504 & 0.120 & 1.090 & 0.014\\
+Carpet level 3 & carpet & 3 & 0.605 & 54.504 & 0.120 & 1.090 & 0.014\\
 \hline
 \end{tabular}
 \end{table}
@@ -468,6 +478,14 @@ benchmark. The package is strongest in three settings:
   analysis workflows where several plausible layouts must be compared
   reproducibly rather than selected by eye.
 \end{itemize}
+
+The package now also includes a fuller advanced geodesic toolbox than the main
+text emphasizes, including exact GKK, sparse LGKK, MISF-GKK, and MISF-GMDS
+families. That broader toolkit matters for users working with weighted graph
+metrics, but for an R Journal package paper the most persuasive message is
+still the practical one: \texttt{grip.layout*()} makes fast multiscale 2D and 3D
+layout available in ordinary R workflows, and the scoring utilities make the
+resulting choices inspectable.
 
 There are also clear limits. The preset library is finite, so some real graphs
 will still require manual tuning. The quality metrics are proxies for readable
