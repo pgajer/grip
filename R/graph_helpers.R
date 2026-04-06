@@ -3589,6 +3589,48 @@ keep.asymmetric.notches <- function(h,
   )
 }
 
+.sampled.rectangle.canonical.from.coords <- function(coords_param,
+                                                     xmin,
+                                                     xmax,
+                                                     ymin,
+                                                     ymax,
+                                                     seed = NULL) {
+  coords_param <- as.matrix(coords_param)
+  if (!is.numeric(coords_param) || ncol(coords_param) != 2L || nrow(coords_param) < 2L) {
+    stop("coords_param must be a numeric matrix with at least two rows and exactly two columns", call. = FALSE)
+  }
+  if (anyNA(coords_param) || any(!is.finite(coords_param))) {
+    stop("coords_param must contain only finite numeric values", call. = FALSE)
+  }
+  bounds <- .sampled.rectangle.bounds(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  )
+  tol_x <- max(.Machine$double.eps * max(1, abs(bounds$xmin), abs(bounds$xmax)) * 16, 1e-12)
+  tol_y <- max(.Machine$double.eps * max(1, abs(bounds$ymin), abs(bounds$ymax)) * 16, 1e-12)
+  if (any(coords_param[, 1L] < bounds$xmin - tol_x) || any(coords_param[, 1L] > bounds$xmax + tol_x)) {
+    stop("coords_param x-coordinates must lie within [xmin, xmax]", call. = FALSE)
+  }
+  if (any(coords_param[, 2L] < bounds$ymin - tol_y) || any(coords_param[, 2L] > bounds$ymax + tol_y)) {
+    stop("coords_param y-coordinates must lie within [ymin, ymax]", call. = FALSE)
+  }
+  coords_unit <- cbind(
+    u = 2 * (coords_param[, 1L] - bounds$xmid) / bounds$xscale,
+    v = 2 * (coords_param[, 2L] - bounds$ymid) / bounds$yscale
+  )
+  storage.mode(coords_param) <- "double"
+  storage.mode(coords_unit) <- "double"
+  list(
+    n = as.integer(nrow(coords_param)),
+    coords_param = coords_param,
+    coords_param_unit = coords_unit,
+    bounds = bounds,
+    seed = if (is.null(seed)) NULL else as.integer(seed)
+  )
+}
+
 .sampled.rectangle.surface.coords <- function(coords_param,
                                               coords_param_unit,
                                               surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
@@ -3620,6 +3662,182 @@ keep.asymmetric.notches <- function(h,
   )
   storage.mode(coords) <- "double"
   coords
+}
+
+.sampled.rectangle.surface.edge.weights <- function(edges, coords_surface) {
+  edges <- as.matrix(edges)
+  coords_surface <- as.matrix(coords_surface)
+  if (nrow(edges) == 0L) {
+    return(numeric(0L))
+  }
+  sqrt(rowSums((coords_surface[edges[, 1L], , drop = FALSE] - coords_surface[edges[, 2L], , drop = FALSE])^2))
+}
+
+.sampled.rectangle.surface.graph.from.built <- function(built,
+                                                        k,
+                                                        surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                        amplitude = 0.75,
+                                                        freq_u = 1,
+                                                        freq_v = 1,
+                                                        graph_space = c("surface", "param"),
+                                                        max.path.edge.ratio.deviation.thld = 0.1,
+                                                        path.edge.ratio.percentile = 0.5,
+                                                        threshold.percentile = 0,
+                                                        normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  graph_space <- match.arg(graph_space)
+  normalize <- match.arg(normalize)
+  coords_surface <- .sampled.rectangle.surface.coords(
+    coords_param = built$coords_param,
+    coords_param_unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  graph_coords <- switch(
+    graph_space,
+    surface = coords_surface,
+    param = built$coords_param
+  )
+  surface_dist_matrix <- grip.euclidean.distance.matrix(coords_surface)
+  iknn <- .grip.create.single.iknn.graph(
+    X = graph_coords,
+    k = k,
+    edge_dist_matrix = surface_dist_matrix,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile
+  )
+  weights <- .normalize.edge.weights(
+    edge_weights = iknn$edge_weights,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = iknn$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    raw_edge_weights = as.double(iknn$edge_weights),
+    iknn_witness_edge_weights = as.double(iknn$raw_witness_edge_weights),
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    coords_param_unit = built$coords_param_unit,
+    weight_scale = weights$weight_scale,
+    family = "sampled.rectangle",
+    surface = surface,
+    graph_space = graph_space,
+    k = iknn$k,
+    xmin = built$bounds$xmin,
+    xmax = built$bounds$xmax,
+    ymin = built$bounds$ymin,
+    ymax = built$bounds$ymax,
+    seed = built$seed,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize,
+    label = sprintf("%s sampled rectangle n=%d k=%d",
+                    tools::toTitleCase(surface),
+                    built$n,
+                    iknn$k)
+  )
+  class(out) <- c("grip_sampled_rectangle_surface_graph", "list")
+  out
+}
+
+.sampled.rectangle.surface.graph.from.coords <- function(coords_param,
+                                                         k,
+                                                         xmin,
+                                                         xmax,
+                                                         ymin,
+                                                         ymax,
+                                                         seed = NULL,
+                                                         surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                         amplitude = 0.75,
+                                                         freq_u = 1,
+                                                         freq_v = 1,
+                                                         graph_space = c("surface", "param"),
+                                                         max.path.edge.ratio.deviation.thld = 0.1,
+                                                         path.edge.ratio.percentile = 0.5,
+                                                         threshold.percentile = 0,
+                                                         normalize = c("median", "mean", "none")) {
+  built <- .sampled.rectangle.canonical.from.coords(
+    coords_param = coords_param,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )
+  .sampled.rectangle.surface.graph.from.built(
+    built = built,
+    k = k,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v,
+    graph_space = graph_space,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize
+  )
+}
+
+.sampled.rectangle.surface.graph.reweight.saved.topology <- function(graph,
+                                                                     surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                                     amplitude = 0.75,
+                                                                     freq_u = 1,
+                                                                     freq_v = 1,
+                                                                     normalize = c("median", "mean", "none")) {
+  if (!is.list(graph) || is.null(graph$edges) || is.null(graph$coords_param)) {
+    stop("graph must be a sampled rectangle graph bundle with edges and coords_param", call. = FALSE)
+  }
+  built <- .sampled.rectangle.canonical.from.coords(
+    coords_param = graph$coords_param,
+    xmin = graph$xmin,
+    xmax = graph$xmax,
+    ymin = graph$ymin,
+    ymax = graph$ymax,
+    seed = graph$seed
+  )
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  coords_surface <- .sampled.rectangle.surface.coords(
+    coords_param = built$coords_param,
+    coords_param_unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq_u = freq_u,
+    freq_v = freq_v
+  )
+  raw_edge_weights <- .sampled.rectangle.surface.edge.weights(graph$edges, coords_surface)
+  weights <- .normalize.edge.weights(
+    edge_weights = raw_edge_weights,
+    normalize = normalize
+  )
+  out <- graph
+  out$n <- built$n
+  out$edge_weights <- weights$edge_weights
+  out$raw_edge_weights <- as.double(raw_edge_weights)
+  out$coords_surface <- coords_surface
+  out$coords_param <- built$coords_param
+  out$coords_param_unit <- built$coords_param_unit
+  out$weight_scale <- weights$weight_scale
+  out$surface <- surface
+  out$xmin <- built$bounds$xmin
+  out$xmax <- built$bounds$xmax
+  out$ymin <- built$bounds$ymin
+  out$ymax <- built$bounds$ymax
+  out$seed <- built$seed
+  out$normalize <- normalize
+  out$label <- sprintf("%s sampled rectangle n=%d k=%d",
+                       tools::toTitleCase(surface),
+                       built$n,
+                       as.integer(graph$k[[1L]]))
+  class(out) <- c("grip_sampled_rectangle_surface_graph", "list")
+  out
 }
 
 .grip.iknn.validate.k.values <- function(k, n) {
@@ -4848,63 +5066,19 @@ sampled.rectangle.surface.graph <- function(n,
     ymax = ymax,
     seed = seed
   )
-  coords_surface <- .sampled.rectangle.surface.coords(
-    coords_param = built$coords_param,
-    coords_param_unit = built$coords_param_unit,
+  .sampled.rectangle.surface.graph.from.built(
+    built = built,
+    k = k,
     surface = surface,
     amplitude = amplitude,
     freq_u = freq_u,
-    freq_v = freq_v
-  )
-  graph_coords <- switch(
-    graph_space,
-    surface = coords_surface,
-    param = built$coords_param
-  )
-  surface_dist_matrix <- grip.euclidean.distance.matrix(coords_surface)
-  iknn <- .grip.create.single.iknn.graph(
-    X = graph_coords,
-    k = k,
-    edge_dist_matrix = surface_dist_matrix,
-    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
-    path.edge.ratio.percentile = path.edge.ratio.percentile,
-    threshold.percentile = threshold.percentile
-  )
-  weights <- .normalize.edge.weights(
-    edge_weights = iknn$edge_weights,
-    normalize = normalize
-  )
-
-  out <- list(
-    edges = iknn$edges,
-    n = built$n,
-    edge_weights = weights$edge_weights,
-    raw_edge_weights = as.double(iknn$edge_weights),
-    iknn_witness_edge_weights = as.double(iknn$raw_witness_edge_weights),
-    coords_surface = coords_surface,
-    coords_param = built$coords_param,
-    coords_param_unit = built$coords_param_unit,
-    weight_scale = weights$weight_scale,
-    family = "sampled.rectangle",
-    surface = surface,
+    freq_v = freq_v,
     graph_space = graph_space,
-    k = iknn$k,
-    xmin = built$bounds$xmin,
-    xmax = built$bounds$xmax,
-    ymin = built$bounds$ymin,
-    ymax = built$bounds$ymax,
-    seed = built$seed,
     max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
     path.edge.ratio.percentile = path.edge.ratio.percentile,
     threshold.percentile = threshold.percentile,
-    normalize = normalize,
-    label = sprintf("%s sampled rectangle n=%d k=%d",
-                    tools::toTitleCase(surface),
-                    built$n,
-                    iknn$k)
+    normalize = normalize
   )
-  class(out) <- c("grip_sampled_rectangle_surface_graph", "list")
-  out
 }
 
 #' @rdname sampled_rectangle_surface_helpers

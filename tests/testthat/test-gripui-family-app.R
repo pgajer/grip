@@ -4,6 +4,7 @@ test_that("graph family catalog covers the implemented explorer families", {
   expected <- c(
     "mesh",
     "irregular_rectangle",
+    "sampled_rectangle",
     "cylinder",
     "torus",
     "sphere",
@@ -136,6 +137,117 @@ test_that("initial explore state keeps family and category aligned", {
   expect_identical(initial$family_id, "mesh")
   expect_identical(initial$category, catalog[[initial$family_id]]$category)
   expect_true(initial$family_id %in% unname(initial$choices))
+})
+
+test_that("sampled rectangle family is marked stochastic", {
+  catalog <- gripui_graph_family_catalog()
+
+  expect_true(grip:::gripui.family.is.stochastic(catalog$sampled_rectangle))
+  expect_false(grip:::gripui.family.is.stochastic(catalog$mesh))
+  expect_identical(grip:::gripui.family.seed.spec(catalog$sampled_rectangle)$id, "seed")
+})
+
+test_that("resample seed helper always returns a valid nonnegative integer", {
+  seed <- grip:::gripui.family.resample.seed(current_seed = 1L, max_seed = 1000000L)
+  repeated <- grip:::gripui.family.resample.seed(current_seed = seed, max_seed = 1000000L)
+  zero_seed <- grip:::gripui.family.resample.seed(current_seed = 0L, max_seed = 0L)
+
+  expect_true(is.integer(seed))
+  expect_length(seed, 1L)
+  expect_false(is.na(seed))
+  expect_gte(seed, 0L)
+  expect_lte(seed, 1000000L)
+  expect_true(is.integer(repeated))
+  expect_false(is.na(repeated))
+  expect_gte(repeated, 0L)
+  expect_lte(repeated, 1000000L)
+  expect_identical(zero_seed, 0L)
+})
+
+test_that("family save helpers create readable paths and complete bundles", {
+  catalog <- gripui_graph_family_catalog()
+  desc <- catalog$sampled_rectangle
+  values <- grip:::.gripui.family.param.defaults(desc)
+  payload <- grip:::gripui.family.build.payload(desc, values)
+  root <- tempfile("gripui-family-save-")
+  dir.create(root, recursive = TRUE, showWarnings = FALSE)
+  stamp <- as.POSIXct("2026-04-06 12:34:56", tz = "America/New_York")
+
+  path <- grip:::gripui.family.save.path(payload, root = root, timestamp = stamp)
+  saved <- grip:::gripui.family.save.bundle(payload, path, saved_at = stamp)
+  bundle <- readRDS(path)
+  unique_path <- grip:::gripui.family.unique.save.path(path)
+
+  expect_identical(saved, path)
+  expect_true(file.exists(path))
+  expect_match(path, "tmp/gripui-family-graphs/sampled_rectangle", fixed = TRUE)
+  expect_match(basename(path), "sampled_rectangle__n-80__k-6__seed-1")
+  expect_match(basename(path), "20260406-123456\\.rds$")
+  expect_match(basename(unique_path), "__01\\.rds$")
+  expect_identical(bundle$family_id, payload$family_id)
+  expect_identical(bundle$values, payload$values)
+  expect_identical(bundle$code, payload$code)
+  expect_identical(bundle$payload$raw$edges, payload$raw$edges)
+})
+
+test_that("saved bundle helpers list files newest-first and expose load modes", {
+  catalog <- gripui_graph_family_catalog()
+  desc <- catalog$sampled_rectangle
+  payload <- grip:::gripui.family.build.payload(desc, grip:::.gripui.family.param.defaults(desc))
+  root <- tempfile("gripui-family-bundles-")
+  dir.create(root, recursive = TRUE, showWarnings = FALSE)
+
+  path1 <- grip:::gripui.family.save.path(
+    payload,
+    root = root,
+    timestamp = as.POSIXct("2026-04-06 08:00:00", tz = "America/New_York")
+  )
+  path2 <- grip:::gripui.family.save.path(
+    payload,
+    root = root,
+    timestamp = as.POSIXct("2026-04-06 09:00:00", tz = "America/New_York")
+  )
+  grip:::gripui.family.save.bundle(payload, path1)
+  grip:::gripui.family.save.bundle(payload, path2)
+
+  files <- grip:::gripui.family.saved.bundle.files(desc$id, root = root)
+  choices <- grip:::gripui.family.saved.bundle.choices(desc, root = root)
+  modes <- grip:::gripui.family.saved.load.mode.choices(desc)
+
+  expect_identical(files, c(path2, path1))
+  expect_identical(unname(choices), c(path2, path1))
+  expect_true(all(nzchar(names(choices))))
+  expect_identical(unname(modes), c("exact", "sample_topology", "sample_rebuild"))
+  expect_match(grip:::gripui.family.saved.load.mode.help(desc), "Rebuild iKNN", fixed = TRUE)
+})
+
+test_that("sample-topology loads keep saved topology controls while reusing the sample", {
+  catalog <- gripui_graph_family_catalog()
+  desc <- catalog$sampled_rectangle
+  saved_values <- grip:::.gripui.family.param.defaults(desc)
+  bundle <- list(
+    family_id = desc$id,
+    values = saved_values,
+    payload = list(
+      raw = desc$builder(saved_values)
+    )
+  )
+  current_values <- saved_values
+  current_values$k <- 11L
+  current_values$graph_space <- "param"
+  current_values$surface <- "saddle"
+
+  loaded <- grip:::gripui.family.sampled.rectangle.raw.from.bundle(
+    desc = desc,
+    current_values = current_values,
+    bundle = bundle,
+    mode = "sample_topology"
+  )
+
+  expect_identical(loaded$values$k, saved_values$k)
+  expect_identical(loaded$values$graph_space, saved_values$graph_space)
+  expect_identical(loaded$values$surface, "saddle")
+  expect_equal(loaded$raw$edges, bundle$payload$raw$edges)
 })
 
 test_that("family explorer app constructs when optional packages are available", {

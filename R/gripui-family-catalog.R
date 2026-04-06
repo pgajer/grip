@@ -119,7 +119,8 @@
                                 builder,
                                 presets = NULL,
                                 code = NULL,
-                                implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R") {
+                                implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+                                stochastic = FALSE) {
   if (is.null(presets)) {
     presets <- list()
   }
@@ -133,7 +134,8 @@
     builder = builder,
     presets = presets,
     code = code,
-    implementation = implementation
+    implementation = implementation,
+    stochastic = isTRUE(stochastic)
   )
 }
 
@@ -145,7 +147,8 @@
                                        params,
                                        arg_ids = NULL,
                                        presets = NULL,
-                                       implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R") {
+                                       implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+                                       stochastic = FALSE) {
   .gripui.family.desc(
     id = id,
     label = label,
@@ -155,6 +158,7 @@
     params = params,
     presets = presets,
     implementation = implementation,
+    stochastic = stochastic,
     builder = function(p) {
       args <- if (is.null(arg_ids)) p else p[arg_ids]
       builder_fun <- get(function_name, mode = "function")
@@ -590,6 +594,7 @@ gripui_graph_family_catalog <- function() {
       function_name = "sampled.rectangle.surface.graph",
       summary = "Uniformly sampled rectangle lifted into 3D, with topology built from an exact iKNN graph on the sampled points.",
       implementation = graph_impl,
+      stochastic = TRUE,
       arg_ids = c(
         "n", "k", "xmin", "xmax", "ymin", "ymax", "seed",
         "surface", "amplitude", "freq_u", "freq_v",

@@ -85,6 +85,305 @@ gripui.family.value_or_default <- function(x, default) {
   x
 }
 
+gripui.family.is.stochastic <- function(desc) {
+  is.list(desc) && isTRUE(desc$stochastic)
+}
+
+gripui.family.param.spec <- function(desc, id) {
+  idx <- which(vapply(desc$params, function(spec) identical(spec$id, id), logical(1L)))
+  if (length(idx) == 0L) {
+    return(NULL)
+  }
+  desc$params[[idx[[1L]]]]
+}
+
+gripui.family.seed.spec <- function(desc) {
+  gripui.family.param.spec(desc, "seed")
+}
+
+gripui.family.resample.seed <- function(current_seed = NULL, max_seed = 1000000L) {
+  max_seed <- max(as.integer(gripui.family.value_or_default(max_seed, 1000000L)), 0L)
+  modulus <- as.numeric(max_seed) + 1
+  now_ms <- floor(as.numeric(Sys.time()) * 1000)
+  seed <- as.integer(now_ms %% modulus)
+  if (!is.null(current_seed) && !is.na(current_seed) && identical(seed, as.integer(current_seed)) && max_seed > 0L) {
+    seed <- as.integer((as.numeric(seed) + 1) %% modulus)
+  }
+  seed
+}
+
+gripui.family.filename.token <- function(x) {
+  if (is.null(x) || length(x) == 0L || all(is.na(x))) {
+    return("na")
+  }
+  if (is.logical(x)) {
+    return(if (isTRUE(x[[1L]])) "true" else "false")
+  }
+  if (is.numeric(x)) {
+    x <- format(as.numeric(x), scientific = FALSE, trim = TRUE)
+  } else {
+    x <- as.character(x)
+  }
+  x <- paste(x, collapse = "-")
+  x <- tolower(gsub("[^A-Za-z0-9]+", "-", x))
+  x <- gsub("^-+|-+$", "", x)
+  if (nzchar(x)) x else "na"
+}
+
+gripui.family.save.key.ids <- function(values) {
+  preferred <- c("n", "k", "seed", "surface", "graph_space", "normalize", "xmin", "xmax", "ymin", "ymax")
+  ids <- intersect(preferred, names(values))
+  if (length(ids) > 0L) {
+    return(ids)
+  }
+  names(values)[seq_len(min(4L, length(values)))]
+}
+
+gripui.family.default.save.dir <- function(payload, root = getwd()) {
+  file.path(root, "tmp", "gripui-family-graphs", payload$family_id)
+}
+
+gripui.family.save.stub <- function(payload, timestamp = Sys.time()) {
+  ids <- gripui.family.save.key.ids(payload$values)
+  key_bits <- vapply(ids, function(id) {
+    paste0(id, "-", gripui.family.filename.token(payload$values[[id]]))
+  }, character(1L))
+  stamp <- format(as.POSIXct(timestamp, tz = Sys.timezone()), "%Y%m%d-%H%M%S")
+  paste(c(payload$family_id, key_bits, stamp), collapse = "__")
+}
+
+gripui.family.save.path <- function(payload, root = getwd(), timestamp = Sys.time()) {
+  file.path(
+    gripui.family.default.save.dir(payload, root = root),
+    paste0(gripui.family.save.stub(payload, timestamp = timestamp), ".rds")
+  )
+}
+
+gripui.family.unique.save.path <- function(path) {
+  if (!file.exists(path)) {
+    return(path)
+  }
+  dir <- dirname(path)
+  stem <- sub("\\.[Rr][Dd][Ss]$", "", basename(path))
+  ext <- tools::file_ext(path)
+  counter <- 1L
+  repeat {
+    candidate <- file.path(dir, sprintf("%s__%02d.%s", stem, counter, ext))
+    if (!file.exists(candidate)) {
+      return(candidate)
+    }
+    counter <- counter + 1L
+  }
+}
+
+gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  bundle <- list(
+    family_id = payload$family_id,
+    family_label = payload$family_label,
+    category = payload$category,
+    values = payload$values,
+    rendered_at = payload$rendered_at,
+    saved_at = as.POSIXct(saved_at, tz = Sys.timezone()),
+    code = payload$code,
+    payload = payload,
+    session = list(
+      grip_version = tryCatch(as.character(utils::packageVersion("grip")), error = function(e) NA_character_),
+      working_directory = getwd()
+    )
+  )
+  saveRDS(bundle, path)
+  invisible(path)
+}
+
+gripui.family.saved.bundle.files <- function(family_id, root = getwd()) {
+  dir <- file.path(root, "tmp", "gripui-family-graphs", family_id)
+  if (!dir.exists(dir)) {
+    return(character(0L))
+  }
+  paths <- list.files(dir, pattern = "\\.[Rr][Dd][Ss]$", full.names = TRUE)
+  if (length(paths) == 0L) {
+    return(character(0L))
+  }
+  info <- file.info(paths)
+  paths[order(info$mtime, decreasing = TRUE, na.last = TRUE)]
+}
+
+gripui.family.saved.bundle.choices <- function(desc, root = getwd()) {
+  paths <- gripui.family.saved.bundle.files(desc$id, root = root)
+  if (length(paths) == 0L) {
+    return(character(0L))
+  }
+  labels <- sub("\\.[Rr][Dd][Ss]$", "", basename(paths))
+  stats::setNames(paths, labels)
+}
+
+gripui.family.saved.load.mode.choices <- function(desc) {
+  if (identical(desc$id, "sampled_rectangle")) {
+    return(c(
+      "Exact saved graph" = "exact",
+      "Reuse sample, keep saved topology" = "sample_topology",
+      "Reuse sample and rebuild iKNN" = "sample_rebuild"
+    ))
+  }
+  c("Exact saved graph" = "exact")
+}
+
+gripui.family.saved.load.mode.help <- function(desc) {
+  if (!identical(desc$id, "sampled_rectangle")) {
+    return("Exact saved graph restores the saved topology, geometry, and weights.")
+  }
+  paste(
+    "Exact restores the saved graph bundle as rendered.",
+    "Keep saved topology reuses the saved sample points and edges, then recomputes 3D weights under the current surface controls.",
+    "Rebuild iKNN reuses the saved sample points and rebuilds topology and weights from the current controls."
+  )
+}
+
+gripui.family.read.saved.bundle <- function(path) {
+  if (is.null(path) || !nzchar(path) || !file.exists(path)) {
+    stop("Choose an existing saved graph bundle before loading.", call. = FALSE)
+  }
+  bundle <- readRDS(path)
+  if (!is.list(bundle)) {
+    stop("Saved graph bundle is not a list.", call. = FALSE)
+  }
+  bundle
+}
+
+gripui.family.saved.bundle.values <- function(bundle) {
+  values <- bundle$values
+  if (is.null(values) && is.list(bundle$payload)) {
+    values <- bundle$payload$values
+  }
+  if (is.null(values)) {
+    stop("Saved graph bundle does not contain parameter values.", call. = FALSE)
+  }
+  values
+}
+
+gripui.family.saved.bundle.raw <- function(bundle) {
+  raw <- NULL
+  if (is.list(bundle$payload)) {
+    raw <- bundle$payload$raw
+  }
+  if (is.null(raw)) {
+    stop("Saved graph bundle does not contain raw graph data.", call. = FALSE)
+  }
+  raw
+}
+
+gripui.family.sample.reuse.values <- function(current_values, saved_values) {
+  out <- current_values
+  fixed_ids <- c("n", "xmin", "xmax", "ymin", "ymax", "seed")
+  for (id in intersect(fixed_ids, names(saved_values))) {
+    out[[id]] <- saved_values[[id]]
+  }
+  out
+}
+
+gripui.family.payload.from.raw <- function(desc, values, raw) {
+  display <- gripui.family.display.coords(raw)
+  display_coords <- display$coords
+  plot_coords <- gripui.family.plot.coords(raw, display_coords)
+  graph_obj <- grip.build.adj.from.edges(raw$edges, n = raw$n, edge_weights = raw$edge_weights)
+  graph_obj$vertex_data <- gripui.family.vertex.data(raw, graph_obj, display_coords, plot_coords)
+  code <- if (is.function(desc$code)) {
+    desc$code(values)
+  } else {
+    .gripui.family.call.code(desc$function_name, values)
+  }
+  list(
+    family_id = desc$id,
+    family_label = desc$label,
+    category = desc$category,
+    values = values,
+    raw = raw,
+    graph = graph_obj,
+    edges = raw$edges,
+    n = raw$n,
+    edge_weights = raw$edge_weights,
+    coords_display = display_coords,
+    coords_plot = plot_coords,
+    code = code,
+    implementation = desc$implementation,
+    rendered_at = Sys.time(),
+    note = display$note
+  )
+}
+
+gripui.family.update.param.inputs <- function(session, desc, values) {
+  for (spec in desc$params) {
+    if (!spec$id %in% names(values)) {
+      next
+    }
+    input_id <- gripui.family.input_id(spec$id)
+    value <- values[[spec$id]]
+    switch(
+      spec$type,
+      integer = shiny::updateNumericInput(session, input_id, value = value),
+      double = shiny::updateNumericInput(session, input_id, value = value),
+      choice = shiny::updateSelectInput(session, input_id, selected = value),
+      logical = shiny::updateCheckboxInput(session, input_id, value = isTRUE(value)),
+      numeric_vector = shiny::updateTextInput(session, input_id, value = gripui.family.numeric.vector.text(value)),
+      stop("Unsupported parameter type: ", spec$type, call. = FALSE)
+    )
+  }
+  invisible(values)
+}
+
+gripui.family.sampled.rectangle.raw.from.bundle <- function(desc, current_values, bundle, mode) {
+  saved_values <- gripui.family.saved.bundle.values(bundle)
+  saved_raw <- gripui.family.saved.bundle.raw(bundle)
+  if (!identical(desc$id, "sampled_rectangle")) {
+    stop("Sample reuse is currently supported only for the sampled rectangle family.", call. = FALSE)
+  }
+  values <- gripui.family.sample.reuse.values(current_values, saved_values)
+  if (identical(mode, "sample_topology")) {
+    topology_ids <- c(
+      "k",
+      "graph_space",
+      "max.path.edge.ratio.deviation.thld",
+      "path.edge.ratio.percentile",
+      "threshold.percentile"
+    )
+    for (id in intersect(topology_ids, names(saved_values))) {
+      values[[id]] <- saved_values[[id]]
+    }
+  }
+  raw <- switch(
+    mode,
+    sample_topology = .sampled.rectangle.surface.graph.reweight.saved.topology(
+      graph = saved_raw,
+      surface = values$surface,
+      amplitude = values$amplitude,
+      freq_u = values$freq_u,
+      freq_v = values$freq_v,
+      normalize = values$normalize
+    ),
+    sample_rebuild = .sampled.rectangle.surface.graph.from.coords(
+      coords_param = saved_raw$coords_param,
+      k = values$k,
+      xmin = values$xmin,
+      xmax = values$xmax,
+      ymin = values$ymin,
+      ymax = values$ymax,
+      seed = values$seed,
+      surface = values$surface,
+      amplitude = values$amplitude,
+      freq_u = values$freq_u,
+      freq_v = values$freq_v,
+      graph_space = values$graph_space,
+      max.path.edge.ratio.deviation.thld = values$max.path.edge.ratio.deviation.thld,
+      path.edge.ratio.percentile = values$path.edge.ratio.percentile,
+      threshold.percentile = values$threshold.percentile,
+      normalize = values$normalize
+    ),
+    stop("Unsupported load mode: ", mode, call. = FALSE)
+  )
+  list(values = values, raw = raw)
+}
+
 gripui.family.js.value <- function(x) {
   if (is.logical(x)) {
     if (isTRUE(x)) "true" else "false"
@@ -327,31 +626,7 @@ gripui.family.count.edges <- function(edges) {
 
 gripui.family.build.payload <- function(desc, values) {
   raw <- desc$builder(values)
-  display <- gripui.family.display.coords(raw)
-  display_coords <- display$coords
-  plot_coords <- gripui.family.plot.coords(raw, display_coords)
-  graph_obj <- grip.build.adj.from.edges(raw$edges, n = raw$n, edge_weights = raw$edge_weights)
-  graph_obj$vertex_data <- gripui.family.vertex.data(raw, graph_obj, display_coords, plot_coords)
-  code <- if (is.function(desc$code)) {
-    desc$code(values)
-  } else {
-    .gripui.family.call.code(desc$function_name, values)
-  }
-  list(
-    family_id = desc$id,
-    family_label = desc$label,
-    category = desc$category,
-    raw = raw,
-    graph = graph_obj,
-    edges = raw$edges,
-    n = raw$n,
-    edge_weights = raw$edge_weights,
-    coords_display = display_coords,
-    coords_plot = plot_coords,
-    code = code,
-    implementation = desc$implementation,
-    note = display$note
-  )
+  gripui.family.payload.from.raw(desc, values, raw)
 }
 
 gripui.family.summary.table <- function(items) {
@@ -625,6 +900,7 @@ gripui.family.ui <- function(catalog, title, subtitle = NULL) {
         shiny::selectInput("viewer_color_by", "Color by", choices = c(Plain = "plain"), selected = "plain"),
         shiny::checkboxInput("show_edges", "Show edges", value = TRUE),
         shiny::actionButton("render_family_geometry", "Render geometry", class = "btn-primary"),
+        shiny::uiOutput("family_stochastic_actions"),
         shiny::uiOutput("render_status")
       ),
       shiny::conditionalPanel(
@@ -710,6 +986,7 @@ gripui.family.server <- function(catalog) {
   function(input, output, session) {
     payload_state <- shiny::reactiveVal(NULL)
     error_state <- shiny::reactiveVal(NULL)
+    save_state <- shiny::reactiveVal(NULL)
     compare_payloads_state <- shiny::reactiveVal(NULL)
     compare_error_state <- shiny::reactiveVal(NULL)
 
@@ -768,6 +1045,7 @@ gripui.family.server <- function(catalog) {
       }
       payload_state(result)
       error_state(NULL)
+      save_state(NULL)
       invisible(result)
     }
 
@@ -782,6 +1060,159 @@ gripui.family.server <- function(catalog) {
       values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
       build_payload(values)
     })
+
+    output$family_stochastic_actions <- shiny::renderUI({
+      desc <- current_desc()
+      if (!gripui.family.is.stochastic(desc)) {
+        return(NULL)
+      }
+      save_state()
+      save_dir <- file.path(getwd(), "tmp", "gripui-family-graphs", desc$id)
+      saved_choices <- gripui.family.saved.bundle.choices(desc)
+      selected_bundle <- if (!is.null(input$family_saved_bundle) &&
+                             input$family_saved_bundle %in% unname(saved_choices)) {
+        input$family_saved_bundle
+      } else if (length(saved_choices) > 0L) {
+        unname(saved_choices[[1L]])
+      } else {
+        NULL
+      }
+      mode_choices <- gripui.family.saved.load.mode.choices(desc)
+      selected_mode <- if (!is.null(input$family_saved_load_mode) &&
+                           input$family_saved_load_mode %in% unname(mode_choices)) {
+        input$family_saved_load_mode
+      } else {
+        unname(mode_choices[[1L]])
+      }
+      shiny::tagList(
+        shiny::tags$div(
+          style = "display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;",
+          shiny::actionButton("resample_family_graph", "Resample graph"),
+          shiny::actionButton("save_family_graph", "Save graph (.rds)")
+        ),
+        if (length(saved_choices) > 0L) {
+          shiny::tagList(
+            shiny::selectInput(
+              "family_saved_bundle",
+              "Saved graph",
+              choices = saved_choices,
+              selected = selected_bundle
+            ),
+            shiny::selectInput(
+              "family_saved_load_mode",
+              "Load mode",
+              choices = mode_choices,
+              selected = selected_mode
+            ),
+            shiny::actionButton("load_family_graph", "Load saved graph"),
+            shiny::tags$div(
+              style = "margin-top:0.5rem;color:#6b7280;font-size:0.9rem;",
+              gripui.family.saved.load.mode.help(desc)
+            )
+          )
+        } else {
+          shiny::tags$div(
+            style = "margin-top:0.5rem;color:#6b7280;font-size:0.9rem;",
+            "No saved graph bundles yet for this family."
+          )
+        },
+        shiny::tags$div(
+          style = "margin-top:0.5rem;color:#6b7280;font-size:0.9rem;",
+          sprintf("Resample assigns a fresh seed. Save writes a complete graph bundle under %s.", save_dir)
+        )
+      )
+    })
+
+    shiny::observeEvent(input$resample_family_graph, {
+      desc <- current_desc()
+      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+      seed_spec <- gripui.family.seed.spec(desc)
+      seed_label <- NULL
+      if (!is.null(seed_spec)) {
+        values$seed <- seed_spec$coerce(gripui.family.resample.seed(
+          current_seed = values$seed,
+          max_seed = seed_spec$max
+        ))
+        shiny::updateNumericInput(session, gripui.family.input_id(seed_spec$id), value = values$seed)
+        seed_label <- as.character(values$seed)
+      }
+      result <- build_payload(values)
+      if (!is.null(result)) {
+        shiny::showNotification(
+          if (!is.null(seed_label)) {
+            sprintf("Rendered a new %s sample with seed %s.", desc$label, seed_label)
+          } else {
+            sprintf("Rendered a new %s sample.", desc$label)
+          },
+          type = "message"
+        )
+      }
+    }, ignoreInit = TRUE)
+
+    shiny::observeEvent(input$save_family_graph, {
+      payload <- payload_state()
+      if (is.null(payload)) {
+        shiny::showNotification("Render a graph before saving it.", type = "error")
+        return(invisible(NULL))
+      }
+      path <- gripui.family.unique.save.path(gripui.family.save.path(payload))
+      result <- tryCatch(
+        gripui.family.save.bundle(payload, path),
+        error = function(e) e
+      )
+      if (inherits(result, "error")) {
+        shiny::showNotification(conditionMessage(result), type = "error")
+        return(invisible(NULL))
+      }
+      save_state(path)
+      shiny::showNotification(sprintf("Saved graph bundle to %s", path), type = "message", duration = 6)
+      invisible(path)
+    }, ignoreInit = TRUE)
+
+    shiny::observeEvent(input$load_family_graph, {
+      desc <- current_desc()
+      path <- input$family_saved_bundle
+      mode <- gripui.family.value_or_default(input$family_saved_load_mode, "exact")
+      result <- tryCatch({
+        bundle <- gripui.family.read.saved.bundle(path)
+        bundle_values <- gripui.family.saved.bundle.values(bundle)
+        if (!identical(gripui.family.value_or_default(bundle$family_id, bundle$payload$family_id), desc$id)) {
+          stop("The selected saved graph belongs to a different family.", call. = FALSE)
+        }
+        built <- if (identical(mode, "exact")) {
+          list(values = bundle_values, raw = gripui.family.saved.bundle.raw(bundle))
+        } else {
+          current_values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+          gripui.family.sampled.rectangle.raw.from.bundle(
+            desc = desc,
+            current_values = current_values,
+            bundle = bundle,
+            mode = mode
+          )
+        }
+        payload <- gripui.family.payload.from.raw(desc, built$values, built$raw)
+        list(
+          values = built$values,
+          payload = payload,
+          path = path,
+          mode = mode
+        )
+      }, error = function(e) e)
+      if (inherits(result, "error")) {
+        shiny::showNotification(conditionMessage(result), type = "error")
+        return(invisible(NULL))
+      }
+      gripui.family.update.param.inputs(session, desc, result$values)
+      payload_state(result$payload)
+      error_state(NULL)
+      save_state(NULL)
+      shiny::showNotification(
+        sprintf("Loaded %s using %s.", basename(result$path), gsub("_", " ", result$mode, fixed = TRUE)),
+        type = "message",
+        duration = 6
+      )
+      invisible(result$payload)
+    }, ignoreInit = TRUE)
 
     shiny::observe({
       payload <- payload_state()
@@ -908,15 +1339,25 @@ gripui.family.server <- function(catalog) {
     output$render_status <- shiny::renderUI({
       payload <- payload_state()
       err <- error_state()
+      saved_path <- save_state()
       if (!is.null(err)) {
         return(shiny::tags$p(style = "color:#8a1c1c;", err))
       }
       if (is.null(payload)) {
         return(shiny::tags$p(class = "gripui-muted", "Render a family to inspect its geometry."))
       }
-      shiny::tags$p(
-        class = "gripui-selection-status",
-        sprintf("%s rendered with %d vertices and %d edges.", payload$family_label, payload$n, gripui.family.count.edges(payload$edges))
+      shiny::tagList(
+        shiny::tags$p(
+          class = "gripui-selection-status",
+          sprintf("%s rendered with %d vertices and %d edges.", payload$family_label, payload$n, gripui.family.count.edges(payload$edges))
+        ),
+        if (!is.null(saved_path) && nzchar(saved_path)) {
+          shiny::tags$p(
+            class = "gripui-muted",
+            style = "word-break:break-word;",
+            sprintf("Last saved bundle: %s", saved_path)
+          )
+        }
       )
     })
 
