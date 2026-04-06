@@ -583,6 +583,49 @@ gripui_graph_family_catalog <- function() {
         diagonal = list(connectivity = "diagonal")
       )
     ),
+    sampled_rectangle = .gripui.family.simple.desc(
+      id = "sampled_rectangle",
+      label = "Sampled rectangle iKNN surface",
+      category = "Sampled lifted surfaces",
+      function_name = "sampled.rectangle.surface.graph",
+      summary = "Uniformly sampled rectangle lifted into 3D, with topology built from an exact iKNN graph on the sampled points.",
+      implementation = graph_impl,
+      arg_ids = c(
+        "n", "k", "xmin", "xmax", "ymin", "ymax", "seed",
+        "surface", "amplitude", "freq_u", "freq_v",
+        "graph_space", "normalize"
+      ),
+      params = c(
+        list(
+          .gripui.family.param.int("n", "Samples", 80L, 8L, 400L, group = "Topology"),
+          .gripui.family.param.int("k", "k", 6L, 1L, 40L, group = "Topology"),
+          .gripui.family.param.choice(
+            "graph_space",
+            "Graph space",
+            "surface",
+            c("surface", "param"),
+            group = "Topology",
+            help = "Build the iKNN graph in the 3D embedding or in the planar rectangle."
+          ),
+          .gripui.family.param.double("xmin", "xmin", -1, -4, 4, 0.1, group = "Rectangle"),
+          .gripui.family.param.double("xmax", "xmax", 1, -4, 4, 0.1, group = "Rectangle"),
+          .gripui.family.param.double("ymin", "ymin", -1, -4, 4, 0.1, group = "Rectangle"),
+          .gripui.family.param.double("ymax", "ymax", 1, -4, 4, 0.1, group = "Rectangle"),
+          .gripui.family.param.int("seed", "Seed", 1L, 0L, 1000000L, group = "Rectangle")
+        ),
+        .gripui.family.surface2d.params(
+          c("flat", "saddle", "paraboloid", "ripple", "folded"),
+          amplitude_default = 0.75,
+          include_scales = FALSE
+        )
+      ),
+      presets = list(
+        paraboloid = list(surface = "paraboloid", amplitude = 0.7),
+        ripple = list(surface = "ripple", amplitude = 0.55, freq_u = 2L, freq_v = 2L),
+        planar_graph = list(surface = "flat", amplitude = 0, graph_space = "param"),
+        wide_rectangle = list(xmin = -2, xmax = 2, ymin = -1, ymax = 1, n = 120L)
+      )
+    ),
     cylinder = .gripui.family.simple.desc(
       id = "cylinder",
       label = "Cylinder surface",
