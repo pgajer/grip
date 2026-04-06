@@ -1180,62 +1180,119 @@ the fidelity term remains \cref{eq:raw_geo_stress}, but the initialization and
 the subsequent optimization are carried out in a coarse-to-fine manner.
 
 \subsubsection*{Filtration}
-Given a connected weighted graph $G=(V,E,w)$, let
+Given a connected weighted graph $G=(V,E,w)$, a MIS filtration is a nested
+sequence
 \[
   V = V_0 \supset V_1 \supset \cdots \supset V_L
 \]
-be a maximal-independent-set filtration in the sense of
-\citet{gajer2004multidimensional,gajer2002grip}: each $V_{\ell+1}$ is a maximal
-subset of $V_\ell$ whose vertices are separated in the graph by a prescribed
-minimum graph distance, so that the levels become progressively coarser.
-Intuitively, $V_L$ is a sparse sample of the original graph, while $V_0=V$ is
-the full vertex set.  The filtration is shown on the underlying $2$D mesh
-geometry in \cref{fig:misf_filtration_cases}.  For the regular $12\times 12$
-paraboloid the extracted level sizes are $20 \rightarrow 50 \rightarrow 144$;
-for the regular $15\times 15$ paraboloid they are
-$13 \rightarrow 28 \rightarrow 84 \rightarrow 225$; and for the irregular
-rectangle paraboloid they are $11 \rightarrow 32 \rightarrow 81 \rightarrow
-225$.
+constructed recursively from the hop-distance structure of the graph.
+The first coarse level $V_1$ is an ordinary maximal independent set in $G$.
+More generally, if $d_G^{\mathrm{hop}}$ denotes the unweighted graph distance,
+then for each $\ell \geq 0$ the next level $V_{\ell+1}$ is required to satisfy
+\[
+  d_G^{\mathrm{hop}}(u,v) \geq 2^\ell + 1
+  \qquad
+  \text{for all distinct } u,v \in V_{\ell+1},
+\]
+and it is chosen maximal with respect to that separation property inside
+$V_\ell$.  Thus $V_{\ell+1}$ is a well-separated representative set for
+$V_\ell$: its vertices are mutually far apart in the graph, but maximality also
+forces every vertex of $V_\ell$ to lie within hop distance $2^\ell$ of some
+vertex of $V_{\ell+1}$.  The levels therefore form progressively coarser
+samples of the original graph, with $V_L$ providing a sparse scaffold and
+$V_0=V$ retaining the full graph.  This is the simple combinatorial filtration
+used in GRIP \citep{gajer2004multidimensional,gajer2002grip}, but it is
+important enough for the present multiscale refinement that it is worth stating
+explicitly here.
 
-\subsubsection*{Top level}
-Instead of initializing the whole graph by classical MDS, we first solve a
-\emph{pure} GMDS problem only on the coarsest set $V_L$.  Concretely, we form
-the complete graph on $V_L$ with edge weights equal to the graph-geodesic
-distances $d_G(i,j)$ measured in the original graph $G$, choose a fixed
-geodesic family $\Gamma_L$ on this induced metric graph, and minimize the raw
-geodesic stress on $V_L$.  This coarse solve is the \emph{initial embedding} of
-the MISF pipeline.  The middle panel in the top row of
-\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
-shows this initial coarse embedding.  It is not a random seed: it is already
-the result of a restartable pure-GMDS solve on $V_L$.  The right panel in the
-same row shows that this coarse embedding is later revisited by the sparse
-refinement stage.
+For the regular $12\times 12$ paraboloid the extracted level sizes are
+$20 \rightarrow 50 \rightarrow 144$; for the regular $15\times 15$ paraboloid
+they are $13 \rightarrow 28 \rightarrow 84 \rightarrow 225$; and for the
+irregular rectangle paraboloid they are $11 \rightarrow 32 \rightarrow 81
+\rightarrow 225$.  \Cref{fig:misf_filtration_cases} shows these filtrations on
+the underlying $2$D mesh geometry.
 
-\subsubsection*{Geodesic insertion of finer levels}
-Once $V_{\ell+1}$ has been embedded, each new vertex $v \in V_\ell \setminus
-V_{\ell+1}$ is placed with respect to a small anchor set
-$A_\ell(v) \subseteq V_{\ell+1}$ drawn from the already embedded coarser level.
-The initial location of $v$ is obtained by minimizing
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_filtration_cases.pdf}
+  \caption{MIS filtration levels displayed on the underlying $2$D mesh geometry.
+  Panels (A), (B), and (C) show the regular $12\times 12$, regular
+  $15\times 15$, and irregular $15\times 15$ mesh graphs, respectively, with
+  the active level $V_\ell$ highlighted on top of the full mesh graph.
+  Successive levels retain vertices that are pairwise well separated in hop
+  distance while still covering the preceding level by maximality.  The
+  irregular rectangle keeps rectangular topology but breaks the lattice
+  symmetry in the geometry, yielding a more generic coarse sample than the
+  perfectly regular meshes.}
+  \label{fig:misf_filtration_cases}
+\end{figure}
+
+\subsubsection*{Initial placement and refinement of $V_\ell$}
+The GRIP papers organize the multiscale algorithm after the filtration stage
+into two repeated substeps: an \emph{initial placement} of the active set
+$V_\ell$, followed by a \emph{refinement} of that same level.  Starting from
+the coarsest set $V_L$ and descending through $V_{L-1}, \dots, V_0$, one first
+constructs an embedding of $V_\ell$ that reuses the already placed scaffold
+$V_{\ell+1}$, and then improves that embedding by a local objective on
+$V_\ell$.  We follow this same schedule here because it is the natural place to
+compare the original GRIP refinement with its geodesic-KK, landmark-geodesic-KK
+(LGKK), and GMDS replacements.
+
+At the top level $V_L$ there is no inherited scaffold, so the initial placement
+is a direct solve on the induced metric graph over $V_L$.  Original GRIP uses a
+coarse force-directed/Kamada--Kawai solve at this stage.  In the present
+geodesic family there are two implemented replacements.  The MISF-GKK/LGKK
+pipeline, exposed in \texttt{grip} by
+\texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()} and
+\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()},
+solves the top level with either the
+full all-pairs geodesic-KK objective or its sparse LGKK variant, chosen from
+the active-set size and the requested pair mode.  The MISF-GMDS pipeline,
+exposed by \texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()} and
+\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()},
+solves instead a pure-GMDS problem
+on the complete graph over $V_L$ with target distances $d_G(i,j)$ inherited
+from the full graph.  This coarse solve is the initial placement for the top
+row of
+\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15},
+while the right panel in the same row shows the refinement of that same active
+set.
+
+For a finer level $V_\ell$ with $\ell < L$, the vertices of $V_{\ell+1}$ keep
+their current positions and only the new vertices
+$V_\ell \setminus V_{\ell+1}$ must be placed.  GRIP performs an intelligent
+placement step using a few nearby already placed vertices and then a brief
+local KK adjustment.  The current geodesic code replaces that by a
+graph-distance-based insertion stage shared by MISF-GKK/LGKK and MISF-GMDS:
+for each new vertex $v$ one selects an anchor set
+$A_\ell(v) \subseteq V_{\ell+1}$ and computes
 \[
   \Phi_\ell(\bz_v)
   =
   \sum_{a \in A_\ell(v)}
   \omega_{va}
-  \bigl( \norm{\bz_v - \bz_a} - d_G(v,a) \bigr)^2,
+  \bigl( \norm{\bz_v - \bz_a} - d_G(v,a) \bigr)^2.
 \]
-where the anchor weights $\omega_{va}$ favor well-spread, geodesically close
-anchors.  This is a local nonlinear least-squares problem and plays the role of
-geodesic trilateration.  In the current implementation each inserted vertex is
-optimized independently by a small Armijo line-search solver.  The middle
-panels in the lower rows of
+This is a small weighted nonlinear least-squares problem and can be viewed as
+geodesic trilateration.  In the current defaults the anchors are drawn from the
+immediately preceding MISF level, chosen to be both graph-near and
+well-spread, and the weights are inverse-square in the graph distance.  The
+middle panels of the lower rows of
 \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
-show these insertion states before any active-set refinement.
+show these initial placements before any level refinement.  The code also
+allows layout-based warm starts (\texttt{kk}, \texttt{weighted\_kk},
+\texttt{fr}, \texttt{grip}, \texttt{weighted\_grip}), but the default
+multiscale geodesic path uses the anchor-based insertion just described.
 
-\subsubsection*{Sparse active-set refinement}
-After all vertices of level $V_\ell$ have been inserted, the active set is
-refined by a sparse GMDS solve.  Let $P_\ell \subseteq V_\ell \times V_\ell$ be
-a sparse pair set consisting of short-range geodesic neighbors together with a
-small number of landmark pairs.  The level objective has the form
+After the initial placement of $V_\ell$, the active set is refined while the
+already constructed scaffold is softly pinned.  This is the stage where the
+different objective families separate most clearly.  Original GRIP uses local
+Kamada--Kawai forces on coarse levels and a Fruchterman--Reingold step at
+$V_0$.  In MISF-GKK/LGKK, the active-level refinement minimizes a geodesic-KK
+energy on a pair set $P_\ell$, with $P_\ell$ equal to all active pairs in the
+full GKK mode and to a sparse local-plus-landmark set in the LGKK mode.  In
+MISF-GMDS, the same schedule is used but the active-level objective is the
+sparse fixed-geodesic discrepancy
 \[
   F_\ell(\bZ)
   =
@@ -1249,31 +1306,45 @@ small number of landmark pairs.  The level objective has the form
   \alpha_u \norm{\bz_u - \bar{\bz}_u}^2,
 \]
 where $\bar{\bz}_u$ denotes the current scaffold position of an inactive
-vertex.  The anchor term pins the already constructed coarser scaffold while
-allowing the active vertices to adjust.  In other words, the method uses the
-same fixed-geodesic discrepancy as GMDS, but only on a sparse set of active
-pairs, and with the non-active scaffold softly constrained.  The right panels
-of \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
-show the corresponding refinement states.  After the levelwise cycle reaches
-$V_0$, an optional short full-graph pure-GMDS polish is applied.
+vertex.  Thus the GRIP schedule itself is preserved, but the local Euclidean
+graph-drawing forces are replaced by geodesic-KK/LGKK or GMDS fidelity terms.
+The right panels of
+\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+show the corresponding refinements, and after the cycle reaches $V_0$ the
+current GMDS implementation applies a short final full-graph pure-GMDS polish.
 
-\subsubsection*{Implementation in \texttt{grip}}
-The current prototype reuses the GRIP infrastructure already present in the
-\texttt{grip} package.  The MISF itself is extracted by
-\texttt{grip.build.misf()} in \texttt{R/grip\_misf.R}, which delegates to the
-compiled GRIP filtration code in \texttt{src/DrawGraph.cpp} and
-\texttt{src/grip\_rcpp.cpp}.  The multiscale GMDS preparation and orchestration
-are implemented in \texttt{R/grip\_geodesic\_misf.R} through
-\texttt{grip.prepare.misf.geodesic.mds()} and
-\texttt{grip.optimize.misf.geodesic.mds()}.  The per-vertex insertion kernel is
-implemented in \texttt{src/geodesic\_misf\_rcpp.cpp}, while both the coarse
-top-level solve and the sparse refinement stages reuse the compiled GMDS kernel
-in \texttt{src/geodesic\_mds\_rcpp.cpp}.  Thus the MISF modification changes the
-optimization schedule and the initialization strategy, but not the underlying
-fixed-path geodesic discrepancy.
+\subsubsection*{Current \texttt{grip} implementation}
+The present package realizes this hierarchy in a fairly literal way.  Original
+GRIP and weighted GRIP live in \texttt{grip.layout.globalrep()} and
+\texttt{grip.layout.globalrep.weighted()}.  The MISF-GKK/LGKK analogue uses
+the user-facing wrappers
+\texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()} and
+\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()}.
+Internally, the top-level solve
+chooses between the full geodesic-KK and landmark-geodesic-KK preparations
+according to the requested pair mode and active-set threshold, and the same
+full-versus-landmark choice is repeated during active-level refinement.  The
+MISF-GMDS analogue uses
+\texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()} and
+\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()},
+with a top-level pure-GMDS solve,
+a compiled per-vertex insertion kernel in
+\texttt{src/geodesic\_misf\_rcpp.cpp}, levelwise sparse GMDS refinement, and a
+final full-graph polish.
+
+This audit also clarifies an important current boundary.  The top-level solve
+and the levelwise refinement stages are indeed GKK/LGKK/GMDS stages, but the
+insertion stage is presently shared across the geodesic pipelines: by default
+it is the anchor-based trilateration step above, and optionally it can be a
+layout-based warm start.  There is not yet a distinct compiled GKK or LGKK
+optimizer whose sole role is the initial placement of
+$V_\ell \setminus V_{\ell+1}$.  The manuscript should therefore describe the
+current implementation in exactly those terms.
 
 \subsubsection*{What the multiscale figures show}
-\Cref{fig:misf_stages_regular_12x12} shows the regular $12\times 12$
+\Cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+should now be read as initial-placement/refinement traces for successive active
+sets $V_\ell$.  \Cref{fig:misf_stages_regular_12x12} shows the regular $12\times 12$
 paraboloid.  The coarsest initial embedding on $V_2$ is already far from a
 recognizable paraboloid sample ($\rho = 0.8450$), and the subsequent
 refinement improves it only to $\rho = 0.5735$.  At the full level $V_0$, the
@@ -1328,17 +1399,6 @@ regular rectangular mesh.
     \bottomrule
   \end{tabular}
 \end{table}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{../figures/fig_misf_filtration_cases.pdf}
-  \caption{MIS filtration levels displayed on the underlying $2$D mesh geometry.  Each
-  row shows one graph family, with the active level $V_\ell$ highlighted on top
-  of the full mesh graph.  The irregular rectangle keeps rectangular topology
-  but breaks the lattice symmetry in the geometry, yielding a more generic
-  coarse sample than the perfectly regular meshes.}
-  \label{fig:misf_filtration_cases}
-\end{figure}
 
 \begin{figure}[t]
   \centering

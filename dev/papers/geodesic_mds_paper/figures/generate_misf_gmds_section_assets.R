@@ -330,15 +330,21 @@ save_filtration_grid <- function(case_results,
     on.exit(graphics::par(old.par), add = TRUE)
     graphics::par(
       mfrow = c(length(case_results), max_cols),
-      mar = c(0.7, 0.7, 2.0, 0.2),
-      oma = c(0, 0, 1.2, 0)
+      mar = c(0.7, 0.7, 2.7, 0.2),
+      oma = c(0, 0, 0.4, 0)
     )
 
-    for (case_result in case_results) {
+    for (case_idx in seq_along(case_results)) {
+      case_result <- case_results[[case_idx]]
       prepared <- case_result$fit$prepared
       coords2d <- as.matrix(case_result$case$bundle$coords_param)
       edges <- as.matrix(case_result$case$bundle$edges)
       levels <- seq.int(from = prepared$top_level_level, to = 0L, by = -1L)
+      panel_title <- if (case_result$case$family == "regular") {
+        sprintf("(%s) Regular %dx%d mesh graph", LETTERS[case_idx], case_result$case$side, case_result$case$side)
+      } else {
+        sprintf("(%s) Irregular %dx%d mesh graph", LETTERS[case_idx], case_result$case$side, case_result$case$side)
+      }
 
       blanks <- max_cols - length(levels)
       if (blanks > 0L) {
@@ -352,7 +358,8 @@ save_filtration_grid <- function(case_results,
       if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
       if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
 
-      for (level in levels) {
+      for (level_idx in seq_along(levels)) {
+        level <- levels[[level_idx]]
         active <- as.integer(prepared$misf$levels[[level + 1L]])
         graphics::plot(
           coords2d[, 1L], coords2d[, 2L],
@@ -365,6 +372,16 @@ save_filtration_grid <- function(case_results,
           ylim = ylim + c(-ypad, ypad),
           main = ""
         )
+        if (level_idx == 1L) {
+          graphics::mtext(
+            panel_title,
+            side = 3L,
+            line = 1.35,
+            cex = 0.88,
+            font = 2L,
+            adj = 0
+          )
+        }
         if (nrow(edges) > 0L) {
           apply(edges, 1L, function(e) {
             graphics::segments(
@@ -391,16 +408,7 @@ save_filtration_grid <- function(case_results,
           col = "#4b5563"
         )
       }
-      graphics::mtext(case_result$case$short_label, side = 2L, line = 1.0, outer = FALSE, las = 1, cex = 0.92)
     }
-    graphics::mtext(
-      "MIS filtration shown on the 2D mesh geometry",
-      side = 3L,
-      outer = TRUE,
-      line = -0.3,
-      cex = 1.08,
-      font = 2L
-    )
   }
 
   grDevices::pdf(output_pdf, width = 12, height = 8.8, useDingbats = FALSE)
