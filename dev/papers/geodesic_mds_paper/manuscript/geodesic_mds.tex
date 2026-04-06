@@ -264,7 +264,7 @@ majorization framework
 \citep{deleeuw1977applications, deleeuw2009multidimensional} to the
 geodesic setting by exploiting the fact that the fixed input geodesics
 decompose into sums of Euclidean edge lengths, enabling a tractable
-iterative optimization (\cref{sec:smacof}).  We also characterize the
+iterative optimization via SMACOF.  We also characterize the
 role of $k$ as a geometric scale parameter: $k=1$ (spanning tree)
 corresponds to a tree-metric embedding, while $k \to n$ (complete graph)
 recovers standard metric MDS (\cref{sec:properties}).  Finally, we connect
@@ -300,9 +300,6 @@ theoretical analysis, and applications.
 \section{Background}
 \label{sec:background}
 
-\subsection{Classical MDS}
-\label{sec:classical_mds}
-
 Let $\Delta = (\delta_{ij})$ be an $n \times n$ symmetric dissimilarity
 matrix with $\delta_{ii} = 0$.  Classical MDS
 \citep{torgerson1952multidimensional, young1938discussion} seeks a
@@ -326,9 +323,6 @@ method; it yields an exact isometric embedding when $\bB$ is positive
 semidefinite (equivalently, when $\Delta$ satisfies Euclidean metric
 conditions \citep{schoenberg1935remarks}).
 
-\subsection{Metric MDS and Stress}
-\label{sec:metric_mds}
-
 When $\Delta$ is not a Euclidean distance matrix, classical MDS may place
 negative eigenvalues in $\bB$, and the embedding is approximate.  Metric
 MDS \citep{kruskal1964multidimensional} frames the problem explicitly as
@@ -336,7 +330,6 @@ an optimization: find $\bZ \in \R^{n \times d}$ minimizing a \emph{stress}
 function that measures discrepancy between embedded distances and input
 dissimilarities.
 
-\subsubsection*{Kruskal's Stress-1}
 The most widely used criterion is Kruskal's \emph{Stress-1}
 \citep{kruskal1964multidimensional}:
 \begin{equation}
@@ -355,7 +348,6 @@ alternative normalization divides by $\sum_{i<j} \delta_{ij}^2$
 \citep{borg2005modern}, and is sometimes called Stress-1r; both are in
 common use.
 
-\subsubsection*{Weighted stress}
 A generalization incorporates pair-specific weights $w_{ij} \geq 0$:
 \begin{equation}
   \sigma_w(\bZ)
@@ -367,15 +359,11 @@ emphasizing small distances) and $w_{ij} = 1$ (uniform).  The unweighted
 raw stress $\sigma(\bZ) = \sum_{i<j}(d_{ij}(\bZ) - \delta_{ij})^2$
 is the numerator of $\StressOne^2$ up to scaling.
 
-\subsubsection*{Qualitative interpretation}
 Empirical guidelines due to \citet{kruskal1964nonmetric} and
 \citet{borg2005modern} suggest that $\StressOne < 0.05$ indicates an
 excellent fit, $0.05$--$0.10$ a good fit, $0.10$--$0.20$ a fair fit, and
 $> 0.20$ a poor fit, though these thresholds depend on $n$ and the
 structure of $\Delta$.
-
-\subsection{SMACOF}
-\label{sec:smacof}
 
 Direct minimization of $\sigma$ or $\StressOne$ is a non-convex problem
 with many local minima.  The \emph{Scaling by MAjorizing a COmplicated
@@ -410,9 +398,6 @@ restarts are used in practice to mitigate local minima.  Efficient
 implementations are available in R \citep{deleeuw2009multidimensional}
 and Python \citep{pedregosa2011scikit}.
 
-\subsection{Non-Metric MDS}
-\label{sec:nonmetric_mds}
-
 Non-metric MDS \citep{kruskal1964nonmetric, shepard1962analysis} relaxes
 the requirement to reproduce input dissimilarity values, requiring only
 that the \emph{rank order} of distances be preserved.  The optimization
@@ -425,32 +410,20 @@ formulate by applying isotonic regression to the graph-geodesic targets
 $d_G(i,j)$ while continuing to evaluate the output configuration by the
 corresponding embedded path lengths $\demb_G(i,j;\bZ)$.
 
-\subsection{Isomap}
-\label{sec:isomap}
-
 \emph{Isomap} \citep{tenenbaum2000global} addresses the limitation of MDS
 on structured data whose relevant geometry is not well captured by ambient Euclidean distance by replacing Euclidean input
 dissimilarities with approximations of intrinsic geodesic distances.
-Given $\bX \in \R^{n \times m}$, the algorithm proceeds in three steps:
+Given $\bX \in \R^{n \times m}$, Isomap first constructs a weighted
+undirected $k$-NN graph $\Gk$ with vertex set $\{1, \ldots, n\}$,
+connecting $i$ and $j$ by an edge of weight $\norm{\bx_i - \bx_j}_{\R^m}$
+whenever $j$ is among the $k$ nearest neighbors of $i$ (or vice versa, in
+the symmetric variant).  It then computes all-pairs shortest-path
+distances $\dknn(i,j)$ on $\Gk$ using Dijkstra's algorithm
+\citep{dijkstra1959note} or Floyd-Warshall \citep{floyd1962algorithm},
+and sets $\delta_{ij} := \dknn(i,j)$.  Finally, it applies classical MDS
+to the resulting dissimilarity matrix $\Delta$ to obtain the
+low-dimensional embedding $\bZ \in \R^{n \times d}$.
 
-\begin{enumerate}
-  \item \textbf{$k$-NN graph construction.}  Build a weighted undirected
-  graph $\Gk$ with vertex set $\{1, \ldots, n\}$, connecting $i$ and $j$
-  by an edge of weight $\norm{\bx_i - \bx_j}_{\R^m}$ whenever $j$ is
-  among the $k$ nearest neighbors of $i$ (or vice versa, in the symmetric
-  variant).
-
-  \item \textbf{Geodesic distance computation.}  Compute all-pairs
-  shortest-path distances $\dknn(i,j)$ on $\Gk$ using Dijkstra's
-  algorithm \citep{dijkstra1959note} or Floyd-Warshall
-  \citep{floyd1962algorithm}.  Set $\delta_{ij} := \dknn(i,j)$.
-
-  \item \textbf{Classical MDS.}  Apply classical MDS (Section
-  \ref{sec:classical_mds}) to the geodesic dissimilarity matrix $\Delta$
-  to obtain the low-dimensional embedding $\bZ \in \R^{n \times d}$.
-\end{enumerate}
-
-\subsubsection*{Convergence theory}
 In the special case of data sampled i.i.d.\ from a compact Riemannian manifold $(M, g)$
 embedded in $\R^m$, the graph-geodesic distance $\dknn(i,j)$ converges
 to the Riemannian geodesic distance $d_M(i,j)$ as $n \to \infty$, provided
@@ -459,7 +432,6 @@ tenenbaum2000global, zha2003continuum, donoho2003hessian}.
 The resulting classical MDS embedding then recovers the isometric embedding
 of $M$ into a Euclidean space (when one exists) \citep{tenenbaum2000global}.
 
-\subsubsection*{The output-side limitation}
 Despite this theoretical guarantee, Isomap measures the fidelity of the
 embedding by Euclidean distances $\norm{\bz_i - \bz_j}$ between embedded
 points, not by path-length distances along the embedded graph or geometric
@@ -470,21 +442,16 @@ are approximately equal.  For discrete graph metrics, branching metrics
 (trees, stars), or data with topological bottlenecks, the discrepancy is
 fundamental, as we elaborate in \cref{sec:geodesic_mds}.
 
-\subsection{The k-NN Graph as a Geodesic Structure}
-\label{sec:knn_graph}
-
-The $k$-NN graph $\Gk$ constructed in step 1 of Isomap can be understood
+The $k$-NN graph $\Gk$ arising in Isomap can be understood
 as a \emph{metric graph}, a weighted graph whose path metric approximates
 some underlying geodesic metric space.  Several observations are relevant
 for our construction.
 
-\subsubsection*{Consistency with the ambient metric}
 The edge weights of $\Gk$ are Euclidean distances in $\R^m$, so the path
 metric $d_{\Gk}$ always satisfies $d_{\Gk}(i,j) \geq \norm{\bx_i - \bx_j}$
 (the shortest path cannot be shorter than the straight line).  Equality
 holds only for pairs connected by a direct edge.
 
-\subsubsection*{Sparsity and the role of $k$}
 $\Gk$ has at most $kn$ edges (exactly $kn/2$ in expectation for large $n$
 with a symmetric construction), so the graph is sparse for small $k$.
 As $k$ increases, more edges are added, $d_{\Gk}(i,j)$ decreases toward
@@ -493,7 +460,6 @@ ambient metric.  At $k = n-1$ (complete graph), $d_{\Gk}(i,j) =
 \norm{\bx_i - \bx_j}$ for all pairs, and the construction degenerates to
 standard Euclidean MDS.
 
-\subsubsection*{Spanner interpretation}
 $\Gk$ is a $(1+\varepsilon)$-spanner of the Euclidean metric on $\bX$ for
 sufficiently large $k$ depending on the intrinsic dimensionality of the
 data \citep{althofer1993sparse, har-peled2006low}.  This means
@@ -502,7 +468,6 @@ geodesic approximates the Euclidean distance with controlled relative
 error.  For data with low intrinsic dimension $d^*$, $k = O(\varepsilon^{-d^*})$
 suffices \citep{har-peled2006low}.
 
-\subsubsection*{Minimum realization}
 An edge $(i,j)$ in $K_n$ (the complete graph on $\bX$) is
 \emph{metrically redundant} with respect to $d_{\Gk}$ if there exists a
 path through intermediate points with equal total length.  The subgraph
@@ -521,9 +486,6 @@ $k$ is one of the main geometric ideas of the paper.
   \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the underlying geometry and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
   \label{fig:k_regimes}
 \end{figure}
-
-\subsection{Structured-Data Embedding and Related Methods}
-\label{sec:manifold_learning}
 
 The broader context of our work is the literature often grouped under
 \emph{manifold learning}.  Many real datasets are not well modeled as
@@ -1440,7 +1402,7 @@ preserves the 1-skeleton path metric, which is a projection of the
 tight span onto the original vertex set.
 
 \subsubsection*{Metric spanners}
-As noted in \cref{sec:knn_graph}, $\Gk$ is a $(1+\varepsilon)$-spanner
+As noted in the background discussion of the $k$-NN graph, $\Gk$ is a $(1+\varepsilon)$-spanner
 of the input Euclidean metric.  Geodesic MDS with a spanner graph thus
 approximates the full Euclidean MDS problem with a multiplicative error
 of $(1+\varepsilon)$ on input dissimilarities, while using a sparse graph
