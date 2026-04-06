@@ -599,6 +599,70 @@ test_that("sampled rectangle surface graphs reuse one sample across k values", {
   expect_true(nrow(seq_spec$graphs$k6$edges) >= nrow(seq_spec$graphs$k3$edges))
 })
 
+test_that("sampled rectangle graphs can be rebuilt from saved parameter coordinates", {
+  spec <- sampled.rectangle.surface.graph(
+    n = 32,
+    k = 4,
+    xmin = -1,
+    xmax = 2,
+    ymin = -2,
+    ymax = 1,
+    seed = 7,
+    surface = "paraboloid",
+    amplitude = 0.6,
+    graph_space = "surface",
+    normalize = "median"
+  )
+
+  rebuilt <- grip:::.sampled.rectangle.surface.graph.from.coords(
+    coords_param = spec$coords_param,
+    k = spec$k,
+    xmin = spec$xmin,
+    xmax = spec$xmax,
+    ymin = spec$ymin,
+    ymax = spec$ymax,
+    seed = spec$seed,
+    surface = spec$surface,
+    amplitude = 0.6,
+    graph_space = spec$graph_space,
+    normalize = spec$normalize
+  )
+
+  expect_equal(rebuilt$edges, spec$edges)
+  expect_equal(rebuilt$raw_edge_weights, spec$raw_edge_weights)
+  expect_equal(rebuilt$coords_surface, spec$coords_surface)
+  expect_equal(rebuilt$coords_param_unit, spec$coords_param_unit)
+})
+
+test_that("sampled rectangle saved topology can be reweighted on a new surface", {
+  spec <- sampled.rectangle.surface.graph(
+    n = 28,
+    k = 5,
+    xmin = -1,
+    xmax = 1,
+    ymin = -1,
+    ymax = 1,
+    seed = 13,
+    surface = "paraboloid",
+    amplitude = 0.7,
+    graph_space = "surface",
+    normalize = "mean"
+  )
+
+  reweighted <- grip:::.sampled.rectangle.surface.graph.reweight.saved.topology(
+    graph = spec,
+    surface = "saddle",
+    amplitude = 0.7,
+    normalize = "mean"
+  )
+
+  expect_equal(reweighted$edges, spec$edges)
+  expect_equal(reweighted$coords_param, spec$coords_param)
+  expect_false(isTRUE(all.equal(reweighted$coords_surface, spec$coords_surface)))
+  expect_false(isTRUE(all.equal(reweighted$raw_edge_weights, spec$raw_edge_weights)))
+  expect_equal(mean(reweighted$edge_weights), 1, tolerance = 1e-10)
+})
+
 test_that("cylinder surface embedding returns finite 3D coordinates", {
   coords <- cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
 
