@@ -1212,7 +1212,7 @@ irregular rectangle paraboloid they are $11 \rightarrow 32 \rightarrow 81
 \rightarrow 225$.  \Cref{fig:misf_filtration_cases} shows these filtrations on
 the underlying $2$D mesh geometry.
 
-\begin{figure}[H]
+\begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_filtration_cases.pdf}
   \caption{MIS filtration levels displayed on the underlying $2$D mesh geometry.
@@ -1341,30 +1341,15 @@ optimizer whose sole role is the initial placement of
 $V_\ell \setminus V_{\ell+1}$.  The manuscript should therefore describe the
 current implementation in exactly those terms.
 
-\subsubsection*{What the multiscale figures show}
-\Cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
-should now be read as initial-placement/refinement traces for successive active
-sets $V_\ell$.  \Cref{fig:misf_stages_regular_12x12} shows the regular $12\times 12$
-paraboloid.  The coarsest initial embedding on $V_2$ is already far from a
-recognizable paraboloid sample ($\rho = 0.8450$), and the subsequent
-refinement improves it only to $\rho = 0.5735$.  At the full level $V_0$, the
-insertion state is highly tangled and refinement reduces the active-set error
-from $\rho = 0.5685$ to $\rho = 0.4543$, but the result is still not a smooth
-paraboloid.  \Cref{fig:misf_stages_regular_15x15} shows the same phenomenon on
-the regular $15\times 15$ mesh: every level improves under refinement, yet the
-coarse sample and the full-level embedding remain visibly far from the target
-surface.
-
-By contrast, \cref{fig:misf_stages_irregular_15x15} shows that the irregular
-rectangle paraboloid is substantially easier for the same multiscale pipeline.
-Its coarsest initial embedding starts much closer to the target
-($\rho = 0.2994$), and each subsequent level remains more consistent with the
-reference surface.  The final level improves from $\rho = 0.2167$ after
-insertion to $\rho = 0.1950$ after sparse refinement, followed by a final full
-polish at $\rho = 0.1837$.  This mirrors the empirical observation from the
-previous section: the difficulty is not merely the presence of curvature, but
-the interaction between the optimization landscape and the high symmetry of the
-regular rectangular mesh.
+\subsubsection*{Paraboloid case studies}
+The multiscale experiments are best read as three case studies of the
+initial-placement/refinement cycle just described.  In each case the left
+column of the stage figures is the reference active-set sample, the middle
+column is the initial state at that level, and the right column is the
+corresponding refinement.  \Cref{tab:misf_stage_rho} records the stagewise
+active-set Procrustes error $\rho$ for those same runs and makes the same point
+numerically: every level improves under refinement, but improvement is useful
+only when the inherited scaffold is already in the right basin.
 
 \begin{table}[t]
   \centering
@@ -1400,38 +1385,76 @@ regular rectangular mesh.
   \end{tabular}
 \end{table}
 
+\emph{Regular $12\times 12$ paraboloid.}
+The level sizes are $20 \rightarrow 50 \rightarrow 144$.  The coarsest
+top-level pure-GMDS solve on $V_2$ already lands far from a recognizable
+paraboloid sample ($\rho = 0.8450$ before refinement and $0.5735$ after
+refinement).  The finer levels inherit that poor scaffold: at $V_1$ the
+anchor-based insertion begins at $\rho = 0.6810$ and refines only to
+$0.5431$, and at $V_0$ the insertion state is still highly tangled
+($\rho = 0.5685$) before the sparse GMDS refinement lowers it to $0.4543$.
+The final full-graph polish changes little ($\rho = 0.4546$).  Thus
+\cref{fig:misf_stages_regular_12x12} is not merely showing slow convergence;
+it shows that the multiscale schedule can remain trapped in the wrong basin
+from the coarsest level onward.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_regular_12x12.pdf}
   \caption{Regular $12\times 12$ paraboloid under MISF-GMDS.  Each row
-  corresponds to one active set $V_\ell$.  Left: the reference active-set
-  sample.  Middle: the initial multiscale embedding for that level (the coarse
-  pure-GMDS solve for $V_2$, then anchor-based insertion for $V_1$ and $V_0$).
-  Right: the sparse GMDS refinement of the same active set.  The coarsest level
-  is already not paraboloid-like, and although every level improves, the full
-  embedding remains folded.}
+  corresponds to one active set $V_\ell$; the middle column is the initial
+  state at that level and the right column is the corresponding sparse GMDS
+  refinement.}
   \label{fig:misf_stages_regular_12x12}
 \end{figure}
+
+\emph{Regular $15\times 15$ paraboloid.}
+The larger regular mesh exhibits the same phenomenon even more strongly.  Its
+level sizes are $13 \rightarrow 28 \rightarrow 84 \rightarrow 225$, and the
+coarsest solve on $V_3$ starts at $\rho = 0.9268$ and refines only to
+$0.7982$.  Every subsequent level improves numerically
+($0.8841 \rightarrow 0.7366$ on $V_2$,
+$0.7193 \rightarrow 0.6106$ on $V_1$,
+$0.6870 \rightarrow 0.6308$ on $V_0$), but the recovered states remain visibly
+far from the target surface, with final polish ending at $\rho = 0.6174$.
+\Cref{fig:misf_stages_regular_15x15} therefore reinforces the interpretation
+from the $12\times 12$ case: increasing the size of the regular mesh does not
+stabilize the present MISF-GMDS schedule, because the top-level scaffold is
+already qualitatively wrong.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_regular_15x15.pdf}
-  \caption{Regular $15\times 15$ paraboloid under MISF-GMDS.  The same
-  qualitative pattern persists at the larger size: the coarsest-level solve does
-  not recover a recognizable paraboloid sample, insertion creates a tangled
-  full-level state, and sparse refinement improves but does not remove the
-  pathology.}
+  \caption{Regular $15\times 15$ paraboloid under MISF-GMDS.  Each row
+  corresponds to one active set $V_\ell$; the middle column is the initial
+  state at that level and the right column is the corresponding sparse GMDS
+  refinement.}
   \label{fig:misf_stages_regular_15x15}
 \end{figure}
+
+\emph{Irregular $15\times 15$ paraboloid.}
+The irregular rectangle keeps the same broad geometry but breaks the lattice
+symmetry, and the multiscale pipeline is much better behaved.  Its level sizes
+are $11 \rightarrow 32 \rightarrow 81 \rightarrow 225$.  The coarsest solve on
+$V_3$ already begins near a sensible sparse paraboloid sample
+($\rho = 0.2994$) and refines to $0.2281$.  The subsequent levels remain in
+that favorable basin
+($0.2741 \rightarrow 0.2349$ on $V_2$,
+$0.2345 \rightarrow 0.1987$ on $V_1$,
+$0.2167 \rightarrow 0.1950$ on $V_0$), followed by a final polish at
+$\rho = 0.1837$.  \Cref{fig:misf_stages_irregular_15x15} shows that the same
+multiscale schedule can work substantially better once the coarse scaffold is
+generic enough.  Taken together, the three case studies suggest that the main
+difficulty is not curvature alone but the interaction between the optimization
+landscape and the strong symmetry of the regular rectangular meshes.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_stages_irregular_rectangle_15x15.pdf}
-  \caption{Irregular $15\times 15$ rectangle lifted to a paraboloid.  The
-  multiscale pipeline is much better behaved on this less symmetric graph: the
-  coarsest level already resembles a sparse paraboloid sample, and each finer
-  refinement remains visibly closer to the reference geometry than in the
-  regular-grid cases.}
+  \caption{Irregular $15\times 15$ rectangle lifted to a paraboloid under
+  MISF-GMDS.  Each row corresponds to one active set $V_\ell$; the middle
+  column is the initial state at that level and the right column is the
+  corresponding sparse GMDS refinement.}
   \label{fig:misf_stages_irregular_15x15}
 \end{figure}
 
@@ -1589,18 +1612,24 @@ top-level seeds is better than any single universal default.
   \end{tabular}
 \end{table}
 
-\begin{figure}[t]
+\Cref{fig:current_implementation_summary} summarizes this experimental picture.
+Its left panel tracks the final Procrustes error $\rho$ across the direct,
+single-scale, and seeded-multiscale pipelines on the three paraboloid
+families, making clear that the multiscale route helps most when it is given a
+good seed and a stable lower-level placement mechanism.  Its right panel then
+shows why that is not yet a solved problem: in the Block~1 mesh-geometry study,
+the present truth-free selector still over-preferred \texttt{cmdscale}, even
+though the oracle best final-$\rho$ seed was more often \texttt{kk} or another
+layout-based option.
+
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\linewidth]{../figures/fig_current_implementation_summary.pdf}
-  \caption{Summary of the current implementation state.  Left: progression of
+  \caption{Summary of the recent multiscale experiments.  Left: progression of
   final Procrustes error $\rho$ on the three paraboloid families as the
   pipeline moves from direct full-graph GMDS to seeded multiscale variants.
-  Right: Block~1 of the Phase~E mesh-geometry study shows that the current
-  truth-free selector is still too \texttt{cmdscale}-biased: it chose
-  \texttt{cmdscale} in $10/12$ cases, whereas the oracle best final-$\rho$
-  seed was \texttt{kk} in $6/12$ cases, \texttt{cmdscale} in only $3/12$,
-  \texttt{grip} in $2/12$, and \texttt{weighted\_grip\_polish\_lgkk} in
-  $1/12$.}
+  Right: Block~1 of the Phase~E mesh-geometry study comparing the current
+  truth-free selector with the oracle best final-$\rho$ seed choice.}
   \label{fig:current_implementation_summary}
 \end{figure}
 
