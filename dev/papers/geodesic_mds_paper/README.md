@@ -19,6 +19,31 @@ Versioning policy:
 - keep build metadata stamped into the compiled PDF through the paper-local
   build script
 
+Active manuscript provenance:
+
+- the active manuscript source is `dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.tex`
+- this file was created during the paper-workspace migration in commit
+  `b750762`
+- its initial content was promoted from the legacy `geodesic_mds_v3.tex`
+  manuscript, with path normalization for the canonical in-repo paper layout
+- the archived snapshot remains at
+  `dev/papers/geodesic_mds_paper/manuscript/archive/geodesic_mds_v3.tex`
+
+Important distinction:
+
+- `archive/geodesic_mds_v3.tex` is a historical snapshot
+- `manuscript/geodesic_mds.tex` is the only active manuscript source
+- after migration, additional edits were made directly to
+  `manuscript/geodesic_mds.tex`, so it is not expected to remain identical to
+  archived `v3`
+
+Policy:
+
+- make all current manuscript edits in `manuscript/geodesic_mds.tex`
+- preserve numbered `vN` files only as archive snapshots
+- if a new archival snapshot is needed, create it explicitly from the current
+  active manuscript
+
 Legacy locations:
 
 - `dev/papers/gmds/` is a frozen legacy workspace and is not the source of truth

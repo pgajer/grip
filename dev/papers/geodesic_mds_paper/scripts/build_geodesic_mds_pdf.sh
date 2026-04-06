@@ -10,6 +10,13 @@ LATEXMK="${LATEXMK:-/Library/TeX/texbin/latexmk}"
 INPUT_TEX="geodesic_mds.tex"
 OUTPUT_PDF="$BUILD_DIR/geodesic_mds.pdf"
 BUILD_INFO_TEX="$BUILD_DIR/manuscript_build_info.tex"
+EXPECTED_PAPER_DIR="/Users/pgajer/current_projects/grip/dev/papers/geodesic_mds_paper"
+
+if [[ "$PAPER_DIR" != "$EXPECTED_PAPER_DIR" ]]; then
+  print -u2 "Refusing to build from non-canonical paper root: $PAPER_DIR"
+  print -u2 "Use the canonical paper workspace: $EXPECTED_PAPER_DIR"
+  exit 1
+fi
 
 escape_for_tex() {
   python - "$1" <<'PY'
