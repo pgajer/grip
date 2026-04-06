@@ -3,7 +3,6 @@
 %% Standard packages
 \usepackage[letterpaper,left=1in,right=1in,top=1in,bottom=1.1in,includefoot,footskip=28pt]{geometry}
 \usepackage{amsmath, amssymb}
-\usepackage{amsthm}
 \usepackage{mathtools}
 \usepackage{bm}
 \usepackage{bbm}
@@ -54,13 +53,6 @@
 \setlength{\droptitle}{-2.2em}
 \setlength{\headheight}{14pt}
 \pagestyle{plain}
-
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}[section]
-\theoremstyle{plain}
-\newtheorem{proposition}{Proposition}[section]
-\theoremstyle{remark}
-\newtheorem{remark}{Remark}[section]
 
 \newenvironment{keywords}{%
   \par\smallskip\noindent\textbf{Keywords: }\ignorespaces
@@ -519,17 +511,14 @@ MDS but is outside the scope of the present paper.
 
 We begin by articulating the principle that motivates the proposed method.
 
-\begin{definition}[Self-consistent embedding]
-  \label{def:self_consistency}
-  Let $(X, \delta)$ be a metric space with a graph structure $G = (X, E,
-  w)$ whose path metric $d_G$ satisfies $d_G(i,j) \geq \delta(i,j)$ for
-  all $i,j$.  For each pair $(i,j)$, choose a canonical $d_G$-geodesic
-  $\gamma_{ij}$ in $G$.  An embedding $f: X \to \R^d$ is
-  \emph{self-consistent} with respect to $(G, \Gamma)$, where
-  $\Gamma = \{\gamma_{ij}\}_{i<j}$, if the fidelity of the embedding is
-  measured by the path length of the image $f(\gamma_{ij})$, that is, by the
-  sum of Euclidean edge lengths along that same input-side geodesic.
-\end{definition}
+We call an embedding $f: X \to \R^d$ \emph{self-consistent} with respect
+to $(G, \Gamma)$ when $(X,\delta)$ is a metric space with graph
+structure $G = (X, E, w)$ whose path metric $d_G$ satisfies
+$d_G(i,j) \geq \delta(i,j)$ for all $i,j$, a canonical $d_G$-geodesic
+$\gamma_{ij}$ is chosen for each pair $(i,j)$, and the fidelity of the
+embedding is measured by the path length of the image $f(\gamma_{ij})$,
+that is, by the sum of Euclidean edge lengths along that same input-side
+geodesic.
 
 Standard metric MDS and Isomap are not self-consistent in this sense:
 they measure fidelity by Euclidean distances $\norm{f(i) - f(j)}$, which
@@ -549,38 +538,32 @@ distances for topologically constrained pairs.
 \subsection{Systematic Bias of Euclidean Output Distances}
 \label{sec:systematic_bias}
 
-\begin{proposition}[Triangle inequality bias]
-  \label{prop:bias}
-  Let $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times d}$ be any embedding,
-  and let $G = (V, E, w)$ be a weighted graph with vertex set $V = \{1,
-  \ldots, n\}$.  For any pair $(i,j)$ with chosen shortest path
-  $i = v_0, v_1, \ldots, v_\ell = j$ in $G$, define the embedded length of
-  that geodesic by
-  \begin{equation}
-    \demb_G(i,j;\bZ)
-    = \sum_{s=0}^{\ell-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}}.
-    \label{eq:emb_geo}
-  \end{equation}
-  Then
-  \begin{equation}
-    \norm{\bz_i - \bz_j} \;\leq\; \demb_G(i,j;\bZ),
-    \label{eq:triangle_bias}
-  \end{equation}
-  with equality if and only if all embedded path vertices
-  $\bz_{v_0}, \ldots, \bz_{v_\ell}$ are collinear in $\R^d$ in the order
-  of the path.
-\end{proposition}
+The output-side bias follows from a simple triangle-inequality
+observation.  Let $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times d}$ be
+any embedding, and let $G = (V, E, w)$ be a weighted graph with vertex
+set $V = \{1, \ldots, n\}$.  For any pair $(i,j)$ with chosen shortest
+path $i = v_0, v_1, \ldots, v_\ell = j$ in $G$, define the embedded
+length of that geodesic by
+\begin{equation}
+  \demb_G(i,j;\bZ)
+  = \sum_{s=0}^{\ell-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}}.
+  \label{eq:emb_geo}
+\end{equation}
+Then
+\begin{equation}
+  \norm{\bz_i - \bz_j} \;\leq\; \demb_G(i,j;\bZ),
+  \label{eq:triangle_bias}
+\end{equation}
+with equality if and only if all embedded path vertices
+$\bz_{v_0}, \ldots, \bz_{v_\ell}$ are collinear in $\R^d$ in the order
+of the path.  Indeed, by the triangle inequality applied $\ell$ times,
+$\norm{\bz_i - \bz_j} = \norm{\sum_{s} (\bz_{v_{s+1}} - \bz_{v_s})}
+\leq \sum_s \norm{\bz_{v_{s+1}} - \bz_{v_s}} = \demb_G(i,j;\bZ)$, and
+equality holds precisely when all difference vectors
+$\bz_{v_{s+1}} - \bz_{v_s}$ are non-negative scalar multiples of a single
+unit vector.
 
-\begin{proof}
-  By the triangle inequality applied $\ell$ times:
-  $\norm{\bz_i - \bz_j} = \norm{\sum_{s} (\bz_{v_{s+1}} - \bz_{v_s})}
-  \leq \sum_s \norm{\bz_{v_{s+1}} - \bz_{v_s}} = \demb_G(i,j;\bZ)$.
-  Equality holds iff all difference vectors $\bz_{v_{s+1}} - \bz_{v_s}$
-  are non-negative scalar multiples of a single unit vector, i.e., the
-  points are collinear in the stated order.
-\end{proof}
-
-\Cref{prop:bias} shows that standard MDS and Isomap systematically
+This triangle-inequality observation shows that standard MDS and Isomap systematically
 underestimate embedded geodesic lengths for all topologically
 non-degenerate pairs (those whose shortest path has $\ell \geq 2$ and
 does not embed as a straight line).  When the input dissimilarity
@@ -622,45 +605,36 @@ geodesic} is
 \end{equation}
 where $\gamma_{ij} = (v_0, \ldots, v_L)$.
 
-\begin{definition}[Raw geodesic stress]
-  \label{def:raw_geodesic_stress}
-  The \emph{raw geodesic stress} of an embedding $\bZ \in \R^{n \times d}$
-  with respect to $(G,\Gamma)$ is
-  \begin{equation}
-    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
-    = \sum_{i < j}
-      \bigl(\demb_{\Gamma}(i,j;\bZ) - d_G(i,j)\bigr)^2.
-    \label{eq:raw_geo_stress}
-  \end{equation}
-\end{definition}
+We define the \emph{raw geodesic stress} of an embedding
+$\bZ \in \R^{n \times d}$ with respect to $(G,\Gamma)$ by
+\begin{equation}
+  \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
+  = \sum_{i < j}
+    \bigl(\demb_{\Gamma}(i,j;\bZ) - d_G(i,j)\bigr)^2.
+  \label{eq:raw_geo_stress}
+\end{equation}
 
-\begin{definition}[Geodesic Stress-1]
-  \label{def:geodesic_stress}
-  The normalized \emph{geodesic Stress-1} of $\bZ$ with respect to
-  $(G,\Gamma)$ is
-  \begin{equation}
-    {\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)
-    = \sqrt{
-        \frac{\Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)}
-             {\displaystyle\sum_{i < j} d_G(i,j)^2}
-      }.
-    \label{eq:geo_stress}
-  \end{equation}
-\end{definition}
+The normalized \emph{geodesic Stress-1} of $\bZ$ with respect to
+$(G,\Gamma)$ is
+\begin{equation}
+  {\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)
+  = \sqrt{
+      \frac{\Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)}
+           {\displaystyle\sum_{i < j} d_G(i,j)^2}
+    }.
+  \label{eq:geo_stress}
+\end{equation}
 
-\begin{definition}[Geodesic MDS embedding]
-  \label{def:gmds_embedding}
-  A \emph{Geodesic MDS embedding} of $(G,\Gamma)$ in $\R^d$ is any
-  minimizer
-  \begin{equation}
-    \hat{\bZ}_{\Gamma,d}(G)
-    \in \argmin_{\bZ \in \R^{n \times d}}
-    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G).
-    \label{eq:geo_mds}
-  \end{equation}
-  Equivalently, since the denominator in \cref{eq:geo_stress} is constant
-  in $\bZ$, one may minimize ${\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)$.
-\end{definition}
+A \emph{Geodesic MDS embedding} of $(G,\Gamma)$ in $\R^d$ is any
+minimizer
+\begin{equation}
+  \hat{\bZ}_{\Gamma,d}(G)
+  \in \argmin_{\bZ \in \R^{n \times d}}
+  \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G).
+  \label{eq:geo_mds}
+\end{equation}
+Equivalently, since the denominator in \cref{eq:geo_stress} is constant
+in $\bZ$, one may minimize ${\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)$.
 
 \subsubsection*{Specialization to $k$-NN graphs}
 When the input is a data matrix $\bX \in \R^{n \times m}$, we recover the
@@ -684,24 +658,20 @@ MDS objective is
   \label{eq:knn_raw_geo_stress}
 \end{equation}
 
-\begin{remark}[Normalization]
-  We normalize by the constant $\sum_{i<j} d_G(i,j)^2$ rather than by an
-  embedded denominator such as $\sum_{i<j} \demb_{\Gamma}(i,j;\bZ)^2$.
-  This keeps ${\StressOne}_{\Gamma}^{\mathrm{geo}}$ scale-free while
-  leaving the optimizer identical to the raw numerator
-  \cref{eq:raw_geo_stress}.  A Kruskal-style denominator depending on
-  $\bZ$ is still useful for reporting, but it changes the optimization
-  target.
-\end{remark}
+We normalize by the constant $\sum_{i<j} d_G(i,j)^2$ rather than by an
+embedded denominator such as $\sum_{i<j} \demb_{\Gamma}(i,j;\bZ)^2$.
+This keeps ${\StressOne}_{\Gamma}^{\mathrm{geo}}$ scale-free while
+leaving the optimizer identical to the raw numerator
+\cref{eq:raw_geo_stress}.  A Kruskal-style denominator depending on
+$\bZ$ is still useful for reporting, but it changes the optimization
+target.
 
-\begin{remark}[Fixed topology and fixed geodesics]
-  The graph topology $E$ and the chosen geodesic family $\Gamma$ are fixed
-  by the input metric data and are not part of the optimization.  Only the
-  vertex positions $\bz_1,\ldots,\bz_n$ are free.  This is a key design
-  choice: it ensures that the relevant routes are determined by the input
-  geometry and that the optimization preserves that chosen geodesic
-  structure after embedding.
-\end{remark}
+The graph topology $E$ and the chosen geodesic family $\Gamma$ are fixed
+by the input metric data and are not part of the optimization.  Only the
+vertex positions $\bz_1,\ldots,\bz_n$ are free.  This is a key design
+choice: it ensures that the relevant routes are determined by the input
+geometry and that the optimization preserves that chosen geodesic
+structure after embedding.
 Figure~\ref{fig:geodesic_stress_definition} should make the fixed-geodesic,
 two-metric comparison in \cref{eq:emb_geodesic,eq:geo_stress} easy to see.
 
@@ -720,14 +690,11 @@ two-metric comparison in \cref{eq:emb_geodesic,eq:geo_stress} easy to see.
 \end{figure}
 
 
-\begin{remark}[Nonuniqueness is intrinsic, not a defect]
-  The objective \cref{eq:raw_geo_stress} is a fidelity criterion, not an
-  aesthetics criterion, so its minimizers need not be unique.  This is a
-  feature of the definition: multiple embeddings can realize the same graph
-  geodesic data equally well.
-\end{remark}
-
-For example, for a path graph $v_0 - v_1 - v_2$ with any fixed edge lengths,
+The objective \cref{eq:raw_geo_stress} is a fidelity criterion, not an
+aesthetics criterion, so its minimizers need not be unique.  This is a
+feature of the definition: multiple embeddings can realize the same graph
+geodesic data equally well.  For example, for a path graph
+$v_0 - v_1 - v_2$ with any fixed edge lengths,
 every embedding in $\R^2$ that preserves those two edge lengths is a global
 minimum of \cref{eq:raw_geo_stress}; one obtains an infinite family of minima
 by fixing the segment $[v_0,v_1]$ and rotating $[v_1,v_2]$ around $v_1$.
@@ -853,21 +820,18 @@ application.
 \subsection{Properties of Geodesic MDS}
 \label{sec:properties}
 
-\subsubsection*{Self-consistency}
-Geodesic MDS satisfies \cref{def:self_consistency} by construction:
+Geodesic MDS is self-consistent by construction:
 both input dissimilarities and output distances are measured on the same
 fixed family of geodesics in $(G,\Gamma)$ (the former by the graph
 metric $d_G$, the latter by the embedded path lengths
 $\demb_{\Gamma}(i,j;\bZ)$).
 
-\subsubsection*{Recovery of standard MDS at $k = n-1$}
 When the input graph is the $k$-NN specialization and $k = n-1$, every
 pair is connected by a direct edge, so
 $\demb_{\Gamma_{n-1}}(i,j;\bZ) = \norm{\bz_i - \bz_j}$ and
 $\delta^{(n-1)}_{ij} = \norm{\bx_i - \bx_j}$.  Geodesic stress reduces to
 standard metric Stress-1, and Geodesic MDS recovers standard metric MDS.
 
-\subsubsection*{Tree metric at small $k$}
 For $k = 1$, $\Gk$ is (generically) a sparse forest; with a suitable
 connectivity correction (e.g., taking the minimum spanning tree as
 $G_1$) the graph is a tree.  The tree-path metric is then a tree metric in
@@ -877,7 +841,6 @@ embed isometrically into $\R^1$ (the real line) with zero stress;
 thus for tree-structured data Geodesic MDS with $k=1$ achieves
 perfect stress in $d=1$.
 
-\subsubsection*{Interpolation and the role of $k$}
 As $k$ increases from 1 to $n-1$, more edges are added to $\Gk$,
 $\delta^{(k)}_{ij}$ decreases toward $\norm{\bx_i - \bx_j}$, and
 $\demb_{\Gamma_k}(i,j;\bZ)$ decreases toward $\norm{\bz_i - \bz_j}$.  The
@@ -886,8 +849,8 @@ $k$ and standard MDS at large $k$.  The parameter $k$ controls the
 geometric scale at which geodesic structure is enforced, analogous to the
 bandwidth parameter in kernel methods.
 
-\subsubsection*{Geodesic stress is never smaller than Euclidean stress}
-By \cref{prop:bias}, $\demb_{\Gamma_k}(i,j;\bZ) \geq \norm{\bz_i - \bz_j}$
+By the triangle-inequality observation above,
+$\demb_{\Gamma_k}(i,j;\bZ) \geq \norm{\bz_i - \bz_j}$
 for all $i,j$ and all $\bZ$.  If in addition $\delta^{(k)}_{ij} \geq
 \norm{\bx_i - \bx_j}$ (which holds by the triangle inequality on graph
 paths), then for the same configuration $\bZ$ the geodesic stress is
@@ -1054,29 +1017,23 @@ $|\tilde{\bV}^{(t)}|$.  Since the geodesic family is fixed, the stored
 paths are reused at every iteration and only the embedded edge lengths are
 updated.
 
-\begin{proposition}[Monotone decrease]
-  \label{prop:monotone}
-  With the geodesic family $\Gamma_k$ fixed by the input metric, each step
-  \eqref{eq:geo_guttman_update} does not increase
-  $\sigma^{\mathrm{geo}}(\bZ)$.
-\end{proposition}
-
-\begin{proof}[Proof sketch]
-  At iteration $t$, the fixed-geodesic majorization gives an upper bound
-  $\sigma^{\mathrm{geo}}(\bZ) \leq f^{(t)}(\bZ)$ for a function $f^{(t)}$
-  that is quadratic in $\bZ$ and tight at $\bZ^{(t)}$.  The update
-  \eqref{eq:geo_guttman_update} minimizes $f^{(t)}$, so
-  $f^{(t)}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t)}) =
-  \sigma^{\mathrm{geo}}(\bZ^{(t)})$.  Because the same fixed path family is
-  used in both the objective and the majorizer, we also have
-  $\sigma^{\mathrm{geo}}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t+1)})$, hence
-  \[
-    \sigma^{\mathrm{geo}}(\bZ^{(t+1)})
-    \leq f^{(t)}(\bZ^{(t+1)})
-    \leq f^{(t)}(\bZ^{(t)})
-    = \sigma^{\mathrm{geo}}(\bZ^{(t)}).
-  \]
-\end{proof}
+With the geodesic family $\Gamma_k$ fixed by the input metric, each step
+\eqref{eq:geo_guttman_update} does not increase
+$\sigma^{\mathrm{geo}}(\bZ)$.  The reason is that at iteration $t$, the
+fixed-geodesic majorization gives an upper bound
+$\sigma^{\mathrm{geo}}(\bZ) \leq f^{(t)}(\bZ)$ for a function
+$f^{(t)}$ that is quadratic in $\bZ$ and tight at $\bZ^{(t)}$.  The
+update \eqref{eq:geo_guttman_update} minimizes $f^{(t)}$, so
+$f^{(t)}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t)}) =
+\sigma^{\mathrm{geo}}(\bZ^{(t)})$.  Because the same fixed path family is
+used in both the objective and the majorizer, we also have
+$\sigma^{\mathrm{geo}}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t+1)})$, hence
+\[
+  \sigma^{\mathrm{geo}}(\bZ^{(t+1)})
+  \leq f^{(t)}(\bZ^{(t+1)})
+  \leq f^{(t)}(\bZ^{(t)})
+  = \sigma^{\mathrm{geo}}(\bZ^{(t)}).
+\]
 
 \subsubsection*{Computational complexity}
 Each iteration of the geodesic SMACOF requires:
