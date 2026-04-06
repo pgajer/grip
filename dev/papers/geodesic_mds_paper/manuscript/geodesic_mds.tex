@@ -759,9 +759,37 @@ $\lambda$ is not universal; in practice it should be reported explicitly and
 chosen by a fidelity-dispersion trade-off study, continuation scheme, or
 task-specific validation criterion.
 
-\subsubsection*{An edge-based relaxation}
-If exact minimization of \cref{eq:raw_geo_stress} is computationally
-prohibitive, one can replace it by the edge-only functional
+\subsubsection*{Geodesic KK, LGKK, and edge-based relaxations}
+A useful bridge to graph drawing is obtained by specializing the GMDS
+criterion to Kamada-Kawai-style pair weights.  With a global stiffness
+constant $K_0 > 0$, pairwise graph distances $d_G(i,j)$, and a fitted
+scale $L_0 > 0$, define the geodesic Kamada-Kawai objective
+\begin{equation}
+  E_{\Gamma,L_0}^{\mathrm{gKK}}(\bZ)
+  = \tfrac{1}{2}\sum_{i<j}
+    k_{ij}\bigl(\demb_{\Gamma}(i,j;\bZ) - L_0\,d_G(i,j)\bigr)^2,
+  \qquad
+  k_{ij} = \frac{K_0}{\max\{d_G(i,j), \varepsilon_d\}^2},
+  \label{eq:geodesic_kk}
+\end{equation}
+with a small $\varepsilon_d > 0$.  This is still a fixed-geodesic
+geodesic-isometry criterion: it compares the input graph distances to the
+embedded lengths of those same chosen input-side geodesics, but with
+Kamada-Kawai-style stiffness weights and a fitted global scale.  In
+\texttt{grip}, the full all-pairs version is implemented as geodesic KK,
+and a sparse landmark restriction of the same objective is implemented as
+landmark-geodesic KK (LGKK).
+
+Classical Kamada-Kawai is recovered by replacing the embedded geodesic
+lengths $\demb_{\Gamma}(i,j;\bZ)$ by straight-line Euclidean distances
+$\norm{\bz_i - \bz_j}$.  In this sense, geodesic KK and LGKK form an
+intermediate bridge between graph-drawing objectives and the more
+principled GMDS criterion: they retain the input-side geodesic structure
+of GMDS while simplifying the weighting and, in the LGKK case, the active
+pair set.
+
+If one simplifies further by restricting the sum to graph edges only, one
+obtains the edge-only functional
 \begin{equation}
   E_K(\bZ)
   = \sum_{(i,j) \in E} k_{ij}\bigl(\norm{\bz_i - \bz_j} - w_{ij}\bigr)^2,
@@ -769,49 +797,61 @@ prohibitive, one can replace it by the edge-only functional
 \end{equation}
 because for an edge $(i,j)$ the chosen graph geodesic is the edge itself and
 thus $\demb_{\Gamma}(i,j;\bZ) = \norm{\bz_i - \bz_j}$.  This is no longer the
-geodesic stress: it is a graph-drawing-style relaxation that penalizes only
-single-hop distortion, and is therefore closer to an edge-restricted
-Kamada-Kawai objective \citep{kamada1989algorithm, fruchterman1991graph}
-than to the full all-pairs GMDS criterion.
+full geodesic KK or GMDS criterion: it penalizes only single-hop
+distortion, and is therefore closer to an edge-restricted classical
+Kamada-Kawai objective \citep{kamada1989algorithm, fruchterman1991graph}.
 
-The relation between \cref{eq:raw_geo_stress,eq:edge_relaxation} is easiest to
-see in edge-length coordinates.  Let $\ell(\bZ) \in \R^{|E|}$ be the vector of
-embedded edge lengths, let $w \in \R^{|E|}$ collect the graph edge weights, and
-let $A_{\Gamma}$ be the path-edge incidence matrix whose $(i,j)$-row indicates
-which edges lie on the chosen geodesic $\gamma_{ij}$.  Then
+The relation among \cref{eq:raw_geo_stress,eq:geodesic_kk,eq:edge_relaxation}
+is easiest to see in edge-length coordinates.  Let $\ell(\bZ) \in \R^{|E|}$
+be the vector of embedded edge lengths, let $w \in \R^{|E|}$ collect the
+graph edge weights, let $d \in \R^{\binom{n}{2}}$ collect the all-pairs
+graph distances, and let $A_{\Gamma}$ be the path-edge incidence matrix
+whose $(i,j)$-row indicates which edges lie on the chosen geodesic
+$\gamma_{ij}$.  Then raw GMDS compares $A_{\Gamma}\ell(\bZ)$ to $d$ with
+uniform all-pairs weights, while geodesic KK takes the weighted form
 \begin{equation}
-  \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
-  = \norm{A_{\Gamma}\bigl(\ell(\bZ) - w\bigr)}_2^2
-  = \bigl(\ell(\bZ)-w\bigr)^\top
-    A_{\Gamma}^\top A_{\Gamma}
-    \bigl(\ell(\bZ)-w\bigr),
-  \label{eq:path_incidence_stress}
+  E_{\Gamma,L_0}^{\mathrm{gKK}}(\bZ)
+  = \tfrac{1}{2}\bigl(A_{\Gamma}\ell(\bZ) - L_0 d\bigr)^\top
+    K_{\mathrm{pair}}
+    \bigl(A_{\Gamma}\ell(\bZ) - L_0 d\bigr),
+  \label{eq:path_incidence_gkk}
 \end{equation}
-whereas
+with $K_{\mathrm{pair}} = \diag(k_{ij})$ diagonal over unordered pairs,
+whereas the edge-only relaxation takes the form
 \begin{equation}
   E_K(\bZ)
-  = \bigl(\ell(\bZ)-w\bigr)^\top K \bigl(\ell(\bZ)-w\bigr),
+  = \bigl(\ell(\bZ)-w\bigr)^\top K_{\mathrm{edge}} \bigl(\ell(\bZ)-w\bigr),
   \label{eq:edge_relaxation_matrix}
 \end{equation}
-with $K = \diag(k_{ij})$ diagonal.  Thus $E_K$ drops the off-diagonal
-path-coupling terms in $A_{\Gamma}^\top A_{\Gamma}$ and therefore does not
-control multi-hop geodesic distortion directly.  What is gained is a much
-cheaper objective; what is lost is explicit control of long-range path-length
-errors.
+with $K_{\mathrm{edge}} = \diag(k_{ij})$ diagonal over edges.  Thus the
+passage from GMDS to geodesic KK changes the pair weighting and introduces
+a fitted global scale, whereas the passage from geodesic KK to
+\cref{eq:edge_relaxation} drops the multi-hop pair set and the associated
+path-coupling structure encoded by $A_{\Gamma}$.  What is gained is a much
+cheaper objective; what is lost is explicit control of long-range
+path-length errors.
 
 If $E_K(\bZ) = 0$, then every edge length is realized exactly, hence every
 chosen graph-geodesic length is realized exactly as well, and
 \cref{eq:raw_geo_stress} also vanishes.  In the approximate regime, however,
 the two objectives are different and generally have different local minima.
-For this reason we treat \cref{eq:edge_relaxation} as a relaxation of GMDS,
-not as the definition of GMDS itself.  Whether this relaxation also avoids
-some of the pathologies of the full all-pairs objective is an empirical
-question, not a formal consequence of the definition.
+For this reason we treat \cref{eq:edge_relaxation} as a relaxation of both
+geodesic KK and GMDS, not as the definition of GMDS itself.  This
+perspective suggests a natural continuation strategy:
+classical KK $\to$ geodesic KK or LGKK $\to$ GMDS.  More generally, one can
+imagine a filtration of active pair sets, beginning with local or landmark
+pairs and expanding toward the full all-pairs set, as a homotopy from
+cheap graph-drawing surrogates to the full geodesic-isometry objective.
+We do not analyze such schedules here, but they provide a useful bridge
+between graph drawing and GMDS.
 
-The weights $k_{ij}$ in \cref{eq:edge_relaxation} are user-chosen tuning
-parameters.  A simple default is $k_{ij} \equiv 1$.  If one wants to emphasize
-edge lengths that occur frequently in the graph, one may set
-$k_{ij} = \hat f_{\mathrm{edge}}(w_{ij})$, where
+In the full geodesic KK objective \cref{eq:geodesic_kk}, the natural
+default is the classical Kamada-Kawai stiffness
+$k_{ij} = K_0/\max\{d_G(i,j), \varepsilon_d\}^2$.  In the edge-only
+functional \cref{eq:edge_relaxation}, the weights $k_{ij}$ are
+user-chosen tuning parameters.  A simple default is $k_{ij} \equiv 1$.
+If one wants to emphasize edge lengths that occur frequently in the graph,
+one may set $k_{ij} = \hat f_{\mathrm{edge}}(w_{ij})$, where
 $\hat f_{\mathrm{edge}}$ is a kernel density estimate of the empirical
 distribution of edge lengths.  Other choices, such as weights proportional to
 geodesic-usage counts, are also possible and should be justified by the
