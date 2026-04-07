@@ -20,6 +20,12 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
   level_stage_payload <- getFromNamespace("gripui.gmds.level.stage.payload", "grip")
   export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
   export_stage_choices <- getFromNamespace("gripui.gmds.export.stage.choices", "grip")
+  export_preset_choices <- getFromNamespace("gripui.gmds.export.preset.choices", "grip")
+  figure_preset_choices <- getFromNamespace("gripui.gmds.figure.preset.choices", "grip")
+  paper_context <- getFromNamespace("gripui.gmds.paper.context", "grip")
+  paper_note <- getFromNamespace("gripui.gmds.paper.inline.note", "grip")
+  write_static_figure <- getFromNamespace("gripui.gmds.write.static.figure", "grip")
+  write_export_bundle <- getFromNamespace("gripui.gmds.write.export.bundle", "grip")
   paper_sync_table <- getFromNamespace("gripui.gmds.paper.sync.table", "grip")
 
   for (method in names(cases)) {
@@ -65,6 +71,8 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
 
     export.choices <- export_stage_choices(bundle)
     expect_true(all(c("reference", "misf", "top_level", "final_polish") %in% unname(export.choices)))
+    expect_true(all(c("paper_figure_bundle", "audit_bundle", "tables_only") %in% unname(export_preset_choices())))
+    expect_true(all(c("paper_panel", "paper_wide") %in% unname(figure_preset_choices())))
     export.payload <- export_stage_payload(
       bundle = bundle,
       stage_id = "top_level",
@@ -74,6 +82,49 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
     expect_true(is.list(export.payload))
     expect_equal(export.payload$label, cases[[method]]$top_label)
     expect_true(is.matrix(export.payload$display_coords))
+
+    context <- paper_context(
+      bundle = bundle,
+      stage_id = "top_level",
+      focus_level = bundle$prepared$top_level_level,
+      expansion_level = expansion_levels[[1L]]
+    )
+    expect_true(is.data.frame(context))
+    expect_equal(context$manuscript_section[[1L]], "Coarsest seed, expansion, and refinement")
+    expect_match(
+      paper_note(bundle, "top_level", focus_level = bundle$prepared$top_level_level),
+      "Paper link:"
+    )
+
+    png.path <- tempfile(fileext = ".png")
+    pdf.path <- tempfile(fileext = ".pdf")
+    write_static_figure(
+      export_payload = export.payload,
+      png_path = png.path,
+      pdf_path = pdf.path,
+      figure_preset = "paper_panel"
+    )
+    expect_true(file.exists(png.path))
+    expect_true(file.exists(pdf.path))
+    expect_gt(file.info(png.path)$size, 0)
+    expect_gt(file.info(pdf.path)$size, 0)
+    unlink(c(png.path, pdf.path), force = TRUE)
+
+    dir <- tempfile("gmds-export-test-")
+    files <- write_export_bundle(
+      bundle = bundle,
+      export_payload = export.payload,
+      stage_id = "top_level",
+      focus_level = bundle$prepared$top_level_level,
+      expansion_level = expansion_levels[[1L]],
+      preset = "paper_figure_bundle",
+      figure_preset = "paper_panel",
+      dir = dir
+    )
+    expect_true(all(file.exists(files)))
+    expect_true(any(grepl("\\.png$", files)))
+    expect_true(any(grepl("\\.pdf$", files)))
+    unlink(dir, recursive = TRUE, force = TRUE)
   }
 
   paper.map <- paper_sync_table()

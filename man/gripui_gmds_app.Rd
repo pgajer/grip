@@ -8,7 +8,7 @@ gripui_gmds_app(
   catalog = gripui.gmds.default.catalog(),
   title = "GMDS Stage Explorer",
   subtitle =
-    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces."
+    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and paper-ready export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces."
 )
 }
 \arguments{
@@ -28,7 +28,7 @@ selected graph and method. The current implementation covers Milestones 1
 through 5: graph and geometry inspection, visualization of the MIS
 filtration, explicit seed and initial-placement panels, per-level insertion
 and refinement panels, method switching across canonical
-GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and initial
+GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and paper-ready
 export/paper-synchronization helpers.
 }
 \examples{
