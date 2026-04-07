@@ -1609,6 +1609,116 @@ grip.geodesic.misf.build.geometric.seed.coords <- function(distance_matrix,
   )
 }
 
+grip.geodesic.misf.required.top.level.size <- function(n, dim) {
+  n <- grip.validate.count(n, "n")
+  dim <- grip.validate.count(dim, "dim")
+  min(as.integer(n), as.integer(dim) + 1L)
+}
+
+grip.geodesic.misf.required.seed.rank <- function(active_n, dim) {
+  active_n <- grip.validate.count(active_n, "active_n")
+  dim <- grip.validate.count(dim, "dim")
+  min(as.integer(dim), max(as.integer(active_n) - 1L, 0L))
+}
+
+grip.geodesic.misf.describe.top.level <- function(prepared,
+                                                  misf,
+                                                  level_index,
+                                                  dim,
+                                                  tie_mode) {
+  level_index <- grip.validate.count(level_index, "level_index")
+  dim <- grip.validate.count(dim, "dim")
+  vertex_ids <- as.integer(misf$levels[[level_index]])
+  level_id <- as.integer(level_index - 1L)
+  level_graph <- grip.geodesic.misf.induced_level_graph(
+    prepared = prepared,
+    vertex_ids = vertex_ids,
+    level = level_id
+  )
+  level_prepared <- grip.prepare.graph.geodesic.mds(
+    edges = level_graph$edges,
+    n = level_graph$n,
+    edge_weights = level_graph$edge_weights,
+    tie_mode = tie_mode
+  )
+  seed_size <- min(level_graph$n, dim + 1L)
+  seed_local <- grip.geodesic.misf.select.seed.vertices(
+    distance_matrix = level_prepared$distance_matrix,
+    count = seed_size,
+    dim = dim
+  )
+  seed_score <- grip.geodesic.misf.score.seed.metric(
+    distance_matrix = level_prepared$distance_matrix[seed_local, seed_local, drop = FALSE],
+    dim = dim
+  )
+  seed_required_rank <- grip.geodesic.misf.required.seed.rank(
+    active_n = seed_size,
+    dim = dim
+  )
+  list(
+    level_index = level_index,
+    level = level_id,
+    vertices = vertex_ids,
+    graph = level_graph,
+    graph_prepared = level_prepared,
+    seed_local = as.integer(seed_local),
+    seed_vertices = as.integer(vertex_ids[seed_local]),
+    seed_positive_rank = as.integer(seed_score$positive_rank),
+    seed_required_rank = as.integer(seed_required_rank),
+    seed_size = as.integer(seed_size)
+  )
+}
+
+grip.geodesic.misf.resolve.top.level <- function(prepared,
+                                                 misf,
+                                                 dim,
+                                                 tie_mode) {
+  dim <- grip.validate.count(dim, "dim")
+  required_size <- grip.geodesic.misf.required.top.level.size(prepared$n, dim)
+  fallback <- NULL
+
+  for (level_index in seq.int(from = length(misf$levels), to = 1L, by = -1L)) {
+    active_n <- length(misf$levels[[level_index]])
+    if (active_n < required_size) {
+      next
+    }
+    candidate <- grip.geodesic.misf.describe.top.level(
+      prepared = prepared,
+      misf = misf,
+      level_index = level_index,
+      dim = dim,
+      tie_mode = tie_mode
+    )
+    candidate$min_required_size <- as.integer(required_size)
+
+    if (active_n > required_size) {
+      candidate$selection_reason <- "coarsest_min_size"
+      return(candidate)
+    }
+    if (candidate$seed_positive_rank >= candidate$seed_required_rank) {
+      candidate$selection_reason <- "coarsest_seed_admissible"
+      return(candidate)
+    }
+    fallback <- candidate
+  }
+
+  if (!is.null(fallback)) {
+    fallback$selection_reason <- "finest_size_fallback"
+    return(fallback)
+  }
+
+  candidate <- grip.geodesic.misf.describe.top.level(
+    prepared = prepared,
+    misf = misf,
+    level_index = 1L,
+    dim = dim,
+    tie_mode = tie_mode
+  )
+  candidate$min_required_size <- as.integer(required_size)
+  candidate$selection_reason <- "finest_level_fallback"
+  candidate
+}
+
 #' Build the MISF-induced coarse graph for a GMDS level
 #'
 #' `grip.geodesic.misf.induced_level_graph()` extracts a level of the maximal
@@ -2642,8 +2752,8 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'
 #' `grip.prepare.misf.geodesic.mds()` augments the graph-first GMDS prepared
 #' object with the maximal independent set filtration extracted from GRIP and a
-#' restartable pure-GMDS solve on the coarsest MISF level. This is the Phase 2
-#' preparation layer for the new MISF-based GMDS initializer.
+#' restartable pure-GMDS solve on the coarsest admissible MISF level. This is
+#' the Phase 2 preparation layer for the new MISF-based GMDS initializer.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with `adj_list`, defaults to
@@ -2663,7 +2773,9 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'   immediately, or `"skip"` to prepare the MISF object without solving it.
 #' @param top_level_init Coarse-level initializer. `"geometric"` builds a
 #'   spread `d+1`-vertex seed and inserts the remaining coarse vertices before
-#'   pure-GMDS refinement. `"random"` keeps the legacy random restart family.
+#'   pure-GMDS refinement. The top-level active set is chosen as the coarsest
+#'   MISF level with at least `d + 1` vertices when possible. `"random"` keeps
+#'   the legacy random restart family.
 #' @param top_level_restarts Number of coarse-level restarts used by the
 #'   pure-GMDS refinement stage.
 #' @param top_level_max_iter Maximum number of pure-GMDS iterations per restart
@@ -2735,30 +2847,34 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
     num_nbrs = num_nbrs,
     seed = seed
   )
-  top.level.index <- length(misf$levels)
-  top.level.id <- as.integer(top.level.index - 1L)
-  top.level.vertices <- as.integer(misf$levels[[top.level.index]])
-  top.level.graph <- grip.geodesic.misf.induced_level_graph(
+  top.level.selection <- grip.geodesic.misf.resolve.top.level(
     prepared = prepared,
-    vertex_ids = top.level.vertices,
-    level = top.level.id
-  )
-  top.level.prepared <- grip.prepare.graph.geodesic.mds(
-    edges = top.level.graph$edges,
-    n = top.level.graph$n,
-    edge_weights = top.level.graph$edge_weights,
+    misf = misf,
+    dim = dim,
     tie_mode = tie_mode
   )
+  top.level.index <- top.level.selection$level_index
+  top.level.id <- top.level.selection$level
+  top.level.vertices <- top.level.selection$vertices
+  top.level.graph <- top.level.selection$graph
+  top.level.prepared <- top.level.selection$graph_prepared
 
   prepared$misf <- misf
   prepared$level_vertices <- misf$levels
   prepared$active_levels <- misf$levels
   prepared$insertion_order <- misf$mish_order
+  prepared$coarsest_level_index <- length(misf$levels)
+  prepared$coarsest_level_level <- as.integer(length(misf$levels) - 1L)
   prepared$top_level_index <- top.level.index
   prepared$top_level_level <- top.level.id
   prepared$top_level_vertices <- top.level.vertices
   prepared$top_level_graph <- top.level.graph
   prepared$top_level_prepared <- top.level.prepared
+  prepared$top_level_min_required_size <- top.level.selection$min_required_size
+  prepared$top_level_selection_reason <- top.level.selection$selection_reason
+  prepared$top_level_seed_vertices <- top.level.selection$seed_vertices
+  prepared$top_level_seed_positive_rank <- top.level.selection$seed_positive_rank
+  prepared$top_level_seed_required_rank <- top.level.selection$seed_required_rank
   prepared$top_level_dim <- as.integer(dim)
   prepared$top_level_mode <- top_level_mode
   prepared$top_level_init <- top_level_init
@@ -2808,10 +2924,10 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #'
 #' `grip.optimize.misf.geodesic.mds()` runs the experimental multiscale GMDS
 #' pipeline built on top of GRIP's maximal independent set filtration (MISF).
-#' It solves the coarsest MISF level with pure GMDS, inserts successive levels
-#' either by geodesic anchor trilateration or by layout-based active-level warm
-#' starts, refines each active level with sparse pure GMDS, and finishes with a
-#' short full-graph pure-GMDS polish.
+#' It solves the coarsest admissible MISF level with pure GMDS, inserts
+#' successive levels either by geodesic anchor trilateration or by layout-based
+#' active-level warm starts, refines each active level with sparse pure GMDS,
+#' and finishes with a short full-graph pure-GMDS polish.
 #'
 #' The function accepts either a graph-first GMDS prepared object from
 #' [grip.prepare.graph.geodesic.mds()], a MISF-GMDS prepared object from

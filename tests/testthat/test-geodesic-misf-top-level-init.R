@@ -142,3 +142,82 @@ test_that("3D geometric coarse seed prefers a full-rank top-level seed when avai
   expect_true(qr(scale(seed.coords, scale = FALSE))$rank == 3L)
   expect_true(qr(scale(init$coords, scale = FALSE))$rank == 3L)
 })
+
+test_that("3D MISF preparation skips undersized coarsest sampled-rectangle levels", {
+  seq_spec <- sampled.rectangle.surface.graphs(
+    n = 50,
+    k = 6L,
+    xmin = -1.6,
+    xmax = 1.6,
+    ymin = -1,
+    ymax = 1,
+    seed = 1050L,
+    surface = "paraboloid",
+    amplitude = 0.35,
+    graph_space = "surface",
+    normalize = "median"
+  )
+  graph <- seq_spec$graphs[[1L]]
+
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = graph$edges,
+    n = graph$n,
+    edge_weights = graph$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    dim = 3L,
+    top_level_mode = "skip",
+    seed = 2056L
+  )
+  expect_equal(unname(vapply(prepared$misf$levels, length, integer(1L))), c(50L, 9L, 2L))
+  expect_equal(prepared$coarsest_level_level, 2L)
+  expect_equal(prepared$top_level_level, 1L)
+  expect_equal(length(prepared$top_level_vertices), 9L)
+  expect_identical(prepared$top_level_selection_reason, "coarsest_min_size")
+
+  prepared.gkk <- grip.prepare.misf.geodesic.kk(
+    edges = graph$edges,
+    n = graph$n,
+    edge_weights = graph$edge_weights,
+    tie_mode = "average",
+    num_init = 6L,
+    dim = 3L,
+    top_level_mode = "skip",
+    seed = 2056L
+  )
+  expect_equal(prepared.gkk$coarsest_level_level, 2L)
+  expect_equal(prepared.gkk$top_level_level, 1L)
+  expect_equal(length(prepared.gkk$top_level_vertices), 9L)
+
+  fit <- grip.optimize.misf.geodesic.mds(
+    prepared = prepared,
+    dim = 3L,
+    top_level_restarts = 1L,
+    top_level_max_iter = 2L,
+    top_level_engine = "cpp",
+    insertion_anchor_policy = "prev_level_spread",
+    insertion_max_iter = 12L,
+    refinement_local_nbrs = 4L,
+    refinement_landmark_count = 2L,
+    refinement_pair_mode = "sparse",
+    refinement_anchor_weight = 0.05,
+    refinement_anchor_weight_end = 0.01,
+    refinement_continuation = "linear",
+    refinement_max_iter = 2L,
+    refinement_engine = "cpp",
+    final_polish_max_iter = 2L,
+    final_polish_engine = "cpp",
+    n_threads = 1L,
+    return_trace = TRUE,
+    return_frames = FALSE,
+    seed = 2056L
+  )
+  payloads <- grip:::grip.geodesic.misf.trace.stage.payloads(
+    fit,
+    target = graph$coords_surface,
+    states = c("seed", "initial_placement", "top_level", "final_polish")
+  )
+  expect_equal(length(payloads$seed$active_vertices), 4L)
+  expect_equal(qr(scale(payloads$top_level$coords[payloads$top_level$active_vertices, , drop = FALSE], scale = FALSE))$rank, 3L)
+  expect_equal(qr(scale(payloads$final_polish$coords[payloads$final_polish$active_vertices, , drop = FALSE], scale = FALSE))$rank, 3L)
+})
