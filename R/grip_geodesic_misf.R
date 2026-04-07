@@ -26,10 +26,12 @@ grip.resolve.misf.geodesic.prepared <- function(prepared = NULL,
                                                 num_init = 24L,
                                                 num_nbrs = 20L,
                                                 dim = NULL,
+                                                top_level_init = c("geometric", "random"),
                                                 top_level_restarts = 8L,
                                                 top_level_max_iter = 16L,
                                                 top_level_engine = c("cpp", "r"),
                                                 seed = 6L) {
+  top_level_init <- match.arg(top_level_init)
   top_level_engine <- match.arg(top_level_engine)
   if (is.null(prepared)) {
     resolved.dim <- if (is.null(dim)) 2L else grip.validate.count(dim, "dim")
@@ -47,6 +49,7 @@ grip.resolve.misf.geodesic.prepared <- function(prepared = NULL,
       num_nbrs = num_nbrs,
       dim = resolved.dim,
       top_level_mode = "skip",
+      top_level_init = top_level_init,
       top_level_restarts = top_level_restarts,
       top_level_max_iter = top_level_max_iter,
       top_level_engine = top_level_engine,
@@ -72,6 +75,7 @@ grip.resolve.misf.geodesic.prepared <- function(prepared = NULL,
     num_nbrs = num_nbrs,
     dim = resolved.dim,
     top_level_mode = "skip",
+    top_level_init = top_level_init,
     top_level_restarts = top_level_restarts,
     top_level_max_iter = top_level_max_iter,
     top_level_engine = top_level_engine,
@@ -627,6 +631,274 @@ grip.geodesic.misf.build.restart.row <- function(restart,
   )
 }
 
+grip.geodesic.misf.recenter.coords <- function(coords) {
+  coords <- as.matrix(coords)
+  if (!nrow(coords) || !ncol(coords)) {
+    return(coords)
+  }
+  sweep(coords, 2L, colMeans(coords), FUN = "-", check.margin = FALSE)
+}
+
+grip.geodesic.misf.select.spread.seed.vertices <- function(distance_matrix,
+                                                           count) {
+  distance_matrix <- as.matrix(distance_matrix)
+  count <- grip.validate.misf.count(count, "count", lower = 1L)
+  n <- nrow(distance_matrix)
+  if (!n || ncol(distance_matrix) != n) {
+    stop("distance_matrix must be a non-empty square matrix")
+  }
+  count <- min(as.integer(count), n)
+  if (count == 1L) {
+    return(as.integer(1L))
+  }
+
+  work <- distance_matrix
+  diag(work) <- -Inf
+  pair.idx <- which(work == max(work, na.rm = TRUE), arr.ind = TRUE)[1L, ]
+  selected <- unique(as.integer(pair.idx))
+  if (length(selected) < 2L) {
+    selected <- c(selected, setdiff(seq_len(n), selected)[1L])
+  }
+
+  while (length(selected) < count) {
+    remaining <- setdiff(seq_len(n), selected)
+    min.dist <- vapply(remaining, function(idx) {
+      min(distance_matrix[idx, selected, drop = TRUE])
+    }, numeric(1L))
+    mean.dist <- vapply(remaining, function(idx) {
+      mean(distance_matrix[idx, selected, drop = TRUE])
+    }, numeric(1L))
+    choice <- remaining[[order(-min.dist, -mean.dist, remaining)[1L]]]
+    selected <- c(selected, choice)
+  }
+
+  as.integer(selected[seq_len(count)])
+}
+
+grip.geodesic.misf.embed.small.metric <- function(distance_matrix, dim) {
+  distance_matrix <- as.matrix(distance_matrix)
+  dim <- grip.validate.count(dim, "dim")
+  if (!(dim %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+  n <- nrow(distance_matrix)
+  if (!n || ncol(distance_matrix) != n) {
+    stop("distance_matrix must be a non-empty square matrix")
+  }
+
+  coords <- matrix(0, nrow = n, ncol = dim)
+  if (n == 1L) {
+    storage.mode(coords) <- "double"
+    return(coords)
+  }
+  if (n == 2L) {
+    span <- as.double(distance_matrix[1L, 2L]) / 2
+    coords[1L, 1L] <- -span
+    coords[2L, 1L] <- span
+    storage.mode(coords) <- "double"
+    return(coords)
+  }
+  if (n == 3L && dim >= 2L && is.finite(distance_matrix[1L, 2L]) &&
+      distance_matrix[1L, 2L] > sqrt(.Machine$double.eps)) {
+    a <- as.double(distance_matrix[1L, 2L])
+    b <- as.double(distance_matrix[1L, 3L])
+    c <- as.double(distance_matrix[2L, 3L])
+    x3 <- (b * b + a * a - c * c) / (2 * a)
+    y3.sq <- max(b * b - x3 * x3, 0)
+    coords[2L, 1L] <- a
+    coords[3L, 1L] <- x3
+    coords[3L, 2L] <- sqrt(y3.sq)
+    coords <- grip.geodesic.misf.recenter.coords(coords)
+    storage.mode(coords) <- "double"
+    return(coords)
+  }
+
+  fit <- tryCatch(
+    suppressWarnings(
+      stats::cmdscale(stats::as.dist(distance_matrix), k = min(dim, n - 1L))
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(fit)) {
+    storage.mode(coords) <- "double"
+    return(coords)
+  }
+  fit <- as.matrix(fit)
+  if (!ncol(fit)) {
+    storage.mode(coords) <- "double"
+    return(coords)
+  }
+  coords[, seq_len(ncol(fit))] <- fit
+  coords <- grip.geodesic.misf.recenter.coords(coords)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+grip.geodesic.misf.jitter.coords <- function(coords,
+                                             restart = 1L,
+                                             seed = NULL,
+                                             scale = 0.05) {
+  coords <- as.matrix(coords)
+  storage.mode(coords) <- "double"
+  restart <- grip.validate.misf.count(restart, "restart", lower = 1L)
+  if (restart <= 1L || !length(coords)) {
+    return(grip.geodesic.misf.recenter.coords(coords))
+  }
+  if (!is.null(seed)) {
+    set.seed(as.integer(seed))
+  }
+  spread <- stats::sd(as.double(coords))
+  if (!is.finite(spread) || spread <= 0) {
+    spread <- 1.0
+  }
+  jitter <- matrix(
+    stats::rnorm(length(coords), sd = scale * spread),
+    nrow = nrow(coords),
+    ncol = ncol(coords)
+  )
+  coords <- coords + jitter
+  coords <- grip.geodesic.misf.recenter.coords(coords)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+grip.geodesic.misf.build.geometric.seed.coords <- function(distance_matrix,
+                                                           dim,
+                                                           vertex_ids = NULL,
+                                                           insertion_order = NULL,
+                                                           anchor_count = NULL,
+                                                           anchor_weight_mode = c(
+                                                             "inverse_graph_distance_sq",
+                                                             "uniform"
+                                                           ),
+                                                           max_iter = 64L,
+                                                           initial_step = 1.0,
+                                                           step_shrink = 0.5,
+                                                           armijo_factor = 1e-4,
+                                                           grad_tol = 1e-8,
+                                                           min_step = 1e-8) {
+  distance_matrix <- as.matrix(distance_matrix)
+  dim <- grip.validate.count(dim, "dim")
+  if (!(dim %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+  if (!nrow(distance_matrix) || ncol(distance_matrix) != nrow(distance_matrix)) {
+    stop("distance_matrix must be a non-empty square matrix")
+  }
+  anchor_weight_mode <- match.arg(anchor_weight_mode)
+  n <- nrow(distance_matrix)
+  if (is.null(vertex_ids)) {
+    vertex_ids <- seq_len(n)
+  } else {
+    vertex_ids <- as.integer(vertex_ids)
+    if (length(vertex_ids) != n) {
+      stop("length(vertex_ids) must match nrow(distance_matrix)")
+    }
+  }
+  if (is.null(anchor_count)) {
+    anchor_count <- grip.geodesic.misf.default.anchor.count(dim)
+  } else {
+    anchor_count <- grip.validate.misf.count(anchor_count, "anchor_count", lower = 1L)
+  }
+
+  seed_size <- min(n, dim + 1L)
+  seed_local <- grip.geodesic.misf.select.spread.seed.vertices(
+    distance_matrix = distance_matrix,
+    count = seed_size
+  )
+  coords <- matrix(NA_real_, nrow = n, ncol = dim)
+  coords[seed_local, ] <- grip.geodesic.misf.embed.small.metric(
+    distance_matrix[seed_local, seed_local, drop = FALSE],
+    dim = dim
+  )
+
+  if (is.null(insertion_order)) {
+    remaining_local <- setdiff(seq_len(n), seed_local)
+    if (length(remaining_local)) {
+      seed_min <- vapply(remaining_local, function(idx) {
+        min(distance_matrix[idx, seed_local, drop = TRUE])
+      }, numeric(1L))
+      seed_mean <- vapply(remaining_local, function(idx) {
+        mean(distance_matrix[idx, seed_local, drop = TRUE])
+      }, numeric(1L))
+      remaining_local <- remaining_local[order(seed_min, -seed_mean, vertex_ids[remaining_local])]
+    }
+  } else {
+    insertion_order <- as.integer(insertion_order)
+    order_global <- insertion_order[insertion_order %in% vertex_ids]
+    order_local <- match(order_global, vertex_ids)
+    order_local <- order_local[!is.na(order_local)]
+    remaining_local <- setdiff(order_local, seed_local)
+    if (length(remaining_local) != n - seed_size) {
+      remaining_local <- setdiff(seq_len(n), seed_local)
+    }
+  }
+
+  vertex_rows <- vector("list", length(remaining_local))
+  placed_local <- seed_local
+  placement_order_local <- seed_local
+
+  for (idx in seq_along(remaining_local)) {
+    vertex_local <- remaining_local[[idx]]
+    candidate_local <- as.integer(placed_local)
+    candidate_dist <- as.double(distance_matrix[vertex_local, candidate_local, drop = TRUE])
+    selected_local <- if (length(candidate_local) <= anchor_count) {
+      candidate_local
+    } else {
+      grip.geodesic.misf.spread.order(
+        candidate_ids = candidate_local,
+        candidate_coords = coords[candidate_local, , drop = FALSE],
+        candidate_distances = candidate_dist,
+        count = anchor_count
+      )
+    }
+    selected_local <- as.integer(selected_local)
+    selected_dist <- as.double(distance_matrix[vertex_local, selected_local, drop = TRUE])
+    anchor_weights <- grip.geodesic.misf.anchor.weights(
+      selected_dist,
+      mode = anchor_weight_mode
+    )
+    fit <- grip_geodesic_misf_insert_vertex_cpp(
+      anchor_coords = coords[selected_local, , drop = FALSE],
+      anchor_distance = selected_dist,
+      anchor_weights = anchor_weights,
+      max_iter = as.integer(max_iter),
+      initial_step = initial_step,
+      step_shrink = step_shrink,
+      armijo_factor = armijo_factor,
+      grad_tol = grad_tol,
+      min_step = min_step
+    )
+    coords[vertex_local, ] <- as.double(fit$coord)
+    placed_local <- c(placed_local, vertex_local)
+    placement_order_local <- c(placement_order_local, vertex_local)
+    vertex_rows[[idx]] <- data.frame(
+      local_vertex = as.integer(vertex_local),
+      vertex = as.integer(vertex_ids[[vertex_local]]),
+      placement_step = as.integer(length(placement_order_local)),
+      anchor_count = as.integer(length(selected_local)),
+      objective = as.double(fit$objective),
+      initial_objective = as.double(fit$initial_objective),
+      grad_norm = as.double(fit$grad_norm),
+      iterations = as.integer(fit$iterations),
+      converged = isTRUE(fit$converged),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  coords <- grip.geodesic.misf.recenter.coords(coords)
+  storage.mode(coords) <- "double"
+  list(
+    coords = coords,
+    vertex_ids = as.integer(vertex_ids),
+    seed_local = as.integer(seed_local),
+    seed_vertices = as.integer(vertex_ids[seed_local]),
+    placement_order_local = as.integer(placement_order_local),
+    placement_order_vertices = as.integer(vertex_ids[placement_order_local]),
+    vertex_trace = if (length(vertex_rows)) do.call(rbind, vertex_rows) else data.frame()
+  )
+}
+
 #' Build the MISF-induced coarse graph for a GMDS level
 #'
 #' `grip.geodesic.misf.induced_level_graph()` extracts a level of the maximal
@@ -707,6 +979,10 @@ grip.geodesic.misf.induced_level_graph <- function(prepared,
 #' @param dim Target embedding dimension (`2` or `3`).
 #' @param n_restarts Number of random restarts.
 #' @param max_iter Maximum number of pure-GMDS iterations per restart.
+#' @param init Top-level initialization mode. `"geometric"` seeds the coarse
+#'   level from a spread `d+1`-vertex geometric placement and inserts the
+#'   remaining coarse vertices before refinement. `"random"` keeps the previous
+#'   random-restart behavior.
 #' @param engine Optimization engine passed through to
 #'   `grip.optimize.geodesic.mds()`.
 #' @param edge_length_epsilon Small non-negative edge-length stabilizer.
@@ -727,6 +1003,7 @@ grip.geodesic.misf.solve.top.level <- function(prepared,
                                                dim = 2L,
                                                n_restarts = 8L,
                                                max_iter = 16L,
+                                               init = c("geometric", "random"),
                                                engine = c("cpp", "r"),
                                                edge_length_epsilon = 1e-8,
                                                initial_step = 1.0,
@@ -738,6 +1015,7 @@ grip.geodesic.misf.solve.top.level <- function(prepared,
                                                recenter = TRUE,
                                                return_trace = FALSE,
                                                seed = 6L) {
+  init <- match.arg(init)
   engine <- match.arg(engine)
   dim <- grip.validate.count(dim, "dim")
   if (!(dim %in% c(2L, 3L))) {
@@ -807,16 +1085,51 @@ grip.geodesic.misf.solve.top.level <- function(prepared,
   best.row <- NULL
   best.restart <- 1L
   best.energy <- Inf
+  geometric.init <- NULL
+  if (identical(init, "geometric")) {
+    insertion.order <- if (is.misf.prepared && !is.null(prepared$insertion_order)) {
+      prepared$insertion_order[prepared$insertion_order %in% vertex.ids]
+    } else {
+      vertex.ids
+    }
+    anchor.count <- if (is.misf.prepared && !is.null(prepared$insertion_anchor_count)) {
+      prepared$insertion_anchor_count
+    } else {
+      grip.geodesic.misf.default.anchor.count(dim)
+    }
+    anchor.mode <- if (is.misf.prepared && !is.null(prepared$insertion_anchor_weight_mode)) {
+      prepared$insertion_anchor_weight_mode
+    } else {
+      "inverse_graph_distance_sq"
+    }
+    geometric.init <- grip.geodesic.misf.build.geometric.seed.coords(
+      distance_matrix = coarse.prepared$distance_matrix,
+      dim = dim,
+      vertex_ids = vertex.ids,
+      insertion_order = insertion.order,
+      anchor_count = anchor.count,
+      anchor_weight_mode = anchor.mode
+    )
+  }
 
   for (restart in seq_len(n_restarts)) {
     restart.seed <- if (is.null(seed)) NULL else as.integer(seed + restart - 1L)
-    if (!is.null(restart.seed)) {
-      set.seed(restart.seed)
-    }
-    init.coords <- matrix(stats::rnorm(coarse.prepared$n * dim), ncol = dim)
-    storage.mode(init.coords) <- "double"
-    if (isTRUE(recenter)) {
-      init.coords <- sweep(init.coords, 2L, colMeans(init.coords), FUN = "-")
+    init.coords <- if (identical(init, "geometric")) {
+      grip.geodesic.misf.jitter.coords(
+        geometric.init$coords,
+        restart = restart,
+        seed = restart.seed
+      )
+    } else {
+      if (!is.null(restart.seed)) {
+        set.seed(restart.seed)
+      }
+      init.coords <- matrix(stats::rnorm(coarse.prepared$n * dim), ncol = dim)
+      storage.mode(init.coords) <- "double"
+      if (isTRUE(recenter)) {
+        init.coords <- sweep(init.coords, 2L, colMeans(init.coords), FUN = "-", check.margin = FALSE)
+      }
+      init.coords
     }
     init.score <- grip.score.geodesic.mds(
       coords = init.coords,
@@ -860,6 +1173,8 @@ grip.geodesic.misf.solve.top.level <- function(prepared,
   best.fit$best_restart_row <- best.row
   best.fit$vertex_ids <- as.integer(vertex.ids)
   best.fit$coords_full <- grip.geodesic.misf.partial.coords(best.fit$coords, vertex.ids, full.n)
+  best.fit$top_level_init <- init
+  best.fit$initial_placement <- geometric.init
   best.fit
 }
 
@@ -1636,7 +1951,11 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'   pure-GMDS solve.
 #' @param top_level_mode Either `"solve"` to run the coarse pure-GMDS solve
 #'   immediately, or `"skip"` to prepare the MISF object without solving it.
-#' @param top_level_restarts Number of random restarts used by the coarse solve.
+#' @param top_level_init Coarse-level initializer. `"geometric"` builds a
+#'   spread `d+1`-vertex seed and inserts the remaining coarse vertices before
+#'   pure-GMDS refinement. `"random"` keeps the legacy random restart family.
+#' @param top_level_restarts Number of coarse-level restarts used by the
+#'   pure-GMDS refinement stage.
 #' @param top_level_max_iter Maximum number of pure-GMDS iterations per restart
 #'   on the coarse graph.
 #' @param top_level_engine Optimization engine used by the coarse solve.
@@ -1669,12 +1988,14 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
                                            num_nbrs = 20L,
                                            dim = 2L,
                                            top_level_mode = c("solve", "skip"),
+                                           top_level_init = c("geometric", "random"),
                                            top_level_restarts = 8L,
                                            top_level_max_iter = 16L,
                                            top_level_engine = c("cpp", "r"),
                                            seed = 6L) {
   tie_mode <- match.arg(tie_mode)
   top_level_mode <- match.arg(top_level_mode)
+  top_level_init <- match.arg(top_level_init)
   top_level_engine <- match.arg(top_level_engine)
   dim <- grip.validate.count(dim, "dim")
   if (!(dim %in% c(2L, 3L))) {
@@ -1730,6 +2051,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
   prepared$top_level_prepared <- top.level.prepared
   prepared$top_level_dim <- as.integer(dim)
   prepared$top_level_mode <- top_level_mode
+  prepared$top_level_init <- top_level_init
   prepared$top_level_restarts <- as.integer(top_level_restarts)
   prepared$top_level_max_iter <- as.integer(top_level_max_iter)
   prepared$top_level_engine <- top_level_engine
@@ -1764,6 +2086,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
       dim = dim,
       n_restarts = top_level_restarts,
       max_iter = top_level_max_iter,
+      init = top_level_init,
       engine = top_level_engine,
       seed = seed
     )
@@ -1800,8 +2123,10 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #'   prepared object must be built.
 #' @param dim Optional target embedding dimension. If omitted, reuse the
 #'   dimension stored in `prepared` when available.
-#' @param top_level_restarts Number of random restarts used by the coarse
-#'   top-level pure-GMDS solve.
+#' @param top_level_init Initializer used for the coarse-level placement before
+#'   pure-GMDS refinement.
+#' @param top_level_restarts Number of coarse-level restarts used by the
+#'   top-level pure-GMDS refinement.
 #' @param top_level_max_iter Maximum number of top-level pure-GMDS iterations
 #'   per restart.
 #' @param top_level_engine Engine used by the top-level pure-GMDS solve.
@@ -1869,6 +2194,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
                                             num_init = 24L,
                                             num_nbrs = 20L,
                                             dim = NULL,
+                                            top_level_init = NULL,
                                             top_level_restarts = NULL,
                                             top_level_max_iter = NULL,
                                             top_level_engine = NULL,
@@ -1908,6 +2234,13 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
   } else {
     grip.validate.count(dim, "dim")
   }
+  top.level.init <- if (is.null(top_level_init) && !is.null(prepared) && inherits(prepared, "grip_misf_gmds_prepared")) {
+    if (!is.null(prepared$top_level_init)) prepared$top_level_init else "geometric"
+  } else if (is.null(top_level_init)) {
+    "geometric"
+  } else {
+    match.arg(top_level_init, c("geometric", "random"))
+  }
   if (!(dim.resolved %in% c(2L, 3L))) {
     stop("dim must be 2 or 3")
   }
@@ -1946,6 +2279,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
     num_init = num_init,
     num_nbrs = num_nbrs,
     dim = dim.resolved,
+    top_level_init = top.level.init,
     top_level_restarts = top.level.restarts,
     top_level_max_iter = top.level.max.iter,
     top_level_engine = top.level.engine,
@@ -2099,6 +2433,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
       dim = dim.resolved,
       n_restarts = top.level.restarts,
       max_iter = top.level.max.iter,
+      init = top.level.init,
       engine = top.level.engine,
       edge_length_epsilon = edge_length_epsilon,
       n_threads = n_threads,

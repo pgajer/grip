@@ -1230,40 +1230,63 @@ the underlying $2$D mesh geometry.
 \subsubsection*{Initial placement and refinement of $V_\ell$}
 The GRIP papers organize the multiscale algorithm after the filtration stage
 into two repeated substeps: an \emph{initial placement} of the active set
-$V_\ell$, followed by a \emph{refinement} of that same level.  Starting from
-the coarsest set $V_L$ and descending through $V_{L-1}, \dots, V_0$, one first
+$V_\ell$, followed by a \emph{refinement} of that same level. Starting from the
+coarsest set $V_L$ and descending through $V_{L-1}, \dots, V_0$, one first
 constructs an embedding of $V_\ell$ that reuses the already placed scaffold
-$V_{\ell+1}$, and then improves that embedding by a local objective on
-$V_\ell$.  We follow this same schedule here because it is the natural place to
-compare the original GRIP refinement with its geodesic-KK, landmark-geodesic-KK
+$V_{\ell+1}$, and then improves that embedding by a local objective on $V_\ell$.
+We follow this same schedule here because it is the natural place to compare the
+original GRIP refinement with its geodesic-KK (GKK), landmark-geodesic-KK
 (LGKK), and GMDS replacements.
 
-At the top level $V_L$ there is no inherited scaffold, so the initial placement
-is a direct solve on the induced metric graph over $V_L$.  Original GRIP uses a
-coarse force-directed/Kamada--Kawai solve at this stage.  In the present
-geodesic family there are two implemented replacements.  The MISF-GKK/LGKK
-pipeline, exposed in \texttt{grip} by
-\texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()} and
-\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak kk()},
-solves the top level with either the
-full all-pairs geodesic-KK objective or its sparse LGKK variant, chosen from
-the active-set size and the requested pair mode.  The MISF-GMDS pipeline,
-exposed by \texttt{grip.prepare.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()} and
-\texttt{grip.optimize.\allowbreak misf.\allowbreak geodesic.\allowbreak mds()},
-solves instead a pure-GMDS problem
-on the complete graph over $V_L$ with target distances $d_G(i,j)$ inherited
-from the full graph.  This coarse solve is the initial placement for the top
-row of
-\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15},
-while the right panel in the same row shows the refinement of that same active
-set.
+At the top level $V_L$ there is no inherited scaffold.  In the original GRIP
+papers, the $2$D case is handled by modifying the last one or two filtration
+levels so that the coarsest set has exactly three vertices, say
+$V_L = \{u,v,w\}$, and then placing those three vertices as a triangle whose
+side lengths match their graph distances.  One convenient choice is
+\[
+  \bz_u = (0,0),\qquad
+  \bz_v = \bigl(d_G(u,v),0\bigr),\qquad
+  \bz_w = \bigl(x_w,y_w\bigr),
+\]
+with
+\[
+  x_w = \frac{d_G(u,w)^2 + d_G(u,v)^2 - d_G(v,w)^2}{2\,d_G(u,v)},
+  \qquad
+  y_w = \sqrt{\max\{d_G(u,w)^2 - x_w^2,\,0\}}.
+\]
+This gives the initial coarse drawing from which the same add-and-refine cycle
+then proceeds down the filtration.
+
+The current geodesic implementation keeps that logic but generalizes it to an
+embedding in $\R^d$.  On the induced coarse graph over $V_L$ we first choose a
+spread seed set
+$S_L = \{s_0,\dots,s_q\} \subseteq V_L$, where
+$q+1 = \min\{\lvert V_L\rvert, d+1\}$, by starting from a diameter pair and
+repeatedly adding the vertex whose minimum graph distance to the already chosen
+seed is maximal.  When $\lvert S_L\rvert \le 3$, the implementation uses the
+exact degenerate placements just described: one point at the origin, two points
+on a line, and three points as a triangle in the first two coordinates.  When
+the seed has four vertices in $3$D, or more generally when the selected seed
+distances do not admit an exact realization in the target dimension, the
+current \texttt{grip} implementation realizes that seed by classical MDS on the
+restricted seed distance matrix and pads unused coordinates by zero.  The
+remaining vertices of
+$V_L \setminus S_L$ are then inserted one at a time using the same weighted
+trilateration functional used at lower levels, but with anchors drawn from the
+already placed subset of $V_L$.  Thus the top row of
+\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+should be read as a coarse-level initial placement followed by an
+objective-specific refinement of that same active set.
 
 For a finer level $V_\ell$ with $\ell < L$, the vertices of $V_{\ell+1}$ keep
 their current positions and only the new vertices
-$V_\ell \setminus V_{\ell+1}$ must be placed.  GRIP performs an intelligent
-placement step using a few nearby already placed vertices and then a brief
-local KK adjustment.  The current geodesic code replaces that by a
-graph-distance-based insertion stage shared by MISF-GKK/LGKK and MISF-GMDS:
+$V_\ell \setminus V_{\ell+1}$ must be placed.  The GRIP papers describe this as
+an intelligent placement step followed by a few local KK micro-iterations.  In
+the original $2$D description, one takes three already placed vertices near the
+new vertex, solves the three pairwise circle-intersection problems they define,
+and uses the barycenter of the three resulting candidate points as the initial
+location.  The current geodesic code replaces that by a graph-distance-based
+insertion stage shared by MISF-GKK/LGKK and MISF-GMDS:
 for each new vertex $v$ one selects an anchor set
 $A_\ell(v) \subseteq V_{\ell+1}$ and computes
 \[
@@ -1286,15 +1309,64 @@ multiscale geodesic path uses the anchor-based insertion just described.
 
 After the initial placement of $V_\ell$, the active set is refined while the
 already constructed scaffold is softly pinned.  This is the stage where the
-different objective families separate most clearly.  Original GRIP uses local
-Kamada--Kawai forces on coarse levels and a Fruchterman--Reingold step at
-$V_0$.  In MISF-GKK/LGKK, the active-level refinement minimizes a geodesic-KK
-energy on a pair set $P_\ell$, with $P_\ell$ equal to all active pairs in the
-full GKK mode and to a sparse local-plus-landmark set in the LGKK mode.  In
-MISF-GMDS, the same schedule is used but the active-level objective is the
-sparse fixed-geodesic discrepancy
+different objective families separate most clearly.  In the GRIP papers, each
+level performs $\mathrm{rounds}(\ell)$ synchronized local updates.  For coarse levels
+$\ell > 0$, the vertexwise displacement is a local Kamada--Kawai step over the
+restricted neighborhood $N_\ell(v)$:
 \[
-  F_\ell(\bZ)
+  \mathbf{F}^{\mathrm{KK}}_\ell(v)
+  =
+  \sum_{u \in N_\ell(v)}
+  \left(
+    \frac{\norm{\bz_u - \bz_v}^2}
+         {d_G(u,v)^2 L_0^2}
+    - 1
+  \right)
+  (\bz_u - \bz_v).
+\]
+This is the negative gradient of the local energy
+\[
+  E^{\mathrm{KK}}_\ell(v;\bZ)
+  =
+  \frac{1}{4}
+  \sum_{u \in N_\ell(v)}
+  \left(
+    \frac{\norm{\bz_u - \bz_v}^2}
+         {d_G(u,v)^2 L_0^2}
+    - 1
+  \right)^2
+  d_G(u,v)^2 L_0^2.
+\]
+GRIP then rescales that displacement by a per-vertex temperature, updates all
+active vertices simultaneously, and repeats.  On the finest level, the original
+algorithm replaces the local KK energy by a local Fruchterman--Reingold force
+update, so the last level is no longer the minimization of the same coarse KK
+functional.
+
+The geodesic variants keep the same multiscale schedule but replace the local
+Euclidean force model by objective-specific active-level optimization with
+anchor pinning.  Let $P_\ell$ denote the active pair set used at level
+$V_\ell$, let $\bar{\bz}_u$ denote the current scaffold position of an inactive
+vertex, and let $k_{ij} = K / \max\{d_G(i,j), \varepsilon\}^2$ be the standard
+KK stiffness.  In MISF-GKK/LGKK, the refinement stage minimizes
+\[
+  E^{\mathrm{gKK}}_\ell(\bZ)
+  =
+  \sum_{(i,j)\in P_\ell}
+  k_{ij}
+  \bigl(
+    L_0\,\demb_{\Gamma}(i,j;\bZ) - d_G(i,j)
+  \bigr)^2
+  +
+  \lambda_\ell
+  \sum_{u \notin V_\ell}
+  \alpha_u \norm{\bz_u - \bar{\bz}_u}^2,
+\]
+where $P_\ell$ is the full active-pair set in GKK mode and a sparse
+local-plus-landmark set in LGKK mode.  In MISF-GMDS, the same refinement
+schedule is used but the active-level objective is
+\[
+  F^{\mathrm{GMDS}}_\ell(\bZ)
   =
   \sum_{(i,j)\in P_\ell}
   \bigl(
@@ -1303,15 +1375,19 @@ sparse fixed-geodesic discrepancy
   +
   \lambda_\ell
   \sum_{u \notin V_\ell}
-  \alpha_u \norm{\bz_u - \bar{\bz}_u}^2,
+  \alpha_u \norm{\bz_u - \bar{\bz}_u}^2.
 \]
-where $\bar{\bz}_u$ denotes the current scaffold position of an inactive
-vertex.  Thus the GRIP schedule itself is preserved, but the local Euclidean
-graph-drawing forces are replaced by geodesic-KK/LGKK or GMDS fidelity terms.
-The right panels of
+The current \texttt{grip} implementation solves the GKK/LGKK and GMDS
+refinement stages by gradient-based optimization with Armijo backtracking and a
+continuation of the anchor weight from
+\texttt{refinement\_anchor\_weight} to
+\texttt{refinement\_anchor\_weight\_end}.  Thus the GRIP schedule itself is
+preserved, but the local Euclidean graph-drawing forces are replaced by
+geodesic-KK/LGKK or GMDS fidelity terms.  The right panels of
 \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
 show the corresponding refinements, and after the cycle reaches $V_0$ the
-current GMDS implementation applies a short final full-graph pure-GMDS polish.
+current GMDS implementation applies a short final full-graph pure-GMDS polish,
+while the GKK/LGKK path applies a final full-graph geodesic-KK polish.
 
 \subsubsection*{Current \texttt{grip} implementation}
 The present package realizes this hierarchy in a fairly literal way.  Original
@@ -1332,14 +1408,19 @@ a compiled per-vertex insertion kernel in
 \texttt{src/geodesic\_misf\_rcpp.cpp}, levelwise sparse GMDS refinement, and a
 final full-graph polish.
 
-This audit also clarifies an important current boundary.  The top-level solve
-and the levelwise refinement stages are indeed GKK/LGKK/GMDS stages, but the
-insertion stage is presently shared across the geodesic pipelines: by default
-it is the anchor-based trilateration step above, and optionally it can be a
-layout-based warm start.  There is not yet a distinct compiled GKK or LGKK
-optimizer whose sole role is the initial placement of
-$V_\ell \setminus V_{\ell+1}$.  The manuscript should therefore describe the
-current implementation in exactly those terms.
+This audit also clarifies an important current boundary.  The legacy compiled
+GRIP core still random-initializes its coarsest active set, so the explicit
+$d+1$-vertex geometric seed described above is currently implemented in the
+geodesic MISF wrappers rather than in the original C++ GRIP engine.  Within the
+geodesic family, however, the top-level initial placement is now shared and
+explicit: a geometric coarse seed, followed by insertion of the remaining
+coarse vertices, and then an objective-specific GKK/LGKK or GMDS refinement.
+For lower levels, the insertion stage remains shared across the geodesic
+pipelines: by default it is the anchor-based trilateration step above, and
+optionally it can be a layout-based warm start.  There is not yet a distinct
+compiled GKK or LGKK optimizer whose sole role is the lower-level initial
+placement of $V_\ell \setminus V_{\ell+1}$.  The manuscript should therefore
+describe the current implementation in exactly those terms.
 
 \clearpage
 \subsubsection*{Paraboloid case studies}
