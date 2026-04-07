@@ -7,6 +7,7 @@ Active source of truth:
 
 - manuscript source: `dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.tex`
 - build script: `dev/papers/geodesic_mds_paper/scripts/build_geodesic_mds_pdf.sh`
+- rendered PDF: `dev/papers/geodesic_mds_paper/build/geodesic_mds.pdf`
 - figures: `dev/papers/geodesic_mds_paper/figures/`
 - notes: `dev/papers/geodesic_mds_paper/notes/`
 - interactive companions: `dev/papers/geodesic_mds_paper/interactive/`
@@ -18,6 +19,8 @@ Versioning policy:
 - keep named manuscript snapshots only in `manuscript/archive/`
 - keep build metadata stamped into the compiled PDF through the paper-local
   build script
+- treat `manuscript/geodesic_mds.pdf` as a local render artifact rather than a
+  tracked source file
 
 Active manuscript provenance:
 
