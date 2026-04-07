@@ -23,6 +23,7 @@ Suggests:
     DT,
     igraph,
     htmltools,
+    htmlwidgets,
     knitr,
     later,
     rmarkdown,
