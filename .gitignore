@@ -51,6 +51,7 @@ Archives/package-root/*.o
 Archives/package-root/main
 
 # Local LaTeX scratch artifacts
+.auctex-auto/
 *.aux
 *.bbl
 *.blg
