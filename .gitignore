@@ -60,3 +60,6 @@ Archives/package-root/main
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+
+# Rendered manuscript PDFs
+dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.pdf
