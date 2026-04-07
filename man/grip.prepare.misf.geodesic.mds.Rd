@@ -15,6 +15,7 @@ grip.prepare.misf.geodesic.mds(
   num_nbrs = 20L,
   dim = 2L,
   top_level_mode = c("solve", "skip"),
+  top_level_init = c("geometric", "random"),
   top_level_restarts = 8L,
   top_level_max_iter = 16L,
   top_level_engine = c("cpp", "r"),
@@ -47,6 +48,10 @@ pure-GMDS solve.}
 
 \item{top_level_mode}{Either `"solve"` to run the coarse pure-GMDS solve
 immediately, or `"skip"` to prepare the MISF object without solving it.}
+
+\item{top_level_init}{Coarse-level initializer. `"geometric"` builds a
+spread `d+1`-vertex seed and inserts the remaining coarse vertices before
+pure-GMDS refinement. `"random"` keeps the legacy random restart family.}
 
 \item{top_level_restarts}{Number of random restarts used by the coarse solve.}
 

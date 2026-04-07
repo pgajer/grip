@@ -143,12 +143,26 @@ gripui.family.default.save.dir <- function(payload, root = getwd()) {
   file.path(root, "tmp", "gripui-family-graphs", payload$family_id)
 }
 
+gripui.family.timestamp.tz <- function(x, default = Sys.timezone()) {
+  tz <- attr(x, "tzone", exact = TRUE)
+  if (is.character(tz) && length(tz) >= 1L && nzchar(tz[[1L]])) {
+    tz[[1L]]
+  } else {
+    default
+  }
+}
+
+gripui.family.as.posixct <- function(x, default_tz = Sys.timezone()) {
+  as.POSIXct(x, tz = gripui.family.timestamp.tz(x, default = default_tz))
+}
+
 gripui.family.save.stub <- function(payload, timestamp = Sys.time()) {
   ids <- gripui.family.save.key.ids(payload$values)
   key_bits <- vapply(ids, function(id) {
     paste0(id, "-", gripui.family.filename.token(payload$values[[id]]))
   }, character(1L))
-  stamp <- format(as.POSIXct(timestamp, tz = Sys.timezone()), "%Y%m%d-%H%M%S")
+  ts <- gripui.family.as.posixct(timestamp)
+  stamp <- format(ts, "%Y%m%d-%H%M%S", tz = gripui.family.timestamp.tz(ts))
   paste(c(payload$family_id, key_bits, stamp), collapse = "__")
 }
 
@@ -184,7 +198,7 @@ gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
     category = payload$category,
     values = payload$values,
     rendered_at = payload$rendered_at,
-    saved_at = as.POSIXct(saved_at, tz = Sys.timezone()),
+    saved_at = gripui.family.as.posixct(saved_at),
     code = payload$code,
     payload = payload,
     session = list(
