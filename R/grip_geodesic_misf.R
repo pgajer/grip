@@ -125,6 +125,561 @@ grip.geodesic.misf.collect.insertion.vertex.trace <- function(level_results) {
   do.call(rbind, rows)
 }
 
+grip.geodesic.misf.stage.trace.schema.version <- function() {
+  1L
+}
+
+grip.geodesic.misf.empty.stage.trace <- function() {
+  data.frame(
+    trace_schema_version = integer(),
+    stage_index = integer(),
+    method_family = character(),
+    stage_key = character(),
+    stage = character(),
+    label = character(),
+    level = integer(),
+    active_n = integer(),
+    inserted_n = integer(),
+    pair_n = integer(),
+    pair_mode = character(),
+    energy = numeric(),
+    stress = numeric(),
+    weighted_rel_rmse = numeric(),
+    mean_objective = numeric(),
+    max_grad_norm = numeric(),
+    all_converged = logical(),
+    elapsed_sec = numeric(),
+    trace_rows = integer(),
+    frame_count = integer(),
+    stringsAsFactors = FALSE
+  )
+}
+
+grip.geodesic.misf.as.stage.frames <- function(frames) {
+  if (is.null(frames)) {
+    return(list())
+  }
+  if (is.matrix(frames)) {
+    return(list(as.matrix(frames)))
+  }
+  if (is.list(frames)) {
+    return(lapply(frames, function(frame) {
+      if (is.null(frame)) {
+        NULL
+      } else {
+        as.matrix(frame)
+      }
+    }))
+  }
+  stop("frames must be NULL, a matrix, or a list of matrices")
+}
+
+grip.geodesic.misf.stage.objective.label <- function(method_family,
+                                                     pair_mode = NA_character_) {
+  method_family <- as.character(method_family[[1L]])
+  pair_mode <- if (is.null(pair_mode) || !length(pair_mode)) {
+    NA_character_
+  } else {
+    as.character(pair_mode[[1L]])
+  }
+  if (identical(method_family, "gmds")) {
+    return("GMDS")
+  }
+  if (identical(pair_mode, "landmark")) {
+    return("LGKK")
+  }
+  if (identical(pair_mode, "full")) {
+    return("GKK")
+  }
+  "Geodesic KK"
+}
+
+grip.geodesic.misf.stage.label <- function(stage,
+                                           level,
+                                           method_family,
+                                           pair_mode = NA_character_) {
+  objective.label <- grip.geodesic.misf.stage.objective.label(
+    method_family = method_family,
+    pair_mode = pair_mode
+  )
+  switch(
+    as.character(stage[[1L]]),
+    seed = sprintf("Geometric seed S_%d", as.integer(level)),
+    initial_placement = sprintf("Initial placement of V_%d", as.integer(level)),
+    top_level = sprintf("Top-level %s solve", objective.label),
+    insertion = sprintf("Insertion of V_%d", as.integer(level)),
+    refinement = sprintf("Refinement of V_%d", as.integer(level)),
+    final_polish = "Final full-graph polish",
+    as.character(stage[[1L]])
+  )
+}
+
+grip.geodesic.misf.stage.key <- function(stage, level) {
+  sprintf("%s_L%d", as.character(stage[[1L]]), as.integer(level))
+}
+
+grip.geodesic.misf.new.stage.record <- function(stage,
+                                                level,
+                                                method_family,
+                                                coords_full = NULL,
+                                                active_vertices = integer(0L),
+                                                inserted_vertices = integer(0L),
+                                                pair_mode = NA_character_,
+                                                trace = NULL,
+                                                frames = NULL,
+                                                summary = list(),
+                                                stage_key = NULL,
+                                                label = NULL) {
+  stage <- as.character(stage[[1L]])
+  level <- as.integer(level[[1L]])
+  method_family <- as.character(method_family[[1L]])
+  pair_mode <- if (is.null(pair_mode) || !length(pair_mode)) {
+    NA_character_
+  } else {
+    as.character(pair_mode[[1L]])
+  }
+  if (is.null(stage_key)) {
+    stage_key <- grip.geodesic.misf.stage.key(stage, level)
+  }
+  if (is.null(label)) {
+    label <- grip.geodesic.misf.stage.label(
+      stage = stage,
+      level = level,
+      method_family = method_family,
+      pair_mode = pair_mode
+    )
+  }
+  frames <- grip.geodesic.misf.as.stage.frames(frames)
+  trace.df <- if (is.null(trace)) data.frame() else as.data.frame(trace, stringsAsFactors = FALSE)
+  if (!is.null(coords_full)) {
+    coords_full <- as.matrix(coords_full)
+  }
+  summary <- modifyList(list(
+    active_n = length(active_vertices),
+    inserted_n = length(inserted_vertices),
+    pair_n = NA_integer_,
+    pair_mode = pair_mode,
+    energy = NA_real_,
+    stress = NA_real_,
+    weighted_rel_rmse = NA_real_,
+    mean_objective = NA_real_,
+    max_grad_norm = NA_real_,
+    all_converged = NA,
+    elapsed_sec = NA_real_,
+    trace_rows = if (nrow(trace.df)) nrow(trace.df) else 0L,
+    frame_count = length(frames)
+  ), summary)
+  list(
+    stage_key = as.character(stage_key),
+    stage = stage,
+    label = as.character(label),
+    level = level,
+    method_family = method_family,
+    active_vertices = as.integer(active_vertices),
+    inserted_vertices = as.integer(inserted_vertices),
+    pair_mode = pair_mode,
+    coords_full = coords_full,
+    frames = frames,
+    trace = trace.df,
+    summary = summary
+  )
+}
+
+grip.geodesic.misf.stage.trace.from.records <- function(stage_records) {
+  template <- grip.geodesic.misf.empty.stage.trace()
+  if (!length(stage_records)) {
+    return(template)
+  }
+  rows <- lapply(seq_along(stage_records), function(i) {
+    record <- stage_records[[i]]
+    summary <- record$summary
+    data.frame(
+      trace_schema_version = grip.geodesic.misf.stage.trace.schema.version(),
+      stage_index = as.integer(i),
+      method_family = record$method_family,
+      stage_key = record$stage_key,
+      stage = record$stage,
+      label = record$label,
+      level = as.integer(record$level),
+      active_n = as.integer(summary$active_n),
+      inserted_n = as.integer(summary$inserted_n),
+      pair_n = as.integer(summary$pair_n),
+      pair_mode = if (is.null(summary$pair_mode) || !length(summary$pair_mode)) NA_character_ else as.character(summary$pair_mode[[1L]]),
+      energy = as.double(summary$energy),
+      stress = as.double(summary$stress),
+      weighted_rel_rmse = as.double(summary$weighted_rel_rmse),
+      mean_objective = as.double(summary$mean_objective),
+      max_grad_norm = as.double(summary$max_grad_norm),
+      all_converged = as.logical(summary$all_converged),
+      elapsed_sec = as.double(summary$elapsed_sec),
+      trace_rows = as.integer(summary$trace_rows),
+      frame_count = as.integer(summary$frame_count),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+grip.geodesic.misf.trace.stage.data <- function(x) {
+  if (is.null(x)) {
+    return(list())
+  }
+  if (is.list(x) && !is.null(x$trace) && is.list(x$trace) && !is.null(x$trace$stage_data)) {
+    return(x$trace$stage_data)
+  }
+  if (is.list(x) && !is.null(x$stage_data)) {
+    return(x$stage_data)
+  }
+  if (is.list(x) && length(x) && all(vapply(x, is.list, logical(1L))) &&
+      all(vapply(x, function(record) !is.null(record$stage_key), logical(1L)))) {
+    return(x)
+  }
+  list()
+}
+
+grip.geodesic.misf.trace.stage.lookup <- function(x,
+                                                   stage,
+                                                   level = NULL) {
+  stage_data <- grip.geodesic.misf.trace.stage.data(x)
+  if (!length(stage_data)) {
+    return(NULL)
+  }
+  stage <- as.character(stage[[1L]])
+  matches <- vapply(stage_data, function(record) identical(record$stage, stage), logical(1L))
+  if (!is.null(level)) {
+    level <- as.integer(level[[1L]])
+    matches <- matches & vapply(stage_data, function(record) identical(as.integer(record$level), level), logical(1L))
+  }
+  idx <- which(matches)
+  if (!length(idx)) {
+    return(NULL)
+  }
+  stage_data[[idx[[1L]]]]
+}
+
+grip.geodesic.misf.trace.state.record <- function(x,
+                                                  state = c(
+                                                    "seed",
+                                                    "initial_placement",
+                                                    "top_level",
+                                                    "after_insertion",
+                                                    "after_refinement",
+                                                    "final_polish"
+                                                  )) {
+  state <- match.arg(state)
+  stage_data <- grip.geodesic.misf.trace.stage.data(x)
+  if (!length(stage_data)) {
+    return(NULL)
+  }
+  select_last <- function(stage_name) {
+    idx <- which(vapply(stage_data, function(record) identical(record$stage, stage_name), logical(1L)))
+    if (!length(idx)) {
+      return(NULL)
+    }
+    stage_data[[utils::tail(idx, 1L)]]
+  }
+  switch(
+    state,
+    seed = select_last("seed"),
+    initial_placement = select_last("initial_placement"),
+    top_level = select_last("top_level"),
+    after_insertion = {
+      hit <- select_last("insertion")
+      if (is.null(hit)) select_last("top_level") else hit
+    },
+    after_refinement = {
+      hit <- select_last("refinement")
+      if (is.null(hit)) {
+        hit <- select_last("insertion")
+      }
+      if (is.null(hit)) select_last("top_level") else hit
+    },
+    final_polish = select_last("final_polish")
+  )
+}
+
+grip.geodesic.misf.filter.edge.matrix <- function(edges, vertex_ids) {
+  edges <- as.matrix(edges)
+  vertex_ids <- as.integer(vertex_ids)
+  if (!length(vertex_ids) || !nrow(edges)) {
+    return(matrix(integer(), ncol = 2L))
+  }
+  max.id <- max(max(edges), max(vertex_ids))
+  index.map <- integer(max.id)
+  index.map[vertex_ids] <- seq_along(vertex_ids)
+  keep <- index.map[edges[, 1L]] > 0L & index.map[edges[, 2L]] > 0L
+  if (!any(keep)) {
+    return(matrix(integer(), ncol = 2L))
+  }
+  cbind(
+    as.integer(index.map[edges[keep, 1L]]),
+    as.integer(index.map[edges[keep, 2L]])
+  )
+}
+
+grip.geodesic.misf.align.partial.to.target <- function(coords,
+                                                       target,
+                                                       allow_reflection = TRUE) {
+  coords <- as.matrix(coords)
+  target <- as.matrix(target)
+  if (!all(dim(coords) == dim(target))) {
+    stop("coords and target must have matching dimensions")
+  }
+  keep <- rowSums(is.finite(coords)) == ncol(coords)
+  if (!any(keep)) {
+    return(list(
+      aligned = coords,
+      rmse = NA_real_
+    ))
+  }
+  aligned.sub <- grip.align.to.target.nd(
+    coords[keep, , drop = FALSE],
+    target[keep, , drop = FALSE],
+    allow.reflection = allow_reflection
+  )
+  out <- matrix(NA_real_, nrow = nrow(coords), ncol = ncol(coords))
+  out[keep, ] <- aligned.sub$aligned
+  list(
+    aligned = out,
+    rmse = aligned.sub$rmse
+  )
+}
+
+grip.geodesic.misf.trace.stage.payloads <- function(x,
+                                                    target = NULL,
+                                                    states = NULL,
+                                                    allow_reflection = TRUE) {
+  stage_data <- grip.geodesic.misf.trace.stage.data(x)
+  if (!length(stage_data)) {
+    return(list())
+  }
+  state_ids <- if (is.null(states)) {
+    NULL
+  } else {
+    as.character(states)
+  }
+  records <- if (is.null(state_ids)) {
+    stage_data
+  } else {
+    Filter(Negate(is.null), lapply(state_ids, function(state) {
+      grip.geodesic.misf.trace.state.record(x, state = state)
+    }))
+  }
+  if (!length(records)) {
+    return(list())
+  }
+  prepared <- if (is.list(x) && !is.null(x$prepared)) x$prepared else NULL
+  out <- lapply(seq_along(records), function(i) {
+    record <- records[[i]]
+    coords.full <- if (is.null(record$coords_full)) NULL else as.matrix(record$coords_full)
+    if (is.null(target) || is.null(coords.full)) {
+      display.coords <- coords.full
+      rmse <- NA_real_
+    } else {
+      aligned <- grip.geodesic.misf.align.partial.to.target(
+        coords = coords.full,
+        target = target,
+        allow_reflection = allow_reflection
+      )
+      display.coords <- aligned$aligned
+      rmse <- aligned$rmse
+    }
+    list(
+      state = if (!is.null(state_ids)) state_ids[[i]] else record$stage,
+      stage = record$stage,
+      stage_key = record$stage_key,
+      label = record$label,
+      level = as.integer(record$level),
+      active_vertices = as.integer(record$active_vertices),
+      active_edges = if (!is.null(prepared) && !is.null(prepared$edges)) {
+        grip.geodesic.misf.filter.edge.matrix(prepared$edges, record$active_vertices)
+      } else {
+        matrix(integer(), ncol = 2L)
+      },
+      coords = coords.full,
+      display_coords = display.coords,
+      pair_mode = record$pair_mode,
+      rmse = rmse,
+      summary = record$summary
+    )
+  })
+  names(out) <- if (is.null(state_ids)) {
+    vapply(records, `[[`, character(1L), "stage_key")
+  } else {
+    state_ids[seq_along(out)]
+  }
+  out
+}
+
+grip.geodesic.misf.build.stage.bundle <- function(prepared,
+                                                  top_level_fit,
+                                                  top_level_elapsed,
+                                                  top_level_frames,
+                                                  insertion,
+                                                  insertion_elapsed,
+                                                  insertion_frames,
+                                                  refinement,
+                                                  refinement_elapsed,
+                                                  refinement_frames,
+                                                  final_polish,
+                                                  final_polish_elapsed) {
+  records <- list()
+
+  top.initial <- top_level_fit$initial_placement
+  if (!is.null(top.initial) && !is.null(top.initial$coords) && !is.null(top.initial$vertex_ids)) {
+    top.vertex.ids <- as.integer(top.initial$vertex_ids)
+    top.coords.full <- grip.geodesic.misf.partial.coords(
+      coords = top.initial$coords,
+      vertex_ids = top.vertex.ids,
+      n = prepared$n
+    )
+    if (!is.null(top.initial$seed_vertices) && length(top.initial$seed_vertices)) {
+      seed.vertices <- as.integer(top.initial$seed_vertices)
+      seed.local <- match(seed.vertices, top.vertex.ids)
+      seed.coords.full <- grip.geodesic.misf.partial.coords(
+        coords = top.initial$coords[seed.local, , drop = FALSE],
+        vertex_ids = seed.vertices,
+        n = prepared$n
+      )
+      records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+        stage = "seed",
+        level = prepared$top_level_level,
+        method_family = "gmds",
+        coords_full = seed.coords.full,
+        active_vertices = seed.vertices,
+        frames = list(seed.coords.full),
+        summary = list(
+          active_n = length(seed.vertices),
+          pair_n = if (length(seed.vertices) >= 2L) choose(length(seed.vertices), 2L) else 0L,
+          frame_count = 1L
+        )
+      )
+    }
+    init.trace <- if (!is.null(top.initial$vertex_trace)) top.initial$vertex_trace else data.frame()
+    records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+      stage = "initial_placement",
+      level = prepared$top_level_level,
+      method_family = "gmds",
+      coords_full = top.coords.full,
+      active_vertices = top.vertex.ids,
+      inserted_vertices = if (!is.null(top.initial$seed_vertices)) setdiff(top.vertex.ids, top.initial$seed_vertices) else integer(0L),
+      trace = init.trace,
+      frames = list(top.coords.full),
+      summary = list(
+        pair_n = NA_integer_,
+        energy = if (nrow(init.trace)) mean(init.trace$objective) else NA_real_,
+        mean_objective = if (nrow(init.trace)) mean(init.trace$objective) else NA_real_,
+        max_grad_norm = if (nrow(init.trace)) max(init.trace$grad_norm) else NA_real_,
+        all_converged = if (nrow(init.trace)) all(init.trace$converged) else NA,
+        trace_rows = if (nrow(init.trace)) nrow(init.trace) else 0L,
+        frame_count = 1L
+      )
+    )
+  }
+
+  records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+    stage = "top_level",
+    level = prepared$top_level_level,
+    method_family = "gmds",
+    coords_full = top_level_fit$coords_full,
+    active_vertices = prepared$top_level_vertices,
+    pair_mode = if (!is.null(top_level_fit$prepared$pair_mode)) top_level_fit$prepared$pair_mode else "all_pairs",
+    trace = top_level_fit$trace,
+    frames = top_level_frames,
+    summary = list(
+      pair_n = length(top_level_fit$prepared$pair_graph_distance),
+      energy = top_level_fit$score$gmds.energy[[1L]],
+      stress = top_level_fit$score$gmds.stress[[1L]],
+      elapsed_sec = as.double(top_level_elapsed)
+    )
+  )
+
+  if (!is.null(insertion$level_results) && length(insertion$level_results)) {
+    for (i in seq_along(insertion$level_results)) {
+      result <- insertion$level_results[[i]]
+      vertex.trace <- if (!is.null(result$vertex_trace)) result$vertex_trace else data.frame()
+      active.vertices <- grip.geodesic.misf.active.level.vertices(prepared, result$level)
+      records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+        stage = "insertion",
+        level = result$level,
+        method_family = "gmds",
+        coords_full = result$coords,
+        active_vertices = active.vertices,
+        inserted_vertices = result$inserted_vertices,
+        trace = vertex.trace,
+        frames = if (!is.null(insertion_frames[[paste0("level_", result$level)]])) {
+          insertion_frames[[paste0("level_", result$level)]]
+        } else {
+          list(result$coords)
+        },
+        summary = list(
+          active_n = length(active.vertices),
+          inserted_n = length(result$inserted_vertices),
+          energy = if (nrow(vertex.trace)) mean(vertex.trace$objective) else NA_real_,
+          mean_objective = if (nrow(vertex.trace)) mean(vertex.trace$objective) else NA_real_,
+          max_grad_norm = if (nrow(vertex.trace)) max(vertex.trace$grad_norm) else NA_real_,
+          all_converged = if (nrow(vertex.trace)) all(vertex.trace$converged) else NA,
+          elapsed_sec = if (i == length(insertion$level_results)) as.double(insertion_elapsed) else NA_real_,
+          frame_count = 1L
+        )
+      )
+    }
+  }
+
+  if (!is.null(refinement$level_results) && length(refinement$level_results)) {
+    for (i in seq_along(refinement$level_results)) {
+      result <- refinement$level_results[[i]]
+      stage.trace <- if (!is.null(result$fit$trace)) result$fit$trace else data.frame()
+      records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+        stage = "refinement",
+        level = result$level,
+        method_family = "gmds",
+        coords_full = result$coords,
+        active_vertices = result$active_vertices,
+        pair_mode = if (!is.null(result$active_prepared$pair_mode)) result$active_prepared$pair_mode else NA_character_,
+        trace = stage.trace,
+        frames = if (!is.null(refinement_frames[[paste0("level_", result$level)]])) {
+          refinement_frames[[paste0("level_", result$level)]]
+        } else {
+          list(result$coords)
+        },
+        summary = list(
+          pair_n = nrow(result$pair_matrix),
+          energy = result$after$gmds.energy[[1L]],
+          stress = result$after$gmds.stress[[1L]],
+          elapsed_sec = if (i == length(refinement$level_results)) as.double(refinement_elapsed) else NA_real_,
+          frame_count = 1L
+        )
+      )
+    }
+  }
+
+  records[[length(records) + 1L]] <- grip.geodesic.misf.new.stage.record(
+    stage = "final_polish",
+    level = 0L,
+    method_family = "gmds",
+    coords_full = final_polish$coords,
+    active_vertices = seq_len(prepared$n),
+    pair_mode = if (!is.null(final_polish$prepared$pair_mode)) final_polish$prepared$pair_mode else "all_pairs",
+    trace = final_polish$trace,
+    frames = final_polish$frames,
+    summary = list(
+      pair_n = length(prepared$pair_graph_distance),
+      energy = final_polish$score$gmds.energy[[1L]],
+      stress = final_polish$score$gmds.stress[[1L]],
+      elapsed_sec = as.double(final_polish_elapsed)
+    )
+  )
+
+  names(records) <- vapply(records, `[[`, character(1L), "stage_key")
+  list(
+    stage_trace = grip.geodesic.misf.stage.trace.from.records(records),
+    stage_data = records
+  )
+}
+
 grip.geodesic.misf.build.stage.trace <- function(prepared,
                                                  top_level_fit,
                                                  top_level_elapsed,
@@ -137,6 +692,34 @@ grip.geodesic.misf.build.stage.trace <- function(prepared,
                                                  refinement_frames,
                                                  final_polish,
                                                  final_polish_elapsed) {
+  grip.geodesic.misf.build.stage.bundle(
+    prepared = prepared,
+    top_level_fit = top_level_fit,
+    top_level_elapsed = top_level_elapsed,
+    top_level_frames = top_level_frames,
+    insertion = insertion,
+    insertion_elapsed = insertion_elapsed,
+    insertion_frames = insertion_frames,
+    refinement = refinement,
+    refinement_elapsed = refinement_elapsed,
+    refinement_frames = refinement_frames,
+    final_polish = final_polish,
+    final_polish_elapsed = final_polish_elapsed
+  )$stage_trace
+}
+
+grip.geodesic.misf.build.legacy.stage.trace <- function(prepared,
+                                                        top_level_fit,
+                                                        top_level_elapsed,
+                                                        top_level_frames,
+                                                        insertion,
+                                                        insertion_elapsed,
+                                                        insertion_frames,
+                                                        refinement,
+                                                        refinement_elapsed,
+                                                        refinement_frames,
+                                                        final_polish,
+                                                        final_polish_elapsed) {
   rows <- list()
 
   rows[[length(rows) + 1L]] <- data.frame(
@@ -2651,7 +3234,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
   } else {
     NULL
   }
-  stage.trace <- grip.geodesic.misf.build.stage.trace(
+  stage.bundle <- grip.geodesic.misf.build.stage.bundle(
     prepared = prepared,
     top_level_fit = top.level.fit,
     top_level_elapsed = top.level.elapsed,
@@ -2665,9 +3248,12 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
     final_polish = final.polish,
     final_polish_elapsed = final.polish.elapsed
   )
+  stage.trace <- stage.bundle$stage_trace
 
   trace.detail <- if (isTRUE(return_trace)) {
     list(
+      trace_schema_version = grip.geodesic.misf.stage.trace.schema.version(),
+      stage_data = stage.bundle$stage_data,
       top_level_trace = top.level.fit$trace,
       top_restart_summary = top.level.fit$restart_summary,
       insertion_level_trace = insertion$level_trace,
@@ -2680,6 +3266,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
   }
   frames <- if (isTRUE(return_frames)) {
     list(
+      stage_data = stage.bundle$stage_data,
       top_level = top.level.frames,
       after_top_level = top.level.fit$coords_full,
       insertion_levels = insertion.level.frames,
