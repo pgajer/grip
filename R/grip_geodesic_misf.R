@@ -639,6 +639,146 @@ grip.geodesic.misf.recenter.coords <- function(coords) {
   sweep(coords, 2L, colMeans(coords), FUN = "-", check.margin = FALSE)
 }
 
+grip.geodesic.misf.classical.mds.stats <- function(distance_matrix,
+                                                   dim,
+                                                   tol = 1e-8) {
+  distance_matrix <- as.matrix(distance_matrix)
+  dim <- grip.validate.count(dim, "dim")
+  if (!(dim %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+  n <- nrow(distance_matrix)
+  if (!n || ncol(distance_matrix) != n) {
+    stop("distance_matrix must be a non-empty square matrix")
+  }
+
+  d2 <- distance_matrix^2
+  row.mean <- rowMeans(d2)
+  gram <- -0.5 * (
+    d2 -
+      outer(row.mean, rep.int(1, n)) -
+      outer(rep.int(1, n), row.mean) +
+      mean(d2)
+  )
+  eig <- eigen(gram, symmetric = TRUE)
+  eig.values <- as.double(eig$values)
+  pos.idx <- which(eig.values > tol)
+  use.count <- min(length(pos.idx), dim)
+  coords <- matrix(0, nrow = n, ncol = dim)
+  if (use.count > 0L) {
+    vecs <- eig$vectors[, pos.idx[seq_len(use.count)], drop = FALSE]
+    coords[, seq_len(use.count)] <- sweep(
+      vecs,
+      2L,
+      sqrt(eig.values[pos.idx[seq_len(use.count)]]),
+      FUN = "*",
+      check.margin = FALSE
+    )
+  }
+  coords <- grip.geodesic.misf.recenter.coords(coords)
+  storage.mode(coords) <- "double"
+  list(
+    coords = coords,
+    eigenvalues = eig.values,
+    positive_rank = length(pos.idx),
+    target_rank = min(dim, max(n - 1L, 0L)),
+    realized_rank = use.count
+  )
+}
+
+grip.geodesic.misf.score.seed.metric <- function(distance_matrix,
+                                                 dim,
+                                                 tol = 1e-8) {
+  stats <- grip.geodesic.misf.classical.mds.stats(
+    distance_matrix = distance_matrix,
+    dim = dim,
+    tol = tol
+  )
+  target.rank <- stats$target_rank
+  eig.values <- stats$eigenvalues
+  target.eig <- if (target.rank > 0L && length(eig.values) >= target.rank) {
+    as.double(eig.values[[target.rank]])
+  } else {
+    -Inf
+  }
+  pair.mean <- if (nrow(distance_matrix) > 1L) {
+    mean(distance_matrix[upper.tri(distance_matrix)])
+  } else {
+    0
+  }
+  list(
+    positive_rank = stats$positive_rank,
+    target_rank = target.rank,
+    target_eig = target.eig,
+    pair_mean = as.double(pair.mean),
+    coords = stats$coords
+  )
+}
+
+grip.geodesic.misf.select.seed.vertices <- function(distance_matrix,
+                                                    count,
+                                                    dim,
+                                                    max_combinations = 50000L,
+                                                    tol = 1e-8) {
+  distance_matrix <- as.matrix(distance_matrix)
+  count <- grip.validate.misf.count(count, "count", lower = 1L)
+  dim <- grip.validate.count(dim, "dim")
+  if (!(dim %in% c(2L, 3L))) {
+    stop("dim must be 2 or 3")
+  }
+  n <- nrow(distance_matrix)
+  if (!n || ncol(distance_matrix) != n) {
+    stop("distance_matrix must be a non-empty square matrix")
+  }
+  count <- min(as.integer(count), n)
+  if (count <= 1L) {
+    return(as.integer(1L))
+  }
+
+  fallback <- grip.geodesic.misf.select.spread.seed.vertices(
+    distance_matrix = distance_matrix,
+    count = count
+  )
+  combo.count <- choose(n, count)
+  if (!is.finite(combo.count) || combo.count <= 1L || combo.count > max_combinations) {
+    return(as.integer(fallback))
+  }
+
+  combos <- combn(n, count)
+  best.idx <- NULL
+  best.score <- NULL
+  fallback.key <- paste(sort(fallback), collapse = ",")
+
+  for (j in seq_len(ncol(combos))) {
+    idx <- as.integer(combos[, j])
+    score <- grip.geodesic.misf.score.seed.metric(
+      distance_matrix = distance_matrix[idx, idx, drop = FALSE],
+      dim = dim,
+      tol = tol
+    )
+    key <- paste(sort(idx), collapse = ",")
+    better <- is.null(best.score) ||
+      score$positive_rank > best.score$positive_rank ||
+      (score$positive_rank == best.score$positive_rank && score$target_eig > best.score$target_eig + tol) ||
+      (score$positive_rank == best.score$positive_rank &&
+         abs(score$target_eig - best.score$target_eig) <= tol &&
+         score$pair_mean > best.score$pair_mean + tol) ||
+      (score$positive_rank == best.score$positive_rank &&
+         abs(score$target_eig - best.score$target_eig) <= tol &&
+         abs(score$pair_mean - best.score$pair_mean) <= tol &&
+         identical(key, fallback.key))
+    if (better) {
+      best.idx <- idx
+      best.score <- score
+    }
+  }
+
+  if (is.null(best.idx)) {
+    return(as.integer(fallback))
+  }
+  as.integer(best.idx)
+}
+
 grip.geodesic.misf.select.spread.seed.vertices <- function(distance_matrix,
                                                            count) {
   distance_matrix <- as.matrix(distance_matrix)
@@ -713,25 +853,11 @@ grip.geodesic.misf.embed.small.metric <- function(distance_matrix, dim) {
     return(coords)
   }
 
-  fit <- tryCatch(
-    suppressWarnings(
-      stats::cmdscale(stats::as.dist(distance_matrix), k = min(dim, n - 1L))
-    ),
-    error = function(e) NULL
+  stats <- grip.geodesic.misf.classical.mds.stats(
+    distance_matrix = distance_matrix,
+    dim = dim
   )
-  if (is.null(fit)) {
-    storage.mode(coords) <- "double"
-    return(coords)
-  }
-  fit <- as.matrix(fit)
-  if (!ncol(fit)) {
-    storage.mode(coords) <- "double"
-    return(coords)
-  }
-  coords[, seq_len(ncol(fit))] <- fit
-  coords <- grip.geodesic.misf.recenter.coords(coords)
-  storage.mode(coords) <- "double"
-  coords
+  stats$coords
 }
 
 grip.geodesic.misf.jitter.coords <- function(coords,
@@ -802,9 +928,10 @@ grip.geodesic.misf.build.geometric.seed.coords <- function(distance_matrix,
   }
 
   seed_size <- min(n, dim + 1L)
-  seed_local <- grip.geodesic.misf.select.spread.seed.vertices(
+  seed_local <- grip.geodesic.misf.select.seed.vertices(
     distance_matrix = distance_matrix,
-    count = seed_size
+    count = seed_size,
+    dim = dim
   )
   coords <- matrix(NA_real_, nrow = n, ncol = dim)
   coords[seed_local, ] <- grip.geodesic.misf.embed.small.metric(
