@@ -88,7 +88,7 @@ stage_label <- function(name) {
     top_level = "top level",
     after_insertion = "after insertion",
     after_refinement = "after refinement",
-    final = "final",
+    final_polish = "final polish",
     name
   )
 }

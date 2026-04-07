@@ -36,6 +36,8 @@ for (pkg in c("htmltools", "htmlwidgets", "rgl")) {
 ns <- asNamespace("grip")
 align_to_target_nd <- get("grip.align.to.target.nd", envir = ns)
 normalize_coords_with_meta <- get("grip.normalize.coords.with.meta", envir = ns)
+trace_stage_data <- get("grip.geodesic.misf.trace.stage.data", envir = ns)
+trace_stage_lookup <- get("grip.geodesic.misf.trace.stage.lookup", envir = ns)
 
 fmt_num <- function(x, digits = 4L) {
   ifelse(is.finite(x), formatC(x, format = "f", digits = digits), "NA")
@@ -249,6 +251,7 @@ run_case_fit <- function(case) {
 build_stage_rows <- function(case, fit) {
   prepared <- fit$prepared
   truth <- as.matrix(case$bundle$coords_surface)
+  stage_data <- trace_stage_data(fit)
   levels <- seq.int(from = prepared$top_level_level, to = 0L, by = -1L)
   rows <- vector("list", length(levels))
 
@@ -262,37 +265,34 @@ build_stage_rows <- function(case, fit) {
     coarse_initial <- NULL
 
     if (identical(level, prepared$top_level_level)) {
-      init_frame <- fit$frames$after_top_level
-      init_label <- "Top-level GMDS solve"
-      top_init <- fit$top_level_fit$initial_placement
-      if (!is.null(top_init) && !is.null(top_init$coords) && !is.null(top_init$vertex_ids)) {
-        top_init_full <- matrix(NA_real_, nrow = nrow(truth), ncol = ncol(truth))
-        top_init_full[as.integer(top_init$vertex_ids), ] <- as.matrix(top_init$coords)
+      init_record <- trace_stage_lookup(stage_data, stage = "top_level", level = level)
+      init_frame <- if (!is.null(init_record)) init_record$coords_full else fit$frames$after_top_level
+      init_label <- if (!is.null(init_record)) init_record$label else "Top-level GMDS solve"
+      top_init <- trace_stage_lookup(stage_data, stage = "initial_placement", level = level)
+      if (!is.null(top_init) && !is.null(top_init$coords_full)) {
         top_init_align <- align_stage_to_active_reference(
-          stage_coords = top_init_full,
+          stage_coords = top_init$coords_full,
           truth_coords = truth,
           active_vertices = active_vertices
         )
         coarse_initial <- list(
-          label = sprintf("Initial placement of V_%d", level),
+          label = top_init$label,
           caption = sprintf("|V_%d| = %d, rho = %s", level, length(active_vertices), fmt_num(top_init_align$rmse, 4L)),
           coords_active = top_init_align$aligned_active,
           coords_full = top_init_align$target_full,
           rmse = top_init_align$rmse
         )
 
-        if (!is.null(top_init$seed_vertices) && length(top_init$seed_vertices) > 0L) {
-          seed_vertices <- as.integer(top_init$seed_vertices)
-          seed_full <- matrix(NA_real_, nrow = nrow(truth), ncol = ncol(truth))
-          seed_local <- match(seed_vertices, as.integer(top_init$vertex_ids))
-          seed_full[seed_vertices, ] <- as.matrix(top_init$coords[seed_local, , drop = FALSE])
+        seed_stage <- trace_stage_lookup(stage_data, stage = "seed", level = level)
+        if (!is.null(seed_stage) && !is.null(seed_stage$coords_full) && length(seed_stage$active_vertices) > 0L) {
+          seed_vertices <- as.integer(seed_stage$active_vertices)
           seed_align <- align_stage_to_active_reference(
-            stage_coords = seed_full,
+            stage_coords = seed_stage$coords_full,
             truth_coords = truth,
             active_vertices = seed_vertices
           )
           geometric_seed <- list(
-            label = sprintf("Geometric seed S_%d", level),
+            label = seed_stage$label,
             caption = sprintf("|S_%d| = %d, rho = %s", level, length(seed_vertices), fmt_num(seed_align$rmse, 4L)),
             coords_active = seed_align$aligned_active,
             coords_full = seed_align$target_full,
@@ -303,10 +303,12 @@ build_stage_rows <- function(case, fit) {
         }
       }
     } else {
-      init_frame <- fit$frames$insertion_levels[[paste0("level_", level)]]
-      init_label <- sprintf("Insertion of V_%d", level)
+      init_record <- trace_stage_lookup(stage_data, stage = "insertion", level = level)
+      init_frame <- if (!is.null(init_record)) init_record$coords_full else fit$frames$insertion_levels[[paste0("level_", level)]]
+      init_label <- if (!is.null(init_record)) init_record$label else sprintf("Insertion of V_%d", level)
     }
-    refine_frame <- fit$frames$refinement_levels[[paste0("level_", level)]]
+    refine_record <- trace_stage_lookup(stage_data, stage = "refinement", level = level)
+    refine_frame <- if (!is.null(refine_record)) refine_record$coords_full else fit$frames$refinement_levels[[paste0("level_", level)]]
 
     init_align <- align_stage_to_active_reference(init_frame, truth, active_vertices)
     refine_align <- align_stage_to_active_reference(refine_frame, truth, active_vertices)
@@ -332,7 +334,7 @@ build_stage_rows <- function(case, fit) {
         rmse = init_align$rmse
       ),
       refinement = list(
-        label = sprintf("Refinement of V_%d", level),
+        label = if (!is.null(refine_record)) refine_record$label else sprintf("Refinement of V_%d", level),
         caption = sprintf("|V_%d| = %d, rho = %s", level, length(active_vertices), fmt_num(refine_align$rmse, 4L)),
         coords_active = refine_align$aligned_active,
         coords_full = refine_align$target_full,
@@ -341,11 +343,17 @@ build_stage_rows <- function(case, fit) {
     )
   }
 
-  final_align <- align_to_target_nd(fit$coords, truth, allow.reflection = TRUE)
+  final_record <- trace_stage_lookup(stage_data, stage = "final_polish", level = 0L)
+  final_coords <- if (!is.null(final_record) && !is.null(final_record$coords_full)) {
+    final_record$coords_full
+  } else {
+    fit$coords
+  }
+  final_align <- align_to_target_nd(final_coords, truth, allow.reflection = TRUE)
   list(
     levels = rows,
     final_polish = list(
-      label = "Final full-graph polish",
+      label = if (!is.null(final_record)) final_record$label else "Final full-graph polish",
       caption = sprintf("n = %d, rho = %s", nrow(truth), fmt_num(final_align$rmse, 4L)),
       coords_active = final_align$aligned,
       coords_full = final_align$target,

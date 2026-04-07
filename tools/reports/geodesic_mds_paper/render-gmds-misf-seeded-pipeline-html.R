@@ -148,7 +148,7 @@ stage_card_title <- function(method_label, stage_name) {
     top_level = "top level",
     after_insertion = "after insertion",
     after_refinement = "after refinement",
-    final = "final",
+    final_polish = "final polish",
     stage_name
   )
   sprintf("%s\n%s", method_label, label)
@@ -172,7 +172,7 @@ case_sections <- lapply(bundle$case_results, function(case_result) {
   stage_methods <- Filter(function(method) !is.null(method$stage_display), case_result$methods)
   stage_sections <- lapply(stage_methods, function(method_result) {
     row <- method_result$metrics[1L, , drop = FALSE]
-    stage_names <- c("top_level", "after_insertion", "after_refinement", "final")
+    stage_names <- c("top_level", "after_insertion", "after_refinement", "final_polish")
     cards <- lapply(stage_names, function(stage_name) {
       card_div(
         title_text = stage_card_title(row$method_label[[1L]], stage_name),

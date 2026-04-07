@@ -61,6 +61,7 @@ induced_active_graph <- get("grip.geodesic.misf.induced_active_graph", envir = n
 place_level_with_layout <- get("grip.geodesic.misf.place.level.with.layout", envir = ns)
 prepare_active_level <- get("grip.geodesic.misf.prepare.active.level", envir = ns)
 classical_mds_embedding <- get("grip.classical.mds.embedding", envir = ns)
+trace_stage_payloads <- get("grip.geodesic.misf.trace.stage.payloads", envir = ns)
 
 cfg <- list(
   phase_seed = 20260402L,
@@ -975,11 +976,16 @@ run_candidate_with_frames <- function(case, corrected_method) {
     return_frames = TRUE,
     seed = cfg$phase_seed + case$side
   )
+  stage.payloads <- trace_stage_payloads(
+    fit,
+    target = case$truth,
+    states = c("top_level", "after_insertion", "after_refinement", "final_polish")
+  )
   list(
-    top_level = align_partial_to_truth(fit$frames$after_top_level, case$truth)$aligned,
-    after_insertion = align_partial_to_truth(fit$frames$after_insertion, case$truth)$aligned,
-    after_refinement = align_partial_to_truth(fit$frames$after_refinement, case$truth)$aligned,
-    final = align_partial_to_truth(fit$frames$final, case$truth)$aligned
+    top_level = stage.payloads$top_level$display_coords,
+    after_insertion = stage.payloads$after_insertion$display_coords,
+    after_refinement = stage.payloads$after_refinement$display_coords,
+    final_polish = stage.payloads$final_polish$display_coords
   )
 }
 
@@ -1158,7 +1164,7 @@ save_final_comparison_grid <- function(case_result, output_path) {
 
 save_selected_stage_grid <- function(case_result, output_path) {
   methods <- case_result$selected_stage_methods
-  stage.names <- c("top_level", "after_insertion", "after_refinement", "final")
+  stage.names <- c("top_level", "after_insertion", "after_refinement", "final_polish")
   grDevices::png(output_path, width = 420L * length(stage.names), height = 320L * length(methods), res = 180, bg = "#ffffff", type = "cairo")
   on.exit(grDevices::dev.off(), add = TRUE)
   graphics::par(mfrow = c(length(methods), length(stage.names)), mar = c(0.8, 0.8, 2.7, 0.3), oma = c(0, 0, 1.0, 0))
@@ -1180,7 +1186,7 @@ save_selected_stage_grid <- function(case_result, output_path) {
         top_level = "top",
         after_insertion = "after insertion",
         after_refinement = "after refinement",
-        final = "final",
+        final_polish = "final polish",
         stage.name
       )
       graphics::mtext(sprintf("%s\n%s", method$method_label, label), side = 3L, line = 0.3, cex = 0.72)

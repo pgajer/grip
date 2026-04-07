@@ -83,6 +83,7 @@ if (requireNamespace("pkgload", quietly = TRUE)) {
 ns <- asNamespace("grip")
 align_to_target_nd <- get("grip.align.to.target.nd", envir = ns)
 classical_mds_embedding <- get("grip.classical.mds.embedding", envir = ns)
+trace_stage_payloads <- get("grip.geodesic.misf.trace.stage.payloads", envir = ns)
 
 cfg <- list(
   phase_seed = 20260402L,
@@ -555,15 +556,13 @@ run_method <- function(case, spec, phase_b_case_result) {
     stage_trace = fit$stage_trace,
     note = note
   )
-  stage.coords <- list(
-    top_level = fit$top_level_fit$coords_full,
-    after_insertion = fit$insertion$coords,
-    after_refinement = fit$refinement$coords,
-    final = fit$coords
+  stage.payloads <- trace_stage_payloads(
+    fit,
+    target = case$truth,
+    states = c("top_level", "after_insertion", "after_refinement", "final_polish")
   )
-  stage.display <- lapply(stage.coords, function(coords) {
-    align_stage_coords(coords, case$truth)
-  })
+  stage.coords <- lapply(stage.payloads, function(payload) payload$coords)
+  stage.display <- lapply(stage.payloads, function(payload) payload$display_coords)
   list(
     coords = fit$coords,
     display_coords = align_to_target_nd(fit$coords, case$truth, allow.reflection = TRUE)$aligned,
@@ -653,7 +652,7 @@ save_stage_grid <- function(case_result, output_path) {
   if (!length(stage.methods)) {
     return(invisible(NULL))
   }
-  stage.names <- c("top_level", "after_insertion", "after_refinement", "final")
+  stage.names <- c("top_level", "after_insertion", "after_refinement", "final_polish")
   grDevices::png(output_path, width = 3200L, height = max(1000L, 800L * length(stage.methods)), res = 180, bg = "#ffffff")
   old.par <- graphics::par(no.readonly = TRUE)
   on.exit({
@@ -700,7 +699,7 @@ save_stage_grid <- function(case_result, output_path) {
           top_level = "top level",
           after_insertion = "after insertion",
           after_refinement = "after refinement",
-          final = "final"
+          final_polish = "final polish"
         )
       )
       graphics::mtext(ttl, side = 3L, line = 0.3, cex = 0.75)
