@@ -51,9 +51,12 @@ immediately, or `"skip"` to prepare the MISF object without solving it.}
 
 \item{top_level_init}{Coarse-level initializer. `"geometric"` builds a
 spread `d+1`-vertex seed and inserts the remaining coarse vertices before
-pure-GMDS refinement. `"random"` keeps the legacy random restart family.}
+pure-GMDS refinement. The top-level active set is chosen as the coarsest
+MISF level with at least `d + 1` vertices when possible. `"random"` keeps
+the legacy random restart family.}
 
-\item{top_level_restarts}{Number of random restarts used by the coarse solve.}
+\item{top_level_restarts}{Number of coarse-level restarts used by the
+pure-GMDS refinement stage.}
 
 \item{top_level_max_iter}{Maximum number of pure-GMDS iterations per restart
 on the coarse graph.}
@@ -71,8 +74,8 @@ An object of class `"grip_misf_gmds_prepared"` layered on top of the
 \description{
 `grip.prepare.misf.geodesic.mds()` augments the graph-first GMDS prepared
 object with the maximal independent set filtration extracted from GRIP and a
-restartable pure-GMDS solve on the coarsest MISF level. This is the Phase 2
-preparation layer for the new MISF-based GMDS initializer.
+restartable pure-GMDS solve on the coarsest admissible MISF level. This is
+the Phase 2 preparation layer for the new MISF-based GMDS initializer.
 }
 \examples{
 edges <- edges.mesh(4, 4)
