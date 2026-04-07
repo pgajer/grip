@@ -461,6 +461,579 @@ gripui.gmds.manuscript.source.path <- function() {
   "dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.tex"
 }
 
+gripui.gmds.export.preset.choices <- function() {
+  stats::setNames(
+    c("paper_figure_bundle", "audit_bundle", "tables_only"),
+    c("Paper figure bundle", "Interactive audit bundle", "Tables only")
+  )
+}
+
+gripui.gmds.figure.preset.catalog <- function() {
+  list(
+    paper_panel = list(
+      id = "paper_panel",
+      label = "Paper panel",
+      width_in = 6.6,
+      height_in = 4.8,
+      png_width = 1980L,
+      png_height = 1440L,
+      res = 300L,
+      edge_alpha = 0.42,
+      highlight_edge_alpha = 0.92,
+      background_alpha = 0.24,
+      vertex_alpha = 0.90,
+      highlight_alpha = 0.98,
+      base_cex = 0.78,
+      highlight_cex = 1.38,
+      edge_lwd = 1.10,
+      highlight_edge_lwd = 2.35
+    ),
+    paper_wide = list(
+      id = "paper_wide",
+      label = "Paper wide",
+      width_in = 7.2,
+      height_in = 4.2,
+      png_width = 2160L,
+      png_height = 1260L,
+      res = 300L,
+      edge_alpha = 0.38,
+      highlight_edge_alpha = 0.88,
+      background_alpha = 0.22,
+      vertex_alpha = 0.88,
+      highlight_alpha = 0.98,
+      base_cex = 0.74,
+      highlight_cex = 1.30,
+      edge_lwd = 1.05,
+      highlight_edge_lwd = 2.20
+    )
+  )
+}
+
+gripui.gmds.figure.preset.spec <- function(preset = "paper_panel") {
+  preset <- as.character(preset[[1L]])
+  catalog <- gripui.gmds.figure.preset.catalog()
+  if (!preset %in% names(catalog)) {
+    stop("unknown GMDS figure preset: ", preset)
+  }
+  catalog[[preset]]
+}
+
+gripui.gmds.figure.preset.choices <- function() {
+  catalog <- gripui.gmds.figure.preset.catalog()
+  stats::setNames(
+    vapply(catalog, `[[`, character(1L), "id"),
+    vapply(catalog, `[[`, character(1L), "label")
+  )
+}
+
+gripui.gmds.static.project <- function(coords) {
+  coords <- gripui.family.pad_coords(coords, target_cols = 3L)
+  keep <- gripui.valid.coord.rows(coords)
+  if (!any(keep)) {
+    return(list(
+      projected = matrix(NA_real_, nrow = nrow(coords), ncol = 2L),
+      depth = rep(NA_real_, nrow(coords)),
+      keep = keep
+    ))
+  }
+  centered <- coords
+  centered[keep, ] <- scale(centered[keep, , drop = FALSE], center = TRUE, scale = FALSE)
+  theta <- 35 * pi / 180
+  phi <- 22 * pi / 180
+  rot.z <- matrix(c(
+    cos(theta), -sin(theta), 0,
+    sin(theta), cos(theta), 0,
+    0, 0, 1
+  ), nrow = 3L, byrow = TRUE)
+  rot.x <- matrix(c(
+    1, 0, 0,
+    0, cos(phi), -sin(phi),
+    0, sin(phi), cos(phi)
+  ), nrow = 3L, byrow = TRUE)
+  rotated <- centered %*% rot.z %*% rot.x
+  out <- matrix(NA_real_, nrow = nrow(coords), ncol = 2L)
+  out[keep, ] <- rotated[keep, 1:2, drop = FALSE]
+  list(
+    projected = out,
+    depth = rotated[, 3L],
+    keep = keep
+  )
+}
+
+gripui.gmds.static.edge.order <- function(edges, depth, keep) {
+  if (!nrow(edges)) {
+    return(integer())
+  }
+  valid <- keep[edges[, 1L]] & keep[edges[, 2L]]
+  if (!any(valid)) {
+    return(integer())
+  }
+  edges <- edges[valid, , drop = FALSE]
+  edge.depth <- rowMeans(cbind(depth[edges[, 1L]], depth[edges[, 2L]]))
+  order(edge.depth, decreasing = FALSE)
+}
+
+gripui.gmds.draw.static.figure <- function(export_payload,
+                                           figure_preset = "paper_panel") {
+  spec <- gripui.gmds.figure.preset.spec(figure_preset)
+  coords <- if (!is.null(export_payload$display_coords)) {
+    export_payload$display_coords
+  } else {
+    export_payload$coords
+  }
+  coords <- gripui.family.pad_coords(coords, target_cols = 3L)
+  projection <- gripui.gmds.static.project(coords)
+  proj <- projection$projected
+  keep <- projection$keep
+  depth <- projection$depth
+
+  x.range <- range(proj[keep, 1L], finite = TRUE)
+  y.range <- range(proj[keep, 2L], finite = TRUE)
+  x.pad <- max(0.05, 0.06 * diff(x.range))
+  y.pad <- max(0.05, 0.06 * diff(y.range))
+
+  graphics::par(mar = c(0, 0, 0, 0), xaxs = "i", yaxs = "i")
+  graphics::plot.new()
+  graphics::plot.window(
+    xlim = c(x.range[[1L]] - x.pad, x.range[[2L]] + x.pad),
+    ylim = c(y.range[[1L]] - y.pad, y.range[[2L]] + y.pad),
+    asp = 1
+  )
+
+  edges <- as.matrix(export_payload$edges)
+  storage.mode(edges) <- "integer"
+  if (nrow(edges)) {
+    edge.order <- gripui.gmds.static.edge.order(edges, depth, keep)
+    if (length(edge.order)) {
+      edge.keep <- keep[edges[, 1L]] & keep[edges[, 2L]]
+      edges.valid <- edges[edge.keep, , drop = FALSE]
+      edges.valid <- edges.valid[edge.order, , drop = FALSE]
+      highlight.vertices <- if (!is.null(export_payload$highlight_vertices)) {
+        as.integer(export_payload$highlight_vertices)
+      } else if (!is.null(export_payload$active_vertices)) {
+        as.integer(export_payload$active_vertices)
+      } else {
+        integer(0L)
+      }
+      edge.base.col <- grDevices::adjustcolor("#9ca3af", alpha.f = spec$edge_alpha)
+      edge.highlight.col <- grDevices::adjustcolor("#8a5a44", alpha.f = spec$highlight_edge_alpha)
+      edge.highlight <- edges.valid[, 1L] %in% highlight.vertices & edges.valid[, 2L] %in% highlight.vertices
+      graphics::segments(
+        x0 = proj[edges.valid[, 1L], 1L],
+        y0 = proj[edges.valid[, 1L], 2L],
+        x1 = proj[edges.valid[, 2L], 1L],
+        y1 = proj[edges.valid[, 2L], 2L],
+        col = ifelse(edge.highlight, edge.highlight.col, edge.base.col),
+        lwd = ifelse(edge.highlight, spec$highlight_edge_lwd, spec$edge_lwd)
+      )
+    }
+  }
+
+  point.order <- order(depth[keep], decreasing = FALSE)
+  vertices <- which(keep)[point.order]
+  point.cols <- grDevices::adjustcolor(export_payload$vertex_colors[vertices], alpha.f = spec$background_alpha)
+  highlight.vertices <- if (!is.null(export_payload$highlight_vertices)) {
+    as.integer(export_payload$highlight_vertices)
+  } else if (!is.null(export_payload$active_vertices)) {
+    as.integer(export_payload$active_vertices)
+  } else {
+    integer(0L)
+  }
+  is.highlight <- vertices %in% highlight.vertices
+  point.cols[is.highlight] <- grDevices::adjustcolor(export_payload$vertex_colors[vertices[is.highlight]], alpha.f = spec$highlight_alpha)
+  point.cex <- rep(spec$base_cex, length(vertices))
+  point.cex[is.highlight] <- spec$highlight_cex
+  graphics::points(
+    proj[vertices, 1L],
+    proj[vertices, 2L],
+    pch = 16,
+    col = point.cols,
+    cex = point.cex
+  )
+}
+
+gripui.gmds.write.static.figure <- function(export_payload,
+                                            png_path = NULL,
+                                            pdf_path = NULL,
+                                            figure_preset = "paper_panel") {
+  spec <- gripui.gmds.figure.preset.spec(figure_preset)
+  render_device <- function(open_device) {
+    open_device()
+    tryCatch(
+      gripui.gmds.draw.static.figure(export_payload, figure_preset = figure_preset),
+      finally = grDevices::dev.off()
+    )
+  }
+  if (!is.null(pdf_path)) {
+    render_device(function() {
+      grDevices::pdf(pdf_path, width = spec$width_in, height = spec$height_in, useDingbats = FALSE)
+    })
+  }
+  if (!is.null(png_path)) {
+    render_device(function() {
+      grDevices::png(
+        filename = png_path,
+        width = spec$png_width,
+        height = spec$png_height,
+        res = spec$res,
+        bg = "#ffffff"
+      )
+    })
+  }
+  invisible(list(
+    png_path = png_path,
+    pdf_path = pdf_path,
+    figure_preset = figure_preset
+  ))
+}
+
+gripui.gmds.paper.panel.catalog <- function() {
+  data.frame(
+    stage_id = c(
+      "reference",
+      "misf",
+      "seed",
+      "initial_placement",
+      "top_level",
+      "insertion",
+      "refinement",
+      "final_polish",
+      "trace_summary"
+    ),
+    app_panel = c(
+      "Stage 0: Graph and Geometry",
+      "Stage 1: MIS Filtration",
+      "Stage 2: Seed Selection and Initial Placement",
+      "Stage 2: Seed Selection and Initial Placement",
+      "Stage 2: Seed Selection and Initial Placement",
+      "Stage 3: Per-Level Insertion and Refinement",
+      "Stage 3: Per-Level Insertion and Refinement",
+      "Canonical Trace Summary",
+      "Canonical Trace Summary"
+    ),
+    manuscript_section = c(
+      "Synthetic graph family setup and experiment descriptions",
+      "Filtration",
+      "Coarsest seed, expansion, and refinement",
+      "Coarsest seed, expansion, and refinement",
+      "Coarsest seed, expansion, and refinement",
+      "Initial placement and refinement of V_l",
+      "Initial placement and refinement of V_l",
+      "Multiscale case studies and recent experiments",
+      "Multiscale case studies and recent experiments"
+    ),
+    figure_focus = c(
+      "Case-study setup tables and geometry figures",
+      "Figure 7 (MIS filtration cases)",
+      "Top-level stage figures and interactive HTML panels",
+      "Top-level stage figures and interactive HTML panels",
+      "Top-level stage figures and interactive HTML panels",
+      "Per-level stage figures and tables",
+      "Per-level stage figures and tables",
+      "Final comparison figures and result tables",
+      "Stage trace tables and experiment discussion"
+    ),
+    narrative_focus = c(
+      "Describe the synthetic graph family, geometry, and experiment controls.",
+      "Define the MIS filtration and interpret the highlighted level sizes and separations.",
+      "Explain how the admissible top level and the seed are selected.",
+      "Describe how the seed expands into the initial placement before refinement.",
+      "Discuss the objective-specific top-level solve and its qualitative outcome.",
+      "Describe how new vertices are inserted into the inherited scaffold at the selected level.",
+      "Discuss the level-specific refinement and how the objective changes the embedding.",
+      "Summarize final embedding quality and how the selected method behaves on the full graph.",
+      "Use the canonical stage table to connect the app trace to manuscript figures and tables."
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+gripui.gmds.paper.context <- function(bundle,
+                                      stage_id,
+                                      focus_level = NULL,
+                                      expansion_level = NULL) {
+  catalog <- gripui.gmds.paper.panel.catalog()
+  stage_id <- as.character(stage_id[[1L]])
+  row <- catalog[catalog$stage_id == stage_id, , drop = FALSE]
+  if (!nrow(row)) {
+    row <- data.frame(
+      stage_id = stage_id,
+      app_panel = "Unmapped panel",
+      manuscript_section = "",
+      figure_focus = "",
+      narrative_focus = "",
+      stringsAsFactors = FALSE
+    )
+  }
+  level <- switch(
+    stage_id,
+    reference = NA_integer_,
+    trace_summary = NA_integer_,
+    misf = as.integer(focus_level[[1L]]),
+    seed = as.integer(bundle$prepared$top_level_level),
+    initial_placement = as.integer(bundle$prepared$top_level_level),
+    top_level = as.integer(bundle$prepared$top_level_level),
+    insertion = as.integer(expansion_level[[1L]]),
+    refinement = as.integer(expansion_level[[1L]]),
+    final_polish = 0L,
+    as.integer(focus_level[[1L]])
+  )
+  data.frame(
+    method = bundle$method$label,
+    family = bundle$payload$family_label,
+    export_stage = stage_id,
+    level = level,
+    app_panel = row$app_panel[[1L]],
+    manuscript_section = row$manuscript_section[[1L]],
+    figure_focus = row$figure_focus[[1L]],
+    narrative_focus = row$narrative_focus[[1L]],
+    manuscript_source = gripui.gmds.manuscript.source.path(),
+    stringsAsFactors = FALSE
+  )
+}
+
+gripui.gmds.paper.context.table <- function(bundle,
+                                            stage_id,
+                                            focus_level = NULL,
+                                            expansion_level = NULL) {
+  context <- gripui.gmds.paper.context(
+    bundle = bundle,
+    stage_id = stage_id,
+    focus_level = focus_level,
+    expansion_level = expansion_level
+  )
+  gripui.family.summary.table(list(
+    method = context$method,
+    family = context$family,
+    stage = context$export_stage,
+    level = if (is.finite(context$level)) sprintf("V_%d", context$level) else "",
+    manuscript_section = context$manuscript_section,
+    figure_focus = context$figure_focus,
+    manuscript_source = context$manuscript_source
+  ))
+}
+
+gripui.gmds.paper.inline.note <- function(bundle,
+                                          stage_id,
+                                          focus_level = NULL,
+                                          expansion_level = NULL) {
+  context <- gripui.gmds.paper.context(
+    bundle = bundle,
+    stage_id = stage_id,
+    focus_level = focus_level,
+    expansion_level = expansion_level
+  )
+  sprintf(
+    "Paper link: %s. Figure focus: %s.",
+    context$manuscript_section[[1L]],
+    context$figure_focus[[1L]]
+  )
+}
+
+gripui.gmds.export.stage.slug <- function(label) {
+  label <- tolower(as.character(label[[1L]]))
+  label <- gsub("[^A-Za-z0-9]+", "_", label)
+  gsub("^_+|_+$", "", label)
+}
+
+gripui.gmds.paper.caption.template <- function(bundle,
+                                               export_payload,
+                                               stage_id,
+                                               focus_level = NULL,
+                                               expansion_level = NULL) {
+  context <- gripui.gmds.paper.context(
+    bundle = bundle,
+    stage_id = stage_id,
+    focus_level = focus_level,
+    expansion_level = expansion_level
+  )
+  level.text <- if (!is.null(export_payload$level) &&
+    length(export_payload$level) == 1L &&
+    is.finite(export_payload$level)) {
+    sprintf(" at V_%d", export_payload$level)
+  } else {
+    ""
+  }
+  sprintf(
+    "%s on the %s family using %s%s. Suggested manuscript placement: %s.",
+    export_payload$label,
+    bundle$payload$family_label,
+    bundle$method$label,
+    level.text,
+    context$manuscript_section[[1L]]
+  )
+}
+
+gripui.gmds.paper.note.lines <- function(bundle,
+                                         export_payload,
+                                         stage_id,
+                                         focus_level = NULL,
+                                         expansion_level = NULL,
+                                         preset = "paper_figure_bundle",
+                                         figure_preset = "paper_panel") {
+  context <- gripui.gmds.paper.context(
+    bundle = bundle,
+    stage_id = stage_id,
+    focus_level = focus_level,
+    expansion_level = expansion_level
+  )
+  c(
+    sprintf("# GMDS %s export", preset),
+    "",
+    sprintf("- Method: %s", bundle$method$label),
+    sprintf("- Family: %s", bundle$payload$family_label),
+    sprintf("- Stage: %s", export_payload$label),
+    sprintf("- Figure preset: %s", figure_preset),
+    sprintf("- Manuscript source: `%s`", context$manuscript_source[[1L]]),
+    sprintf("- Suggested section: %s", context$manuscript_section[[1L]]),
+    sprintf("- Figure focus: %s", context$figure_focus[[1L]]),
+    sprintf("- Narrative focus: %s", context$narrative_focus[[1L]]),
+    "",
+    "## Suggested caption",
+    "",
+    gripui.gmds.paper.caption.template(
+      bundle = bundle,
+      export_payload = export_payload,
+      stage_id = stage_id,
+      focus_level = focus_level,
+      expansion_level = expansion_level
+    )
+  )
+}
+
+gripui.gmds.write.export.bundle <- function(bundle,
+                                            export_payload,
+                                            stage_id,
+                                            focus_level = NULL,
+                                            expansion_level = NULL,
+                                            preset = "paper_figure_bundle",
+                                            figure_preset = "paper_panel",
+                                            dir) {
+  preset <- as.character(preset[[1L]])
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+
+  stage.trace.path <- file.path(dir, "stage_trace.csv")
+  utils::write.csv(bundle$stage_trace, stage.trace.path, row.names = FALSE)
+
+  vertices.path <- file.path(dir, "selected_stage_vertices.csv")
+  utils::write.csv(
+    gripui.gmds.export.vertex.table(bundle, export_payload),
+    vertices.path,
+    row.names = FALSE
+  )
+
+  summary.path <- file.path(dir, "selected_stage_summary.csv")
+  utils::write.csv(
+    gripui.gmds.stage.summary.table(export_payload),
+    summary.path,
+    row.names = FALSE
+  )
+
+  context.path <- file.path(dir, "paper_context.csv")
+  utils::write.csv(
+    gripui.gmds.paper.context(
+      bundle = bundle,
+      stage_id = stage_id,
+      focus_level = focus_level,
+      expansion_level = expansion_level
+    ),
+    context.path,
+    row.names = FALSE
+  )
+
+  note.path <- file.path(dir, "paper_note.md")
+  writeLines(
+    gripui.gmds.paper.note.lines(
+      bundle = bundle,
+      export_payload = export_payload,
+      stage_id = stage_id,
+      focus_level = focus_level,
+      expansion_level = expansion_level,
+      preset = preset,
+      figure_preset = figure_preset
+    ),
+    con = note.path
+  )
+
+  caption.path <- file.path(dir, "suggested_caption.txt")
+  writeLines(
+    gripui.gmds.paper.caption.template(
+      bundle = bundle,
+      export_payload = export_payload,
+      stage_id = stage_id,
+      focus_level = focus_level,
+      expansion_level = expansion_level
+    ),
+    con = caption.path
+  )
+
+  repro.path <- file.path(dir, "repro.R")
+  writeLines(gripui.gmds.repro.code(bundle), con = repro.path)
+
+  manifest.path <- file.path(dir, "bundle_manifest.txt")
+  writeLines(c(
+    sprintf("preset=%s", preset),
+    sprintf("method=%s", bundle$method$id),
+    sprintf("family=%s", bundle$payload$family_id),
+    sprintf("stage_id=%s", stage_id),
+    sprintf("stage_label=%s", export_payload$label),
+    sprintf("figure_preset=%s", figure_preset)
+  ), con = manifest.path)
+
+  written <- c(
+    stage.trace.path,
+    vertices.path,
+    summary.path,
+    context.path,
+    note.path,
+    caption.path,
+    repro.path,
+    manifest.path
+  )
+
+  if (preset %in% c("paper_figure_bundle", "audit_bundle")) {
+    bundle.summary.path <- file.path(dir, "bundle_summary.csv")
+    utils::write.csv(gripui.gmds.bundle.summary(bundle), bundle.summary.path, row.names = FALSE)
+    paper.sync.path <- file.path(dir, "paper_sync_map.csv")
+    utils::write.csv(gripui.gmds.paper.sync.table(), paper.sync.path, row.names = FALSE)
+    written <- c(written, bundle.summary.path, paper.sync.path)
+  }
+
+  if (identical(preset, "audit_bundle")) {
+    misf.levels.path <- file.path(dir, "misf_levels.csv")
+    utils::write.csv(gripui.gmds.level.table(bundle$prepared), misf.levels.path, row.names = FALSE)
+    written <- c(written, misf.levels.path)
+  }
+
+  if (!identical(preset, "tables_only")) {
+    static.png.path <- file.path(dir, sprintf("selected_stage_%s.png", figure_preset))
+    static.pdf.path <- file.path(dir, sprintf("selected_stage_%s.pdf", figure_preset))
+    gripui.gmds.write.static.figure(
+      export_payload = export_payload,
+      png_path = static.png.path,
+      pdf_path = static.pdf.path,
+      figure_preset = figure_preset
+    )
+    written <- c(written, static.png.path, static.pdf.path)
+  }
+
+  if (!identical(preset, "tables_only") && requireNamespace("htmlwidgets", quietly = TRUE)) {
+    snapshot.path <- file.path(dir, "selected_stage_snapshot.html")
+    widget <- gripui.gmds.export.widget(
+      bundle = bundle,
+      export_payload = export_payload
+    )
+    htmlwidgets::saveWidget(widget, file = snapshot.path, selfcontained = TRUE)
+    written <- c(written, snapshot.path)
+  }
+
+  figure.spec.path <- file.path(dir, "figure_preset.csv")
+  utils::write.csv(as.data.frame(gripui.gmds.figure.preset.spec(figure_preset), stringsAsFactors = FALSE), figure.spec.path, row.names = FALSE)
+  written <- c(written, figure.spec.path)
+
+  invisible(normalizePath(written, winslash = "/", mustWork = FALSE))
+}
+
 gripui.gmds.export.stage.choices <- function(bundle) {
   base <- c(
     reference = "Reference graph geometry",
@@ -556,7 +1129,12 @@ gripui.gmds.export.stage.payload <- function(bundle,
     rep("#8a5a44", nrow(payload$display_coords))
   )
   payload$kind <- "stage"
-  payload$edges <- bundle$payload$edges
+  payload$edges <- if (!is.null(payload$edge_matrix)) {
+    payload$edge_matrix
+  } else {
+    bundle$payload$edges
+  }
+  payload$full_edges <- bundle$payload$edges
   payload$vertex_colors <- colors
   payload
 }
@@ -1272,12 +1850,19 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
             class = "gripui-card",
             bslib::card_header("Exports"),
             shiny::uiOutput("gmds_export_stage_control"),
+            shiny::uiOutput("gmds_export_preset_control"),
+            shiny::uiOutput("gmds_figure_preset_control"),
+            shiny::tableOutput("gmds_export_context"),
             shiny::tableOutput("gmds_export_summary"),
+            shiny::verbatimTextOutput("gmds_export_note"),
             shiny::tags$div(
               style = "padding:0 1rem 1rem;",
               shiny::downloadButton("gmds_download_stage_trace_csv", "Download stage trace CSV"),
               shiny::downloadButton("gmds_download_stage_vertices_csv", "Download selected stage vertices CSV"),
-              shiny::downloadButton("gmds_download_stage_snapshot_html", "Download selected stage snapshot HTML")
+              shiny::downloadButton("gmds_download_stage_snapshot_html", "Download selected stage snapshot HTML"),
+              shiny::downloadButton("gmds_download_stage_figure_png", "Download selected stage PNG"),
+              shiny::downloadButton("gmds_download_stage_figure_pdf", "Download selected stage PDF"),
+              shiny::downloadButton("gmds_download_stage_bundle_zip", "Download paper-ready bundle ZIP")
             )
           )
         )
@@ -1345,6 +1930,24 @@ gripui.gmds.server <- function(catalog) {
         focus_level = current_level(),
         expansion_level = current_expansion_level()
       )
+    })
+
+    current_export_preset <- shiny::reactive({
+      preset <- gripui.family.value_or_default(input$gmds_export_preset, "paper_figure_bundle")
+      choices <- unname(gripui.gmds.export.preset.choices())
+      if (!preset %in% choices) {
+        preset <- choices[[1L]]
+      }
+      preset
+    })
+
+    current_figure_preset <- shiny::reactive({
+      preset <- gripui.family.value_or_default(input$gmds_figure_preset, "paper_panel")
+      choices <- unname(gripui.gmds.figure.preset.choices())
+      if (!preset %in% choices) {
+        preset <- choices[[1L]]
+      }
+      preset
     })
 
     build_bundle <- function(values) {
@@ -1487,6 +2090,34 @@ gripui.gmds.server <- function(catalog) {
       )
     })
 
+    output$gmds_export_preset_control <- shiny::renderUI({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return(NULL)
+      }
+      choices <- gripui.gmds.export.preset.choices()
+      shiny::selectInput(
+        "gmds_export_preset",
+        "Export preset",
+        choices = choices,
+        selected = unname(choices[[1L]])
+      )
+    })
+
+    output$gmds_figure_preset_control <- shiny::renderUI({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return(NULL)
+      }
+      choices <- gripui.gmds.figure.preset.choices()
+      shiny::selectInput(
+        "gmds_figure_preset",
+        "Figure preset",
+        choices = choices,
+        selected = unname(choices[[1L]])
+      )
+    })
+
     output$gmds_render_status <- shiny::renderUI({
       err <- error_state()
       bundle <- bundle_state()
@@ -1549,11 +2180,14 @@ gripui.gmds.server <- function(catalog) {
         widget,
         shiny::tags$p(
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
-          if (is.null(bundle$payload$note) || !nzchar(bundle$payload$note)) {
-            "Reference graph geometry supplied by the selected synthetic family."
-          } else {
-            bundle$payload$note
-          }
+          paste(
+            if (is.null(bundle$payload$note) || !nzchar(bundle$payload$note)) {
+              "Reference graph geometry supplied by the selected synthetic family."
+            } else {
+              bundle$payload$note
+            },
+            gripui.gmds.paper.inline.note(bundle, "reference")
+          )
         )
       )
     })
@@ -1600,7 +2234,10 @@ gripui.gmds.server <- function(catalog) {
         widget,
         shiny::tags$p(
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
-          note
+          paste(
+            note,
+            gripui.gmds.paper.inline.note(bundle, "misf", focus_level = level)
+          )
         )
       )
     })
@@ -1661,7 +2298,8 @@ gripui.gmds.server <- function(catalog) {
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
             gripui.gmds.stage.note(bundle, "seed"),
-            "Inactive vertices stay at their aligned reference positions for context."
+            "Inactive vertices stay at their aligned reference positions for context.",
+            gripui.gmds.paper.inline.note(bundle, "seed", focus_level = payload$level)
           )
         )
       )
@@ -1693,7 +2331,8 @@ gripui.gmds.server <- function(catalog) {
             sprintf(
               "This is the warm-start state used by the top-level %s refinement.",
               bundle$method$refinement_phrase
-            )
+            ),
+            gripui.gmds.paper.inline.note(bundle, "initial_placement", focus_level = payload$level)
           )
         )
       )
@@ -1722,7 +2361,8 @@ gripui.gmds.server <- function(catalog) {
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
             gripui.gmds.stage.note(bundle, "top_level"),
-            "The same active set is shown after objective-specific top-level refinement."
+            "The same active set is shown after objective-specific top-level refinement.",
+            gripui.gmds.paper.inline.note(bundle, "top_level", focus_level = payload$level)
           )
         )
       )
@@ -1785,7 +2425,8 @@ gripui.gmds.server <- function(catalog) {
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
             gripui.gmds.level.stage.note(bundle, "insertion", level, inserted_n = inserted.n),
-            "The highlighted active set is the whole current level after insertion."
+            "The highlighted active set is the whole current level after insertion.",
+            gripui.gmds.paper.inline.note(bundle, "insertion", expansion_level = level)
           )
         )
       )
@@ -1815,7 +2456,8 @@ gripui.gmds.server <- function(catalog) {
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
             gripui.gmds.level.stage.note(bundle, "refinement", level),
-            "The same active set is shown after objective-specific refinement of that level."
+            "The same active set is shown after objective-specific refinement of that level.",
+            gripui.gmds.paper.inline.note(bundle, "refinement", expansion_level = level)
           )
         )
       )
@@ -1849,11 +2491,40 @@ gripui.gmds.server <- function(catalog) {
       gripui.gmds.paper.sync.table()
     }, striped = TRUE, bordered = FALSE, spacing = "s")
 
+    output$gmds_export_context <- shiny::renderTable({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      gripui.gmds.paper.context.table(
+        bundle = bundle,
+        stage_id = current_export_stage(),
+        focus_level = current_level(),
+        expansion_level = current_expansion_level()
+      )
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
     output$gmds_export_summary <- shiny::renderTable({
       payload <- current_export_payload()
       shiny::req(payload)
       gripui.gmds.stage.summary.table(payload)
     }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$gmds_export_note <- shiny::renderText({
+      bundle <- bundle_state()
+      payload <- current_export_payload()
+      shiny::req(bundle, payload)
+      paste(
+        gripui.gmds.paper.note.lines(
+          bundle = bundle,
+          export_payload = payload,
+          stage_id = current_export_stage(),
+          focus_level = current_level(),
+          expansion_level = current_expansion_level(),
+          preset = current_export_preset(),
+          figure_preset = current_figure_preset()
+        ),
+        collapse = "\n"
+      )
+    })
 
     output$gmds_download_stage_trace_csv <- shiny::downloadHandler(
       filename = function() {
@@ -1921,6 +2592,89 @@ gripui.gmds.server <- function(catalog) {
         htmlwidgets::saveWidget(widget, file = file, selfcontained = TRUE)
       }
     )
+
+    output$gmds_download_stage_figure_png <- shiny::downloadHandler(
+      filename = function() {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        sprintf(
+          "gmds_stage_figure_%s_%s_%s.png",
+          gripui.gmds.export.stage.slug(payload$label),
+          gripui.family.value_or_default(input$gmds_method, "method"),
+          current_figure_preset()
+        )
+      },
+      content = function(file) {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        gripui.gmds.write.static.figure(
+          export_payload = payload,
+          png_path = file,
+          figure_preset = current_figure_preset()
+        )
+      }
+    )
+
+    output$gmds_download_stage_figure_pdf <- shiny::downloadHandler(
+      filename = function() {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        sprintf(
+          "gmds_stage_figure_%s_%s_%s.pdf",
+          gripui.gmds.export.stage.slug(payload$label),
+          gripui.family.value_or_default(input$gmds_method, "method"),
+          current_figure_preset()
+        )
+      },
+      content = function(file) {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        gripui.gmds.write.static.figure(
+          export_payload = payload,
+          pdf_path = file,
+          figure_preset = current_figure_preset()
+        )
+      }
+    )
+
+    output$gmds_download_stage_bundle_zip <- shiny::downloadHandler(
+      filename = function() {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        sprintf(
+          "gmds_%s_%s_%s.zip",
+          gripui.gmds.export.stage.slug(payload$label),
+          gripui.family.value_or_default(input$gmds_method, "method"),
+          current_export_preset()
+        )
+      },
+      content = function(file) {
+        bundle <- bundle_state()
+        payload <- current_export_payload()
+        shiny::req(bundle, payload)
+        tmp.dir <- tempfile("gmds-export-")
+        dir.create(tmp.dir, recursive = TRUE, showWarnings = FALSE)
+        on.exit(unlink(tmp.dir, recursive = TRUE, force = TRUE), add = TRUE)
+        files <- gripui.gmds.write.export.bundle(
+          bundle = bundle,
+          export_payload = payload,
+          stage_id = current_export_stage(),
+          focus_level = current_level(),
+          expansion_level = current_expansion_level(),
+          preset = current_export_preset(),
+          figure_preset = current_figure_preset(),
+          dir = tmp.dir
+        )
+        old.wd <- getwd()
+        on.exit(setwd(old.wd), add = TRUE)
+        setwd(tmp.dir)
+        utils::zip(
+          zipfile = file,
+          files = basename(files),
+          flags = "-r9Xq"
+        )
+      }
+    )
   }
 }
 
@@ -1932,8 +2686,8 @@ gripui.gmds.server <- function(catalog) {
 #' through 5: graph and geometry inspection, visualization of the MIS
 #' filtration, explicit seed and initial-placement panels, per-level insertion
 #' and refinement panels, method switching across canonical
-#' GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and initial
-#' export/paper-synchronization helpers.
+#' GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and paper-ready
+#' export/paper-synchronization helpers including static PNG/PDF figure presets.
 #'
 #' @param catalog Family catalog, usually [gripui_graph_family_catalog()].
 #' @param title Application title.
@@ -1947,7 +2701,7 @@ gripui.gmds.server <- function(catalog) {
 #' inherits(app, "shiny.appobj")
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces.") {
+                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and paper-ready export/paper sync with static PNG/PDF figure presets across canonical GRIP/GMDS/GKK/LGKK stage traces.") {
   catalog <- gripui.gmds.default.catalog(catalog)
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -1977,7 +2731,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces.",
+                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and paper-ready export/paper sync with static PNG/PDF figure presets across canonical GRIP/GMDS/GKK/LGKK stage traces.",
                             host = "127.0.0.1",
                             port = getOption("shiny.port"),
                             launch.browser = interactive(),
