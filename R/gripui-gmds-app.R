@@ -176,6 +176,66 @@ gripui.gmds.stage.payload <- function(bundle, state) {
   bundle$stage_payloads[[state]]
 }
 
+gripui.gmds.level.stage.payload <- function(bundle, stage, level) {
+  if (is.null(bundle) || is.null(bundle$fit)) {
+    return(NULL)
+  }
+  record <- grip.geodesic.misf.trace.stage.lookup(bundle$fit, stage = stage, level = as.integer(level))
+  if (is.null(record)) {
+    return(NULL)
+  }
+  coords.full <- if (is.null(record$coords_full)) NULL else as.matrix(record$coords_full)
+  if (is.null(coords.full)) {
+    display.coords <- NULL
+    rmse <- NA_real_
+  } else {
+    aligned <- grip.geodesic.misf.align.partial.to.target(
+      coords = coords.full,
+      target = bundle$payload$coords_display,
+      allow_reflection = TRUE
+    )
+    display.coords <- aligned$aligned
+    rmse <- aligned$rmse
+  }
+  list(
+    state = stage,
+    stage = record$stage,
+    stage_key = record$stage_key,
+    label = record$label,
+    level = as.integer(record$level),
+    active_vertices = as.integer(record$active_vertices),
+    inserted_vertices = as.integer(record$inserted_vertices),
+    active_edges = grip.geodesic.misf.filter.edge.matrix(bundle$prepared$edges, record$active_vertices),
+    coords = coords.full,
+    display_coords = display.coords,
+    pair_mode = record$pair_mode,
+    rmse = rmse,
+    summary = record$summary
+  )
+}
+
+gripui.gmds.expansion.levels <- function(bundle) {
+  if (is.null(bundle) || is.null(bundle$stage_data) || !length(bundle$stage_data)) {
+    return(integer())
+  }
+  insertion.levels <- unique(vapply(Filter(function(record) {
+    identical(record$stage, "insertion")
+  }, bundle$stage_data), function(record) as.integer(record$level), integer(1L)))
+  refinement.levels <- unique(vapply(Filter(function(record) {
+    identical(record$stage, "refinement")
+  }, bundle$stage_data), function(record) as.integer(record$level), integer(1L)))
+  levels <- intersect(insertion.levels, refinement.levels)
+  sort(levels, decreasing = TRUE)
+}
+
+gripui.gmds.expansion.level.choices <- function(bundle) {
+  levels <- gripui.gmds.expansion.levels(bundle)
+  if (!length(levels)) {
+    return(stats::setNames(character(), character()))
+  }
+  stats::setNames(as.character(levels), sprintf("V_%d", levels))
+}
+
 gripui.gmds.stage.metric.value <- function(x, digits = 4L) {
   if (length(x) != 1L || !is.finite(x)) {
     return("")
@@ -228,6 +288,35 @@ gripui.gmds.stage.note <- function(bundle, state) {
   )
 }
 
+gripui.gmds.level.stage.note <- function(stage, level, inserted_n = NULL) {
+  stage <- match.arg(stage, c("insertion", "refinement"))
+  level <- as.integer(level)
+  scaffold.level <- level + 1L
+  switch(
+    stage,
+    insertion = if (!is.null(inserted_n) && is.finite(inserted_n)) {
+      sprintf(
+        "This panel shows the expansion from V_%d to V_%d. %d newly activated vertices were inserted into the scaffold inherited from V_%d.",
+        scaffold.level,
+        level,
+        as.integer(inserted_n),
+        scaffold.level
+      )
+    } else {
+      sprintf(
+        "This panel shows the expansion from V_%d to V_%d using the scaffold inherited from V_%d.",
+        scaffold.level,
+        level,
+        scaffold.level
+      )
+    },
+    refinement = sprintf(
+      "This panel shows the sparse active-level GMDS refinement on V_%d after insertion of that level.",
+      level
+    )
+  )
+}
+
 gripui.gmds.stage.summary.table <- function(payload) {
   if (is.null(payload)) {
     return(data.frame())
@@ -240,6 +329,7 @@ gripui.gmds.stage.summary.table <- function(payload) {
     label = payload$label,
     level = sprintf("V_%d", payload$level),
     active_vertices = length(payload$active_vertices),
+    inserted_vertices = if (length(payload$inserted_vertices)) length(payload$inserted_vertices) else if (!is.null(summary$inserted_n) && is.finite(summary$inserted_n)) as.integer(summary$inserted_n) else "",
     pair_mode = gripui.family.value_or_default(payload$pair_mode, ""),
     rmse = gripui.gmds.stage.metric.value(payload$rmse, 4L),
     pair_constraints = if (!is.null(summary$pair_n) && is.finite(summary$pair_n)) as.integer(summary$pair_n) else "",
@@ -516,6 +606,7 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
       shiny::sliderInput("gmds_background_alpha", "Background vertex opacity", min = 0.05, max = 1, value = 0.35, step = 0.05),
       shiny::sliderInput("gmds_edge_alpha", "Edge opacity", min = 0.05, max = 1, value = 0.20, step = 0.05),
       shiny::uiOutput("gmds_level_control"),
+      shiny::uiOutput("gmds_expansion_level_control"),
       shiny::actionButton("render_gmds_case", "Render GMDS stages", class = "btn-primary"),
       shiny::uiOutput("gmds_render_status")
     ),
@@ -615,6 +706,39 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
         )
       ),
       bslib::accordion_panel(
+        "Stage 3: Per-Level Insertion and Refinement",
+        bslib::layout_columns(
+          col_widths = c(6, 6),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header(shiny::uiOutput("gmds_insertion_title")),
+            shiny::uiOutput("gmds_insertion_view")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header(shiny::uiOutput("gmds_refinement_title")),
+            shiny::uiOutput("gmds_refinement_view")
+          )
+        ),
+        bslib::layout_columns(
+          col_widths = c(6, 6),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Insertion summary"),
+            shiny::tableOutput("gmds_insertion_summary")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Refinement summary"),
+            shiny::tableOutput("gmds_refinement_summary")
+          )
+        )
+      ),
+      bslib::accordion_panel(
         "Canonical Trace Summary",
         bslib::layout_columns(
           col_widths = c(7, 5),
@@ -657,6 +781,22 @@ gripui.gmds.server <- function(catalog) {
       selected
     })
 
+    current_expansion_level <- shiny::reactive({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return(0L)
+      }
+      available <- gripui.gmds.expansion.levels(bundle)
+      if (!length(available)) {
+        return(bundle$prepared$top_level_level)
+      }
+      selected <- suppressWarnings(as.integer(input$gmds_expansion_level))
+      if (!length(selected) || !is.finite(selected) || !selected %in% available) {
+        return(available[[1L]])
+      }
+      selected
+    })
+
     build_bundle <- function(values) {
       desc <- current_desc()
       result <- tryCatch(
@@ -688,6 +828,15 @@ gripui.gmds.server <- function(catalog) {
         choices = gripui.gmds.level.choices(result$prepared),
         selected = as.character(result$prepared$top_level_level)
       )
+      expansion.choices <- gripui.gmds.expansion.level.choices(result)
+      if (length(expansion.choices)) {
+        shiny::updateSelectInput(
+          session,
+          "gmds_expansion_level",
+          choices = expansion.choices,
+          selected = unname(expansion.choices[[1L]])
+        )
+      }
       invisible(result)
     }
 
@@ -753,6 +902,23 @@ gripui.gmds.server <- function(catalog) {
         "Focus filtration level",
         choices = gripui.gmds.level.choices(bundle$prepared),
         selected = as.character(bundle$prepared$top_level_level)
+      )
+    })
+
+    output$gmds_expansion_level_control <- shiny::renderUI({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return(NULL)
+      }
+      choices <- gripui.gmds.expansion.level.choices(bundle)
+      if (!length(choices)) {
+        return(NULL)
+      }
+      shiny::selectInput(
+        "gmds_expansion_level",
+        "Expansion/refinement level",
+        choices = choices,
+        selected = unname(choices[[1L]])
       )
     })
 
@@ -1010,6 +1176,93 @@ gripui.gmds.server <- function(catalog) {
       gripui.gmds.stage.summary.table(gripui.gmds.stage.payload(bundle, "top_level"))
     }, striped = TRUE, bordered = FALSE, spacing = "s")
 
+    output$gmds_insertion_title <- shiny::renderUI({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      payload <- gripui.gmds.level.stage.payload(bundle, "insertion", current_expansion_level())
+      shiny::tags$span(gripui.family.value_or_default(if (!is.null(payload)) payload$label else NULL, sprintf("Insertion of V_%d", current_expansion_level())))
+    })
+
+    output$gmds_refinement_title <- shiny::renderUI({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      payload <- gripui.gmds.level.stage.payload(bundle, "refinement", current_expansion_level())
+      shiny::tags$span(gripui.family.value_or_default(if (!is.null(payload)) payload$label else NULL, sprintf("Refinement of V_%d", current_expansion_level())))
+    })
+
+    output$gmds_insertion_view <- shiny::renderUI({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      level <- current_expansion_level()
+      payload <- gripui.gmds.level.stage.payload(bundle, "insertion", level)
+      shiny::req(payload)
+      coords <- gripui.gmds.stage.display.coords(bundle, payload, fill_reference = TRUE)
+      widget <- gripui.gmds.render.widget(
+        coords = coords,
+        edges = bundle$payload$edges,
+        vertex_colors = rep("#1f3b73", nrow(coords)),
+        vertex_alpha = as.numeric(input$gmds_vertex_alpha),
+        edge_alpha = as.numeric(input$gmds_edge_alpha),
+        highlight_vertices = payload$active_vertices,
+        base_size = 5,
+        highlight_size = 9,
+        background_alpha = as.numeric(input$gmds_background_alpha)
+      )
+      inserted.n <- if (length(payload$inserted_vertices)) length(payload$inserted_vertices) else payload$summary$inserted_n
+      shiny::tagList(
+        widget,
+        shiny::tags$p(
+          style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
+          paste(
+            gripui.gmds.level.stage.note("insertion", level, inserted_n = inserted.n),
+            "The highlighted active set is the whole current level after insertion."
+          )
+        )
+      )
+    })
+
+    output$gmds_refinement_view <- shiny::renderUI({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      level <- current_expansion_level()
+      payload <- gripui.gmds.level.stage.payload(bundle, "refinement", level)
+      shiny::req(payload)
+      coords <- gripui.gmds.stage.display.coords(bundle, payload, fill_reference = TRUE)
+      widget <- gripui.gmds.render.widget(
+        coords = coords,
+        edges = bundle$payload$edges,
+        vertex_colors = rep("#206a5d", nrow(coords)),
+        vertex_alpha = as.numeric(input$gmds_vertex_alpha),
+        edge_alpha = as.numeric(input$gmds_edge_alpha),
+        highlight_vertices = payload$active_vertices,
+        base_size = 5,
+        highlight_size = 9,
+        background_alpha = as.numeric(input$gmds_background_alpha)
+      )
+      shiny::tagList(
+        widget,
+        shiny::tags$p(
+          style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
+          paste(
+            gripui.gmds.level.stage.note("refinement", level),
+            "The same active set is shown after sparse refinement of that level."
+          )
+        )
+      )
+    })
+
+    output$gmds_insertion_summary <- shiny::renderTable({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      gripui.gmds.stage.summary.table(gripui.gmds.level.stage.payload(bundle, "insertion", current_expansion_level()))
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$gmds_refinement_summary <- shiny::renderTable({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      gripui.gmds.stage.summary.table(gripui.gmds.level.stage.payload(bundle, "refinement", current_expansion_level()))
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
     output$gmds_stage_trace <- shiny::renderTable({
       bundle <- bundle_state()
       shiny::req(bundle)
@@ -1028,10 +1281,11 @@ gripui.gmds.server <- function(catalog) {
 #'
 #' The GMDS stage explorer reuses the synthetic family catalog from
 #' [gripui_family_app()] and computes a canonical MISF-GMDS bundle for the
-#' selected graph. The current implementation covers Milestones 1 and 2:
+#' selected graph. The current implementation covers Milestones 1 through 3:
 #' graph and geometry inspection, visualization of the MIS filtration,
-#' explicit seed and initial-placement panels, and a canonical stage-trace
-#' summary that later panels will extend.
+#' explicit seed and initial-placement panels, per-level insertion and
+#' refinement panels, and a canonical stage-trace summary that later panels
+#' will extend.
 #'
 #' @param catalog Family catalog, usually [gripui_graph_family_catalog()].
 #' @param title Application title.
@@ -1045,7 +1299,7 @@ gripui.gmds.server <- function(catalog) {
 #' inherits(app, "shiny.appobj")
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-2: graph and geometry selection, MIS filtration, seed selection, and canonical MISF-GMDS stage traces.") {
+                            subtitle = "Milestones 1-3: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and canonical MISF-GMDS stage traces.") {
   catalog <- gripui.gmds.default.catalog(catalog)
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -1075,7 +1329,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-2: graph and geometry selection, MIS filtration, seed selection, and canonical MISF-GMDS stage traces.",
+                            subtitle = "Milestones 1-3: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and canonical MISF-GMDS stage traces.",
                             host = "127.0.0.1",
                             port = getOption("shiny.port"),
                             launch.browser = interactive(),

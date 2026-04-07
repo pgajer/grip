@@ -36,6 +36,17 @@ test_that("GMDS app bundle builds a canonical MISF trace bundle", {
   expect_true(length(bundle$stage_payloads$seed$active_vertices) >= 3L)
   expect_equal(bundle$stage_payloads$initial_placement$level, bundle$prepared$top_level_level)
   expect_equal(bundle$stage_payloads$top_level$level, bundle$prepared$top_level_level)
+
+  expansion_levels <- getFromNamespace("gripui.gmds.expansion.levels", "grip")(bundle)
+  expect_true(length(expansion_levels) >= 1L)
+
+  level_stage_payload <- getFromNamespace("gripui.gmds.level.stage.payload", "grip")
+  insertion_payload <- level_stage_payload(bundle, "insertion", expansion_levels[[1L]])
+  refinement_payload <- level_stage_payload(bundle, "refinement", expansion_levels[[1L]])
+  expect_false(is.null(insertion_payload))
+  expect_false(is.null(refinement_payload))
+  expect_equal(insertion_payload$level, expansion_levels[[1L]])
+  expect_equal(refinement_payload$level, expansion_levels[[1L]])
 })
 
 test_that("GMDS stage explorer app builds", {

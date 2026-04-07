@@ -493,6 +493,7 @@ grip.geodesic.misf.trace.stage.payloads <- function(x,
       label = record$label,
       level = as.integer(record$level),
       active_vertices = as.integer(record$active_vertices),
+      inserted_vertices = as.integer(record$inserted_vertices),
       active_edges = if (!is.null(prepared) && !is.null(prepared$edges)) {
         grip.geodesic.misf.filter.edge.matrix(prepared$edges, record$active_vertices)
       } else {
