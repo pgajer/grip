@@ -1178,6 +1178,13 @@ replace the force-directed objective at each scale by the geodesic objective
 developed above.  The resulting method is still a fixed-geodesic GMDS method:
 the fidelity term remains \cref{eq:raw_geo_stress}, but the initialization and
 the subsequent optimization are carried out in a coarse-to-fine manner.
+For both exposition and implementation, it is helpful to separate this
+multiscale method into an explicit stage sequence:
+filtration; coarsest-level seed selection; initial embedding of that seed;
+expansion of the seed to all of $V_L$; repeated expansion and refinement on the
+lower levels $V_{L-1},\dots,V_0$; and an optional final full-graph polish.
+We describe the method in that order because it is also the clearest way to
+compare original GRIP, geodesic-KK/LGKK, and GMDS.
 
 \subsubsection*{Filtration}
 Given a connected weighted graph $G=(V,E,w)$, a MIS filtration is a nested
@@ -1227,16 +1234,17 @@ the underlying $2$D mesh geometry.
   \label{fig:misf_filtration_cases}
 \end{figure}
 
-\subsubsection*{Initial placement and refinement of $V_\ell$}
-The GRIP papers organize the multiscale algorithm after the filtration stage
-into two repeated substeps: an \emph{initial placement} of the active set
-$V_\ell$, followed by a \emph{refinement} of that same level. Starting from the
-coarsest set $V_L$ and descending through $V_{L-1}, \dots, V_0$, one first
-constructs an embedding of $V_\ell$ that reuses the already placed scaffold
-$V_{\ell+1}$, and then improves that embedding by a local objective on $V_\ell$.
-We follow this same schedule here because it is the natural place to compare the
-original GRIP refinement with its geodesic-KK (GKK), landmark-geodesic-KK
-(LGKK), and GMDS replacements.
+\subsubsection*{Coarsest seed, expansion, and refinement}
+After the filtration stage, the GRIP papers proceed by an
+\emph{initial placement} of the active set $V_\ell$ followed by a
+\emph{refinement} of that same level.  For the present GMDS discussion it is
+useful to unfold that description into a more explicit progression.
+At the coarsest level one must first choose and embed a small seed inside
+$V_L$; that seed is then expanded to an embedding of all of $V_L$; and only
+after that expansion is the active set refined by an objective-specific KK,
+GKK/LGKK, or GMDS optimization.  Once $V_L$ has been treated in this way, the
+same expansion/refinement pattern is repeated while descending through
+$V_{L-1},\dots,V_0$.
 
 At the top level $V_L$ there is no inherited scaffold.  In the original GRIP
 papers, the $2$D case is handled by modifying the last one or two filtration
@@ -1258,25 +1266,39 @@ This gives the initial coarse drawing from which the same add-and-refine cycle
 then proceeds down the filtration.
 
 The current geodesic implementation keeps that logic but generalizes it to an
-embedding in $\R^d$.  On the induced coarse graph over $V_L$ we first choose a
-spread seed set
+embedding in $\R^d$.  The first stage at the top level is the choice of a seed
+set
 $S_L = \{s_0,\dots,s_q\} \subseteq V_L$, where
-$q+1 = \min\{\lvert V_L\rvert, d+1\}$, by starting from a diameter pair and
-repeatedly adding the vertex whose minimum graph distance to the already chosen
-seed is maximal.  When $\lvert S_L\rvert \le 3$, the implementation uses the
-exact degenerate placements just described: one point at the origin, two points
-on a line, and three points as a triangle in the first two coordinates.  When
-the seed has four vertices in $3$D, or more generally when the selected seed
-distances do not admit an exact realization in the target dimension, the
-current \texttt{grip} implementation realizes that seed by classical MDS on the
-restricted seed distance matrix and pads unused coordinates by zero.  The
-remaining vertices of
-$V_L \setminus S_L$ are then inserted one at a time using the same weighted
-trilateration functional used at lower levels, but with anchors drawn from the
-already placed subset of $V_L$.  Thus the top row of
-\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
-should be read as a coarse-level initial placement followed by an
-objective-specific refinement of that same active set.
+$q+1 = \min\{\lvert V_L\rvert, d+1\}$.  The purpose of this seed is not merely
+to be geodesically spread out, but to provide a nondegenerate coarse scaffold
+whenever the metric on $V_L$ admits one.  The current \texttt{grip}
+implementation therefore begins with farthest-point spread candidates and,
+whenever $\lvert V_L\rvert$ is small enough for an exhaustive search to be
+practical, prefers a seed whose restricted distance matrix has the largest
+classical-MDS rank in the target dimension $d$, using spread only as a
+secondary criterion.  In this way the coarsest seed is chosen to be as
+full-dimensional as the coarse geodesic metric allows.
+
+The second stage is the initial embedding of that seed.  When
+$\lvert S_L\rvert \le 3$, the implementation uses the exact degenerate
+placements already described: one point at the origin, two points on a line,
+and three points as a triangle in the first two coordinates, with any remaining
+coordinates in $\R^d$ set to zero.  When the selected seed distances do not
+admit an exact realization in the target dimension, the current
+\texttt{grip} implementation embeds the restricted seed metric by classical MDS
+in $\R^d$.  This is the direct higher-dimensional analogue of the GRIP triangle
+placement step.
+
+The third stage is the expansion of the seed to all of $V_L$.  The remaining
+vertices of $V_L \setminus S_L$ are inserted one at a time using the same
+weighted trilateration functional used at lower levels, but with anchors drawn
+from the already placed subset of $V_L$.  Thus the top-level initial placement
+is not a single monolithic solve: it is a seed-selection step, then a seed
+embedding step, and then an insertion stage that grows that seed to the full
+coarse active set.  In the stage figures below, the top-level ``initial'' panel
+should be read as the result of this seed-plus-expansion stage, while the
+coarsest ``refinement'' panel is the first objective-specific KK, GKK/LGKK, or
+GMDS optimization on that active set.
 
 For a finer level $V_\ell$ with $\ell < L$, the vertices of $V_{\ell+1}$ keep
 their current positions and only the new vertices
@@ -1300,7 +1322,11 @@ This is a small weighted nonlinear least-squares problem and can be viewed as
 geodesic trilateration.  In the current defaults the anchors are drawn from the
 immediately preceding MISF level, chosen to be both graph-near and
 well-spread, and the weights are inverse-square in the graph distance.  The
-middle panels of the lower rows of
+vertices are inserted one at a time to create an initial embedding of the whole
+active level $V_\ell$.  In the present geodesic wrappers this insertion stage
+is completed for all new vertices before the level-refinement optimizer is run;
+the refinement is therefore a separate stage rather than a micro-update applied
+immediately after each single insertion.  The middle panels of the lower rows of
 \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
 show these initial placements before any level refinement.  The code also
 allows layout-based warm starts (\texttt{kk}, \texttt{weighted\_kk},
@@ -1388,6 +1414,9 @@ geodesic-KK/LGKK or GMDS fidelity terms.  The right panels of
 show the corresponding refinements, and after the cycle reaches $V_0$ the
 current GMDS implementation applies a short final full-graph pure-GMDS polish,
 while the GKK/LGKK path applies a final full-graph geodesic-KK polish.
+This final polish is the last stage of the present multiscale schedule: once
+all MISF levels have been opened and refined, the full graph is optimized one
+more time without further changes to the filtration.
 
 \subsubsection*{Current \texttt{grip} implementation}
 The present package realizes this hierarchy in a fairly literal way.  Original

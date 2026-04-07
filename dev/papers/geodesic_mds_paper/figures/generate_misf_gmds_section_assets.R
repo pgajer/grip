@@ -258,9 +258,50 @@ build_stage_rows <- function(case, fit) {
     active_edges <- filter_edges_to_vertices(case$bundle$edges, active_vertices)
     ref_align <- align_stage_to_active_reference(NULL, truth, active_vertices)
 
+    geometric_seed <- NULL
+    coarse_initial <- NULL
+
     if (identical(level, prepared$top_level_level)) {
       init_frame <- fit$frames$after_top_level
       init_label <- "Top-level GMDS solve"
+      top_init <- fit$top_level_fit$initial_placement
+      if (!is.null(top_init) && !is.null(top_init$coords) && !is.null(top_init$vertex_ids)) {
+        top_init_full <- matrix(NA_real_, nrow = nrow(truth), ncol = ncol(truth))
+        top_init_full[as.integer(top_init$vertex_ids), ] <- as.matrix(top_init$coords)
+        top_init_align <- align_stage_to_active_reference(
+          stage_coords = top_init_full,
+          truth_coords = truth,
+          active_vertices = active_vertices
+        )
+        coarse_initial <- list(
+          label = sprintf("Initial placement of V_%d", level),
+          caption = sprintf("|V_%d| = %d, rho = %s", level, length(active_vertices), fmt_num(top_init_align$rmse, 4L)),
+          coords_active = top_init_align$aligned_active,
+          coords_full = top_init_align$target_full,
+          rmse = top_init_align$rmse
+        )
+
+        if (!is.null(top_init$seed_vertices) && length(top_init$seed_vertices) > 0L) {
+          seed_vertices <- as.integer(top_init$seed_vertices)
+          seed_full <- matrix(NA_real_, nrow = nrow(truth), ncol = ncol(truth))
+          seed_local <- match(seed_vertices, as.integer(top_init$vertex_ids))
+          seed_full[seed_vertices, ] <- as.matrix(top_init$coords[seed_local, , drop = FALSE])
+          seed_align <- align_stage_to_active_reference(
+            stage_coords = seed_full,
+            truth_coords = truth,
+            active_vertices = seed_vertices
+          )
+          geometric_seed <- list(
+            label = sprintf("Geometric seed S_%d", level),
+            caption = sprintf("|S_%d| = %d, rho = %s", level, length(seed_vertices), fmt_num(seed_align$rmse, 4L)),
+            coords_active = seed_align$aligned_active,
+            coords_full = seed_align$target_full,
+            rmse = seed_align$rmse,
+            active_vertices = seed_vertices,
+            active_edges = matrix(integer(), ncol = 2L)
+          )
+        }
+      }
     } else {
       init_frame <- fit$frames$insertion_levels[[paste0("level_", level)]]
       init_label <- sprintf("Insertion of V_%d", level)
@@ -281,6 +322,8 @@ build_stage_rows <- function(case, fit) {
         coords_full = ref_align$target_full,
         rmse = 0
       ),
+      geometric_seed = geometric_seed,
+      coarse_initial = coarse_initial,
       initial = list(
         label = init_label,
         caption = sprintf("|V_%d| = %d, rho = %s", level, length(active_vertices), fmt_num(init_align$rmse, 4L)),
@@ -677,6 +720,30 @@ save_interactive_html <- function(case_results, output_html) {
         ),
         note = active_reference_note(case_result$case)
       )
+      if (!is.null(row$geometric_seed)) {
+        cards[[length(cards) + 1L]] <- card_div(
+          title_text = sprintf("%s\n%s", row$geometric_seed$label, row$geometric_seed$caption),
+          widget = make_widget(
+            stage = row$geometric_seed,
+            active_edges = row$geometric_seed$active_edges,
+            full_edges = full_edges,
+            stage_type = "initial"
+          ),
+          note = "The spread d+1 seed placed first on the coarsest MISF level before inserting the remaining coarse vertices."
+        )
+      }
+      if (!is.null(row$coarse_initial)) {
+        cards[[length(cards) + 1L]] <- card_div(
+          title_text = sprintf("%s\n%s", row$coarse_initial$label, row$coarse_initial$caption),
+          widget = make_widget(
+            stage = row$coarse_initial,
+            active_edges = row$active_edges,
+            full_edges = full_edges,
+            stage_type = "initial"
+          ),
+          note = "All coarsest-level vertices after geometric seed placement and anchor-based insertion, before the pure-GMDS top-level solve."
+        )
+      }
       cards[[length(cards) + 1L]] <- card_div(
         title_text = sprintf("%s\n%s", row$initial$label, row$initial$caption),
         widget = make_widget(
@@ -686,7 +753,7 @@ save_interactive_html <- function(case_results, output_html) {
           stage_type = "initial"
         ),
         note = if (identical(row$level, case_result$fit$prepared$top_level_level)) {
-          "Coarsest MISF level after the restartable pure-GMDS solve."
+          "Coarsest MISF level after the restartable pure-GMDS solve that starts from the geometric initialization shown above."
         } else {
           "Active-set embedding immediately after geodesic anchor insertion of this level."
         }

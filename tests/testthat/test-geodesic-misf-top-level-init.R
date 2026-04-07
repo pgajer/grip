@@ -109,3 +109,36 @@ test_that("GMDS and GKK top-level solvers retain geometric initialization metada
     min(3L, length(prepared.gkk$top_level_vertices))
   )
 })
+
+test_that("3D geometric coarse seed prefers a full-rank top-level seed when available", {
+  bundle <- mesh.surface.graph(
+    12, 12,
+    surface = "paraboloid",
+    amplitude = 0.35,
+    connectivity = "orthogonal",
+    normalize = "median"
+  )
+  prepared <- grip.prepare.misf.geodesic.mds(
+    edges = bundle$edges,
+    n = bundle$n,
+    edge_weights = bundle$edge_weights,
+    tie_mode = "average",
+    dim = 3L,
+    top_level_mode = "skip",
+    seed = 12L
+  )
+  init <- grip:::grip.geodesic.misf.build.geometric.seed.coords(
+    distance_matrix = prepared$top_level_graph$distance_matrix,
+    dim = 3L,
+    vertex_ids = prepared$top_level_vertices,
+    insertion_order = prepared$insertion_order[prepared$insertion_order %in% prepared$top_level_vertices],
+    anchor_count = prepared$insertion_anchor_count,
+    anchor_weight_mode = prepared$insertion_anchor_weight_mode
+  )
+
+  seed.local <- match(init$seed_vertices, init$vertex_ids)
+  seed.coords <- init$coords[seed.local, , drop = FALSE]
+  expect_equal(length(init$seed_vertices), 4L)
+  expect_true(qr(scale(seed.coords, scale = FALSE))$rank == 3L)
+  expect_true(qr(scale(init$coords, scale = FALSE))$rank == 3L)
+})
