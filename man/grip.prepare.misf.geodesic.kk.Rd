@@ -48,7 +48,7 @@ grip.prepare.misf.geodesic.kk(
 \item{dim}{Target embedding dimension (`2` or `3`) for the multiscale solve.}
 
 \item{top_level_mode}{Either `"solve"` or `"skip"`. When set to `"solve"`,
-the top MISF level is optimized immediately and stored in
+the coarsest admissible MISF level is optimized immediately and stored in
 `prepared$top_level_fit`.}
 
 \item{top_level_pair_mode}{Pair policy for the top MISF level: `"auto"`,
@@ -83,9 +83,9 @@ An object of class `"grip_misf_gkk_prepared"` layered on top of the
 `grip.prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
 geodesic-KK pipeline by layering the maximal independent set filtration
 (MISF) on top of the existing full geodesic-KK cache. The prepared object
-stores the graph metadata, the top-level coarse graph, the exact and sparse
-top-level prepared caches, and the default controls used by the multiscale
-MISF-GKK optimizer.
+stores the graph metadata, the coarsest admissible top-level graph, the
+exact and sparse top-level prepared caches, and the default controls used by
+the multiscale MISF-GKK optimizer.
 }
 \examples{
 edges <- edges.mesh(4, 4)

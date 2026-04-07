@@ -76,8 +76,8 @@ dimension stored in `prepared` when available.}
 \item{top_level_init}{Initializer used for the coarse-level placement before
 pure-GMDS refinement.}
 
-\item{top_level_restarts}{Number of random restarts used by the coarse
-top-level pure-GMDS solve.}
+\item{top_level_restarts}{Number of coarse-level restarts used by the
+top-level pure-GMDS refinement.}
 
 \item{top_level_max_iter}{Maximum number of top-level pure-GMDS iterations
 per restart.}
@@ -166,10 +166,10 @@ A list of class `"grip_misf_gmds_fit"` containing the final
 \description{
 `grip.optimize.misf.geodesic.mds()` runs the experimental multiscale GMDS
 pipeline built on top of GRIP's maximal independent set filtration (MISF).
-It solves the coarsest MISF level with pure GMDS, inserts successive levels
-either by geodesic anchor trilateration or by layout-based active-level warm
-starts, refines each active level with sparse pure GMDS, and finishes with a
-short full-graph pure-GMDS polish.
+It solves the coarsest admissible MISF level with pure GMDS, inserts
+successive levels either by geodesic anchor trilateration or by layout-based
+active-level warm starts, refines each active level with sparse pure GMDS,
+and finishes with a short full-graph pure-GMDS polish.
 }
 \details{
 The function accepts either a graph-first GMDS prepared object from
