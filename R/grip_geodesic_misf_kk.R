@@ -1339,9 +1339,9 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #' `grip.prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
 #' geodesic-KK pipeline by layering the maximal independent set filtration
 #' (MISF) on top of the existing full geodesic-KK cache. The prepared object
-#' stores the graph metadata, the top-level coarse graph, the exact and sparse
-#' top-level prepared caches, and the default controls used by the multiscale
-#' MISF-GKK optimizer.
+#' stores the graph metadata, the coarsest admissible top-level graph, the
+#' exact and sparse top-level prepared caches, and the default controls used by
+#' the multiscale MISF-GKK optimizer.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with `adj_list`, defaults to
@@ -1356,7 +1356,7 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #'   `grip.build.misf`.
 #' @param dim Target embedding dimension (`2` or `3`) for the multiscale solve.
 #' @param top_level_mode Either `"solve"` or `"skip"`. When set to `"solve"`,
-#'   the top MISF level is optimized immediately and stored in
+#'   the coarsest admissible MISF level is optimized immediately and stored in
 #'   `prepared$top_level_fit`.
 #' @param top_level_pair_mode Pair policy for the top MISF level: `"auto"`,
 #'   `"full"`, or `"landmark"`.
@@ -1447,14 +1447,16 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
     num_nbrs = num_nbrs,
     seed = seed
   )
-  top_level_index <- length(misf$levels)
-  top_level_id <- as.integer(top_level_index - 1L)
-  top_level_vertices <- as.integer(misf$levels[[top_level_index]])
-  top_level_graph <- grip.geodesic.misf.induced_level_graph(
+  top.level.selection <- grip.geodesic.misf.resolve.top.level(
     prepared = prepared,
-    vertex_ids = top_level_vertices,
-    level = top_level_id
+    misf = misf,
+    dim = dim,
+    tie_mode = tie_mode
   )
+  top_level_index <- top.level.selection$level_index
+  top_level_id <- top.level.selection$level
+  top_level_vertices <- top.level.selection$vertices
+  top_level_graph <- top.level.selection$graph
   top_level_resolution <- grip.geodesic.misf.kk.resolve.pair.mode(
     pair_mode = top_level_pair_mode,
     active_n = top_level_graph$n,
@@ -1478,10 +1480,17 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
   prepared$level_vertices <- misf$levels
   prepared$active_levels <- misf$levels
   prepared$insertion_order <- misf$mish_order
+  prepared$coarsest_level_index <- length(misf$levels)
+  prepared$coarsest_level_level <- as.integer(length(misf$levels) - 1L)
   prepared$top_level_index <- top_level_index
   prepared$top_level_level <- top_level_id
   prepared$top_level_vertices <- top_level_vertices
   prepared$top_level_graph <- top_level_graph
+  prepared$top_level_min_required_size <- top.level.selection$min_required_size
+  prepared$top_level_selection_reason <- top.level.selection$selection_reason
+  prepared$top_level_seed_vertices <- top.level.selection$seed_vertices
+  prepared$top_level_seed_positive_rank <- top.level.selection$seed_positive_rank
+  prepared$top_level_seed_required_rank <- top.level.selection$seed_required_rank
   prepared$top_level_pair_mode <- top_level_resolution$requested
   prepared$top_level_effective_pair_mode <- top_level_resolution$effective
   prepared$top_level_full_limit <- top_level_resolution$full_limit

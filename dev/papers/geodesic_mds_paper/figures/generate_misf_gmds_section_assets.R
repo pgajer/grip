@@ -43,6 +43,37 @@ fmt_num <- function(x, digits = 4L) {
   ifelse(is.finite(x), formatC(x, format = "f", digits = digits), "NA")
 }
 
+build_case_lead <- function(prepared) {
+  level_sizes <- rev(vapply(prepared$misf$levels, length, integer(1L)))
+  level_text <- paste(level_sizes, collapse = " \u2192 ")
+  required_size <- prepared$top_level_min_required_size
+  if (length(required_size) != 1L || !is.finite(required_size)) {
+    required_size <- length(prepared$top_level_seed_vertices)
+  }
+  if (length(required_size) != 1L || !is.finite(required_size) || required_size <= 0L) {
+    required_size <- length(prepared$top_level_vertices)
+  }
+  if (!is.null(prepared$coarsest_level_level) &&
+      !is.null(prepared$top_level_level) &&
+      prepared$top_level_level < prepared$coarsest_level_level) {
+    return(sprintf(
+      "MIS filtration sizes (coarsest to finest): %s. Because V_%d has only %d vertices, the multiscale solve starts from the coarsest admissible level V_%d, where |V_%d| = %d \u2265 d + 1 = %d. All non-reference panels are rigidly aligned to the corresponding active-set reference before rendering.",
+      level_text,
+      prepared$coarsest_level_level,
+      length(prepared$misf$levels[[prepared$coarsest_level_level + 1L]]),
+      prepared$top_level_level,
+      prepared$top_level_level,
+      length(prepared$top_level_vertices),
+      as.integer(required_size)
+    ))
+  }
+  sprintf(
+    "MIS filtration sizes (coarsest to finest): %s. The multiscale solve starts from V_%d. All non-reference panels are rigidly aligned to the corresponding active-set reference before rendering.",
+    level_text,
+    prepared$top_level_level
+  )
+}
+
 filter_edges_to_vertices <- function(edges, vertex_ids) {
   edges <- as.matrix(edges)
   vertex_ids <- as.integer(vertex_ids)
@@ -737,7 +768,7 @@ save_interactive_html <- function(case_results, output_html) {
             full_edges = full_edges,
             stage_type = "initial"
           ),
-          note = "The spread d+1 seed placed first on the coarsest MISF level before inserting the remaining coarse vertices."
+          note = "The spread d+1 seed placed first on the selected top solve level before inserting the remaining active vertices of that level."
         )
       }
       if (!is.null(row$coarse_initial)) {
@@ -749,7 +780,7 @@ save_interactive_html <- function(case_results, output_html) {
             full_edges = full_edges,
             stage_type = "initial"
           ),
-          note = "All coarsest-level vertices after geometric seed placement and anchor-based insertion, before the pure-GMDS top-level solve."
+          note = "All vertices of the selected top solve level after geometric seed placement and anchor-based insertion, before the pure-GMDS top-level solve."
         )
       }
       cards[[length(cards) + 1L]] <- card_div(
@@ -761,7 +792,7 @@ save_interactive_html <- function(case_results, output_html) {
           stage_type = "initial"
         ),
         note = if (identical(row$level, case_result$fit$prepared$top_level_level)) {
-          "Coarsest MISF level after the restartable pure-GMDS solve that starts from the geometric initialization shown above."
+          "Selected top solve level after the restartable pure-GMDS solve that starts from the geometric initialization shown above."
         } else {
           "Active-set embedding immediately after geodesic anchor insertion of this level."
         }
@@ -778,18 +809,12 @@ save_interactive_html <- function(case_results, output_html) {
       )
     }
 
-    htmltools::tags$section(
+      htmltools::tags$section(
       class = "case-section",
       htmltools::tags$h2(case_result$case$label),
         htmltools::tags$p(
           class = "case-lead",
-          sprintf(
-            "Levels: %s. All non-reference panels are rigidly aligned to the corresponding active-set reference before rendering.",
-            paste(
-              rev(vapply(case_result$fit$prepared$misf$levels, length, integer(1L))),
-              collapse = " \u2192 "
-            )
-          )
+          build_case_lead(case_result$fit$prepared)
       ),
       htmltools::tags$div(class = "panel-grid", cards)
     )
@@ -894,7 +919,7 @@ save_interactive_html <- function(case_results, output_html) {
           class = "hero",
           htmltools::tags$h1("MISF-GMDS multiscale embeddings"),
           htmltools::tags$p(
-            "This supplement shows the multiscale states used in the MISF-GMDS sections of the GMDS manuscript: the coarsest-level pure-GMDS solve, each finer-level insertion state, each active-level refinement state, and the final full-graph polish. Light-gray wireframes show the normalized reference graph geometry; colored points and edges show the current active embedding."
+            "This supplement shows the multiscale states used in the MISF-GMDS sections of the GMDS manuscript: the selected top-level pure-GMDS solve, each finer-level insertion state, each active-level refinement state, and the final full-graph polish. When the coarsest MIS filtration level has fewer than d + 1 vertices, the solve starts from the coarsest admissible finer level instead. Light-gray wireframes show the normalized reference graph geometry; colored points and edges show the current active embedding."
           )
         ),
         case_sections
