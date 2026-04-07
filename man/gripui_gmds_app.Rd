@@ -7,8 +7,7 @@
 gripui_gmds_app(
   catalog = gripui.gmds.default.catalog(),
   title = "GMDS Stage Explorer",
-  subtitle =
-    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and paper-ready export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces."
+  subtitle = gripui.gmds.default.subtitle()
 )
 }
 \arguments{

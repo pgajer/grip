@@ -261,7 +261,7 @@ grip.geodesic.misf.new.stage.record <- function(stage,
   if (!is.null(coords_full)) {
     coords_full <- as.matrix(coords_full)
   }
-  summary <- modifyList(list(
+  summary <- utils::modifyList(list(
     active_n = length(active_vertices),
     inserted_n = length(inserted_vertices),
     pair_n = NA_integer_,
@@ -1335,7 +1335,7 @@ grip.geodesic.misf.select.seed.vertices <- function(distance_matrix,
     return(as.integer(fallback))
   }
 
-  combos <- combn(n, count)
+  combos <- utils::combn(n, count)
   best.idx <- NULL
   best.score <- NULL
   fallback.key <- paste(sort(fallback), collapse = ",")
