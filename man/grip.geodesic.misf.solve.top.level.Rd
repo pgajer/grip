@@ -9,6 +9,7 @@ grip.geodesic.misf.solve.top.level(
   dim = 2L,
   n_restarts = 8L,
   max_iter = 16L,
+  init = c("geometric", "random"),
   engine = c("cpp", "r"),
   edge_length_epsilon = 1e-08,
   initial_step = 1,
@@ -32,6 +33,11 @@ prepared object representing a coarse level.}
 \item{n_restarts}{Number of random restarts.}
 
 \item{max_iter}{Maximum number of pure-GMDS iterations per restart.}
+
+\item{init}{Top-level initialization mode. `"geometric"` seeds the coarse
+level from a spread `d+1`-vertex geometric placement and inserts the
+remaining coarse vertices before refinement. `"random"` keeps the previous
+random-restart behavior.}
 
 \item{engine}{Optimization engine passed through to
 `grip.optimize.geodesic.mds()`.}

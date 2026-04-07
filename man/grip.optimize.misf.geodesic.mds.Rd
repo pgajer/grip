@@ -15,6 +15,7 @@ grip.optimize.misf.geodesic.mds(
   num_init = 24L,
   num_nbrs = 20L,
   dim = NULL,
+  top_level_init = NULL,
   top_level_restarts = NULL,
   top_level_max_iter = NULL,
   top_level_engine = NULL,
@@ -71,6 +72,9 @@ prepared object must be built.}
 
 \item{dim}{Optional target embedding dimension. If omitted, reuse the
 dimension stored in `prepared` when available.}
+
+\item{top_level_init}{Initializer used for the coarse-level placement before
+pure-GMDS refinement.}
 
 \item{top_level_restarts}{Number of random restarts used by the coarse
 top-level pure-GMDS solve.}

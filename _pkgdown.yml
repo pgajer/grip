@@ -117,6 +117,13 @@ reference:
       - grip.geodesic.misf.induced_level_graph
       - grip.geodesic.misf.solve.top.level
 
+  - title: MISF Geodesic KK
+    desc: Prepare, score, and optimize multiscale geodesic-KK layouts using MISF hierarchies.
+    contents:
+      - grip.prepare.misf.geodesic.kk
+      - grip.score.misf.geodesic.kk
+      - grip.optimize.misf.geodesic.kk
+
   - title: Visualization
     desc: Plot layouts in 2D and 3D.
     contents:
@@ -140,6 +147,7 @@ reference:
     desc: Helper topics for weighted surface, solid, occupied-mesh, and tree graph families.
     contents:
       - mesh_surface_helpers
+      - sampled_rectangle_surface_helpers
       - cylinder_surface_helpers
       - sphere_surface_helpers
       - torus_surface_helpers

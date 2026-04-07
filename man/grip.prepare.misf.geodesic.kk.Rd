@@ -21,7 +21,7 @@ grip.prepare.misf.geodesic.kk(
   top_level_landmark_count = 8L,
   top_level_restarts = 8L,
   top_level_max_iter = 16L,
-  top_level_init = c("cmdscale", "random"),
+  top_level_init = c("geometric", "cmdscale", "random"),
   seed = 6L
 )
 }
@@ -68,7 +68,8 @@ MISF-GKK solve.}
 
 \item{top_level_max_iter}{Top-level iteration budget.}
 
-\item{top_level_init}{Top-level initializer (`"cmdscale"` or `"random"`).}
+\item{top_level_init}{Top-level initializer (`"geometric"`, `"cmdscale"`, or
+`"random"`).}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
