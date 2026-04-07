@@ -59,6 +59,25 @@ gripui.gmds.level.choices <- function(prepared) {
   stats::setNames(as.character(levels), sprintf("V_%d", levels))
 }
 
+gripui.gmds.valid.levels <- function(prepared) {
+  seq.int(from = 0L, to = length(prepared$misf$levels) - 1L, by = 1L)
+}
+
+gripui.gmds.normalize.level <- function(prepared,
+                                        level = NULL,
+                                        default = prepared$top_level_level) {
+  valid <- gripui.gmds.valid.levels(prepared)
+  selected <- suppressWarnings(as.integer(level[[1L]]))
+  fallback <- suppressWarnings(as.integer(default[[1L]]))
+  if (!length(fallback) || !is.finite(fallback) || !fallback %in% valid) {
+    fallback <- valid[[length(valid)]]
+  }
+  if (!length(selected) || !is.finite(selected) || !selected %in% valid) {
+    return(fallback)
+  }
+  selected
+}
+
 gripui.gmds.method.catalog <- function() {
   list(
     grip = list(
@@ -206,7 +225,7 @@ gripui.gmds.stage.trace.table <- function(bundle) {
 
 gripui.gmds.selected.level.table <- function(bundle, level) {
   prepared <- bundle$prepared
-  level <- as.integer(level)
+  level <- gripui.gmds.normalize.level(prepared, level = level)
   vertices <- as.integer(prepared$misf$levels[[level + 1L]])
   next.vertices <- if (level < length(prepared$misf$levels) - 1L) {
     as.integer(prepared$misf$levels[[level + 2L]])
@@ -1083,8 +1102,8 @@ gripui.gmds.export.stage.payload <- function(bundle,
     ))
   }
   if (identical(stage_id, "misf")) {
-    level <- as.integer(focus_level[[1L]])
     prepared <- bundle$prepared
+    level <- gripui.gmds.normalize.level(prepared, level = focus_level)
     partition <- gripui.gmds.layer_partition(prepared)
     palette <- gripui.gmds.layer.colors(prepared)
     colors <- unname(palette[as.character(partition)])
@@ -1885,11 +1904,11 @@ gripui.gmds.server <- function(catalog) {
       if (is.null(bundle)) {
         return(0L)
       }
-      selected <- suppressWarnings(as.integer(input$gmds_focus_level))
-      if (!length(selected) || !is.finite(selected)) {
-        return(bundle$prepared$top_level_level)
-      }
-      selected
+      gripui.gmds.normalize.level(
+        bundle$prepared,
+        level = input$gmds_focus_level,
+        default = bundle$prepared$top_level_level
+      )
     })
 
     current_expansion_level <- shiny::reactive({

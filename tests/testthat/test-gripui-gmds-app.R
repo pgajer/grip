@@ -144,3 +144,53 @@ test_that("GMDS stage explorer app builds", {
   app <- gripui_gmds_app(catalog = gripui_graph_family_catalog()[c("mesh", "sampled_rectangle")])
   expect_s3_class(app, "shiny.appobj")
 })
+
+test_that("GMDS app normalizes stale MIS filtration levels safely", {
+  compute_bundle <- getFromNamespace("gripui.gmds.compute.bundle", "grip")
+  merge_values <- getFromNamespace(".gripui.family.merge.values", "grip")
+  normalize_level <- getFromNamespace("gripui.gmds.normalize.level", "grip")
+  selected_level_table <- getFromNamespace("gripui.gmds.selected.level.table", "grip")
+  export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
+
+  catalog <- gripui_graph_family_catalog()
+  desc <- catalog$mesh
+  values <- merge_values(desc, preset_id = "default")
+  values$h <- 4L
+  values$w <- 4L
+  values$surface <- "paraboloid"
+  values$amplitude <- 0.25
+
+  bundle <- compute_bundle(
+    desc = desc,
+    values = values,
+    method = "gmds",
+    dim = 3L,
+    num_init = 6L,
+    prepare_seed = 1101L,
+    optimizer_seed = 2101L,
+    top_level_max_iter = 1L,
+    insertion_max_iter = 4L,
+    refinement_max_iter = 1L,
+    final_polish_max_iter = 1L,
+    n_threads = 0L
+  )
+
+  expect_equal(
+    normalize_level(bundle$prepared, level = "99", default = bundle$prepared$top_level_level),
+    bundle$prepared$top_level_level
+  )
+  expect_equal(
+    normalize_level(bundle$prepared, level = "-7", default = bundle$prepared$top_level_level),
+    bundle$prepared$top_level_level
+  )
+
+  expect_s3_class(selected_level_table(bundle, 99), "data.frame")
+
+  misf.payload <- export_stage_payload(
+    bundle = bundle,
+    stage_id = "misf",
+    focus_level = 99
+  )
+  expect_true(is.list(misf.payload))
+  expect_equal(misf.payload$level, bundle$prepared$top_level_level)
+})
