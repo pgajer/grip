@@ -60,7 +60,7 @@ grip.resolve.misf.geodesic.kk.prepared <- function(prepared = NULL,
                                                    top_level_landmark_count = 8L,
                                                    top_level_restarts = 8L,
                                                    top_level_max_iter = 16L,
-                                                   top_level_init = c("cmdscale", "random"),
+                                                   top_level_init = c("geometric", "cmdscale", "random"),
                                                    seed = 6L) {
   top_level_pair_mode <- match.arg(top_level_pair_mode)
   top_level_init <- match.arg(top_level_init)
@@ -647,7 +647,7 @@ grip.geodesic.misf.kk.solve.top.level <- function(prepared,
                                                   landmark_count = 8L,
                                                   n_restarts = 8L,
                                                   max_iter = 16L,
-                                                  init = c("cmdscale", "random"),
+                                                  init = c("geometric", "cmdscale", "random"),
                                                   stiffness = 1.0,
                                                   distance_floor = 1e-8,
                                                   edge_length_epsilon = 1e-8,
@@ -720,17 +720,51 @@ grip.geodesic.misf.kk.solve.top.level <- function(prepared,
   best.row <- NULL
   best.restart <- 1L
   best.energy <- Inf
+  geometric.init <- NULL
+  if (identical(init, "geometric")) {
+    insertion.order <- if (!is.null(prepared$insertion_order)) {
+      prepared$insertion_order[prepared$insertion_order %in% vertex.ids]
+    } else {
+      vertex.ids
+    }
+    anchor.count <- if (!is.null(prepared$insertion_anchor_count)) {
+      prepared$insertion_anchor_count
+    } else {
+      grip.geodesic.misf.default.anchor.count(dim)
+    }
+    anchor.mode <- if (!is.null(prepared$insertion_anchor_weight_mode)) {
+      prepared$insertion_anchor_weight_mode
+    } else {
+      "inverse_graph_distance_sq"
+    }
+    geometric.init <- grip.geodesic.misf.build.geometric.seed.coords(
+      distance_matrix = prepared$top_level_graph$distance_matrix,
+      dim = dim,
+      vertex_ids = vertex.ids,
+      insertion_order = insertion.order,
+      anchor_count = anchor.count,
+      anchor_weight_mode = anchor.mode
+    )
+  }
 
   for (restart in seq_len(n_restarts)) {
     restart.seed <- if (is.null(seed)) NULL else as.integer(seed + restart - 1L)
-    restart.init <- if (identical(init, "cmdscale") && restart == 1L) "cmdscale" else "random"
-    init.coords <- grip.geodesic.misf.kk.init.coords(
-      prepared = coarse.prepared,
-      dim = dim,
-      init = restart.init,
-      restart = restart,
-      seed = restart.seed
-    )
+    init.coords <- if (identical(init, "geometric")) {
+      grip.geodesic.misf.jitter.coords(
+        geometric.init$coords,
+        restart = restart,
+        seed = restart.seed
+      )
+    } else {
+      restart.init <- if (identical(init, "cmdscale") && restart == 1L) "cmdscale" else "random"
+      grip.geodesic.misf.kk.init.coords(
+        prepared = coarse.prepared,
+        dim = dim,
+        init = restart.init,
+        restart = restart,
+        seed = restart.seed
+      )
+    }
     init.score <- grip.geodesic.misf.kk.score.prepared(
       coords = init.coords,
       prepared = coarse.prepared,
@@ -779,6 +813,8 @@ grip.geodesic.misf.kk.solve.top.level <- function(prepared,
   best.fit$effective_pair_mode <- resolved$pair_resolution$effective
   best.fit$requested_pair_mode <- resolved$pair_resolution$requested
   best.fit$pair_resolution <- resolved$pair_resolution
+  best.fit$top_level_init <- init
+  best.fit$initial_placement <- geometric.init
   best.fit
 }
 
@@ -1236,7 +1272,8 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #' @param top_level_restarts Number of top-level restarts used by the coarse
 #'   MISF-GKK solve.
 #' @param top_level_max_iter Top-level iteration budget.
-#' @param top_level_init Top-level initializer (`"cmdscale"` or `"random"`).
+#' @param top_level_init Top-level initializer (`"geometric"`, `"cmdscale"`, or
+#'   `"random"`).
 #' @param seed Optional integer seed reused for MISF extraction.
 #'
 #' @return An object of class `"grip_misf_gkk_prepared"` layered on top of the
@@ -1272,7 +1309,7 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
                                           top_level_landmark_count = 8L,
                                           top_level_restarts = 8L,
                                           top_level_max_iter = 16L,
-                                          top_level_init = c("cmdscale", "random"),
+                                          top_level_init = c("geometric", "cmdscale", "random"),
                                           seed = 6L) {
   tie_mode <- match.arg(tie_mode)
   top_level_mode <- match.arg(top_level_mode)
@@ -1612,11 +1649,11 @@ grip.optimize.misf.geodesic.kk <- function(prepared = NULL,
     as.integer(round(top_level_max_iter))
   }
   top.level.init <- if (is.null(top_level_init) && !is.null(prepared) && inherits(prepared, "grip_misf_gkk_prepared")) {
-    prepared$top_level_init
+    if (!is.null(prepared$top_level_init)) prepared$top_level_init else "geometric"
   } else if (is.null(top_level_init)) {
-    "cmdscale"
+    "geometric"
   } else {
-    match.arg(top_level_init, c("cmdscale", "random"))
+    match.arg(top_level_init, c("geometric", "cmdscale", "random"))
   }
 
   prepared <- grip.resolve.misf.geodesic.kk.prepared(
