@@ -1718,6 +1718,132 @@ layout-based option.
   \label{fig:current_implementation_summary}
 \end{figure}
 
+\subsubsection*{Sampled-rectangle paraboloid graphs}
+To separate graph-construction effects from point-sampling effects, we
+generated one uniformly sampled rectangle for each of $n=50$ and $n=75$,
+lifted that fixed sample to a paraboloid, and then built three iKNN graphs on
+that same point cloud with $k=6,7,8$.  Thus within each fixed $n$, the
+underlying sampled geometry is held constant and only the graph topology is
+changed.  For these sampled graphs we set \texttt{num\_init}=6 so that the
+MIS filtration retains at least two coarse-to-fine transitions.  The resulting
+multiscale outcomes are summarized in
+\cref{tab:sampled_rectangle_paraboloid_results}; the full stage trajectories
+are shown in
+\cref{fig:misf_stages_sampled_rectangle_n50_k6,fig:misf_stages_sampled_rectangle_n50_k7,fig:misf_stages_sampled_rectangle_n50_k8,fig:misf_stages_sampled_rectangle_n75_k6,fig:misf_stages_sampled_rectangle_n75_k7,fig:misf_stages_sampled_rectangle_n75_k8}.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{MISF-GMDS outcomes on sampled-rectangle paraboloid graphs.  For
+  each $n$, the same sampled point cloud is reused across $k=6,7,8$, so the
+  differences isolate the effect of the iKNN graph topology.  The
+  ``coarsest refined $\rho$'' column records the refined error on the top MISF
+  level, and the ``final $\rho$'' column records the full-graph result after
+  the final polish.}
+  \label{tab:sampled_rectangle_paraboloid_results}
+  \begin{tabular}{cccccc}
+    \toprule
+    $n$ & $k$ & MIS levels (coarse $\rightarrow$ fine) & coarsest $|V_L|$ & coarsest refined $\rho$ & final $\rho$ \\
+    \midrule
+    50 & 6 & $2 \rightarrow 9 \rightarrow 50$ & 2 & 0.0000 & 0.3786 \\
+    50 & 7 & $4 \rightarrow 9 \rightarrow 50$ & 4 & 0.0432 & 0.0707 \\
+    50 & 8 & $3 \rightarrow 8 \rightarrow 50$ & 3 & 0.0284 & 0.0709 \\
+    \midrule
+    75 & 6 & $4 \rightarrow 13 \rightarrow 75$ & 4 & 0.1526 & 0.0900 \\
+    75 & 7 & $3 \rightarrow 10 \rightarrow 75$ & 3 & 0.0813 & 0.3424 \\
+    75 & 8 & $4 \rightarrow 12 \rightarrow 75$ & 4 & 0.0914 & 0.0738 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\emph{$n = 50$.}
+The $50$-point sample already shows that the graph-building choice matters even
+when the sampled geometry is fixed.  At $k=6$ the filtration begins from only
+two coarse vertices, so the top level provides essentially no orienting
+scaffold; the subsequent insertion and refinement stages remain far from the
+target and end at $\rho = 0.3786$.  By contrast, the same sampled point set
+with $k=7$ and $k=8$ produces coarse levels of size $4$ and $3$, and both
+multiscale runs remain close to the target paraboloid throughout the descent,
+ending at $\rho = 0.0707$ and $\rho = 0.0709$, respectively.  On this sample,
+therefore, the main transition is between an overly sparse iKNN graph at
+$k=6$ and the more stable coarse scaffolds available at $k=7,8$.
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n50_k6.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=50$ and $k=6$ under
+  MISF-GMDS.  The two-vertex coarsest level does not provide a sufficiently
+  informative scaffold, and the lower levels inherit that ambiguity.}
+  \label{fig:misf_stages_sampled_rectangle_n50_k6}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n50_k7.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=50$ and $k=7$ under
+  MISF-GMDS.  The same sampled point cloud now yields a more informative
+  coarse scaffold and a stable multiscale descent.}
+  \label{fig:misf_stages_sampled_rectangle_n50_k7}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n50_k8.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=50$ and $k=8$ under
+  MISF-GMDS.  The behavior is similar to the $k=7$ case, again finishing near
+  the target surface.}
+  \label{fig:misf_stages_sampled_rectangle_n50_k8}
+\end{figure}
+\clearpage
+
+\emph{$n = 75$.}
+The $75$-point sample is more subtle.  All three graphs now have coarsest
+levels of size at least $3$, so the failure mode cannot be blamed only on an
+under-determined top level.  The $k=6$ and $k=8$ graphs behave reasonably well
+and finish at $\rho = 0.0900$ and $\rho = 0.0738$, respectively.  The
+$k=7$ graph, however, is a genuine counterexample to any monotone ``larger
+$k$ is always safer'' heuristic: its top level begins plausibly enough, but the
+expansion from $10$ to $75$ vertices drifts into a poor basin and the final
+result ends at $\rho = 0.3424$.  Because the sampled point cloud is identical
+across $k=6,7,8$, this isolates the graph-construction choice itself as a
+source of basin instability.  The sampled-rectangle experiments therefore
+support the same broad conclusion as the mesh experiments while refining it:
+regular lattice symmetry is not the only issue; even on irregular point
+samples, certain iKNN topologies still produce weak or unstable multiscale
+scaffolds.
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n75_k6.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=75$ and $k=6$ under
+  MISF-GMDS.  The multiscale descent remains mostly stable and finishes with a
+  moderate final error.}
+  \label{fig:misf_stages_sampled_rectangle_n75_k6}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n75_k7.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=75$ and $k=7$ under
+  MISF-GMDS.  This is the unstable case: the coarser stages look plausible,
+  but the full-graph expansion falls into a poor basin.}
+  \label{fig:misf_stages_sampled_rectangle_n75_k7}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=\linewidth]{../figures/fig_misf_stages_sampled_rectangle_n75_k8.pdf}
+  \caption{Sampled-rectangle paraboloid with $n=75$ and $k=8$ under
+  MISF-GMDS.  Among the three $75$-point graphs, this one gives the cleanest
+  overall multiscale trajectory.}
+  \label{fig:misf_stages_sampled_rectangle_n75_k8}
+\end{figure}
+\clearpage
+
 \subsubsection*{The current selector is not yet good enough}
 The most recent Block~1 mesh-geometry expansion confirms that there is no
 single universal top-level winner across flat, saddle, paraboloid, and ripple

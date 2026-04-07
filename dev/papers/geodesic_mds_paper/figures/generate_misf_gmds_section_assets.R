@@ -167,6 +167,58 @@ make_irregular_case <- function(side, amplitude = 0.35, seed = side + 100L) {
   )
 }
 
+make_sampled_rectangle_cases <- function(n,
+                                         k_values = c(6L, 7L, 8L),
+                                         xmin = -1.6,
+                                         xmax = 1.6,
+                                         ymin = -1,
+                                         ymax = 1,
+                                         amplitude = 0.35,
+                                         sample_seed = 1000L + n,
+                                         num_init = 6L) {
+  seq_spec <- grip::sampled.rectangle.surface.graphs(
+    n = n,
+    k = as.integer(k_values),
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = sample_seed,
+    surface = "paraboloid",
+    amplitude = amplitude,
+    graph_space = "surface",
+    normalize = "median"
+  )
+
+  lapply(names(seq_spec$graphs), function(k_name) {
+    bundle <- seq_spec$graphs[[k_name]]
+    fit_seed <- as.integer(2000L + bundle$n + bundle$k)
+    prepared <- grip::grip.prepare.misf.geodesic.mds(
+      edges = bundle$edges,
+      n = bundle$n,
+      edge_weights = bundle$edge_weights,
+      tie_mode = "average",
+      num_init = num_init,
+      dim = 3L,
+      top_level_mode = "skip",
+      seed = fit_seed
+    )
+    list(
+      id = sprintf("sampled_rectangle_n%d_k%d", n, bundle$k),
+      label = sprintf("Sampled rectangle paraboloid n=%d, k=%d", n, bundle$k),
+      short_label = sprintf("Sampled n=%d, k=%d", n, bundle$k),
+      family = "sampled_rectangle",
+      sample_n = n,
+      iknn_k = as.integer(bundle$k),
+      sample_seed = as.integer(sample_seed),
+      num_init = as.integer(num_init),
+      bundle = bundle,
+      prepared = prepared,
+      seed = fit_seed
+    )
+  })
+}
+
 run_case_fit <- function(case) {
   fit <- grip::grip.optimize.misf.geodesic.mds(
     prepared = case$prepared,
@@ -573,6 +625,22 @@ card_div <- function(title_text, widget, note = NULL) {
 }
 
 save_interactive_html <- function(case_results, output_html) {
+  full_reference_note <- function(case) {
+    if (identical(case$family, "sampled_rectangle")) {
+      "Full reference sampled paraboloid graph, normalized for display."
+    } else {
+      "Full reference paraboloid mesh, normalized for display."
+    }
+  }
+
+  active_reference_note <- function(case) {
+    if (identical(case$family, "sampled_rectangle")) {
+      "Reference active-set sampled subgraph used to judge whether the multiscale stage still resembles the target paraboloid."
+    } else {
+      "Reference active-set sample used to judge whether the multiscale stage still resembles the target paraboloid."
+    }
+  }
+
   case_sections <- lapply(case_results, function(case_result) {
     full_edges <- as.matrix(case_result$case$bundle$edges)
     cards <- list(
@@ -584,7 +652,7 @@ save_interactive_html <- function(case_results, output_html) {
           full_edges = full_edges,
           stage_type = "reference"
         ),
-        note = "Full reference paraboloid mesh, normalized for display."
+        note = full_reference_note(case_result$case)
       ),
       card_div(
         title_text = sprintf("%s\n%s", case_result$stages$final_polish$label, case_result$stages$final_polish$caption),
@@ -607,7 +675,7 @@ save_interactive_html <- function(case_results, output_html) {
           full_edges = full_edges,
           stage_type = "reference"
         ),
-        note = "Reference active-set sample used to judge whether the multiscale stage still resembles the target paraboloid."
+        note = active_reference_note(case_result$case)
       )
       cards[[length(cards) + 1L]] <- card_div(
         title_text = sprintf("%s\n%s", row$initial$label, row$initial$caption),
@@ -638,15 +706,15 @@ save_interactive_html <- function(case_results, output_html) {
     htmltools::tags$section(
       class = "case-section",
       htmltools::tags$h2(case_result$case$label),
-      htmltools::tags$p(
-        class = "case-lead",
-        sprintf(
-          "Levels: %s. All non-reference panels are rigidly aligned to the corresponding active-set reference before rendering.",
-          paste(
-            vapply(case_result$fit$prepared$misf$levels, length, integer(1L)),
-            collapse = " \u2192 "
+        htmltools::tags$p(
+          class = "case-lead",
+          sprintf(
+            "Levels: %s. All non-reference panels are rigidly aligned to the corresponding active-set reference before rendering.",
+            paste(
+              rev(vapply(case_result$fit$prepared$misf$levels, length, integer(1L))),
+              collapse = " \u2192 "
+            )
           )
-        )
       ),
       htmltools::tags$div(class = "panel-grid", cards)
     )
@@ -751,7 +819,7 @@ save_interactive_html <- function(case_results, output_html) {
           class = "hero",
           htmltools::tags$h1("MISF-GMDS multiscale embeddings"),
           htmltools::tags$p(
-            "This supplement shows the multiscale states used in the new MISF section of the GMDS manuscript: the coarsest-level pure-GMDS solve, each finer-level insertion state, each active-level refinement state, and the final full-graph polish. Light-gray wireframes show the normalized reference surface; colored points and edges show the current active embedding."
+            "This supplement shows the multiscale states used in the MISF-GMDS sections of the GMDS manuscript: the coarsest-level pure-GMDS solve, each finer-level insertion state, each active-level refinement state, and the final full-graph polish. Light-gray wireframes show the normalized reference graph geometry; colored points and edges show the current active embedding."
           )
         ),
         case_sections
@@ -766,13 +834,18 @@ save_interactive_html <- function(case_results, output_html) {
   )
 }
 
-cases <- list(
+mesh_cases <- list(
   make_regular_case(12L),
   make_regular_case(15L),
   make_irregular_case(15L)
 )
 
-case_results <- lapply(cases, function(case) {
+sampled_cases <- c(
+  make_sampled_rectangle_cases(50L),
+  make_sampled_rectangle_cases(75L)
+)
+
+mesh_case_results <- lapply(mesh_cases, function(case) {
   fit <- run_case_fit(case)
   list(
     case = case,
@@ -781,9 +854,20 @@ case_results <- lapply(cases, function(case) {
   )
 })
 
+sampled_case_results <- lapply(sampled_cases, function(case) {
+  fit <- run_case_fit(case)
+  list(
+    case = case,
+    fit = fit,
+    stages = build_stage_rows(case, fit)
+  )
+})
+
+case_results <- c(mesh_case_results, sampled_case_results)
+
 filtration_pdf <- file.path(figure_dir, "fig_misf_filtration_cases.pdf")
 filtration_png <- file.path(figure_dir, "fig_misf_filtration_cases.png")
-save_filtration_grid(case_results, filtration_pdf, filtration_png)
+save_filtration_grid(mesh_case_results, filtration_pdf, filtration_png)
 
 stage_files <- lapply(case_results, function(case_result) {
   stem <- switch(
@@ -791,6 +875,12 @@ stage_files <- lapply(case_results, function(case_result) {
     regular_12x12 = "fig_misf_stages_regular_12x12",
     regular_15x15 = "fig_misf_stages_regular_15x15",
     irregular_rectangle_15x15 = "fig_misf_stages_irregular_rectangle_15x15",
+    sampled_rectangle_n50_k6 = "fig_misf_stages_sampled_rectangle_n50_k6",
+    sampled_rectangle_n50_k7 = "fig_misf_stages_sampled_rectangle_n50_k7",
+    sampled_rectangle_n50_k8 = "fig_misf_stages_sampled_rectangle_n50_k8",
+    sampled_rectangle_n75_k6 = "fig_misf_stages_sampled_rectangle_n75_k6",
+    sampled_rectangle_n75_k7 = "fig_misf_stages_sampled_rectangle_n75_k7",
+    sampled_rectangle_n75_k8 = "fig_misf_stages_sampled_rectangle_n75_k8",
     paste0("fig_", case_result$case$id)
   )
   pdf_path <- file.path(figure_dir, paste0(stem, ".pdf"))
