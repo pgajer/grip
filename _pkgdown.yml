@@ -196,6 +196,8 @@ reference:
       - gripui_family_app
       - run_gripui_family
       - gripui_graph_family_catalog
+      - gripui_gmds_app
+      - run_gripui_gmds
       - gripui_paraboloid_gmds_app
       - run_gripui_paraboloid_gmds
 
