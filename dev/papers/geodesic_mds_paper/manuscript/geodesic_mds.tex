@@ -17,6 +17,7 @@
 \usepackage{natbib}
 \usepackage{fancyhdr}
 \usepackage{titling}
+\usepackage{placeins}
 \providecommand{\theHalgorithm}{\arabic{algorithm}}
 \providecommand{\theHfigure}{\arabic{figure}}
 
@@ -231,7 +232,7 @@ from $\bz_{v_1}$ to $\bz_{v_2}$ equals $\norm{\bz_{v_1} - \bz_c} +
 arrangement of the arms and correctly reflects the star structure.
 Figure~\ref{fig:star_bias} is intended to make this contrast visually explicit.
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\linewidth]{../figures/fig_star_bias.pdf}
   \caption{Branching metrics expose the output-side inconsistency.  In a star graph, the graph distance between leaves is realized through the center.  Matching this distance with Euclidean output distances biases the embedding toward collinearity, whereas measuring output fidelity by the embedded lengths of the corresponding input geodesics preserves the correct topological structure.}
@@ -472,7 +473,7 @@ it approaches the complete graph.
 Figure~\ref{fig:k_regimes} is a natural companion here because the role of
 $k$ is one of the main geometric ideas of the paper.
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.98\linewidth]{../figures/fig_k_regimes.pdf}
   \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the underlying geometry and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
@@ -1166,6 +1167,7 @@ metric as a guide: for nearly tree-like metrics (small $\delta_0$), small
 $k$ is appropriate; for nearly Euclidean metrics (large $\delta_0$), large
 $k$ is preferable \citep{gromov1987hyperbolic}.
 
+\FloatBarrier
 \subsection{A MISF-based Multiscale Modification of GMDS}
 \label{sec:misf_gmds}
 
@@ -1219,7 +1221,7 @@ irregular rectangle paraboloid they are $11 \rightarrow 32 \rightarrow 81
 \rightarrow 225$.  \Cref{fig:misf_filtration_cases} shows these filtrations on
 the underlying $2$D mesh geometry.
 
-\begin{figure}[t]
+\begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{../figures/fig_misf_filtration_cases.pdf}
   \caption{MIS filtration levels displayed on the underlying $2$D mesh geometry.
