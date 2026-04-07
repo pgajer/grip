@@ -61,6 +61,15 @@ gripui.gmds.level.choices <- function(prepared) {
 
 gripui.gmds.method.catalog <- function() {
   list(
+    grip = list(
+      id = "grip",
+      label = "GRIP",
+      objective_label = "Classical GRIP multiscale layout",
+      refinement_phrase = "GRIP local-KK",
+      prepare_fn = "grip.build.misf",
+      optimize_fn = "grip.layout.trace",
+      fit_class = "grip_misf_grip_fit"
+    ),
     gmds = list(
       id = "gmds",
       label = "GMDS",
@@ -315,6 +324,24 @@ gripui.gmds.stage.display.coords <- function(bundle, payload, fill_reference = T
 gripui.gmds.stage.note <- function(bundle, state) {
   prepared <- bundle$prepared
   refinement.phrase <- bundle$method$refinement_phrase
+  if (identical(bundle$method$id, "grip")) {
+    return(switch(
+      state,
+      seed = sprintf(
+        "GRIP does not expose a separate geometric d+1 seed. This panel mirrors the first recorded coarsest-level state on V_%d.",
+        prepared$top_level_level
+      ),
+      top_level = sprintf(
+        "This panel shows the coarsest active set V_%d after the recorded GRIP multiscale rounds on that level.",
+        prepared$top_level_level
+      ),
+      initial_placement = sprintf(
+        "The compiled GRIP trace starts at the coarsest active set V_%d, so the app reuses that first recorded state as the initial-placement panel.",
+        prepared$top_level_level
+      ),
+      ""
+    ))
+  }
   switch(
     state,
     seed = if (prepared$top_level_level < prepared$coarsest_level_level) {
@@ -403,6 +430,38 @@ gripui.gmds.repro.code <- function(bundle) {
   payload <- bundle$payload
   prepared <- bundle$prepared
   settings <- bundle$settings
+  if (identical(bundle$method$id, "grip")) {
+    return(paste(
+      payload$code,
+      "",
+      sprintf(
+        "misf <- grip.build.misf(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, num_init = %dL, num_nbrs = %dL, seed = %dL)",
+        settings$num_init,
+        settings$grip_num_nbrs,
+        settings$grip_seed
+      ),
+      sprintf(
+        paste0(
+          "tr <- grip.layout.trace(edges = graph$edges, n = graph$n, dim = %dL, ",
+          "placement = \"barycenter\", rounds = %dL, final_rounds = %dL, ",
+          "num_init = %dL, num_nbrs = %dL, trace = \"round\", trace.every = 1L, seed = %dL)"
+        ),
+        settings$dim,
+        settings$grip_rounds,
+        settings$grip_final_rounds,
+        settings$num_init,
+        settings$grip_num_nbrs,
+        settings$grip_seed
+      ),
+      sprintf(
+        "# top solve level: V_%d (reason: %s)",
+        prepared$top_level_level,
+        prepared$top_level_selection_reason
+      ),
+      "# note: the app uses one GRIP seed for both MIS filtration and the traced layout.",
+      sep = "\n"
+    ))
+  }
   if (identical(bundle$method$id, "gmds")) {
     return(paste(
       payload$code,
@@ -618,7 +677,83 @@ gripui.gmds.compute.bundle <- function(desc,
   refinement_local_nbrs <- max(4L, dim + 1L)
   top_level_landmark_count <- max(2L, min(8L, num_init))
 
-  if (identical(method.spec$id, "gmds")) {
+  if (identical(method.spec$id, "grip")) {
+    grip.seed <- prepare_seed
+    grip.rounds <- max(1L, top_level_max_iter, refinement_max_iter)
+    grip.final.rounds <- max(1L, final_polish_max_iter)
+    grip.num.nbrs <- max(20L, refinement_local_nbrs)
+    refinement_landmark_count <- NA_integer_
+
+    prepared <- grip.new.misf.grip.prepared(list(
+      n = payload$n,
+      edges = payload$edges,
+      edge_weights = payload$edge_weights,
+      misf = grip.build.misf(
+        edges = payload$edges,
+        n = payload$n,
+        edge_weights = payload$edge_weights,
+        num_init = num_init,
+        num_nbrs = grip.num.nbrs,
+        seed = grip.seed
+      )
+    ))
+    prepared$level_vertices <- prepared$misf$levels
+    prepared$active_levels <- prepared$misf$levels
+    prepared$insertion_order <- prepared$misf$mish_order
+    prepared$coarsest_level_index <- length(prepared$misf$levels)
+    prepared$coarsest_level_level <- as.integer(length(prepared$misf$levels) - 1L)
+    prepared$top_level_index <- prepared$coarsest_level_index
+    prepared$top_level_level <- prepared$coarsest_level_level
+    prepared$top_level_vertices <- as.integer(prepared$misf$levels[[prepared$top_level_index]])
+    prepared$top_level_selection_reason <- "GRIP starts from the coarsest filtration level."
+    prepared$top_level_dim <- dim
+
+    elapsed <- system.time({
+      raw.trace <- grip.layout.trace(
+        edges = payload$edges,
+        n = payload$n,
+        edge_weights = payload$edge_weights,
+        dim = dim,
+        placement = "barycenter",
+        rounds = grip.rounds,
+        final_rounds = grip.final.rounds,
+        num_init = num_init,
+        num_nbrs = grip.num.nbrs,
+        trace = "round",
+        trace.every = 1L,
+        seed = grip.seed
+      )
+    })[["elapsed"]]
+
+    fit <- grip.new.misf.grip.fit(list(
+      coords = raw.trace$final,
+      prepared = prepared,
+      raw_trace = raw.trace,
+      stage_trace = raw.trace$stage_trace,
+      stage_data = raw.trace$stage_data,
+      trace = list(
+        trace_schema_version = grip.geodesic.misf.stage.trace.schema.version(),
+        stage_data = raw.trace$stage_data,
+        trace_mode = raw.trace$trace,
+        meta = raw.trace$meta,
+        diagnostics = raw.trace$diagnostics
+      ),
+      frames = list(
+        stage_data = raw.trace$stage_data,
+        raw_frames = raw.trace$frames,
+        final = raw.trace$final
+      ),
+      timing = list(
+        top_level = NA_real_,
+        insertion = NA_real_,
+        refinement = NA_real_,
+        final_polish = NA_real_,
+        total = as.double(elapsed)
+      )
+    ))
+    pair.mode <- NA_character_
+    pair.full.limit <- NA_integer_
+  } else if (identical(method.spec$id, "gmds")) {
     prepared <- grip.prepare.misf.geodesic.mds(
       edges = payload$edges,
       n = payload$n,
@@ -725,6 +860,10 @@ gripui.gmds.compute.bundle <- function(desc,
       num_init = num_init,
       prepare_seed = prepare_seed,
       optimizer_seed = optimizer_seed,
+      grip_seed = if (identical(method.spec$id, "grip")) grip.seed else NA_integer_,
+      grip_rounds = if (identical(method.spec$id, "grip")) grip.rounds else NA_integer_,
+      grip_final_rounds = if (identical(method.spec$id, "grip")) grip.final.rounds else NA_integer_,
+      grip_num_nbrs = if (identical(method.spec$id, "grip")) grip.num.nbrs else NA_integer_,
       top_level_max_iter = top_level_max_iter,
       insertion_max_iter = insertion_max_iter,
       refinement_max_iter = refinement_max_iter,
@@ -1457,12 +1596,13 @@ gripui.gmds.server <- function(catalog) {
 #' Build the GMDS stage explorer Shiny application
 #'
 #' The GMDS stage explorer reuses the synthetic family catalog from
-#' [gripui_family_app()] and computes a canonical MISF-GMDS bundle for the
-#' selected graph. The current implementation covers Milestones 1 through 4:
-#' graph and geometry inspection, visualization of the MIS filtration,
-#' explicit seed and initial-placement panels, per-level insertion and
-#' refinement panels, method switching across canonical GMDS/GKK/LGKK traces,
-#' and a canonical stage-trace summary that later panels will extend.
+#' [gripui_family_app()] and computes a canonical MISF stage bundle for the
+#' selected graph and method. The current implementation covers Milestones 1
+#' through 4: graph and geometry inspection, visualization of the MIS
+#' filtration, explicit seed and initial-placement panels, per-level insertion
+#' and refinement panels, method switching across canonical
+#' GRIP/GMDS/GKK/LGKK traces, and a canonical stage-trace summary that later
+#' panels will extend.
 #'
 #' @param catalog Family catalog, usually [gripui_graph_family_catalog()].
 #' @param title Application title.
@@ -1476,7 +1616,7 @@ gripui.gmds.server <- function(catalog) {
 #' inherits(app, "shiny.appobj")
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GMDS/GKK/LGKK stage traces.") {
+                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GRIP/GMDS/GKK/LGKK stage traces.") {
   catalog <- gripui.gmds.default.catalog(catalog)
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -1506,7 +1646,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GMDS/GKK/LGKK stage traces.",
+                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GRIP/GMDS/GKK/LGKK stage traces.",
                             host = "127.0.0.1",
                             port = getOption("shiny.port"),
                             launch.browser = interactive(),

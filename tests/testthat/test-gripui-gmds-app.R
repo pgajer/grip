@@ -1,4 +1,4 @@
-test_that("GMDS app bundle builds canonical trace bundles for GMDS, GKK, and LGKK", {
+test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, and LGKK", {
   compute_bundle <- getFromNamespace("gripui.gmds.compute.bundle", "grip")
   merge_values <- getFromNamespace(".gripui.family.merge.values", "grip")
 
@@ -11,6 +11,7 @@ test_that("GMDS app bundle builds canonical trace bundles for GMDS, GKK, and LGK
   values$amplitude <- 0.25
 
   cases <- list(
+    grip = list(fit_class = "grip_misf_grip_fit", top_label = "Top-level GRIP solve"),
     gmds = list(fit_class = "grip_misf_gmds_fit", top_label = "Top-level GMDS solve"),
     gkk = list(fit_class = "grip_misf_gkk_fit", top_label = "Top-level GKK solve"),
     lgkk = list(fit_class = "grip_misf_gkk_fit", top_label = "Top-level LGKK solve")

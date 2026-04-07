@@ -232,16 +232,21 @@ diagnostics.}
 }
 \value{
 A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
-  \code{trace.every}, and optionally \code{diagnostics} and
-  \code{lgkk.polish}. \code{final} is the final coordinate matrix.
-  \code{frames} is a list of coordinate matrices with \code{NA} rows for
-  vertices that have not yet been introduced by GRIP. \code{meta} is a data
-  frame describing each frame with columns \code{frame}, \code{phase},
-  \code{level_index}, \code{misf_level}, \code{round_in_level}, and
-  \code{active_vertices}. When diagnostics are requested, \code{diagnostics}
-  is a data frame parallel to \code{meta} that appends per-frame quality
-  metrics such as \code{edge.length.cv}, \code{sampled.nonedge.sep.ratio},
-  and optional \code{procrustes.rmse}.
+  \code{trace.every}, canonical \code{stage_trace} and \code{stage_data},
+  and optionally \code{diagnostics} and \code{lgkk.polish}. \code{final} is
+  the final coordinate matrix. \code{frames} is a list of coordinate
+  matrices with \code{NA} rows for vertices that have not yet been
+  introduced by GRIP. \code{meta} is a data frame describing each frame with
+  columns \code{frame}, \code{phase}, \code{level_index}, \code{misf_level},
+  \code{round_in_level}, and \code{active_vertices}. \code{stage_trace} and
+  \code{stage_data} lift the raw frames onto the shared MISF stage schema
+  used by the geodesic multiscale methods, with canonical states such as
+  \code{seed}, \code{initial_placement}, \code{top_level},
+  \code{insertion}, \code{refinement}, and \code{final_polish}. When
+  diagnostics are requested, \code{diagnostics} is a data frame parallel to
+  \code{meta} that appends per-frame quality metrics such as
+  \code{edge.length.cv}, \code{sampled.nonedge.sep.ratio}, and optional
+  \code{procrustes.rmse}.
 }
 \description{
 This traces the primary \code{\link{grip.layout}()} engine, including the

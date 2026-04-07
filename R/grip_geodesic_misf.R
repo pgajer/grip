@@ -182,6 +182,9 @@ grip.geodesic.misf.stage.objective.label <- function(method_family,
   } else {
     as.character(pair_mode[[1L]])
   }
+  if (identical(method_family, "grip")) {
+    return("GRIP")
+  }
   if (identical(method_family, "gmds")) {
     return("GMDS")
   }
@@ -204,7 +207,11 @@ grip.geodesic.misf.stage.label <- function(stage,
   )
   switch(
     as.character(stage[[1L]]),
-    seed = sprintf("Geometric seed S_%d", as.integer(level)),
+    seed = if (identical(method_family, "grip")) {
+      sprintf("Recorded start of V_%d", as.integer(level))
+    } else {
+      sprintf("Geometric seed S_%d", as.integer(level))
+    },
     initial_placement = sprintf("Initial placement of V_%d", as.integer(level)),
     top_level = sprintf("Top-level %s solve", objective.label),
     insertion = sprintf("Insertion of V_%d", as.integer(level)),
