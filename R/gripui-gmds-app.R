@@ -413,7 +413,11 @@ gripui.gmds.stage.summary.table <- function(payload) {
   }
   gripui.family.summary.table(list(
     label = payload$label,
-    level = sprintf("V_%d", payload$level),
+    level = if (!is.null(payload$level) && length(payload$level) == 1L && is.finite(payload$level)) {
+      sprintf("V_%d", payload$level)
+    } else {
+      ""
+    },
     active_vertices = length(payload$active_vertices),
     inserted_vertices = if (length(payload$inserted_vertices)) length(payload$inserted_vertices) else if (!is.null(summary$inserted_n) && is.finite(summary$inserted_n)) as.integer(summary$inserted_n) else "",
     pair_mode = gripui.family.value_or_default(payload$pair_mode, ""),
@@ -424,6 +428,188 @@ gripui.gmds.stage.summary.table <- function(payload) {
     weighted_rel_rmse = gripui.gmds.stage.metric.value(summary$weighted_rel_rmse, 4L),
     elapsed_sec = gripui.gmds.stage.metric.value(summary$elapsed_sec, 3L)
   ))
+}
+
+gripui.gmds.paper.sync.table <- function() {
+  data.frame(
+    app_panel = c(
+      "Stage 0: Graph and Geometry",
+      "Stage 1: MIS Filtration",
+      "Stage 2: Seed Selection and Initial Placement",
+      "Stage 3: Per-Level Insertion and Refinement",
+      "Canonical Trace Summary"
+    ),
+    manuscript_section = c(
+      "Synthetic graph family setup and experiment descriptions",
+      "Filtration",
+      "Coarsest seed, expansion, and refinement",
+      "Initial placement and refinement of V_l",
+      "Multiscale case studies and recent experiments"
+    ),
+    figures_tables = c(
+      "Case-study setup tables and geometry figures",
+      "Figure 7 (MIS filtration cases)",
+      "Top-level stage figures and interactive HTML panels",
+      "Per-level stage figures and tables",
+      "Stage trace tables and experiment discussion"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+gripui.gmds.manuscript.source.path <- function() {
+  "dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.tex"
+}
+
+gripui.gmds.export.stage.choices <- function(bundle) {
+  base <- c(
+    reference = "Reference graph geometry",
+    misf = "Selected MIS filtration level",
+    seed = "Seed stage",
+    initial_placement = "Initial placement",
+    top_level = "Top-level solve",
+    final_polish = "Final full-graph polish"
+  )
+  if (!is.null(bundle) && length(gripui.gmds.expansion.levels(bundle))) {
+    base <- c(
+      base[seq_len(5L)],
+      insertion = "Selected insertion level",
+      refinement = "Selected refinement level",
+      final_polish = base[["final_polish"]]
+    )
+  }
+  stats::setNames(names(base), unname(base))
+}
+
+gripui.gmds.export.stage.payload <- function(bundle,
+                                             stage_id,
+                                             focus_level = NULL,
+                                             expansion_level = NULL) {
+  if (is.null(bundle)) {
+    return(NULL)
+  }
+  stage_id <- as.character(stage_id[[1L]])
+  if (identical(stage_id, "reference")) {
+    coords <- gripui.family.pad_coords(bundle$payload$coords_display, target_cols = 3L)
+    return(list(
+      kind = "reference",
+      stage = "reference",
+      label = "Reference graph geometry",
+      level = NA_integer_,
+      coords = coords,
+      display_coords = coords,
+      edges = bundle$payload$edges,
+      vertex_colors = rep("#8a5a44", nrow(coords)),
+      active_vertices = seq_len(nrow(coords)),
+      highlight_vertices = integer(0L),
+      pair_mode = NA_character_,
+      summary = list(
+        active_n = bundle$payload$n,
+        pair_n = gripui.family.count.edges(bundle$payload$edges)
+      )
+    ))
+  }
+  if (identical(stage_id, "misf")) {
+    level <- as.integer(focus_level[[1L]])
+    prepared <- bundle$prepared
+    partition <- gripui.gmds.layer_partition(prepared)
+    palette <- gripui.gmds.layer.colors(prepared)
+    colors <- unname(palette[as.character(partition)])
+    vertices <- as.integer(prepared$misf$levels[[level + 1L]])
+    coords <- gripui.family.pad_coords(bundle$payload$coords_display, target_cols = 3L)
+    return(list(
+      kind = "misf",
+      stage = "misf",
+      label = sprintf("MIS filtration level V_%d", level),
+      level = level,
+      coords = coords,
+      display_coords = coords,
+      edges = bundle$payload$edges,
+      vertex_colors = colors,
+      active_vertices = vertices,
+      highlight_vertices = vertices,
+      pair_mode = NA_character_,
+      summary = list(
+        active_n = length(vertices),
+        pair_n = nrow(gripui.gmds.filter.edge.matrix(bundle$payload$edges, vertices))
+      )
+    ))
+  }
+  if (stage_id %in% c("seed", "initial_placement", "top_level", "final_polish")) {
+    payload <- gripui.gmds.stage.payload(bundle, stage_id)
+  } else if (stage_id %in% c("insertion", "refinement")) {
+    payload <- gripui.gmds.level.stage.payload(bundle, stage_id, as.integer(expansion_level[[1L]]))
+  } else {
+    payload <- NULL
+  }
+  if (is.null(payload)) {
+    return(NULL)
+  }
+  colors <- switch(
+    stage_id,
+    seed = rep("#8a5a44", nrow(payload$display_coords)),
+    initial_placement = rep("#1f3b73", nrow(payload$display_coords)),
+    top_level = rep("#206a5d", nrow(payload$display_coords)),
+    insertion = rep("#1f3b73", nrow(payload$display_coords)),
+    refinement = rep("#206a5d", nrow(payload$display_coords)),
+    final_polish = rep("#206a5d", nrow(payload$display_coords)),
+    rep("#8a5a44", nrow(payload$display_coords))
+  )
+  payload$kind <- "stage"
+  payload$edges <- bundle$payload$edges
+  payload$vertex_colors <- colors
+  payload
+}
+
+gripui.gmds.export.vertex.table <- function(bundle, export_payload) {
+  coords <- if (!is.null(export_payload$display_coords)) {
+    export_payload$display_coords
+  } else {
+    export_payload$coords
+  }
+  coords <- gripui.family.pad_coords(coords, target_cols = 3L)
+  active <- rep(FALSE, nrow(coords))
+  highlight <- rep(FALSE, nrow(coords))
+  if (!is.null(export_payload$active_vertices)) {
+    active[as.integer(export_payload$active_vertices)] <- TRUE
+  }
+  if (!is.null(export_payload$highlight_vertices)) {
+    highlight[as.integer(export_payload$highlight_vertices)] <- TRUE
+  } else if (!is.null(export_payload$active_vertices)) {
+    highlight[as.integer(export_payload$active_vertices)] <- TRUE
+  }
+  data.frame(
+    vertex_id = seq_len(nrow(coords)),
+    x = coords[, 1L],
+    y = coords[, 2L],
+    z = coords[, 3L],
+    active = active,
+    highlighted = highlight,
+    stringsAsFactors = FALSE
+  )
+}
+
+gripui.gmds.export.widget <- function(bundle,
+                                      export_payload,
+                                      vertex_alpha = 0.95,
+                                      edge_alpha = 0.20,
+                                      background_alpha = 0.35) {
+  coords <- if (!is.null(export_payload$display_coords)) {
+    export_payload$display_coords
+  } else {
+    export_payload$coords
+  }
+  gripui.gmds.render.widget(
+    coords = coords,
+    edges = export_payload$edges,
+    vertex_colors = export_payload$vertex_colors,
+    vertex_alpha = vertex_alpha,
+    edge_alpha = edge_alpha,
+    highlight_vertices = if (!is.null(export_payload$highlight_vertices)) export_payload$highlight_vertices else export_payload$active_vertices,
+    base_size = 5,
+    highlight_size = 9,
+    background_alpha = background_alpha
+  )
 }
 
 gripui.gmds.repro.code <- function(bundle) {
@@ -1065,6 +1251,36 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
             shiny::verbatimTextOutput("gmds_code")
           )
         )
+      ),
+      bslib::accordion_panel(
+        "Stage 4: Exports and Paper Sync",
+        bslib::layout_columns(
+          col_widths = c(6, 6),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Paper synchronization map"),
+            shiny::tags$p(
+              style = "padding:0 1rem;color:#5f5445;line-height:1.45;margin-bottom:0.75rem;",
+              shiny::tags$strong("Active manuscript source: "),
+              shiny::tags$code(gripui.gmds.manuscript.source.path())
+            ),
+            shiny::tableOutput("gmds_paper_sync_table")
+          ),
+          bslib::card(
+            full_screen = TRUE,
+            class = "gripui-card",
+            bslib::card_header("Exports"),
+            shiny::uiOutput("gmds_export_stage_control"),
+            shiny::tableOutput("gmds_export_summary"),
+            shiny::tags$div(
+              style = "padding:0 1rem 1rem;",
+              shiny::downloadButton("gmds_download_stage_trace_csv", "Download stage trace CSV"),
+              shiny::downloadButton("gmds_download_stage_vertices_csv", "Download selected stage vertices CSV"),
+              shiny::downloadButton("gmds_download_stage_snapshot_html", "Download selected stage snapshot HTML")
+            )
+          )
+        )
       )
     )
   )
@@ -1105,6 +1321,30 @@ gripui.gmds.server <- function(catalog) {
         return(available[[1L]])
       }
       selected
+    })
+
+    current_export_stage <- shiny::reactive({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return("top_level")
+      }
+      choices <- gripui.gmds.export.stage.choices(bundle)
+      selected <- gripui.family.value_or_default(input$gmds_export_stage, "")
+      if (!nzchar(selected) || !selected %in% unname(choices)) {
+        return(unname(choices[[1L]]))
+      }
+      selected
+    })
+
+    current_export_payload <- shiny::reactive({
+      bundle <- bundle_state()
+      shiny::req(bundle)
+      gripui.gmds.export.stage.payload(
+        bundle = bundle,
+        stage_id = current_export_stage(),
+        focus_level = current_level(),
+        expansion_level = current_expansion_level()
+      )
     })
 
     build_bundle <- function(values) {
@@ -1228,6 +1468,20 @@ gripui.gmds.server <- function(catalog) {
       shiny::selectInput(
         "gmds_expansion_level",
         "Expansion/refinement level",
+        choices = choices,
+        selected = unname(choices[[1L]])
+      )
+    })
+
+    output$gmds_export_stage_control <- shiny::renderUI({
+      bundle <- bundle_state()
+      if (is.null(bundle)) {
+        return(NULL)
+      }
+      choices <- gripui.gmds.export.stage.choices(bundle)
+      shiny::selectInput(
+        "gmds_export_stage",
+        "Export target",
         choices = choices,
         selected = unname(choices[[1L]])
       )
@@ -1590,6 +1844,83 @@ gripui.gmds.server <- function(catalog) {
       shiny::req(bundle)
       gripui.gmds.repro.code(bundle)
     })
+
+    output$gmds_paper_sync_table <- shiny::renderTable({
+      gripui.gmds.paper.sync.table()
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$gmds_export_summary <- shiny::renderTable({
+      payload <- current_export_payload()
+      shiny::req(payload)
+      gripui.gmds.stage.summary.table(payload)
+    }, striped = TRUE, bordered = FALSE, spacing = "s")
+
+    output$gmds_download_stage_trace_csv <- shiny::downloadHandler(
+      filename = function() {
+        sprintf(
+          "gmds_stage_trace_%s_%s.csv",
+          gripui.family.value_or_default(input$gmds_family_id, "family"),
+          gripui.family.value_or_default(input$gmds_method, "method")
+        )
+      },
+      content = function(file) {
+        bundle <- bundle_state()
+        shiny::req(bundle)
+        utils::write.csv(bundle$stage_trace, file, row.names = FALSE)
+      }
+    )
+
+    output$gmds_download_stage_vertices_csv <- shiny::downloadHandler(
+      filename = function() {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        label <- gsub("[^A-Za-z0-9]+", "_", tolower(payload$label))
+        sprintf(
+          "gmds_stage_vertices_%s_%s.csv",
+          gripui.family.value_or_default(label, "stage"),
+          gripui.family.value_or_default(input$gmds_method, "method")
+        )
+      },
+      content = function(file) {
+        bundle <- bundle_state()
+        payload <- current_export_payload()
+        shiny::req(bundle, payload)
+        utils::write.csv(
+          gripui.gmds.export.vertex.table(bundle, payload),
+          file,
+          row.names = FALSE
+        )
+      }
+    )
+
+    output$gmds_download_stage_snapshot_html <- shiny::downloadHandler(
+      filename = function() {
+        payload <- current_export_payload()
+        shiny::req(payload)
+        label <- gsub("[^A-Za-z0-9]+", "_", tolower(payload$label))
+        sprintf(
+          "gmds_stage_snapshot_%s_%s.html",
+          gripui.family.value_or_default(label, "stage"),
+          gripui.family.value_or_default(input$gmds_method, "method")
+        )
+      },
+      content = function(file) {
+        bundle <- bundle_state()
+        payload <- current_export_payload()
+        shiny::req(bundle, payload)
+        if (!requireNamespace("htmlwidgets", quietly = TRUE)) {
+          stop("Package 'htmlwidgets' is required for HTML snapshot export.", call. = FALSE)
+        }
+        widget <- gripui.gmds.export.widget(
+          bundle = bundle,
+          export_payload = payload,
+          vertex_alpha = as.numeric(input$gmds_vertex_alpha),
+          edge_alpha = as.numeric(input$gmds_edge_alpha),
+          background_alpha = as.numeric(input$gmds_background_alpha)
+        )
+        htmlwidgets::saveWidget(widget, file = file, selfcontained = TRUE)
+      }
+    )
   }
 }
 
@@ -1598,11 +1929,11 @@ gripui.gmds.server <- function(catalog) {
 #' The GMDS stage explorer reuses the synthetic family catalog from
 #' [gripui_family_app()] and computes a canonical MISF stage bundle for the
 #' selected graph and method. The current implementation covers Milestones 1
-#' through 4: graph and geometry inspection, visualization of the MIS
+#' through 5: graph and geometry inspection, visualization of the MIS
 #' filtration, explicit seed and initial-placement panels, per-level insertion
 #' and refinement panels, method switching across canonical
-#' GRIP/GMDS/GKK/LGKK traces, and a canonical stage-trace summary that later
-#' panels will extend.
+#' GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and initial
+#' export/paper-synchronization helpers.
 #'
 #' @param catalog Family catalog, usually [gripui_graph_family_catalog()].
 #' @param title Application title.
@@ -1616,7 +1947,7 @@ gripui.gmds.server <- function(catalog) {
 #' inherits(app, "shiny.appobj")
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GRIP/GMDS/GKK/LGKK stage traces.") {
+                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces.") {
   catalog <- gripui.gmds.default.catalog(catalog)
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -1646,7 +1977,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GRIP/GMDS/GKK/LGKK stage traces.",
+                            subtitle = "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces.",
                             host = "127.0.0.1",
                             port = getOption("shiny.port"),
                             launch.browser = interactive(),

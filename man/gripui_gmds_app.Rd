@@ -8,7 +8,7 @@ gripui_gmds_app(
   catalog = gripui.gmds.default.catalog(),
   title = "GMDS Stage Explorer",
   subtitle =
-    "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GRIP/GMDS/GKK/LGKK stage traces."
+    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, method switching, and export/paper sync across canonical GRIP/GMDS/GKK/LGKK stage traces."
 )
 }
 \arguments{
@@ -25,11 +25,11 @@ A `shiny.appobj`.
 The GMDS stage explorer reuses the synthetic family catalog from
 [gripui_family_app()] and computes a canonical MISF stage bundle for the
 selected graph and method. The current implementation covers Milestones 1
-through 4: graph and geometry inspection, visualization of the MIS
+through 5: graph and geometry inspection, visualization of the MIS
 filtration, explicit seed and initial-placement panels, per-level insertion
 and refinement panels, method switching across canonical
-GRIP/GMDS/GKK/LGKK traces, and a canonical stage-trace summary that later
-panels will extend.
+GRIP/GMDS/GKK/LGKK traces, a canonical stage-trace summary, and initial
+export/paper-synchronization helpers.
 }
 \examples{
 \dontshow{if (local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })) withAutoprint(\{ # examplesIf}

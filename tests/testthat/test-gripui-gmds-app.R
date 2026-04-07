@@ -18,6 +18,9 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
   )
 
   level_stage_payload <- getFromNamespace("gripui.gmds.level.stage.payload", "grip")
+  export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
+  export_stage_choices <- getFromNamespace("gripui.gmds.export.stage.choices", "grip")
+  paper_sync_table <- getFromNamespace("gripui.gmds.paper.sync.table", "grip")
 
   for (method in names(cases)) {
     bundle <- compute_bundle(
@@ -59,7 +62,23 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
     expect_false(is.null(refinement_payload))
     expect_equal(insertion_payload$level, expansion_levels[[1L]])
     expect_equal(refinement_payload$level, expansion_levels[[1L]])
+
+    export.choices <- export_stage_choices(bundle)
+    expect_true(all(c("reference", "misf", "top_level", "final_polish") %in% unname(export.choices)))
+    export.payload <- export_stage_payload(
+      bundle = bundle,
+      stage_id = "top_level",
+      focus_level = bundle$prepared$top_level_level,
+      expansion_level = expansion_levels[[1L]]
+    )
+    expect_true(is.list(export.payload))
+    expect_equal(export.payload$label, cases[[method]]$top_label)
+    expect_true(is.matrix(export.payload$display_coords))
   }
+
+  paper.map <- paper_sync_table()
+  expect_true(is.data.frame(paper.map))
+  expect_true(nrow(paper.map) >= 5L)
 })
 
 test_that("GMDS stage explorer app builds", {
