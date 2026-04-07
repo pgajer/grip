@@ -8,7 +8,7 @@ run_gripui_gmds(
   catalog = gripui.gmds.default.catalog(),
   title = "GMDS Stage Explorer",
   subtitle =
-    "Milestones 1-3: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and canonical MISF-GMDS stage traces.",
+    "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GMDS/GKK/LGKK stage traces.",
   host = "127.0.0.1",
   port = getOption("shiny.port"),
   launch.browser = interactive(),

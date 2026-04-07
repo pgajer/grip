@@ -59,6 +59,57 @@ gripui.gmds.level.choices <- function(prepared) {
   stats::setNames(as.character(levels), sprintf("V_%d", levels))
 }
 
+gripui.gmds.method.catalog <- function() {
+  list(
+    gmds = list(
+      id = "gmds",
+      label = "GMDS",
+      objective_label = "Geodesic MDS",
+      refinement_phrase = "pure-GMDS",
+      prepare_fn = "grip.prepare.misf.geodesic.mds",
+      optimize_fn = "grip.optimize.misf.geodesic.mds",
+      fit_class = "grip_misf_gmds_fit"
+    ),
+    gkk = list(
+      id = "gkk",
+      label = "GKK",
+      objective_label = "Full geodesic-KK",
+      refinement_phrase = "full geodesic-KK",
+      pair_mode = "full",
+      prepare_fn = "grip.prepare.misf.geodesic.kk",
+      optimize_fn = "grip.optimize.misf.geodesic.kk",
+      fit_class = "grip_misf_gkk_fit"
+    ),
+    lgkk = list(
+      id = "lgkk",
+      label = "LGKK",
+      objective_label = "Landmark geodesic-KK",
+      refinement_phrase = "landmark geodesic-KK",
+      pair_mode = "landmark",
+      prepare_fn = "grip.prepare.misf.geodesic.kk",
+      optimize_fn = "grip.optimize.misf.geodesic.kk",
+      fit_class = "grip_misf_gkk_fit"
+    )
+  )
+}
+
+gripui.gmds.method.spec <- function(method = "gmds") {
+  method <- as.character(method[[1L]])
+  catalog <- gripui.gmds.method.catalog()
+  if (!method %in% names(catalog)) {
+    stop("unknown GMDS app method: ", method)
+  }
+  catalog[[method]]
+}
+
+gripui.gmds.method.choices <- function() {
+  catalog <- gripui.gmds.method.catalog()
+  stats::setNames(
+    vapply(catalog, `[[`, character(1L), "id"),
+    vapply(catalog, `[[`, character(1L), "label")
+  )
+}
+
 gripui.gmds.min.hop.separation <- function(level) {
   level <- as.integer(level)
   if (level <= 0L) {
@@ -104,8 +155,11 @@ gripui.gmds.level.table <- function(prepared) {
 gripui.gmds.bundle.summary <- function(bundle) {
   prepared <- bundle$prepared
   payload <- bundle$payload
+  method <- bundle$method
   coarsest.vertices <- prepared$misf$levels[[prepared$coarsest_level_level + 1L]]
   gripui.family.summary.table(list(
+    method = method$label,
+    objective = method$objective_label,
     family = payload$family_label,
     category = payload$category,
     vertices = payload$n,
@@ -260,6 +314,7 @@ gripui.gmds.stage.display.coords <- function(bundle, payload, fill_reference = T
 
 gripui.gmds.stage.note <- function(bundle, state) {
   prepared <- bundle$prepared
+  refinement.phrase <- bundle$method$refinement_phrase
   switch(
     state,
     seed = if (prepared$top_level_level < prepared$coarsest_level_level) {
@@ -276,22 +331,25 @@ gripui.gmds.stage.note <- function(bundle, state) {
         prepared$top_level_level
       )
     },
-    initial_placement = sprintf(
-      "All vertices of V_%d after geometric seed placement and anchor-based insertion, before the top-level pure-GMDS refinement.",
-      prepared$top_level_level
-    ),
     top_level = sprintf(
-      "The selected top solve level V_%d after the restartable pure-GMDS solve that starts from the initial placement shown at left.",
-      prepared$top_level_level
+      "The selected top solve level V_%d after the restartable %s solve that starts from the initial placement shown at left.",
+      prepared$top_level_level,
+      refinement.phrase
+    ),
+    initial_placement = sprintf(
+      "All vertices of V_%d after geometric seed placement and anchor-based insertion, before the top-level %s refinement.",
+      prepared$top_level_level,
+      refinement.phrase
     ),
     ""
   )
 }
 
-gripui.gmds.level.stage.note <- function(stage, level, inserted_n = NULL) {
+gripui.gmds.level.stage.note <- function(bundle, stage, level, inserted_n = NULL) {
   stage <- match.arg(stage, c("insertion", "refinement"))
   level <- as.integer(level)
   scaffold.level <- level + 1L
+  refinement.phrase <- bundle$method$refinement_phrase
   switch(
     stage,
     insertion = if (!is.null(inserted_n) && is.finite(inserted_n)) {
@@ -311,7 +369,8 @@ gripui.gmds.level.stage.note <- function(stage, level, inserted_n = NULL) {
       )
     },
     refinement = sprintf(
-      "This panel shows the sparse active-level GMDS refinement on V_%d after insertion of that level.",
+      "This panel shows the active-level %s refinement on V_%d after insertion of that level.",
+      refinement.phrase,
       level
     )
   )
@@ -344,35 +403,87 @@ gripui.gmds.repro.code <- function(bundle) {
   payload <- bundle$payload
   prepared <- bundle$prepared
   settings <- bundle$settings
+  if (identical(bundle$method$id, "gmds")) {
+    return(paste(
+      payload$code,
+      "",
+      sprintf(
+        "prepared <- grip.prepare.misf.geodesic.mds(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, tie_mode = \"average\", num_init = %dL, dim = %dL, top_level_mode = \"skip\", seed = %dL)",
+        settings$num_init,
+        settings$dim,
+        settings$prepare_seed
+      ),
+      sprintf(
+        paste0(
+          "fit <- grip.optimize.misf.geodesic.mds(prepared = prepared, dim = %dL, ",
+          "top_level_restarts = 1L, top_level_max_iter = %dL, top_level_engine = \"cpp\", ",
+          "insertion_anchor_policy = \"prev_level_spread\", insertion_max_iter = %dL, ",
+          "refinement_local_nbrs = %dL, refinement_landmark_count = %dL, ",
+          "refinement_pair_mode = \"sparse\", refinement_anchor_weight = 0.05, ",
+          "refinement_anchor_weight_end = 0.01, refinement_continuation = \"linear\", ",
+          "refinement_max_iter = %dL, refinement_engine = \"cpp\", ",
+          "final_polish_max_iter = %dL, final_polish_engine = \"cpp\", ",
+          "n_threads = %dL, return_trace = TRUE, return_frames = FALSE, seed = %dL)"
+        ),
+        settings$dim,
+        settings$top_level_max_iter,
+        settings$insertion_max_iter,
+        settings$refinement_local_nbrs,
+        settings$refinement_landmark_count,
+        settings$refinement_max_iter,
+        settings$final_polish_max_iter,
+        settings$n_threads,
+        settings$optimizer_seed
+      ),
+      sprintf(
+        "# selected top solve level: V_%d (reason: %s)",
+        prepared$top_level_level,
+        prepared$top_level_selection_reason
+      ),
+      sep = "\n"
+    ))
+  }
+
   paste(
     payload$code,
     "",
     sprintf(
-      "prepared <- grip.prepare.misf.geodesic.mds(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, tie_mode = \"average\", num_init = %dL, dim = %dL, top_level_mode = \"skip\", seed = %dL)",
+      "prepared <- grip.prepare.misf.geodesic.kk(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, tie_mode = \"average\", num_init = %dL, dim = %dL, top_level_mode = \"skip\", top_level_pair_mode = \"%s\", top_level_local_nbrs = %dL, top_level_landmark_count = %dL, seed = %dL)",
       settings$num_init,
       settings$dim,
+      settings$pair_mode,
+      settings$refinement_local_nbrs,
+      settings$refinement_landmark_count,
       settings$prepare_seed
     ),
     sprintf(
       paste0(
-        "fit <- grip.optimize.misf.geodesic.mds(prepared = prepared, dim = %dL, ",
-        "top_level_restarts = 1L, top_level_max_iter = %dL, top_level_engine = \"cpp\", ",
+        "fit <- grip.optimize.misf.geodesic.kk(prepared = prepared, dim = %dL, ",
+        "top_level_pair_mode = \"%s\", top_level_full_limit = %dL, top_level_local_nbrs = %dL, top_level_landmark_count = %dL, ",
+        "top_level_restarts = 1L, top_level_max_iter = %dL, ",
         "insertion_anchor_policy = \"prev_level_spread\", insertion_max_iter = %dL, ",
-        "refinement_local_nbrs = %dL, refinement_landmark_count = %dL, ",
-        "refinement_pair_mode = \"sparse\", refinement_anchor_weight = 0.05, ",
-        "refinement_anchor_weight_end = 0.01, refinement_continuation = \"linear\", ",
-        "refinement_max_iter = %dL, refinement_engine = \"cpp\", ",
-        "final_polish_max_iter = %dL, final_polish_engine = \"cpp\", ",
-        "n_threads = %dL, return_trace = TRUE, return_frames = FALSE, seed = %dL)"
+        "refinement_pair_mode = \"%s\", refinement_full_limit = %dL, refinement_local_nbrs = %dL, refinement_landmark_count = %dL, ",
+        "refinement_anchor_weight = 0.05, refinement_anchor_weight_end = 0.01, refinement_continuation = \"linear\", ",
+        "refinement_max_iter = %dL, final_pair_mode = \"%s\", final_full_limit = %dL, final_local_nbrs = %dL, final_landmark_count = %dL, final_max_iter = %dL, ",
+        "return_trace = TRUE, return_frames = FALSE, seed = %dL)"
       ),
       settings$dim,
+      settings$pair_mode,
+      settings$pair_full_limit,
+      settings$refinement_local_nbrs,
+      settings$refinement_landmark_count,
       settings$top_level_max_iter,
       settings$insertion_max_iter,
+      settings$pair_mode,
+      settings$pair_full_limit,
       settings$refinement_local_nbrs,
       settings$refinement_landmark_count,
       settings$refinement_max_iter,
+      settings$pair_mode,
+      settings$pair_full_limit,
+      settings$refinement_local_nbrs,
+      settings$refinement_landmark_count,
       settings$final_polish_max_iter,
-      settings$n_threads,
       settings$optimizer_seed
     ),
     sprintf(
@@ -477,6 +588,7 @@ gripui.gmds.render.widget <- function(coords,
 
 gripui.gmds.compute.bundle <- function(desc,
                                        values,
+                                       method = "gmds",
                                        dim = 3L,
                                        num_init = 24L,
                                        prepare_seed = NULL,
@@ -487,6 +599,7 @@ gripui.gmds.compute.bundle <- function(desc,
                                        final_polish_max_iter = 2L,
                                        n_threads = 0L) {
   payload <- gripui.family.build.payload(desc, values)
+  method.spec <- gripui.gmds.method.spec(method)
   dim <- as.integer(round(dim))
   num_init <- as.integer(round(num_init))
   top_level_max_iter <- as.integer(round(top_level_max_iter))
@@ -502,47 +615,101 @@ gripui.gmds.compute.bundle <- function(desc,
   }
   prepare_seed <- as.integer(round(prepare_seed))
   optimizer_seed <- as.integer(round(optimizer_seed))
-
-  prepared <- grip.prepare.misf.geodesic.mds(
-    edges = payload$edges,
-    n = payload$n,
-    edge_weights = payload$edge_weights,
-    tie_mode = "average",
-    num_init = num_init,
-    dim = dim,
-    top_level_mode = "skip",
-    seed = prepare_seed
-  )
-
   refinement_local_nbrs <- max(4L, dim + 1L)
-  refinement_landmark_count <- max(2L, min(8L, length(prepared$top_level_vertices)))
+  top_level_landmark_count <- max(2L, min(8L, num_init))
 
-  fit <- grip.optimize.misf.geodesic.mds(
-    prepared = prepared,
-    dim = dim,
-    top_level_restarts = 1L,
-    top_level_max_iter = top_level_max_iter,
-    top_level_engine = "cpp",
-    insertion_anchor_policy = "prev_level_spread",
-    insertion_max_iter = insertion_max_iter,
-    refinement_local_nbrs = refinement_local_nbrs,
-    refinement_landmark_count = refinement_landmark_count,
-    refinement_pair_mode = "sparse",
-    refinement_anchor_weight = 0.05,
-    refinement_anchor_weight_end = 0.01,
-    refinement_continuation = "linear",
-    refinement_max_iter = refinement_max_iter,
-    refinement_engine = "cpp",
-    final_polish_max_iter = final_polish_max_iter,
-    final_polish_engine = "cpp",
-    n_threads = n_threads,
-    return_trace = TRUE,
-    return_frames = FALSE,
-    seed = optimizer_seed
-  )
+  if (identical(method.spec$id, "gmds")) {
+    prepared <- grip.prepare.misf.geodesic.mds(
+      edges = payload$edges,
+      n = payload$n,
+      edge_weights = payload$edge_weights,
+      tie_mode = "average",
+      num_init = num_init,
+      dim = dim,
+      top_level_mode = "skip",
+      seed = prepare_seed
+    )
+
+    refinement_landmark_count <- max(2L, min(8L, length(prepared$top_level_vertices)))
+
+    fit <- grip.optimize.misf.geodesic.mds(
+      prepared = prepared,
+      dim = dim,
+      top_level_restarts = 1L,
+      top_level_max_iter = top_level_max_iter,
+      top_level_engine = "cpp",
+      insertion_anchor_policy = "prev_level_spread",
+      insertion_max_iter = insertion_max_iter,
+      refinement_local_nbrs = refinement_local_nbrs,
+      refinement_landmark_count = refinement_landmark_count,
+      refinement_pair_mode = "sparse",
+      refinement_anchor_weight = 0.05,
+      refinement_anchor_weight_end = 0.01,
+      refinement_continuation = "linear",
+      refinement_max_iter = refinement_max_iter,
+      refinement_engine = "cpp",
+      final_polish_max_iter = final_polish_max_iter,
+      final_polish_engine = "cpp",
+      n_threads = n_threads,
+      return_trace = TRUE,
+      return_frames = FALSE,
+      seed = optimizer_seed
+    )
+    pair.mode <- NA_character_
+    pair.full.limit <- NA_integer_
+  } else {
+    prepared <- grip.prepare.misf.geodesic.kk(
+      edges = payload$edges,
+      n = payload$n,
+      edge_weights = payload$edge_weights,
+      tie_mode = "average",
+      num_init = num_init,
+      dim = dim,
+      top_level_mode = "skip",
+      top_level_pair_mode = method.spec$pair_mode,
+      top_level_full_limit = max(payload$n, num_init),
+      top_level_local_nbrs = refinement_local_nbrs,
+      top_level_landmark_count = top_level_landmark_count,
+      seed = prepare_seed
+    )
+
+    refinement_landmark_count <- max(2L, min(8L, length(prepared$top_level_vertices)))
+    pair.mode <- method.spec$pair_mode
+    pair.full.limit <- max(payload$n, length(prepared$top_level_vertices))
+
+    fit <- grip.optimize.misf.geodesic.kk(
+      prepared = prepared,
+      dim = dim,
+      top_level_pair_mode = pair.mode,
+      top_level_full_limit = pair.full.limit,
+      top_level_local_nbrs = refinement_local_nbrs,
+      top_level_landmark_count = refinement_landmark_count,
+      top_level_restarts = 1L,
+      top_level_max_iter = top_level_max_iter,
+      insertion_anchor_policy = "prev_level_spread",
+      insertion_max_iter = insertion_max_iter,
+      refinement_pair_mode = pair.mode,
+      refinement_full_limit = pair.full.limit,
+      refinement_local_nbrs = refinement_local_nbrs,
+      refinement_landmark_count = refinement_landmark_count,
+      refinement_anchor_weight = 0.05,
+      refinement_anchor_weight_end = 0.01,
+      refinement_continuation = "linear",
+      refinement_max_iter = refinement_max_iter,
+      final_pair_mode = pair.mode,
+      final_full_limit = pair.full.limit,
+      final_local_nbrs = refinement_local_nbrs,
+      final_landmark_count = refinement_landmark_count,
+      final_max_iter = final_polish_max_iter,
+      return_trace = TRUE,
+      return_frames = FALSE,
+      seed = optimizer_seed
+    )
+  }
 
   list(
     payload = payload,
+    method = method.spec,
     prepared = prepared,
     fit = fit,
     stage_trace = fit$stage_trace,
@@ -554,6 +721,7 @@ gripui.gmds.compute.bundle <- function(desc,
     ),
     settings = list(
       dim = dim,
+      method = method.spec$id,
       num_init = num_init,
       prepare_seed = prepare_seed,
       optimizer_seed = optimizer_seed,
@@ -561,6 +729,8 @@ gripui.gmds.compute.bundle <- function(desc,
       insertion_max_iter = insertion_max_iter,
       refinement_max_iter = refinement_max_iter,
       final_polish_max_iter = final_polish_max_iter,
+      pair_mode = pair.mode,
+      pair_full_limit = pair.full.limit,
       refinement_local_nbrs = refinement_local_nbrs,
       refinement_landmark_count = refinement_landmark_count,
       n_threads = n_threads
@@ -590,7 +760,8 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
       shiny::selectInput("gmds_family_preset", "Preset", choices = gripui.family.preset.choices(initial_state$desc), selected = "default"),
       shiny::uiOutput("gmds_family_param_panel"),
       shiny::tags$hr(),
-      shiny::tags$h5("GMDS Controls"),
+      shiny::tags$h5("Method Controls"),
+      shiny::selectInput("gmds_method", "Method", choices = gripui.gmds.method.choices(), selected = "gmds"),
       shiny::numericInput("gmds_dim", "Embedding dimension", value = 3L, min = 2L, max = 3L, step = 1L),
       shiny::numericInput("gmds_num_init", "MIS filtration num_init", value = 24L, min = 3L, step = 1L),
       shiny::numericInput("gmds_prepare_seed", "MIS filtration seed", value = 1001L, min = 0L, step = 1L),
@@ -607,7 +778,7 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
       shiny::sliderInput("gmds_edge_alpha", "Edge opacity", min = 0.05, max = 1, value = 0.20, step = 0.05),
       shiny::uiOutput("gmds_level_control"),
       shiny::uiOutput("gmds_expansion_level_control"),
-      shiny::actionButton("render_gmds_case", "Render GMDS stages", class = "btn-primary"),
+      shiny::actionButton("render_gmds_case", "Render MISF stages", class = "btn-primary"),
       shiny::uiOutput("gmds_render_status")
     ),
     if (nzchar(css.path)) shiny::tags$head(shiny::includeCSS(css.path)),
@@ -803,6 +974,7 @@ gripui.gmds.server <- function(catalog) {
         gripui.gmds.compute.bundle(
           desc = desc,
           values = values,
+          method = gripui.family.value_or_default(input$gmds_method, "gmds"),
           dim = gripui.family.value_or_default(input$gmds_dim, 3L),
           num_init = gripui.family.value_or_default(input$gmds_num_init, 24L),
           prepare_seed = gripui.family.value_or_default(input$gmds_prepare_seed, gripui.gmds.default.seed(values, offset = 1000L)),
@@ -857,7 +1029,7 @@ gripui.gmds.server <- function(catalog) {
       )
     })
 
-    shiny::observeEvent(list(input$gmds_family_id, input$gmds_family_preset), {
+    shiny::observeEvent(list(input$gmds_family_id, input$gmds_family_preset, input$gmds_method), {
       desc <- current_desc()
       values <- .gripui.family.merge.values(desc, preset_id = input$gmds_family_preset)
       shiny::updateNumericInput(session, "gmds_prepare_seed", value = gripui.gmds.default.seed(values, offset = 1000L))
@@ -929,17 +1101,19 @@ gripui.gmds.server <- function(catalog) {
         return(shiny::tags$p(style = "color:#8a1c1c;", err))
       }
       if (is.null(bundle)) {
-        return(shiny::tags$p(class = "gripui-muted", "Render a family to inspect its MISF-GMDS stages."))
+        return(shiny::tags$p(class = "gripui-muted", "Render a family to inspect its canonical MISF stage traces."))
       }
       prepared <- bundle$prepared
+      method.label <- bundle$method$label
       lead <- if (prepared$top_level_level < prepared$coarsest_level_level) {
         sprintf(
-          "True MIS filtration starts at V_%d, but the GMDS solve starts from the coarsest admissible level V_%d.",
+          "True MIS filtration starts at V_%d, but the %s solve starts from the coarsest admissible level V_%d.",
           prepared$coarsest_level_level,
+          method.label,
           prepared$top_level_level
         )
       } else {
-        sprintf("The GMDS solve starts from the coarsest filtration level V_%d.", prepared$top_level_level)
+        sprintf("The %s solve starts from the coarsest filtration level V_%d.", method.label, prepared$top_level_level)
       }
       shiny::tags$p(
         class = "gripui-selection-status",
@@ -1123,7 +1297,10 @@ gripui.gmds.server <- function(catalog) {
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
             gripui.gmds.stage.note(bundle, "initial_placement"),
-            "This is the warm-start state used by the top-level pure-GMDS refinement."
+            sprintf(
+              "This is the warm-start state used by the top-level %s refinement.",
+              bundle$method$refinement_phrase
+            )
           )
         )
       )
@@ -1214,7 +1391,7 @@ gripui.gmds.server <- function(catalog) {
         shiny::tags$p(
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
-            gripui.gmds.level.stage.note("insertion", level, inserted_n = inserted.n),
+            gripui.gmds.level.stage.note(bundle, "insertion", level, inserted_n = inserted.n),
             "The highlighted active set is the whole current level after insertion."
           )
         )
@@ -1244,8 +1421,8 @@ gripui.gmds.server <- function(catalog) {
         shiny::tags$p(
           style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
           paste(
-            gripui.gmds.level.stage.note("refinement", level),
-            "The same active set is shown after sparse refinement of that level."
+            gripui.gmds.level.stage.note(bundle, "refinement", level),
+            "The same active set is shown after objective-specific refinement of that level."
           )
         )
       )
@@ -1281,11 +1458,11 @@ gripui.gmds.server <- function(catalog) {
 #'
 #' The GMDS stage explorer reuses the synthetic family catalog from
 #' [gripui_family_app()] and computes a canonical MISF-GMDS bundle for the
-#' selected graph. The current implementation covers Milestones 1 through 3:
+#' selected graph. The current implementation covers Milestones 1 through 4:
 #' graph and geometry inspection, visualization of the MIS filtration,
 #' explicit seed and initial-placement panels, per-level insertion and
-#' refinement panels, and a canonical stage-trace summary that later panels
-#' will extend.
+#' refinement panels, method switching across canonical GMDS/GKK/LGKK traces,
+#' and a canonical stage-trace summary that later panels will extend.
 #'
 #' @param catalog Family catalog, usually [gripui_graph_family_catalog()].
 #' @param title Application title.
@@ -1299,7 +1476,7 @@ gripui.gmds.server <- function(catalog) {
 #' inherits(app, "shiny.appobj")
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-3: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and canonical MISF-GMDS stage traces.") {
+                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GMDS/GKK/LGKK stage traces.") {
   catalog <- gripui.gmds.default.catalog(catalog)
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -1329,7 +1506,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
-                            subtitle = "Milestones 1-3: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and canonical MISF-GMDS stage traces.",
+                            subtitle = "Milestones 1-4: graph and geometry selection, MIS filtration, seed selection, insertion/refinement, and method switching across canonical GMDS/GKK/LGKK stage traces.",
                             host = "127.0.0.1",
                             port = getOption("shiny.port"),
                             launch.browser = interactive(),
