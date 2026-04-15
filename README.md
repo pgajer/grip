@@ -4,8 +4,18 @@
 # grip
 
 **grip** (Graph dRawing with Intelligent Placement) is an R package for
-drawing large graphs in 2D and 3D using a multiscale force-directed
-algorithm. It implements the GRIP method described in [Gajer & Kobourov
+multiscale graph layout in 2D and 3D. The main workflow is:
+
+- `grip.layout()` for unweighted graphs,
+- `grip.layout.weighted()` for weighted graphs,
+- `grip.compare.layouts()` and `grip.score.layout()` for real-data
+  layout selection,
+- `grip.layout.trace()` and `grip.layout.trace.weighted()` for
+  diagnostics.
+
+The package also includes advanced public experimental geodesic-KK
+utilities for weighted-layout scoring and polish. It builds on the GRIP
+method described in [Gajer & Kobourov
 (2002)](https://doi.org/10.7155/jgaa.00052) and [Gajer, Goodrich &
 Kobourov (2004)](https://doi.org/10.1016/j.comgeo.2004.03.014).
 
@@ -31,16 +41,23 @@ grip.plot(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 ## Features
 
 - Multiscale force-directed layout in 2D and 3D via C++ (Rcpp).
-- Accepts edge-list matrices or adjacency lists with optional positive
-  edge weights.
-- Handles disconnected graphs automatically (component packing).
-- Tuned presets for common graph families (see table below).
+- `grip.layout()` for unweighted graphs.
+- `grip.layout.weighted()` for weighted graphs.
 - Layout comparison and quality scoring across seeds and parameter
   settings (`grip.compare.layouts()`, `grip.score.layout()`).
-- Multiscale trace visualisation (`grip.layout.trace()`).
+- Multiscale trace diagnostics for both workflows
+  (`grip.layout.trace()`, `grip.layout.trace.weighted()`).
+- Advanced public experimental geodesic-KK utilities for weighted-layout
+  scoring and polish (`grip.prepare.geodesic.kk()`,
+  `grip.score.geodesic.kk()`, `grip.prepare.landmark.geodesic.kk()`,
+  `grip.score.landmark.geodesic.kk()`).
+- Synthetic graph-family helpers for benchmark and geometry-rich
+  examples.
+- Handles disconnected graphs automatically (component packing).
+- Tuned presets for common graph families (see table below).
 - Static 3D projection for vignettes and reports
   (`grip.plot(projection = "ortho")`, `grip.project.3d()`).
-- Interactive 3D viewing via the optional `rgl` package.
+- Optional Shiny explorers and interactive 3D viewing via `rgl`.
 
 ## Presets
 
@@ -53,6 +70,19 @@ grip.plot(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 
 Presets set sensible defaults for the GRIP parameters. Any explicit
 argument you pass overrides the preset value.
+
+## Choosing a workflow
+
+- Start with `grip.layout()` when the graph is unweighted.
+- Switch to `grip.layout.weighted()` when the graph is weighted.
+- Use `grip.compare.layouts()` and `grip.score.layout()` when the graph
+  is important enough to justify a candidate shortlist rather than a
+  single run.
+- Use `grip.layout.trace()` or `grip.layout.trace.weighted()` when you
+  need to diagnose how a solve evolved.
+- Add GKK/LGKK only after you already have weighted candidate layouts
+  and need geodesic-aware scoring or polish; these are advanced public
+  experimental tools rather than the default starting point.
 
 ## Gallery
 
@@ -79,13 +109,13 @@ coords <- grip.layout(edges, n = 18, dim = 2, placement = "circle", seed = 2)
 grip.plot(coords, edges, pch = 16, cex = 0.7)
 ```
 
-**Adjacency list with weights**
+**Weighted adjacency list (geometry-aware)**
 
 ``` r
 adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
 weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
-coords <- grip.layout(adj_list = adj_list, weight_list = weight_list,
-                      n = 4, dim = 2, seed = 12)
+coords <- grip.layout.weighted(adj_list = adj_list, weight_list = weight_list,
+                               n = 4, dim = 2, seed = 12)
 grip.plot(coords)
 ```
 
@@ -130,6 +160,10 @@ The package ships with four core vignettes:
 The pkgdown site also includes companion articles such as the
 interactive explorer guide, the HMP/U01 object-structure note, the
 comparison article, and the synthetic-family gallery.
+
+The geodesic-KK helpers are public and documented in the reference
+index, but they are intentionally positioned as advanced experimental
+tools layered on top of the main weighted workflow.
 
 ## Citation
 

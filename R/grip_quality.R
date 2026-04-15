@@ -3409,7 +3409,7 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
 #'
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
-#' @export
+#' @noRd
 grip.prepare.graph.geodesic.mds <- function(edges = NULL,
                                             n = NULL,
                                             adj_list = NULL,
@@ -3494,7 +3494,7 @@ grip.prepare.graph.geodesic.mds <- function(edges = NULL,
 #'
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
-#' @export
+#' @noRd
 grip.prepare.geodesic.mds <- function(data,
                                       k,
                                       connect = c("mst", "error"),
@@ -3572,7 +3572,7 @@ grip.prepare.geodesic.mds <- function(data,
 #' @param return_pair_details If \code{TRUE}, attach per-pair residual details.
 #'
 #' @return A one-row data frame summarizing the geodesic-MDS fit.
-#' @export
+#' @noRd
 grip.score.geodesic.mds <- function(coords,
                                     prepared = NULL,
                                     data = NULL,
@@ -3763,7 +3763,7 @@ grip.score.geodesic.mds <- function(coords,
 #'
 #' @return A list with \code{coords}, \code{trace}, \code{frames},
 #'   \code{prepared}, and \code{score}.
-#' @export
+#' @noRd
 grip.optimize.geodesic.mds <- function(coords = NULL,
                                        prepared = NULL,
                                        data = NULL,
