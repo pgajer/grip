@@ -1,6 +1,7 @@
 /doc/
 /Meta/
 .DS_Store
+AGENTS.md
 README.html
 CRAN-SUBMISSION
 *.tar.gz

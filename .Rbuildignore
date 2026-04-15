@@ -32,6 +32,7 @@
 ^doc$
 ^Meta$
 ^\.claude
+^AGENTS\.md$
 ^\.github
 ^\.\..Rcheck$
 ^.*\.Rcheck$

@@ -14,7 +14,7 @@ rewrote the runnable examples so they execute quickly.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 2 notes
+0 errors | 0 warnings | 3 notes
 
 The clean submission-style check was run with:
 
@@ -27,7 +27,11 @@ The clean submission-style check was run with:
 
    This is expected because `grip` has not yet been accepted by CRAN; this
    upload is a revised resubmission responding to CRAN feedback.
-2. `HTML Tidy` is not recent enough on the local machine, so HTML validation
+2. `unable to verify current time`
+
+   This appears to be an environment-specific note from the local check
+   environment rather than a package issue.
+3. `HTML Tidy` is not recent enough on the local machine, so HTML validation
    was skipped during `R CMD check --as-cran`:
 
    `Skipping checking HTML validation: 'tidy' doesn't look like recent enough HTML Tidy.`
