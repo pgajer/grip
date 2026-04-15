@@ -1745,6 +1745,7 @@ grip.geodesic.misf.resolve.top.level <- function(prepared,
 #' @return A list describing the coarse graph with local vertex numbering,
 #'   original vertex ids, complete weighted edges, and the restricted graph
 #'   distance matrix.
+#' @noRd
 grip.geodesic.misf.induced_level_graph <- function(prepared,
                                                    level = NULL,
                                                    vertex_ids = NULL) {
@@ -1827,6 +1828,7 @@ grip.geodesic.misf.induced_level_graph <- function(prepared,
 #'
 #' @return The best restart fit, together with a restart summary and the coarse
 #'   vertex ids.
+#' @noRd
 grip.geodesic.misf.solve.top.level <- function(prepared,
                                                dim = 2L,
                                                n_restarts = 8L,
@@ -2807,7 +2809,7 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'   seed = 1
 #' )
 #' prepared$top_level_vertices
-#' @export
+#' @noRd
 grip.prepare.misf.geodesic.mds <- function(edges = NULL,
                                            n = NULL,
                                            adj_list = NULL,
@@ -3017,7 +3019,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #' @return A list of class `"grip_misf_gmds_fit"` containing the final
 #'   coordinates, the prepared MISF-GMDS object, stage summaries, optional
 #'   detailed traces, and optional intermediate frames.
-#' @export
+#' @noRd
 grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
                                             edges = NULL,
                                             n = NULL,
@@ -3445,7 +3447,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
 #' @return A one-row data frame with final GMDS metrics and MISF-stage summary
 #'   fields. When `return_trace = TRUE`, the trace tables are attached as list
 #'   columns.
-#' @export
+#' @noRd
 grip.score.misf.geodesic.mds <- function(fit = NULL,
                                          coords = NULL,
                                          prepared = NULL,

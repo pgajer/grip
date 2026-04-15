@@ -28,6 +28,12 @@ For many of these families, the package stores both:
 - a weighted graph bundle that can be passed directly to
   `grip.layout.weighted()`.
 
+As a workflow guide, use `grip.layout()` on the purely topological versions of
+these families when you want an unweighted baseline, and use
+`grip.layout.weighted()` on the weighted bundles when the induced geometry is
+part of the problem. Advanced GKK/LGKK scoring can be layered onto smaller
+weighted examples later, but that is not the main purpose of this article.
+
 ```{r}
 library(grip)
 ```

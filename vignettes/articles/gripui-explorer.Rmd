@@ -20,9 +20,10 @@ gripui_available <- all(vapply(
 ))
 ```
 
-## Two interactive workflows
+## Supported interactive workflows
 
-`grip` includes two Shiny-based exploration workflows:
+For the first public release, `grip` documents two supported Shiny-based
+exploration workflows:
 
 1. the original **project explorer**, launched with `run_gripui()`, for
    browsing realized layout catalogs;
@@ -42,7 +43,7 @@ library(grip)
 
 ## Optional dependencies
 
-Both apps rely on packages listed in `Suggests`:
+These two documented apps rely on packages listed in `Suggests`:
 
 - `shiny`
 - `bslib`
@@ -174,6 +175,9 @@ The project explorer is the right tool when you want:
 - a score landscape,
 - a synchronized 2D or 3D viewer,
 - and artifact-aware browsing of saved search results.
+
+That applies to both unweighted and weighted layout catalogs once you have
+already generated the candidate runs.
 
 ## Part 2: the graph-family geometry explorer
 

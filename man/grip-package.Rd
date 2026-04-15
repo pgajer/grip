@@ -9,13 +9,23 @@
 Fast multiscale graph layouts in 2D and 3D.
 }
 \details{
-The package provides \code{\link{grip.layout}()} to compute graph layouts
-from edge lists or adjacency lists, \code{\link{grip.score.layout}()} and
-\code{\link{grip.compare.layouts}()} to evaluate layouts on real-world
-graphs, \code{\link{grip.plot}()} for quick visual inspection of the
-resulting coordinates, and convenience graph generators such as
-\code{\link{edges.path}()}, \code{\link{edges.sierpinski.triangle}()}, and
-\code{\link{edges.sierpinski.tetrahedron}()}.
+The recommended workflows are \code{\link{grip.layout}()} for unweighted
+graphs and \code{\link{grip.layout.weighted}()} for weighted graphs. The
+package also
+provides \code{\link{grip.score.layout}()} and
+\code{\link{grip.compare.layouts}()} for real-data layout selection,
+\code{\link{grip.layout.trace}()} and
+\code{\link{grip.layout.trace.weighted}()} for multiscale diagnostics,
+and advanced public experimental geodesic-KK helpers such as
+\code{\link{grip.prepare.geodesic.kk}()},
+\code{\link{grip.score.geodesic.kk}()},
+\code{\link{grip.prepare.landmark.geodesic.kk}()}, and
+\code{\link{grip.score.landmark.geodesic.kk}()} for weighted-layout
+evaluation and refinement. Convenience graph generators such as
+\code{\link{edges.path}()}, \code{\link{edges.sierpinski.triangle}()},
+and \code{\link{edges.sierpinski.tetrahedron}()}, quick plotting via
+\code{\link{grip.plot}()}, and optional Shiny explorers round out the
+package.
 }
 \references{
 Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent

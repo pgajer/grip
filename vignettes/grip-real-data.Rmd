@@ -37,6 +37,16 @@ This vignette shows both patterns. The bundled karate-club and Krackhardt-kite
 graphs illustrate the first one. The bundled coarsened HMP/U01 graph
 illustrates the second.
 
+The same package-level decision rule still applies:
+
+- ordinary unweighted or topology-first graphs: start with `grip.layout()`,
+  `grip.compare.layouts()`, and `grip.score.layout()`,
+- weighted graphs with meaningful edge lengths: start with
+  `grip.layout.weighted()`, usually with 3D in the candidate set,
+- when a promising solve needs explanation rather than another run: add trace,
+- when a smaller weighted candidate set needs stronger metric-aware comparison:
+  add GKK/LGKK as advanced public experimental tools.
+
 ```{r}
 library(grip)
 ```
@@ -328,6 +338,10 @@ For graphs like this, the weighted workflow differs from the combinatorial one:
 - prefer 3D as the primary layout space,
 - and assess geometry with a weighted graph-metric criterion when possible.
 
+A plain `grip.layout()` solve can still be useful here as a topology-first
+baseline, but it should not be the default when the edge lengths themselves
+matter scientifically.
+
 The direct weighted-candidate pattern looks like this:
 
 ```{r eval=FALSE}
@@ -368,9 +382,13 @@ with:
 
 - `grip.prepare.geodesic.kk()`
 - `grip.score.geodesic.kk()`
+- `grip.prepare.landmark.geodesic.kk()`
+- `grip.score.landmark.geodesic.kk()`
 
 because those make the weighted graph metric explicit rather than relying only
-on the general-purpose layout heuristics.
+on the general-purpose layout heuristics. These GKK/LGKK helpers are public,
+but they are best treated as advanced experimental tools layered on top of the
+main weighted workflow.
 
 ## HMP/U01 as a large weighted case study
 
@@ -491,7 +509,10 @@ artifact paths, see the companion article `HMP/U01 Weighted Graph Case Study`.
 - Keep 3D in the candidate set when the graph is structurally rich.
 - If edge lengths are scientifically meaningful, switch to
   `grip.layout.weighted()`.
+- Use `grip.layout.trace()` or `grip.layout.trace.weighted()` when a promising
+  solve needs diagnosis rather than another broad sweep.
 - For weighted graphs, treat 3D as the primary evaluation space and use
-  geodesic scoring when the graph is small enough for it to be practical.
+  GKK/LGKK scoring only when the graph is small enough for those advanced
+  experimental checks to be practical.
 
 ## References

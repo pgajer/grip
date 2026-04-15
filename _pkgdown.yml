@@ -100,23 +100,6 @@ reference:
       - grip.score.geodesic.kk
       - grip.optimize.geodesic.kk
 
-  - title: Geodesic MDS
-    desc: Prepare, score, and optimize layouts under the geodesic-MDS objective.
-    contents:
-      - grip.prepare.geodesic.mds
-      - grip.prepare.graph.geodesic.mds
-      - grip.score.geodesic.mds
-      - grip.optimize.geodesic.mds
-
-  - title: MISF Geodesic MDS
-    desc: Prepare and optimize multiscale geodesic-MDS layouts using MISF hierarchies.
-    contents:
-      - grip.prepare.misf.geodesic.mds
-      - grip.score.misf.geodesic.mds
-      - grip.optimize.misf.geodesic.mds
-      - grip.geodesic.misf.induced_level_graph
-      - grip.geodesic.misf.solve.top.level
-
   - title: MISF Geodesic KK
     desc: Prepare, score, and optimize multiscale geodesic-KK layouts using MISF hierarchies.
     contents:
@@ -196,10 +179,6 @@ reference:
       - gripui_family_app
       - run_gripui_family
       - gripui_graph_family_catalog
-      - gripui_gmds_app
-      - run_gripui_gmds
-      - gripui_paraboloid_gmds_app
-      - run_gripui_paraboloid_gmds
 
   - title: Data
     desc: Bundled datasets for examples and vignettes.

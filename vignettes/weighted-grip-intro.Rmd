@@ -32,6 +32,14 @@ That is exactly why `grip` now includes a weighted sister API:
 Use these when edge lengths represent geometry you care about rather than just
 optional metadata.
 
+The package decision rule is:
+
+- use `grip.layout()` for ordinary unweighted or topology-first graphs,
+- use `grip.layout.weighted()` when edge lengths carry geometry you want to
+  preserve,
+- add GKK/LGKK only after you already have weighted candidate layouts and need
+  advanced experimental geodesic-aware scoring or polish.
+
 ```{r}
 library(grip)
 ```
@@ -298,14 +306,23 @@ grip.plot(
 This kind of example is useful because the geometry lives in the edge lengths
 themselves rather than in a chosen 3D embedding.
 
-## Trace and geodesic refinement hooks
+## Trace and advanced geodesic hooks
 
 The weighted API also supports:
 
 - `grip.layout.trace.weighted()` for traced weighted solves,
+- `grip.prepare.geodesic.kk()` / `grip.score.geodesic.kk()` for full GKK
+  evaluation,
+- `grip.prepare.landmark.geodesic.kk()` /
+  `grip.score.landmark.geodesic.kk()` for sparse LGKK evaluation,
 - `lgkk_polish_rounds` for post-layout landmark geodesic KK refinement,
 - `lgkk_multiscale_rounds` and the stage-specific LGKK controls for in-core
   multiscale refinement.
+
+These GKK/LGKK tools are public, but they are not the default entry path. For
+most weighted problems, start with `grip.layout.weighted()` and use the
+geodesic tools only when you need a stronger metric comparison or an
+experimental polish step.
 
 Here is the smallest traced weighted example pattern:
 
@@ -329,8 +346,8 @@ For small or medium weighted graphs where geodesic fidelity matters strongly,
 it is often worth comparing:
 
 - weighted GRIP alone,
-- weighted GRIP + core LGKK,
-- weighted GRIP + polish LGKK,
+- weighted GRIP + experimental core LGKK,
+- weighted GRIP + experimental polish LGKK,
 - and the KK->GKK or KK->LGKK baselines.
 
 ## Where to go next

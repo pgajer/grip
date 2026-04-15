@@ -18,13 +18,14 @@ knitr::opts_chunk$set(
 
 ## What this vignette covers
 
-`grip` has a small set of entry points that cover most package use:
+`grip` has four main user workflows:
 
-- `grip.layout()` for ordinary unweighted graphs,
-- `grip.compare.layouts()` when you want to compare a short list of candidate
-  settings,
-- `grip.layout.legacy()` for backward-compatible reproduction,
-- `grip.layout.weighted()` when edge lengths carry geometry you want to keep.
+- `grip.layout()` for ordinary unweighted or topology-first graphs,
+- `grip.layout.weighted()` when edge lengths carry geometry you want to keep,
+- `grip.compare.layouts()` and `grip.score.layout()` when you want a
+  disciplined real-data shortlist,
+- `grip.layout.trace()` and `grip.layout.trace.weighted()` when you need
+  diagnostics rather than just a final picture.
 
 This vignette is the shortest path through the default workflow. It shows how
 to:
@@ -35,40 +36,12 @@ to:
 - and decide when to switch to the specialist guides.
 
 For weighted layouts, real-data search, tracing, and interactive exploration,
-the later guides go deeper.
+the later guides go deeper. Advanced GKK/LGKK tools are public, but they are
+treated as later-stage experimental helpers rather than the default starting
+point.
 
 ```{r}
 library(grip)
-```
-
-The helper below keeps side-by-side comparisons compact.
-
-```{r}
-plot.layout.pair <- function(coords.left,
-                             coords.right,
-                             edges,
-                             titles,
-                             projection = NULL,
-                             vertex.cols = c("black", "black"),
-                             edge.col = "gray82") {
-  op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
-  on.exit(par(op), add = TRUE)
-
-  grip.plot(
-    coords.left, edges,
-    projection = projection,
-    main = titles[[1]],
-    vertex.col = vertex.cols[[1]],
-    edge.col = edge.col
-  )
-  grip.plot(
-    coords.right, edges,
-    projection = projection,
-    main = titles[[2]],
-    vertex.col = vertex.cols[[2]],
-    edge.col = edge.col
-  )
-}
 ```
 
 ## A first unweighted layout
@@ -145,44 +118,17 @@ That same pattern scales to real graphs:
 - inspect the summary table before choosing a favorite picture,
 - then search locally only if the graph is important enough to justify it.
 
-## Current GRIP versus legacy GRIP
+## What if the graph is weighted?
 
-The package still keeps the historical entry point through
-`grip.layout.legacy()`. That is useful for backward-compatible reproduction,
-but the recommended path for new work is `grip.layout()`.
+If a graph has edge weights but those weights are mostly metadata, a
+topology-first `grip.layout()` run can still be a useful baseline. When the
+edge lengths represent geometry that the layout should preserve, the default
+path changes:
 
-```{r}
-mesh.current <- grip.layout(
-  mesh.edges,
-  n = 25,
-  dim = 2,
-  preset = "mesh",
-  seed = 2
-)
-
-mesh.legacy <- grip.layout.legacy(
-  mesh.edges,
-  n = 25,
-  dim = 2,
-  seed = 2
-)
-```
-
-```{r fig.width=9.4, fig.height=4.2}
-plot.layout.pair(
-  mesh.legacy,
-  mesh.current,
-  edges = mesh.edges,
-  titles = c("legacy", "current"),
-  vertex.cols = c("black", "#1F3B73")
-)
-```
-
-The practical distinction is:
-
-- use `grip.layout.legacy()` when you need the historical local-force behavior,
-- use `grip.layout()` for the current package default,
-- and treat the legacy path as a reproduction tool rather than a new default.
+- start from `grip.layout.weighted()`,
+- prefer 3D when the graph geometry is genuinely three-dimensional,
+- and add GKK/LGKK only later if you need advanced geodesic-aware scoring or
+  polish on a smaller weighted candidate set.
 
 ## When should you switch workflows?
 
@@ -197,6 +143,8 @@ Switch to the other guides when the task changes:
   shortlist rather than a single run,
 - use `grip.layout.trace()` or `grip.layout.trace.weighted()` when you want to
   inspect how a solve evolves,
+- use GKK/LGKK only after you already have weighted candidate layouts and need
+  advanced experimental geodesic-aware scoring or polish,
 - use `run_gripui()` or `run_gripui_family()` in an interactive R session when
   you want app-based exploration.
 

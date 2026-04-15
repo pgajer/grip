@@ -33,6 +33,15 @@ The trace APIs in `grip` make those questions visible:
 - `grip.layout.trace()` for combinatorial layouts,
 - `grip.layout.trace.weighted()` for weighted geometry-aware layouts.
 
+Tracing follows the same package decision rule:
+
+- ordinary unweighted or topology-first graphs: trace `grip.layout.trace()`,
+- weighted geometry-aware graphs: trace `grip.layout.trace.weighted()`,
+- real-data layout search: add trace only when a shortlist or one promising
+  solve needs explanation,
+- advanced GKK/LGKK hooks can appear in weighted traces, but they remain
+  public experimental add-ons rather than the default reason to trace.
+
 ```{r}
 library(grip)
 ```
@@ -236,7 +245,8 @@ The most useful components are:
 - `frames`: the stored coordinate frames,
 - `meta`: frame provenance,
 - `diagnostics`: per-frame metrics,
-- `lgkk.polish`: optional post-layout LGKK result when enabled.
+- `lgkk.polish`: optional post-layout LGKK result when enabled as an advanced
+  experimental refinement step.
 
 ## Practical guidance
 
@@ -253,4 +263,3 @@ The most useful components are:
 - `Weighted Graph Layouts with grip` focuses on weighted solving and scoring.
 - `Choosing Layouts for Real Data` shows how trace fits into a real-data
   selection workflow.
-

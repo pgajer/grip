@@ -17,8 +17,7 @@ knitr::opts_chunk$set(
 `grip` is no longer just an R implementation of the classical GRIP algorithm.
 The package now contains:
 
-- the historical legacy solver,
-- the current quality-first GRIP engine,
+- a quality-first GRIP workflow for ordinary graphs,
 - weighted geometry-aware sister APIs,
 - and geodesic scoring and polishing utilities.
 
@@ -66,7 +65,9 @@ For weighted geometry-aware graphs, the package also provides a stronger metric:
 - `grip.prepare.geodesic.kk()`
 - `grip.score.geodesic.kk()`
 
-Those are used in the second half of this article.
+Those GKK/LGKK-style tools are advanced public experimental utilities rather
+than the default onboarding path, and they are used in the second half of this
+article for the weighted comparison track.
 
 ```{r}
 plot_layout <- function(coords,
@@ -231,7 +232,7 @@ For weighted graphs with meaningful edge lengths, a pure topology-only
 comparison is no longer enough. The weighted track in `grip` is built around:
 
 - `grip.layout.weighted()`
-- optional LGKK-based refinement
+- optional experimental LGKK-based refinement
 - and full geodesic-KK scoring.
 
 The small example below is built and scored live in the vignette. It uses a
@@ -342,7 +343,7 @@ for:
 
 - combinatorial GRIP gives a topology-respecting layout,
 - weighted GRIP improves geodesic fidelity,
-- weighted GRIP plus LGKK polish improves it further.
+- weighted GRIP plus experimental LGKK polish improves it further.
 
 ## So what should you compare with what?
 

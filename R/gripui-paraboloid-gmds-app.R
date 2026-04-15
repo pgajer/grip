@@ -423,7 +423,7 @@ gripui.paraboloid.gmds.server <- function() {
 #' @param subtitle Optional subtitle shown in the sidebar header.
 #'
 #' @return A `shiny.appobj`.
-#' @export
+#' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
 #' app <- gripui_paraboloid_gmds_app()
@@ -451,7 +451,7 @@ gripui_paraboloid_gmds_app <- function(title = "Paraboloid GMDS Explorer",
 #' @param ... Additional arguments passed to `shiny::runApp()`.
 #'
 #' @return Invisibly returns the result of `shiny::runApp()`.
-#' @export
+#' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) && requireNamespace("later", quietly = TRUE) })
 #' run_gripui_paraboloid_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)

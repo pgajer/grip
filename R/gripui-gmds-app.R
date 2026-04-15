@@ -2697,6 +2697,15 @@ gripui.gmds.server <- function(catalog) {
   }
 }
 
+gripui.gmds.default.subtitle <- function() {
+  paste(
+    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection,",
+    "insertion/refinement, method switching, and paper-ready export/paper sync",
+    "with static PNG/PDF figure presets across canonical GRIP/GMDS/GKK/LGKK",
+    "stage traces."
+  )
+}
+
 #' Build the GMDS stage explorer Shiny application
 #'
 #' The GMDS stage explorer reuses the synthetic family catalog from
@@ -2713,20 +2722,11 @@ gripui.gmds.server <- function(catalog) {
 #' @param subtitle Optional subtitle shown in the sidebar header.
 #'
 #' @return A `shiny.appobj`.
-#' @export
+#' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
 #' app <- gripui_gmds_app()
 #' inherits(app, "shiny.appobj")
-gripui.gmds.default.subtitle <- function() {
-  paste(
-    "Milestones 1-5: graph and geometry selection, MIS filtration, seed selection,",
-    "insertion/refinement, method switching, and paper-ready export/paper sync",
-    "with static PNG/PDF figure presets across canonical GRIP/GMDS/GKK/LGKK",
-    "stage traces."
-  )
-}
-
 gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",
                             subtitle = gripui.gmds.default.subtitle()) {
@@ -2753,7 +2753,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' @param ... Additional arguments passed to [shiny::runApp()].
 #'
 #' @return Invisibly returns the result of [shiny::runApp()].
-#' @export
+#' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) && requireNamespace("later", quietly = TRUE) })
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)

@@ -6,6 +6,12 @@ CRAN-SUBMISSION
 *.tar.gz
 *.zip
 
+# Local standalone vignette/article renders
+/vignettes/*.html
+/vignettes/articles/*.html
+/vignettes/*_files/
+/vignettes/articles/*_files/
+
 # R build/check artifacts
 *.Rcheck/
 .claude/
@@ -19,8 +25,10 @@ output/*/*
 !output/*/README.md
 tmp/
 dev/blog/
+dev/notes/
 dev/prompts/
 dev/social/
+dev/vignette_review_html/
 dev/design/figures/
 dev/design/interactive-prototypes/
 dev/design/tmp/
