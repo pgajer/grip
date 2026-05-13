@@ -61,9 +61,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_repulsive_state_cpp
+List grip_repulsive_state_cpp(NumericMatrix coords, double lambda, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, double distance_eps);
+RcppExport SEXP _grip_grip_repulsive_state_cpp(SEXP coordsSEXP, SEXP lambdaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP distance_epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type pair_index(pair_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type repulsion_family(repulsion_familySEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_delta(repulsion_deltaSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_power(repulsion_powerSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_eps(distance_epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_repulsive_state_cpp(coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, distance_eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_optimize_edge_repulsive_stage_cpp
-List grip_optimize_edge_repulsive_stage_cpp(NumericMatrix coords, IntegerMatrix edges, NumericVector edge_lengths, NumericVector edge_weights, double lambda, std::string edge_family, double eps_plus, double beta, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, int max_iter, double initial_step, double step_shrink, double armijo, double min_step, double grad_tol, bool recenter, double distance_eps);
-RcppExport SEXP _grip_grip_optimize_edge_repulsive_stage_cpp(SEXP coordsSEXP, SEXP edgesSEXP, SEXP edge_lengthsSEXP, SEXP edge_weightsSEXP, SEXP lambdaSEXP, SEXP edge_familySEXP, SEXP eps_plusSEXP, SEXP betaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP max_iterSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijoSEXP, SEXP min_stepSEXP, SEXP grad_tolSEXP, SEXP recenterSEXP, SEXP distance_epsSEXP) {
+List grip_optimize_edge_repulsive_stage_cpp(NumericMatrix coords, IntegerMatrix edges, NumericVector edge_lengths, NumericVector edge_weights, double lambda, std::string edge_family, double eps_plus, double beta, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, int max_iter, double initial_step, double step_shrink, double armijo, double min_step, double grad_tol, bool recenter, double distance_eps, bool return_frames);
+RcppExport SEXP _grip_grip_optimize_edge_repulsive_stage_cpp(SEXP coordsSEXP, SEXP edgesSEXP, SEXP edge_lengthsSEXP, SEXP edge_weightsSEXP, SEXP lambdaSEXP, SEXP edge_familySEXP, SEXP eps_plusSEXP, SEXP betaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP max_iterSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijoSEXP, SEXP min_stepSEXP, SEXP grad_tolSEXP, SEXP recenterSEXP, SEXP distance_epsSEXP, SEXP return_framesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -88,7 +106,34 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type grad_tol(grad_tolSEXP);
     Rcpp::traits::input_parameter< bool >::type recenter(recenterSEXP);
     Rcpp::traits::input_parameter< double >::type distance_eps(distance_epsSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_optimize_edge_repulsive_stage_cpp(coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps));
+    Rcpp::traits::input_parameter< bool >::type return_frames(return_framesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_edge_repulsive_stage_cpp(coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_optimize_repulsive_stage_cpp
+List grip_optimize_repulsive_stage_cpp(NumericMatrix coords, double lambda, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, int max_iter, double initial_step, double step_shrink, double armijo, double min_step, double grad_tol, bool recenter, double distance_eps, bool return_frames);
+RcppExport SEXP _grip_grip_optimize_repulsive_stage_cpp(SEXP coordsSEXP, SEXP lambdaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP max_iterSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijoSEXP, SEXP min_stepSEXP, SEXP grad_tolSEXP, SEXP recenterSEXP, SEXP distance_epsSEXP, SEXP return_framesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type pair_index(pair_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type repulsion_family(repulsion_familySEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_delta(repulsion_deltaSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_power(repulsion_powerSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type initial_step(initial_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type step_shrink(step_shrinkSEXP);
+    Rcpp::traits::input_parameter< double >::type armijo(armijoSEXP);
+    Rcpp::traits::input_parameter< double >::type min_step(min_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type grad_tol(grad_tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type recenter(recenterSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_eps(distance_epsSEXP);
+    Rcpp::traits::input_parameter< bool >::type return_frames(return_framesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_repulsive_stage_cpp(coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -587,7 +632,9 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_optimize_edge_isometric_layout_cpp", (DL_FUNC) &_grip_grip_optimize_edge_isometric_layout_cpp, 17},
     {"_grip_grip_edge_repulsive_state_cpp", (DL_FUNC) &_grip_grip_edge_repulsive_state_cpp, 14},
-    {"_grip_grip_optimize_edge_repulsive_stage_cpp", (DL_FUNC) &_grip_grip_optimize_edge_repulsive_stage_cpp, 21},
+    {"_grip_grip_repulsive_state_cpp", (DL_FUNC) &_grip_grip_repulsive_state_cpp, 8},
+    {"_grip_grip_optimize_edge_repulsive_stage_cpp", (DL_FUNC) &_grip_grip_optimize_edge_repulsive_stage_cpp, 22},
+    {"_grip_grip_optimize_repulsive_stage_cpp", (DL_FUNC) &_grip_grip_optimize_repulsive_stage_cpp, 16},
     {"_grip_grip_optimize_geodesic_mds_flat_bending_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_bending_cpp, 21},
     {"_grip_grip_build_tie_average_shortest_path_cache_cpp", (DL_FUNC) &_grip_grip_build_tie_average_shortest_path_cache_cpp, 4},
     {"_grip_grip_optimize_geodesic_mds_adj_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_adj_cpp, 12},

@@ -9,8 +9,16 @@ grip_edge_repulsive_state_cpp <- function(coords, edges, edge_lengths, edge_weig
     .Call(`_grip_grip_edge_repulsive_state_cpp`, coords, edges, edge_lengths, edge_weights, edge_family, eps_plus, beta, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, distance_eps)
 }
 
-grip_optimize_edge_repulsive_stage_cpp <- function(coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps) {
-    .Call(`_grip_grip_optimize_edge_repulsive_stage_cpp`, coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps)
+grip_repulsive_state_cpp <- function(coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, distance_eps) {
+    .Call(`_grip_grip_repulsive_state_cpp`, coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, distance_eps)
+}
+
+grip_optimize_edge_repulsive_stage_cpp <- function(coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames) {
+    .Call(`_grip_grip_optimize_edge_repulsive_stage_cpp`, coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames)
+}
+
+grip_optimize_repulsive_stage_cpp <- function(coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames) {
+    .Call(`_grip_grip_optimize_repulsive_stage_cpp`, coords, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps, return_frames)
 }
 
 grip_optimize_geodesic_mds_flat_bending_cpp <- function(flat_pair_edge_offsets, flat_edge_u, flat_edge_v, flat_edge_coeff, pair_graph_distance, coords, max_iter, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, recenter, return_trace, anchor_coords = NULL, anchor_weights = NULL, bend_a = integerVector(), bend_b = integerVector(), bend_c = integerVector(), bend_weights = NULL) {

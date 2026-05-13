@@ -128,3 +128,94 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
   expect_equal(fit.cpp$state$energy, fit.r$state$energy, tolerance = 1e-10)
   expect_gte(nrow(fit.cpp$trace), 1L)
 })
+
+test_that("pure repulsive state matches edge-repulsive state with zero edge weights", {
+  skip_if_not(grip:::.grip.edge.repulsive.cpp.available(), "C++ backend not loaded")
+  set.seed(42)
+  Z <- matrix(rnorm(15), ncol = 3)
+  edges <- rbind(c(1L, 2L), c(2L, 3L))
+  ell <- c(1, 1)
+  pair.index <- rbind(c(1L, 3L), c(1L, 5L), c(2L, 4L), c(3L, 5L))
+  pair.weights <- c(1.2, 0.7, 1.5, 0.9)
+
+  pure <- grip.repulsive.state(
+    Z,
+    lambda = 0.08,
+    pair.index = pair.index,
+    pair.weights = pair.weights,
+    repulsion.family = "inverse_power",
+    repulsion.power = 1.25,
+    engine = "cpp"
+  )
+  zero.edge <- grip.edge.repulsive.state(
+    Z, edges, ell,
+    edge.weights = c(0, 0),
+    lambda = 0.08,
+    pair.index = pair.index,
+    pair.weights = pair.weights,
+    repulsion.family = "inverse_power",
+    repulsion.power = 1.25,
+    engine = "cpp"
+  )
+  pure.r <- grip.repulsive.state(
+    Z,
+    lambda = 0.08,
+    pair.index = pair.index,
+    pair.weights = pair.weights,
+    repulsion.family = "inverse_power",
+    repulsion.power = 1.25,
+    engine = "R"
+  )
+
+  expect_equal(pure$energy, zero.edge$energy, tolerance = 1e-10)
+  expect_equal(pure$repel.energy, zero.edge$repel.energy, tolerance = 1e-10)
+  expect_lt(max(abs(pure$gradient - zero.edge$gradient)), 1e-10)
+  expect_equal(pure$energy, pure.r$energy, tolerance = 1e-10)
+  expect_lt(max(abs(pure$gradient - pure.r$gradient)), 1e-10)
+})
+
+test_that("pure repulsive optimizer and edge-repulsive optimizer can return frames", {
+  skip_if_not(grip:::.grip.edge.repulsive.cpp.available(), "C++ backend not loaded")
+  Z <- matrix(c(
+    0, 0, 0,
+    1, 0, 0,
+    0, 1, 0,
+    1, 1, 0
+  ), ncol = 3, byrow = TRUE)
+  edges <- rbind(c(1L, 2L), c(2L, 4L), c(3L, 4L), c(1L, 3L))
+  ell <- rep(1, 4)
+
+  pure <- grip.optimize.repulsive.stage(
+    Z,
+    lambda = 0.01,
+    max.iter = 4L,
+    initial.step = 0.02,
+    return.frames = TRUE,
+    engine = "cpp"
+  )
+  pure.r <- grip.optimize.repulsive.stage(
+    Z,
+    lambda = 0.01,
+    max.iter = 4L,
+    initial.step = 0.02,
+    return.frames = TRUE,
+    engine = "R"
+  )
+  edge <- grip.optimize.edge.repulsive.stage(
+    Z, edges, ell,
+    lambda = 0.01,
+    max.iter = 4L,
+    initial.step = 0.02,
+    return.frames = TRUE,
+    engine = "cpp"
+  )
+
+  expect_type(pure$frames, "list")
+  expect_gte(length(pure$frames), 2L)
+  expect_equal(pure$frames[[1L]], sweep(Z, 2L, colMeans(Z), "-"), tolerance = 1e-12)
+  expect_true(all(pure$trace$frame.index %in% seq(0, length(pure$frames) - 1L)))
+  expect_equal(pure$coords, pure$frames[[length(pure$frames)]], tolerance = 1e-12)
+  expect_equal(pure$coords, pure.r$coords, tolerance = 1e-10)
+  expect_equal(length(edge$frames), max(edge$trace$frame.index, na.rm = TRUE) + 1L)
+  expect_equal(edge$coords, edge$frames[[length(edge$frames)]], tolerance = 1e-12)
+})
