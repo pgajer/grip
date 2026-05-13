@@ -10,6 +10,88 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// grip_optimize_edge_isometric_layout_cpp
+Rcpp::List grip_optimize_edge_isometric_layout_cpp(Rcpp::IntegerMatrix edges, Rcpp::NumericVector edge_weights, Rcpp::NumericMatrix stiffness_matrix, Rcpp::NumericVector mix_schedule, Rcpp::NumericMatrix coords, int max_iter, std::string scale_mode, double scale, double edge_length_epsilon, double initial_step, double step_shrink, double armijo_factor, double grad_tol, double min_step, double distance_floor, bool recenter, bool return_trace);
+RcppExport SEXP _grip_grip_optimize_edge_isometric_layout_cpp(SEXP edgesSEXP, SEXP edge_weightsSEXP, SEXP stiffness_matrixSEXP, SEXP mix_scheduleSEXP, SEXP coordsSEXP, SEXP max_iterSEXP, SEXP scale_modeSEXP, SEXP scaleSEXP, SEXP edge_length_epsilonSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijo_factorSEXP, SEXP grad_tolSEXP, SEXP min_stepSEXP, SEXP distance_floorSEXP, SEXP recenterSEXP, SEXP return_traceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type edges(edgesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type edge_weights(edge_weightsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type stiffness_matrix(stiffness_matrixSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mix_schedule(mix_scheduleSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< std::string >::type scale_mode(scale_modeSEXP);
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< double >::type edge_length_epsilon(edge_length_epsilonSEXP);
+    Rcpp::traits::input_parameter< double >::type initial_step(initial_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type step_shrink(step_shrinkSEXP);
+    Rcpp::traits::input_parameter< double >::type armijo_factor(armijo_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type grad_tol(grad_tolSEXP);
+    Rcpp::traits::input_parameter< double >::type min_step(min_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_floor(distance_floorSEXP);
+    Rcpp::traits::input_parameter< bool >::type recenter(recenterSEXP);
+    Rcpp::traits::input_parameter< bool >::type return_trace(return_traceSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_edge_isometric_layout_cpp(edges, edge_weights, stiffness_matrix, mix_schedule, coords, max_iter, scale_mode, scale, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, distance_floor, recenter, return_trace));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_edge_repulsive_state_cpp
+List grip_edge_repulsive_state_cpp(NumericMatrix coords, IntegerMatrix edges, NumericVector edge_lengths, NumericVector edge_weights, std::string edge_family, double eps_plus, double beta, double lambda, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, double distance_eps);
+RcppExport SEXP _grip_grip_edge_repulsive_state_cpp(SEXP coordsSEXP, SEXP edgesSEXP, SEXP edge_lengthsSEXP, SEXP edge_weightsSEXP, SEXP edge_familySEXP, SEXP eps_plusSEXP, SEXP betaSEXP, SEXP lambdaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP distance_epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type edges(edgesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type edge_lengths(edge_lengthsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type edge_weights(edge_weightsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type edge_family(edge_familySEXP);
+    Rcpp::traits::input_parameter< double >::type eps_plus(eps_plusSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type pair_index(pair_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type repulsion_family(repulsion_familySEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_delta(repulsion_deltaSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_power(repulsion_powerSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_eps(distance_epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_edge_repulsive_state_cpp(coords, edges, edge_lengths, edge_weights, edge_family, eps_plus, beta, lambda, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, distance_eps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_optimize_edge_repulsive_stage_cpp
+List grip_optimize_edge_repulsive_stage_cpp(NumericMatrix coords, IntegerMatrix edges, NumericVector edge_lengths, NumericVector edge_weights, double lambda, std::string edge_family, double eps_plus, double beta, IntegerMatrix pair_index, NumericVector pair_weights, std::string repulsion_family, double repulsion_delta, double repulsion_power, int max_iter, double initial_step, double step_shrink, double armijo, double min_step, double grad_tol, bool recenter, double distance_eps);
+RcppExport SEXP _grip_grip_optimize_edge_repulsive_stage_cpp(SEXP coordsSEXP, SEXP edgesSEXP, SEXP edge_lengthsSEXP, SEXP edge_weightsSEXP, SEXP lambdaSEXP, SEXP edge_familySEXP, SEXP eps_plusSEXP, SEXP betaSEXP, SEXP pair_indexSEXP, SEXP pair_weightsSEXP, SEXP repulsion_familySEXP, SEXP repulsion_deltaSEXP, SEXP repulsion_powerSEXP, SEXP max_iterSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijoSEXP, SEXP min_stepSEXP, SEXP grad_tolSEXP, SEXP recenterSEXP, SEXP distance_epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type edges(edgesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type edge_lengths(edge_lengthsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type edge_weights(edge_weightsSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< std::string >::type edge_family(edge_familySEXP);
+    Rcpp::traits::input_parameter< double >::type eps_plus(eps_plusSEXP);
+    Rcpp::traits::input_parameter< double >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< IntegerMatrix >::type pair_index(pair_indexSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pair_weights(pair_weightsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type repulsion_family(repulsion_familySEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_delta(repulsion_deltaSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_power(repulsion_powerSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type initial_step(initial_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type step_shrink(step_shrinkSEXP);
+    Rcpp::traits::input_parameter< double >::type armijo(armijoSEXP);
+    Rcpp::traits::input_parameter< double >::type min_step(min_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type grad_tol(grad_tolSEXP);
+    Rcpp::traits::input_parameter< bool >::type recenter(recenterSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_eps(distance_epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_edge_repulsive_stage_cpp(coords, edges, edge_lengths, edge_weights, lambda, edge_family, eps_plus, beta, pair_index, pair_weights, repulsion_family, repulsion_delta, repulsion_power, max_iter, initial_step, step_shrink, armijo, min_step, grad_tol, recenter, distance_eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_optimize_geodesic_mds_flat_bending_cpp
 Rcpp::List grip_optimize_geodesic_mds_flat_bending_cpp(Rcpp::IntegerVector flat_pair_edge_offsets, Rcpp::IntegerVector flat_edge_u, Rcpp::IntegerVector flat_edge_v, Rcpp::NumericVector flat_edge_coeff, Rcpp::NumericVector pair_graph_distance, Rcpp::NumericMatrix coords, int max_iter, double edge_length_epsilon, double initial_step, double step_shrink, double armijo_factor, double grad_tol, double min_step, bool recenter, bool return_trace, Rcpp::Nullable<Rcpp::NumericMatrix> anchor_coords, Rcpp::Nullable<Rcpp::NumericVector> anchor_weights, Rcpp::IntegerVector bend_a, Rcpp::IntegerVector bend_b, Rcpp::IntegerVector bend_c, Rcpp::Nullable<Rcpp::NumericVector> bend_weights);
 RcppExport SEXP _grip_grip_optimize_geodesic_mds_flat_bending_cpp(SEXP flat_pair_edge_offsetsSEXP, SEXP flat_edge_uSEXP, SEXP flat_edge_vSEXP, SEXP flat_edge_coeffSEXP, SEXP pair_graph_distanceSEXP, SEXP coordsSEXP, SEXP max_iterSEXP, SEXP edge_length_epsilonSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijo_factorSEXP, SEXP grad_tolSEXP, SEXP min_stepSEXP, SEXP recenterSEXP, SEXP return_traceSEXP, SEXP anchor_coordsSEXP, SEXP anchor_weightsSEXP, SEXP bend_aSEXP, SEXP bend_bSEXP, SEXP bend_cSEXP, SEXP bend_weightsSEXP) {
@@ -466,8 +548,46 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_optimize_kernel_gram_gkk_layout_cpp
+Rcpp::List grip_optimize_kernel_gram_gkk_layout_cpp(Rcpp::IntegerMatrix edges, Rcpp::NumericVector edge_weights, Rcpp::NumericVector edge_stiffness, Rcpp::IntegerVector star_center, Rcpp::IntegerVector star_v1, Rcpp::IntegerVector star_v2, Rcpp::NumericVector star_w1, Rcpp::NumericVector star_w2, Rcpp::NumericVector star_cos, Rcpp::NumericVector star_weight, Rcpp::NumericMatrix coords, int max_iter, std::string scale_mode, double scale, double lambda_edge, double lambda_gram, double edge_length_epsilon, double initial_step, double step_shrink, double armijo_factor, double grad_tol, double min_step, double distance_floor, bool recenter, bool return_trace);
+RcppExport SEXP _grip_grip_optimize_kernel_gram_gkk_layout_cpp(SEXP edgesSEXP, SEXP edge_weightsSEXP, SEXP edge_stiffnessSEXP, SEXP star_centerSEXP, SEXP star_v1SEXP, SEXP star_v2SEXP, SEXP star_w1SEXP, SEXP star_w2SEXP, SEXP star_cosSEXP, SEXP star_weightSEXP, SEXP coordsSEXP, SEXP max_iterSEXP, SEXP scale_modeSEXP, SEXP scaleSEXP, SEXP lambda_edgeSEXP, SEXP lambda_gramSEXP, SEXP edge_length_epsilonSEXP, SEXP initial_stepSEXP, SEXP step_shrinkSEXP, SEXP armijo_factorSEXP, SEXP grad_tolSEXP, SEXP min_stepSEXP, SEXP distance_floorSEXP, SEXP recenterSEXP, SEXP return_traceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type edges(edgesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type edge_weights(edge_weightsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type edge_stiffness(edge_stiffnessSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type star_center(star_centerSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type star_v1(star_v1SEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type star_v2(star_v2SEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type star_w1(star_w1SEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type star_w2(star_w2SEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type star_cos(star_cosSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type star_weight(star_weightSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< std::string >::type scale_mode(scale_modeSEXP);
+    Rcpp::traits::input_parameter< double >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda_edge(lambda_edgeSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda_gram(lambda_gramSEXP);
+    Rcpp::traits::input_parameter< double >::type edge_length_epsilon(edge_length_epsilonSEXP);
+    Rcpp::traits::input_parameter< double >::type initial_step(initial_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type step_shrink(step_shrinkSEXP);
+    Rcpp::traits::input_parameter< double >::type armijo_factor(armijo_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type grad_tol(grad_tolSEXP);
+    Rcpp::traits::input_parameter< double >::type min_step(min_stepSEXP);
+    Rcpp::traits::input_parameter< double >::type distance_floor(distance_floorSEXP);
+    Rcpp::traits::input_parameter< bool >::type recenter(recenterSEXP);
+    Rcpp::traits::input_parameter< bool >::type return_trace(return_traceSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_optimize_kernel_gram_gkk_layout_cpp(edges, edge_weights, edge_stiffness, star_center, star_v1, star_v2, star_w1, star_w2, star_cos, star_weight, coords, max_iter, scale_mode, scale, lambda_edge, lambda_gram, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, distance_floor, recenter, return_trace));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_grip_grip_optimize_edge_isometric_layout_cpp", (DL_FUNC) &_grip_grip_optimize_edge_isometric_layout_cpp, 17},
+    {"_grip_grip_edge_repulsive_state_cpp", (DL_FUNC) &_grip_grip_edge_repulsive_state_cpp, 14},
+    {"_grip_grip_optimize_edge_repulsive_stage_cpp", (DL_FUNC) &_grip_grip_optimize_edge_repulsive_stage_cpp, 21},
     {"_grip_grip_optimize_geodesic_mds_flat_bending_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_bending_cpp, 21},
     {"_grip_grip_build_tie_average_shortest_path_cache_cpp", (DL_FUNC) &_grip_grip_build_tie_average_shortest_path_cache_cpp, 4},
     {"_grip_grip_optimize_geodesic_mds_adj_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_adj_cpp, 12},
@@ -484,6 +604,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 37},
+    {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
     {NULL, NULL, 0}
 };
 
