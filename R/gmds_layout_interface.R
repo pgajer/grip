@@ -785,8 +785,10 @@ grip.edge.isometric.initial.coords <- function(prepared,
 
 #' Optimize an edge-isometric GMDS layout
 #'
-#' `grip.optimize.edge.isometric.layout()` is the Phase 2 edge-only local
-#' repair operator for the experimental GMDS layout program. It minimizes
+#' `grip.optimize.edge.isometric.layout()` is the edge-KK local repair operator
+#' for the experimental GMDS layout program. Earlier notes called this operator
+#' edge-gKK; edge-KK is the preferred name because the objective is restricted
+#' to graph edges rather than all graph-geodesic pairs. It minimizes
 #' weighted edge-length stress
 #' \deqn{
 #'   \frac{1}{2}\sum_{(i,j)\in E} k_{ij}
@@ -819,7 +821,8 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
 #'   edge-stress loop; `"R"` keeps the reference prototype.
 #'
-#' @return A `"grip_gmds_layout"` object with method `"edge_isometric_gkk"`.
+#' @return A `"grip_gmds_layout"` object with method `"edge_isometric_gkk"`
+#'   for compatibility with existing experiment assets.
 #' @export
 grip.optimize.edge.isometric.layout <- function(coords = NULL,
                                                 prepared = NULL,
@@ -1187,4 +1190,35 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
       scale_mode = scale_mode
     )
   )
+}
+
+#' Optimize an edge-KK local repair layout
+#'
+#' `grip.optimize.edge.kk.layout()` is the preferred public name for the
+#' edge-restricted Kamada--Kawai local repair operator implemented by
+#' [grip.optimize.edge.isometric.layout()]. It is a thin compatibility wrapper:
+#' the optimization path is identical, but the returned `method` field is
+#' normalized to `"edge_kk"` for new reports and experiment manifests.
+#'
+#' @inheritParams grip.optimize.edge.isometric.layout
+#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @export
+grip.optimize.edge.kk.layout <- function(...) {
+  out <- grip.optimize.edge.isometric.layout(...)
+  out$metadata$legacy_method <- out$method
+  out$method <- "edge_kk"
+  out
+}
+
+#' Legacy alias for edge-KK local repair
+#'
+#' `grip.optimize.edge.gkk.layout()` is kept as a quiet compatibility alias for
+#' older notes that used the name edge-gKK. New code should use
+#' [grip.optimize.edge.kk.layout()].
+#'
+#' @inheritParams grip.optimize.edge.kk.layout
+#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @export
+grip.optimize.edge.gkk.layout <- function(...) {
+  grip.optimize.edge.kk.layout(...)
 }

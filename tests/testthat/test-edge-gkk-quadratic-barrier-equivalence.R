@@ -99,7 +99,7 @@ check_edge_gkk_barrier_parity <- function(fixture, distance.eps = 1e-10) {
   list(gkk = gkk, barrier = barrier, barrier.r = barrier.r)
 }
 
-test_that("edge-gKK objective equals quadratic edge barrier with ell-squared weights", {
+test_that("edge-KK objective equals quadratic edge barrier with ell-squared weights", {
   for (kind in c("triangle", "path", "irregular", "paraboloid")) {
     fixture <- edge_gkk_barrier_fixture(kind)
     states <- check_edge_gkk_barrier_parity(fixture)
@@ -115,7 +115,7 @@ test_that("edge-gKK objective equals quadratic edge barrier with ell-squared wei
   }
 })
 
-test_that("edge-gKK gradient equals quadratic edge-barrier gradient", {
+test_that("edge-KK gradient equals quadratic edge-barrier gradient", {
   for (kind in c("triangle", "path", "irregular", "paraboloid")) {
     fixture <- edge_gkk_barrier_fixture(kind)
     states <- check_edge_gkk_barrier_parity(fixture)

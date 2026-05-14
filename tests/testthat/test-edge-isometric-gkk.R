@@ -103,6 +103,45 @@ test_that("edge-isometric optimizer preserves exact weighted path layouts", {
   expect_lt(fit$diagnostics$gmds.stress[[1L]], 1e-8)
 })
 
+test_that("edge-KK wrappers are equivalent to edge-isometric optimizer", {
+  prepared <- grip.prepare.graph.geodesic.mds(
+    edges = rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L)),
+    n = 4L,
+    edge_weights = c(1, 1.3, 0.9, 1.7)
+  )
+  start <- matrix(c(
+    0.0, 0.0,
+    0.8, 0.2,
+    1.7, -0.1,
+    0.2, 1.1
+  ), ncol = 2, byrow = TRUE)
+  args <- list(
+    coords = start,
+    prepared = prepared,
+    dim = 2L,
+    stiffness_method = "uniform",
+    density_mix_schedule = c(0, 1),
+    scale_mode = "profiled",
+    max_iter = 6L,
+    initial_step = 0.2,
+    return_trace = TRUE,
+    engine = "cpp"
+  )
+
+  old <- do.call(grip.optimize.edge.isometric.layout, args)
+  preferred <- do.call(grip.optimize.edge.kk.layout, args)
+  legacy <- do.call(grip.optimize.edge.gkk.layout, args)
+
+  expect_equal(preferred$coords, old$coords, tolerance = 1e-12)
+  expect_equal(legacy$coords, old$coords, tolerance = 1e-12)
+  expect_equal(preferred$trace$energy, old$trace$energy, tolerance = 1e-12)
+  expect_equal(legacy$trace$edge.rel.rmse, old$trace$edge.rel.rmse, tolerance = 1e-12)
+  expect_equal(old$method, "edge_isometric_gkk")
+  expect_equal(preferred$method, "edge_kk")
+  expect_equal(legacy$method, "edge_kk")
+  expect_equal(preferred$metadata$legacy_method, "edge_isometric_gkk")
+})
+
 test_that("edge-isometric optimizer decreases edge error from perturbed layout", {
   prepared <- grip.prepare.graph.geodesic.mds(
     edges = edges.path(5L),

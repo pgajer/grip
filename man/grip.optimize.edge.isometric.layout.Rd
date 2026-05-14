@@ -92,11 +92,14 @@ controls.}
 edge-stress loop; `"R"` keeps the reference prototype.}
 }
 \value{
-A `"grip_gmds_layout"` object with method `"edge_isometric_gkk"`.
+A `"grip_gmds_layout"` object with method `"edge_isometric_gkk"`
+  for compatibility with existing experiment assets.
 }
 \description{
-`grip.optimize.edge.isometric.layout()` is the Phase 2 edge-only local
-repair operator for the experimental GMDS layout program. It minimizes
+`grip.optimize.edge.isometric.layout()` is the edge-KK local repair operator
+for the experimental GMDS layout program. Earlier notes called this operator
+edge-gKK; edge-KK is the preferred name because the objective is restricted
+to graph edges rather than all graph-geodesic pairs. It minimizes
 weighted edge-length stress
 \deqn{
   \frac{1}{2}\sum_{(i,j)\in E} k_{ij}
