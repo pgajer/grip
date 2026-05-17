@@ -47,8 +47,8 @@ void validate_inputs(const Rcpp::IntegerMatrix &edges,
                      const Rcpp::NumericVector &mix_schedule,
                      const Rcpp::NumericMatrix &coords)
 {
-    if(coords.ncol() != 2 && coords.ncol() != 3)
-        Rcpp::stop("coords must have 2 or 3 columns");
+    if(coords.ncol() < 2)
+        Rcpp::stop("coords must have at least two columns");
     if(coords.nrow() < 2)
         Rcpp::stop("coords must have at least two rows");
     for(int i = 0; i < coords.size(); i++){
