@@ -35,7 +35,8 @@ grip.metric.mds.layout(
 
 \item{edge_weights}{Optional positive edge weights parallel to `edges`.}
 
-\item{dim}{Target embedding dimension, currently 2 or 3.}
+\item{dim}{Target embedding dimension. Values greater than 3 are supported
+for GMDS and edge-KK workflows.}
 
 \item{add, eig}{Passed to `stats::cmdscale()`.}
 

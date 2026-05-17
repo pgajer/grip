@@ -6,6 +6,9 @@
 \usage{
 grip.optimize.edge.kk.layout(...)
 }
+\arguments{
+\item{...}{Arguments passed to [grip.optimize.edge.isometric.layout()].}
+}
 \value{
 A `"grip_gmds_layout"` object with method `"edge_kk"`.
 }

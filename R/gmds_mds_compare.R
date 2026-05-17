@@ -20,8 +20,8 @@ grip.classical.mds.embedding <- function(prepared,
                                          eig = TRUE) {
   prepared <- grip.validate.geodesic.mds.prepared(prepared)
   dim <- grip.validate.count(dim, "dim")
-  if (!(dim %in% c(2L, 3L))) {
-    stop("dim must be 2 or 3")
+  if (dim < 2L) {
+    stop("dim must be at least 2")
   }
 
   fit <- stats::cmdscale(
@@ -65,7 +65,7 @@ grip.classical.mds.embedding <- function(prepared,
 grip.classical.mds.score.stats <- function(coords,
                                            prepared,
                                            distance_floor = 1e-8) {
-  coords <- grip.validate.coords(coords)
+  coords <- grip.validate.coords.nd(coords)
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
   grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
 

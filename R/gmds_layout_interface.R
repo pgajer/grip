@@ -173,7 +173,7 @@ grip.score.gmds.layout <- function(coords,
                                    distance_floor = 1e-8,
                                    edge_length_epsilon = 1e-8,
                                    band_quantiles = c(1 / 3, 2 / 3)) {
-  coords <- grip.validate.coords(coords)
+  coords <- grip.validate.coords.nd(coords)
   scale_mode <- match.arg(scale_mode)
   grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
   grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
@@ -328,7 +328,7 @@ grip.gmds.layout.result <- function(coords,
                                     trace = NULL,
                                     diagnostics = NULL,
                                     metadata = list()) {
-  coords <- grip.validate.coords(coords)
+  coords <- grip.validate.coords.nd(coords)
   if (!is.character(method) || length(method) != 1L || is.na(method) || !nzchar(method)) {
     stop("method must be a non-empty character scalar")
   }
@@ -377,7 +377,8 @@ print.grip_gmds_layout <- function(x, ...) {
 #' common `"grip_gmds_layout"` result.
 #'
 #' @inheritParams grip.score.gmds.layout
-#' @param dim Target embedding dimension, currently 2 or 3.
+#' @param dim Target embedding dimension. Values greater than 3 are supported
+#'   for GMDS and edge-KK workflows.
 #' @param add,eig Passed to `stats::cmdscale()`.
 #' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
 #'
@@ -650,7 +651,7 @@ grip.edge.isometric.energy.gradient <- function(coords,
                                                 stiffness,
                                                 scale = 1,
                                                 edge_length_epsilon = 1e-8) {
-  coords <- grip.validate.coords(coords)
+  coords <- grip.validate.coords.nd(coords)
   edge_weights <- as.double(edge_weights)
   stiffness <- as.double(stiffness)
   scale <- as.double(scale)
@@ -756,10 +757,10 @@ grip.edge.isometric.initial.coords <- function(prepared,
                                                init = c("metric_mds", "random"),
                                                dim = 2L,
                                                seed = 1L) {
-  grip.validate.scalar(dim, "dim", lower = 2, upper = 3)
+  grip.validate.scalar(dim, "dim", lower = 2)
   dim <- as.integer(round(dim))
   if (!is.null(coords)) {
-    coords <- grip.validate.coords(coords)
+    coords <- grip.validate.coords.nd(coords)
     if (nrow(coords) != prepared$n) {
       stop("nrow(coords) must match the graph size stored in prepared")
     }
@@ -873,7 +874,7 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
   if (is.null(prepared$edges) || is.null(prepared$edge_targets)) {
     stop("prepared object must contain edges and edge_targets")
   }
-  grip.validate.scalar(dim, "dim", lower = 2, upper = 3)
+  grip.validate.scalar(dim, "dim", lower = 2)
   dim <- as.integer(round(dim))
   if (!is.numeric(density_mix_schedule) || length(density_mix_schedule) < 1L ||
       any(!is.finite(density_mix_schedule)) ||
@@ -1201,6 +1202,7 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
 #' normalized to `"edge_kk"` for new reports and experiment manifests.
 #'
 #' @inheritParams grip.optimize.edge.isometric.layout
+#' @param ... Arguments passed to [grip.optimize.edge.isometric.layout()].
 #' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
 #' @export
 grip.optimize.edge.kk.layout <- function(...) {
@@ -1217,6 +1219,7 @@ grip.optimize.edge.kk.layout <- function(...) {
 #' [grip.optimize.edge.kk.layout()].
 #'
 #' @inheritParams grip.optimize.edge.kk.layout
+#' @param ... Arguments passed to [grip.optimize.edge.kk.layout()].
 #' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
 #' @export
 grip.optimize.edge.gkk.layout <- function(...) {

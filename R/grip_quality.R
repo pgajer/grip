@@ -14,6 +14,21 @@ grip.validate.coords <- function(coords) {
   coords
 }
 
+grip.validate.coords.nd <- function(coords, min_dim = 2L) {
+  coords <- as.matrix(coords)
+  min_dim <- as.integer(min_dim)
+  if (!is.numeric(coords) || ncol(coords) < min_dim) {
+    stop(sprintf("coords must be a numeric matrix with at least %d columns", min_dim))
+  }
+  if (nrow(coords) < 2L) {
+    stop("coords must have at least 2 rows")
+  }
+  if (any(!is.finite(coords))) {
+    stop("coords must contain only finite values")
+  }
+  coords
+}
+
 grip.normalize.coords <- function(coords) {
   centered <- scale(coords, center = TRUE, scale = FALSE)
   radius <- max(sqrt(rowSums(centered^2)))
