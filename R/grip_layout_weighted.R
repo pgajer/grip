@@ -821,8 +821,14 @@ grip.layout.trace.weighted <- function(edges = NULL,
     seed = seed,
     trace = trace,
     trace_every = trace.every,
-    metric_neighbor_cap = metric_neighbor_cap
+    metric_neighbor_cap = metric_neighbor_cap,
+    refinement_step_trace = FALSE,
+    refinement_step_level_index = -1L,
+    refinement_step_misf_level = -1L,
+    refinement_step_round_start = -1L,
+    refinement_step_round_end = -1L
   )
+  out$refinement_step_trace <- NULL
 
   if (lgkk_polish_rounds > 0L) {
     polished <- grip.apply.lgkk.polish(

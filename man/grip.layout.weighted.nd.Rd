@@ -12,7 +12,7 @@ grip.layout.weighted.nd(
   edge_weights = NULL,
   dim = 3,
   preset = NULL,
-  placement = "barycenter",
+  placement = c("barycenter", "circle"),
   rounds = 160,
   final_rounds = 256,
   num_init = NULL,
@@ -21,6 +21,15 @@ grip.layout.weighted.nd(
   s = 6,
   repulsion_factor = 1.5,
   tinit_factor = 2,
+  final_move_scale_after_first = 1,
+  final_mode = c("fr", "kk_repulse"),
+  metric_neighbor_cap = NULL,
+  insertion_anchor_count = 3,
+  insertion_anchor_scope = c("any_higher", "prev_misf"),
+  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+  level0_anchor_count = insertion_anchor_count,
+  level0_local_kk_steps = 3,
   length_normalization = c("median", "mean", "none"),
   disconnected = c("components", "error"),
   seed = 6
@@ -43,8 +52,9 @@ grip.layout.weighted.nd(
 \code{"mesh"}, \code{"cylinder"}, \code{"torus"}, \code{"sphere"},
 \code{"irregular"}, or \code{"tree"}.}
 
-\item{placement}{Reserved for API symmetry with legacy weighted GRIP.
-Currently only \code{"barycenter"} is accepted.}
+\item{placement}{Initial insertion placement strategy. \code{"circle"} is
+only available for \code{dim = 2}; higher dimensions use
+\code{"barycenter"}.}
 
 \item{rounds}{Number of weighted refinement rounds before the final phase.}
 
@@ -62,6 +72,34 @@ Currently only \code{"barycenter"} is accepted.}
 \item{repulsion_factor}{Non-edge repulsion multiplier.}
 
 \item{tinit_factor}{Initial spread multiplier.}
+
+\item{final_move_scale_after_first}{Final-stage FR displacement multiplier
+applied after the first final round. Must be in \code{[0, 1]}.}
+
+\item{final_mode}{Final refinement mode: \code{"fr"} or
+\code{"kk_repulse"}.}
+
+\item{metric_neighbor_cap}{Optional cap on the number of settled Dijkstra
+vertices used when building weighted neighborhood caches for inserted
+vertices. \code{NULL} keeps the exact weighted neighborhood search.}
+
+\item{insertion_anchor_count}{Number of already placed anchor vertices used
+when inserting non-final MISF levels.}
+
+\item{insertion_anchor_scope}{Anchor eligibility rule:
+\code{"any_higher"} or \code{"prev_misf"}.}
+
+\item{insertion_anchor_strategy}{Anchor selection rule:
+\code{"first"}, \code{"distance_band"}, \code{"balanced_band"}, or
+\code{"spread_prev"}.}
+
+\item{level0_insertion_mode}{Level-0 insertion placement override:
+\code{"inherit"}, \code{"barycenter"}, or \code{"least_squares"}.}
+
+\item{level0_anchor_count}{Number of anchors used during level-0 insertion.}
+
+\item{level0_local_kk_steps}{Number of local weighted-KK polish steps used
+immediately after level-0 insertion.}
 
 \item{length_normalization}{Global edge-length normalization:
 \code{"median"} (default), \code{"mean"}, or \code{"none"}.}
