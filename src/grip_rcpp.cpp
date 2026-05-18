@@ -300,6 +300,99 @@ void trim_synthetic_top_level_weighted(std::vector<std::vector<size_tt>> &levels
     misf_size[top_level] = static_cast<int>(strict_size);
 }
 
+Rcpp::NumericMatrix nested_vectors_to_matrix(
+    const std::vector<std::vector<double>> &values,
+    int dim)
+{
+    Rcpp::NumericMatrix out(values.size(), dim);
+    for(std::size_t i = 0; i < values.size(); i++){
+        for(int d = 0; d < dim; d++)
+            out(i, d) = values[i][static_cast<std::size_t>(d)];
+    }
+    return out;
+}
+
+Rcpp::List refinement_step_trace_to_list(
+    const DrawGraph::RefinementStepTrace &trace,
+    int dim)
+{
+    return Rcpp::List::create(
+        Rcpp::Named("trace") = Rcpp::DataFrame::create(
+            Rcpp::Named("level_index") = trace.level_indices,
+            Rcpp::Named("misf_level") = trace.misf_levels,
+            Rcpp::Named("round_in_level") = trace.rounds,
+            Rcpp::Named("active_vertices") = trace.active_counts,
+            Rcpp::Named("order_index") = trace.order_indices,
+            Rcpp::Named("vertex") = trace.vertices,
+            Rcpp::Named("heat_before") = trace.heat_before,
+            Rcpp::Named("heat_after") = trace.heat_after,
+            Rcpp::Named("old_cos_before") = trace.old_cos_before,
+            Rcpp::Named("old_cos_after") = trace.old_cos_after,
+            Rcpp::Named("old_disp_norm_before") = trace.old_disp_norm_before,
+            Rcpp::Named("pre_temp_disp_norm") = trace.pre_temp_disp_norm,
+            Rcpp::Named("attraction_edges") = trace.attraction_edges,
+            Rcpp::Named("repulsion_neighbors") = trace.repulsion_neighbors,
+            Rcpp::Named("stringsAsFactors") = false
+        ),
+        Rcpp::Named("coords_before") = nested_vectors_to_matrix(trace.coords_before, dim),
+        Rcpp::Named("pre_temp_disp") = nested_vectors_to_matrix(trace.pre_temp_disp, dim),
+        Rcpp::Named("attraction_disp") = nested_vectors_to_matrix(trace.attraction_disp, dim),
+        Rcpp::Named("repulsion_disp") = nested_vectors_to_matrix(trace.repulsion_disp, dim),
+        Rcpp::Named("applied_disp") = nested_vectors_to_matrix(trace.applied_disp, dim),
+        Rcpp::Named("coords_after") = nested_vectors_to_matrix(trace.coords_after, dim),
+        Rcpp::Named("attraction_terms") = Rcpp::DataFrame::create(
+            Rcpp::Named("parent_row") = trace.attraction_term_parent_rows,
+            Rcpp::Named("term_index") = trace.attraction_term_indices,
+            Rcpp::Named("vertex") = trace.attraction_term_vertices,
+            Rcpp::Named("neighbor") = trace.attraction_term_neighbors,
+            Rcpp::Named("weight") = trace.attraction_term_weights,
+            Rcpp::Named("norm2") = trace.attraction_term_norm2,
+            Rcpp::Named("desired") = trace.attraction_term_desired,
+            Rcpp::Named("desired2") = trace.attraction_term_desired2,
+            Rcpp::Named("scale") = trace.attraction_term_scale,
+            Rcpp::Named("stringsAsFactors") = false
+        ),
+        Rcpp::Named("attraction_term_delta") =
+            nested_vectors_to_matrix(trace.attraction_term_delta, dim),
+        Rcpp::Named("attraction_term_step") =
+            nested_vectors_to_matrix(trace.attraction_term_step, dim),
+        Rcpp::Named("attraction_term_cumulative") =
+            nested_vectors_to_matrix(trace.attraction_term_cumulative, dim)
+    );
+}
+
+Rcpp::List insertion_trace_to_list(const DrawGraph::InsertionTrace &trace,
+                                   int dim)
+{
+    return Rcpp::List::create(
+        Rcpp::Named("trace") = Rcpp::DataFrame::create(
+            Rcpp::Named("level_index") = trace.level_indices,
+            Rcpp::Named("misf_level") = trace.misf_levels,
+            Rcpp::Named("previous_active_vertices") = trace.previous_active_counts,
+            Rcpp::Named("active_vertices") = trace.active_counts,
+            Rcpp::Named("order_index") = trace.order_indices,
+            Rcpp::Named("vertex") = trace.vertices,
+            Rcpp::Named("root_depth") = trace.root_depths,
+            Rcpp::Named("anchor_count_requested") = trace.anchor_count_requested,
+            Rcpp::Named("anchor_count_used") = trace.anchor_count_used,
+            Rcpp::Named("insertion_mode") = trace.insertion_modes,
+            Rcpp::Named("local_kk_steps") = trace.local_kk_steps,
+            Rcpp::Named("anchors") = trace.anchors,
+            Rcpp::Named("old_disp_norm_initial") = trace.old_disp_norm_initial,
+            Rcpp::Named("old_disp_norm_after") = trace.old_disp_norm_after,
+            Rcpp::Named("stringsAsFactors") = false
+        ),
+        Rcpp::Named("coords_initial") =
+            nested_vectors_to_matrix(trace.coords_initial, dim),
+        Rcpp::Named("coords_after") =
+            nested_vectors_to_matrix(trace.coords_after, dim),
+        Rcpp::Named("old_disp_initial") =
+            nested_vectors_to_matrix(trace.old_disp_initial, dim),
+        Rcpp::Named("old_disp_after") =
+            nested_vectors_to_matrix(trace.old_disp_after, dim)
+    );
+}
+
 } // namespace
 
 // [[Rcpp::export]]
@@ -1506,7 +1599,12 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     Rcpp::Nullable<int> seed,
     std::string trace,
     int trace_every,
-    int metric_neighbor_cap)
+    int metric_neighbor_cap,
+    bool refinement_step_trace,
+    int refinement_step_level_index,
+    int refinement_step_misf_level,
+    int refinement_step_round_start,
+    int refinement_step_round_end)
 {
     if(dim != 2 && dim != 3)
         Rcpp::stop("dim must be 2 or 3");
@@ -1630,6 +1728,13 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     dg.configure_weighted_metric_search(static_cast<size_tt>(metric_neighbor_cap));
     dg.configure_trace(trace == "round" ? TRACE_ROUND : TRACE_LEVEL,
                        static_cast<size_tt>(trace_every));
+    if(refinement_step_trace){
+        dg.configure_refinement_step_trace(refinement_step_level_index,
+                                           refinement_step_misf_level,
+                                           refinement_step_round_start,
+                                           refinement_step_round_end);
+        dg.configure_insertion_trace(true);
+    }
 
     dg.mish_engine();
 
@@ -1666,6 +1771,10 @@ Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(
     return Rcpp::List::create(
         Rcpp::_["final"] = out,
         Rcpp::_["frames"] = frames,
-        Rcpp::_["meta"] = meta
+        Rcpp::_["meta"] = meta,
+        Rcpp::_["refinement_step_trace"] =
+            refinement_step_trace_to_list(dg.get_refinement_step_trace(), dim),
+        Rcpp::_["insertion_trace"] =
+            insertion_trace_to_list(dg.get_insertion_trace(), dim)
     );
 }

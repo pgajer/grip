@@ -5,9 +5,11 @@
 #include "DrawGraph.h"
 #include <algorithm>
 #include <functional>
+#include <iomanip>
 #include <stdexcept>
 #include <vector>
 #include <limits>
+#include <sstream>
 
 //**************************************************************
 //
@@ -113,6 +115,14 @@ DrawGraph::DrawGraph(const Graph &_graph,
   traceMode(TRACE_NONE),
   traceEvery(1),
   traceLevelIndex(0),
+  refinementStepTraceEnabled(false),
+  refinementStepTraceLevelIndex(-1),
+  refinementStepTraceMisfLevel(-1),
+  refinementStepTraceRoundStart(-1),
+  refinementStepTraceRoundEnd(-1),
+  insertionTraceEnabled(false),
+  lastAttractionDisp(static_cast<size_t>(_dim), 0.0),
+  lastRepulsionDisp(static_cast<size_t>(_dim), 0.0),
   finalAnchorPos(_graph.get_numOfVert()),
   lgkkCacheActiveCount(0),
   lgkkCacheMisfLevel(-1),
@@ -306,9 +316,203 @@ void DrawGraph::configure_trace(size_tt mode, size_tt every)
     traceActiveCounts.clear();
 }
 
+void DrawGraph::configure_refinement_step_trace(int level_index,
+                                                int misf_level,
+                                                int round_start,
+                                                int round_end)
+{
+    refinementStepTraceEnabled = true;
+    refinementStepTraceLevelIndex = level_index;
+    refinementStepTraceMisfLevel = misf_level;
+    refinementStepTraceRoundStart = round_start;
+    refinementStepTraceRoundEnd = std::max(round_start, round_end);
+    refinementStepTrace = RefinementStepTrace();
+}
+
+void DrawGraph::configure_insertion_trace(bool enabled)
+{
+    insertionTraceEnabled = enabled;
+    insertionTrace = InsertionTrace();
+}
+
 void DrawGraph::configure_weighted_metric_search(size_tt maxSettled)
 {
     metricNeighborCap = maxSettled;
+}
+
+bool DrawGraph::should_record_refinement_step(size_tt level_index,
+                                              size_tt misf_level,
+                                              size_tt round) const
+{
+    return refinementStepTraceEnabled &&
+        static_cast<int>(level_index) == refinementStepTraceLevelIndex &&
+        static_cast<int>(misf_level) == refinementStepTraceMisfLevel &&
+        static_cast<int>(round) >= refinementStepTraceRoundStart &&
+        static_cast<int>(round) <= refinementStepTraceRoundEnd;
+}
+
+size_t DrawGraph::record_refinement_step_pre(
+    size_tt vert,
+    size_tt order_index,
+    size_tt active_count,
+    size_tt level_index,
+    size_tt misf_level,
+    size_tt round,
+    const Point<> &coord_before,
+    const Point<> &pre_temp_disp,
+    const std::vector<double> &attraction_disp,
+    const std::vector<double> &repulsion_disp,
+    const Point<> &applied_disp,
+    coord_t heat_before,
+    coord_t heat_after,
+    float old_cos_before,
+    float old_cos_after,
+    coord_t old_disp_norm_before,
+    coord_t pre_temp_disp_norm,
+    const std::string &attraction_edges,
+    const std::string &repulsion_neighbors)
+{
+    std::vector<double> coord_before_flat(dim);
+    std::vector<double> pre_temp_disp_flat(dim);
+    std::vector<double> attraction_disp_flat(dim);
+    std::vector<double> repulsion_disp_flat(dim);
+    std::vector<double> applied_disp_flat(dim);
+    std::vector<double> coord_after_flat(dim,
+                                         std::numeric_limits<double>::quiet_NaN());
+    coord_before_flat[0] = coord_before.getX();
+    pre_temp_disp_flat[0] = pre_temp_disp.getX();
+    attraction_disp_flat[0] = attraction_disp[0];
+    repulsion_disp_flat[0] = repulsion_disp[0];
+    applied_disp_flat[0] = applied_disp.getX();
+    if(dim > 1){
+        coord_before_flat[1] = coord_before.getY();
+        pre_temp_disp_flat[1] = pre_temp_disp.getY();
+        attraction_disp_flat[1] = attraction_disp[1];
+        repulsion_disp_flat[1] = repulsion_disp[1];
+        applied_disp_flat[1] = applied_disp.getY();
+    }
+    if(dim > 2){
+        coord_before_flat[2] = coord_before.getZ();
+        pre_temp_disp_flat[2] = pre_temp_disp.getZ();
+        attraction_disp_flat[2] = attraction_disp[2];
+        repulsion_disp_flat[2] = repulsion_disp[2];
+        applied_disp_flat[2] = applied_disp.getZ();
+    }
+
+    refinementStepTrace.level_indices.push_back(static_cast<int>(level_index));
+    refinementStepTrace.misf_levels.push_back(static_cast<int>(misf_level));
+    refinementStepTrace.rounds.push_back(static_cast<int>(round));
+    refinementStepTrace.active_counts.push_back(static_cast<int>(active_count));
+    refinementStepTrace.order_indices.push_back(static_cast<int>(order_index));
+    refinementStepTrace.vertices.push_back(static_cast<int>(vert) + 1);
+    refinementStepTrace.heat_before.push_back(heat_before);
+    refinementStepTrace.heat_after.push_back(heat_after);
+    refinementStepTrace.old_cos_before.push_back(old_cos_before);
+    refinementStepTrace.old_cos_after.push_back(old_cos_after);
+    refinementStepTrace.old_disp_norm_before.push_back(old_disp_norm_before);
+    refinementStepTrace.pre_temp_disp_norm.push_back(pre_temp_disp_norm);
+    refinementStepTrace.coords_before.push_back(std::move(coord_before_flat));
+    refinementStepTrace.pre_temp_disp.push_back(std::move(pre_temp_disp_flat));
+    refinementStepTrace.attraction_disp.push_back(std::move(attraction_disp_flat));
+    refinementStepTrace.repulsion_disp.push_back(std::move(repulsion_disp_flat));
+    refinementStepTrace.applied_disp.push_back(std::move(applied_disp_flat));
+    refinementStepTrace.coords_after.push_back(std::move(coord_after_flat));
+    refinementStepTrace.attraction_edges.push_back(attraction_edges);
+    refinementStepTrace.repulsion_neighbors.push_back(repulsion_neighbors);
+    const int parentRow = static_cast<int>(refinementStepTrace.vertices.size());
+    for(size_t i = 0; i < lastAttractionTermNeighbors.size(); i++){
+        refinementStepTrace.attraction_term_parent_rows.push_back(parentRow);
+        refinementStepTrace.attraction_term_indices.push_back(static_cast<int>(i) + 1);
+        refinementStepTrace.attraction_term_vertices.push_back(static_cast<int>(vert) + 1);
+        refinementStepTrace.attraction_term_neighbors.push_back(lastAttractionTermNeighbors[i]);
+        refinementStepTrace.attraction_term_weights.push_back(lastAttractionTermWeights[i]);
+        refinementStepTrace.attraction_term_norm2.push_back(lastAttractionTermNorm2[i]);
+        refinementStepTrace.attraction_term_desired.push_back(lastAttractionTermDesired[i]);
+        refinementStepTrace.attraction_term_desired2.push_back(lastAttractionTermDesired2[i]);
+        refinementStepTrace.attraction_term_scale.push_back(lastAttractionTermScale[i]);
+        refinementStepTrace.attraction_term_delta.push_back(lastAttractionTermDelta[i]);
+        refinementStepTrace.attraction_term_step.push_back(lastAttractionTermStep[i]);
+        refinementStepTrace.attraction_term_cumulative.push_back(lastAttractionTermCumulative[i]);
+    }
+    return refinementStepTrace.vertices.size() - 1;
+}
+
+void DrawGraph::record_refinement_step_after(size_t row, size_tt vert)
+{
+    if(row >= refinementStepTrace.coords_after.size())
+        return;
+    refinementStepTrace.coords_after[row][0] = pos[vert].getX();
+    if(dim > 1)
+        refinementStepTrace.coords_after[row][1] = pos[vert].getY();
+    if(dim > 2)
+        refinementStepTrace.coords_after[row][2] = pos[vert].getZ();
+}
+
+void DrawGraph::record_insertion_trace(
+    size_tt root,
+    size_tt level_index,
+    size_tt misf_level_arg,
+    size_tt previous_active_count,
+    size_tt active_count,
+    size_tt root_depth,
+    size_tt anchor_count_requested,
+    size_tt anchor_count_used,
+    size_tt insertion_mode,
+    size_tt local_kk_steps,
+    const std::vector<size_tt> &anchors,
+    const std::vector<double> &anchor_dist,
+    const Point<> &coord_initial,
+    const Point<> &coord_after,
+    const Point<> &old_disp_initial,
+    const Point<> &old_disp_after,
+    coord_t old_disp_norm_initial_arg,
+    coord_t old_disp_norm_after_arg)
+{
+    if(!insertionTraceEnabled)
+        return;
+
+    auto flatten_point = [&](const Point<> &point) {
+        std::vector<double> out(dim, 0.0);
+        out[0] = point.getX();
+        if(dim > 1)
+            out[1] = point.getY();
+        if(dim > 2)
+            out[2] = point.getZ();
+        return out;
+    };
+
+    std::ostringstream anchor_stream;
+    anchor_stream << std::setprecision(17);
+    const size_tt limit = std::min<size_tt>(
+        std::min<size_tt>(anchor_count_used, anchors.size()),
+        anchor_dist.size());
+    for(size_tt i = 0; i < limit; i++){
+        if(i > 0)
+            anchor_stream << ";";
+        anchor_stream << static_cast<int>(anchors[i]) + 1 << ":"
+                      << anchor_dist[i];
+    }
+
+    insertionTrace.level_indices.push_back(static_cast<int>(level_index));
+    insertionTrace.misf_levels.push_back(static_cast<int>(misf_level_arg));
+    insertionTrace.previous_active_counts.push_back(
+        static_cast<int>(previous_active_count));
+    insertionTrace.active_counts.push_back(static_cast<int>(active_count));
+    insertionTrace.order_indices.push_back(static_cast<int>(inv[root]) + 1);
+    insertionTrace.vertices.push_back(static_cast<int>(root) + 1);
+    insertionTrace.root_depths.push_back(static_cast<int>(root_depth));
+    insertionTrace.anchor_count_requested.push_back(
+        static_cast<int>(anchor_count_requested));
+    insertionTrace.anchor_count_used.push_back(static_cast<int>(anchor_count_used));
+    insertionTrace.insertion_modes.push_back(static_cast<int>(insertion_mode));
+    insertionTrace.local_kk_steps.push_back(static_cast<int>(local_kk_steps));
+    insertionTrace.anchors.push_back(anchor_stream.str());
+    insertionTrace.old_disp_norm_initial.push_back(old_disp_norm_initial_arg);
+    insertionTrace.old_disp_norm_after.push_back(old_disp_norm_after_arg);
+    insertionTrace.coords_initial.push_back(flatten_point(coord_initial));
+    insertionTrace.coords_after.push_back(flatten_point(coord_after));
+    insertionTrace.old_disp_initial.push_back(flatten_point(old_disp_initial));
+    insertionTrace.old_disp_after.push_back(flatten_point(old_disp_after));
 }
 
 void DrawGraph::capture_trace_snapshot(const char *phase,

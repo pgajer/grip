@@ -1,8 +1,10 @@
 // Shared support routines for the GRIP layout engine
 
 #include <algorithm>
+#include <iomanip>
 #include <limits>
 #include <queue>
+#include <sstream>
 #include <unordered_set>
 
 #include "DrawGraph.h"
@@ -689,7 +691,19 @@ void DrawGraph::add_active_global_repulsion_exact(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
+        const double scale = static_cast<double>(
+            static_cast<float>(repulsionScale / norm2));
         vect *= (float)(repulsionScale / norm2);
+        if(lastRepulsionNeighbors.size() > 0)
+            lastRepulsionNeighbors += ";";
+        std::ostringstream term;
+        term << static_cast<int>(overt) + 1;
+        lastRepulsionNeighbors += term.str();
+        lastRepulsionDisp[0] += vect.getX();
+        if(dim > 1)
+            lastRepulsionDisp[1] += vect.getY();
+        if(dim > 2)
+            lastRepulsionDisp[2] += vect.getZ();
         disp[vert] += vect;
     }
 }
@@ -721,7 +735,19 @@ void DrawGraph::add_active_global_repulsion_sampled(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
+        const double termScale = static_cast<double>(
+            static_cast<float>((repulsionScale * scale) / norm2));
         vect *= (float)((repulsionScale * scale) / norm2);
+        if(lastRepulsionNeighbors.size() > 0)
+            lastRepulsionNeighbors += ";";
+        std::ostringstream term;
+        term << static_cast<int>(overt) + 1;
+        lastRepulsionNeighbors += term.str();
+        lastRepulsionDisp[0] += vect.getX();
+        if(dim > 1)
+            lastRepulsionDisp[1] += vect.getY();
+        if(dim > 2)
+            lastRepulsionDisp[2] += vect.getZ();
         disp[vert] += vect;
     }
 }

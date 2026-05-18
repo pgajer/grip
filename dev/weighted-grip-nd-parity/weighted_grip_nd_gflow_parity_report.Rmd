@@ -1,0 +1,890 @@
+---
+title: "Weighted GRIP ND Parity Diagnostics With gflow Fixtures"
+date: "`r format(Sys.time(), '%Y-%m-%d %H:%M:%S %Z')`"
+output:
+  html_document:
+    self_contained: true
+    toc: true
+    toc_depth: 2
+params:
+  mode: "smoke"
+  output_dir: "/Users/pgajer/current_projects/grip/output/weighted-grip-nd-parity"
+  gflow_repo: "/Users/pgajer/current_projects/gflow"
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10.5,
+  fig.height = 6.2,
+  fig.align = "center",
+  out.width = "100%",
+  dpi = 140,
+  dev = "ragg_png"
+)
+
+library(ggplot2)
+library(knitr)
+
+repo_dir <- "/Users/pgajer/current_projects/grip"
+source(file.path(repo_dir, "tests/testthat/helper-weighted-nd-gflow-parity.R"))
+source(file.path(repo_dir, "tests/testthat/helper-weighted-nd-trace-parity.R"))
+
+if (requireNamespace("pkgload", quietly = TRUE)) {
+  pkgload::load_all(repo_dir, quiet = TRUE)
+} else {
+  library(grip)
+}
+
+dir.create(params$output_dir, recursive = TRUE, showWarnings = FALSE)
+metrics <- grip_weighted_nd_gflow_parity_run(
+  mode = params$mode,
+  dims = c(2L, 3L),
+  gflow_repo = params$gflow_repo
+)
+trace_metrics <- grip_weighted_nd_trace_parity_run(dims = c(2L, 3L))
+trace_first <- grip_weighted_nd_trace_parity_first_divergence(trace_metrics)
+gflow_trace_metrics <- grip_weighted_nd_gflow_trace_run(
+  mode = params$mode,
+  dims = "intrinsic",
+  gflow_repo = params$gflow_repo
+)
+gflow_trace_first <- grip_weighted_nd_gflow_trace_first_divergence(gflow_trace_metrics)
+gflow_trace_all_metrics <- grip_weighted_nd_gflow_trace_run(
+  mode = params$mode,
+  dims = "all",
+  gflow_repo = params$gflow_repo
+)
+gflow_trace_all_first <- grip_weighted_nd_gflow_trace_first_divergence(gflow_trace_all_metrics)
+gflow_trace_cross_metrics <- gflow_trace_all_metrics[
+  gflow_trace_all_metrics$layout_dim != gflow_trace_all_metrics$intrinsic_dim,
+  ,
+  drop = FALSE
+]
+gflow_trace_cross_first <- gflow_trace_all_first[
+  gflow_trace_all_first$case_id %in% unique(gflow_trace_cross_metrics$case_id) &
+    mapply(
+      function(case_id, layout_dim) {
+        any(
+          gflow_trace_cross_metrics$case_id == case_id &
+            gflow_trace_cross_metrics$layout_dim == layout_dim
+        )
+      },
+      gflow_trace_all_first$case_id,
+      gflow_trace_all_first$layout_dim
+    ),
+  ,
+  drop = FALSE
+]
+refinement_step_metrics <- grip_weighted_nd_gflow_refinement_step_trace_run(
+  mode = params$mode,
+  gflow_repo = params$gflow_repo
+)
+refinement_step_target <- attr(refinement_step_metrics, "target")
+refinement_step_term_metrics <- attr(refinement_step_metrics, "attraction_terms")
+refinement_step_summary <- grip_weighted_nd_gflow_refinement_step_summary(
+  refinement_step_metrics
+)
+refinement_step_term_summary <- grip_weighted_nd_gflow_refinement_step_term_summary(
+  refinement_step_metrics
+)
+refinement_source <- grip_weighted_nd_gflow_refinement_source_run(
+  mode = params$mode,
+  gflow_repo = params$gflow_repo
+)
+metrics$layout_dim_label <- paste0(metrics$layout_dim, "D layout")
+metrics$case_label <- paste(metrics$family, metrics$intrinsic_dim, "D", sep = " / ")
+metrics$direct_rmse_plot <- pmax(metrics$direct_rmse, 1e-15)
+metrics$procrustes_rmse_plot <- pmax(metrics$procrustes_rmse, 1e-15)
+trace_metrics$frame_label <- paste0(
+  trace_metrics$fixture_id,
+  " / ",
+  trace_metrics$dim,
+  "D"
+)
+trace_metrics$procrustes_rmse_plot <- pmax(trace_metrics$procrustes_rmse, 1e-15)
+gflow_trace_metrics$frame_label <- paste0(
+  gflow_trace_metrics$family,
+  " / ",
+  gflow_trace_metrics$layout_dim,
+  "D"
+)
+gflow_trace_metrics$procrustes_rmse_plot <- pmax(gflow_trace_metrics$procrustes_rmse, 1e-15)
+gflow_trace_cross_metrics$frame_label <- paste0(
+  gflow_trace_cross_metrics$family,
+  " / ",
+  gflow_trace_cross_metrics$intrinsic_dim,
+  "D fixture in ",
+  gflow_trace_cross_metrics$layout_dim,
+  "D"
+)
+gflow_trace_cross_metrics$procrustes_rmse_plot <- pmax(
+  gflow_trace_cross_metrics$procrustes_rmse,
+  1e-15
+)
+thresholds <- grip_weighted_nd_gflow_parity_thresholds()
+
+csv_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_parity_metrics.csv")
+rds_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_parity_metrics.rds")
+trace_csv_path <- file.path(params$output_dir, "weighted_grip_nd_trace_parity_metrics.csv")
+trace_rds_path <- file.path(params$output_dir, "weighted_grip_nd_trace_parity_metrics.rds")
+gflow_trace_csv_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_trace_parity_metrics.csv")
+gflow_trace_rds_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_trace_parity_metrics.rds")
+gflow_trace_all_csv_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_trace_all_parity_metrics.csv")
+gflow_trace_all_rds_path <- file.path(params$output_dir, "weighted_grip_nd_gflow_trace_all_parity_metrics.rds")
+refinement_step_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_step_trace_metrics.csv")
+refinement_step_summary_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_step_trace_summary.csv")
+refinement_step_rds_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_step_trace_metrics.rds")
+refinement_step_term_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_step_attraction_terms.csv")
+refinement_step_term_summary_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_step_attraction_term_summary.csv")
+refinement_source_target_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_source_target.csv")
+refinement_source_summary_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_source_summary.csv")
+refinement_source_vertex_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_source_vertex_trace.csv")
+refinement_source_term_csv_path <- file.path(params$output_dir, "weighted_grip_nd_refinement_source_term_trace.csv")
+write.csv(metrics, csv_path, row.names = FALSE)
+saveRDS(metrics, rds_path)
+write.csv(trace_metrics, trace_csv_path, row.names = FALSE)
+saveRDS(trace_metrics, trace_rds_path)
+write.csv(gflow_trace_metrics, gflow_trace_csv_path, row.names = FALSE)
+saveRDS(gflow_trace_metrics, gflow_trace_rds_path)
+write.csv(gflow_trace_all_metrics, gflow_trace_all_csv_path, row.names = FALSE)
+saveRDS(gflow_trace_all_metrics, gflow_trace_all_rds_path)
+write.csv(refinement_step_metrics, refinement_step_csv_path, row.names = FALSE)
+write.csv(refinement_step_summary, refinement_step_summary_csv_path, row.names = FALSE)
+saveRDS(refinement_step_metrics, refinement_step_rds_path)
+write.csv(refinement_step_term_metrics, refinement_step_term_csv_path, row.names = FALSE)
+write.csv(refinement_step_term_summary, refinement_step_term_summary_csv_path, row.names = FALSE)
+write.csv(refinement_source$target, refinement_source_target_csv_path, row.names = FALSE)
+write.csv(refinement_source$summary, refinement_source_summary_csv_path, row.names = FALSE)
+write.csv(refinement_source$vertex_trace, refinement_source_vertex_csv_path, row.names = FALSE)
+write.csv(refinement_source$term_trace, refinement_source_term_csv_path, row.names = FALSE)
+
+run_metadata <- data.frame(
+  field = c(
+    "grip version",
+    "gflow version",
+    "mode",
+    "gflow repository",
+    "metrics CSV",
+    "metrics RDS",
+    "trace metrics CSV",
+    "trace metrics RDS",
+    "gflow trace metrics CSV",
+    "gflow trace metrics RDS",
+    "gflow all-dimension trace metrics CSV",
+    "gflow all-dimension trace metrics RDS",
+    "refinement-step trace metrics CSV",
+    "refinement-step trace summary CSV",
+    "refinement-step trace metrics RDS",
+    "refinement-step attraction terms CSV",
+    "refinement-step attraction term summary CSV",
+    "refinement source target CSV",
+    "refinement source summary CSV",
+    "refinement source vertex trace CSV",
+    "refinement source term trace CSV"
+  ),
+  value = c(
+    as.character(utils::packageVersion("grip")),
+    as.character(utils::packageVersion("gflow")),
+    params$mode,
+    normalizePath(params$gflow_repo, mustWork = FALSE),
+    normalizePath(csv_path, mustWork = FALSE),
+    normalizePath(rds_path, mustWork = FALSE),
+    normalizePath(trace_csv_path, mustWork = FALSE),
+    normalizePath(trace_rds_path, mustWork = FALSE),
+    normalizePath(gflow_trace_csv_path, mustWork = FALSE),
+    normalizePath(gflow_trace_rds_path, mustWork = FALSE),
+    normalizePath(gflow_trace_all_csv_path, mustWork = FALSE),
+    normalizePath(gflow_trace_all_rds_path, mustWork = FALSE),
+    normalizePath(refinement_step_csv_path, mustWork = FALSE),
+    normalizePath(refinement_step_summary_csv_path, mustWork = FALSE),
+    normalizePath(refinement_step_rds_path, mustWork = FALSE),
+    normalizePath(refinement_step_term_csv_path, mustWork = FALSE),
+    normalizePath(refinement_step_term_summary_csv_path, mustWork = FALSE),
+    normalizePath(refinement_source_target_csv_path, mustWork = FALSE),
+    normalizePath(refinement_source_summary_csv_path, mustWork = FALSE),
+    normalizePath(refinement_source_vertex_csv_path, mustWork = FALSE),
+    normalizePath(refinement_source_term_csv_path, mustWork = FALSE)
+  ),
+  stringsAsFactors = FALSE
+)
+```
+
+## Purpose
+
+This report evaluates whether the opt-in, side-by-side
+`grip.layout.weighted.nd()` backend currently reproduces the legacy
+`grip.layout.weighted()` embedding in the two
+dimensions where the legacy implementation is defined. The comparison uses
+`gflow`-generated fixtures rather than reimplementing their geometry inside
+`grip`: flat and nonuniform 2D grids, flat and nonuniform 3D grids, and 2D/3D
+quadform graphs whose edge lengths are produced by `gflow` utilities.
+
+The central question is strict parity: when the graph, weights, dimension,
+seed, and shared tuning parameters are held fixed, does the ND entry point
+return the same embedding as the legacy weighted-GRIP backend in 2D and 3D?
+This is a release gate for the ND API: higher-dimensional support should not
+come at the cost of changing the authoritative 2D/3D weighted-GRIP behavior.
+The current ND implementation is intentionally evaluated on its own path; it
+does not route `dim = 2` or `dim = 3` through the legacy core.
+
+## Trace-Level Sanity Check
+
+The smallest connected fixture is used first as a phase-level smoke test. With
+the same 3-by-3 mesh, weights, seed, rounds, final rounds, and `num_init`, the
+legacy weighted-GRIP trace initializes only its coarse MISF level and then emits
+a `level_start` transition when the full graph is inserted. The ND backend now
+emits the same active-level skeleton from its side-by-side weighted MISF
+builder and legacy-style refinement loop.
+
+```{r trace-sanity}
+trace_edges <- edges.mesh(3, 3)
+trace_weights <- rep(1, nrow(trace_edges))
+legacy_trace <- grip.layout.trace.weighted(
+  edges = trace_edges,
+  edge_weights = trace_weights,
+  n = 9,
+  dim = 2,
+  placement = "barycenter",
+  rounds = 3,
+  final_rounds = 2,
+  num_init = 5,
+  num_nbrs = 6,
+  r = 0.03,
+  s = 6.0,
+  repulsion_factor = 1.5,
+  coarse_repulsion_factor = 1.5,
+  coarse_repulsion_sample = 100000L,
+  coarse_repulsion_exact_below = 100000L,
+  tinit_factor = 6,
+  trace = "round",
+  trace.every = 1,
+  seed = 81
+)
+nd_trace_fn <- get("grip.layout.weighted.nd.trace", asNamespace("grip"))
+nd_trace <- nd_trace_fn(
+  edges = trace_edges,
+  edge_weights = trace_weights,
+  n = 9,
+  dim = 2,
+  rounds = 3,
+  final_rounds = 2,
+  num_init = 5,
+  num_nbrs = 6,
+  trace.every = 1,
+  seed = 81
+)
+trace_summary <- rbind(
+  data.frame(
+    backend = "legacy weighted-GRIP",
+    frames = length(legacy_trace$frames),
+    phases = paste(legacy_trace$meta$phase, collapse = ", "),
+    finite_rows_at_init = sum(stats::complete.cases(legacy_trace$frames[[1]])),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    backend = "current ND backend",
+    frames = length(nd_trace$frames),
+    phases = paste(nd_trace$meta$phase, collapse = ", "),
+    finite_rows_at_init = sum(stats::complete.cases(nd_trace$frames[[1]])),
+    stringsAsFactors = FALSE
+  )
+)
+kable(trace_summary)
+```
+
+This trace does not prove final layout quality by itself. Its value is narrower
+and more useful: it verifies that the ND backend and the legacy weighted backend
+are now comparable frame by frame. The next diagnostic uses those matching
+frames to locate the first coordinate-level divergence.
+
+## Trace Parity Ratchet
+
+The following diagnostic compares each traced frame after centering,
+orthogonal Procrustes alignment, and scaling. It is intentionally small: a
+3-by-3 mesh and an 8-cycle with nonuniform edge lengths, each in 2D and 3D.
+The purpose is not to certify all scientific fixtures; it is to ratchet the
+port one trace frame at a time and identify the first phase where the ND
+trajectory stops matching the legacy weighted trajectory.
+
+```{r trace-first-divergence-table}
+kable(trace_first, digits = 6)
+```
+
+```{r trace-first-divergence-plot, fig.height=6.2}
+ggplot(trace_metrics, aes(x = frame, y = procrustes_rmse_plot, color = phase)) +
+  geom_line(linewidth = 0.6, alpha = 0.8) +
+  geom_point(size = 2.1) +
+  facet_wrap(~ frame_label, scales = "free_x", ncol = 2) +
+  scale_y_log10() +
+  labs(
+    x = "Trace frame",
+    y = "Frame Procrustes RMSE, log scale",
+    color = "Phase",
+    title = "First divergence is now localized to traced phases"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+
+Frames whose Procrustes RMSE is near numerical noise indicate that the ported
+mechanics are effectively matching at that point. In the current run, all
+frames in these tiny fixtures are within the strict trace tolerance and the
+metadata matches across all frames. This does not prove full gflow-fixture
+shape parity, but it does mean the first coarse-to-fine schedule, initialization,
+insertion, local-temperature, and refinement ratchet is now passing on the
+small diagnostic fixtures.
+
+## Canonical gflow Trace Ratchet
+
+The same frame-by-frame diagnostic is also run on the smallest canonical
+gflow-backed grid and lattice fixtures: flat 2D grid, nonuniform 2D grid, flat
+3D lattice, and nonuniform 3D grid. These runs use each fixture's intrinsic
+dimension and the smoke-report tuning, so they are larger than the tiny
+mesh/cycle ratchet but still small enough to inspect frame by frame.
+
+```{r gflow-trace-first-divergence-table}
+kable(gflow_trace_first, digits = 6)
+```
+
+```{r gflow-trace-ratchet-plot, fig.height=7.2}
+ggplot(gflow_trace_metrics, aes(x = frame, y = procrustes_rmse_plot, color = phase)) +
+  geom_line(linewidth = 0.55, alpha = 0.75) +
+  geom_point(size = 1.8) +
+  facet_wrap(~ frame_label, scales = "free_x", ncol = 2) +
+  scale_y_log10() +
+  labs(
+    x = "Trace frame",
+    y = "Frame Procrustes RMSE, log scale",
+    color = "Phase",
+    title = "Canonical gflow trace ratchet stays within tolerance"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+
+In the current smoke run, the canonical grid and lattice trace ratchet remains
+within tolerance for intrinsic 2D/3D embeddings. This narrows the remaining
+smoke-report disagreement to broader final-layout cases, especially embeddings
+requested in a dimension different from the fixture's intrinsic dimension.
+
+## Cross-Dimensional gflow Trace Ratchet
+
+The intrinsic-dimensional trace ratchet answers whether the ND path can follow
+legacy weighted-GRIP on each fixture's natural dimension. The larger remaining
+residual in the smoke report is different: it occurs when a graph generated
+from a 3D fixture is embedded in 2D. The diagnostic below reruns the same
+canonical gflow grid and lattice fixtures in both supported legacy dimensions,
+then isolates the cross-dimensional requests.
+
+```{r gflow-cross-trace-first-divergence-table}
+kable(gflow_trace_cross_first, digits = 6)
+```
+
+```{r gflow-cross-trace-ratchet-plot, fig.height=6.6}
+ggplot(gflow_trace_cross_metrics, aes(x = frame, y = procrustes_rmse_plot, color = phase)) +
+  geom_line(linewidth = 0.55, alpha = 0.75) +
+  geom_point(size = 1.8) +
+  facet_wrap(~ frame_label, scales = "free_x", ncol = 2) +
+  scale_y_log10() +
+  labs(
+    x = "Trace frame",
+    y = "Frame Procrustes RMSE, log scale",
+    color = "Phase",
+    title = "Cross-dimensional traces localize the remaining smoke residual"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+```
+
+The current run localizes the first strict-threshold failure to the nonuniform
+3D grid requested in 2D. Metadata still matches, so this is not a schedule or
+active-set mismatch. The first measured break occurs in the full-graph
+refinement phase after insertion has completed, which makes the next debugging
+target much narrower than the original package-wide parity problem.
+
+## Refinement-Step Trace
+
+The step-level trace drills into the first failing cross-dimensional case. It
+captures each active vertex for the two rounds before the first divergent
+frame and the divergent round itself. For each backend it records coordinates
+before the round, the pre-temperature displacement, local temperature and
+cosine state before and after the temperature update, the displacement actually
+applied, and coordinates after application.
+
+```{r refinement-step-target-table}
+kable(refinement_step_target, digits = 6)
+```
+
+```{r refinement-step-summary-table}
+kable(head(refinement_step_summary, 16L), digits = 6)
+```
+
+```{r refinement-step-summary-plot, fig.height=5.8}
+plot_summary <- head(refinement_step_summary, 16L)
+plot_summary$metric <- factor(plot_summary$metric, levels = rev(plot_summary$metric))
+ggplot(plot_summary, aes(x = max_abs, y = metric)) +
+  geom_col(width = 0.68, fill = "#356D8C") +
+  scale_x_log10() +
+  labs(
+    x = "Maximum absolute legacy-ND difference, log scale",
+    y = NULL,
+    title = "First failing trace is dominated by pre-temperature displacement"
+  ) +
+  theme_minimal(base_size = 11)
+```
+
+The largest discrepancy in the current run is already present in the
+pre-temperature displacement at round 11. The applied displacement and
+coordinate-after differences follow from that earlier force-level difference.
+The component split shows that the largest contribution to that row-level
+difference is the weighted edge-attraction term, while the edge and
+metric-neighbor provenance strings still match. This points the next
+implementation pass toward the arithmetic used inside full-graph weighted-FR
+force accumulation, rather than toward input ordering, local-temperature update,
+or coordinate application order.
+
+```{r refinement-step-attraction-term-summary-table}
+kable(head(refinement_step_term_summary, 16L), digits = 6)
+```
+
+The attraction-term table expands the weighted-attraction component one
+adjacent edge at a time. For each term it records the adjacent vertex, edge
+weight, coordinate delta, squared norm, desired weighted length, scale after the
+legacy-style float cast, per-edge step vector, and cumulative attraction vector.
+This is the diagnostic to use for the next code fix: if a term's delta already
+differs, the coordinate entering that edge contribution is the issue; if delta
+matches but norm or scale differs, the arithmetic sequence or cast is the
+issue; if individual steps match but cumulative attraction differs, the
+accumulation order is the issue.
+
+## Refinement Source Trace
+
+The source trace reruns the same failing level from round 1 through the first
+divergent round and follows the two vertices involved in the largest
+attraction-term discrepancy. In the current smoke run this is the edge from
+vertex 34 to vertex 9.
+
+```{r refinement-source-target-table}
+kable(refinement_source$target, digits = 6)
+```
+
+```{r refinement-source-summary-table}
+kable(refinement_source$summary, digits = 6)
+```
+
+```{r refinement-source-vertex-table}
+kable(refinement_source$vertex_trace, digits = 6)
+```
+
+```{r refinement-source-term-table}
+kable(refinement_source$term_trace, digits = 6)
+```
+
+The source trace shows tiny coordinate and force differences from the first
+full-graph round, with a clear escalation at rounds 7-10. At round 11, the
+coordinate delta entering the edge 34-to-9 attraction term is large enough that
+the legacy-style float-cast scale differs, producing the much larger per-edge
+attraction-step gap. That makes the next implementation target earlier than
+round 11: the arithmetic that creates the growing coordinate drift through
+rounds 7-10.
+
+## Coordinate Parity
+
+The direct coordinate diagnostic is the root-mean-square difference between the
+raw legacy and ND coordinate matrices,
+
+\[
+\operatorname{RMSE}_{direct} =
+\sqrt{\frac{1}{nd}\sum_{i=1}^{n}\sum_{j=1}^{d}(X_{ij}^{legacy}-X_{ij}^{ND})^2}.
+\]
+
+If the ND entry point recovers the legacy path with the same initialization and
+update order, this quantity should be near machine precision. Large values
+would indicate that the two algorithms are following different trajectories
+before considering translation, rotation, reflection, or scale.
+
+```{r direct-coordinate-parity}
+ggplot(metrics, aes(x = reorder(case_id, direct_rmse_plot), y = direct_rmse_plot, fill = layout_dim_label)) +
+  geom_col(position = position_dodge(width = 0.72), width = 0.68) +
+  coord_flip() +
+  scale_y_log10() +
+  labs(
+    x = NULL,
+    y = "Direct coordinate RMSE, log scale",
+    fill = NULL,
+    title = "Raw legacy and ND coordinates are not numerically identical"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+Large direct coordinate differences are expected for independent graph-layout
+trajectories, but they are still useful: if the ND implementation eventually
+ports the legacy initialization and update order phase by phase, this diagnostic
+should fall toward numerical noise before alignment is even considered. The
+figure uses a small plotting floor only to make near-zero values visible on the
+log scale.
+
+## Shape Parity After Alignment
+
+Some layout differences are geometrically irrelevant. To separate coordinate
+frame changes from shape changes, the ND layout is centered, optimally rotated
+or reflected, and scaled to the legacy layout. The plotted quantity is
+
+\[
+\operatorname{RMSE}_{Proc} =
+\sqrt{\frac{1}{nd}\|X_c^{legacy} - sX_c^{ND}R\|_F^2}.
+\]
+
+This diagnostic is stricter than a visual comparison but more meaningful than
+raw coordinate equality for graph layouts.
+
+```{r procrustes-shape-parity}
+ggplot(metrics, aes(x = reorder(case_id, procrustes_rmse_plot), y = procrustes_rmse_plot, fill = layout_dim_label)) +
+  geom_col(position = position_dodge(width = 0.72), width = 0.68) +
+  coord_flip() +
+  scale_y_log10() +
+  labs(
+    x = NULL,
+    y = "Procrustes-aligned RMSE, log scale",
+    fill = NULL,
+    title = "Alignment reduces frame effects but does not yet recover parity"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+After alignment, the residuals measure shape disagreement rather than arbitrary
+translation, rotation, reflection, or scale. Non-negligible residuals indicate
+that the current ND backend remains algorithmically different from the legacy
+weighted-GRIP engine. This is the diagnostic the ND port must drive down before
+the function should be treated as release-ready for weighted-GRIP parity.
+
+## Weighted Edge-Length Fidelity
+
+Parity with the legacy implementation is distinct from weighted-layout
+quality. This diagnostic compares the normalized layout edge lengths with the
+normalized input weights,
+
+\[
+E =
+\sqrt{\frac{1}{m}\sum_{(i,j)\in E}
+\left(
+\frac{\|x_i-x_j\|}{\operatorname{median}(\|x_i-x_j\|)}
+-
+\frac{w_{ij}}{\operatorname{median}(w)}
+\right)^2}.
+\]
+
+Lower values indicate that the embedding respects the supplied local edge
+lengths more closely.
+
+```{r edge-fidelity, fig.height=7.2}
+edge_long <- rbind(
+  data.frame(
+    case_id = metrics$case_id,
+    layout_dim_label = metrics$layout_dim_label,
+    method = "legacy weighted",
+    edge_rmse = metrics$legacy_edge_rmse
+  ),
+  data.frame(
+    case_id = metrics$case_id,
+    layout_dim_label = metrics$layout_dim_label,
+    method = "ND weighted",
+    edge_rmse = metrics$nd_edge_rmse
+  )
+)
+edge_long$case_id <- factor(edge_long$case_id, levels = rev(unique(metrics$case_id)))
+
+ggplot(edge_long, aes(x = edge_rmse, y = case_id, color = method, shape = method)) +
+  geom_point(size = 3.0, alpha = 0.9) +
+  facet_wrap(~ layout_dim_label, ncol = 1) +
+  scale_x_log10() +
+  labs(
+    x = "Normalized edge-length RMSE, log scale",
+    y = NULL,
+    color = NULL,
+    shape = NULL,
+    title = "Edge-length fidelity is a quality diagnostic, not a parity guarantee"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(size = 10)
+  )
+```
+
+The edge-length diagnostic shows whether each layout preserves the supplied
+weights on each fixture. It is not a substitute for parity: two algorithms can
+have similar edge-length fidelity and still produce different global shapes.
+Here it helps distinguish weighted-layout quality from the stricter question of
+whether the ND path has inherited the legacy weighted-GRIP mechanics.
+
+## Results Summary And Discussion
+
+The current evidence does not yet support strict 2D/3D embedding parity between
+`grip.layout.weighted.nd()` and `grip.layout.weighted()` on all canonical
+gflow-backed fixtures. The ND backend is finite and deterministic, and it is
+almost shape-identical on the smoke fixtures, but strict thresholds still flag
+small residuals in the cross-dimensional nonuniform 3D grid embedded in 2D. The
+trace-level diagnostics show a much more actionable picture: the active-level
+metadata now matches exactly on tiny weighted fixtures, coarsest initialization
+is numerically identical, every traced frame in the small 2D/3D ratchet fixtures
+is within strict Procrustes tolerance, the intrinsic-dimension gflow grid and
+lattice traces are within tolerance, and the remaining cross-dimensional
+failure first appears during full-graph refinement. The refinement-step trace
+then narrows that failure further: the first large row-level discrepancy is in
+the pre-temperature displacement, before heat scaling or coordinate application,
+and the component split shows the largest term is weighted edge attraction. The
+term-level attraction trace now provides the per-adjacent-edge arithmetic needed
+to choose the next fix. The source trace further shows that the large round-11
+edge term is an amplification of coordinate drift that starts much earlier in
+the full-graph refinement loop.
+
+The gflow-backed harness exercises the graph families we care about without
+copying quadform formulas into `grip`. The fixtures are generated from the
+gflow sources that already own the grid, lattice, and quadform constructions.
+This gives us a development test bed for future weighted-GRIP ND work while
+keeping ordinary package checks stable.
+
+The implication for implementation is precise: this remains a
+compatibility-port project, not a tuning project. The next work should inspect
+the full-graph refinement arithmetic for the nonuniform 3D grid embedded in 2D,
+starting with vertex-level force accumulation at the first divergent round
+reported by the refinement-step trace. The current evidence suggests that the
+remaining gap is no longer in the smallest traced mechanics,
+intrinsic-dimensional grid/lattice traces, the multiscale active-set schedule,
+edge/metric-neighbor input identity, local-temperature scaling, or coordinate
+application order.
+
+## Appendix
+
+### Run Metadata
+
+```{r metadata-table}
+kable(run_metadata)
+```
+
+### Strict Parity Thresholds
+
+The gated test harness can enforce strict thresholds by setting
+`GRIP_RUN_GFLOW_PARITY_TESTS=true` and `GRIP_ENFORCE_GFLOW_PARITY=true`.
+For the current side-by-side ND backend, those strict checks are expected to
+fail until the legacy phases have been ported to ND.
+
+```{r threshold-table}
+kable(data.frame(
+  metric = names(thresholds),
+  threshold = unlist(thresholds),
+  row.names = NULL
+))
+```
+
+### Summary Metrics
+
+```{r metrics-table}
+kable(metrics[, c(
+  "case_id",
+  "layout_dim",
+  "n",
+  "m",
+  "direct_rmse",
+  "direct_max_abs",
+  "procrustes_rmse",
+  "procrustes_max_abs",
+  "legacy_edge_rmse",
+  "nd_edge_rmse",
+  "legacy_elapsed_sec",
+  "nd_elapsed_sec"
+)], digits = 5)
+```
+
+### Trace Metrics
+
+```{r trace-metrics-table}
+kable(trace_metrics[, c(
+  "fixture_id",
+  "dim",
+  "frame",
+  "phase",
+  "active_vertices",
+  "direct_rmse",
+  "direct_max_abs",
+  "procrustes_rmse",
+  "procrustes_max_abs",
+  "metadata_match"
+)], digits = 6)
+```
+
+### gflow Trace Metrics
+
+```{r gflow-trace-metrics-table}
+kable(gflow_trace_metrics[, c(
+  "case_id",
+  "layout_dim",
+  "frame",
+  "phase",
+  "misf_level",
+  "round_in_level",
+  "active_vertices",
+  "direct_rmse",
+  "direct_max_abs",
+  "procrustes_rmse",
+  "procrustes_max_abs",
+  "metadata_match"
+)], digits = 6)
+```
+
+### gflow All-Dimension Trace Metrics
+
+```{r gflow-all-trace-metrics-table}
+kable(gflow_trace_all_metrics[, c(
+  "case_id",
+  "intrinsic_dim",
+  "layout_dim",
+  "frame",
+  "phase",
+  "misf_level",
+  "round_in_level",
+  "active_vertices",
+  "direct_rmse",
+  "direct_max_abs",
+  "procrustes_rmse",
+  "procrustes_max_abs",
+  "metadata_match"
+)], digits = 6)
+```
+
+### Refinement-Step Trace Metrics
+
+```{r refinement-step-metrics-table}
+kable(refinement_step_metrics[, c(
+  "case_id",
+  "layout_dim",
+  "level_index",
+  "misf_level",
+  "round_in_level",
+  "order_index",
+  "vertex",
+  "heat_before_delta",
+  "heat_after_delta",
+  "old_cos_before_delta",
+  "old_cos_after_delta",
+  "pre_temp_disp_norm_delta",
+  "coords_before_max_abs",
+  "pre_temp_disp_max_abs",
+  "attraction_disp_max_abs",
+  "repulsion_disp_max_abs",
+  "applied_disp_max_abs",
+  "coords_after_max_abs",
+  "attraction_edges_match",
+  "repulsion_neighbors_match"
+)], digits = 6)
+```
+
+### Refinement-Step Attraction Terms
+
+```{r refinement-step-attraction-terms-table}
+kable(refinement_step_term_metrics[, c(
+  "case_id",
+  "layout_dim",
+  "round_in_level",
+  "order_index",
+  "vertex",
+  "term_index",
+  "neighbor",
+  "weight_delta",
+  "norm2_delta",
+  "desired_delta",
+  "desired2_delta",
+  "scale_delta",
+  "delta_max_abs",
+  "step_max_abs",
+  "cumulative_max_abs"
+)], digits = 6)
+```
+
+### Refinement Source Trace
+
+```{r refinement-source-tables}
+kable(refinement_source$summary, digits = 6)
+kable(refinement_source$term_trace, digits = 6)
+```
+
+### Reproducibility
+
+Render this report from the `grip` repository root with:
+
+```{r reproducibility-command, eval=FALSE, echo=TRUE}
+rmarkdown::render(
+  "dev/weighted-grip-nd-parity/weighted_grip_nd_gflow_parity_report.Rmd",
+  output_dir = "output/weighted-grip-nd-parity",
+  output_file = "weighted_grip_nd_gflow_parity_report.html",
+  params = list(
+    mode = "smoke",
+    output_dir = "/Users/pgajer/current_projects/grip/output/weighted-grip-nd-parity",
+    gflow_repo = "/Users/pgajer/current_projects/gflow"
+  )
+)
+```
+
+Run the gated package test with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_PARITY_TESTS=true Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run the trace-level first-divergence diagnostic with:
+
+```{bash eval=FALSE}
+GRIP_RUN_TRACE_PARITY_TESTS=true Rscript -e 'devtools::test(filter = "trace-parity")'
+```
+
+Run the gflow-backed trace ratchet with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_TRACE_PARITY_TESTS=true Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run the cross-dimensional gflow-backed trace ratchet with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_TRACE_ALL_TESTS=true Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run the refinement-step gflow-backed trace with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_REFINEMENT_STEP_TRACE_TESTS=true Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run strict parity enforcement with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_PARITY_TESTS=true GRIP_ENFORCE_GFLOW_PARITY=true \
+  Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run strict trace parity enforcement with:
+
+```{bash eval=FALSE}
+GRIP_RUN_TRACE_PARITY_TESTS=true GRIP_ENFORCE_TRACE_PARITY=true \
+  Rscript -e 'devtools::test(filter = "trace-parity")'
+```
+
+Run strict gflow trace parity enforcement with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_TRACE_PARITY_TESTS=true GRIP_ENFORCE_GFLOW_TRACE_PARITY=true \
+  Rscript -e 'devtools::test(filter = "gflow-parity")'
+```
+
+Run strict cross-dimensional gflow trace parity enforcement with:
+
+```{bash eval=FALSE}
+GRIP_RUN_GFLOW_TRACE_ALL_TESTS=true GRIP_ENFORCE_GFLOW_TRACE_ALL_PARITY=true \
+  Rscript -e 'devtools::test(filter = "gflow-parity")'
+```

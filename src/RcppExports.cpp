@@ -306,8 +306,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_layout_weighted_nd_adj_cpp
-Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list, Rcpp::List weight_list, int n, int dim, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, Rcpp::Nullable<int> seed);
-RcppExport SEXP _grip_grip_layout_weighted_nd_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP) {
+Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list, Rcpp::List weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, double final_move_scale_after_first, std::string final_mode, int metric_neighbor_cap, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_layout_weighted_nd_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP final_modeSEXP, SEXP metric_neighbor_capSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -315,6 +315,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type weight_list(weight_listSEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
     Rcpp::traits::input_parameter< int >::type dim(dimSEXP);
+    Rcpp::traits::input_parameter< std::string >::type placement(placementSEXP);
     Rcpp::traits::input_parameter< int >::type rounds(roundsSEXP);
     Rcpp::traits::input_parameter< int >::type final_rounds(final_roundsSEXP);
     Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
@@ -323,8 +324,72 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
     Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type final_move_scale_after_first(final_move_scale_after_firstSEXP);
+    Rcpp::traits::input_parameter< std::string >::type final_mode(final_modeSEXP);
+    Rcpp::traits::input_parameter< int >::type metric_neighbor_cap(metric_neighbor_capSEXP);
+    Rcpp::traits::input_parameter< int >::type insertion_anchor_count(insertion_anchor_countSEXP);
+    Rcpp::traits::input_parameter< std::string >::type insertion_anchor_scope(insertion_anchor_scopeSEXP);
+    Rcpp::traits::input_parameter< std::string >::type insertion_anchor_strategy(insertion_anchor_strategySEXP);
+    Rcpp::traits::input_parameter< std::string >::type level0_insertion_mode(level0_insertion_modeSEXP);
+    Rcpp::traits::input_parameter< int >::type level0_anchor_count(level0_anchor_countSEXP);
+    Rcpp::traits::input_parameter< int >::type level0_local_kk_steps(level0_local_kk_stepsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_weighted_nd_adj_cpp(adj_list, weight_list, n, dim, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed));
+    rcpp_result_gen = Rcpp::wrap(grip_layout_weighted_nd_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, final_move_scale_after_first, final_mode, metric_neighbor_cap, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_layout_weighted_nd_trace_adj_cpp
+Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list, Rcpp::List weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, int tinit_factor, double final_move_scale_after_first, std::string final_mode, int metric_neighbor_cap, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, Rcpp::Nullable<int> seed, int trace_every, bool refinement_step_trace, int refinement_step_level_index, int refinement_step_misf_level, int refinement_step_round_start, int refinement_step_round_end);
+RcppExport SEXP _grip_grip_layout_weighted_nd_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP tinit_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP final_modeSEXP, SEXP metric_neighbor_capSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP seedSEXP, SEXP trace_everySEXP, SEXP refinement_step_traceSEXP, SEXP refinement_step_level_indexSEXP, SEXP refinement_step_misf_levelSEXP, SEXP refinement_step_round_startSEXP, SEXP refinement_step_round_endSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type adj_list(adj_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type weight_list(weight_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type dim(dimSEXP);
+    Rcpp::traits::input_parameter< std::string >::type placement(placementSEXP);
+    Rcpp::traits::input_parameter< int >::type rounds(roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type final_rounds(final_roundsSEXP);
+    Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
+    Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
+    Rcpp::traits::input_parameter< double >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type repulsion_factor(repulsion_factorSEXP);
+    Rcpp::traits::input_parameter< int >::type tinit_factor(tinit_factorSEXP);
+    Rcpp::traits::input_parameter< double >::type final_move_scale_after_first(final_move_scale_after_firstSEXP);
+    Rcpp::traits::input_parameter< std::string >::type final_mode(final_modeSEXP);
+    Rcpp::traits::input_parameter< int >::type metric_neighbor_cap(metric_neighbor_capSEXP);
+    Rcpp::traits::input_parameter< int >::type insertion_anchor_count(insertion_anchor_countSEXP);
+    Rcpp::traits::input_parameter< std::string >::type insertion_anchor_scope(insertion_anchor_scopeSEXP);
+    Rcpp::traits::input_parameter< std::string >::type insertion_anchor_strategy(insertion_anchor_strategySEXP);
+    Rcpp::traits::input_parameter< std::string >::type level0_insertion_mode(level0_insertion_modeSEXP);
+    Rcpp::traits::input_parameter< int >::type level0_anchor_count(level0_anchor_countSEXP);
+    Rcpp::traits::input_parameter< int >::type level0_local_kk_steps(level0_local_kk_stepsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< int >::type trace_every(trace_everySEXP);
+    Rcpp::traits::input_parameter< bool >::type refinement_step_trace(refinement_step_traceSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_level_index(refinement_step_level_indexSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_misf_level(refinement_step_misf_levelSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_round_start(refinement_step_round_startSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_round_end(refinement_step_round_endSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_weighted_nd_trace_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, final_move_scale_after_first, final_mode, metric_neighbor_cap, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, seed, trace_every, refinement_step_trace, refinement_step_level_index, refinement_step_misf_level, refinement_step_round_start, refinement_step_round_end));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_build_weighted_misf_nd_adj_cpp
+Rcpp::List grip_build_weighted_misf_nd_adj_cpp(Rcpp::List adj_list, Rcpp::List weight_list, int n, int num_init, int num_nbrs, Rcpp::Nullable<int> seed);
+RcppExport SEXP _grip_grip_build_weighted_misf_nd_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type adj_list(adj_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type weight_list(weight_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type num_init(num_initSEXP);
+    Rcpp::traits::input_parameter< int >::type num_nbrs(num_nbrsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<int> >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_build_weighted_misf_nd_adj_cpp(adj_list, weight_list, n, num_init, num_nbrs, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -570,8 +635,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_layout_globalrep_weighted_trace_adj_cpp
-Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, int lgkk_multiscale_rounds, int lgkk_rounds_coarse, int lgkk_rounds_pre_final, int lgkk_rounds_final, int lgkk_local_nbrs, int lgkk_landmark_count, std::string lgkk_multiscale_scope, int lgkk_active_limit, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every, int metric_neighbor_cap);
-RcppExport SEXP _grip_grip_layout_globalrep_weighted_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP lgkk_multiscale_roundsSEXP, SEXP lgkk_rounds_coarseSEXP, SEXP lgkk_rounds_pre_finalSEXP, SEXP lgkk_rounds_finalSEXP, SEXP lgkk_local_nbrsSEXP, SEXP lgkk_landmark_countSEXP, SEXP lgkk_multiscale_scopeSEXP, SEXP lgkk_active_limitSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP, SEXP metric_neighbor_capSEXP) {
+Rcpp::List grip_layout_globalrep_weighted_trace_adj_cpp(Rcpp::List adj_list, Rcpp::Nullable<Rcpp::List> weight_list, int n, int dim, std::string placement, int rounds, int final_rounds, int num_init, int num_nbrs, double r, double s, double repulsion_factor, double coarse_repulsion_factor, int coarse_repulsion_sample, int coarse_repulsion_exact_below, double final_anchor_factor, double final_move_scale_after_first, int insertion_anchor_count, std::string insertion_anchor_scope, std::string insertion_anchor_strategy, std::string level0_insertion_mode, int level0_anchor_count, int level0_local_kk_steps, int lgkk_multiscale_rounds, int lgkk_rounds_coarse, int lgkk_rounds_pre_final, int lgkk_rounds_final, int lgkk_local_nbrs, int lgkk_landmark_count, std::string lgkk_multiscale_scope, int lgkk_active_limit, std::string final_mode, int tinit_factor, Rcpp::Nullable<int> seed, std::string trace, int trace_every, int metric_neighbor_cap, bool refinement_step_trace, int refinement_step_level_index, int refinement_step_misf_level, int refinement_step_round_start, int refinement_step_round_end);
+RcppExport SEXP _grip_grip_layout_globalrep_weighted_trace_adj_cpp(SEXP adj_listSEXP, SEXP weight_listSEXP, SEXP nSEXP, SEXP dimSEXP, SEXP placementSEXP, SEXP roundsSEXP, SEXP final_roundsSEXP, SEXP num_initSEXP, SEXP num_nbrsSEXP, SEXP rSEXP, SEXP sSEXP, SEXP repulsion_factorSEXP, SEXP coarse_repulsion_factorSEXP, SEXP coarse_repulsion_sampleSEXP, SEXP coarse_repulsion_exact_belowSEXP, SEXP final_anchor_factorSEXP, SEXP final_move_scale_after_firstSEXP, SEXP insertion_anchor_countSEXP, SEXP insertion_anchor_scopeSEXP, SEXP insertion_anchor_strategySEXP, SEXP level0_insertion_modeSEXP, SEXP level0_anchor_countSEXP, SEXP level0_local_kk_stepsSEXP, SEXP lgkk_multiscale_roundsSEXP, SEXP lgkk_rounds_coarseSEXP, SEXP lgkk_rounds_pre_finalSEXP, SEXP lgkk_rounds_finalSEXP, SEXP lgkk_local_nbrsSEXP, SEXP lgkk_landmark_countSEXP, SEXP lgkk_multiscale_scopeSEXP, SEXP lgkk_active_limitSEXP, SEXP final_modeSEXP, SEXP tinit_factorSEXP, SEXP seedSEXP, SEXP traceSEXP, SEXP trace_everySEXP, SEXP metric_neighbor_capSEXP, SEXP refinement_step_traceSEXP, SEXP refinement_step_level_indexSEXP, SEXP refinement_step_misf_levelSEXP, SEXP refinement_step_round_startSEXP, SEXP refinement_step_round_endSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -612,7 +677,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< int >::type trace_every(trace_everySEXP);
     Rcpp::traits::input_parameter< int >::type metric_neighbor_cap(metric_neighbor_capSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_trace_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, lgkk_multiscale_rounds, lgkk_rounds_coarse, lgkk_rounds_pre_final, lgkk_rounds_final, lgkk_local_nbrs, lgkk_landmark_count, lgkk_multiscale_scope, lgkk_active_limit, final_mode, tinit_factor, seed, trace, trace_every, metric_neighbor_cap));
+    Rcpp::traits::input_parameter< bool >::type refinement_step_trace(refinement_step_traceSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_level_index(refinement_step_level_indexSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_misf_level(refinement_step_misf_levelSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_round_start(refinement_step_round_startSEXP);
+    Rcpp::traits::input_parameter< int >::type refinement_step_round_end(refinement_step_round_endSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_layout_globalrep_weighted_trace_adj_cpp(adj_list, weight_list, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, coarse_repulsion_factor, coarse_repulsion_sample, coarse_repulsion_exact_below, final_anchor_factor, final_move_scale_after_first, insertion_anchor_count, insertion_anchor_scope, insertion_anchor_strategy, level0_insertion_mode, level0_anchor_count, level0_local_kk_steps, lgkk_multiscale_rounds, lgkk_rounds_coarse, lgkk_rounds_pre_final, lgkk_rounds_final, lgkk_local_nbrs, lgkk_landmark_count, lgkk_multiscale_scope, lgkk_active_limit, final_mode, tinit_factor, seed, trace, trace_every, metric_neighbor_cap, refinement_step_trace, refinement_step_level_index, refinement_step_misf_level, refinement_step_round_start, refinement_step_round_end));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -665,7 +735,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_optimize_geodesic_mds_flat_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_cpp, 30},
     {"_grip_grip_geodesic_mds_flat_repulsion_stats_cpp", (DL_FUNC) &_grip_grip_geodesic_mds_flat_repulsion_stats_cpp, 6},
     {"_grip_grip_geodesic_misf_insert_vertex_cpp", (DL_FUNC) &_grip_grip_geodesic_misf_insert_vertex_cpp, 10},
-    {"_grip_grip_layout_weighted_nd_adj_cpp", (DL_FUNC) &_grip_grip_layout_weighted_nd_adj_cpp, 13},
+    {"_grip_grip_layout_weighted_nd_adj_cpp", (DL_FUNC) &_grip_grip_layout_weighted_nd_adj_cpp, 23},
+    {"_grip_grip_layout_weighted_nd_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_weighted_nd_trace_adj_cpp, 29},
+    {"_grip_grip_build_weighted_misf_nd_adj_cpp", (DL_FUNC) &_grip_grip_build_weighted_misf_nd_adj_cpp, 6},
     {"_grip_grip_layout_cpp", (DL_FUNC) &_grip_grip_layout_cpp, 14},
     {"_grip_grip_layout_adj_cpp", (DL_FUNC) &_grip_grip_layout_adj_cpp, 14},
     {"_grip_grip_layout_globalrep_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_adj_cpp, 34},
@@ -674,7 +746,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_build_weighted_misf_adj_cpp", (DL_FUNC) &_grip_grip_build_weighted_misf_adj_cpp, 6},
     {"_grip_grip_layout_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_trace_adj_cpp, 16},
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
-    {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 37},
+    {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
     {NULL, NULL, 0}
 };

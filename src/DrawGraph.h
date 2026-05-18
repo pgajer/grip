@@ -54,6 +54,60 @@ class DrawGraph
         size_tt vert;
         double dist;
     };
+    struct RefinementStepTrace {
+        std::vector<int> level_indices;
+        std::vector<int> misf_levels;
+        std::vector<int> rounds;
+        std::vector<int> active_counts;
+        std::vector<int> order_indices;
+        std::vector<int> vertices;
+        std::vector<double> heat_before;
+        std::vector<double> heat_after;
+        std::vector<double> old_cos_before;
+        std::vector<double> old_cos_after;
+        std::vector<double> old_disp_norm_before;
+        std::vector<double> pre_temp_disp_norm;
+        std::vector<std::vector<double>> coords_before;
+        std::vector<std::vector<double>> pre_temp_disp;
+        std::vector<std::vector<double>> attraction_disp;
+        std::vector<std::vector<double>> repulsion_disp;
+        std::vector<std::vector<double>> applied_disp;
+        std::vector<std::vector<double>> coords_after;
+        std::vector<std::string> attraction_edges;
+        std::vector<std::string> repulsion_neighbors;
+        std::vector<int> attraction_term_parent_rows;
+        std::vector<int> attraction_term_indices;
+        std::vector<int> attraction_term_vertices;
+        std::vector<int> attraction_term_neighbors;
+        std::vector<double> attraction_term_weights;
+        std::vector<double> attraction_term_norm2;
+        std::vector<double> attraction_term_desired;
+        std::vector<double> attraction_term_desired2;
+        std::vector<double> attraction_term_scale;
+        std::vector<std::vector<double>> attraction_term_delta;
+        std::vector<std::vector<double>> attraction_term_step;
+        std::vector<std::vector<double>> attraction_term_cumulative;
+    };
+    struct InsertionTrace {
+        std::vector<int> level_indices;
+        std::vector<int> misf_levels;
+        std::vector<int> previous_active_counts;
+        std::vector<int> active_counts;
+        std::vector<int> order_indices;
+        std::vector<int> vertices;
+        std::vector<int> root_depths;
+        std::vector<int> anchor_count_requested;
+        std::vector<int> anchor_count_used;
+        std::vector<int> insertion_modes;
+        std::vector<int> local_kk_steps;
+        std::vector<std::string> anchors;
+        std::vector<double> old_disp_norm_initial;
+        std::vector<double> old_disp_norm_after;
+        std::vector<std::vector<double>> coords_initial;
+        std::vector<std::vector<double>> coords_after;
+        std::vector<std::vector<double>> old_disp_initial;
+        std::vector<std::vector<double>> old_disp_after;
+    };
 
       friend class MesaPlot;
     
@@ -175,6 +229,11 @@ class DrawGraph
     size_tt get_NumOfVert() const { return numOfVert; }
     Point<> *get_Pos() const { return pos; }
     void configure_trace(size_tt mode, size_tt every);
+    void configure_refinement_step_trace(int level_index,
+                                         int misf_level,
+                                         int round_start,
+                                         int round_end);
+    void configure_insertion_trace(bool enabled);
     void configure_weighted_metric_search(size_tt maxSettled);
     const std::vector<std::vector<double>> &get_trace_frames() const { return traceFrames; }
     const std::vector<std::string> &get_trace_phases() const { return tracePhases; }
@@ -182,6 +241,14 @@ class DrawGraph
     const std::vector<int> &get_trace_misf_levels() const { return traceMisfLevels; }
     const std::vector<int> &get_trace_rounds() const { return traceRounds; }
     const std::vector<int> &get_trace_active_counts() const { return traceActiveCounts; }
+    const RefinementStepTrace &get_refinement_step_trace() const
+    {
+        return refinementStepTrace;
+    }
+    const InsertionTrace &get_insertion_trace() const
+    {
+        return insertionTrace;
+    }
     size_tt get_MisfHeight() const { return initMishHeight; }
     size_tt get_MisfLevel() const { return misfLevel; }
     size_tt get_Mish(size_tt idx) const { return mish[idx]; }
@@ -193,6 +260,47 @@ class DrawGraph
     size_tt get_inv(size_tt vert){return inv[vert];}
     size_tt get_prevMishSize(){return prevMishSize;}
     coord_t dist(const Point<> &p, const Point<> &q);
+    bool should_record_refinement_step(size_tt level_index,
+                                       size_tt misf_level,
+                                       size_tt round) const;
+    size_t record_refinement_step_pre(size_tt vert,
+                                      size_tt order_index,
+                                      size_tt active_count,
+                                      size_tt level_index,
+                                      size_tt misf_level,
+                                      size_tt round,
+                                      const Point<> &coord_before,
+                                      const Point<> &pre_temp_disp,
+                                      const std::vector<double> &attraction_disp,
+                                      const std::vector<double> &repulsion_disp,
+                                      const Point<> &applied_disp,
+                                      coord_t heat_before,
+                                      coord_t heat_after,
+                                      float old_cos_before,
+                                      float old_cos_after,
+                                      coord_t old_disp_norm_before,
+                                      coord_t pre_temp_disp_norm,
+                                      const std::string &attraction_edges,
+                                      const std::string &repulsion_neighbors);
+    void record_refinement_step_after(size_t row, size_tt vert);
+    void record_insertion_trace(size_tt root,
+                                size_tt level_index,
+                                size_tt misf_level,
+                                size_tt previous_active_count,
+                                size_tt active_count,
+                                size_tt root_depth,
+                                size_tt anchor_count_requested,
+                                size_tt anchor_count_used,
+                                size_tt insertion_mode,
+                                size_tt local_kk_steps,
+                                const std::vector<size_tt> &anchors,
+                                const std::vector<double> &anchor_dist,
+                                const Point<> &coord_initial,
+                                const Point<> &coord_after,
+                                const Point<> &old_disp_initial,
+                                const Point<> &old_disp_after,
+                                coord_t old_disp_norm_initial,
+                                coord_t old_disp_norm_after);
     
     //memory exception handler
     static void noMoreMemory();
@@ -301,6 +409,27 @@ private:
     std::vector<int> traceMisfLevels;
     std::vector<int> traceRounds;
     std::vector<int> traceActiveCounts;
+    bool refinementStepTraceEnabled;
+    int refinementStepTraceLevelIndex;
+    int refinementStepTraceMisfLevel;
+    int refinementStepTraceRoundStart;
+    int refinementStepTraceRoundEnd;
+    RefinementStepTrace refinementStepTrace;
+    bool insertionTraceEnabled;
+    InsertionTrace insertionTrace;
+    std::vector<double> lastAttractionDisp;
+    std::vector<double> lastRepulsionDisp;
+    std::string lastAttractionEdges;
+    std::string lastRepulsionNeighbors;
+    std::vector<int> lastAttractionTermNeighbors;
+    std::vector<double> lastAttractionTermWeights;
+    std::vector<double> lastAttractionTermNorm2;
+    std::vector<double> lastAttractionTermDesired;
+    std::vector<double> lastAttractionTermDesired2;
+    std::vector<double> lastAttractionTermScale;
+    std::vector<std::vector<double>> lastAttractionTermDelta;
+    std::vector<std::vector<double>> lastAttractionTermStep;
+    std::vector<std::vector<double>> lastAttractionTermCumulative;
     struct LgkkPathEdge {
         size_tt u;
         size_tt v;
