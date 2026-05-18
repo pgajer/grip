@@ -49,6 +49,10 @@ grip_geodesic_misf_insert_vertex_cpp <- function(anchor_coords, anchor_distance,
     .Call(`_grip_grip_geodesic_misf_insert_vertex_cpp`, anchor_coords, anchor_distance, anchor_weights, init_coord, max_iter, initial_step, step_shrink, armijo_factor, grad_tol, min_step)
 }
 
+grip_layout_weighted_nd_adj_cpp <- function(adj_list, weight_list, n, dim, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed = NULL) {
+    .Call(`_grip_grip_layout_weighted_nd_adj_cpp`, adj_list, weight_list, n, dim, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed)
+}
+
 grip_layout_cpp <- function(edges, edge_weights, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed) {
     .Call(`_grip_grip_layout_cpp`, edges, edge_weights, n, dim, placement, rounds, final_rounds, num_init, num_nbrs, r, s, repulsion_factor, tinit_factor, seed)
 }
