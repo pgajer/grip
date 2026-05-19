@@ -348,7 +348,7 @@ private:
     size_tt *misfSize;  // filtration sizes used by the GRIP layout core
     size_tt log_2_n;    // log_2(n)
     size_tt *vertDepth; // array of depths of vertices
-    float AvgDeg;
+    double AvgDeg;
     unsigned long maxCxty;
     unsigned long initCxty;
     size_tt smallLevel;

@@ -168,13 +168,15 @@ DrawGraph::DrawGraph(const Graph &_graph,
     prevSize = 0;
         
     //computing Avg(deg(G)), maxCxty
+    unsigned long degreeSum = 0;
     for(size_tt vert = 0; vert < numOfVert; vert++)
-        AvgDeg += deg[vert];
+        degreeSum += deg[vert];
         
-    maxCxty = (unsigned long)AvgDeg;
+    maxCxty = degreeSum;
     if(maxCxty < initCxty)
         maxCxty = initCxty;
-    AvgDeg /= (float)numOfVert;
+    AvgDeg = degreeSum;
+    AvgDeg /= numOfVert;
         
     //debug("maxCxty="<< maxCxty<< ", AvgDeg="<< AvgDeg);
 
