@@ -39,6 +39,7 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
                          double s,
                          double repulsion_factor,
                          int tinit_factor,
+                         double final_anchor_factor,
                          double final_move_scale_after_first,
                          int final_stage_mode,
                          int metric_neighbor_cap,
@@ -60,6 +61,7 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
       s_(s),
       repulsion_factor_(repulsion_factor),
       tinit_factor_(tinit_factor),
+      final_anchor_factor_(std::max(0.0, final_anchor_factor)),
       final_move_scale_after_first_(
           std::max(0.0, std::min(1.0, final_move_scale_after_first))),
       final_stage_mode_(final_stage_mode == FINAL_STAGE_KK_REPULSE_ND
@@ -100,7 +102,9 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
       disp_norm_(graph.size(), 0.0),
       old_disp_norm_(graph.size(), 0.0),
       heat_(graph.size(), kLegacyEdgeND / std::max(1, tinit_factor)),
-      old_cos_(graph.size(), 1.0f),
+      old_cos_(graph.size(), 1.0),
+      final_anchor_ready_(false),
+      final_anchor_pos_(graph.size(), PointND(static_cast<std::size_t>(dim))),
       metric_neighbors_cache_(graph.size()),
       metric_neighbors_cached_(graph.size(), 0),
       refinement_step_trace_enabled_(false),
@@ -136,6 +140,8 @@ std::vector<PointND> DrawGraphND::layout(LayoutTraceND *trace, int trace_every)
     int previous_active_count = active_count;
     int current_level_rounds = rounds_;
     record_trace(trace, "init", 0, active_count, level_index, misf_level);
+    if(misf_level == 0 && active_count == static_cast<int>(graph_.size()))
+        prepare_final_anchors(active_count);
     refine_legacy_weighted_level(misf,
                                  current_level_rounds,
                                  active_count,
@@ -160,6 +166,8 @@ std::vector<PointND> DrawGraphND::layout(LayoutTraceND *trace, int trace_every)
                               misf_level);
         current_level_rounds = scheduled_rounds(active_count);
         record_trace(trace, "level_start", 0, active_count, level_index, misf_level);
+        if(misf_level == 0 && active_count == static_cast<int>(graph_.size()))
+            prepare_final_anchors(active_count);
         refine_legacy_weighted_level(misf,
                                      current_level_rounds,
                                      active_count,
@@ -635,10 +643,7 @@ void DrawGraphND::legacy_weighted_kk_displacement(
         }
         const double desired = neighbor.dist * kLegacyEdgeND;
         const double desired2 = desired * desired;
-        const double scale =
-            static_cast<double>(static_cast<float>(
-                norm2 / desired2 - 1.0
-            ));
+        const double scale = norm2 / desired2 - 1.0;
         if(attraction_edges.tellp() > 0)
             attraction_edges << ";";
         attraction_edges << static_cast<int>(neighbor.vert) + 1 << ":"
@@ -711,10 +716,7 @@ void DrawGraphND::legacy_weighted_kk_final_displacement(
         }
         const double desired = neighbor.dist * kLegacyEdgeND;
         const double desired2 = desired * desired;
-        const double scale =
-            static_cast<double>(static_cast<float>(
-                norm2 / desired2 - 1.0
-            ));
+        const double scale = norm2 / desired2 - 1.0;
         if(attraction_edges.tellp() > 0)
             attraction_edges << ";";
         attraction_edges << static_cast<int>(neighbor.vert) + 1 << ":"
@@ -787,9 +789,7 @@ void DrawGraphND::legacy_weighted_fr_displacement(
         const double desired2 = desired * desired;
         if(desired2 <= 0.0)
             continue;
-        const double legacy_norm2_scale =
-            static_cast<double>(static_cast<float>(norm2));
-        const double scale = legacy_norm2_scale / desired2;
+        const double scale = norm2 / desired2;
         std::vector<double> delta_flat(static_cast<std::size_t>(dim_));
         std::vector<double> step_flat(static_cast<std::size_t>(dim_));
         std::vector<double> cumulative_flat(static_cast<std::size_t>(dim_));
@@ -798,11 +798,12 @@ void DrawGraphND::legacy_weighted_fr_displacement(
         attraction_edges << static_cast<int>(overt) + 1 << ":" << neighbor.weight;
         for(int d = 0; d < dim_; d++){
             const std::size_t dd = static_cast<std::size_t>(d);
-            const double step = (vect[dd] * legacy_norm2_scale) / desired2;
-            disp_[vert][dd] += step;
-            last_attraction_disp_[dd] += step;
             delta_flat[dd] = vect[dd];
-            step_flat[dd] = step;
+            vect[dd] *= norm2;
+            vect[dd] /= desired2;
+            disp_[vert][dd] += vect[dd];
+            last_attraction_disp_[dd] += vect[dd];
+            step_flat[dd] = vect[dd];
             cumulative_flat[dd] = last_attraction_disp_[dd];
         }
         last_attraction_term_neighbors_.push_back(static_cast<int>(overt) + 1);
@@ -829,7 +830,7 @@ void DrawGraphND::legacy_weighted_fr_displacement(
         }
         if(norm2 <= 0.0)
             continue;
-        const double scale = static_cast<double>(static_cast<float>(fedge2 / norm2));
+        const double scale = fedge2 / norm2;
         if(repulsion_neighbors.tellp() > 0)
             repulsion_neighbors << ";";
         repulsion_neighbors << static_cast<int>(neighbor.vert) + 1 << ":" << neighbor.dist;
@@ -841,6 +842,7 @@ void DrawGraphND::legacy_weighted_fr_displacement(
         }
     }
 
+    add_final_anchor_force(vert);
     scale_legacy_displacement(vert);
     last_attraction_edges_ = attraction_edges.str();
     last_repulsion_neighbors_ = repulsion_neighbors.str();
@@ -870,7 +872,7 @@ void DrawGraphND::add_legacy_active_repulsion(vertex_t vert,
         }
         if(norm2 <= 0.0)
             continue;
-        const double scale = static_cast<double>(static_cast<float>(repulsion_scale / norm2));
+        const double scale = repulsion_scale / norm2;
         if(repulsion_neighbors.tellp() > 0)
             repulsion_neighbors << ";";
         repulsion_neighbors << static_cast<int>(overt) + 1;
@@ -882,6 +884,31 @@ void DrawGraphND::add_legacy_active_repulsion(vertex_t vert,
         }
     }
     last_repulsion_neighbors_ = repulsion_neighbors.str();
+}
+
+void DrawGraphND::add_final_anchor_force(vertex_t vert)
+{
+    if(final_anchor_factor_ <= 0.0 || !final_anchor_ready_ ||
+       vert >= final_anchor_pos_.size())
+        return;
+
+    for(int d = 0; d < dim_; d++){
+        const std::size_t dd = static_cast<std::size_t>(d);
+        disp_[vert][dd] +=
+            (final_anchor_pos_[vert][dd] - coords_[vert][dd]) *
+            (final_anchor_factor_ / kLegacyEdgeND);
+    }
+}
+
+void DrawGraphND::prepare_final_anchors(int active_count)
+{
+    active_count = std::min(active_count, static_cast<int>(trace_order_.size()));
+    for(int i = 0; i < active_count; i++){
+        const vertex_t vert = trace_order_[static_cast<std::size_t>(i)];
+        if(vert < final_anchor_pos_.size())
+            final_anchor_pos_[vert] = coords_[vert];
+    }
+    final_anchor_ready_ = true;
 }
 
 void DrawGraphND::scale_legacy_displacement(vertex_t vert)
@@ -908,7 +935,7 @@ void DrawGraphND::update_local_temperature(vertex_t vert)
         heat_[vert] += heat_[vert] * s_ * cos * r_;
     else
         heat_[vert] += heat_[vert] * cos * r_;
-    old_cos_[vert] = static_cast<float>(cos);
+    old_cos_[vert] = cos;
 }
 
 void DrawGraphND::initialize_multiscale_trace(const WeightedMisfND &misf)
@@ -1488,7 +1515,7 @@ PointND DrawGraphND::local_kk_displacement(
         const double target2 = anchor.second * anchor.second * kLegacyEdgeND * kLegacyEdgeND;
         if(target2 <= 0.0)
             continue;
-        const double scale = static_cast<double>(static_cast<float>(norm2)) / target2 - 1.0;
+        const double scale = norm2 / target2 - 1.0;
         for(int d = 0; d < dim_; d++){
             const std::size_t dd = static_cast<std::size_t>(d);
             vect[dd] *= scale;

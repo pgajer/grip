@@ -27,6 +27,41 @@ test_that("gflow-backed weighted ND parity diagnostics run when explicitly enabl
   }
 })
 
+test_that("gflow-backed weighted ND final-anchor parity runs when explicitly enabled", {
+  skip_if_not(
+    identical(Sys.getenv("GRIP_RUN_GFLOW_FINAL_ANCHOR_PARITY_TESTS"), "true"),
+    "Set GRIP_RUN_GFLOW_FINAL_ANCHOR_PARITY_TESTS=true to run final-anchor parity diagnostics."
+  )
+  skip_if_not_installed("gflow")
+
+  tuning <- grip_weighted_nd_gflow_parity_tuning("smoke")
+  tuning$final_anchor_factor <- 0.7
+  tuning$final_move_scale_after_first <- 1
+
+  result <- tryCatch(
+    grip_weighted_nd_gflow_parity_run(
+      mode = "smoke",
+      dims = c(2L, 3L),
+      tuning = tuning
+    ),
+    error = function(e) e
+  )
+  if (inherits(result, "error")) {
+    skip(paste("gflow-backed final-anchor parity fixtures unavailable:", conditionMessage(result)))
+  }
+
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 12L)
+  expect_true(all(result$finite))
+
+  if (identical(Sys.getenv("GRIP_ENFORCE_GFLOW_FINAL_ANCHOR_PARITY"), "true")) {
+    thresholds <- grip_weighted_nd_gflow_parity_thresholds()
+    expect_lte(max(result$direct_max_abs), thresholds$direct_max_abs)
+    expect_lte(max(result$procrustes_rmse), thresholds$procrustes_rmse)
+    expect_lte(max(result$procrustes_max_abs), thresholds$procrustes_max_abs)
+  }
+})
+
 test_that("expanded gflow-backed weighted ND parity diagnostics run when explicitly enabled", {
   skip_if_not(
     identical(Sys.getenv("GRIP_RUN_GFLOW_FULL_PARITY_TESTS"), "true"),

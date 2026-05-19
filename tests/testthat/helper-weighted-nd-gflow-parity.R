@@ -672,15 +672,20 @@ grip_weighted_nd_gflow_trace_compare_one <- function(case,
     ),
     tuning
   )
+  final_anchor_factor <- tuning$final_anchor_factor %||% 0
+  final_move_scale_after_first <- tuning$final_move_scale_after_first %||% 1
+  legacy_common <- common[
+    !names(common) %in% c("final_anchor_factor", "final_move_scale_after_first")
+  ]
   legacy_args <- c(
-    common,
+    legacy_common,
     list(
       trace = "round",
       coarse_repulsion_factor = tuning$repulsion_factor,
       coarse_repulsion_sample = 100000L,
       coarse_repulsion_exact_below = 100000L,
-      final_anchor_factor = 0,
-      final_move_scale_after_first = 1,
+      final_anchor_factor = final_anchor_factor,
+      final_move_scale_after_first = final_move_scale_after_first,
       final_mode = "fr",
       lgkk_polish_rounds = 0L,
       lgkk_multiscale_rounds = 0L,
@@ -1176,6 +1181,7 @@ grip_weighted_nd_gflow_refinement_step_trace_run <- function(
     s = as.double(tuning$s),
     repulsion_factor = as.double(tuning$repulsion_factor),
     tinit_factor = as.integer(tuning$tinit_factor),
+    final_anchor_factor = 0,
     final_move_scale_after_first = 1,
     final_mode = "fr",
     metric_neighbor_cap = 0L,
@@ -1387,6 +1393,7 @@ grip_weighted_nd_gflow_insertion_trace_run <- function(
     s = as.double(tuning$s),
     repulsion_factor = as.double(tuning$repulsion_factor),
     tinit_factor = as.integer(tuning$tinit_factor),
+    final_anchor_factor = 0,
     final_move_scale_after_first = 1,
     final_mode = "fr",
     metric_neighbor_cap = 0L,

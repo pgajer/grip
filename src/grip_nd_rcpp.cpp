@@ -342,6 +342,7 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
                                                     double s,
                                                     double repulsion_factor,
                                                     int tinit_factor,
+                                                    double final_anchor_factor,
                                                     double final_move_scale_after_first,
                                                     std::string final_mode,
                                                     int metric_neighbor_cap,
@@ -376,6 +377,8 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
        final_move_scale_after_first < 0.0 ||
        final_move_scale_after_first > 1.0)
         Rcpp::stop("final_move_scale_after_first must be in [0, 1]");
+    if(!std::isfinite(final_anchor_factor) || final_anchor_factor < 0.0)
+        Rcpp::stop("final_anchor_factor must be finite and >= 0");
     if(metric_neighbor_cap < 0)
         Rcpp::stop("metric_neighbor_cap must be >= 0");
 
@@ -403,6 +406,7 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
         s,
         repulsion_factor,
         tinit_factor,
+        final_anchor_factor,
         final_move_scale_after_first,
         final_stage_mode_code,
         metric_neighbor_cap,
@@ -433,6 +437,7 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
                                                  double s,
                                                  double repulsion_factor,
                                                  int tinit_factor,
+                                                 double final_anchor_factor,
                                                  double final_move_scale_after_first,
                                                  std::string final_mode,
                                                  int metric_neighbor_cap,
@@ -475,6 +480,8 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
        final_move_scale_after_first < 0.0 ||
        final_move_scale_after_first > 1.0)
         Rcpp::stop("final_move_scale_after_first must be in [0, 1]");
+    if(!std::isfinite(final_anchor_factor) || final_anchor_factor < 0.0)
+        Rcpp::stop("final_anchor_factor must be finite and >= 0");
     if(metric_neighbor_cap < 0)
         Rcpp::stop("metric_neighbor_cap must be >= 0");
 
@@ -502,6 +509,7 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
         s,
         repulsion_factor,
         tinit_factor,
+        final_anchor_factor,
         final_move_scale_after_first,
         final_stage_mode_code,
         metric_neighbor_cap,

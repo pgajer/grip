@@ -141,7 +141,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
 
     dispNorm     = new coord_t[numOfVert];
     oldDispNorm  = new coord_t[numOfVert];
-    old_cos      = new float[numOfVert];
+    old_cos      = new coord_t[numOfVert];
     heat         = new coord_t[numOfVert];
     deg          = new size_tt[numOfVert];
         
@@ -365,8 +365,8 @@ size_t DrawGraph::record_refinement_step_pre(
     const Point<> &applied_disp,
     coord_t heat_before,
     coord_t heat_after,
-    float old_cos_before,
-    float old_cos_after,
+    coord_t old_cos_before,
+    coord_t old_cos_after,
     coord_t old_disp_norm_before,
     coord_t pre_temp_disp_norm,
     const std::string &attraction_edges,

@@ -691,9 +691,8 @@ void DrawGraph::add_active_global_repulsion_exact(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        const double scale = static_cast<double>(
-            static_cast<float>(repulsionScale / norm2));
-        vect *= (float)(repulsionScale / norm2);
+        const double scale = repulsionScale / norm2;
+        vect *= (repulsionScale / norm2);
         if(lastRepulsionNeighbors.size() > 0)
             lastRepulsionNeighbors += ";";
         std::ostringstream term;
@@ -735,9 +734,8 @@ void DrawGraph::add_active_global_repulsion_sampled(const size_tt vert,
         double norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        const double termScale = static_cast<double>(
-            static_cast<float>((repulsionScale * scale) / norm2));
-        vect *= (float)((repulsionScale * scale) / norm2);
+        const double termScale = (repulsionScale * scale) / norm2;
+        vect *= ((repulsionScale * scale) / norm2);
         if(lastRepulsionNeighbors.size() > 0)
             lastRepulsionNeighbors += ";";
         std::ostringstream term;
@@ -782,7 +780,7 @@ void DrawGraph::add_final_anchor_force(const size_tt vert)
     vect.set_to_zero();
     vect += finalAnchorPos[vert];
     vect -= pos[vert];
-    vect *= (float)(finalAnchorFactor / edge);
+    vect *= (finalAnchorFactor / edge);
     disp[vert] += vect;
 }
 
@@ -817,7 +815,7 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
         vect += pos[overt];
         vect -= pos[vert];
         norm2 = (double)vect.fnorm2();
-        vect *= (float)(norm2/(dist2 * edge2) - 1);
+        vect *= (norm2/(dist2 * edge2) - 1);
         disp[vert] += vect;
     }
 
@@ -861,7 +859,7 @@ void DrawGraph::KK_spring_final(const size_tt vert,
         vect += pos[overt];
         vect -= pos[vert];
         norm2 = (double)vect.fnorm2();
-        vect *= (float)(norm2/(dist2 * edge2) - 1);
+        vect *= (norm2/(dist2 * edge2) - 1);
         disp[vert] += vect;
     }
 
@@ -906,7 +904,7 @@ void DrawGraph::KK_spring_local(const size_tt vert,
         vect = pos[closeVert[i]] - pos[vert];
         norm2 = vect.norm2();
         vect *=
-            ((float)norm2/(closeVertDist[i]*closeVertDist[i]*get_Edge2())-1);
+            (norm2/(closeVertDist[i]*closeVertDist[i]*get_Edge2())-1);
         disp[vert] += vect;
     }
     dispNorm[vert] = disp[vert].norm();
@@ -998,7 +996,7 @@ void DrawGraph::FR_spring_v2(const size_tt vert,
             vect += pos[overt];
             vect -= pos[vert];
             norm2 = (double)vect.fnorm2();
-            vect *= (float)vect.norm2();
+            vect *= vect.norm2();
             coord_t desired2 = edge2;
             if(graph.has_weights()){
                 coord_t w = graph.get_edge_weight(vert, adjVert);
@@ -1022,7 +1020,7 @@ void DrawGraph::FR_spring_v2(const size_tt vert,
         norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        vect *= (float)(fedge2/norm2);
+        vect *= (fedge2/norm2);
         disp[vert] += vect;
     }
     coord_t norm = disp[vert].fnorm();

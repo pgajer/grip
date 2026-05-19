@@ -121,6 +121,7 @@ public:
                 double s,
                 double repulsion_factor,
                 int tinit_factor,
+                double final_anchor_factor,
                 double final_move_scale_after_first,
                 int final_stage_mode,
                 int metric_neighbor_cap,
@@ -199,6 +200,8 @@ private:
     void add_legacy_active_repulsion(vertex_t vert,
                                      int active_count,
                                      double repulsion_scale);
+    void add_final_anchor_force(vertex_t vert);
+    void prepare_final_anchors(int active_count);
     void scale_legacy_displacement(vertex_t vert);
     void update_local_temperature(vertex_t vert);
     void initialize_multiscale_trace(const WeightedMisfND &misf);
@@ -284,6 +287,7 @@ private:
     double s_;
     double repulsion_factor_;
     int tinit_factor_;
+    double final_anchor_factor_;
     double final_move_scale_after_first_;
     int final_stage_mode_;
     int metric_neighbor_cap_;
@@ -305,7 +309,9 @@ private:
     std::vector<double> disp_norm_;
     std::vector<double> old_disp_norm_;
     std::vector<double> heat_;
-    std::vector<float> old_cos_;
+    std::vector<double> old_cos_;
+    bool final_anchor_ready_;
+    std::vector<PointND> final_anchor_pos_;
     std::vector<vertex_t> trace_order_;
     mutable std::vector<std::vector<std::vector<MetricNeighborND>>> metric_neighbors_cache_;
     mutable std::vector<unsigned char> metric_neighbors_cached_;

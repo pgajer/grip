@@ -276,8 +276,8 @@ class DrawGraph
                                       const Point<> &applied_disp,
                                       coord_t heat_before,
                                       coord_t heat_after,
-                                      float old_cos_before,
-                                      float old_cos_after,
+                                      coord_t old_cos_before,
+                                      coord_t old_cos_after,
                                       coord_t old_disp_norm_before,
                                       coord_t pre_temp_disp_norm,
                                       const std::string &attraction_edges,
@@ -336,7 +336,7 @@ private:
     
 
     size_tt *deg;             // array of degrees
-    float *old_cos;
+    coord_t *old_cos;
     int *maxNorm;              // vector of maximal norms of disp
     coord_t *heat;                   // local temperature
 

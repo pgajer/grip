@@ -182,6 +182,9 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 #' @param tinit_factor Initial spread multiplier.
 #' @param final_move_scale_after_first Final-stage FR displacement multiplier
 #'   applied after the first final round. Must be in \code{[0, 1]}.
+#' @param final_anchor_factor Non-negative multiplier for an anchor term that
+#'   pulls final-stage vertices toward their coordinates at the start of the
+#'   final level. The default \code{0} disables the anchor.
 #' @param final_mode Final refinement mode: \code{"fr"} or
 #'   \code{"kk_repulse"}.
 #' @param metric_neighbor_cap Optional cap on the number of settled Dijkstra
@@ -223,6 +226,7 @@ grip.layout.weighted.nd <- function(edges = NULL,
                                     s = 6.0,
                                     repulsion_factor = 1.5,
                                     tinit_factor = 2,
+                                    final_anchor_factor = 0,
                                     final_move_scale_after_first = 1,
                                     final_mode = c("fr", "kk_repulse"),
                                     metric_neighbor_cap = NULL,
@@ -323,6 +327,12 @@ grip.layout.weighted.nd <- function(edges = NULL,
       final_move_scale_after_first > 1) {
     stop("final_move_scale_after_first must be in [0, 1]")
   }
+  if (!is.numeric(final_anchor_factor) ||
+      length(final_anchor_factor) != 1L ||
+      !is.finite(final_anchor_factor) ||
+      final_anchor_factor < 0) {
+    stop("final_anchor_factor must be finite and >= 0")
+  }
 
   comp <- grip.connected.components(
     adj_list = validated$adj_list,
@@ -347,6 +357,7 @@ grip.layout.weighted.nd <- function(edges = NULL,
       as.double(s),
       as.double(repulsion_factor),
       tinit_factor,
+      as.double(final_anchor_factor),
       as.double(final_move_scale_after_first),
       final_mode,
       if (is.null(metric_neighbor_cap)) 0L else metric_neighbor_cap,
@@ -412,6 +423,7 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
                                           s = 6.0,
                                           repulsion_factor = 1.5,
                                           tinit_factor = 2,
+                                          final_anchor_factor = 0,
                                           final_move_scale_after_first = 1,
                                           final_mode = c("fr", "kk_repulse"),
                                           metric_neighbor_cap = NULL,
@@ -512,6 +524,12 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
       final_move_scale_after_first > 1) {
     stop("final_move_scale_after_first must be in [0, 1]")
   }
+  if (!is.numeric(final_anchor_factor) ||
+      length(final_anchor_factor) != 1L ||
+      !is.finite(final_anchor_factor) ||
+      final_anchor_factor < 0) {
+    stop("final_anchor_factor must be finite and >= 0")
+  }
 
   comp <- grip.connected.components(
     adj_list = validated$adj_list,
@@ -535,6 +553,7 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
     as.double(s),
     as.double(repulsion_factor),
     tinit_factor,
+    as.double(final_anchor_factor),
     as.double(final_move_scale_after_first),
     final_mode,
     if (is.null(metric_neighbor_cap)) 0L else metric_neighbor_cap,

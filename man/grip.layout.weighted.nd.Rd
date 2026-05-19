@@ -21,6 +21,7 @@ grip.layout.weighted.nd(
   s = 6,
   repulsion_factor = 1.5,
   tinit_factor = 2,
+  final_anchor_factor = 0,
   final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
   metric_neighbor_cap = NULL,
@@ -72,6 +73,10 @@ only available for \code{dim = 2}; higher dimensions use
 \item{repulsion_factor}{Non-edge repulsion multiplier.}
 
 \item{tinit_factor}{Initial spread multiplier.}
+
+\item{final_anchor_factor}{Non-negative multiplier for an anchor term that
+pulls final-stage vertices toward their coordinates at the start of the
+final level. The default \code{0} disables the anchor.}
 
 \item{final_move_scale_after_first}{Final-stage FR displacement multiplier
 applied after the first final round. Must be in \code{[0, 1]}.}

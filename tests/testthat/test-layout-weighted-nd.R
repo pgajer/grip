@@ -404,6 +404,43 @@ test_that("weighted ND legacy final-stage and metric-search controls are usable"
   expect_gt(max(abs(baseline - kk)), 1e-8)
 })
 
+test_that("weighted ND final-anchor path mirrors legacy weighted layout", {
+  edges <- edges.mesh(3, 4)
+  weights <- seq_len(nrow(edges)) / nrow(edges) + 1
+  args <- list(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 4,
+    final_rounds = 5,
+    num_init = 5,
+    num_nbrs = 6,
+    r = 0.03,
+    s = 6.0,
+    repulsion_factor = 1.5,
+    length_normalization = "median",
+    tinit_factor = 6L,
+    final_anchor_factor = 0.7,
+    final_move_scale_after_first = 1,
+    final_mode = "fr",
+    seed = 93
+  )
+
+  legacy <- do.call(grip.layout.weighted, args)
+  nd <- do.call(grip.layout.weighted.nd, args)
+
+  expect_equal(unname(legacy), unname(nd), tolerance = 1e-10)
+  expect_gt(
+    max(abs(nd - do.call(
+      grip.layout.weighted.nd,
+      utils::modifyList(args, list(final_anchor_factor = 0))
+    ))),
+    1e-8
+  )
+})
+
 test_that("weighted ND layout packs disconnected components", {
   edges <- matrix(c(1, 2, 3, 4), ncol = 2, byrow = TRUE)
   coords <- grip.layout.weighted.nd(
@@ -500,6 +537,16 @@ test_that("weighted ND layout validates dimensions and required weights", {
       num_init = 6
     ),
     "num_init must be >= 7"
+  )
+  expect_error(
+    grip.layout.weighted.nd(
+      edges = edges,
+      edge_weights = rep(1, nrow(edges)),
+      n = 5,
+      dim = 3,
+      final_anchor_factor = -0.1
+    ),
+    "final_anchor_factor must be finite and >= 0"
   )
   expect_error(
     grip.layout.weighted.nd(

@@ -75,15 +75,28 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
     ),
     tuning
   )
+  final_anchor_factor <- if (is.null(tuning$final_anchor_factor)) {
+    0
+  } else {
+    tuning$final_anchor_factor
+  }
+  final_move_scale_after_first <- if (is.null(tuning$final_move_scale_after_first)) {
+    1
+  } else {
+    tuning$final_move_scale_after_first
+  }
+  legacy_common <- common[
+    !names(common) %in% c("final_anchor_factor", "final_move_scale_after_first")
+  ]
   legacy_args <- c(
-    common,
+    legacy_common,
     list(
       trace = "round",
       coarse_repulsion_factor = tuning$repulsion_factor,
       coarse_repulsion_sample = 100000L,
       coarse_repulsion_exact_below = 100000L,
-      final_anchor_factor = 0,
-      final_move_scale_after_first = 1,
+      final_anchor_factor = final_anchor_factor,
+      final_move_scale_after_first = final_move_scale_after_first,
       final_mode = "fr",
       lgkk_polish_rounds = 0L,
       lgkk_multiscale_rounds = 0L,
@@ -157,12 +170,17 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
 }
 
 grip_weighted_nd_trace_parity_run <- function(dims = c(2L, 3L),
-                                              fixtures = grip_weighted_nd_trace_parity_fixtures()) {
+                                              fixtures = grip_weighted_nd_trace_parity_fixtures(),
+                                              tuning_fun = grip_weighted_nd_trace_parity_tuning) {
   rows <- list()
   i <- 1L
   for (fixture in fixtures) {
     for (dim in dims) {
-      rows[[i]] <- grip_weighted_nd_trace_parity_compare_one(fixture, dim = dim)
+      rows[[i]] <- grip_weighted_nd_trace_parity_compare_one(
+        fixture,
+        dim = dim,
+        tuning = tuning_fun(dim)
+      )
       i <- i + 1L
     }
   }

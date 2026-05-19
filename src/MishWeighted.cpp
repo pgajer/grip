@@ -884,7 +884,7 @@ void DrawGraph::KK_spring_weighted_local_v1(const size_tt vert,
         vect.set_to_zero();
         vect = pos[closeVert[i]] - pos[vert];
         norm2Local = vect.norm2();
-        vect *= ((float)norm2Local /
+        vect *= (norm2Local /
                  (closeVertDist[i] * closeVertDist[i] * get_Edge2()) - 1);
         disp[vert] += vect;
     }
@@ -913,9 +913,8 @@ void DrawGraph::KK_spring_weighted_v1(const size_tt vert,
             deltaFlat[2] = vect.getZ();
         coord_t desired = edge * neighbor.dist;
         coord_t desired2 = desired * desired;
-        const double finalScale =
-            static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
-        vect *= (float)(norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
+        const double finalScale = norm2Local / desired2 - 1.0;
+        vect *= (norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
         if(attractionEdges.tellp() > 0)
             attractionEdges << ";";
         attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
@@ -985,9 +984,8 @@ void DrawGraph::KK_spring_weighted_final_v1(const size_tt vert,
             deltaFlat[2] = vect.getZ();
         coord_t desired = edge * neighbor.dist;
         coord_t desired2 = desired * desired;
-        const double finalScale =
-            static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
-        vect *= (float)(norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
+        const double finalScale = norm2Local / desired2 - 1.0;
+        vect *= (norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
         if(attractionEdges.tellp() > 0)
             attractionEdges << ";";
         attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
@@ -1071,8 +1069,8 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
             deltaFlat[1] = vect.getY();
         if(dim > 2)
             deltaFlat[2] = vect.getZ();
-        const double scale = static_cast<double>(static_cast<float>(norm2Local));
-        vect *= (float)norm2Local;
+        const double scale = norm2Local;
+        vect *= norm2Local;
         coord_t desired = edge * graph.get_edge_weight(vert, adjVert);
         coord_t desired2 = desired * desired;
         vect /= desired2;
@@ -1119,7 +1117,7 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
         norm2Local = (double)vect.fnorm2();
         if(!norm2Local)
             continue;
-        vect *= (float)(fedge2 / norm2Local);
+        vect *= (fedge2 / norm2Local);
         if(repulsionNeighbors.tellp() > 0)
             repulsionNeighbors << ";";
         repulsionNeighbors << static_cast<int>(neighbor.vert) + 1 << ":"
@@ -1222,7 +1220,7 @@ void DrawGraph::mish_engine_weighted()
             for(size_tt i = 0; i < csize; i++){
                 Point<> coordBefore = pos[mish[i]];
                 coord_t heatBefore = heat[mish[i]];
-                float oldCosBefore = old_cos[mish[i]];
+                coord_t oldCosBefore = old_cos[mish[i]];
                 coord_t oldDispNormBefore = oldDispNorm[mish[i]];
                 std::fill(lastAttractionDisp.begin(), lastAttractionDisp.end(), 0.0);
                 std::fill(lastRepulsionDisp.begin(), lastRepulsionDisp.end(), 0.0);
@@ -1248,7 +1246,7 @@ void DrawGraph::mish_engine_weighted()
                 coord_t preTempDispNorm = dispNorm[mish[i]];
                 update_Local_Temp_v2(mish[i]);
                 coord_t heatAfter = heat[mish[i]];
-                float oldCosAfter = old_cos[mish[i]];
+                coord_t oldCosAfter = old_cos[mish[i]];
                 oldDisp[mish[i]] = disp[mish[i]];
                 oldDispNorm[mish[i]] = dispNorm[mish[i]];
                 disp[mish[i]] *= (coord_t)heat[mish[i]];

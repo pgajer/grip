@@ -166,7 +166,7 @@ void DrawGraph::FR_spring(const size_tt vert,
         vect += pos[overt];
         vect -= pos[vert];
         norm2 = (double)vect.fnorm2();
-        vect *= (float)vect.norm2();
+        vect *= vect.norm2();
         coord_t desired2 = edge2;
         if(graph.has_weights()){
             coord_t w = graph.get_edge_weight(vert, adjVert);
@@ -193,7 +193,7 @@ void DrawGraph::FR_spring(const size_tt vert,
         norm2 = (double)vect.fnorm2();
         if(!norm2)
             continue;
-        vect *= (float)(fedge2/norm2);
+        vect *= (fedge2/norm2);
         disp[vert] += vect;
     }
 
