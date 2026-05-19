@@ -1,0 +1,699 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\newcommand{\grip}{\texttt{grip}}
+\newcommand{\Rfunc}[1]{\texttt{#1}}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\Eedge}{\mathcal{E}_{\mathrm{edge}}}
+\newcommand{\Emetric}{\mathcal{E}_{\mathrm{metric}}}
+\newcommand{\Erep}{\mathcal{E}_{\mathrm{rep}}}
+\newcommand{\Eanchor}{\mathcal{E}_{\mathrm{anchor}}}
+
+\title{Validation Plan for \texttt{grip.layout.misf.edge.kk()}}
+\author{Design note for the \grip{} package}
+\date{May 19, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document translates the staged hybrid
+\Rfunc{grip.layout.misf.edge.kk()} algorithm specification into concrete
+validation gates. The goal is to make implementation auditable before writing
+production code. The validation plan covers objective terms, finite-difference
+gradients, active-set and constraint contracts, Armijo line search behavior,
+scale policies, trace schema, equivalence limits, tuning reports, and release
+readiness. The companion algorithm specification is
+\texttt{dev/design/misf-edge-kk/misf\_edge\_kk\_algorithm\_2026-05-19.tex}.
+\end{abstract}
+
+\tableofcontents
+
+\section{Purpose and Scope}
+
+The proposed \Rfunc{grip.layout.misf.edge.kk()} algorithm is a staged hybrid:
+\begin{enumerate}[leftmargin=2em]
+  \item weighted-MISF construction;
+  \item heuristic insertion;
+  \item explicit Armijo objective refinement per active level;
+  \item final pure or near-pure \Rfunc{grip.optimize.edge.kk.layout()} polish.
+\end{enumerate}
+
+This validation plan defines the gates that should be passed before the method
+is treated as usable. It does not specify implementation details beyond what is
+needed to make the algorithm testable.
+
+\subsection{Primary Validation Goals}
+
+\begin{itemize}[leftmargin=2em]
+  \item Verify that each objective term is numerically correct.
+  \item Verify that active sets and constraints match the MISF contract.
+  \item Verify that Armijo refinement decreases the explicit level objective.
+  \item Verify that degenerate settings reduce to known edge-KK behavior.
+  \item Verify that trace output is rich enough to diagnose tuning and failures.
+  \item Verify that schedule tuning can be compared against current baselines.
+\end{itemize}
+
+\subsection{Non-Goals}
+
+The validation plan does not require the first implementation to be fastest,
+fully adaptive, or better than all existing workflows on all graph families. The
+first target is correctness, auditability, and diagnostic completeness.
+
+\section{Gate Naming Convention}
+
+Each gate has an identifier:
+\[
+  \texttt{MEK-<area>-<number>}.
+\]
+The areas are:
+\begin{description}[leftmargin=2em]
+  \item[OBJ] objective values and gradients;
+  \item[MISF] active-set and hierarchy contract;
+  \item[CON] constraint construction;
+  \item[ARM] Armijo optimizer behavior;
+  \item[SCL] scale policy;
+  \item[TRC] trace schema;
+  \item[EQV] equivalence and degenerate cases;
+  \item[TUN] schedule tuning and benchmark reports;
+  \item[REL] release readiness.
+\end{description}
+
+\section{Reference Objective}
+
+At active level \(q\), the implementation should refine only
+\[
+  Z_{A_q} = \{z_i : i\in A_q\}
+\]
+under
+\[
+  \mathcal{E}_q(Z_{A_q})
+  =
+  \mathcal{E}_{\mathrm{edge},q}(Z_{A_q})
+  +
+  \rho_q \mathcal{E}_{\mathrm{metric},q}(Z_{A_q})
+  +
+  \lambda_q \mathcal{E}_{\mathrm{rep},q}(Z_{A_q})
+  +
+  \mathcal{E}_{\mathrm{anchor},q}(Z_{A_q}).
+\]
+
+The true edge term uses only original graph edges:
+\[
+  E_{\mathrm{active},q}
+  =
+  \{(i,j)\in E : i,j\in A_q\}.
+\]
+
+The auxiliary metric term uses temporary weighted graph-geodesic or
+metric-neighbor constraints:
+\[
+  M_q =
+  \{(i,j,\delta_{ij}) : i,j\in A_q,\ i<j,\ \delta_{ij}=d_G(i,j)\},
+\]
+deduplicated and disjoint from \(E_{\mathrm{active},q}\).
+
+The repulsion term uses active pairs \(P_q\subseteq A_q\times A_q\), exact below
+a threshold and deterministic sampled above it. The anchor term uses coordinates
+immediately after insertion and before level refinement.
+
+\section{Objective and Gradient Gates}
+
+\subsection{MEK-OBJ-001: Edge-Stress Value}
+
+For a fixed small graph, fixed coordinates, fixed edge scale, and known
+stiffnesses, the implementation must compute
+\[
+  \mathcal{E}_{\mathrm{edge},q}(Z)
+  =
+  \frac{1}{2}
+  \sum_{(i,j)\in E_{\mathrm{active},q}}
+  k_{ij}^{(q)}
+  \left(r_{ij}(Z)-s_q\ell_{ij}\right)^2
+\]
+to within numerical tolerance of a simple R reference implementation.
+
+\textbf{Suggested tolerance:}
+\[
+  |\widehat{\Eedge}-\Eedge^{\mathrm{ref}}|
+  \le 10^{-10}\max(1,|\Eedge^{\mathrm{ref}}|).
+\]
+
+\subsection{MEK-OBJ-002: Edge-Stress Gradient}
+
+The edge-stress gradient must match centered finite differences on random
+small fixtures in dimensions 2, 3, and 5.
+
+For coordinate \(x_k\), use
+\[
+  \frac{\mathcal{E}(x_k+h)-\mathcal{E}(x_k-h)}{2h}
+\]
+with \(h\in[10^{-6},10^{-5}]\).
+
+\textbf{Suggested tolerance:}
+\[
+  \frac{\norm{G-G_{\mathrm{fd}}}_F}{\max(1,\norm{G_{\mathrm{fd}}}_F)}
+  \le 10^{-5}.
+\]
+
+\subsection{MEK-OBJ-003: Auxiliary Metric-Stress Value and Gradient}
+
+Repeat MEK-OBJ-001 and MEK-OBJ-002 for
+\(\mathcal{E}_{\mathrm{metric},q}\), using metric-neighbor
+constraints \(M_q\). This test must explicitly include cases where an original
+edge appears in the metric-neighbor cache; it must be removed from \(M_q\) and
+kept only in \(E_{\mathrm{active},q}\).
+
+\subsection{MEK-OBJ-004: Log-Repulsion Value and Gradient}
+
+For fixed \(P_q\) and fixed pair weights, verify
+\[
+  \mathcal{E}_{\mathrm{rep},q}(Z)
+  =
+  -
+  \sum_{(i,j)\in P_q}
+  \omega_{ij}^{(q)}
+  \log\left(
+    \sqrt{\norm{z_i-z_j}^2+\epsilon_{\mathrm{rep}}^2}
+  \right)
+\]
+against an R reference value and finite-difference gradient.
+
+The test panel must include:
+\begin{itemize}[leftmargin=2em]
+  \item near-colliding vertices;
+  \item exactly repeated coordinates with positive \(\epsilon_{\mathrm{rep}}\);
+  \item dimensions 2, 3, and 5;
+  \item exact and sampled \(P_q\).
+\end{itemize}
+
+\subsection{MEK-OBJ-005: Anchor Value and Gradient}
+
+For fixed anchor targets \(\tilde{Z}^{(q)}\) and weights \(a_i^{(q)}\), verify
+\[
+  \mathcal{E}_{\mathrm{anchor},q}(Z)
+  =
+  \frac{1}{2}
+  \sum_{i\in A_q}
+  a_i^{(q)}
+  \norm{z_i-\tilde{z}_i^{(q)}}^2
+\]
+and its gradient. Include tests with zero anchor weights and different weights
+for newly inserted vertices.
+
+\subsection{MEK-OBJ-006: Total Objective Composition}
+
+The total objective and gradient must equal the weighted sum of independently
+computed term objectives and gradients:
+\[
+  \nabla \mathcal{E}_q
+  =
+  \nabla\mathcal{E}_{\mathrm{edge},q}
+  +
+  \rho_q\nabla\mathcal{E}_{\mathrm{metric},q}
+  +
+  \lambda_q\nabla\mathcal{E}_{\mathrm{rep},q}
+  +
+  \nabla\mathcal{E}_{\mathrm{anchor},q}.
+\]
+
+The trace must report the same term energies that sum to the total objective.
+
+\section{MISF Active-Set Gates}
+
+\subsection{MEK-MISF-001: Prefix Active Sets}
+
+For every level \(q\), the active set must be exactly
+\[
+  A_q = \{\pi_1,\ldots,\pi_{m_q}\},
+\]
+where \(\pi=\texttt{misf.order}\) and \(m_q=\texttt{misf.level\_size[q]}\).
+
+The test should construct a small known MISF object and verify exact equality
+of active vertex IDs and order.
+
+\subsection{MEK-MISF-002: Newly Inserted Vertices}
+
+For every transition \(q+1\to q\), verify
+\[
+  N_q = A_q\setminus A_{q+1}.
+\]
+The inserted count in the trace must equal \(|N_q|\).
+
+\subsection{MEK-MISF-003: Inactive Vertices Excluded}
+
+Vertices outside \(A_q\) must not appear in:
+\begin{itemize}[leftmargin=2em]
+  \item \(E_{\mathrm{active},q}\);
+  \item \(M_q\);
+  \item \(P_q\);
+  \item anchor records;
+  \item active-level gradient rows.
+\end{itemize}
+
+Inactive coordinates may exist in storage, but they must not affect the
+active-level objective.
+
+\subsection{MEK-MISF-004: Previously Active Vertices Can Move}
+
+During Armijo refinement at level \(q\), both \(A_{q+1}\) and \(N_q\) are
+optimization variables. A test should construct a case where an already-active
+vertex has nonzero gradient and confirm it is allowed to move after an accepted
+step.
+
+\section{Constraint Construction Gates}
+
+\subsection{MEK-CON-001: Original Active Edge Set}
+
+Verify that
+\[
+  E_{\mathrm{active},q}
+  =
+  \{(i,j)\in E : i,j\in A_q\}
+\]
+contains all and only original graph edges with both endpoints active.
+
+Tests should include:
+\begin{itemize}[leftmargin=2em]
+  \item an edge with one endpoint inactive;
+  \item an edge with both endpoints active;
+  \item multiple active levels;
+  \item weighted edges with nonunit target lengths.
+\end{itemize}
+
+\subsection{MEK-CON-002: Metric Constraints Are Separate}
+
+The temporary metric set \(M_q\) must be deduplicated as unordered pairs and
+disjoint from \(E_{\mathrm{active},q}\). If a metric-neighbor pair is also an
+original edge, it belongs only to \(E_{\mathrm{active},q}\).
+
+\subsection{MEK-CON-003: Metric Targets Are Graph-Geodesic Distances}
+
+Every \((i,j,\delta_{ij})\in M_q\) must use the weighted graph-geodesic distance
+\(d_G(i,j)\) under the normalized edge lengths used by the solver.
+
+For small graphs, compare against an independent all-pairs Dijkstra reference.
+
+\subsection{MEK-CON-004: Repulsion Pair Mode}
+
+Below the exact threshold, \(P_q\) must contain all unordered active pairs.
+Above the threshold, \(P_q\) must be a deterministic sample keyed by graph,
+seed, level, and active order.
+
+\subsection{MEK-CON-005: Repulsion Weights Normalize Pair Mass}
+
+For each level,
+\[
+  \sum_{(i,j)\in P_q}\omega_{ij}^{(q)} = |A_q|
+\]
+or another explicitly documented normalization. The chosen normalization must
+be reported in the trace.
+
+\subsection{MEK-CON-006: Anchor Targets Are Post-Insertion Coordinates}
+
+Anchor targets must be captured after heuristic insertion and before
+active-level refinement. A test should perturb coordinates during refinement
+and confirm anchors still point to the stored post-insertion coordinates, not
+to moving coordinates.
+
+\section{Armijo Optimizer Gates}
+
+\subsection{MEK-ARM-001: Fixed Objective During Line Search}
+
+During a single Armijo line search, \(E_{\mathrm{active},q}\), \(M_q\), \(P_q\),
+pair weights, anchor targets, \(\rho_q\), \(\lambda_q\), anchor weights, and
+scale must remain fixed. This is especially important for sampled \(P_q\).
+
+\subsection{MEK-ARM-002: Objective Decrease}
+
+Accepted steps must satisfy
+\[
+  \mathcal{E}_q(Z')
+  \le
+  \mathcal{E}_q(Z)
+  -
+  c\eta\norm{G_q}_F^2.
+\]
+
+Tests should run small levels and assert monotone decrease across accepted
+steps.
+
+\subsection{MEK-ARM-003: Rejected Step Shrinkage}
+
+When a trial step fails the Armijo condition, the next trial step must shrink
+by the configured factor. The trace must record the accepted step and number of
+shrinks.
+
+\subsection{MEK-ARM-004: Active Recenter}
+
+After accepted steps, active coordinates should be recentered. The test should
+verify
+\[
+  \sum_{i\in A_q} z_i = 0
+\]
+to numerical tolerance after accepted steps, while inactive vertices remain
+irrelevant to the active-level center.
+
+\subsection{MEK-ARM-005: Stopping Reasons}
+
+Each level trace must report one of:
+\begin{itemize}[leftmargin=2em]
+  \item iteration budget reached;
+  \item gradient tolerance reached;
+  \item minimum step reached;
+  \item relative improvement patience reached;
+  \item no accepted Armijo step.
+\end{itemize}
+
+\subsection{MEK-ARM-006: Finite Output Under Stress Cases}
+
+The optimizer must return finite coordinates and finite trace values for:
+\begin{itemize}[leftmargin=2em]
+  \item repeated initial coordinates;
+  \item zero metric coefficient \(\rho_q=0\);
+  \item zero repulsion coefficient \(\lambda_q=0\);
+  \item zero anchor weights;
+  \item sparse active edge sets.
+\end{itemize}
+
+\section{Scale Policy Gates}
+
+\subsection{MEK-SCL-001: No Profiled Scale With Active Repulsion}
+
+During MISF refinement, profiled scale is forbidden whenever
+\[
+  \lambda_q > 0 \quad \text{or} \quad \rho_q > 0.
+\]
+Attempting this combination should error or downgrade only through an explicit
+documented choice. Silent profiling is not allowed.
+
+\subsection{MEK-SCL-002: Identity Scale}
+
+With identity scale, the target length for a true edge is exactly \(\ell_{ij}\).
+This mode should be the simplest deterministic baseline.
+
+\subsection{MEK-SCL-003: Global Fixed Scale}
+
+With global fixed scale, the same scale must be used at every MISF level. The
+trace must report the same scale value at all levels.
+
+\subsection{MEK-SCL-004: Level Fixed Scale}
+
+With level fixed scale, the scale may differ by level but must remain fixed
+within all Armijo iterations of that level. This mode is diagnostic and should
+be trace-visible.
+
+\subsection{MEK-SCL-005: Final Profiled Polish}
+
+Profiled scale is allowed for the final edge-KK polish when repulsion and
+auxiliary metric terms are off. The final polish scale and final edge RMSE must
+be reported.
+
+\section{Trace Schema Gates}
+
+\subsection{MEK-TRC-001: Required Per-Level Fields}
+
+Each level summary must include:
+\begin{itemize}[leftmargin=2em]
+  \item level index;
+  \item active count \(|A_q|\);
+  \item inserted count \(|N_q|\);
+  \item counts of \(E_{\mathrm{active},q}\), \(M_q\), and \(P_q\);
+  \item \(\rho_q\), \(\lambda_q\), and anchor-weight summaries;
+  \item scale mode and scale value;
+  \item stopping reason;
+  \item elapsed time.
+\end{itemize}
+
+\subsection{MEK-TRC-002: Required Per-Iteration Fields}
+
+Each Armijo iteration row must include:
+\begin{itemize}[leftmargin=2em]
+  \item total objective;
+  \item edge, metric, repulsion, and anchor energies;
+  \item gradient norm;
+  \item accepted step size;
+  \item number of shrink attempts;
+  \item true-edge relative RMSE;
+  \item auxiliary metric relative RMSE when \(|M_q|>0\);
+  \item elapsed time.
+\end{itemize}
+
+\subsection{MEK-TRC-003: Term Energies Sum to Total}
+
+For every trace row,
+\[
+  \mathcal{E}_{\mathrm{total}}
+  =
+  \mathcal{E}_{\mathrm{edge}}
+  +
+  \rho_q\mathcal{E}_{\mathrm{metric}}
+  +
+  \lambda_q\mathcal{E}_{\mathrm{rep}}
+  +
+  \mathcal{E}_{\mathrm{anchor}}
+\]
+to numerical tolerance.
+
+\subsection{MEK-TRC-004: Adaptive Decisions Are Trace-Visible}
+
+If adaptive guards are implemented later, every adaptive change must record:
+\begin{itemize}[leftmargin=2em]
+  \item trigger diagnostic;
+  \item previous value;
+  \item new value;
+  \item level and iteration.
+\end{itemize}
+
+\section{Equivalence and Degenerate Gates}
+
+\subsection{MEK-EQV-001: One-Level Edge-KK Equivalence}
+
+When the solver is configured with:
+\begin{itemize}[leftmargin=2em]
+  \item one active level;
+  \item \(\rho_q=0\);
+  \item \(\lambda_q=0\);
+  \item anchors off;
+  \item the same scale mode and stiffnesses as
+  \Rfunc{grip.optimize.edge.kk.layout()};
+\end{itemize}
+the result should match \Rfunc{grip.optimize.edge.kk.layout()} within numerical
+tolerance, modulo equivalent trace formatting.
+
+This is the most important correctness bridge to the existing edge-KK code.
+
+\subsection{MEK-EQV-002: Zero Auxiliary Metric}
+
+With \(\rho_q=0\), the metric constraint set may still be constructed for trace
+diagnostics, but it must not affect objective, gradient, Armijo decisions, or
+coordinates.
+
+\subsection{MEK-EQV-003: Zero Repulsion}
+
+With \(\lambda_q=0\), the repulsion pair set may still be constructed for trace
+diagnostics, but it must not affect objective, gradient, Armijo decisions, or
+coordinates.
+
+\subsection{MEK-EQV-004: Zero Anchors}
+
+With all anchor weights set to zero, anchor targets must not affect objective,
+gradient, Armijo decisions, or coordinates.
+
+\subsection{MEK-EQV-005: Dimension Support}
+
+The solver must produce finite deterministic outputs for dimensions 2, 3, 4,
+and at least one larger dimension such as 8 on small graphs.
+
+\section{Tuning and Benchmark Gates}
+
+\subsection{MEK-TUN-001: Fixture Matrix}
+
+The tuning report must include at least:
+\begin{itemize}[leftmargin=2em]
+  \item paths;
+  \item cycles;
+  \item flat 2D grids;
+  \item nonuniform 2D grids;
+  \item flat 3D lattices;
+  \item nonuniform 3D grids;
+  \item 2D and 3D quadform-derived fixtures where available;
+  \item trees;
+  \item irregular manifold-like examples;
+  \item sparse bottleneck or density-varying graphs.
+\end{itemize}
+
+\subsection{MEK-TUN-002: Baseline Matrix}
+
+Every fixture should be compared against:
+\begin{enumerate}[leftmargin=2em]
+  \item \Rfunc{grip.layout.weighted()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()};
+  \item \Rfunc{grip.metric.mds.layout()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()};
+  \item \Rfunc{grip.layout.misf.edge.kk()} with candidate schedules;
+  \item a zero-regularization MISF diagnostic where meaningful.
+\end{enumerate}
+
+\subsection{MEK-TUN-003: Schedule Grid}
+
+The first grid should cover a small family:
+\[
+  \rho_q = \rho_{\max}\theta_q^{\gamma_\rho},
+  \qquad
+  \lambda_q = \lambda_{\min}+\lambda_{\max}\theta_q^{\gamma_\lambda},
+\]
+with a limited set of \(\rho_{\max}\), \(\lambda_{\max}\), and exponent values.
+The exact grid can be revised after objective magnitudes are observed, but the
+report must record all tested values.
+
+\subsection{MEK-TUN-004: Metrics}
+
+The tuning report must include:
+\begin{itemize}[leftmargin=2em]
+  \item final true-edge relative RMSE;
+  \item true-edge signed bias;
+  \item graph-geodesic distortion;
+  \item auxiliary metric RMSE where active;
+  \item local angle or quadform preservation where available;
+  \item Procrustes RMSE to known coordinates where available;
+  \item fold-over or cell-orientation failures for grid-like fixtures;
+  \item seed stability;
+  \item Armijo rejected-step counts;
+  \item runtime.
+\end{itemize}
+
+\subsection{MEK-TUN-005: Pareto Selection}
+
+The default schedule should be selected as a Pareto compromise. A candidate
+should not be chosen solely because it minimizes edge RMSE if it causes
+fold-over, instability, or excessive runtime.
+
+\subsection{MEK-TUN-006: Adaptive Guards}
+
+Adaptive guards are optional for the first implementation. If included, each
+guard must have a direct diagnostic trigger, for example:
+\begin{itemize}[leftmargin=2em]
+  \item active-edge graph too sparse: increase \(\rho_q\);
+  \item active pair distances collapsing: increase \(\lambda_q\);
+  \item repulsion dominates late: decrease \(\lambda_q\);
+  \item metric stress dominates late: decrease \(\rho_q\);
+  \item repeated Armijo failure: reduce regularization before reducing edge
+  objective.
+\end{itemize}
+
+Each adjustment must be trace-visible.
+
+\section{Report Artifacts}
+
+\subsection{Validation Report}
+
+A validation run should produce a report under a path such as:
+\[
+  \texttt{output/misf-edge-kk-validation/}
+\]
+with:
+\begin{itemize}[leftmargin=2em]
+  \item objective-gradient finite-difference tables;
+  \item active-set and constraint audit tables;
+  \item Armijo decrease summaries;
+  \item equivalence test summaries;
+  \item trace schema checks;
+  \item tuning benchmark summaries.
+\end{itemize}
+
+\subsection{Machine-Readable Outputs}
+
+The report should write CSV or RDS files for:
+\begin{itemize}[leftmargin=2em]
+  \item per-test gate status;
+  \item per-level trace summaries;
+  \item per-iteration trace summaries;
+  \item per-fixture benchmark metrics;
+  \item schedule grid results.
+\end{itemize}
+
+\section{Release Readiness Gates}
+
+\subsection{MEK-REL-001: Internal Prototype Readiness}
+
+The method is ready for an internal R prototype when:
+\begin{itemize}[leftmargin=2em]
+  \item the objective and gradient tests pass for R reference functions;
+  \item active-set and constraint construction tests pass;
+  \item one-level edge-KK equivalence is specified and testable;
+  \item trace schema is implemented at least in R.
+\end{itemize}
+
+\subsection{MEK-REL-002: Compiled Backend Readiness}
+
+The method is ready for compiled implementation when:
+\begin{itemize}[leftmargin=2em]
+  \item the R prototype passes all objective and Armijo tests;
+  \item compiled objective values and gradients match the R reference;
+  \item compiled traces match R prototype traces on tiny fixtures.
+\end{itemize}
+
+\subsection{MEK-REL-003: Experimental Export Readiness}
+
+The method is ready for an experimental exported wrapper when:
+\begin{itemize}[leftmargin=2em]
+  \item all objective, MISF, constraint, Armijo, scale, trace, and equivalence
+  gates pass;
+  \item dimension 2, 3, 4, and high-dimensional smoke tests pass;
+  \item tuning reports identify at least one reasonable global default;
+  \item current pipelines remain available and documented as baselines;
+  \item the function is clearly marked experimental.
+\end{itemize}
+
+\subsection{MEK-REL-004: Production Readiness}
+
+The method should not be considered production-ready until:
+\begin{itemize}[leftmargin=2em]
+  \item the tuning panel shows robust behavior across graph families;
+  \item final edge-KK polish is consistently competitive with existing
+  workflows;
+  \item failures are trace-diagnosable;
+  \item runtime is acceptable for target graph sizes;
+  \item package checks remain stable.
+\end{itemize}
+
+\section{Minimal First Validation Milestone}
+
+The first practical milestone should validate a one-component R prototype on
+small graphs. The milestone passes when:
+\begin{enumerate}[leftmargin=2em]
+  \item edge, metric, repulsion, and anchor gradients pass finite differences;
+  \item active sets are exact MISF prefixes;
+  \item \(M_q\) is disjoint from \(E_{\mathrm{active},q}\);
+  \item \(P_q\) is deterministic and normalized;
+  \item Armijo accepted steps decrease the total objective;
+  \item the trace contains all required fields;
+  \item the one-level, zero-regularization case matches
+  \Rfunc{grip.optimize.edge.kk.layout()}.
+\end{enumerate}
+
+\section{Conclusion}
+
+This validation plan makes \Rfunc{grip.layout.misf.edge.kk()} testable before
+implementation. The key release gate is not visual plausibility, but objective
+correctness under a transparent staged hybrid contract: true edge-KK stress,
+separate temporary metric-neighbor stress, normalized log repulsion, quadratic
+anchors, Armijo descent, and final pure or near-pure edge-KK polish.
+
+\end{document}

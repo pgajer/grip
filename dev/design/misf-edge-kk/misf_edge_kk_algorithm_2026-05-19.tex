@@ -1,0 +1,1266 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\newcommand{\grip}{\texttt{grip}}
+\newcommand{\Rfunc}[1]{\texttt{#1}}
+\newcommand{\misf}{\mathrm{MISF}}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\eps}{\varepsilon}
+
+\title{A MISF Edge-KK Layout with GRIP-Style Repulsion}
+\author{Design note for the \grip{} package}
+\date{May 19, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document proposes a new layout algorithm, tentatively named
+\Rfunc{grip.layout.misf.edge.kk()}, that merges two workflows currently used in
+the \grip{} package: \Rfunc{grip.layout.weighted()} followed by
+\Rfunc{grip.optimize.edge.kk.layout()}, or metric MDS followed by
+\Rfunc{grip.optimize.edge.kk.layout()}. The revised specification is a staged
+hybrid: weighted-MISF construction, heuristic insertion, explicit Armijo
+objective refinement on each active MISF level, and a final pure or near-pure
+\Rfunc{grip.optimize.edge.kk.layout()} polish. During MISF refinement, the
+objective separates true original-edge stress from temporary graph-geodesic
+metric-neighbor stress, log repulsion, and quadratic anchors. The goal is to
+guide the layout toward edge-isometric shape throughout the filtration without
+calling temporary metric-neighbor constraints ``edge-KK'' and without using
+local-temperature updates in the version-0 objective refinement.
+\end{abstract}
+
+\tableofcontents
+
+\section{Motivation}
+
+The current high-quality stretched-isometric workflow is usually one of:
+\begin{align*}
+  Z_0 &\leftarrow \Rfunc{grip.layout.weighted()}(G),\\
+  Z   &\leftarrow \Rfunc{grip.optimize.edge.kk.layout()}(G, Z_0),
+\end{align*}
+or
+\begin{align*}
+  Z_0 &\leftarrow \Rfunc{grip.metric.mds.layout()}(G),\\
+  Z   &\leftarrow \Rfunc{grip.optimize.edge.kk.layout()}(G, Z_0).
+\end{align*}
+This split is useful because each piece contributes something different.
+\Rfunc{grip.layout.weighted()} provides a multiscale GRIP construction with
+repulsion and good global stabilization. \Rfunc{grip.optimize.edge.kk.layout()}
+then improves edge-length fidelity under the edge-restricted KK objective.
+
+The separation also has a limitation: the edge-KK objective only acts after the
+major multiscale placement decisions have already been made. If the weighted
+GRIP layout has chosen a folded or compressed basin, edge-KK can repair edge
+lengths locally but may not easily move the embedding into a better global
+configuration. A more direct algorithm should use the edge-KK objective during
+the MISF construction itself while retaining the repulsive stabilization that
+makes GRIP useful on sparse graphs.
+
+\section{Relationship to Existing Functions}
+
+The proposed function should not replace any existing function in place.
+It should be introduced beside the current code paths as an experimental
+algorithm:
+\[
+  \Rfunc{grip.layout.misf.edge.kk()}.
+\]
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+Function & Current role & Proposed relationship \\
+\midrule
+\Rfunc{grip.layout.weighted()} &
+Weighted GRIP layout with FR-like final refinement &
+Baseline and source of MISF/repulsion mechanics \\
+\Rfunc{grip.layout.weighted.nd()} &
+Dimension-general weighted-GRIP backend under development &
+Future infrastructure model for arbitrary dimension support \\
+\Rfunc{grip.optimize.edge.kk.layout()} &
+Edge-KK local repair optimizer &
+Source of the edge-stress objective and scale policies \\
+\Rfunc{grip.metric.mds.layout()} &
+Metric-MDS initializer for edge-KK workflows &
+Baseline initializer and comparison method \\
+\Rfunc{grip.layout.misf.edge.kk()} &
+Not yet implemented &
+New integrated MISF edge-KK plus repulsion solver \\
+\bottomrule
+\end{tabular}
+\caption{Relationship between the proposed method and existing \grip{} tools.}
+\end{table}
+
+The design principle is conservative: keep existing public behavior intact,
+reuse tested components where possible, and build the new method as an
+opt-in algorithm with its own tests and diagnostics.
+
+\section{Notation}
+
+Let
+\[
+  G=(V,E), \qquad |V|=n,
+\]
+be an undirected graph. Each edge \(e=(i,j)\in E\) has a positive target length
+\[
+  \ell_{ij} > 0.
+\]
+In current \grip{} terminology, these target lengths come from edge weights or
+normalized edge weights. The embedding is
+\[
+  Z = (z_1,\ldots,z_n)^\top \in \RR^{n\times d},
+\]
+where \(d \ge 2\).
+
+For an edge \((i,j)\), define the regularized Euclidean length
+\[
+  r_{ij}(Z) = \sqrt{\norm{z_i-z_j}^2 + \eps_{\mathrm{edge}}^2}.
+\]
+Let \(k_{ij} > 0\) be the edge-KK stiffness. In the existing edge-KK optimizer,
+stiffnesses may be uniform, density-weighted, or distance-power weighted.
+
+The weighted-MISF hierarchy is represented by an ordered vertex array
+\[
+  \pi = (\pi_1,\ldots,\pi_n),
+\]
+called \texttt{misf.order} in this document, and level sizes
+\[
+  m_L < m_{L-1} < \cdots < m_0=n.
+\]
+The active set at level \(q\) is defined exactly as the prefix
+\[
+  A_q = \{\pi_1,\ldots,\pi_{m_q}\}.
+\]
+Thus the MISF hierarchy is a nested sequence
+\[
+  A_L \subset A_{L-1} \subset \cdots \subset A_0 = V,
+\]
+where \(A_L\) is the coarsest level and \(A_0\) is the full graph. When moving
+from level \(q+1\) to level \(q\), the newly inserted vertices are
+\[
+  N_q = A_q \setminus A_{q+1}.
+\]
+The active-level optimizer moves only vertices in \(A_q\). Vertices outside
+\(A_q\) do not appear in edge, metric, repulsion, or anchor constraints at level
+\(q\). Previously active vertices \(A_{q+1}\) and newly inserted vertices
+\(N_q\) may both move during Armijo refinement.
+
+\section{Target Objective}
+
+The version-0 method is a staged hybrid. Weighted-MISF construction and
+heuristic insertion define the active set and starting coordinates for each
+level. The level itself is refined by an explicit Armijo objective, not by a
+GRIP local-temperature force update. For a level \(q\), the objective is
+\[
+  \mathcal{E}_q(Z_{A_q})
+  =
+  \mathcal{E}_{\mathrm{edge},q}(Z_{A_q})
+  +
+  \rho_q \mathcal{E}_{\mathrm{metric},q}(Z_{A_q})
+  +
+  \lambda_q \mathcal{E}_{\mathrm{rep},q}(Z_{A_q})
+  +
+  \mathcal{E}_{\mathrm{anchor},q}(Z_{A_q}),
+\]
+where all terms involve only vertices in \(A_q\). The temporary metric-neighbor
+constraints are auxiliary graph-geodesic constraints. They are not called
+edge-KK constraints. Only the original-edge term is edge-KK.
+
+\subsection{True Original-Edge Stress}
+
+The true edge term is restricted to original graph edges whose endpoints are
+active at level \(q\):
+\[
+  E_{\mathrm{active},q}
+  =
+  \{(i,j)\in E : i,j\in A_q\}.
+\]
+Its stress is
+\[
+  \mathcal{E}_{\mathrm{edge},q}(Z)
+  =
+  \frac{1}{2}
+  \sum_{(i,j)\in E_{\mathrm{active},q}}
+  k_{ij}^{(q)}
+  \left(
+    r_{ij}(Z) - s_q \ell_{ij}
+  \right)^2.
+\]
+Here \(k_{ij}^{(q)}>0\) is the edge stiffness, \(s_q>0\) is the active-level
+edge scale, and \(\ell_{ij}\) is the normalized original edge target length.
+
+The gradient contribution for a true active edge \((i,j)\) is
+\[
+  \nabla_{z_i}
+  \mathcal{E}_{ij}
+  =
+  k_{ij}^{(q)}
+  \frac{r_{ij}(Z)-s_q\ell_{ij}}{r_{ij}(Z)}
+  (z_i-z_j),
+\]
+with the opposite sign for \(z_j\). This is the edge-stress gradient used by
+\Rfunc{grip.optimize.edge.kk.layout()}.
+
+\subsection{Auxiliary Metric-Neighbor Stress}
+
+Coarse MISF levels may have too few original edges among active vertices.
+Version 0 therefore allows a separate auxiliary metric-neighbor constraint set
+\[
+  M_q
+  =
+  \{(i,j,\delta_{ij}) : i,j\in A_q,\ i<j,\ \delta_{ij}=d_G(i,j)\}.
+\]
+Here \(d_G(i,j)\) is the weighted graph-geodesic distance. The set \(M_q\) is
+constructed from weighted metric-neighbor caches, deduplicated as unordered
+pairs, and kept disjoint from \(E_{\mathrm{active},q}\). If an original active
+edge appears in the metric-neighbor cache, it remains only in
+\(E_{\mathrm{active},q}\) and is removed from \(M_q\).
+
+The auxiliary metric stress is
+\[
+  \mathcal{E}_{\mathrm{metric},q}(Z)
+  =
+  \frac{1}{2}
+  \sum_{(i,j,\delta_{ij})\in M_q}
+  h_{ij}^{(q)}
+  \left(
+    r_{ij}(Z) - s_q^{\mathrm{metric}}\delta_{ij}
+  \right)^2.
+\]
+The coefficient \(\rho_q\) outside this term controls how much these temporary
+metric constraints affect the level. The schedule must satisfy
+\[
+  \rho_0 = 0
+\]
+at the full graph level by default, so the final full-level objective is not
+held to auxiliary metric-neighbor constraints.
+
+\subsection{Log Repulsion}
+
+The repulsive term preserves the stabilizing role currently played by GRIP:
+\[
+  \mathcal{E}_{\mathrm{rep},q}(Z)
+  =
+  -
+  \sum_{(i,j)\in P_q}
+  \omega_{ij}^{(q)}
+  \log\left(
+    \sqrt{\norm{z_i-z_j}^2+\eps_{\mathrm{rep}}^2}
+  \right).
+\]
+The pair set \(P_q\) contains only active vertices. It is exact for small active
+sets and deterministic sampled for larger active sets. Crucially, \(P_q\) and
+its weights are fixed before an Armijo iteration begins and remain fixed across
+all trial steps in that iteration. The objective being tested by Armijo is
+therefore stable during line search.
+
+The negative gradient contribution on \(z_i\) is
+\[
+  -\nabla_{z_i}
+  \lambda_q \mathcal{E}_{\mathrm{rep},q}
+  =
+  \lambda_q \omega_{ij}^{(q)}
+  \frac{z_i-z_j}{\norm{z_i-z_j}^2+\eps_{\mathrm{rep}}^2}.
+\]
+Pair weights must be normalized so the repulsion magnitude does not grow like
+\(|A_q|^2\). A default normalization is
+\[
+  \sum_{(i,j)\in P_q}\omega_{ij}^{(q)} = |A_q|,
+\]
+or equivalently a fixed average repulsion mass per active vertex.
+
+\subsection{Quadratic Anchors}
+
+After insertion and before level refinement, store the active coordinates as
+\[
+  \tilde{Z}^{(q)} = Z_{A_q}^{\mathrm{post\ insertion}}.
+\]
+The anchor term is
+\[
+  \mathcal{E}_{\mathrm{anchor},q}(Z)
+  =
+  \frac{1}{2}
+  \sum_{i\in A_q}
+  a_i^{(q)}
+  \norm{z_i-\tilde{z}_i^{(q)}}^2.
+\]
+Anchor weights should be strongest immediately after insertion, decay during
+later levels, and be off for the final pure edge-KK polish. Anchors are a
+level-transition stabilizer, not part of the final edge-KK objective.
+
+\section{Scale Policy}
+
+Scale handling is intentionally restricted during MISF refinement. While
+repulsion or auxiliary metric stress is active, the edge scale should be either
+identity or fixed. Profiled scale should not be used during repulsive MISF
+refinement because repulsion changes the state being profiled and can cause
+level-dependent scale drift.
+
+Version 0 supports the following MISF-level scale policies:
+\begin{description}[leftmargin=2em]
+  \item[\texttt{identity}] Use \(s_q=1\) for all MISF levels.
+  \item[\texttt{global\_fixed}] Fit one scale before MISF refinement begins, or
+  use a user-supplied scale, and keep it fixed for all MISF levels.
+  \item[\texttt{level\_fixed}] Fit \(s_q\) once immediately before refining
+  level \(q\), then keep it fixed throughout that level's Armijo iterations.
+  This is diagnostic and should not be the first default.
+  \item[\texttt{user}] Use a user-supplied fixed scale.
+\end{description}
+
+Profiled scale remains available for the final
+\Rfunc{grip.optimize.edge.kk.layout()} polish and for diagnostics with
+\(\lambda_q=\rho_q=0\). For profiled edge-only polish, the least-squares
+estimate is
+\[
+  s
+  =
+  \frac{
+    \sum_{(i,j)\in E}
+    k_{ij} r_{ij}(Z) \ell_{ij}
+  }{
+    \sum_{(i,j)\in E}
+    k_{ij} \ell_{ij}^2
+  },
+\]
+with the finite-value safeguards already used by
+\Rfunc{grip.optimize.edge.kk.layout()}.
+
+\section{Level-Specific Constraint Sets}
+
+For each level \(q\), construct four disjoint or separately tracked objects:
+\[
+  E_{\mathrm{active},q}, \qquad M_q, \qquad P_q, \qquad B_q.
+\]
+Here \(B_q\) denotes the anchor target and anchor weights, not graph edges.
+
+\subsection{Original Active Edges}
+
+\[
+  E_{\mathrm{active},q}
+  =
+  \{(i,j)\in E : i,j\in A_q\}.
+\]
+These are the only true edge-KK constraints during MISF refinement.
+
+\subsection{Temporary Metric-Neighbor Constraints}
+
+\[
+  M_q
+  =
+  \{(i,j,\delta_{ij}) : i,j\in A_q,\ i<j,\ \delta_{ij}=d_G(i,j)\}.
+\]
+The set is built from weighted metric-neighbor caches, deduplicated, and
+explicitly separated from original active edges. These constraints are
+temporary graph-geodesic stabilizers. They are controlled by \(\rho_q\) and
+decay to zero at the full graph level.
+
+\subsection{Active Repulsion Pairs}
+
+\[
+  P_q \subseteq \{(i,j): i,j\in A_q,\ i<j\}.
+\]
+Use exact active pairs below a threshold such as
+\(|A_q|\le n_{\mathrm{rep,exact}}\). Above the threshold, use a deterministic
+sample keyed by level, seed, and active vertex order. The sampled set and its
+normalized weights are fixed for all Armijo trial evaluations at the iteration
+where they are used.
+
+\subsection{Anchor Targets}
+
+Anchor targets are the coordinates immediately after insertion and before
+level refinement:
+\[
+  B_q =
+  \left\{
+    (i,\tilde{z}_i^{(q)},a_i^{(q)}) : i\in A_q
+  \right\}.
+\]
+Both previously active vertices and newly inserted vertices can have anchors.
+Weights may be larger for \(N_q\) than for \(A_{q+1}\) at early iterations, but
+this is a tunable default.
+
+\section{Algorithm Overview}
+
+The algorithm has six conceptual phases:
+\begin{enumerate}[leftmargin=2em]
+  \item Validate graph, weights, dimension, and tuning parameters.
+  \item Build a weighted MISF hierarchy.
+  \item Initialize the coarsest active set and heuristically insert vertices at
+  each subsequent level.
+  \item At each active level, build separate true-edge, auxiliary metric,
+  repulsion, and anchor objects.
+  \item Refine all active vertices by Armijo descent on the explicit
+  level objective.
+  \item Run a final pure or near-pure
+  \Rfunc{grip.optimize.edge.kk.layout()} polish.
+\end{enumerate}
+
+\subsection{Inputs}
+
+A proposed R signature is:
+\begin{verbatim}
+grip.layout.misf.edge.kk <- function(
+  edges = NULL,
+  n = NULL,
+  adj_list = NULL,
+  weight_list = NULL,
+  edge_weights = NULL,
+  dim = 3L,
+  num_init = 24L,
+  num_nbrs = 20L,
+  rounds = 80L,
+  final_rounds = 160L,
+  auxiliary_metric = TRUE,
+  repulsion_mode = c("hybrid", "active_exact", "active_sampled",
+                     "none"),
+  repulsion_factor = 1.0,
+  repulsion_schedule = c("coarse_to_fine", "constant", "off_full"),
+  metric_factor = 0.25,
+  metric_schedule = c("coarse_to_fine", "constant", "off_full"),
+  anchor_factor = 0.1,
+  anchor_schedule = c("coarse_to_fine", "constant", "off_full"),
+  stiffness_method = c("density", "uniform", "distance_power"),
+  stiffness_transform = c("identity", "sqrt", "log"),
+  density_mix_schedule = c(0, 0.5, 1),
+  misf_scale_mode = c("identity", "global_fixed", "level_fixed", "user"),
+  final_scale_mode = c("profiled", "identity", "fixed_initial", "user"),
+  scale = NULL,
+  edge_length_epsilon = 1e-8,
+  repulsion_epsilon = 1e-8,
+  initial_step = 1.0,
+  step_shrink = 0.5,
+  armijo_factor = 1e-4,
+  grad_tol = 1e-8,
+  min_step = 1e-8,
+  final_edge_kk_polish = TRUE,
+  final_edge_kk_iter = 50L,
+  seed = 6L,
+  return_trace = FALSE,
+  disconnected = c("components", "error")
+)
+\end{verbatim}
+
+This signature is intentionally verbose for design discussion. The first
+implementation should expose fewer controls and keep experimental controls
+internal until their behavior is understood.
+
+\section{Detailed Algorithm}
+
+\subsection{Step 1: Preprocessing}
+
+Validate and normalize the graph exactly as weighted-GRIP does:
+\begin{enumerate}[leftmargin=2em]
+  \item Accept either edge matrix input or adjacency-list input.
+  \item Validate positive edge weights.
+  \item Normalize edge lengths using the existing weighted layout conventions.
+  \item Build adjacency and weight lists.
+  \item For disconnected graphs, either error or solve components separately
+  and pack them, matching existing weighted-GRIP behavior.
+\end{enumerate}
+
+Let the normalized target edge length be \(\ell_{ij}\).
+
+\subsection{Step 2: Build Weighted MISF}
+
+Reuse the weighted MISF construction from the weighted-GRIP/ND infrastructure.
+The output should include:
+\begin{itemize}[leftmargin=2em]
+  \item the ordered vertex array \(\pi=\texttt{misf.order}\),
+  \item MISF level sizes \(m_q=\texttt{misf.level\_size[q]}\),
+  \item weighted metric-neighbor caches,
+  \item insertion anchors,
+  \item active-level metadata for tracing.
+\end{itemize}
+
+The MISF should be built from weighted graph distances, not unweighted graph
+distance, because the edge-KK target lengths are weighted. At every later level
+the active set is exactly the prefix \(A_q=\{\pi_1,\ldots,\pi_{m_q}\}\), and
+newly inserted vertices are \(N_q=A_q\setminus A_{q+1}\).
+
+\subsection{Step 3: Coarsest-Level Initialization}
+
+Let \(A_L\) be the coarsest active set.
+Possible initialization modes:
+\begin{description}[leftmargin=2em]
+  \item[\texttt{random\_centered}] current GRIP-style random initial placement,
+  centered at the origin.
+  \item[\texttt{metric\_mds}] metric-MDS on the coarsest weighted metric cache.
+  \item[\texttt{simplex}] deterministic near-simplex initialization when
+  \(|A_L|\le d+1\).
+\end{description}
+
+The recommended initial default is \texttt{metric\_mds} when cheap and
+\texttt{random\_centered} otherwise. For parity with existing weighted-GRIP
+diagnostics, \texttt{random\_centered} should remain available.
+
+\subsection{Step 4: Insert New Vertices}
+
+When moving from \(A_{q+1}\) to \(A_q\), each new vertex \(v\in A_q\setminus
+A_{q+1}\) is assigned an initial coordinate before refinement.
+
+The insertion objective should be a small local edge/metric KK problem:
+\[
+  \min_{z_v\in\RR^d}
+  \frac{1}{2}
+  \sum_{a\in B_q(v)}
+  b_{va}
+  \left(
+    \sqrt{\norm{z_v-z_a}^2+\eps_{\mathrm{edge}}^2}
+    -
+    d_G(v,a)
+  \right)^2
+  +
+  \lambda_{\mathrm{ins}}
+  \mathcal{R}_{\mathrm{local}}(z_v),
+\]
+where \(B_q(v)\) is an anchor set among already-active vertices and
+\(d_G(v,a)\) is the weighted graph distance. The local repulsion term is
+optional and should usually be weak.
+
+Practical insertion modes:
+\begin{description}[leftmargin=2em]
+  \item[\texttt{barycenter}] weighted barycenter of anchors.
+  \item[\texttt{least\_squares}] distance-fitting least-squares insertion.
+  \item[\texttt{local\_edge\_kk}] a few Armijo steps on the insertion objective.
+\end{description}
+
+The recommended default is:
+\[
+  \texttt{least\_squares} + \texttt{local\_edge\_kk\_polish}.
+\]
+
+\subsection{Step 5: Active-Level Armijo Refinement}
+
+For each level \(q\), run a fixed-budget Armijo optimizer on the explicit
+objective \(\mathcal{E}_q\). The optimized variables are only
+\(\{z_i:i\in A_q\}\). Vertices outside \(A_q\) are absent from the objective and
+do not move. Both previously active vertices in \(A_{q+1}\) and newly inserted
+vertices in \(N_q\) may move.
+
+Before the first Armijo iteration at level \(q\):
+\begin{enumerate}[leftmargin=2em]
+  \item construct \(E_{\mathrm{active},q}\), \(M_q\), \(P_q\), and \(B_q\);
+  \item compute \(\rho_q\), \(\lambda_q\), anchor weights, stiffnesses, and the
+  fixed MISF-level scale;
+  \item normalize repulsion pair weights so the total repulsion mass is
+  \(O(|A_q|)\), not \(O(|A_q|^2)\);
+  \item store anchor targets from the post-insertion coordinates.
+\end{enumerate}
+
+Each Armijo iteration evaluates
+\[
+  G_q = \nabla_{Z_{A_q}}\mathcal{E}_q(Z_{A_q})
+\]
+and proposes
+\[
+  Z_{A_q}' = Z_{A_q} - \eta G_q.
+\]
+The proposal is accepted if
+\[
+  \mathcal{E}_q(Z_{A_q}')
+  \le
+  \mathcal{E}_q(Z_{A_q})
+  -
+  c\eta\norm{G_q}_F^2.
+\]
+Otherwise the step is shrunk, \(\eta\leftarrow\gamma\eta\), until the Armijo
+condition is met or \(\eta<\eta_{\min}\).
+
+After an accepted step, recenter the active coordinates \(Z_{A_q}\). Recenter
+only active coordinates for the current component; inactive vertices do not
+participate.
+
+\subsubsection{Stopping Criteria}
+
+Stop level \(q\) when any of the following holds:
+\begin{enumerate}[leftmargin=2em]
+  \item the fixed iteration budget \(T_q\) is reached;
+  \item \(\norm{G_q}_F \le \tau_{\mathrm{grad}}\);
+  \item no Armijo step above \(\eta_{\min}\) is accepted;
+  \item relative objective decrease over a small patience window falls below a
+  tolerance.
+\end{enumerate}
+
+\subsubsection{Recommended First Implementation}
+
+The recommended first implementation should use Armijo descent for every MISF
+refinement level. Local-temperature updates are deliberately excluded from
+version 0 objective refinement because they obscure the objective being
+optimized. They may be revisited later as an acceleration heuristic only after
+the Armijo objective path is validated.
+
+\section{Level Schedules}
+
+Version 0 has three non-edge schedules: auxiliary metric strength \(\rho_q\),
+repulsion strength \(\lambda_q\), and anchor weights \(a_i^{(q)}\). All three
+must decay toward the final graph level so the final polish can be interpreted
+as pure or near-pure edge-KK.
+
+\subsection{Auxiliary Metric Schedule}
+
+The metric-neighbor coefficient \(\rho_q\) controls temporary graph-geodesic
+constraints:
+\[
+  \rho_L \ge \rho_{L-1} \ge \cdots \ge \rho_0 = 0.
+\]
+The default should use positive \(\rho_q\) on coarse levels and switch it off
+at the full graph level. A simple default is
+\[
+  \rho_q = \rho_{\max}
+  \left(
+    \frac{q}{L}
+  \right)^{\gamma_\rho},
+\]
+with \(\rho_0=0\) enforced exactly.
+
+\subsection{Repulsion Schedule}
+
+The repulsion coefficient \(\lambda_q\) should vary by level. A useful default
+is:
+\[
+  \lambda_q
+  =
+  \lambda_0
+  \left(
+    \frac{|A_q|}{|V|}
+  \right)^\gamma
+  +
+  \lambda_{\min},
+\]
+or a simple piecewise schedule:
+\[
+  \lambda_q =
+  \begin{cases}
+    \lambda_{\mathrm{coarse}}, & \text{coarse levels},\\
+    \lambda_{\mathrm{mid}},    & \text{intermediate levels},\\
+    \lambda_{\mathrm{final}},  & \text{full graph}.
+  \end{cases}
+\]
+
+The default should probably use stronger repulsion during coarse and insertion
+levels and weaker repulsion during final full-level refinement:
+\[
+  \lambda_{\mathrm{coarse}}
+  >
+  \lambda_{\mathrm{mid}}
+  >
+  \lambda_{\mathrm{final}}
+  \ge 0.
+\]
+By default, \(\lambda_{\mathrm{final}}\) should be zero or near zero before the
+final \Rfunc{grip.optimize.edge.kk.layout()} polish. If nonzero full-level
+repulsion is used, the final polish should be described as near-pure rather
+than pure edge-KK.
+
+This lets repulsion protect the topology early without preventing final
+edge-length accuracy.
+
+\subsection{Anchor Schedule}
+
+Anchor weights are stored as \(a_i^{(q)}\). They should stabilize the transition
+from insertion to refinement, then decay:
+\[
+  a_i^{(q,t)}
+  =
+  a_{i,0}^{(q)}
+  \left(1-\frac{t}{T_q}\right)^{\gamma_a},
+\]
+where \(t\) is the Armijo iteration index within level \(q\). Anchors are off
+for final polish. A tunable default is to use a larger initial anchor for newly
+inserted vertices \(N_q\) than for already active vertices \(A_{q+1}\).
+
+\subsection{Repulsion Pair Normalization}
+
+For exact repulsion, \(|P_q|=|A_q|(|A_q|-1)/2\), which would make the raw log
+repulsion scale quadratically with active count. Version 0 therefore normalizes
+weights so
+\[
+  \sum_{(i,j)\in P_q} \omega_{ij}^{(q)} = |A_q|.
+\]
+For sampled repulsion, use the same total mass after sampling. The pair set and
+weights are fixed during Armijo trial evaluations.
+
+\section{Stiffness Schedule}
+
+The existing edge-KK optimizer supports a density-mix continuation schedule.
+The MISF version should generalize this to levels:
+\[
+  k_{ij}^{(q,t)}
+  =
+  (1-\mu_t)k_{ij}^{\mathrm{density}}
+  +
+  \mu_t k_{ij}^{\mathrm{uniform}},
+\]
+where \(\mu_t\in[0,1]\) is a continuation value. The current default schedule
+\[
+  (0,0.25,0.5,0.75,1)
+\]
+is probably too expensive if applied at every MISF level. A smaller default
+such as
+\[
+  (0,0.5,1)
+\]
+or a level-dependent schedule should be considered.
+
+One practical design is:
+\begin{itemize}[leftmargin=2em]
+  \item coarse levels: density-weighted stiffnesses to stabilize irregular
+  edge-length distributions;
+  \item intermediate levels: mixed stiffnesses;
+  \item final level: uniform or nearly uniform stiffnesses for faithful
+  edge-isometry.
+\end{itemize}
+
+This stiffness schedule applies separately to true edge constraints and
+auxiliary metric constraints. Metric-neighbor stiffnesses should be treated as
+temporary stabilizers and scaled by \(\rho_q\); they should not be reported as
+edge-KK stiffnesses.
+
+\section{Trace Schema}
+
+The trace should make the staged hybrid explicit. Each accepted or attempted
+Armijo iteration should record at least:
+\begin{itemize}[leftmargin=2em]
+  \item level index \(q\);
+  \item active count \(|A_q|\);
+  \item inserted count \(|N_q|\);
+  \item counts of true edges \(|E_{\mathrm{active},q}|\), metric constraints
+  \(|M_q|\), and repulsion pairs \(|P_q|\);
+  \item \(\rho_q\), \(\lambda_q\), anchor summary weights, and repulsion weight
+  normalization;
+  \item scale mode and scale value;
+  \item total objective and separate edge, metric, repulsion, and anchor
+  energies;
+  \item gradient norm;
+  \item accepted step size and number of line-search shrinkages;
+  \item true-edge relative RMSE;
+  \item auxiliary metric relative RMSE when \(|M_q|>0\);
+  \item elapsed time for the iteration or level.
+\end{itemize}
+
+\section{Pseudocode}
+
+\subsection{High-Level Solver}
+
+\begin{verbatim}
+function grip.layout.misf.edge.kk(graph, weights, dim, controls):
+    validated = validate_weighted_graph(graph, weights, dim)
+    components = split_components_if_requested(validated)
+    layouts = []
+
+    for component in components:
+        hierarchy = build_weighted_misf(component, controls)
+        coords = initialize_coarsest_level(hierarchy.top, dim, controls)
+        previous_active = empty_set
+
+        for level from top_level down to full_graph_level:
+            active = prefix(hierarchy.misf_order,
+                            hierarchy.level_size[level])
+            newly_inserted = active \ previous_active
+
+            if level is not top_level:
+                coords = insert_new_vertices(coords, hierarchy, level, controls)
+
+            anchors = capture_post_insertion_anchor_targets(coords, active)
+            true_edges = original_edges_with_both_endpoints_in(active)
+            metric_constraints = metric_neighbor_constraints(
+                hierarchy, active, excluding = true_edges
+            )
+            repulsion_pairs = build_repulsion_pairs(hierarchy, level, controls)
+            schedules = resolve_level_schedules(level, controls)
+
+            coords = armijo_refine_active_level(
+                coords,
+                active,
+                newly_inserted,
+                true_edges,
+                metric_constraints,
+                repulsion_pairs,
+                anchors,
+                schedules,
+                controls
+            )
+
+            record_trace_if_requested()
+            previous_active = active
+
+        if controls.final_edge_kk_polish:
+            coords = grip.optimize.edge.kk.layout(coords = coords, ...)
+
+        layouts.append(coords)
+
+    return pack_components(layouts)
+\end{verbatim}
+
+\subsection{Level Optimizer}
+
+\begin{verbatim}
+function armijo_refine_active_level(coords, active, newly_inserted,
+                                    true_edges, metric_constraints,
+                                    repulsion_pairs, anchors, schedules,
+                                    controls):
+    for stage in stiffness_schedule:
+        edge_stiffness = build_edge_stiffness(true_edges, stage)
+        metric_stiffness = build_metric_stiffness(metric_constraints, stage)
+        scale = fixed_misf_scale(coords, true_edges, controls)
+
+        for iter in 1:rounds_for_level:
+            state = evaluate_level_objective(
+                coords,
+                active,
+                true_edges,
+                edge_stiffness,
+                metric_constraints,
+                metric_stiffness,
+                repulsion_pairs,
+                anchors,
+                schedules,
+                scale
+            )
+
+            if state.gradient_norm < grad_tol:
+                break
+
+            proposal = armijo_line_search(coords, active, state, controls)
+            if proposal.accepted:
+                coords[active, ] = proposal.coords[active, ]
+                recenter_active_or_component(coords, active)
+            else:
+                break
+
+            record_level_trace(state, proposal)
+
+    return coords
+\end{verbatim}
+
+\section{Implementation Plan}
+
+\subsection{Phase 0: Design and Baselines}
+
+\begin{enumerate}[leftmargin=2em]
+  \item Keep this design document as the reference.
+  \item Create benchmark scripts comparing:
+  \begin{itemize}
+    \item \Rfunc{grip.layout.weighted()} followed by
+    \Rfunc{grip.optimize.edge.kk.layout()};
+    \item \Rfunc{grip.metric.mds.layout()} followed by
+    \Rfunc{grip.optimize.edge.kk.layout()};
+    \item the future \Rfunc{grip.layout.misf.edge.kk()}.
+  \end{itemize}
+  \item Use existing fixtures: paths, cycles, grids, nonuniform grids, lattices,
+  quadforms, trees, and irregular manifold-like graphs.
+\end{enumerate}
+
+\subsection{Phase 1: R Prototype}
+
+Implement a clear R prototype before writing compiled code:
+\begin{enumerate}[leftmargin=2em]
+  \item Build or reuse a weighted MISF object.
+  \item At each level, define \(A_q\) as the prefix of \texttt{misf.order} and
+  \(N_q=A_q\setminus A_{q+1}\).
+  \item Heuristically insert \(N_q\), then capture anchor targets.
+  \item Build \(E_{\mathrm{active},q}\), \(M_q\), \(P_q\), and anchor objects as
+  separate data structures.
+  \item Use the existing R edge-KK gradient function for true edge terms.
+  \item Add R implementations of auxiliary metric stress, log repulsion, and
+  quadratic anchors.
+  \item Use Armijo descent for every active-level refinement.
+  \item Return coordinates, trace, and diagnostics.
+\end{enumerate}
+
+The R prototype will be slower, but it will make the objective and trace schema
+easy to verify.
+
+\subsection{Phase 2: Minimal Compiled Backend}
+
+Once the R prototype is correct, implement the hot loop in C++:
+\begin{enumerate}[leftmargin=2em]
+  \item Add a compiled state evaluator for true edge stress, auxiliary metric
+  stress, log repulsion, and quadratic anchors.
+  \item Support arbitrary dimension.
+  \item Support exact active-pair repulsion below a threshold.
+  \item Support deterministic sampled repulsion above the threshold.
+  \item Support identity, global fixed, level fixed, and user scale modes during
+  MISF refinement.
+  \item Keep profiled scale out of repulsive MISF refinement and reserve it for
+  final edge-KK polish or edge-only diagnostics.
+  \item Return per-stage trace rows with counts, schedules, term energies,
+  gradient norms, accepted step sizes, RMSEs, and elapsed time.
+\end{enumerate}
+
+This phase could reuse ideas from:
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{src/edge\_isometric\_gkk\_rcpp.cpp},
+  \item \texttt{src/edge\_repulsive\_unfolding\_rcpp.cpp},
+  \item \texttt{src/DrawGraphND.cpp}.
+\end{itemize}
+
+\subsection{Phase 3: MISF Integration}
+
+Integrate the compiled evaluator into a MISF engine:
+\begin{enumerate}[leftmargin=2em]
+  \item Reuse weighted MISF construction.
+  \item Reuse weighted insertion anchors for heuristic insertion, not as hidden
+  objective terms.
+  \item Add level-wise construction of \(E_{\mathrm{active},q}\), \(M_q\),
+  \(P_q\), and \(B_q\).
+  \item Ensure sampled \(P_q\) is deterministic and fixed during Armijo trials.
+  \item Add trace frames compatible with the staged hybrid trace schema.
+\end{enumerate}
+
+At this phase the method becomes a true MISF edge-KK algorithm rather than a
+post-hoc optimizer.
+
+\subsection{Phase 4: Final Polish and Public Wrapper}
+
+Add the exported R wrapper:
+\[
+  \Rfunc{grip.layout.misf.edge.kk()}.
+\]
+The wrapper should:
+\begin{itemize}[leftmargin=2em]
+  \item use familiar weighted-GRIP input conventions;
+  \item support \(\dim\ge 2\);
+  \item optionally return trace and diagnostics;
+  \item run a final pure or near-pure edge-KK polish by default;
+  \item clearly mark the function as experimental until benchmarks stabilize.
+\end{itemize}
+
+\subsection{Phase 5: Testing and Reports}
+
+Add tests in layers:
+\begin{enumerate}[leftmargin=2em]
+  \item validation tests for inputs and dimensions;
+  \item finite-output tests in dimensions 2, 3, and 4;
+  \item edge-stress decrease tests on small graphs;
+  \item full objective decrease tests for each active-level Armijo refinement;
+  \item equivalence tests where repulsion is off and one level is used, checking
+  agreement with \Rfunc{grip.optimize.edge.kk.layout()};
+  \item tests that \(M_q\) is deduplicated and disjoint from
+  \(E_{\mathrm{active},q}\);
+  \item tests that sampled \(P_q\) is deterministic and fixed during line
+  search;
+  \item comparison reports against the two existing pipelines;
+  \item gflow-backed scientific validation for grids, nonuniform grids, and
+  quadform examples.
+\end{enumerate}
+
+\section{Tuning Strategy for Auxiliary Metric and Repulsion Schedules}
+
+The two most important regularization schedules are:
+\[
+  \rho_q \quad \text{for auxiliary metric-neighbor stress},
+  \qquad
+  \lambda_q \quad \text{for log repulsion}.
+\]
+These schedules should be tuned deliberately because they control the central
+trade-off of the method. Large \(\rho_q\) and \(\lambda_q\) help the MISF
+construction choose stable global basins, but they can also pull the final
+embedding away from edge-isometric fidelity. Small values make the method closer
+to pure edge-KK, but may allow coarse-level ambiguity, collapse, or fold-over.
+
+\subsection{Recommended Tuning Philosophy}
+
+Version 0 should not use a fully adaptive controller. The first release should
+use a small global schedule family with graph-size and level normalization, plus
+trace diagnostics that make failures interpretable. Adaptive modifiers should
+be added later only when a diagnostic has a clear meaning.
+
+The recommended progression is:
+\begin{enumerate}[leftmargin=2em]
+  \item tune a robust global default schedule family on a broad fixture panel;
+  \item keep pair-mass normalization and level-fraction normalization active
+  from the beginning;
+  \item add simple adaptive guards only after the global default is stable;
+  \item keep all adaptive decisions visible in the trace.
+\end{enumerate}
+
+This keeps the method auditable. A global default answers the question
+``what algorithm are we running?'' Adaptive guards should answer narrower
+questions such as ``was this active edge graph too sparse for pure edge
+constraints at this level?''
+
+\subsection{Schedule Parameterization}
+
+Use a low-dimensional schedule family rather than arbitrary per-level values.
+Let
+\[
+  \theta_q =
+  \begin{cases}
+    q/L, & L>0,\\
+    0, & L=0,
+  \end{cases}
+\]
+so that \(\theta_q=1\) at the coarsest level and \(\theta_q=0\) at the full
+graph level. A default auxiliary metric schedule can be
+\[
+  \rho_q =
+  \rho_{\max}\theta_q^{\gamma_\rho},
+  \qquad
+  \rho_0=0.
+\]
+A default repulsion schedule can be
+\[
+  \lambda_q =
+  \lambda_{\min}
+  +
+  \lambda_{\max}\theta_q^{\gamma_\lambda},
+\]
+with \(\lambda_{\min}=0\) for pure final edge-KK polish, or a small nonzero
+\(\lambda_{\min}\) only when the final full-level refinement is intentionally
+near-pure rather than pure edge-KK.
+
+The first tuning grid should be small:
+\[
+  \rho_{\max}\in\{0,0.05,0.1,0.25,0.5,1.0\},
+  \qquad
+  \gamma_\rho\in\{0.5,1,2\},
+\]
+\[
+  \lambda_{\max}\in\{0,0.05,0.1,0.25,0.5,1.0\},
+  \qquad
+  \gamma_\lambda\in\{0.5,1,2\}.
+\]
+The actual numerical scale may need adjustment after the objective terms are
+implemented because edge stress, metric stress, and log repulsion can have
+different natural magnitudes. The trace must therefore record term energies and
+gradient norms, not only final layout quality.
+
+\subsection{Fixture Panel}
+
+The tuning panel should include graph families that stress different failure
+modes:
+\begin{itemize}[leftmargin=2em]
+  \item paths and cycles, to detect over-regularization and scale drift;
+  \item flat 2D grids, to detect fold-over and edge-length bias;
+  \item nonuniform 2D grids, to test variable edge lengths;
+  \item flat 3D lattices embedded in 3D and projected to 2D, to test
+  cross-dimensional behavior;
+  \item nonuniform 3D grids, to test irregular weighted geometry;
+  \item quadform-derived 2D and 3D examples, to test local metric fidelity;
+  \item trees and branching graphs, to test sparse active edge sets;
+  \item irregular manifold-like graphs, such as annulus, torus, shell, sphere,
+  and pair-of-pants examples where available;
+  \item graphs with bottlenecks or density variation, to test whether
+  repulsion and auxiliary metrics prevent collapse without tearing.
+\end{itemize}
+
+Each fixture should be run across several seeds unless the initialization is
+fully deterministic. Seed stability is a first-class output, not a secondary
+plot.
+
+\subsection{Baselines}
+
+Every tuning report should compare the same graph against:
+\begin{enumerate}[leftmargin=2em]
+  \item \Rfunc{grip.layout.weighted()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()};
+  \item \Rfunc{grip.metric.mds.layout()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()};
+  \item \Rfunc{grip.layout.misf.edge.kk()} with \(\rho_q=\lambda_q=0\) where
+  this is meaningful;
+  \item \Rfunc{grip.layout.misf.edge.kk()} over the candidate schedule grid.
+\end{enumerate}
+
+The zero-regularization MISF run is not expected to be best. It is a diagnostic
+baseline that shows what the MISF machinery contributes without auxiliary
+metric or repulsive stabilization.
+
+\subsection{Evaluation Metrics}
+
+The tuning objective should be multi-criteria. A candidate schedule should not
+win solely because it improves one scalar stress while producing an unusable
+shape. Record at least:
+\begin{itemize}[leftmargin=2em]
+  \item final true-edge relative RMSE;
+  \item final true-edge signed bias;
+  \item graph-geodesic distortion on sampled vertex pairs;
+  \item auxiliary metric RMSE at levels where \(M_q\) is active;
+  \item local angle or quadform preservation where ground-truth geometry exists;
+  \item Procrustes RMSE to known coordinates for synthetic fixtures;
+  \item fold-over or cell-orientation failures for grid-like fixtures;
+  \item minimum pair distance and low-percentile pair distances;
+  \item seed-to-seed variability of final metrics;
+  \item number of Armijo iterations, rejected trial steps, and early stops;
+  \item runtime and peak memory where measurable.
+\end{itemize}
+
+The trace-level metrics should include, per level:
+\begin{itemize}[leftmargin=2em]
+  \item edge, metric, repulsion, and anchor energy fractions;
+  \item edge and metric gradient-norm fractions;
+  \item \(|E_{\mathrm{active},q}|\), \(|M_q|\), and \(|P_q|\);
+  \item active edge graph connected-component count;
+  \item repulsion pair normalization mass;
+  \item accepted step-size distribution.
+\end{itemize}
+
+\subsection{Selecting a Global Default}
+
+The first global default should be selected as a Pareto compromise, not as the
+minimizer of a single metric. A candidate default should satisfy:
+\begin{enumerate}[leftmargin=2em]
+  \item no systematic fold-over failures on grid-like fixtures;
+  \item final edge RMSE competitive with the two current pipelines;
+  \item better or comparable seed stability than the two current pipelines;
+  \item no large graph family where auxiliary metric stress remains dominant at
+  late levels;
+  \item acceptable runtime relative to
+  \Rfunc{grip.layout.weighted()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()}.
+\end{enumerate}
+
+If no single schedule is robust, prefer a conservative default with weaker
+regularization and expose stronger presets for difficult sparse or folding-prone
+families.
+
+\subsection{Adaptive Guards for Later Versions}
+
+After a global default is established, adaptive guards can adjust \(\rho_q\) and
+\(\lambda_q\) using interpretable diagnostics. Recommended guards are:
+\begin{description}[leftmargin=2em]
+  \item[Active-edge sparsity guard] If the graph induced by
+  \(E_{\mathrm{active},q}\) has too many connected components or too small an
+  average active degree, increase \(\rho_q\) for that level.
+  \item[Collapse guard] If a low percentile of active pair distances falls below
+  a scale-adjusted threshold, increase \(\lambda_q\) or delay its decay.
+  \item[Repulsion-dominance guard] If repulsion gradient norm or energy remains
+  too large relative to true edge stress late in the solve, decrease
+  \(\lambda_q\).
+  \item[Auxiliary-metric-dominance guard] If metric-neighbor stress dominates
+  true edge stress at late levels, reduce \(\rho_q\) faster.
+  \item[Armijo-failure guard] If line search repeatedly fails at a level, reduce
+  the active regularization coefficients before reducing the edge objective.
+\end{description}
+
+Each adaptive change must be recorded in the trace with the diagnostic that
+triggered it. Adaptive behavior should be optional until it is benchmarked
+against the global default.
+
+\subsection{Tuning Report Outputs}
+
+The tuning report should produce:
+\begin{itemize}[leftmargin=2em]
+  \item a per-run metrics table with graph, seed, schedule parameters, final
+  metrics, and runtime;
+  \item a per-level trace summary table showing term energies and gradient
+  fractions;
+  \item Pareto plots of edge RMSE versus fold-over rate, edge RMSE versus
+  geodesic distortion, and edge RMSE versus runtime;
+  \item seed-stability plots for the best candidate schedules;
+  \item a short recommended default and a list of fixtures where it fails.
+\end{itemize}
+
+This report should become the main evidence for whether \(\rho_q\) and
+\(\lambda_q\) are fixed defaults, preset-specific defaults, or adaptive
+quantities.
+
+\section{Expected Advantages}
+
+The integrated MISF edge-KK method should offer:
+\begin{itemize}[leftmargin=2em]
+  \item better edge-length fidelity than weighted-GRIP alone;
+  \item better global basin selection than post-hoc edge-KK alone;
+  \item less dependence on metric-MDS as an initializer;
+  \item a natural path to high-dimensional edge-isometric embeddings;
+  \item a direct framework for comparing repulsion schedules and edge-KK
+  stiffness schedules.
+\end{itemize}
+
+\section{Risks and Open Questions}
+
+\subsection{Repulsion Can Fight Edge Isometry}
+
+Repulsion is essential for avoiding collapse and fold-over, but it can also
+stretch edges away from their desired lengths. The solution should be a schedule
+that uses repulsion strongly during coarse construction and weakly during final
+edge-KK polish.
+
+\subsection{Coarse Levels May Need Non-Edge Constraints}
+
+Pure edge constraints among MISF vertices may be too sparse at coarse levels.
+Hybrid metric constraints are likely necessary. The key question is how quickly
+to remove or downweight them so the final result remains an edge-KK layout.
+
+\subsection{Armijo Cost}
+
+Armijo descent gives a clean objective and is required for version 0, but it
+may be slower than the current GRIP local-temperature refinement. The first
+implementation should prioritize objective clarity over speed. Local
+temperature should remain out of the version-0 refinement path and may be
+reconsidered only after the Armijo formulation is validated.
+
+\subsection{Scale Drift Across Levels}
+
+Profiled scale can change from level to level and can interact badly with
+repulsion. For that reason, profiled scale is excluded from MISF refinement
+while repulsion or auxiliary metric stress is active. The implementation should
+record scale in the trace and support identity, global fixed, and level fixed
+scale as diagnostic modes.
+
+\subsection{Benchmark Definition}
+
+The method should not be judged only by edge stress. It should be evaluated by:
+\begin{itemize}[leftmargin=2em]
+  \item edge relative RMSE,
+  \item local angle or quadform preservation where available,
+  \item graph-geodesic distance distortion,
+  \item visual fold-over diagnostics,
+  \item stability across seeds,
+  \item runtime and memory use.
+\end{itemize}
+
+\section{Recommended First Milestone}
+
+The first useful milestone should be deliberately narrow:
+\begin{quote}
+Implement an R prototype of a one-component MISF edge-KK layout in dimensions
+\(d\ge2\), using hybrid coarse constraints, exact active repulsion for small
+graphs, fixed or identity MISF-level scale, Armijo descent, and a final optional
+call to
+\Rfunc{grip.optimize.edge.kk.layout()}.
+\end{quote}
+
+Success criteria:
+\begin{enumerate}[leftmargin=2em]
+  \item finite deterministic layouts on paths, cycles, grids, and trees;
+  \item objective decrease at each active level when using Armijo;
+  \item when MISF has only one level and repulsion is disabled, results match
+  \Rfunc{grip.optimize.edge.kk.layout()} within numerical tolerance;
+  \item on canonical fixtures, the integrated method matches or improves the
+  final edge relative RMSE of \Rfunc{grip.layout.weighted()} followed by
+  \Rfunc{grip.optimize.edge.kk.layout()}.
+\end{enumerate}
+
+\section{Conclusion}
+
+\Rfunc{grip.layout.misf.edge.kk()} is a natural extension of the current
+\grip{} layout ecosystem. It should be viewed as a new staged hybrid algorithm
+rather than a replacement for \Rfunc{grip.layout.weighted()}. The conceptual
+merge is: keep the weighted-MISF hierarchy and insertion machinery, refine each
+active level with an explicit Armijo objective containing true edge stress,
+temporary auxiliary metric stress, log repulsion, and quadratic anchors, and
+finish with a pure or near-pure edge-KK polish.
+
+If implemented side by side, the method gives \grip{} a principled route toward
+stretched isometric embeddings whose active-level construction is already
+biased toward edge fidelity, while still using temporary metric and repulsive
+regularization to choose a stable global basin.
+
+\end{document}
