@@ -15,13 +15,16 @@ grip.layout.weighted.nd(
   preset = NULL,
   placement = c("barycenter", "circle"),
   rounds = 160,
-  final_rounds = 256,
-  num_init = NULL,
-  num_nbrs = 24,
+  final_rounds = 384,
+  num_init = 24,
+  num_nbrs = 20,
   r = 0.03,
-  s = 6,
-  repulsion_factor = 1.5,
-  tinit_factor = 2,
+  s = 7.5,
+  repulsion_factor = 2.5,
+  coarse_repulsion_factor = 1.5,
+  coarse_repulsion_sample = 16,
+  coarse_repulsion_exact_below = 64,
+  tinit_factor = 6,
   final_anchor_factor = 0,
   final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
@@ -32,6 +35,15 @@ grip.layout.weighted.nd(
   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
   level0_anchor_count = insertion_anchor_count,
   level0_local_kk_steps = 3,
+  lgkk_polish_rounds = 0L,
+  lgkk_multiscale_rounds = 0L,
+  lgkk_rounds_coarse = NULL,
+  lgkk_rounds_pre_final = NULL,
+  lgkk_rounds_final = NULL,
+  lgkk_local_nbrs = 20L,
+  lgkk_landmark_count = 8L,
+  lgkk_multiscale_scope = c("all", "coarse"),
+  lgkk_active_limit = 4096L,
   length_normalization = c("median", "mean", "none"),
   disconnected = c("components", "error"),
   seed = 6
@@ -47,13 +59,16 @@ grip.layout.weighted(
   preset = NULL,
   placement = c("barycenter", "circle"),
   rounds = 160,
-  final_rounds = 256,
-  num_init = NULL,
-  num_nbrs = 24,
+  final_rounds = 384,
+  num_init = 24,
+  num_nbrs = 20,
   r = 0.03,
-  s = 6,
-  repulsion_factor = 1.5,
-  tinit_factor = 2,
+  s = 7.5,
+  repulsion_factor = 2.5,
+  coarse_repulsion_factor = 1.5,
+  coarse_repulsion_sample = 16,
+  coarse_repulsion_exact_below = 64,
+  tinit_factor = 6,
   final_anchor_factor = 0,
   final_move_scale_after_first = 1,
   final_mode = c("fr", "kk_repulse"),
@@ -64,6 +79,15 @@ grip.layout.weighted(
   level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
   level0_anchor_count = insertion_anchor_count,
   level0_local_kk_steps = 3,
+  lgkk_polish_rounds = 0L,
+  lgkk_multiscale_rounds = 0L,
+  lgkk_rounds_coarse = NULL,
+  lgkk_rounds_pre_final = NULL,
+  lgkk_rounds_final = NULL,
+  lgkk_local_nbrs = 20L,
+  lgkk_landmark_count = 8L,
+  lgkk_multiscale_scope = c("all", "coarse"),
+  lgkk_active_limit = 4096L,
   length_normalization = c("median", "mean", "none"),
   disconnected = c("components", "error"),
   seed = 6
@@ -105,6 +129,15 @@ only available for \code{dim = 2}; higher dimensions use
 
 \item{repulsion_factor}{Non-edge repulsion multiplier.}
 
+\item{coarse_repulsion_factor}{Non-negative multiplier applied to the extra
+active-set repulsion used during coarse weighted refinement.}
+
+\item{coarse_repulsion_sample}{Positive integer sample size used to
+approximate active-set repulsion when the active set is large.}
+
+\item{coarse_repulsion_exact_below}{Positive integer threshold. When the
+active set is no larger than this value, active-set repulsion is exact.}
+
 \item{tinit_factor}{Initial spread multiplier.}
 
 \item{final_anchor_factor}{Non-negative multiplier for an anchor term that
@@ -138,6 +171,46 @@ when inserting non-final MISF levels.}
 
 \item{level0_local_kk_steps}{Number of local weighted-KK polish steps used
 immediately after level-0 insertion.}
+
+\item{lgkk_polish_rounds}{Non-negative integer number of
+landmark-geodesic KK polish iterations applied after the main ND weighted
+GRIP solve. \code{0} disables the polish.}
+
+\item{lgkk_multiscale_rounds}{Non-negative integer number of compiled
+landmark-geodesic KK refinement rounds applied inside the multiscale solver
+after each eligible MISF level completes its standard GRIP rounds.
+This shared budget is used as a fallback when any of the more specific
+per-stage budgets below are left \code{NULL}.}
+
+\item{lgkk_rounds_coarse}{Optional non-negative integer number of compiled
+LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
+When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.}
+
+\item{lgkk_rounds_pre_final}{Optional non-negative integer number of compiled
+LGKK rounds applied on the last coarse level just before the full graph is
+opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
+\code{lgkk_multiscale_rounds}.}
+
+\item{lgkk_rounds_final}{Optional non-negative integer number of compiled
+LGKK rounds applied after the full graph level completes its standard GRIP
+rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
+\code{lgkk_multiscale_rounds}.}
+
+\item{lgkk_local_nbrs}{Number of nearest graph-metric neighbors retained per
+vertex in the LGKK sparse local set when post-layout LGKK polish is
+enabled.}
+
+\item{lgkk_landmark_count}{Number of farthest-point landmarks retained per
+vertex in the LGKK sparse long-range set when post-layout LGKK polish is
+enabled.}
+
+\item{lgkk_multiscale_scope}{Scope for the compiled multiscale LGKK stage.
+\code{"all"} applies it after every eligible MISF level, including the
+final full-graph level. \code{"coarse"} applies it only on coarse levels.}
+
+\item{lgkk_active_limit}{Positive integer upper bound on the active-set size
+for compiled multiscale LGKK cache construction. Levels larger than this
+skip the multiscale LGKK stage.}
 
 \item{length_normalization}{Global edge-length normalization:
 \code{"median"} (default), \code{"mean"}, or \code{"none"}.}

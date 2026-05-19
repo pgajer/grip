@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <iomanip>
 #include <limits>
 #include <queue>
 #include <sstream>
+#include <unordered_set>
 
 namespace gripnd {
 namespace {
@@ -38,6 +40,9 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
                          double r,
                          double s,
                          double repulsion_factor,
+                         double coarse_repulsion_factor,
+                         int coarse_repulsion_sample,
+                         int coarse_repulsion_exact_below,
                          int tinit_factor,
                          double final_anchor_factor,
                          double final_move_scale_after_first,
@@ -50,6 +55,14 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
                          int level0_insertion_mode,
                          int level0_anchor_count,
                          int level0_local_kk_steps,
+                         int lgkk_multiscale_rounds,
+                         int lgkk_rounds_coarse,
+                         int lgkk_rounds_pre_final,
+                         int lgkk_rounds_final,
+                         int lgkk_local_nbrs,
+                         int lgkk_landmark_count,
+                         int lgkk_scope,
+                         int lgkk_active_limit,
                          unsigned int seed)
     : graph_(graph),
       dim_(dim),
@@ -60,6 +73,9 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
       r_(r),
       s_(s),
       repulsion_factor_(repulsion_factor),
+      coarse_repulsion_factor_(std::max(0.0, coarse_repulsion_factor)),
+      coarse_repulsion_sample_(std::max(0, coarse_repulsion_sample)),
+      coarse_repulsion_exact_below_(std::max(0, coarse_repulsion_exact_below)),
       tinit_factor_(tinit_factor),
       final_anchor_factor_(std::max(0.0, final_anchor_factor)),
       final_move_scale_after_first_(
@@ -91,6 +107,16 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
                     : LEVEL0_INSERT_INHERIT_ND),
       level0_anchor_count_(std::max(1, level0_anchor_count)),
       level0_local_kk_steps_(std::max(0, level0_local_kk_steps)),
+      lgkk_multiscale_rounds_(std::max(0, lgkk_multiscale_rounds)),
+      lgkk_rounds_coarse_(std::max(0, lgkk_rounds_coarse)),
+      lgkk_rounds_pre_final_(std::max(0, lgkk_rounds_pre_final)),
+      lgkk_rounds_final_(std::max(0, lgkk_rounds_final)),
+      lgkk_local_nbrs_(std::max(0, lgkk_local_nbrs)),
+      lgkk_landmark_count_(std::max(0, lgkk_landmark_count)),
+      lgkk_scope_(lgkk_scope == LGKK_SCOPE_COARSE_ND
+                      ? LGKK_SCOPE_COARSE_ND
+                      : LGKK_SCOPE_ALL_ND),
+      lgkk_active_limit_(std::max(1, lgkk_active_limit)),
       seed_(seed),
       rng_(seed),
       legacy_rng_state_(seed),
@@ -107,6 +133,9 @@ DrawGraphND::DrawGraphND(const GraphND &graph,
       final_anchor_pos_(graph.size(), PointND(static_cast<std::size_t>(dim))),
       metric_neighbors_cache_(graph.size()),
       metric_neighbors_cached_(graph.size(), 0),
+      lgkk_cache_active_count_(0),
+      lgkk_cache_misf_level_(-1),
+      lgkk_cache_scale_l0_(1.0),
       refinement_step_trace_enabled_(false),
       refinement_step_trace_level_index_(-1),
       refinement_step_trace_misf_level_(-1),
@@ -149,10 +178,19 @@ std::vector<PointND> DrawGraphND::layout(LayoutTraceND *trace, int trace_every)
                                  trace_every,
                                  level_index,
                                  misf_level);
+    current_level_rounds = lgkk_refine_level(misf,
+                                             active_count,
+                                             misf_level,
+                                             current_level_rounds,
+                                             trace,
+                                             trace_every,
+                                             level_index);
 
     while(active_count < static_cast<int>(graph_.size())){
         level_index++;
-        if(misf_level > 0 && misf.level_size[static_cast<std::size_t>(misf_level)] != static_cast<int>(graph_.size())){
+        if(misf_level > 0 &&
+           misf.level_size[static_cast<std::size_t>(misf_level)] !=
+               static_cast<int>(graph_.size())){
             misf_level--;
             active_count = misf.level_size[static_cast<std::size_t>(misf_level)];
         } else {
@@ -175,6 +213,13 @@ std::vector<PointND> DrawGraphND::layout(LayoutTraceND *trace, int trace_every)
                                      trace_every,
                                      level_index,
                                      misf_level);
+        current_level_rounds = lgkk_refine_level(misf,
+                                                 active_count,
+                                                 misf_level,
+                                                 current_level_rounds,
+                                                 trace,
+                                                 trace_every,
+                                                 level_index);
         previous_active_count = active_count;
     }
     record_trace(trace,
@@ -672,7 +717,7 @@ void DrawGraphND::legacy_weighted_kk_displacement(
         add_legacy_active_repulsion(
             vert,
             active_count,
-            repulsion_factor_ * 0.05 * kLegacyEdgeND * kLegacyEdgeND
+            coarse_repulsion_factor_ * 0.05 * kLegacyEdgeND * kLegacyEdgeND
         );
 
     scale_legacy_displacement(vert);
@@ -852,9 +897,29 @@ void DrawGraphND::add_legacy_active_repulsion(vertex_t vert,
                                               int active_count,
                                               double repulsion_scale)
 {
-    if(repulsion_scale <= 0.0 || active_count <= 1)
+    if(repulsion_scale <= 0.0 || active_count <= 1 ||
+       coarse_repulsion_sample_ == 0)
         return;
 
+    const int population = active_count - 1;
+    if(active_count <= coarse_repulsion_exact_below_ ||
+       coarse_repulsion_sample_ >= population){
+        add_legacy_active_repulsion_exact(vert, active_count, repulsion_scale);
+        return;
+    }
+
+    add_legacy_active_repulsion_sampled(
+        vert,
+        active_count,
+        std::min(coarse_repulsion_sample_, population),
+        repulsion_scale
+    );
+}
+
+void DrawGraphND::add_legacy_active_repulsion_exact(vertex_t vert,
+                                                    int active_count,
+                                                    double repulsion_scale)
+{
     std::ostringstream repulsion_neighbors;
     repulsion_neighbors << std::setprecision(17);
     if(!last_repulsion_neighbors_.empty())
@@ -873,6 +938,57 @@ void DrawGraphND::add_legacy_active_repulsion(vertex_t vert,
         if(norm2 <= 0.0)
             continue;
         const double scale = repulsion_scale / norm2;
+        if(repulsion_neighbors.tellp() > 0)
+            repulsion_neighbors << ";";
+        repulsion_neighbors << static_cast<int>(overt) + 1;
+        for(int d = 0; d < dim_; d++){
+            const std::size_t dd = static_cast<std::size_t>(d);
+            vect[dd] *= scale;
+            disp_[vert][dd] += vect[dd];
+            last_repulsion_disp_[dd] += vect[dd];
+        }
+    }
+    last_repulsion_neighbors_ = repulsion_neighbors.str();
+}
+
+void DrawGraphND::add_legacy_active_repulsion_sampled(vertex_t vert,
+                                                      int active_count,
+                                                      int sample_count,
+                                                      double repulsion_scale)
+{
+    if(sample_count <= 0)
+        return;
+
+    std::vector<vertex_t> sampled;
+    sampled.reserve(static_cast<std::size_t>(sample_count));
+    while(static_cast<int>(sampled.size()) < sample_count){
+        const int idx = static_cast<int>(next_legacy_rand() %
+                                         static_cast<unsigned long>(active_count));
+        const vertex_t overt = trace_order_[static_cast<std::size_t>(idx)];
+        if(overt == vert)
+            continue;
+        if(std::find(sampled.begin(), sampled.end(), overt) != sampled.end())
+            continue;
+        sampled.push_back(overt);
+    }
+
+    const double sample_scale =
+        static_cast<double>(active_count - 1) / static_cast<double>(sample_count);
+    std::ostringstream repulsion_neighbors;
+    repulsion_neighbors << std::setprecision(17);
+    if(!last_repulsion_neighbors_.empty())
+        repulsion_neighbors << last_repulsion_neighbors_;
+    for(vertex_t overt : sampled){
+        double norm2 = 0.0;
+        PointND vect(static_cast<std::size_t>(dim_));
+        for(int d = 0; d < dim_; d++){
+            const std::size_t dd = static_cast<std::size_t>(d);
+            vect[dd] = coords_[vert][dd] - coords_[overt][dd];
+            norm2 += vect[dd] * vect[dd];
+        }
+        if(norm2 <= 0.0)
+            continue;
+        const double scale = (repulsion_scale * sample_scale) / norm2;
         if(repulsion_neighbors.tellp() > 0)
             repulsion_neighbors << ";";
         repulsion_neighbors << static_cast<int>(overt) + 1;
@@ -944,14 +1060,548 @@ void DrawGraphND::initialize_multiscale_trace(const WeightedMisfND &misf)
     initialize_top_level(misf);
 }
 
+int DrawGraphND::lgkk_round_budget_for_layer(int misf_level) const
+{
+    int budget = 0;
+    if(misf_level == 0)
+        budget = lgkk_rounds_final_;
+    else if(misf_level == 1)
+        budget = lgkk_rounds_pre_final_;
+    else
+        budget = lgkk_rounds_coarse_;
+
+    if(budget == 0)
+        budget = lgkk_multiscale_rounds_;
+    return budget;
+}
+
+bool DrawGraphND::should_run_multiscale_lgkk(int active_count,
+                                             int misf_level) const
+{
+    if(lgkk_round_budget_for_layer(misf_level) == 0)
+        return false;
+    if(lgkk_local_nbrs_ == 0 && lgkk_landmark_count_ == 0)
+        return false;
+    if(active_count < 2 || active_count > lgkk_active_limit_)
+        return false;
+    if(lgkk_scope_ == LGKK_SCOPE_COARSE_ND && misf_level == 0)
+        return false;
+    return true;
+}
+
+void DrawGraphND::clear_lgkk_level_cache()
+{
+    lgkk_cache_active_count_ = 0;
+    lgkk_cache_misf_level_ = -1;
+    lgkk_cache_scale_l0_ = 1.0;
+    lgkk_active_index_.clear();
+    lgkk_distance_matrix_.clear();
+    lgkk_pairs_.clear();
+}
+
+void DrawGraphND::compute_lgkk_active_shortest_paths(
+    const WeightedMisfND &misf,
+    int source_index,
+    int active_count,
+    std::vector<double> &dist,
+    std::vector<int> *parent)
+{
+    const double inf = std::numeric_limits<double>::infinity();
+    const double tol = 1e-10;
+    dist.assign(static_cast<std::size_t>(active_count), inf);
+    if(parent != nullptr)
+        parent->assign(static_cast<std::size_t>(active_count), -1);
+    if(source_index < 0 || source_index >= active_count)
+        return;
+
+    struct QueueNode {
+        double dist;
+        vertex_t vert;
+        int index;
+    };
+    struct QueueNodeGreater {
+        bool operator()(const QueueNode &lhs, const QueueNode &rhs) const
+        {
+            if(lhs.dist != rhs.dist)
+                return lhs.dist > rhs.dist;
+            return lhs.vert > rhs.vert;
+        }
+    };
+
+    dist[static_cast<std::size_t>(source_index)] = 0.0;
+    std::priority_queue<QueueNode,
+                        std::vector<QueueNode>,
+                        QueueNodeGreater> pq;
+    pq.push(QueueNode{
+        0.0,
+        misf.order[static_cast<std::size_t>(source_index)],
+        source_index
+    });
+
+    while(!pq.empty()){
+        const double current_dist = pq.top().dist;
+        const int current_index = pq.top().index;
+        pq.pop();
+        if(current_dist > dist[static_cast<std::size_t>(current_index)] + tol)
+            continue;
+        const vertex_t current_vert = misf.order[static_cast<std::size_t>(current_index)];
+        for(const NeighborND &neighbor : graph_.neighbors(current_vert)){
+            const vertex_t overt = neighbor.vertex;
+            if(overt >= lgkk_active_index_.size())
+                continue;
+            const int overt_index = lgkk_active_index_[overt];
+            if(overt_index < 0 || overt_index >= active_count)
+                continue;
+            const double alt = current_dist + neighbor.weight;
+            const double best = dist[static_cast<std::size_t>(overt_index)];
+            const double scale = std::max(1.0,
+                                          std::max(std::fabs(alt),
+                                                   std::isfinite(best) ? std::fabs(best) : 0.0));
+            const bool improve =
+                !std::isfinite(best) || alt + tol * scale < best;
+            const bool equal =
+                std::isfinite(best) && std::fabs(alt - best) <= tol * scale;
+            if(improve){
+                dist[static_cast<std::size_t>(overt_index)] = alt;
+                if(parent != nullptr)
+                    (*parent)[static_cast<std::size_t>(overt_index)] = current_index;
+                pq.push(QueueNode{alt, overt, overt_index});
+            } else if(equal && parent != nullptr){
+                const int current_parent =
+                    (*parent)[static_cast<std::size_t>(overt_index)];
+                if(current_parent < 0 ||
+                   misf.order[static_cast<std::size_t>(current_index)] <
+                       misf.order[static_cast<std::size_t>(current_parent)]){
+                    (*parent)[static_cast<std::size_t>(overt_index)] = current_index;
+                }
+            }
+        }
+    }
+}
+
+std::vector<int> DrawGraphND::lgkk_choose_local_neighbors(
+    int source_index,
+    int active_count) const
+{
+    struct Candidate {
+        double dist;
+        int index;
+        vertex_t vert;
+    };
+    if(lgkk_local_nbrs_ == 0 || source_index < 0 || source_index >= active_count)
+        return std::vector<int>();
+
+    const double *row =
+        lgkk_distance_matrix_.data() +
+        static_cast<std::size_t>(source_index * active_count);
+    std::vector<Candidate> candidates;
+    candidates.reserve(static_cast<std::size_t>(std::max(0, active_count - 1)));
+    for(int idx = 0; idx < active_count; idx++){
+        if(idx == source_index || !std::isfinite(row[idx]))
+            continue;
+        candidates.push_back(Candidate{
+            row[idx],
+            idx,
+            trace_order_[static_cast<std::size_t>(idx)]
+        });
+    }
+    std::sort(candidates.begin(), candidates.end(),
+              [](const Candidate &lhs, const Candidate &rhs){
+                  if(lhs.dist != rhs.dist)
+                      return lhs.dist < rhs.dist;
+                  return lhs.vert < rhs.vert;
+              });
+
+    std::vector<int> out;
+    out.reserve(static_cast<std::size_t>(
+        std::min<int>(lgkk_local_nbrs_, static_cast<int>(candidates.size()))));
+    for(std::size_t i = 0;
+        i < candidates.size() && static_cast<int>(out.size()) < lgkk_local_nbrs_;
+        i++){
+        out.push_back(candidates[i].index);
+    }
+    return out;
+}
+
+std::vector<int> DrawGraphND::lgkk_choose_landmarks(
+    const WeightedMisfND &misf,
+    int source_index,
+    int active_count) const
+{
+    if(lgkk_landmark_count_ == 0 || source_index < 0 || source_index >= active_count)
+        return std::vector<int>();
+
+    const double *source_row =
+        lgkk_distance_matrix_.data() +
+        static_cast<std::size_t>(source_index * active_count);
+    std::vector<int> candidates;
+    candidates.reserve(static_cast<std::size_t>(std::max(0, active_count - 1)));
+    for(int idx = 0; idx < active_count; idx++){
+        if(idx == source_index || !std::isfinite(source_row[idx]))
+            continue;
+        candidates.push_back(idx);
+    }
+    if(candidates.empty())
+        return std::vector<int>();
+
+    std::vector<int> selected;
+    std::vector<double> coverage;
+    coverage.reserve(candidates.size());
+    for(std::size_t i = 0; i < candidates.size(); i++)
+        coverage.push_back(source_row[candidates[i]]);
+
+    const std::size_t max_count =
+        std::min<std::size_t>(static_cast<std::size_t>(lgkk_landmark_count_),
+                              candidates.size());
+    for(std::size_t step = 0; step < max_count; step++){
+        std::size_t choice_pos = candidates.size();
+        double choice_score = -1.0;
+        for(std::size_t i = 0; i < candidates.size(); i++){
+            const double score = (step == 0) ? source_row[candidates[i]] : coverage[i];
+            if(score > choice_score ||
+               (std::fabs(score - choice_score) <= 1e-12 &&
+                (choice_pos >= candidates.size() ||
+                 misf.order[static_cast<std::size_t>(candidates[i])] <
+                     misf.order[static_cast<std::size_t>(candidates[choice_pos])]))){
+                choice_score = score;
+                choice_pos = i;
+            }
+        }
+        if(choice_pos >= candidates.size())
+            break;
+        const int choice = candidates[choice_pos];
+        selected.push_back(choice);
+        candidates.erase(candidates.begin() + static_cast<long>(choice_pos));
+        coverage.erase(coverage.begin() + static_cast<long>(choice_pos));
+        if(candidates.empty())
+            break;
+
+        const double *choice_row =
+            lgkk_distance_matrix_.data() +
+            static_cast<std::size_t>(choice * active_count);
+        for(std::size_t i = 0; i < candidates.size(); i++)
+            coverage[i] = std::min(coverage[i], choice_row[candidates[i]]);
+    }
+    return selected;
+}
+
+void DrawGraphND::build_lgkk_level_cache(const WeightedMisfND &misf,
+                                         int active_count,
+                                         int misf_level)
+{
+    clear_lgkk_level_cache();
+    if(!should_run_multiscale_lgkk(active_count, misf_level))
+        return;
+
+    active_count = std::min(active_count, static_cast<int>(misf.order.size()));
+    lgkk_active_index_.assign(graph_.size(), -1);
+    for(int i = 0; i < active_count; i++)
+        lgkk_active_index_[misf.order[static_cast<std::size_t>(i)]] = i;
+
+    lgkk_distance_matrix_.assign(
+        static_cast<std::size_t>(active_count * active_count),
+        std::numeric_limits<double>::infinity());
+    std::vector<double> dist;
+    for(int source_index = 0; source_index < active_count; source_index++){
+        compute_lgkk_active_shortest_paths(misf,
+                                           source_index,
+                                           active_count,
+                                           dist,
+                                           nullptr);
+        std::copy(dist.begin(),
+                  dist.end(),
+                  lgkk_distance_matrix_.begin() +
+                      static_cast<std::ptrdiff_t>(source_index * active_count));
+    }
+
+    std::vector<std::vector<int>> selected_targets(static_cast<std::size_t>(active_count));
+    for(int source_index = 0; source_index < active_count; source_index++){
+        std::vector<int> local =
+            lgkk_choose_local_neighbors(source_index, active_count);
+        std::vector<int> landmarks =
+            lgkk_choose_landmarks(misf, source_index, active_count);
+        local.insert(local.end(), landmarks.begin(), landmarks.end());
+        std::sort(local.begin(), local.end());
+        local.erase(std::unique(local.begin(), local.end()), local.end());
+        selected_targets[static_cast<std::size_t>(source_index)] = std::move(local);
+    }
+
+    std::unordered_set<std::uint64_t> seen_pairs;
+    std::vector<int> parent;
+    lgkk_pairs_.reserve(
+        static_cast<std::size_t>(active_count) *
+        static_cast<std::size_t>(std::max(1, lgkk_local_nbrs_ + lgkk_landmark_count_)));
+    for(int source_index = 0; source_index < active_count; source_index++){
+        if(selected_targets[static_cast<std::size_t>(source_index)].empty())
+            continue;
+        compute_lgkk_active_shortest_paths(misf,
+                                           source_index,
+                                           active_count,
+                                           dist,
+                                           &parent);
+        for(int target_index : selected_targets[static_cast<std::size_t>(source_index)]){
+            const vertex_t source_vert =
+                misf.order[static_cast<std::size_t>(source_index)];
+            const vertex_t target_vert =
+                misf.order[static_cast<std::size_t>(target_index)];
+            const vertex_t min_vert = std::min(source_vert, target_vert);
+            const vertex_t max_vert = std::max(source_vert, target_vert);
+            const std::uint64_t key =
+                (static_cast<std::uint64_t>(min_vert) << 32) |
+                static_cast<std::uint64_t>(max_vert);
+            if(seen_pairs.find(key) != seen_pairs.end())
+                continue;
+            if(target_index < 0 ||
+               target_index >= static_cast<int>(dist.size()) ||
+               !std::isfinite(dist[static_cast<std::size_t>(target_index)]))
+                continue;
+
+            std::vector<vertex_t> path_vertices;
+            int current_index = target_index;
+            while(current_index >= 0 && current_index != source_index){
+                path_vertices.push_back(
+                    misf.order[static_cast<std::size_t>(current_index)]);
+                current_index = parent[static_cast<std::size_t>(current_index)];
+            }
+            if(current_index < 0)
+                continue;
+            path_vertices.push_back(source_vert);
+            std::reverse(path_vertices.begin(), path_vertices.end());
+            if(path_vertices.size() < 2)
+                continue;
+
+            LgkkPairCacheND pair;
+            pair.source = source_vert;
+            pair.target = target_vert;
+            pair.graph_distance = dist[static_cast<std::size_t>(target_index)];
+            pair.path_edges.reserve(path_vertices.size() - 1);
+            for(std::size_t edge_index = 1;
+                edge_index < path_vertices.size();
+                edge_index++){
+                pair.path_edges.push_back(LgkkPathEdgeND{
+                    path_vertices[edge_index - 1],
+                    path_vertices[edge_index]
+                });
+            }
+            lgkk_pairs_.push_back(std::move(pair));
+            seen_pairs.insert(key);
+        }
+    }
+
+    double numerator = 0.0;
+    double denominator = 0.0;
+    const double eps2 = 1e-16;
+    for(const LgkkPairCacheND &pair : lgkk_pairs_){
+        double h = 0.0;
+        for(const LgkkPathEdgeND &edge_ref : pair.path_edges){
+            double norm2 = 0.0;
+            for(int d = 0; d < dim_; d++){
+                const std::size_t dd = static_cast<std::size_t>(d);
+                const double delta = coords_[edge_ref.u][dd] - coords_[edge_ref.v][dd];
+                norm2 += delta * delta;
+            }
+            h += std::sqrt(norm2 + eps2);
+        }
+        const double g = std::max(pair.graph_distance, 1e-8);
+        const double kk = 1.0 / (g * g);
+        numerator += kk * g * h;
+        denominator += kk * g * g;
+    }
+
+    lgkk_cache_scale_l0_ = denominator > 0.0 ? numerator / denominator : 1.0;
+    lgkk_cache_active_count_ = active_count;
+    lgkk_cache_misf_level_ = misf_level;
+}
+
+int DrawGraphND::lgkk_refine_level(const WeightedMisfND &misf,
+                                   int active_count,
+                                   int misf_level,
+                                   int base_rounds,
+                                   LayoutTraceND *trace,
+                                   int trace_every,
+                                   int level_index)
+{
+    if(!should_run_multiscale_lgkk(active_count, misf_level))
+        return base_rounds;
+    const int round_budget = lgkk_round_budget_for_layer(misf_level);
+    if(round_budget == 0)
+        return base_rounds;
+    build_lgkk_level_cache(misf, active_count, misf_level);
+    if(lgkk_pairs_.empty())
+        return base_rounds;
+
+    const double eps2 = 1e-16;
+    const double initial_step = 1.0;
+    const double step_shrink = 0.5;
+    const double armijo = 1e-4;
+    const double grad_tol2 = 1e-16;
+    const double min_step = 1e-8;
+    const double distance_floor = 1e-8;
+
+    struct LgkkStateND {
+        double energy;
+        double grad_norm2;
+        std::vector<PointND> gradient;
+    };
+
+    const std::size_t dim = static_cast<std::size_t>(dim_);
+    active_count = std::min(active_count, static_cast<int>(misf.order.size()));
+    std::vector<PointND> active_pos(static_cast<std::size_t>(active_count),
+                                    PointND(dim));
+    for(int i = 0; i < active_count; i++)
+        active_pos[static_cast<std::size_t>(i)] =
+            coords_[misf.order[static_cast<std::size_t>(i)]];
+
+    auto evaluate_state = [&](const std::vector<PointND> &coords){
+        LgkkStateND state;
+        state.energy = 0.0;
+        state.grad_norm2 = 0.0;
+        state.gradient.assign(static_cast<std::size_t>(active_count), PointND(dim));
+        for(PointND &grad : state.gradient)
+            grad.fill(0.0);
+
+        for(const LgkkPairCacheND &pair : lgkk_pairs_){
+            const double g = std::max(pair.graph_distance, distance_floor);
+            const double kk = 1.0 / (g * g);
+            const double target = lgkk_cache_scale_l0_ * pair.graph_distance;
+
+            std::vector<PointND> edge_diffs;
+            std::vector<double> edge_lens;
+            edge_diffs.reserve(pair.path_edges.size());
+            edge_lens.reserve(pair.path_edges.size());
+
+            double h = 0.0;
+            for(const LgkkPathEdgeND &edge_ref : pair.path_edges){
+                const int u_index = lgkk_active_index_[edge_ref.u];
+                const int v_index = lgkk_active_index_[edge_ref.v];
+                if(u_index < 0 || v_index < 0)
+                    continue;
+                PointND diff(dim);
+                double norm2 = 0.0;
+                for(int d = 0; d < dim_; d++){
+                    const std::size_t dd = static_cast<std::size_t>(d);
+                    diff[dd] =
+                        coords[static_cast<std::size_t>(u_index)][dd] -
+                        coords[static_cast<std::size_t>(v_index)][dd];
+                    norm2 += diff[dd] * diff[dd];
+                }
+                const double len = std::sqrt(norm2 + eps2);
+                edge_diffs.push_back(diff);
+                edge_lens.push_back(len);
+                h += len;
+            }
+            if(edge_diffs.empty())
+                continue;
+
+            const double resid = h - target;
+            const double coeff = kk * resid;
+            state.energy += 0.5 * kk * resid * resid;
+            for(std::size_t edge_index = 0;
+                edge_index < pair.path_edges.size();
+                edge_index++){
+                const LgkkPathEdgeND &edge_ref = pair.path_edges[edge_index];
+                const int u_index = lgkk_active_index_[edge_ref.u];
+                const int v_index = lgkk_active_index_[edge_ref.v];
+                if(u_index < 0 || v_index < 0)
+                    continue;
+                if(edge_lens[edge_index] <= 0.0)
+                    continue;
+                const double scale = coeff / edge_lens[edge_index];
+                for(int d = 0; d < dim_; d++){
+                    const std::size_t dd = static_cast<std::size_t>(d);
+                    const double step_vec = edge_diffs[edge_index][dd] * scale;
+                    state.gradient[static_cast<std::size_t>(u_index)][dd] += step_vec;
+                    state.gradient[static_cast<std::size_t>(v_index)][dd] -= step_vec;
+                }
+            }
+        }
+
+        for(const PointND &grad : state.gradient)
+            state.grad_norm2 += grad.norm2();
+        return state;
+    };
+
+    std::vector<PointND> accepted_move(static_cast<std::size_t>(active_count),
+                                       PointND(dim));
+    for(PointND &move : accepted_move)
+        move.fill(0.0);
+
+    LgkkStateND state = evaluate_state(active_pos);
+    int trace_round_in_level = base_rounds;
+    for(int round_index = 1; round_index <= round_budget; round_index++){
+        if(!std::isfinite(state.energy) || state.grad_norm2 <= grad_tol2)
+            break;
+
+        double step = initial_step;
+        bool accepted = false;
+        std::vector<PointND> proposal(static_cast<std::size_t>(active_count),
+                                      PointND(dim));
+        LgkkStateND candidate = state;
+
+        while(std::isfinite(step) && step >= min_step){
+            for(int i = 0; i < active_count; i++){
+                for(int d = 0; d < dim_; d++){
+                    const std::size_t dd = static_cast<std::size_t>(d);
+                    proposal[static_cast<std::size_t>(i)][dd] =
+                        active_pos[static_cast<std::size_t>(i)][dd] -
+                        state.gradient[static_cast<std::size_t>(i)][dd] * step;
+                }
+            }
+
+            candidate = evaluate_state(proposal);
+            const double target_energy =
+                state.energy - armijo * step * state.grad_norm2;
+            if(std::isfinite(candidate.energy) &&
+               candidate.energy <= target_energy){
+                accepted = true;
+                break;
+            }
+            step *= step_shrink;
+        }
+
+        if(!accepted)
+            break;
+
+        for(int i = 0; i < active_count; i++){
+            const std::size_t ii = static_cast<std::size_t>(i);
+            const vertex_t vert = misf.order[ii];
+            for(int d = 0; d < dim_; d++){
+                const std::size_t dd = static_cast<std::size_t>(d);
+                accepted_move[ii][dd] = proposal[ii][dd] - active_pos[ii][dd];
+                active_pos[ii][dd] = proposal[ii][dd];
+                coords_[vert][dd] = active_pos[ii][dd];
+                disp_[vert][dd] = accepted_move[ii][dd];
+                old_disp_[vert][dd] = accepted_move[ii][dd];
+            }
+            disp_norm_[vert] = round_legacy_norm_nd(accepted_move[ii].norm());
+            old_disp_norm_[vert] = disp_norm_[vert];
+        }
+
+        state = candidate;
+        trace_round_in_level = base_rounds + round_index;
+        if(trace != nullptr && ((round_index % std::max(1, trace_every)) == 0))
+            record_trace(trace,
+                         "lgkk",
+                         trace_round_in_level,
+                         active_count,
+                         level_index,
+                         misf_level);
+    }
+    return trace_round_in_level;
+}
+
 void DrawGraphND::initialize_top_level(const WeightedMisfND &misf)
 {
     for(PointND &point : coords_)
         point.fill(0.0);
 
     double diam = 0.0;
-    for(int i = 0; i < misf.num_init && i < static_cast<int>(misf.order.size()); i++)
-        diam = std::max(diam, std::ceil(weighted_eccentricity(misf.order[static_cast<std::size_t>(i)])));
+    for(int i = 0;
+        i < misf.num_init && i < static_cast<int>(misf.order.size());
+        i++){
+        const vertex_t vert = misf.order[static_cast<std::size_t>(i)];
+        diam = std::max(diam, std::ceil(weighted_eccentricity(vert)));
+    }
     if(diam <= 0.0)
         diam = 1.0;
 
@@ -1121,7 +1771,12 @@ std::vector<std::pair<vertex_t, double>> DrawGraphND::select_insertion_anchor_su
             const PointND &p = coords_[anchors[i].first];
             const double dx = p[0] - candidate_centroid[0];
             const double dy = p[1] - candidate_centroid[1];
-            polar.push_back(PolarCandidate{i, std::atan2(dy, dx), dx * dx + dy * dy, anchors[i].first});
+            polar.push_back(PolarCandidate{
+                i,
+                std::atan2(dy, dx),
+                dx * dx + dy * dy,
+                anchors[i].first
+            });
         }
 
         std::vector<std::size_t> selected;
@@ -1187,7 +1842,8 @@ std::vector<std::pair<vertex_t, double>> DrawGraphND::select_insertion_anchor_su
                         coords_[anchors[idx].first][static_cast<std::size_t>(d)];
             }
             for(int d = 0; d < dim_; d++)
-                subset_centroid[static_cast<std::size_t>(d)] /= static_cast<double>(subset_indices.size());
+                subset_centroid[static_cast<std::size_t>(d)] /=
+                    static_cast<double>(subset_indices.size());
 
             double centroid_error = 0.0;
             for(int d = 0; d < dim_; d++){
@@ -1268,7 +1924,8 @@ std::vector<std::pair<vertex_t, double>> DrawGraphND::select_insertion_anchor_su
                 greedy.pop_back();
                 if(objective < best_objective - 1e-12 ||
                    (std::fabs(objective - best_objective) <= 1e-12 &&
-                    (best_index >= anchors.size() || anchors[i].first < anchors[best_index].first))){
+                    (best_index >= anchors.size() ||
+                     anchors[i].first < anchors[best_index].first))){
                     best_objective = objective;
                     best_index = i;
                 }
@@ -1306,10 +1963,14 @@ std::vector<std::pair<vertex_t, double>> DrawGraphND::select_insertion_anchor_su
                 continue;
             double min_sep = std::numeric_limits<double>::infinity();
             for(std::size_t chosen_idx : selected)
-                min_sep = std::min(min_sep, point_dist2(anchors[i].first, anchors[chosen_idx].first));
+                min_sep = std::min(
+                    min_sep,
+                    point_dist2(anchors[i].first, anchors[chosen_idx].first)
+                );
             if(min_sep > best_score ||
                (std::fabs(min_sep - best_score) <= 1e-12 &&
-                (best_index >= anchors.size() || anchors[i].first < anchors[best_index].first))){
+                (best_index >= anchors.size() ||
+                 anchors[i].first < anchors[best_index].first))){
                 best_score = min_sep;
                 best_index = i;
             }
@@ -1340,7 +2001,8 @@ PointND DrawGraphND::weighted_barycenter(const std::vector<vertex_t> &anchors) c
     return out;
 }
 
-PointND DrawGraphND::weighted_barycenter(const std::vector<std::pair<vertex_t, double>> &anchors) const
+PointND DrawGraphND::weighted_barycenter(
+    const std::vector<std::pair<vertex_t, double>> &anchors) const
 {
     std::vector<vertex_t> vertices;
     vertices.reserve(anchors.size());
@@ -1386,8 +2048,10 @@ PointND DrawGraphND::weighted_least_squares_position(
         }
     }
 
-    std::vector<std::vector<double>> aug(static_cast<std::size_t>(dim_),
-                                         std::vector<double>(static_cast<std::size_t>(dim_ + 1), 0.0));
+    std::vector<std::vector<double>> aug(
+        static_cast<std::size_t>(dim_),
+        std::vector<double>(static_cast<std::size_t>(dim_ + 1), 0.0)
+    );
     for(int r = 0; r < dim_; r++){
         const std::size_t rr = static_cast<std::size_t>(r);
         for(int c = 0; c < dim_; c++)
@@ -1797,15 +2461,18 @@ std::size_t DrawGraphND::record_refinement_step_pre(
         refinement_step_trace_.attraction_term_parent_rows.push_back(parent_row);
         refinement_step_trace_.attraction_term_indices.push_back(static_cast<int>(i) + 1);
         refinement_step_trace_.attraction_term_vertices.push_back(static_cast<int>(vert) + 1);
-        refinement_step_trace_.attraction_term_neighbors.push_back(last_attraction_term_neighbors_[i]);
+        refinement_step_trace_.attraction_term_neighbors.push_back(
+            last_attraction_term_neighbors_[i]);
         refinement_step_trace_.attraction_term_weights.push_back(last_attraction_term_weights_[i]);
         refinement_step_trace_.attraction_term_norm2.push_back(last_attraction_term_norm2_[i]);
         refinement_step_trace_.attraction_term_desired.push_back(last_attraction_term_desired_[i]);
-        refinement_step_trace_.attraction_term_desired2.push_back(last_attraction_term_desired2_[i]);
+        refinement_step_trace_.attraction_term_desired2.push_back(
+            last_attraction_term_desired2_[i]);
         refinement_step_trace_.attraction_term_scale.push_back(last_attraction_term_scale_[i]);
         refinement_step_trace_.attraction_term_delta.push_back(last_attraction_term_delta_[i]);
         refinement_step_trace_.attraction_term_step.push_back(last_attraction_term_step_[i]);
-        refinement_step_trace_.attraction_term_cumulative.push_back(last_attraction_term_cumulative_[i]);
+        refinement_step_trace_.attraction_term_cumulative.push_back(
+            last_attraction_term_cumulative_[i]);
     }
     return refinement_step_trace_.vertices.size() - 1;
 }

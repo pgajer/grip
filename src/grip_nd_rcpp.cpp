@@ -19,6 +19,9 @@ void validate_weighted_nd_tuning(int dim,
                                  double r,
                                  double s,
                                  double repulsion_factor,
+                                 double coarse_repulsion_factor,
+                                 int coarse_repulsion_sample,
+                                 int coarse_repulsion_exact_below,
                                  int tinit_factor)
 {
     if(dim < 2)
@@ -37,6 +40,12 @@ void validate_weighted_nd_tuning(int dim,
         Rcpp::stop("s must be finite and >= 0");
     if(!std::isfinite(repulsion_factor) || repulsion_factor < 0.0)
         Rcpp::stop("repulsion_factor must be finite and >= 0");
+    if(!std::isfinite(coarse_repulsion_factor) || coarse_repulsion_factor < 0.0)
+        Rcpp::stop("coarse_repulsion_factor must be finite and >= 0");
+    if(coarse_repulsion_sample <= 0)
+        Rcpp::stop("coarse_repulsion_sample must be a positive integer");
+    if(coarse_repulsion_exact_below <= 0)
+        Rcpp::stop("coarse_repulsion_exact_below must be a positive integer");
     if(tinit_factor <= 0)
         Rcpp::stop("tinit_factor must be a positive integer");
 }
@@ -72,7 +81,9 @@ int parse_insertion_anchor_strategy_nd(const std::string &strategy)
         return gripnd::INSERT_ANCHOR_STRATEGY_BALANCED_BAND_ND;
     if(strategy == "spread_prev")
         return gripnd::INSERT_ANCHOR_STRATEGY_SPREAD_PREV_ND;
-    Rcpp::stop("insertion_anchor_strategy must be 'first', 'distance_band', 'balanced_band', or 'spread_prev'");
+    Rcpp::stop(
+        "insertion_anchor_strategy must be 'first', 'distance_band', "
+        "'balanced_band', or 'spread_prev'");
 }
 
 int parse_level0_insertion_mode_nd(const std::string &mode)
@@ -93,6 +104,15 @@ int parse_final_stage_mode_nd(const std::string &mode)
     if(mode == "kk_repulse")
         return gripnd::FINAL_STAGE_KK_REPULSE_ND;
     Rcpp::stop("final_mode must be 'fr' or 'kk_repulse'");
+}
+
+int parse_lgkk_scope_nd(const std::string &scope)
+{
+    if(scope == "all")
+        return gripnd::LGKK_SCOPE_ALL_ND;
+    if(scope == "coarse")
+        return gripnd::LGKK_SCOPE_COARSE_ND;
+    Rcpp::stop("lgkk_multiscale_scope must be 'all' or 'coarse'");
 }
 
 gripnd::GraphND graph_from_r_lists(Rcpp::List adj_list,
@@ -341,6 +361,9 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
                                                     double r,
                                                     double s,
                                                     double repulsion_factor,
+                                                    double coarse_repulsion_factor,
+                                                    int coarse_repulsion_sample,
+                                                    int coarse_repulsion_exact_below,
                                                     int tinit_factor,
                                                     double final_anchor_factor,
                                                     double final_move_scale_after_first,
@@ -352,6 +375,14 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
                                                     std::string level0_insertion_mode,
                                                     int level0_anchor_count,
                                                     int level0_local_kk_steps,
+                                                    int lgkk_multiscale_rounds,
+                                                    int lgkk_rounds_coarse,
+                                                    int lgkk_rounds_pre_final,
+                                                    int lgkk_rounds_final,
+                                                    int lgkk_local_nbrs,
+                                                    int lgkk_landmark_count,
+                                                    std::string lgkk_multiscale_scope,
+                                                    int lgkk_active_limit,
                                                     Rcpp::Nullable<int> seed = R_NilValue)
 {
     if(n <= 0)
@@ -365,6 +396,9 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
         r,
         s,
         repulsion_factor,
+        coarse_repulsion_factor,
+        coarse_repulsion_sample,
+        coarse_repulsion_exact_below,
         tinit_factor
     );
     if(insertion_anchor_count <= 0)
@@ -381,6 +415,15 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
         Rcpp::stop("final_anchor_factor must be finite and >= 0");
     if(metric_neighbor_cap < 0)
         Rcpp::stop("metric_neighbor_cap must be >= 0");
+    if(lgkk_multiscale_rounds < 0 || lgkk_rounds_coarse < 0 ||
+       lgkk_rounds_pre_final < 0 || lgkk_rounds_final < 0)
+        Rcpp::stop("LGKK round budgets must be non-negative integers");
+    if(lgkk_local_nbrs < 0)
+        Rcpp::stop("lgkk_local_nbrs must be a non-negative integer");
+    if(lgkk_landmark_count < 0)
+        Rcpp::stop("lgkk_landmark_count must be a non-negative integer");
+    if(lgkk_active_limit <= 0)
+        Rcpp::stop("lgkk_active_limit must be a positive integer");
 
     const unsigned int seed_value = seed.isNotNull()
         ? static_cast<unsigned int>(Rcpp::as<int>(seed))
@@ -393,6 +436,7 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
     const int level0_insertion_mode_code =
         parse_level0_insertion_mode_nd(level0_insertion_mode);
     const int final_stage_mode_code = parse_final_stage_mode_nd(final_mode);
+    const int lgkk_scope_code = parse_lgkk_scope_nd(lgkk_multiscale_scope);
 
     gripnd::GraphND graph = graph_from_r_lists(adj_list, weight_list, n);
     gripnd::DrawGraphND drawer(
@@ -405,6 +449,9 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
         r,
         s,
         repulsion_factor,
+        coarse_repulsion_factor,
+        coarse_repulsion_sample,
+        coarse_repulsion_exact_below,
         tinit_factor,
         final_anchor_factor,
         final_move_scale_after_first,
@@ -417,6 +464,14 @@ Rcpp::NumericMatrix grip_layout_weighted_nd_adj_cpp(Rcpp::List adj_list,
         level0_insertion_mode_code,
         level0_anchor_count,
         level0_local_kk_steps,
+        lgkk_multiscale_rounds,
+        lgkk_rounds_coarse,
+        lgkk_rounds_pre_final,
+        lgkk_rounds_final,
+        lgkk_local_nbrs,
+        lgkk_landmark_count,
+        lgkk_scope_code,
+        lgkk_active_limit,
         seed_value
     );
 
@@ -436,6 +491,9 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
                                                  double r,
                                                  double s,
                                                  double repulsion_factor,
+                                                 double coarse_repulsion_factor,
+                                                 int coarse_repulsion_sample,
+                                                 int coarse_repulsion_exact_below,
                                                  int tinit_factor,
                                                  double final_anchor_factor,
                                                  double final_move_scale_after_first,
@@ -447,6 +505,14 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
                                                  std::string level0_insertion_mode,
                                                  int level0_anchor_count,
                                                  int level0_local_kk_steps,
+                                                 int lgkk_multiscale_rounds,
+                                                 int lgkk_rounds_coarse,
+                                                 int lgkk_rounds_pre_final,
+                                                 int lgkk_rounds_final,
+                                                 int lgkk_local_nbrs,
+                                                 int lgkk_landmark_count,
+                                                 std::string lgkk_multiscale_scope,
+                                                 int lgkk_active_limit,
                                                  Rcpp::Nullable<int> seed = R_NilValue,
                                                  int trace_every = 1,
                                                  bool refinement_step_trace = false,
@@ -466,6 +532,9 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
         r,
         s,
         repulsion_factor,
+        coarse_repulsion_factor,
+        coarse_repulsion_sample,
+        coarse_repulsion_exact_below,
         tinit_factor
     );
     if(trace_every <= 0)
@@ -484,6 +553,15 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
         Rcpp::stop("final_anchor_factor must be finite and >= 0");
     if(metric_neighbor_cap < 0)
         Rcpp::stop("metric_neighbor_cap must be >= 0");
+    if(lgkk_multiscale_rounds < 0 || lgkk_rounds_coarse < 0 ||
+       lgkk_rounds_pre_final < 0 || lgkk_rounds_final < 0)
+        Rcpp::stop("LGKK round budgets must be non-negative integers");
+    if(lgkk_local_nbrs < 0)
+        Rcpp::stop("lgkk_local_nbrs must be a non-negative integer");
+    if(lgkk_landmark_count < 0)
+        Rcpp::stop("lgkk_landmark_count must be a non-negative integer");
+    if(lgkk_active_limit <= 0)
+        Rcpp::stop("lgkk_active_limit must be a positive integer");
 
     const unsigned int seed_value = seed.isNotNull()
         ? static_cast<unsigned int>(Rcpp::as<int>(seed))
@@ -496,6 +574,7 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
     const int level0_insertion_mode_code =
         parse_level0_insertion_mode_nd(level0_insertion_mode);
     const int final_stage_mode_code = parse_final_stage_mode_nd(final_mode);
+    const int lgkk_scope_code = parse_lgkk_scope_nd(lgkk_multiscale_scope);
 
     gripnd::GraphND graph = graph_from_r_lists(adj_list, weight_list, n);
     gripnd::DrawGraphND drawer(
@@ -508,6 +587,9 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
         r,
         s,
         repulsion_factor,
+        coarse_repulsion_factor,
+        coarse_repulsion_sample,
+        coarse_repulsion_exact_below,
         tinit_factor,
         final_anchor_factor,
         final_move_scale_after_first,
@@ -520,6 +602,14 @@ Rcpp::List grip_layout_weighted_nd_trace_adj_cpp(Rcpp::List adj_list,
         level0_insertion_mode_code,
         level0_anchor_count,
         level0_local_kk_steps,
+        lgkk_multiscale_rounds,
+        lgkk_rounds_coarse,
+        lgkk_rounds_pre_final,
+        lgkk_rounds_final,
+        lgkk_local_nbrs,
+        lgkk_landmark_count,
+        lgkk_scope_code,
+        lgkk_active_limit,
         seed_value
     );
 

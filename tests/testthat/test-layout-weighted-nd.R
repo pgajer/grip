@@ -33,6 +33,44 @@ test_that("weighted ND layout returns finite deterministic coordinates above 3D"
   expect_identical(coords1, coords2)
 })
 
+test_that("weighted ND compiled multiscale LGKK works above 3D", {
+  edges <- edges.mesh(3, 4)
+  weights <- seq_len(nrow(edges)) / nrow(edges) + 1
+
+  base <- grip.layout.weighted.nd(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 5,
+    rounds = 6,
+    final_rounds = 6,
+    num_init = 7,
+    num_nbrs = 8,
+    lgkk_multiscale_rounds = 0L,
+    seed = 78
+  )
+  lgkk <- grip.layout.weighted.nd(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 5,
+    rounds = 6,
+    final_rounds = 6,
+    num_init = 7,
+    num_nbrs = 8,
+    lgkk_multiscale_rounds = 2L,
+    lgkk_local_nbrs = 5L,
+    lgkk_landmark_count = 3L,
+    lgkk_active_limit = 128L,
+    seed = 78
+  )
+
+  expect_equal(dim(lgkk), c(12, 5))
+  expect_identical(colnames(lgkk), paste0("Dim", 1:5))
+  expect_true(all(is.finite(lgkk)))
+  expect_gt(max(abs(base - lgkk)), 1e-8)
+})
+
 test_that("weighted layout defaults to the ND backend", {
   edges <- edges.mesh(3, 4)
   weights <- seq_len(nrow(edges)) / nrow(edges) + 1
@@ -52,6 +90,196 @@ test_that("weighted layout defaults to the ND backend", {
     do.call(grip.layout.weighted, args),
     do.call(grip.layout.weighted.nd, args)
   )
+})
+
+test_that("weighted layout keeps legacy defaults on 2D public calls", {
+  edges <- edges.mesh(3, 4)
+  weights <- seq_len(nrow(edges)) / nrow(edges) + 1
+  args <- list(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    seed = 72
+  )
+
+  expect_equal(
+    unname(do.call(grip.layout.weighted, args)),
+    unname(do.call(grip.layout.weighted.legacy, args)),
+    tolerance = 1e-10
+  )
+})
+
+test_that("weighted ND coarse-repulsion controls are active backend controls", {
+  graph <- mesh.surface.graph(8, 8, surface = "saddle", amplitude = 0.7)
+  base_args <- list(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 16,
+    final_rounds = 0,
+    num_init = 12,
+    num_nbrs = 12,
+    r = 0.03,
+    s = 6.0,
+    repulsion_factor = 1.5,
+    length_normalization = "median",
+    tinit_factor = 6L,
+    seed = 74
+  )
+
+  exact <- do.call(
+    grip.layout.weighted.nd,
+    c(base_args, list(
+      coarse_repulsion_factor = 1.5,
+      coarse_repulsion_sample = 100000L,
+      coarse_repulsion_exact_below = 100000L
+    ))
+  )
+  none <- do.call(
+    grip.layout.weighted.nd,
+    c(base_args, list(
+      coarse_repulsion_factor = 0,
+      coarse_repulsion_sample = 100000L,
+      coarse_repulsion_exact_below = 100000L
+    ))
+  )
+  sampled <- do.call(
+    grip.layout.weighted.nd,
+    c(base_args, list(
+      coarse_repulsion_factor = 1.5,
+      coarse_repulsion_sample = 4L,
+      coarse_repulsion_exact_below = 1L
+    ))
+  )
+
+  expect_gt(max(abs(exact - none)), 1e-8)
+  expect_gt(max(abs(exact - sampled)), 1e-8)
+})
+
+test_that("weighted ND supports post-layout LGKK polish", {
+  edges <- edges.mesh(3, 4)
+  weights <- seq_len(nrow(edges)) / nrow(edges) + 1
+  base_args <- list(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 5,
+    final_rounds = 5,
+    num_init = 5,
+    num_nbrs = 6,
+    seed = 75
+  )
+
+  base <- do.call(grip.layout.weighted.nd, base_args)
+  polished <- do.call(
+    grip.layout.weighted.nd,
+    c(base_args, list(
+      lgkk_polish_rounds = 2L,
+      lgkk_local_nbrs = 4L,
+      lgkk_landmark_count = 3L
+    ))
+  )
+  traced <- do.call(
+    grip:::grip.layout.weighted.nd.trace,
+    c(base_args, list(
+      lgkk_polish_rounds = 2L,
+      lgkk_local_nbrs = 4L,
+      lgkk_landmark_count = 3L,
+      trace.every = 1L
+    ))
+  )
+
+  expect_equal(dim(polished), c(12, 3))
+  expect_true(all(is.finite(polished)))
+  expect_gt(max(abs(base - polished)), 1e-8)
+  expect_s3_class(traced, "grip_layout_weighted_nd_trace")
+  expect_true(any(traced$meta$phase == "lgkk"))
+  expect_gt(nrow(traced$lgkk.polish), 0L)
+  expect_equal(traced$frames[[length(traced$frames)]], traced$final)
+})
+
+test_that("weighted ND compiled multiscale LGKK mirrors legacy weighted layout", {
+  graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.45)
+  base_args <- list(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 2,
+    placement = "barycenter",
+    rounds = 5,
+    final_rounds = 5,
+    num_init = 6,
+    num_nbrs = 7,
+    coarse_repulsion_factor = 0.4,
+    coarse_repulsion_sample = 100000L,
+    coarse_repulsion_exact_below = 100000L,
+    lgkk_multiscale_rounds = 2L,
+    lgkk_local_nbrs = 5L,
+    lgkk_landmark_count = 4L,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512L,
+    length_normalization = "median",
+    seed = 76
+  )
+
+  legacy <- do.call(grip.layout.weighted.legacy, base_args)
+  nd <- do.call(grip.layout.weighted.nd, base_args)
+  no_lgkk <- do.call(
+    grip.layout.weighted.nd,
+    utils::modifyList(base_args, list(lgkk_multiscale_rounds = 0L))
+  )
+
+  expect_equal(unname(nd), unname(legacy), tolerance = 1e-10)
+  expect_gt(max(abs(nd - no_lgkk)), 1e-8)
+})
+
+test_that("weighted ND staged multiscale LGKK budgets and trace phases are active", {
+  graph <- cylinder.surface.graph(4, 5, surface = "hourglass", amplitude = 0.2)
+  args <- list(
+    edges = graph$edges,
+    edge_weights = graph$edge_weights,
+    n = graph$n,
+    dim = 3,
+    placement = "barycenter",
+    rounds = 5,
+    final_rounds = 5,
+    num_init = 6,
+    num_nbrs = 7,
+    coarse_repulsion_factor = 0.4,
+    coarse_repulsion_sample = 100000L,
+    coarse_repulsion_exact_below = 100000L,
+    lgkk_multiscale_rounds = 0L,
+    lgkk_rounds_coarse = 1L,
+    lgkk_rounds_pre_final = 2L,
+    lgkk_rounds_final = 3L,
+    lgkk_local_nbrs = 5L,
+    lgkk_landmark_count = 4L,
+    lgkk_multiscale_scope = "all",
+    lgkk_active_limit = 512L,
+    length_normalization = "median",
+    seed = 77
+  )
+
+  legacy <- do.call(grip.layout.weighted.legacy, args)
+  nd <- do.call(grip.layout.weighted.nd, args)
+  trace <- do.call(
+    grip:::grip.layout.weighted.nd.trace,
+    c(args, list(trace.every = 1L))
+  )
+
+  expect_equal(unname(nd), unname(legacy), tolerance = 1e-10)
+  expect_true(any(trace$meta$phase == "lgkk"))
+  expect_equal(trace$frames[[length(trace$frames)]], trace$final)
 })
 
 test_that("weighted ND layout remains available in 2D and 3D without using legacy validators", {

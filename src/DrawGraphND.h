@@ -39,6 +39,11 @@ enum FinalStageModeND {
     FINAL_STAGE_KK_REPULSE_ND = 1
 };
 
+enum LgkkScopeND {
+    LGKK_SCOPE_ALL_ND = 0,
+    LGKK_SCOPE_COARSE_ND = 1
+};
+
 struct LayoutTraceND {
     std::vector<std::vector<double>> frames;
     std::vector<std::string> phases;
@@ -120,6 +125,9 @@ public:
                 double r,
                 double s,
                 double repulsion_factor,
+                double coarse_repulsion_factor,
+                int coarse_repulsion_sample,
+                int coarse_repulsion_exact_below,
                 int tinit_factor,
                 double final_anchor_factor,
                 double final_move_scale_after_first,
@@ -132,6 +140,14 @@ public:
                 int level0_insertion_mode,
                 int level0_anchor_count,
                 int level0_local_kk_steps,
+                int lgkk_multiscale_rounds,
+                int lgkk_rounds_coarse,
+                int lgkk_rounds_pre_final,
+                int lgkk_rounds_final,
+                int lgkk_local_nbrs,
+                int lgkk_landmark_count,
+                int lgkk_scope,
+                int lgkk_active_limit,
                 unsigned int seed);
 
     std::vector<PointND> layout();
@@ -200,11 +216,42 @@ private:
     void add_legacy_active_repulsion(vertex_t vert,
                                      int active_count,
                                      double repulsion_scale);
+    void add_legacy_active_repulsion_exact(vertex_t vert,
+                                           int active_count,
+                                           double repulsion_scale);
+    void add_legacy_active_repulsion_sampled(vertex_t vert,
+                                             int active_count,
+                                             int sample_count,
+                                             double repulsion_scale);
     void add_final_anchor_force(vertex_t vert);
     void prepare_final_anchors(int active_count);
     void scale_legacy_displacement(vertex_t vert);
     void update_local_temperature(vertex_t vert);
     void initialize_multiscale_trace(const WeightedMisfND &misf);
+    int lgkk_round_budget_for_layer(int misf_level) const;
+    bool should_run_multiscale_lgkk(int active_count,
+                                    int misf_level) const;
+    void clear_lgkk_level_cache();
+    void build_lgkk_level_cache(const WeightedMisfND &misf,
+                                int active_count,
+                                int misf_level);
+    void compute_lgkk_active_shortest_paths(const WeightedMisfND &misf,
+                                            int source_index,
+                                            int active_count,
+                                            std::vector<double> &dist,
+                                            std::vector<int> *parent);
+    std::vector<int> lgkk_choose_local_neighbors(int source_index,
+                                                 int active_count) const;
+    std::vector<int> lgkk_choose_landmarks(const WeightedMisfND &misf,
+                                           int source_index,
+                                           int active_count) const;
+    int lgkk_refine_level(const WeightedMisfND &misf,
+                          int active_count,
+                          int misf_level,
+                          int base_rounds,
+                          LayoutTraceND *trace,
+                          int trace_every,
+                          int level_index);
     void initialize_top_level(const WeightedMisfND &misf);
     void insert_level_vertices(const WeightedMisfND &misf,
                                int previous_active_count,
@@ -216,7 +263,8 @@ private:
         int target_count) const;
     PointND weighted_barycenter(const std::vector<vertex_t> &anchors) const;
     PointND weighted_barycenter(const std::vector<std::pair<vertex_t, double>> &anchors) const;
-    PointND weighted_least_squares_position(const std::vector<std::pair<vertex_t, double>> &anchors) const;
+    PointND weighted_least_squares_position(
+        const std::vector<std::pair<vertex_t, double>> &anchors) const;
     PointND weighted_circle_position(const std::vector<std::pair<vertex_t, double>> &anchors) const;
     PointND local_kk_displacement(vertex_t root,
                                   const std::vector<std::pair<vertex_t, double>> &anchors) const;
@@ -286,6 +334,9 @@ private:
     double r_;
     double s_;
     double repulsion_factor_;
+    double coarse_repulsion_factor_;
+    int coarse_repulsion_sample_;
+    int coarse_repulsion_exact_below_;
     int tinit_factor_;
     double final_anchor_factor_;
     double final_move_scale_after_first_;
@@ -298,6 +349,14 @@ private:
     int level0_insertion_mode_;
     int level0_anchor_count_;
     int level0_local_kk_steps_;
+    int lgkk_multiscale_rounds_;
+    int lgkk_rounds_coarse_;
+    int lgkk_rounds_pre_final_;
+    int lgkk_rounds_final_;
+    int lgkk_local_nbrs_;
+    int lgkk_landmark_count_;
+    int lgkk_scope_;
+    int lgkk_active_limit_;
     unsigned int seed_;
     std::mt19937 rng_;
     unsigned long legacy_rng_state_;
@@ -315,6 +374,22 @@ private:
     std::vector<vertex_t> trace_order_;
     mutable std::vector<std::vector<std::vector<MetricNeighborND>>> metric_neighbors_cache_;
     mutable std::vector<unsigned char> metric_neighbors_cached_;
+    struct LgkkPathEdgeND {
+        vertex_t u;
+        vertex_t v;
+    };
+    struct LgkkPairCacheND {
+        vertex_t source;
+        vertex_t target;
+        double graph_distance;
+        std::vector<LgkkPathEdgeND> path_edges;
+    };
+    int lgkk_cache_active_count_;
+    int lgkk_cache_misf_level_;
+    double lgkk_cache_scale_l0_;
+    std::vector<int> lgkk_active_index_;
+    std::vector<double> lgkk_distance_matrix_;
+    std::vector<LgkkPairCacheND> lgkk_pairs_;
     bool refinement_step_trace_enabled_;
     int refinement_step_trace_level_index_;
     int refinement_step_trace_misf_level_;

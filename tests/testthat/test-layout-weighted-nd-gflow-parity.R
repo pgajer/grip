@@ -96,7 +96,119 @@ test_that("expanded gflow-backed weighted ND parity diagnostics run when explici
   }
 })
 
-test_that("stress gflow-backed weighted ND parity diagnostics run in parallel when explicitly enabled", {
+test_that("gflow-backed weighted ND LGKK parity diagnostics run when explicitly enabled", {
+  skip_if_not(
+    identical(Sys.getenv("GRIP_RUN_GFLOW_LGKK_PARITY_TESTS"), "true"),
+    "Set GRIP_RUN_GFLOW_LGKK_PARITY_TESTS=true to run LGKK parity diagnostics."
+  )
+  skip_if_not_installed("gflow")
+
+  result <- tryCatch({
+    cases <- grip_weighted_nd_gflow_parity_cases(mode = "smoke")
+    base_tuning <- grip_weighted_nd_gflow_parity_tuning("smoke")
+    variants <- list(
+      shared = list(
+        lgkk_multiscale_rounds = 2L,
+        lgkk_local_nbrs = 6L,
+        lgkk_landmark_count = 4L,
+        lgkk_multiscale_scope = "all",
+        lgkk_active_limit = 512L
+      ),
+      staged = list(
+        lgkk_multiscale_rounds = 0L,
+        lgkk_rounds_coarse = 1L,
+        lgkk_rounds_pre_final = 2L,
+        lgkk_rounds_final = 2L,
+        lgkk_local_nbrs = 6L,
+        lgkk_landmark_count = 4L,
+        lgkk_multiscale_scope = "all",
+        lgkk_active_limit = 512L
+      ),
+      coarse_scope = list(
+        lgkk_multiscale_rounds = 2L,
+        lgkk_local_nbrs = 6L,
+        lgkk_landmark_count = 4L,
+        lgkk_multiscale_scope = "coarse",
+        lgkk_active_limit = 512L
+      ),
+      active_limit_skip = list(
+        lgkk_multiscale_rounds = 2L,
+        lgkk_local_nbrs = 6L,
+        lgkk_landmark_count = 4L,
+        lgkk_multiscale_scope = "all",
+        lgkk_active_limit = 1L
+      )
+    )
+
+    rows <- list()
+    idx <- 1L
+    for (variant_name in names(variants)) {
+      tuning <- utils::modifyList(base_tuning, variants[[variant_name]])
+      for (case in cases) {
+        for (dim in c(2L, 3L)) {
+          row <- grip_weighted_nd_gflow_parity_compare_one(
+            case = case,
+            dim = dim,
+            tuning = tuning
+          )
+          row$variant <- variant_name
+          rows[[idx]] <- row
+          idx <- idx + 1L
+        }
+      }
+    }
+    out <- do.call(rbind, rows)
+    rownames(out) <- NULL
+
+    case <- cases[[1L]]
+    graph <- case$graph
+    no_lgkk_tuning <- utils::modifyList(
+      base_tuning,
+      list(lgkk_multiscale_rounds = 0L)
+    )
+    skip_tuning <- utils::modifyList(base_tuning, variants$active_limit_skip)
+    no_lgkk_common <- c(
+      list(adj_list = graph$adj_list, weight_list = graph$weight_list, dim = 2L),
+      no_lgkk_tuning
+    )
+    skip_common <- c(
+      list(adj_list = graph$adj_list, weight_list = graph$weight_list, dim = 2L),
+      skip_tuning
+    )
+    attr(out, "active_limit_skip_legacy_max_abs") <- max(abs(
+      do.call(grip.layout.weighted.legacy, no_lgkk_common) -
+        do.call(grip.layout.weighted.legacy, skip_common)
+    ))
+    attr(out, "active_limit_skip_nd_max_abs") <- max(abs(
+      do.call(grip.layout.weighted.nd, no_lgkk_common) -
+        do.call(grip.layout.weighted.nd, skip_common)
+    ))
+    out
+  }, error = function(e) e)
+  if (inherits(result, "error")) {
+    skip(paste("gflow-backed LGKK parity fixtures unavailable:", conditionMessage(result)))
+  }
+
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 48L)
+  expect_equal(length(unique(result$case_id)), 6L)
+  expect_equal(sort(unique(result$variant)),
+               c("active_limit_skip", "coarse_scope", "shared", "staged"))
+  expect_true(all(result$finite))
+  expect_true(all(is.finite(result$direct_rmse)))
+  expect_true(all(is.finite(result$procrustes_rmse)))
+  expect_equal(attr(result, "active_limit_skip_legacy_max_abs"), 0)
+  expect_equal(attr(result, "active_limit_skip_nd_max_abs"), 0)
+
+  if (identical(Sys.getenv("GRIP_ENFORCE_GFLOW_LGKK_PARITY"), "true")) {
+    thresholds <- grip_weighted_nd_gflow_parity_thresholds()
+    expect_lte(max(result$direct_max_abs), thresholds$direct_max_abs)
+    expect_lte(max(result$procrustes_rmse), thresholds$procrustes_rmse)
+    expect_lte(max(result$procrustes_max_abs), thresholds$procrustes_max_abs)
+  }
+})
+
+test_that("stress gflow-backed weighted ND parity runs in parallel when explicitly enabled", {
   skip_if_not(
     identical(Sys.getenv("GRIP_RUN_GFLOW_STRESS_PARITY_TESTS"), "true"),
     "Set GRIP_RUN_GFLOW_STRESS_PARITY_TESTS=true to run stress gflow-backed parity diagnostics."
