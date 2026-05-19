@@ -495,7 +495,7 @@ grip_weighted_nd_gflow_parity_compare_one <- function(case,
     tuning
   )
   legacy_time <- system.time({
-    legacy <- do.call(grip.layout.weighted, common)
+    legacy <- do.call(grip.layout.weighted.legacy, common)
   })[["elapsed"]]
   nd_time <- system.time({
     nd <- do.call(grip.layout.weighted.nd, common)

@@ -2,9 +2,42 @@
 % Please edit documentation in R/grip_layout_weighted_nd.R
 \name{grip.layout.weighted.nd}
 \alias{grip.layout.weighted.nd}
+\alias{grip.layout.weighted}
 \title{Weighted GRIP layout in arbitrary dimensions}
 \usage{
 grip.layout.weighted.nd(
+  edges = NULL,
+  n = NULL,
+  adj_list = NULL,
+  weight_list = NULL,
+  edge_weights = NULL,
+  dim = 3,
+  preset = NULL,
+  placement = c("barycenter", "circle"),
+  rounds = 160,
+  final_rounds = 256,
+  num_init = NULL,
+  num_nbrs = 24,
+  r = 0.03,
+  s = 6,
+  repulsion_factor = 1.5,
+  tinit_factor = 2,
+  final_anchor_factor = 0,
+  final_move_scale_after_first = 1,
+  final_mode = c("fr", "kk_repulse"),
+  metric_neighbor_cap = NULL,
+  insertion_anchor_count = 3,
+  insertion_anchor_scope = c("any_higher", "prev_misf"),
+  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+  level0_anchor_count = insertion_anchor_count,
+  level0_local_kk_steps = 3,
+  length_normalization = c("median", "mean", "none"),
+  disconnected = c("components", "error"),
+  seed = 6
+)
+
+grip.layout.weighted(
   edges = NULL,
   n = NULL,
   adj_list = NULL,
@@ -119,8 +152,9 @@ immediately after level-0 insertion.}
 Numeric matrix with one row per vertex and \code{dim} columns.
 }
 \description{
-\code{grip.layout.weighted.nd()} is an opt-in weighted GRIP layout backend
-for embeddings in dimensions \code{dim >= 2}. It is implemented beside the
-legacy 2D/3D GRIP code path so that existing weighted-GRIP entry points and
-their dimensionality checks are unchanged.
+\code{grip.layout.weighted()} is the default weighted GRIP layout backend for
+embeddings in dimensions \code{dim >= 2}. The previous 2D/3D weighted GRIP
+implementation remains available as \code{\link{grip.layout.weighted.legacy}()}.
+\code{grip.layout.weighted.nd()} is retained as an explicit alias for this
+dimension-general backend.
 }

@@ -232,7 +232,7 @@ For weighted graphs with meaningful edge lengths, a pure topology-only
 comparison is no longer enough. The weighted track in `grip` is built around:
 
 - `grip.layout.weighted()`
-- optional experimental LGKK-based refinement
+- optional experimental LGKK-based refinement on the legacy weighted path
 - and full geodesic-KK scoring.
 
 The small example below is built and scored live in the vignette. It uses a
@@ -262,7 +262,7 @@ coords.weighted <- grip.layout.weighted(
   seed = 1
 )
 
-coords.weighted.lgkk <- grip.layout.weighted(
+coords.weighted.lgkk <- grip.layout.weighted.legacy(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,

@@ -62,7 +62,7 @@ test_that("weighted trace final matches weighted layout", {
     trace.every = 1,
     seed = 41
   )
-  coords <- grip.layout.weighted(
+  coords <- grip.layout.weighted.legacy(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -100,7 +100,7 @@ test_that("weighted trace final matches weighted layout for LGKK polish", {
     trace.every = 1,
     seed = 47
   )
-  coords <- grip.layout.weighted(
+  coords <- grip.layout.weighted.legacy(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -245,7 +245,7 @@ test_that("weighted trace respects metric neighbor cap and matches weighted layo
     trace.every = 1,
     seed = 229
   )
-  coords <- grip.layout.weighted(
+  coords <- grip.layout.weighted.legacy(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -297,7 +297,7 @@ test_that("weighted trace final matches weighted layout for multiscale LGKK", {
     trace.every = 1,
     seed = 239
   )
-  coords <- grip.layout.weighted(
+  coords <- grip.layout.weighted.legacy(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -347,7 +347,7 @@ test_that("weighted trace final matches weighted layout for staged multiscale LG
     trace.every = 1,
     seed = 241
   )
-  coords <- grip.layout.weighted(
+  coords <- grip.layout.weighted.legacy(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,

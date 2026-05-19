@@ -315,9 +315,9 @@ The weighted API also supports:
   evaluation,
 - `grip.prepare.landmark.geodesic.kk()` /
   `grip.score.landmark.geodesic.kk()` for sparse LGKK evaluation,
-- `lgkk_polish_rounds` for post-layout landmark geodesic KK refinement,
-- `lgkk_multiscale_rounds` and the stage-specific LGKK controls for in-core
-  multiscale refinement.
+- `grip.layout.weighted.legacy()` / `grip.layout.globalrep.weighted()` for the
+  legacy 2D/3D path, including `lgkk_polish_rounds`,
+  `lgkk_multiscale_rounds`, and the stage-specific LGKK controls.
 
 These GKK/LGKK tools are public, but they are not the default entry path. For
 most weighted problems, start with `grip.layout.weighted()` and use the

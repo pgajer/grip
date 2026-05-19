@@ -7,10 +7,11 @@ output: github_document
 # grip
 
 **grip** (Graph dRawing with Intelligent Placement) is an R package for
-multiscale graph layout in 2D and 3D. The main workflow is:
+multiscale graph layout in 2D and 3D, with dimension-general weighted layouts
+for `dim >= 2`. The main workflow is:
 
 - `grip.layout()` for unweighted graphs,
-- `grip.layout.weighted()` for weighted graphs,
+- `grip.layout.weighted()` for weighted graphs via the ND backend,
 - `grip.compare.layouts()` and `grip.score.layout()` for real-data layout
   selection,
 - `grip.layout.trace()` and `grip.layout.trace.weighted()` for diagnostics.
@@ -44,7 +45,7 @@ grip.plot(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 
 - Multiscale force-directed layout in 2D and 3D via C++ (Rcpp).
 - `grip.layout()` for unweighted graphs.
-- `grip.layout.weighted()` for weighted graphs.
+- `grip.layout.weighted()` for weighted graphs via the ND backend.
 - Layout comparison and quality scoring across seeds and parameter settings
   (`grip.compare.layouts()`, `grip.score.layout()`).
 - Multiscale trace diagnostics for both workflows
@@ -82,7 +83,8 @@ you pass overrides the preset value.
   diagnose how a solve evolved.
 - Add GKK/LGKK only after you already have weighted candidate layouts and need
   geodesic-aware scoring or polish; these are advanced public experimental
-  tools rather than the default starting point.
+  tools rather than the default starting point. The original 2D/3D weighted
+  implementation remains available as `grip.layout.weighted.legacy()`.
 
 ## Gallery
 

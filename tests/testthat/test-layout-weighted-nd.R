@@ -33,6 +33,27 @@ test_that("weighted ND layout returns finite deterministic coordinates above 3D"
   expect_identical(coords1, coords2)
 })
 
+test_that("weighted layout defaults to the ND backend", {
+  edges <- edges.mesh(3, 4)
+  weights <- seq_len(nrow(edges)) / nrow(edges) + 1
+  args <- list(
+    edges = edges,
+    edge_weights = weights,
+    n = 12,
+    dim = 4,
+    rounds = 8,
+    final_rounds = 8,
+    num_init = 6,
+    num_nbrs = 8,
+    seed = 71
+  )
+
+  expect_identical(
+    do.call(grip.layout.weighted, args),
+    do.call(grip.layout.weighted.nd, args)
+  )
+})
+
 test_that("weighted ND layout remains available in 2D and 3D without using legacy validators", {
   edges <- edges.cycle(8)
   weights <- seq_len(nrow(edges)) / nrow(edges) + 1
@@ -428,9 +449,11 @@ test_that("weighted ND final-anchor path mirrors legacy weighted layout", {
     seed = 93
   )
 
-  legacy <- do.call(grip.layout.weighted, args)
+  legacy <- do.call(grip.layout.weighted.legacy, args)
+  default <- do.call(grip.layout.weighted, args)
   nd <- do.call(grip.layout.weighted.nd, args)
 
+  expect_equal(unname(default), unname(nd), tolerance = 0)
   expect_equal(unname(legacy), unname(nd), tolerance = 1e-10)
   expect_gt(
     max(abs(nd - do.call(
