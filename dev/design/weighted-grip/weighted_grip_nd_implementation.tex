@@ -1,0 +1,527 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  urlcolor=blue!55!black,
+  citecolor=blue!55!black
+}
+
+\emergencystretch=3em
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\grip}{\code{grip}}
+\newcommand{\nd}{ND}
+
+\title{Weighted GRIP ND Layout Implementation}
+\author{grip design note}
+\date{2026-05-19}
+
+\begin{document}
+
+\maketitle
+
+\section{Purpose and Scope}
+
+This note describes the dimension-general weighted GRIP layout implementation in
+the \grip{} R package. The implementation goal is deliberately conservative:
+\code{grip.layout.weighted()} should use the dimension-general backend while
+reconstructing the historical weighted GRIP algorithm exposed by
+\code{grip.layout.weighted.legacy()} and
+\code{grip.layout.globalrep.weighted()}. The \nd{} backend replaces
+hard-coded two- and three-dimensional coordinate logic with loops over
+\code{dim >= 2}; it is not intended to define a new weighted layout algorithm.
+
+The document is implementation-facing. It records the public call surface, the
+legacy-to-\nd{} mapping, the multilevel algorithm, the parity-sensitive
+arithmetic and state updates, the diagnostic paths, and the validation evidence
+available after the weighted-\nd{} parity campaign.
+
+\section{Public API}
+
+The current weighted public API has two roles:
+
+\begin{itemize}[leftmargin=*]
+  \item \code{grip.layout.weighted()} is the default weighted layout wrapper and
+  forwards to \code{grip.layout.weighted.nd()}.
+  \item \code{grip.layout.weighted.legacy()} preserves the historical
+  compiled weighted backend and forwards to
+  \code{grip.layout.globalrep.weighted()}.
+\end{itemize}
+
+The two public wrappers are signature-aligned. The parity checkpoint on
+2026-05-19 compared \code{formals(grip.layout.weighted.legacy())} and
+\code{formals(grip.layout.weighted())} and found no legacy-only arguments, no
+\nd{}-only arguments, and no default-value differences.
+
+\subsection{Main Public Weighted Parameters}
+
+The weighted wrappers accept graph input either as an edge matrix with optional
+\code{edge_weights}, or as parallel \code{adj_list} and \code{weight_list}
+objects. The weighted edge values are interpreted as desired graph-metric edge
+lengths and are normalized by \code{length_normalization}, whose choices are
+\code{"median"}, \code{"mean"}, and \code{"none"}.
+
+The main control groups are:
+
+\begin{itemize}[leftmargin=*]
+  \item multilevel schedule: \code{rounds}, \code{final_rounds},
+  \code{num_init}, \code{num_nbrs};
+  \item local temperature: \code{r}, \code{s}, \code{tinit_factor};
+  \item weighted force scaling: \code{repulsion_factor},
+  \code{coarse_repulsion_factor}, \code{coarse_repulsion_sample},
+  \code{coarse_repulsion_exact_below};
+  \item final-stage behavior: \code{final_anchor_factor},
+  \code{final_move_scale_after_first}, \code{final_mode};
+  \item metric-neighbor search: \code{metric_neighbor_cap};
+  \item insertion behavior: \code{insertion_anchor_count},
+  \code{insertion_anchor_scope}, \code{insertion_anchor_strategy},
+  \code{level0_insertion_mode}, \code{level0_anchor_count},
+  \code{level0_local_kk_steps};
+  \item optional LGKK refinement: \code{lgkk_polish_rounds},
+  \code{lgkk_multiscale_rounds}, \code{lgkk_rounds_coarse},
+  \code{lgkk_rounds_pre_final}, \code{lgkk_rounds_final},
+  \code{lgkk_local_nbrs}, \code{lgkk_landmark_count},
+  \code{lgkk_multiscale_scope}, and \code{lgkk_active_limit}.
+\end{itemize}
+
+\section{Call Paths}
+
+\subsection{Final Layout Paths}
+
+\begin{longtable}{p{0.31\textwidth}p{0.61\textwidth}}
+\toprule
+Path & Implementation \\
+\midrule
+\endhead
+\code{grip.layout.weighted()} &
+Default public weighted wrapper. Forwards to
+\code{grip.layout.weighted.nd()} in \code{R/grip_layout_weighted_nd.R}. \\
+\code{grip.layout.weighted.nd()} &
+Validates weighted \nd{} inputs, resolves presets, normalizes lengths, handles
+disconnected components, calls \code{grip_layout_weighted_nd_adj_cpp()}, and
+optionally applies post-layout LGKK polish. \\
+\code{grip_layout_weighted_nd_adj_cpp()} &
+Rcpp entry point in \code{src/grip_nd_rcpp.cpp}. Converts R adjacency and
+weights to \code{GraphND}, parses mode strings, constructs
+\code{DrawGraphND}, and returns the coordinate matrix from
+\code{DrawGraphND::layout()}. \\
+\code{grip.layout.weighted.legacy()} &
+Legacy public wrapper. Forwards to \code{grip.layout.globalrep.weighted()} in
+\code{R/grip_layout_weighted.R}. \\
+\code{grip.layout.globalrep.weighted()} &
+Legacy weighted R path. Validates the same public controls, calls
+\code{grip_layout_globalrep_weighted_adj_cpp()}, and optionally applies
+post-layout LGKK polish. \\
+\code{grip_layout_globalrep_weighted_adj_cpp()} &
+Legacy Rcpp entry point in \code{src/grip_rcpp.cpp}. Constructs
+\code{DrawGraph} with \code{weightedCore = true}, configures metric search, and
+runs the legacy weighted engine. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Diagnostic Trace Paths}
+
+The strict diagnostic comparisons use trace entry points rather than only final
+layout wrappers:
+
+\begin{itemize}[leftmargin=*]
+  \item Legacy diagnostic path:
+  \code{grip.layout.trace.weighted()} $\rightarrow$
+  \code{grip_layout_globalrep_weighted_trace_adj_cpp()}.
+  \item \nd{} diagnostic path:
+  \code{grip.layout.weighted.nd.trace()} $\rightarrow$
+  \code{grip_layout_weighted_nd_trace_adj_cpp()}.
+\end{itemize}
+
+Both trace paths record layout frames and metadata. The \nd{} trace path also
+supports gated refinement-step diagnostics used during parity debugging. These
+diagnostics are disabled by default and are test-only instrumentation, not
+ordinary user behavior.
+
+\section{Algorithm Overview}
+
+Weighted GRIP is a multilevel layout algorithm driven by a maximal independent
+set filtration (MISF). The weighted variant replaces unweighted graph distances
+with weighted shortest-path distances derived from the edge weights.
+
+The high-level order is:
+
+\begin{enumerate}[leftmargin=*]
+  \item validate R inputs and normalize weighted lengths;
+  \item construct the weighted graph representation;
+  \item build the weighted MISF and its active-vertex order;
+  \item initialize the coarsest active set;
+  \item descend levels from coarse to fine;
+  \item insert newly active vertices using legacy-compatible anchors and
+  initial-placement rules;
+  \item refine the active set with weighted KK-style rounds on coarse levels;
+  \item refine the full graph with weighted FR-style rounds, or with the
+  alternate weighted KK-repulse final mode;
+  \item optionally apply final anchor and final move-scaling controls;
+  \item optionally run compiled multiscale LGKK rounds inside the multilevel
+  solver and R-level post-layout LGKK polish after the main solve.
+\end{enumerate}
+
+\section{Legacy-to-ND Mapping}
+
+\begin{longtable}{p{0.32\textwidth}p{0.32\textwidth}p{0.26\textwidth}}
+\toprule
+Legacy implementation & \nd{} implementation & Role \\
+\midrule
+\endhead
+\code{R/grip_layout_weighted.R} &
+\code{R/grip_layout_weighted_nd.R} &
+Public weighted wrappers, validation, normalization, disconnected-component
+handling, and R-level LGKK polish. \\
+\code{grip_layout_globalrep_weighted_adj_cpp()} &
+\code{grip_layout_weighted_nd_adj_cpp()} &
+Compiled final-layout entry point. \\
+\code{grip_layout_globalrep_weighted_trace_adj_cpp()} &
+\code{grip_layout_weighted_nd_trace_adj_cpp()} &
+Compiled trace entry point. \\
+\code{DrawGraph} with \code{weightedCore = true} &
+\code{DrawGraphND} &
+Stateful multilevel layout engine. \\
+\code{create_misf_weighted()} &
+\code{build_weighted_misf_nd()} &
+Weighted MISF construction and active ordering. \\
+\code{compute_weighted_shortest_paths()} and
+\code{metricNbrs[root][level]} &
+\code{populate_metric_neighbors_for_root()} and
+\code{metric_neighbors_cache_[root][level]} &
+Cached weighted metric-neighbor layers. \\
+\code{KK_spring_weighted_local_v1()} &
+\code{local insertion polish in DrawGraphND} &
+Local weighted insertion refinement. \\
+\code{KK_spring_weighted_v1()} &
+\code{legacy_weighted_kk_displacement()} &
+Coarse-level weighted KK displacement. \\
+\code{KK_spring_weighted_final_v1()} &
+\code{legacy_weighted_kk_final_displacement()} &
+Alternate full-graph KK-repulse final mode. \\
+\code{FR_spring_weighted_v1()} &
+\code{legacy_weighted_fr_displacement()} &
+Default full-graph weighted FR displacement. \\
+\code{add_final_anchor_force()} &
+\code{add_final_anchor_force()} &
+Optional final anchor term. \\
+\code{mish_engine_weighted()} &
+\code{DrawGraphND::layout()} and
+\code{refine_legacy_weighted_level()} &
+Top-level weighted multiscale schedule and per-round update loop. \\
+\bottomrule
+\end{longtable}
+
+\section{Weighted MISF and Metric Neighbors}
+
+The \nd{} MISF builder is \code{build_weighted_misf_nd()} in
+\code{src/WeightedMisfND.cpp}. It mirrors the legacy weighted MISF structure:
+the active order is stored in \code{WeightedMisfND::order}, vertex positions in
+that order are stored in \code{inverse}, per-vertex depth is stored in
+\code{vertex_depth}, and per-level active sizes are stored in
+\code{level_size}.
+
+Weighted shortest-path traversal uses a Dijkstra priority queue ordered first
+by distance and then by vertex id. This tie-breaking is parity-sensitive
+because MISF membership, metric-neighbor order, and insertion anchors all
+depend on traversal order. The weighted radius schedule is
+\code{2^(level - 1)} for levels greater than one and \code{1} for levels zero
+and one.
+
+Metric neighbors are cached by root and level. In the legacy code the cache is
+\code{metricNbrs[root][level]}; in the \nd{} code it is
+\code{metric_neighbors_cache_[root][level]}. The \nd{} path populates all
+needed layers for a root on first use through
+\code{populate_metric_neighbors_for_root()} and then retrieves the requested
+layer through \code{metric_neighbors_for_level()}. This is intentionally a
+cache-equivalent port rather than a fresh shortest-path query at every force
+evaluation.
+
+\section{Insertion and Initial Placement}
+
+At each MISF level, newly introduced vertices are inserted before the active
+set is refined. Anchor selection is controlled by
+\code{insertion_anchor_count}, \code{insertion_anchor_scope}, and
+\code{insertion_anchor_strategy}. The current \nd{} backend implements the
+legacy strategies, including selection from any higher level or only the
+previous MISF level.
+
+Initial coordinates are controlled by \code{level0_insertion_mode} and the
+legacy weighted placement helpers:
+
+\begin{itemize}[leftmargin=*]
+  \item \code{"inherit"} preserves the level's default legacy behavior;
+  \item \code{"barycenter"} uses anchor barycenters;
+  \item \code{"least_squares"} uses the weighted local least-squares initial
+  placement path.
+\end{itemize}
+
+Disconnected or no-anchor insertion is also parity-sensitive. The legacy code
+falls back to \code{rand_Point()}; the \nd{} backend preserves this behavior
+through legacy-compatible random coordinate generation rather than placing the
+vertex at the origin.
+
+\section{Refinement Loop}
+
+The parity-critical update loop is \code{DrawGraphND::refine_legacy_weighted_level()}.
+For each round it iterates over the first \code{active_count} vertices in
+\code{misf.order}. For each active vertex it:
+
+\begin{enumerate}[leftmargin=*]
+  \item reads the cached metric-neighbor layer for the current MISF level;
+  \item computes the displacement using the phase-specific force kernel;
+  \item records diagnostic pre-temperature state when requested;
+  \item updates the local temperature;
+  \item stores \code{old_disp} and \code{old_disp_norm};
+  \item scales displacement by heat and by the pre-temperature displacement
+  norm;
+  \item applies \code{final_move_scale_after_first} in the default final FR
+  mode after the first final round when the scale is less than one;
+  \item after all vertices in the round have computed their displacements,
+  applies coordinate updates in active order.
+\end{enumerate}
+
+The delayed coordinate application matters: all force computations in a round
+see coordinates from the start of that round, matching the legacy engine's
+round-level update semantics.
+
+\section{Force Kernels}
+
+\subsection{Coarse Weighted KK}
+
+The coarse weighted KK displacement is implemented by
+\code{legacy_weighted_kk_displacement()}. For each metric neighbor it computes
+the vector from the active vertex to the neighbor, the squared Euclidean norm,
+the desired Euclidean distance \code{neighbor.dist * kLegacyEdgeND}, and the
+legacy scale \code{norm2 / desired2 - 1}. The scaled vector is accumulated into
+\code{disp_[vert]} in dimension order. On coarse levels, active-set repulsion
+is added after attraction and before displacement normalization.
+
+\subsection{Default Full-Graph Weighted FR}
+
+The default final phase is \code{legacy_weighted_fr_displacement()}. Its
+attraction term iterates over graph adjacency neighbors, not metric-neighbor
+layers. For an edge from \code{vert} to \code{overt} with weight \code{w}, the
+desired length is \code{kLegacyEdgeND * w}; the attraction step is the edge
+vector multiplied by \code{norm2 / desired2}. The metric-neighbor layer then
+contributes the final-level repulsion term scaled by
+\code{repulsion_factor * 0.05 * kLegacyEdgeND^2 / norm2}.
+
+During parity work, this kernel was one of the most sensitive areas because
+the legacy implementation used \code{Point<>} arithmetic and historical
+floating-point casts. The \nd{} path was adjusted so the arithmetic sequence,
+neighbor order, and displacement scaling match the legacy behavior for the
+strict parity fixtures.
+
+\subsection{Alternate Final KK-Repulse Mode}
+
+When \code{final_mode = "kk_repulse"}, the \nd{} engine calls
+\code{legacy_weighted_kk_final_displacement()} at MISF level zero. This keeps
+the same weighted metric-neighbor KK attraction as the coarse phase but uses
+the finest-level repulsion scale. This path is included for signature and
+algorithmic parity with the legacy backend.
+
+\subsection{Active-Set Repulsion}
+
+\code{add_legacy_active_repulsion()} implements the public coarse-repulsion
+controls. If the active set is at or below
+\code{coarse_repulsion_exact_below}, or if the sample size covers the active
+population, it uses exact active-set repulsion. Otherwise it samples active
+vertices with the legacy RNG and rescales by
+\code{(active_count - 1) / sample_count}. The exact and sampled branches both
+accumulate in active-order dimension loops.
+
+\subsection{Final Anchor Force}
+
+The final anchor path has two pieces. \code{prepare_final_anchors()} stores
+coordinates for the active vertices before the final phase when
+\code{final_anchor_factor > 0}. \code{add_final_anchor_force()} then adds
+\[
+  (\mathrm{anchor}_v - x_v) \cdot
+  \frac{\code{final_anchor_factor}}{\code{kLegacyEdgeND}}
+\]
+to each dimension of the displacement. When
+\code{final_anchor_factor = 0}, the function returns before mutating
+displacement state.
+
+\section{Dimensional Generalization}
+
+The \nd{} backend stores coordinates as \code{PointND} values and loops over
+\code{d = 0, \ldots, dim - 1}. The intended generalization is mechanical:
+
+\begin{itemize}[leftmargin=*]
+  \item replace explicit \code{x}, \code{y}, and \code{z} fields with indexed
+  coordinate access;
+  \item preserve neighbor and active-vertex ordering;
+  \item preserve force accumulation order across neighbors and dimensions;
+  \item preserve the local temperature sequence and delayed coordinate update;
+  \item extend valid dimensions from legacy \code{dim \in \{2, 3\}} to
+  \code{dim >= 2}.
+\end{itemize}
+
+This generalization is intentional and should not be considered an algorithmic
+difference by itself. Algorithmic differences are only those that alter the
+legacy schedule, force equations, state updates, random choices, cache
+behavior, or public option semantics.
+
+\section{LGKK Refinement}
+
+Weighted \nd{} supports both R-level post-layout LGKK polish and compiled
+multiscale LGKK stages inside the multilevel solver. The compiled stage is
+controlled by per-stage budgets:
+\code{lgkk_rounds_coarse}, \code{lgkk_rounds_pre_final}, and
+\code{lgkk_rounds_final}, with \code{lgkk_multiscale_rounds} as the legacy
+shared fallback. The scope is controlled by \code{lgkk_multiscale_scope}, and
+\code{lgkk_active_limit} limits cache construction on large active sets.
+
+The implementation builds sparse local and landmark graph-metric pairs on the
+active set, applies LGKK displacement rounds, and uses the same local
+temperature machinery as the main weighted refinement. The parity suite
+includes compiled LGKK checks and staged-budget checks.
+
+\section{Disconnected Components}
+
+The public R wrappers detect disconnected graphs before calling the compiled
+core. With \code{disconnected = "components"}, each component is induced,
+laid out separately, and packed into one coordinate matrix. With
+\code{disconnected = "error"}, the wrapper stops. The compiled weighted core
+therefore continues to assume a connected graph, while the public wrappers
+provide safe disconnected-graph behavior.
+
+\section{Trace and Diagnostic Instrumentation}
+
+The trace interfaces record frame matrices and metadata describing phase,
+level index, MISF level, round number, and active vertex count. The
+\nd{} trace backend also exposes optional refinement-step diagnostics used to
+compare per-vertex and per-term force accumulation. These diagnostics were
+central during parity repair because they could isolate differences in:
+
+\begin{itemize}[leftmargin=*]
+  \item active order and focal vertex order index;
+  \item attraction edge identity, edge weight, desired length, and term vector;
+  \item metric-neighbor identity, distance, and repulsion term;
+  \item pre-temperature displacement and local heat update;
+  \item post-temperature move applied to coordinates.
+\end{itemize}
+
+The refinement-step diagnostic is gated in tests. In the latest gflow run it
+skipped because no divergent trace frame was found at tolerance \code{1e-08};
+there was no focal divergence to expand.
+
+\section{Validation Evidence}
+
+The checkpoint note
+\code{dev/design/weighted-grip/weighted_grip_nd_parity_checkpoint_2026-05-19.md}
+records the current parity evidence. The key strict gates completed after the
+LGKK port and formatting audit were:
+
+\begin{longtable}{p{0.58\textwidth}p{0.32\textwidth}}
+\toprule
+Command or gate & Result \\
+\midrule
+\endhead
+\code{devtools::test(filter = "layout-weighted-nd\$")} &
+91 pass. \\
+\code{GRIP_RUN_GFLOW_LGKK_PARITY_TESTS=true} with enforcement &
+12 pass, 7 gated skips. \\
+\code{devtools::test(filter = "layout-weighted")} &
+153 pass, 10 gated skips. \\
+\code{GRIP_RUN_GFLOW_FINAL_ANCHOR_PARITY_TESTS=true} with enforcement &
+6 pass. \\
+\code{GRIP_RUN_TRACE_PARITY_TESTS=true} &
+13 pass, 1 gated skip. \\
+\code{GRIP_RUN_FINAL_ANCHOR_TRACE_PARITY_TESTS=true} &
+6 pass, 1 gated skip. \\
+\code{GRIP_RUN_GFLOW_FULL_PARITY_TESTS=true} with enforcement &
+13 pass, 7 gated skips. \\
+\code{GRIP_RUN_GFLOW_STRESS_PARITY_TESTS=true} with enforcement &
+13 pass, 7 gated skips. \\
+\code{GRIP_RUN_GFLOW_TRACE_ALL_TESTS=true} with enforcement &
+10 pass, 7 gated skips. \\
+\code{GRIP_RUN_GFLOW_REFINEMENT_STEP_TRACE_TESTS=true} &
+Skipped because no divergent gflow trace frame was found at tolerance
+\code{1e-08}. \\
+\code{make check-fast} &
+Completed with known 2 warnings and 1 note. \\
+\code{make check} &
+Completed with known 2 warnings and 3 notes. \\
+\bottomrule
+\end{longtable}
+
+The defensible claim is therefore tested full legacy-vs-\nd{} parity across
+the current weighted parity suite, including the previously missing public
+paths: coarse-repulsion controls, metric-neighbor cap, final anchor, final
+move scaling, alternate final-stage mode, disconnected insertion behavior, and
+LGKK stages.
+
+\section{Known Limits of the Claim}
+
+The parity claim is empirical, not a formal proof. It means that the current
+strict tests, trace gates, and gflow-backed fixtures pass under enforcement.
+It does not prove bitwise identity for every possible graph, seed, tuning
+combination, compiler, or platform. In particular:
+
+\begin{itemize}[leftmargin=*]
+  \item floating-point behavior may still vary across platforms or compilers;
+  \item parity is only as broad as the maintained fixture suite;
+  \item legacy behavior is intentionally preserved even where it is historical
+  rather than mathematically ideal;
+  \item the package still has non-parity check warnings and notes, including
+  non-portable compiler-warning flags, undeclared \code{geometry} usage in
+  tests, CRAN new-submission status, a local time-verification note, and an
+  HTML Tidy note.
+\end{itemize}
+
+\section{Maintenance Guidance}
+
+Future changes to weighted layout code should preserve the distinction between
+algorithmic modernization and parity preservation. A safe workflow is:
+
+\begin{enumerate}[leftmargin=*]
+  \item change legacy and \nd{} arithmetic together when the goal is
+  modernization, so strict legacy-vs-\nd{} parity can remain enforced;
+  \item record old-vs-new behavioral drift with layout snapshots when changing
+  numerical semantics;
+  \item rerun targeted parity gates for any touched phase before running broad
+  gflow gates;
+  \item update this design note when changing public options, backend force
+  kernels, MISF construction, metric-neighbor cache semantics, insertion
+  behavior, final-stage behavior, or LGKK staging.
+\end{enumerate}
+
+\section{Source Index}
+
+\begin{itemize}[leftmargin=*]
+  \item \code{R/grip_layout_weighted_nd.R}: \nd{} public weighted wrapper,
+  default \code{grip.layout.weighted()} forwarding, trace wrapper, validation,
+  disconnected handling, R-level LGKK polish.
+  \item \code{R/grip_layout_weighted.R}: legacy weighted public wrapper and
+  trace wrapper.
+  \item \code{src/grip_nd_rcpp.cpp}: \nd{} Rcpp entry points and R-to-C++
+  validation/parsing.
+  \item \code{src/DrawGraphND.h} and \code{src/DrawGraphND.cpp}: \nd{}
+  weighted layout engine, force kernels, insertion, tracing, final anchor,
+  coarse repulsion, and LGKK stages.
+  \item \code{src/WeightedMisfND.h} and \code{src/WeightedMisfND.cpp}:
+  weighted MISF construction.
+  \item \code{src/grip_rcpp.cpp}, \code{src/DrawGraph.h},
+  \code{src/DrawGraph.cpp}, and \code{src/MishWeighted.cpp}: legacy weighted
+  backend and reference behavior.
+  \item \code{tests/testthat/helper-weighted-nd-trace-parity.R} and
+  \code{tests/testthat/test-layout-weighted-nd-trace-parity.R}: trace parity
+  helpers and tests.
+  \item \code{tests/testthat/helper-weighted-nd-gflow-parity.R} and
+  \code{tests/testthat/test-layout-weighted-nd-gflow-parity.R}: gflow-backed
+  final-layout, stress, trace, LGKK, and refinement-step parity gates.
+\end{itemize}
+
+\end{document}
