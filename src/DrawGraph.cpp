@@ -647,16 +647,17 @@ coord_t DrawGraph::dist(const Point<> & p, const Point<> & q)
 //**************************************************************
 Point<> DrawGraph::rand_Point()
 {
+    const int box2SizeInt = static_cast<int>(box2Size);
     if( dim == 2 )
         return
-            Point<>((coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize, 0);
+            Point<>(static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize, 0);
     else
         return
-            Point<>((coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
+            Point<>(static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
 //                   0);
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize);
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize);
 }
 
 Point<> DrawGraph::initial_position(const size_tt *closeVert,
