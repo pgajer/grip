@@ -88,10 +88,28 @@ reference:
     desc: Compute geometry-aware layouts and multiscale filtrations for weighted graphs.
     contents:
       - grip.layout.weighted
+      - grip.layout.weighted.nd
       - grip.layout.globalrep.weighted
       - grip.layout.trace.weighted
       - grip.build.misf
       - grip.build.misf.weighted
+
+  - title: Geodesic MDS and edge optimization
+    desc: Score, initialize, and polish weighted layouts with GMDS-oriented objectives.
+    contents:
+      - grip.score.gmds.layout
+      - grip.gmds.layout.result
+      - grip.metric.mds.layout
+      - grip.edge.length.density.stiffness
+      - grip.optimize.edge.isometric.layout
+      - grip.optimize.edge.kk.layout
+      - grip.optimize.edge.gkk.layout
+      - grip.edge.repulsive.state
+      - grip.optimize.edge.repulsive.stage
+      - grip.repulsive.state
+      - grip.optimize.repulsive.stage
+      - graph.riemannian.star.structure
+      - grip.optimize.kernel.gram.gkk.layout
 
   - title: Full geodesic KK
     desc: Prepare, score, and optimize layouts under the full geodesic Kamada-Kawai objective.
