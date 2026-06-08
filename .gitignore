@@ -6,6 +6,7 @@ README.html
 CRAN-SUBMISSION
 *.tar.gz
 *.zip
+*.pdf
 
 # Local standalone vignette/article renders
 /vignettes/*.html
