@@ -353,8 +353,12 @@ grip.kernel.gram.score <- function(coords,
 #' with an antipodal kernel controlled by `angle.power`.
 #'
 #' @inheritParams edge.kk
+#' @param init Starting layout used when `coords` is omitted. `"metric_mds"`
+#'   uses ordinary metric MDS from an all-pairs prepared object and `"random"`
+#'   uses centered Gaussian coordinates.
 #' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
 #'   frames.
+#' @param seed Random seed used only for `init = "random"`.
 #' @param X Optional ambient/source coordinates used to build `star` when `star`
 #'   is omitted.
 #' @param star Optional object from [graph.riemannian.star.structure()].
