@@ -13,7 +13,8 @@ edge.kk(
   weight_list = NULL,
   edge_weights = NULL,
   dim = 2L,
-  init = c("metric_mds", "random"),
+  init = c("metric_mds", "weighted_grip", "random"),
+  weighted.grip.args = list(),
   stiffness_method = c("density", "uniform", "distance_power"),
   stiffness_transform = c("identity", "sqrt", "log"),
   density_mix_schedule = c(0, 0.25, 0.5, 0.75, 1),
@@ -59,7 +60,14 @@ diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted.}
+\item{init}{Starting layout used when `coords` is omitted. `"metric_mds"`
+uses ordinary metric MDS from an all-pairs prepared object,
+`"weighted_grip"` runs [weighted.grip()] on the graph edges first, and
+`"random"` uses centered Gaussian coordinates.}
+
+\item{weighted.grip.args}{Named list of additional tuning arguments passed
+to [weighted.grip()] when `init = "weighted_grip"`. Graph inputs,
+`dim`, and `seed` are supplied by `edge.kk()` and may not be repeated here.}
 
 \item{stiffness_method, stiffness_transform, density_mix_schedule, bandwidth, density_n}{Parameters passed to [edge.length.density.stiffness()].}
 
@@ -90,7 +98,8 @@ summaries in `metadata$stage_summaries`.}
 
 \item{diagnostics}{If `TRUE`, attach the common GMDS diagnostic panel.}
 
-\item{seed}{Random seed used only for `init = "random"`.}
+\item{seed}{Random seed used for `init = "weighted_grip"` and
+`init = "random"`.}
 
 \item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
 edge-stress loop; `"R"` keeps the reference prototype.}
@@ -116,7 +125,8 @@ toward uniform stiffnesses.
 For scalable repair from an existing layout, pass `coords` or an edge-only
 object from [prepare.edge.kk()]. When raw graph inputs are supplied,
 `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
-`init != "metric_mds"`. If `coords` is omitted and `init = "metric_mds"`,
-use an all-pairs prepared object from [prepare.graph.geodesic.mds()] or
-[prepare.geodesic.kk()] instead.
+`init != "metric_mds"`. Use `init = "weighted_grip"` for a scalable
+weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
+and `init = "metric_mds"`, use an all-pairs prepared object from
+[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
 }

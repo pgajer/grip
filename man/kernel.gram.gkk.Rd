@@ -72,7 +72,9 @@ is omitted.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted.}
+\item{init}{Starting layout used when `coords` is omitted. `"metric_mds"`
+uses ordinary metric MDS from an all-pairs prepared object and `"random"`
+uses centered Gaussian coordinates.}
 
 \item{angle.power, reliability, min.angle.weight}{Passed to
 [graph.riemannian.star.structure()] when `star` is omitted.}

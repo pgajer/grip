@@ -844,9 +844,10 @@ grip.edge.isometric.evaluate.state <- function(coords,
 
 grip.edge.isometric.initial.coords <- function(prepared,
                                                coords = NULL,
-                                               init = c("metric_mds", "random"),
+                                               init = c("metric_mds", "weighted_grip", "random"),
                                                dim = 2L,
-                                               seed = 1L) {
+                                               seed = 1L,
+                                               weighted.grip.args = list()) {
   grip.validate.scalar(dim, "dim", lower = 2)
   dim <- as.integer(round(dim))
   if (!is.null(coords)) {
@@ -860,11 +861,20 @@ grip.edge.isometric.initial.coords <- function(prepared,
     return(coords)
   }
   init <- match.arg(init)
+  if (!is.list(weighted.grip.args)) {
+    stop("weighted.grip.args must be a list")
+  }
+  weighted.grip.arg.names <- names(weighted.grip.args)
+  if (length(weighted.grip.args) > 0L &&
+      (is.null(weighted.grip.arg.names) || any(!nzchar(weighted.grip.arg.names)))) {
+    stop("weighted.grip.args must be a named list")
+  }
   if (identical(init, "metric_mds")) {
     if (is.null(prepared$distance_matrix)) {
       stop(
         "init = \"metric_mds\" requires an all-pairs prepared object; ",
-        "pass coords, use init = \"random\", or prepare with prepare.graph.geodesic.mds()"
+        "pass coords, use init = \"weighted_grip\" or \"random\", ",
+        "or prepare with prepare.graph.geodesic.mds()"
       )
     }
     return(metric.mds(
@@ -872,6 +882,29 @@ grip.edge.isometric.initial.coords <- function(prepared,
       dim = dim,
       diagnostics = FALSE
     )$coords)
+  }
+  if (identical(init, "weighted_grip")) {
+    if (!(dim %in% c(2L, 3L))) {
+      stop("init = \"weighted_grip\" requires dim to be 2 or 3")
+    }
+    reserved <- c("edges", "n", "adj_list", "weight_list", "edge_weights", "dim", "seed")
+    conflicts <- intersect(weighted.grip.arg.names, reserved)
+    if (length(conflicts) > 0L) {
+      stop(
+        "weighted.grip.args must not include graph, dimension, or seed arguments: ",
+        paste(conflicts, collapse = ", ")
+      )
+    }
+    return(do.call(weighted.grip, c(
+      list(
+        edges = prepared$edges,
+        n = prepared$n,
+        edge_weights = prepared$edge_targets,
+        dim = dim,
+        seed = seed
+      ),
+      weighted.grip.args
+    )))
   }
   if (!is.null(seed)) {
     set.seed(as.integer(seed))
@@ -898,14 +931,21 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' For scalable repair from an existing layout, pass `coords` or an edge-only
 #' object from [prepare.edge.kk()]. When raw graph inputs are supplied,
 #' `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
-#' `init != "metric_mds"`. If `coords` is omitted and `init = "metric_mds"`,
-#' use an all-pairs prepared object from [prepare.graph.geodesic.mds()] or
-#' [prepare.geodesic.kk()] instead.
+#' `init != "metric_mds"`. Use `init = "weighted_grip"` for a scalable
+#' weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
+#' and `init = "metric_mds"`, use an all-pairs prepared object from
+#' [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
 #'
 #' @inheritParams score.gmds
 #' @param coords Optional starting coordinates. If omitted, `init` is used.
 #' @param dim Target embedding dimension.
-#' @param init Starting layout used when `coords` is omitted.
+#' @param init Starting layout used when `coords` is omitted. `"metric_mds"`
+#'   uses ordinary metric MDS from an all-pairs prepared object,
+#'   `"weighted_grip"` runs [weighted.grip()] on the graph edges first, and
+#'   `"random"` uses centered Gaussian coordinates.
+#' @param weighted.grip.args Named list of additional tuning arguments passed
+#'   to [weighted.grip()] when `init = "weighted_grip"`. Graph inputs,
+#'   `dim`, and `seed` are supplied by `edge.kk()` and may not be repeated here.
 #' @param stiffness_method,stiffness_transform,density_mix_schedule,bandwidth,density_n
 #'   Parameters passed to [edge.length.density.stiffness()].
 #' @param distance_power,stiffness_floor,stiffness_ceiling Additional stiffness
@@ -923,7 +963,8 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #'   frames. If `FALSE`, omit those payloads while retaining compact stage
 #'   summaries in `metadata$stage_summaries`.
 #' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
-#' @param seed Random seed used only for `init = "random"`.
+#' @param seed Random seed used for `init = "weighted_grip"` and
+#'   `init = "random"`.
 #' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
 #'   edge-stress loop; `"R"` keeps the reference prototype.
 #'
@@ -937,7 +978,8 @@ edge.kk <- function(coords = NULL,
                     weight_list = NULL,
                     edge_weights = NULL,
                     dim = 2L,
-                    init = c("metric_mds", "random"),
+                    init = c("metric_mds", "weighted_grip", "random"),
+                    weighted.grip.args = list(),
                     stiffness_method = c("density", "uniform", "distance_power"),
                     stiffness_transform = c("identity", "sqrt", "log"),
                     density_mix_schedule = c(0, 0.25, 0.5, 0.75, 1),
@@ -1025,7 +1067,8 @@ edge.kk <- function(coords = NULL,
     coords = coords,
     init = init,
     dim = dim,
-    seed = seed
+    seed = seed,
+    weighted.grip.args = weighted.grip.args
   )
   if (isTRUE(recenter)) {
     current <- sweep(current, 2L, colMeans(current), "-", check.margin = FALSE)

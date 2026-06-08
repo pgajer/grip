@@ -103,6 +103,59 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
   expect_lte(fit$diagnostics$edge.rel.rmse[[1L]], before$edge.rel.rmse[[1L]])
 })
 
+test_that("edge-KK weighted-GRIP initialization uses edge-only preparation", {
+  edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L), c(1L, 3L))
+  edge.weights <- c(1, 1.4, 1.1, 1.2, 1.8)
+  prepared <- prepare.edge.kk(
+    edges = edges,
+    n = 4L,
+    edge_weights = edge.weights
+  )
+  weighted.args <- list(rounds = 4L, final_rounds = 4L, num_init = 3L)
+  init <- do.call(weighted.grip, c(
+    list(
+      edges = prepared$edges,
+      n = prepared$n,
+      edge_weights = prepared$edge_targets,
+      dim = 3L,
+      seed = 11L
+    ),
+    weighted.args
+  ))
+  manual <- edge.kk(
+    coords = init,
+    prepared = prepared,
+    dim = 3L,
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    scale_mode = "profiled",
+    max_iter = 3L,
+    diagnostics = FALSE,
+    return_trace = FALSE,
+    engine = "cpp"
+  )
+  direct <- edge.kk(
+    prepared = prepared,
+    dim = 3L,
+    init = "weighted_grip",
+    weighted.grip.args = weighted.args,
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    scale_mode = "profiled",
+    max_iter = 3L,
+    diagnostics = FALSE,
+    return_trace = FALSE,
+    seed = 11L,
+    engine = "cpp"
+  )
+
+  expect_s3_class(direct$prepared, "grip_edge_kk_prepared")
+  expect_equal(direct$prepared$pair_mode, "edge_only")
+  expect_equal(direct$coords, manual$coords, tolerance = 1e-12)
+  expect_null(direct$trace)
+  expect_null(direct$metadata$frames)
+})
+
 test_that("edge-KK raw graph input uses edge-only preparation when coordinates are supplied", {
   edges <- edges.mesh(4L, 4L, connectivity = "orthogonal")
   coords <- cbind(
@@ -153,6 +206,56 @@ test_that("edge-KK random initialization uses edge-only preparation from raw gra
   expect_null(fit$trace)
   expect_null(fit$metadata$frames)
   expect_equal(dim(fit$coords), c(6L, 2L))
+})
+
+test_that("edge-KK weighted-GRIP initialization uses edge-only raw graph preparation", {
+  edges <- edges.path(6L)
+  fit <- edge.kk(
+    edges = edges,
+    n = 6L,
+    edge_weights = rep(1, nrow(edges)),
+    init = "weighted_grip",
+    weighted.grip.args = list(rounds = 3L, final_rounds = 3L, num_init = 3L),
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    max_iter = 1L,
+    diagnostics = FALSE,
+    return_trace = FALSE,
+    seed = 5L,
+    engine = "cpp"
+  )
+
+  expect_s3_class(fit$prepared, "grip_edge_kk_prepared")
+  expect_equal(fit$prepared$pair_mode, "edge_only")
+  expect_null(fit$prepared$distance_matrix)
+  expect_equal(dim(fit$coords), c(6L, 2L))
+})
+
+test_that("edge-KK weighted-GRIP initialization validates companion arguments", {
+  prepared <- prepare.edge.kk(
+    edges = edges.path(4L),
+    n = 4L,
+    edge_weights = rep(1, 3L)
+  )
+
+  expect_error(
+    edge.kk(
+      prepared = prepared,
+      init = "weighted_grip",
+      weighted.grip.args = list(edges = edges.path(4L)),
+      max_iter = 1L
+    ),
+    "weighted.grip.args must not include"
+  )
+  expect_error(
+    edge.kk(
+      prepared = prepared,
+      init = "weighted_grip",
+      dim = 4L,
+      max_iter = 1L
+    ),
+    "init = \"weighted_grip\" requires dim to be 2 or 3"
+  )
 })
 
 test_that("edge-KK omits trace rows and frames when tracing is disabled in R engine", {
