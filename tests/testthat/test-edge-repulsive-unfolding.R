@@ -7,7 +7,7 @@ test_that("edge-repulsive R gradient matches finite differences", {
 test_that("edge-repulsive objective recognizes exact edge lengths", {
   Z <- rbind(c(0, 0, 0), c(1, 0, 0), c(2, 0, 0))
   edges <- rbind(c(1L, 2L), c(2L, 3L))
-  st <- grip.edge.repulsive.state(Z, edges, c(1, 1), lambda = 0)
+  st <- edge.repulsive.state(Z, edges, c(1, 1), lambda = 0)
   expect_lt(abs(st$edge.energy), 1e-8)
   expect_lt(st$gradient.norm, 1e-6)
 })
@@ -15,7 +15,7 @@ test_that("edge-repulsive objective recognizes exact edge lengths", {
 test_that("upper barrier reports infeasible stretched edges", {
   Z <- rbind(c(0, 0, 0), c(1, 0, 0), c(2, 0, 0))
   edges <- rbind(c(1L, 2L), c(2L, 3L))
-  bad <- grip.edge.repulsive.state(
+  bad <- edge.repulsive.state(
     Z * 2, edges, c(1, 1),
     edge.family = "upper_barrier",
     eps.plus = 0.25,
@@ -35,7 +35,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
   pair.index <- rbind(c(1L, 3L), c(1L, 6L), c(2L, 5L), c(4L, 6L))
   pair.weights <- c(0.7, 1.2, 0.9, 1.5)
 
-  st.r <- grip.edge.repulsive.state(
+  st.r <- edge.repulsive.state(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.025,
@@ -44,7 +44,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
     repulsion.family = "log",
     engine = "R"
   )
-  st.cpp <- grip.edge.repulsive.state(
+  st.cpp <- edge.repulsive.state(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.025,
@@ -59,7 +59,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
   expect_lt(max(abs(st.cpp$gradient - st.r$gradient)), 1e-10)
   expect_lt(max(abs(st.cpp$edge.embedded.lengths - st.r$edge.embedded.lengths)), 1e-10)
 
-  st.r.inv <- grip.edge.repulsive.state(
+  st.r.inv <- edge.repulsive.state(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.01,
@@ -69,7 +69,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
     repulsion.power = 1.5,
     engine = "R"
   )
-  st.cpp.inv <- grip.edge.repulsive.state(
+  st.cpp.inv <- edge.repulsive.state(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.01,
@@ -82,7 +82,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
   expect_equal(st.cpp.inv$energy, st.r.inv$energy, tolerance = 1e-10)
   expect_lt(max(abs(st.cpp.inv$gradient - st.r.inv$gradient)), 1e-10)
 
-  bad.r <- grip.edge.repulsive.state(
+  bad.r <- edge.repulsive.state(
     Z * 4, edges, edge.lengths,
     edge.family = "upper_barrier",
     eps.plus = 0.2,
@@ -91,7 +91,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
     pair.index = pair.index,
     engine = "R"
   )
-  bad.cpp <- grip.edge.repulsive.state(
+  bad.cpp <- edge.repulsive.state(
     Z * 4, edges, edge.lengths,
     edge.family = "upper_barrier",
     eps.plus = 0.2,
@@ -104,7 +104,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
   expect_identical(as.integer(bad.cpp$n.wall.violations), as.integer(bad.r$n.wall.violations))
   expect_lt(max(abs(bad.cpp$gradient - bad.r$gradient)), 1e-10)
 
-  fit.r <- grip.optimize.edge.repulsive.stage(
+  fit.r <- edge.repulsive.stage(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.01,
@@ -114,7 +114,7 @@ test_that("C++ backend matches R reference for edge-repulsive state and optimize
     initial.step = 0.01,
     engine = "R"
   )
-  fit.cpp <- grip.optimize.edge.repulsive.stage(
+  fit.cpp <- edge.repulsive.stage(
     Z, edges, edge.lengths,
     edge.weights = edge.weights,
     lambda = 0.01,
@@ -138,7 +138,7 @@ test_that("pure repulsive state matches edge-repulsive state with zero edge weig
   pair.index <- rbind(c(1L, 3L), c(1L, 5L), c(2L, 4L), c(3L, 5L))
   pair.weights <- c(1.2, 0.7, 1.5, 0.9)
 
-  pure <- grip.repulsive.state(
+  pure <- repulsive.state(
     Z,
     lambda = 0.08,
     pair.index = pair.index,
@@ -147,7 +147,7 @@ test_that("pure repulsive state matches edge-repulsive state with zero edge weig
     repulsion.power = 1.25,
     engine = "cpp"
   )
-  zero.edge <- grip.edge.repulsive.state(
+  zero.edge <- edge.repulsive.state(
     Z, edges, ell,
     edge.weights = c(0, 0),
     lambda = 0.08,
@@ -157,7 +157,7 @@ test_that("pure repulsive state matches edge-repulsive state with zero edge weig
     repulsion.power = 1.25,
     engine = "cpp"
   )
-  pure.r <- grip.repulsive.state(
+  pure.r <- repulsive.state(
     Z,
     lambda = 0.08,
     pair.index = pair.index,
@@ -185,7 +185,7 @@ test_that("pure repulsive optimizer and edge-repulsive optimizer can return fram
   edges <- rbind(c(1L, 2L), c(2L, 4L), c(3L, 4L), c(1L, 3L))
   ell <- rep(1, 4)
 
-  pure <- grip.optimize.repulsive.stage(
+  pure <- repulsive.stage(
     Z,
     lambda = 0.01,
     max.iter = 4L,
@@ -193,7 +193,7 @@ test_that("pure repulsive optimizer and edge-repulsive optimizer can return fram
     return.frames = TRUE,
     engine = "cpp"
   )
-  pure.r <- grip.optimize.repulsive.stage(
+  pure.r <- repulsive.stage(
     Z,
     lambda = 0.01,
     max.iter = 4L,
@@ -201,7 +201,7 @@ test_that("pure repulsive optimizer and edge-repulsive optimizer can return fram
     return.frames = TRUE,
     engine = "R"
   )
-  edge <- grip.optimize.edge.repulsive.stage(
+  edge <- edge.repulsive.stage(
     Z, edges, ell,
     lambda = 0.01,
     max.iter = 4L,

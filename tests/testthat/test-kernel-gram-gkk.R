@@ -1,5 +1,5 @@
 test_that("Riemannian star structure builds antipodal-weighted center pairs", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L)),
     n = 3L,
     edge_weights = c(1, 1)
@@ -20,7 +20,7 @@ test_that("Riemannian star structure builds antipodal-weighted center pairs", {
 })
 
 test_that("Riemannian star angle.power downweights non-antipodal pairs", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(1L, 3L), c(1L, 4L)),
     n = 4L,
     edge_weights = c(1, 1, 1)
@@ -40,7 +40,7 @@ test_that("Riemannian star angle.power downweights non-antipodal pairs", {
 })
 
 test_that("Riemannian star quantile filter keeps strongest star pairs", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(1L, 3L), c(1L, 4L), c(1L, 5L)),
     n = 5L,
     edge_weights = rep(1, 4)
@@ -69,7 +69,7 @@ test_that("Riemannian star quantile filter keeps strongest star pairs", {
 
 test_that("kernel Gram energy gradient matches finite differences", {
   edges <- rbind(c(1L, 2L), c(2L, 3L), c(2L, 4L))
-  prepared <- grip.prepare.graph.geodesic.mds(edges = edges, n = 4L, edge_weights = c(1, 1, 1))
+  prepared <- prepare.graph.geodesic.mds(edges = edges, n = 4L, edge_weights = c(1, 1, 1))
   X <- rbind(
     c(0, 0),
     c(1, 0),
@@ -118,7 +118,7 @@ test_that("kernel Gram energy gradient matches finite differences", {
 })
 
 test_that("C++ kernel Gram-gKK matches R reference engine", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L), c(2L, 4L), c(4L, 5L)),
     n = 5L,
     edge_weights = c(1, 1.1, 1, 1.2)
@@ -152,8 +152,8 @@ test_that("C++ kernel Gram-gKK matches R reference engine", {
     initial_step = 0.05,
     return_trace = TRUE
   )
-  fit.cpp <- do.call(grip.optimize.kernel.gram.gkk.layout, c(args, list(engine = "cpp")))
-  fit.r <- do.call(grip.optimize.kernel.gram.gkk.layout, c(args, list(engine = "R")))
+  fit.cpp <- do.call(kernel.gram.gkk, c(args, list(engine = "cpp")))
+  fit.r <- do.call(kernel.gram.gkk, c(args, list(engine = "R")))
 
   expect_equal(fit.cpp$coords, fit.r$coords, tolerance = 1e-10)
   expect_equal(fit.cpp$trace$energy, fit.r$trace$energy, tolerance = 1e-10)
@@ -162,7 +162,7 @@ test_that("C++ kernel Gram-gKK matches R reference engine", {
 })
 
 test_that("kernel Gram-gKK improves folded antipodal star Gram error", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L)),
     n = 3L,
     edge_weights = c(1, 1)
@@ -175,7 +175,7 @@ test_that("kernel Gram-gKK improves folded antipodal star Gram error", {
   )
   star <- graph.riemannian.star.structure(prepared = prepared, X = X, angle.power = 4)
   before <- grip:::grip.kernel.gram.score(folded, star, edge_scale = 1)
-  fit <- grip.optimize.kernel.gram.gkk.layout(
+  fit <- kernel.gram.gkk(
     coords = folded,
     prepared = prepared,
     star = star,

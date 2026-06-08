@@ -42,9 +42,9 @@ build_test_sierpinski_carpet <- function(level) {
   list(edges = do.call(rbind, edges), coords = coords)
 }
 
-test_that("grip.geometry.diagnostics returns strong carpet diagnostics on the canonical layout", {
+test_that("geometry.diagnostics returns strong carpet diagnostics on the canonical layout", {
   built <- build_test_sierpinski_carpet(2L)
-  diag <- grip.geometry.diagnostics(
+  diag <- geometry.diagnostics(
     coords = built$coords,
     target.coords = built$coords,
     edges = built$edges,
@@ -68,13 +68,13 @@ test_that("grip.geometry.diagnostics returns strong carpet diagnostics on the ca
   expect_lt(diag$central.hole.center.error[[1L]], 1e-10)
 })
 
-test_that("grip.geometry.diagnostics detects geometric degradation on a perturbed carpet", {
+test_that("geometry.diagnostics detects geometric degradation on a perturbed carpet", {
   built <- build_test_sierpinski_carpet(2L)
   perturbed <- built$coords
   set.seed(11)
   perturbed <- perturbed + matrix(rnorm(length(perturbed), sd = 0.15), ncol = 2L)
 
-  baseline <- grip.geometry.diagnostics(
+  baseline <- geometry.diagnostics(
     coords = built$coords,
     target.coords = built$coords,
     edges = built$edges,
@@ -83,7 +83,7 @@ test_that("grip.geometry.diagnostics detects geometric degradation on a perturbe
     sample.size.wedges = 512L,
     rng.seed = 1L
   )
-  degraded <- grip.geometry.diagnostics(
+  degraded <- geometry.diagnostics(
     coords = perturbed,
     target.coords = built$coords,
     edges = built$edges,
@@ -106,14 +106,14 @@ test_that("grip.geometry.diagnostics detects geometric degradation on a perturbe
   expect_gt(degraded$central.hole.center.error[[1L]], baseline$central.hole.center.error[[1L]])
 })
 
-test_that("grip.geometry.diagnostics leaves carpet-only measures NA for non-carpet graphs", {
+test_that("geometry.diagnostics leaves carpet-only measures NA for non-carpet graphs", {
   coords <- cbind(
     x = c(-1, 0, 1, -1, 0, 1),
     y = c(0, 0, 0, 1, 1, 1)
   )
   edges <- edges.mesh(2, 3)
 
-  diag <- grip.geometry.diagnostics(
+  diag <- geometry.diagnostics(
     coords = coords,
     target.coords = coords,
     edges = edges,

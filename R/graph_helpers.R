@@ -4364,7 +4364,7 @@ keep.asymmetric.notches <- function(h,
 #' Sample graph generators
 #'
 #' Convenience helpers that build small undirected graph families as two-column
-#' integer edge matrices suitable for \code{\link{grip.layout}()}. These
+#' integer edge matrices suitable for \code{\link{grip}()}. These
 #' helpers are meant for examples, experiments, and reproducible tests.
 #'
 #' The occupied-grid, recursive masked-grid, and Sierpinski families are
@@ -4406,8 +4406,8 @@ NULL
 #' @param n Number of vertices.
 #' @examples
 #' edges <- edges.path(6)
-#' coords <- grip.layout(edges, n = 6, dim = 2, seed = 1)
-#' grip.plot(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
+#' coords <- grip(edges, n = 6, dim = 2, seed = 1)
+#' plot.layout(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
 #' @export
 edges.path <- function(n) {
   n <- .as_whole_number(n, "n")
@@ -9504,10 +9504,10 @@ edges.cube.channel.network <- function(level = 2,
 #' @examples
 #' edges <- edges.sierpinski.triangle(2)
 #' n <- max(edges)
-#' coords <- grip.layout(edges, n = n, dim = 2,
+#' coords <- grip(edges, n = n, dim = 2,
 #'                       placement = "circle",
 #'                       seed = 1)
-#' grip.plot(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
+#' plot.layout(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
 #' @export
 edges.sierpinski.triangle <- function(level = 2) {
   .sierpinski.triangle.canonical(level)$edges

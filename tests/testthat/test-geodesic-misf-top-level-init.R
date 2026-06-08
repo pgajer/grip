@@ -90,7 +90,7 @@ test_that("GMDS and GKK top-level solvers retain geometric initialization metada
     min(3L, length(prepared.gmds$top_level_vertices))
   )
 
-  prepared.gkk <- grip.prepare.misf.geodesic.kk(
+  prepared.gkk <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 25,
     num_init = 6L,
@@ -175,7 +175,7 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
   expect_equal(length(prepared$top_level_vertices), 9L)
   expect_identical(prepared$top_level_selection_reason, "coarsest_min_size")
 
-  prepared.gkk <- grip.prepare.misf.geodesic.kk(
+  prepared.gkk <- prepare.misf.geodesic.kk(
     edges = graph$edges,
     n = graph$n,
     edge_weights = graph$edge_weights,

@@ -9,11 +9,11 @@ output: github_document
 **grip** (Graph dRawing with Intelligent Placement) is an R package for
 multiscale graph layout in 2D and 3D. The main workflow is:
 
-- `grip.layout()` for unweighted graphs,
-- `grip.layout.weighted()` for weighted graphs,
-- `grip.compare.layouts()` and `grip.score.layout()` for real-data layout
+- `grip()` for unweighted graphs,
+- `weighted.grip()` for weighted graphs,
+- `compare.layouts()` and `score.layout()` for real-data layout
   selection,
-- `grip.layout.trace()` and `grip.layout.trace.weighted()` for diagnostics.
+- `trace.grip()` and `trace.weighted.grip()` for diagnostics.
 
 The package also includes advanced public experimental geodesic-KK utilities
 for weighted-layout scoring and polish. It builds on the GRIP method described
@@ -36,28 +36,28 @@ library(grip)
 
 # Lay out a small mesh in 2D using the "mesh" preset
 edges <- edges.mesh(8, 8)
-coords <- grip.layout(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
-grip.plot(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
+coords <- grip(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
+plot.layout(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 ```
 
 ## Features
 
 - Multiscale force-directed layout in 2D and 3D via C++ (Rcpp).
-- `grip.layout()` for unweighted graphs.
-- `grip.layout.weighted()` for weighted graphs.
+- `grip()` for unweighted graphs.
+- `weighted.grip()` for weighted graphs.
 - Layout comparison and quality scoring across seeds and parameter settings
-  (`grip.compare.layouts()`, `grip.score.layout()`).
+  (`compare.layouts()`, `score.layout()`).
 - Multiscale trace diagnostics for both workflows
-  (`grip.layout.trace()`, `grip.layout.trace.weighted()`).
+  (`trace.grip()`, `trace.weighted.grip()`).
 - Advanced public experimental geodesic-KK utilities for weighted-layout
-  scoring and polish (`grip.prepare.geodesic.kk()`,
-  `grip.score.geodesic.kk()`, `grip.prepare.landmark.geodesic.kk()`,
-  `grip.score.landmark.geodesic.kk()`).
+  scoring and polish (`prepare.geodesic.kk()`,
+  `score.geodesic.kk()`, `prepare.landmark.geodesic.kk()`,
+  `score.landmark.geodesic.kk()`).
 - Synthetic graph-family helpers for benchmark and geometry-rich examples.
 - Handles disconnected graphs automatically (component packing).
 - Tuned presets for common graph families (see table below).
 - Static 3D projection for vignettes and reports
-  (`grip.plot(projection = "ortho")`, `grip.project.3d()`).
+  (`plot.layout(projection = "ortho")`, `project.3d()`).
 - Optional Shiny explorers and interactive 3D viewing via `rgl`.
 
 ## Presets
@@ -74,11 +74,11 @@ you pass overrides the preset value.
 
 ## Choosing a workflow
 
-- Start with `grip.layout()` when the graph is unweighted.
-- Switch to `grip.layout.weighted()` when the graph is weighted.
-- Use `grip.compare.layouts()` and `grip.score.layout()` when the graph is
+- Start with `grip()` when the graph is unweighted.
+- Switch to `weighted.grip()` when the graph is weighted.
+- Use `compare.layouts()` and `score.layout()` when the graph is
   important enough to justify a candidate shortlist rather than a single run.
-- Use `grip.layout.trace()` or `grip.layout.trace.weighted()` when you need to
+- Use `trace.grip()` or `trace.weighted.grip()` when you need to
   diagnose how a solve evolved.
 - Add GKK/LGKK only after you already have weighted candidate layouts and need
   geodesic-aware scoring or polish; these are advanced public experimental
@@ -87,7 +87,7 @@ you pass overrides the preset value.
 ## Gallery
 
 The animations below show the multiscale refinement process captured by
-`grip.layout.trace()`. Starting from a coarse global placement, the algorithm
+`trace.grip()`. Starting from a coarse global placement, the algorithm
 iteratively refines vertex positions until the layout converges.
 
 ### Sierpinski Carpet (Level 4)
@@ -103,35 +103,35 @@ iteratively refines vertex positions until the layout converges.
 **Edge-list input (2D, circle placement)**
 ```r
 edges <- edges.cycle(18)
-coords <- grip.layout(edges, n = 18, dim = 2, placement = "circle", seed = 2)
-grip.plot(coords, edges, pch = 16, cex = 0.7)
+coords <- grip(edges, n = 18, dim = 2, placement = "circle", seed = 2)
+plot.layout(coords, edges, pch = 16, cex = 0.7)
 ```
 
 **Weighted adjacency list (geometry-aware)**
 ```r
 adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
 weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
-coords <- grip.layout.weighted(adj_list = adj_list, weight_list = weight_list,
+coords <- weighted.grip(adj_list = adj_list, weight_list = weight_list,
                                n = 4, dim = 2, seed = 12)
-grip.plot(coords)
+plot.layout(coords)
 ```
 
 **3D layout with static projection**
 ```r
 edges <- edges.torus(8, 12)
-coords <- grip.layout(edges, n = max(edges), dim = 3, preset = "torus", seed = 3)
-grip.plot(coords, edges, projection = "ortho", main = "Torus (8x12)")
+coords <- grip(edges, n = max(edges), dim = 3, preset = "torus", seed = 3)
+plot.layout(coords, edges, projection = "ortho", main = "Torus (8x12)")
 ```
 
 ## Layout comparison
 
-For real-world graphs without a known target layout, `grip.compare.layouts()`
+For real-world graphs without a known target layout, `compare.layouts()`
 compares candidates across seeds and reports quality metrics. Use
-`grip.params.from.summary()` to extract the winning parameters for reuse.
+`params.from.summary()` to extract the winning parameters for reuse.
 
 ```r
 edges <- edges.mesh(10, 10)
-cmp <- grip.compare.layouts(edges, n = 100, dim = 2,
+cmp <- compare.layouts(edges, n = 100, dim = 2,
                             candidates = c("default", "mesh"),
                             seeds = 1:3)
 cmp$summary[, c("candidate", "score.composite", "sampled.stress.mean")]

@@ -334,7 +334,7 @@ A two-column integer matrix of undirected edges. Vertex labels are
 }
 \description{
 Convenience helpers that build small undirected graph families as two-column
-integer edge matrices suitable for \code{\link{grip.layout}()}. These
+integer edge matrices suitable for \code{\link{grip}()}. These
 helpers are meant for examples, experiments, and reproducible tests.
 }
 \details{
@@ -467,12 +467,12 @@ cells.
 }}
 \examples{
 edges <- edges.path(6)
-coords <- grip.layout(edges, n = 6, dim = 2, seed = 1)
-grip.plot(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
+coords <- grip(edges, n = 6, dim = 2, seed = 1)
+plot.layout(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
 edges <- edges.sierpinski.triangle(2)
 n <- max(edges)
-coords <- grip.layout(edges, n = n, dim = 2,
+coords <- grip(edges, n = n, dim = 2,
                       placement = "circle",
                       seed = 1)
-grip.plot(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
+plot.layout(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
 }

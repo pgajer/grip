@@ -156,7 +156,7 @@ grip.pack.component.layouts <- function(layouts, comp, n, dim) {
   out
 }
 
-grip.normalize.preset <- function(preset, fn = "grip.layout") {
+grip.normalize.preset <- function(preset, fn = "grip") {
   if (is.null(preset)) {
     return(NULL)
   }
@@ -667,14 +667,14 @@ grip.apply.lgkk.polish <- function(coords,
       frames = list(coords)
     ))
   }
-  prepared <- grip.prepare.landmark.geodesic.kk(
+  prepared <- prepare.landmark.geodesic.kk(
     adj_list = adj_list,
     weight_list = weight_list,
     n = nrow(coords),
     local_nbrs = lgkk_local_nbrs,
     landmark_count = lgkk_landmark_count
   )
-  grip.optimize.landmark.geodesic.kk(
+  landmark.geodesic.kk(
     coords = coords,
     prepared = prepared,
     max_iter = rounds,
@@ -789,16 +789,16 @@ grip.validate.layout.inputs <- function(edges = NULL,
 
 #' Compute a GRIP layout with coarse global repulsion
 #'
-#' This compatibility entry point is an alias of \code{\link{grip.layout}()}.
+#' This compatibility entry point is an alias of \code{\link{grip}()}.
 #' It keeps the old global-repulsion name available during the API migration,
 #' while using the same quality-first multiscale GRIP engine and adaptive
 #' \code{final_rounds} schedule as the primary layout API.
 #'
-#' @inheritParams grip.layout
+#' @inheritParams grip
 #' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
 #'   coarse-level active-set repulsion term. \code{0} disables that extra term;
 #'   when the remaining tuning arguments also match
-#'   \code{\link{grip.layout.legacy}()}, the result matches the legacy
+#'   \code{\link{legacy.grip}()}, the result matches the legacy
 #'   layout behavior.
 #' @param coarse_repulsion_sample Positive integer sample size used to
 #'   approximate active-set-wide repulsion on larger coarse levels.
@@ -879,7 +879,7 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
-#' coords <- grip.layout.globalrep(edges, n = max(edges), dim = 2,
+#' coords <- globalrep.grip(edges, n = max(edges), dim = 2,
 #'                                 rounds = 8, final_rounds = 8,
 #'                                 num_init = 6, num_nbrs = 8,
 #'                                 coarse_repulsion_factor = 0.2,
@@ -888,7 +888,7 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'                                 seed = 1)
 #' round(coords, 3)
 #' @export
-grip.layout.globalrep <- function(edges = NULL,
+globalrep.grip <- function(edges = NULL,
                                   n = NULL,
                                   adj_list = NULL,
                                   weight_list = NULL,
@@ -936,7 +936,7 @@ grip.layout.globalrep <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout.globalrep")
+  preset <- grip.normalize.preset(preset, fn = "globalrep.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -1268,14 +1268,14 @@ grip.layout.globalrep <- function(edges = NULL,
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
-#' coords <- grip.layout(edges, n = max(edges), dim = 2,
+#' coords <- grip(edges, n = max(edges), dim = 2,
 #'                       coarse_repulsion_factor = 0.2,
 #'                       coarse_repulsion_sample = 8,
 #'                       coarse_repulsion_exact_below = 32,
 #'                       seed = 1)
 #' round(coords, 3)
 #' @export
-grip.layout <- function(edges = NULL,
+grip <- function(edges = NULL,
                         n = NULL,
                         adj_list = NULL,
                         weight_list = NULL,
@@ -1314,13 +1314,13 @@ grip.layout <- function(edges = NULL,
                         tinit_factor = 6,
                         seed = 6,
                         disconnected = c("components", "error")) {
-  grip.forward_call(grip.layout.globalrep, match.call(expand.dots = FALSE), env = parent.frame())
+  grip.forward_call(globalrep.grip, match.call(expand.dots = FALSE), env = parent.frame())
 }
 
 #' Compute the legacy GRIP layout
 #'
 #' This function preserves the original local-force wrapper and historical
-#' default values that were previously exposed as \code{\link{grip.layout}()}.
+#' default values that were previously exposed as \code{\link{grip}()}.
 #' Use it for backwards-compatible comparisons or when you explicitly want the
 #' pre-global-repulsion behavior.
 #'
@@ -1372,14 +1372,14 @@ grip.layout <- function(edges = NULL,
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- cbind(1:5, 2:6)
-#' coords <- grip.layout.legacy(edges, n = 6, dim = 2,
+#' coords <- legacy.grip(edges, n = 6, dim = 2,
 #'                              placement = "barycenter",
 #'                              rounds = 5, final_rounds = 5,
 #'                              num_init = 3, num_nbrs = 4,
 #'                              seed = 1)
 #' round(coords, 3)
 #' @export
-grip.layout.legacy <- function(edges = NULL,
+legacy.grip <- function(edges = NULL,
                                n = NULL,
                                adj_list = NULL,
                                weight_list = NULL,
@@ -1406,7 +1406,7 @@ grip.layout.legacy <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout.legacy")
+  preset <- grip.normalize.preset(preset, fn = "legacy.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -1524,12 +1524,12 @@ grip.layout.legacy <- function(edges = NULL,
 
 #' Compute a GRIP layout trace
 #'
-#' This traces the primary \code{\link{grip.layout}()} engine, including the
+#' This traces the primary \code{\link{grip}()} engine, including the
 #' coarse-level global-repulsion term used by the quality-first default layout.
 #' For backwards-compatible traces of the historical local-force wrapper, use
-#' \code{\link{grip.layout.trace.legacy}()}.
+#' \code{\link{trace.legacy.grip}()}.
 #'
-#' @inheritParams grip.layout
+#' @inheritParams grip
 #' @param trace Snapshot granularity. \code{"round"} records the coarsest
 #'   initialization, each level start, every \code{trace.every} completed rounds,
 #'   and the final layout. \code{"level"} records the coarsest initialization,
@@ -1568,7 +1568,7 @@ grip.layout.legacy <- function(edges = NULL,
 #'   \code{procrustes.rmse}.
 #' @examples
 #' edges <- cbind(1:5, 2:6)
-#' tr <- grip.layout.trace(edges, n = 6, dim = 2,
+#' tr <- trace.grip(edges, n = 6, dim = 2,
 #'                         placement = "barycenter",
 #'                         rounds = 3, final_rounds = 2,
 #'                         num_init = 3, num_nbrs = 4,
@@ -1578,7 +1578,7 @@ grip.layout.legacy <- function(edges = NULL,
 #'                         seed = 1)
 #' tr$diagnostics
 #' @export
-grip.layout.trace <- function(edges = NULL,
+trace.grip <- function(edges = NULL,
                               n = NULL,
                               adj_list = NULL,
                               weight_list = NULL,
@@ -1633,7 +1633,7 @@ grip.layout.trace <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace")
+  preset <- grip.normalize.preset(preset, fn = "trace.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -1755,7 +1755,7 @@ grip.layout.trace <- function(edges = NULL,
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
-      "grip.layout.trace() currently supports only connected graphs; input graph has %d connected components.",
+      "trace.grip() currently supports only connected graphs; input graph has %d connected components.",
       n.comp
     ))
   }
@@ -1855,7 +1855,7 @@ grip.layout.trace <- function(edges = NULL,
 
 #' Compute a trace for the legacy GRIP layout
 #'
-#' @inheritParams grip.layout.legacy
+#' @inheritParams legacy.grip
 #' @param trace Snapshot granularity. \code{"round"} records the coarsest
 #'   initialization, each level start, every \code{trace.every} completed rounds,
 #'   and the final layout. \code{"level"} records the coarsest initialization,
@@ -1871,7 +1871,7 @@ grip.layout.trace <- function(edges = NULL,
 #'   \code{active_vertices}.
 #' @examples
 #' edges <- cbind(1:5, 2:6)
-#' tr <- grip.layout.trace.legacy(edges, n = 6, dim = 2,
+#' tr <- trace.legacy.grip(edges, n = 6, dim = 2,
 #'                                placement = "barycenter",
 #'                                rounds = 3, final_rounds = 2,
 #'                                num_init = 3, num_nbrs = 4,
@@ -1880,7 +1880,7 @@ grip.layout.trace <- function(edges = NULL,
 #'                                seed = 1)
 #' tr$meta
 #' @export
-grip.layout.trace.legacy <- function(edges = NULL,
+trace.legacy.grip <- function(edges = NULL,
                                      n = NULL,
                                      adj_list = NULL,
                                      weight_list = NULL,
@@ -1908,7 +1908,7 @@ grip.layout.trace.legacy <- function(edges = NULL,
   s_missing <- missing(s)
   repulsion_factor_missing <- missing(repulsion_factor)
 
-  preset <- grip.normalize.preset(preset, fn = "grip.layout.trace.legacy")
+  preset <- grip.normalize.preset(preset, fn = "trace.legacy.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
@@ -1978,7 +1978,7 @@ grip.layout.trace.legacy <- function(edges = NULL,
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
-      "grip.layout.trace.legacy() currently supports only connected graphs; input graph has %d connected components.",
+      "trace.legacy.grip() currently supports only connected graphs; input graph has %d connected components.",
       n.comp
     ))
   }

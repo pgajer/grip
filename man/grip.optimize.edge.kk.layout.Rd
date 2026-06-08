@@ -2,20 +2,22 @@
 % Please edit documentation in R/gmds_layout_interface.R
 \name{grip.optimize.edge.kk.layout}
 \alias{grip.optimize.edge.kk.layout}
-\title{Optimize an edge-KK local repair layout}
+\alias{grip.optimize.edge.gkk.layout}
+\alias{grip.optimize.edge.isometric.layout}
+\title{Deprecated edge-KK layout names}
 \usage{
 grip.optimize.edge.kk.layout(...)
+
+grip.optimize.edge.gkk.layout(...)
+
+grip.optimize.edge.isometric.layout(...)
 }
 \arguments{
-\item{...}{Arguments passed to [grip.optimize.edge.isometric.layout()].}
+\item{...}{Arguments passed to [edge.kk()].}
 }
 \value{
-A `"grip_gmds_layout"` object with method `"edge_kk"`.
+A `"grip_gmds_layout"` object.
 }
 \description{
-`grip.optimize.edge.kk.layout()` is the preferred public name for the
-edge-restricted Kamada--Kawai local repair operator implemented by
-[grip.optimize.edge.isometric.layout()]. It is a thin compatibility wrapper:
-the optimization path is identical, but the returned `method` field is
-normalized to `"edge_kk"` for new reports and experiment manifests.
+These long names are deprecated. Use [edge.kk()] instead.
 }

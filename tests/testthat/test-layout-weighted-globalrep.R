@@ -1,18 +1,18 @@
 test_that("weighted GRIP requires edge weights", {
   edges <- edges.mesh(4, 4)
   expect_error(
-    grip.layout.globalrep.weighted(edges = edges, n = 16, dim = 2, seed = 1),
+    globalrep.weighted.grip(edges = edges, n = 16, dim = 2, seed = 1),
     "requires edge weights"
   )
   expect_error(
-    grip.build.misf.weighted(edges = edges, n = 16, seed = 1),
+    build.weighted.misf(edges = edges, n = 16, seed = 1),
     "requires edge weights"
   )
 })
 
 test_that("weighted globalrep layout returns a finite deterministic matrix", {
   graph <- mesh.surface.graph(4, 5, surface = "saddle", amplitude = 0.6)
-  coords1 <- grip.layout.globalrep.weighted(
+  coords1 <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -26,7 +26,7 @@ test_that("weighted globalrep layout returns a finite deterministic matrix", {
     coarse_repulsion_exact_below = 32,
     seed = 41
   )
-  coords2 <- grip.layout.globalrep.weighted(
+  coords2 <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -46,9 +46,9 @@ test_that("weighted globalrep layout returns a finite deterministic matrix", {
   expect_identical(coords1, coords2)
 })
 
-test_that("grip.layout.weighted is an alias of weighted globalrep", {
+test_that("weighted.grip is an alias of weighted globalrep", {
   graph <- mesh.surface.graph(4, 5, surface = "ripple", amplitude = 0.5)
-  coords_primary <- grip.layout.weighted(
+  coords_primary <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -62,7 +62,7 @@ test_that("grip.layout.weighted is an alias of weighted globalrep", {
     coarse_repulsion_exact_below = 32,
     seed = 17
   )
-  coords_alias <- grip.layout.globalrep.weighted(
+  coords_alias <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -81,7 +81,7 @@ test_that("grip.layout.weighted is an alias of weighted globalrep", {
 
 test_that("weighted layout is invariant to global weight rescaling under normalization", {
   graph <- mesh.surface.graph(4, 5, surface = "paraboloid", amplitude = 0.4)
-  coords_base <- grip.layout.globalrep.weighted(
+  coords_base <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -96,7 +96,7 @@ test_that("weighted layout is invariant to global weight rescaling under normali
     length_normalization = "median",
     seed = 19
   )
-  coords_scaled <- grip.layout.globalrep.weighted(
+  coords_scaled <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights * 7,
     n = graph$n,
@@ -117,7 +117,7 @@ test_that("weighted layout is invariant to global weight rescaling under normali
 
 test_that("weighted GRIP responds to nontrivial geometry differently than combinatorial GRIP", {
   graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.9)
-  coords_comb <- grip.layout.globalrep(
+  coords_comb <- globalrep.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -131,7 +131,7 @@ test_that("weighted GRIP responds to nontrivial geometry differently than combin
     coarse_repulsion_exact_below = 32,
     seed = 23
   )
-  coords_weighted <- grip.layout.globalrep.weighted(
+  coords_weighted <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -151,7 +151,7 @@ test_that("weighted GRIP responds to nontrivial geometry differently than combin
 
 test_that("weighted MISF helper is deterministic and normalization-aware", {
   graph <- mesh.surface.graph(5, 5, surface = "ripple", amplitude = 0.6)
-  misf1 <- grip.build.misf.weighted(
+  misf1 <- build.weighted.misf(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -159,7 +159,7 @@ test_that("weighted MISF helper is deterministic and normalization-aware", {
     num_nbrs = 8,
     seed = 29
   )
-  misf2 <- grip.build.misf.weighted(
+  misf2 <- build.weighted.misf(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -167,7 +167,7 @@ test_that("weighted MISF helper is deterministic and normalization-aware", {
     num_nbrs = 8,
     seed = 29
   )
-  misf_scaled <- grip.build.misf.weighted(
+  misf_scaled <- build.weighted.misf(
     edges = graph$edges,
     edge_weights = graph$edge_weights * 11,
     n = graph$n,
@@ -186,7 +186,7 @@ test_that("weighted MISF helper is deterministic and normalization-aware", {
 
 test_that("weighted mesh preset matches the explicit tuning profile", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.5)
-  coords_preset <- grip.layout.weighted(
+  coords_preset <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -194,7 +194,7 @@ test_that("weighted mesh preset matches the explicit tuning profile", {
     preset = "mesh",
     seed = 101
   )
-  coords_explicit <- grip.layout.weighted(
+  coords_explicit <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -214,7 +214,7 @@ test_that("weighted mesh preset matches the explicit tuning profile", {
 
 test_that("weighted cylinder preset matches the explicit tuning profile", {
   graph <- cylinder.surface.graph(4, 6, surface = "hourglass", amplitude = 0.25)
-  coords_preset <- grip.layout.weighted(
+  coords_preset <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -222,7 +222,7 @@ test_that("weighted cylinder preset matches the explicit tuning profile", {
     preset = "cylinder",
     seed = 103
   )
-  coords_explicit <- grip.layout.weighted(
+  coords_explicit <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -249,7 +249,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     amplitude = 0.25
   )
 
-  sphere_preset <- grip.layout.weighted(
+  sphere_preset <- weighted.grip(
     edges = sphere$edges,
     edge_weights = sphere$edge_weights,
     n = sphere$n,
@@ -257,7 +257,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     preset = "sphere",
     seed = 107
   )
-  sphere_explicit <- grip.layout.weighted(
+  sphere_explicit <- weighted.grip(
     edges = sphere$edges,
     edge_weights = sphere$edge_weights,
     n = sphere$n,
@@ -273,7 +273,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     seed = 107
   )
 
-  irregular_preset <- grip.layout.weighted(
+  irregular_preset <- weighted.grip(
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -281,7 +281,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     preset = "irregular",
     seed = 109
   )
-  irregular_explicit <- grip.layout.weighted(
+  irregular_explicit <- weighted.grip(
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -303,7 +303,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
 
 test_that("weighted tree preset matches explicit tuning profile and overrides cleanly", {
   tree <- kary.tree.weighted.graph(k = 2, depth = 3)
-  coords_preset <- grip.layout.weighted(
+  coords_preset <- weighted.grip(
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -311,7 +311,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     preset = "tree",
     seed = 113
   )
-  coords_explicit <- grip.layout.weighted(
+  coords_explicit <- weighted.grip(
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -326,7 +326,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     repulsion_factor = 0.0,
     seed = 113
   )
-  coords_override <- grip.layout.weighted(
+  coords_override <- weighted.grip(
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -335,7 +335,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     repulsion_factor = 0.5,
     seed = 127
   )
-  coords_override_explicit <- grip.layout.weighted(
+  coords_override_explicit <- weighted.grip(
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -358,7 +358,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
 test_that("invalid weighted preset is rejected", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    grip.layout.weighted(
+    weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -366,13 +366,13 @@ test_that("invalid weighted preset is rejected", {
       preset = "bogus",
       seed = 131
     ),
-    "preset for grip.layout.globalrep.weighted must be NULL"
+    "preset for globalrep.weighted.grip must be NULL"
   )
 })
 
 test_that("weighted metric neighbor cap preserves exact results when sufficiently large", {
   graph <- torus.surface.graph(5, 5, surface = "pinched", amplitude = 0.18)
-  coords_exact <- grip.layout.weighted(
+  coords_exact <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -380,7 +380,7 @@ test_that("weighted metric neighbor cap preserves exact results when sufficientl
     preset = "torus",
     seed = 151
   )
-  coords_capped <- grip.layout.weighted(
+  coords_capped <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -400,7 +400,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     surface = "folded",
     amplitude = 0.3
   )
-  coords1 <- grip.layout.weighted(
+  coords1 <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -409,7 +409,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     metric_neighbor_cap = 8,
     seed = 157
   )
-  coords2 <- grip.layout.weighted(
+  coords2 <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -418,7 +418,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     metric_neighbor_cap = 8,
     seed = 157
   )
-  coords_exact <- grip.layout.weighted(
+  coords_exact <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -435,7 +435,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
 test_that("invalid weighted metric neighbor cap is rejected", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    grip.layout.weighted(
+    weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -449,7 +449,7 @@ test_that("invalid weighted metric neighbor cap is rejected", {
 
 test_that("weighted globalrep multiscale LGKK knobs can change the layout", {
   graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
-  coords_base <- grip.layout.globalrep.weighted(
+  coords_base <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -464,7 +464,7 @@ test_that("weighted globalrep multiscale LGKK knobs can change the layout", {
     lgkk_multiscale_rounds = 0,
     seed = 167
   )
-  coords_lgkk <- grip.layout.globalrep.weighted(
+  coords_lgkk <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -489,7 +489,7 @@ test_that("weighted globalrep multiscale LGKK knobs can change the layout", {
 
 test_that("weighted globalrep staged LGKK budgets can change layouts", {
   graph <- cylinder.surface.graph(5, 6, surface = "hourglass", amplitude = 0.25)
-  coords_shared <- grip.layout.globalrep.weighted(
+  coords_shared <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -508,7 +508,7 @@ test_that("weighted globalrep staged LGKK budgets can change layouts", {
     lgkk_active_limit = 4096,
     seed = 173
   )
-  coords_staged <- grip.layout.globalrep.weighted(
+  coords_staged <- globalrep.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -537,7 +537,7 @@ test_that("weighted globalrep staged LGKK budgets can change layouts", {
 test_that("weighted globalrep validates multiscale LGKK round budgets", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    grip.layout.globalrep.weighted(
+    globalrep.weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -548,7 +548,7 @@ test_that("weighted globalrep validates multiscale LGKK round budgets", {
     "lgkk_rounds_coarse must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep.weighted(
+    globalrep.weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -559,7 +559,7 @@ test_that("weighted globalrep validates multiscale LGKK round budgets", {
     "lgkk_rounds_pre_final must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep.weighted(
+    globalrep.weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,

@@ -1,7 +1,7 @@
 test_that("MISF-GKK prepare returns a layered prepared object", {
   edges <- edges.mesh(4, 4)
 
-  prepared <- grip.prepare.misf.geodesic.kk(
+  prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
     tie_mode = "average",
@@ -21,7 +21,7 @@ test_that("MISF-GKK prepare returns a layered prepared object", {
 test_that("MISF-GKK prepare can solve the top MISF level immediately", {
   edges <- edges.mesh(4, 4)
 
-  prepared <- grip.prepare.misf.geodesic.kk(
+  prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
     num_init = 4L,
@@ -39,7 +39,7 @@ test_that("MISF-GKK prepare can solve the top MISF level immediately", {
 
 test_that("MISF-GKK scorer summarizes external coordinates against the prepared object", {
   edges <- edges.mesh(4, 4)
-  prepared <- grip.prepare.misf.geodesic.kk(
+  prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
     num_init = 4L,
@@ -48,7 +48,7 @@ test_that("MISF-GKK scorer summarizes external coordinates against the prepared 
   )
   coords <- matrix(runif(32L), nrow = 16L, ncol = 2L)
 
-  score <- grip.score.misf.geodesic.kk(
+  score <- score.misf.geodesic.kk(
     coords = coords,
     prepared = prepared,
     return_trace = TRUE
@@ -69,7 +69,7 @@ test_that("MISF-GKK scorer summarizes external coordinates against the prepared 
 
 test_that("MISF-GKK scorer supports landmark scoring mode", {
   edges <- edges.mesh(4, 4)
-  prepared <- grip.prepare.misf.geodesic.kk(
+  prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
     num_init = 4L,
@@ -78,7 +78,7 @@ test_that("MISF-GKK scorer supports landmark scoring mode", {
   )
   coords <- matrix(runif(32L), nrow = 16L, ncol = 2L)
 
-  score <- grip.score.misf.geodesic.kk(
+  score <- score.misf.geodesic.kk(
     coords = coords,
     prepared = prepared,
     score_pair_mode = "landmark",
@@ -95,7 +95,7 @@ test_that("MISF-GKK scorer supports landmark scoring mode", {
 
 test_that("MISF-GKK optimizer returns a multistage fit with traces", {
   edges <- edges.mesh(4, 4)
-  fit <- grip.optimize.misf.geodesic.kk(
+  fit <- misf.geodesic.kk(
     edges = edges,
     n = 16L,
     num_init = 4L,

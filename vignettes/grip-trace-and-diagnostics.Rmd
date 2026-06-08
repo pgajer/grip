@@ -30,13 +30,13 @@ enough for plotting, but it hides the most useful debugging information:
 
 The trace APIs in `grip` make those questions visible:
 
-- `grip.layout.trace()` for combinatorial layouts,
-- `grip.layout.trace.weighted()` for weighted geometry-aware layouts.
+- `trace.grip()` for combinatorial layouts,
+- `trace.weighted.grip()` for weighted geometry-aware layouts.
 
 Tracing follows the same package decision rule:
 
-- ordinary unweighted or topology-first graphs: trace `grip.layout.trace()`,
-- weighted geometry-aware graphs: trace `grip.layout.trace.weighted()`,
+- ordinary unweighted or topology-first graphs: trace `trace.grip()`,
+- weighted geometry-aware graphs: trace `trace.weighted.grip()`,
 - real-data layout search: add trace only when a shortlist or one promising
   solve needs explanation,
 - advanced GKK/LGKK hooks can appear in weighted traces, but they remain
@@ -99,7 +99,7 @@ initialization, the start of each new level, and the final layout.
 ```{r}
 mesh.edges <- edges.mesh(5, 5)
 
-mesh.trace <- grip.layout.trace(
+mesh.trace <- trace.grip(
   mesh.edges,
   n = 25,
   dim = 2,
@@ -146,7 +146,7 @@ When you need more detail, `trace = "round"` records intermediate refinement
 rounds within each active level.
 
 ```{r}
-mesh.trace.round <- grip.layout.trace(
+mesh.trace.round <- trace.grip(
   mesh.edges,
   n = 25,
   dim = 2,
@@ -186,7 +186,7 @@ weighted.mesh <- mesh.surface.graph(
   amplitude = 0.8
 )
 
-weighted.trace <- grip.layout.trace.weighted(
+weighted.trace <- trace.weighted.grip(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
@@ -216,7 +216,7 @@ op <- par(mfrow = c(1, length(sel.w)), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
 on.exit(par(op), add = TRUE)
 
 for (idx in sel.w) {
-  frame.xy <- grip.project.3d(weighted.trace$frames[[idx]], azimuth = 35, elevation = 20)
+  frame.xy <- project.3d(weighted.trace$frames[[idx]], azimuth = 35, elevation = 20)
   plot.trace.frame(
     frame.xy,
     weighted.mesh$edges,

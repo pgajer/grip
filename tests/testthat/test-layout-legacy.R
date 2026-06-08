@@ -1,6 +1,6 @@
 test_that("legacy mesh example runs", {
   edges <- edges.mesh(5, 5)
-  coords <- grip.layout.legacy(edges, n = 25, dim = 3,
+  coords <- legacy.grip(edges, n = 25, dim = 3,
                                placement = "barycenter",
                                rounds = 5, final_rounds = 3,
                                num_init = 6, num_nbrs = 8,
@@ -11,7 +11,7 @@ test_that("legacy mesh example runs", {
 
 test_that("legacy cylinder example runs", {
   edges <- edges.cylinder(4, 6)
-  coords <- grip.layout.legacy(edges, n = 24, dim = 3,
+  coords <- legacy.grip(edges, n = 24, dim = 3,
                                placement = "barycenter",
                                rounds = 5, final_rounds = 3,
                                num_init = 6, num_nbrs = 8,
@@ -22,7 +22,7 @@ test_that("legacy cylinder example runs", {
 
 test_that("legacy torus example runs", {
   edges <- edges.torus(4, 4)
-  coords <- grip.layout.legacy(edges, n = 16, dim = 3,
+  coords <- legacy.grip(edges, n = 16, dim = 3,
                                placement = "barycenter",
                                rounds = 5, final_rounds = 3,
                                num_init = 5, num_nbrs = 7,
@@ -34,7 +34,7 @@ test_that("legacy torus example runs", {
 test_that("legacy sierpinski example runs", {
   edges <- edges.sierpinski.triangle(2)
   n <- max(edges)
-  coords <- grip.layout.legacy(edges, n = n, dim = 2,
+  coords <- legacy.grip(edges, n = n, dim = 2,
                                placement = "circle",
                                rounds = 5, final_rounds = 3,
                                num_init = 5, num_nbrs = 7,

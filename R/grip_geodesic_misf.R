@@ -3,7 +3,7 @@ grip.validate.misf.geodesic.prepared <- function(prepared, coords = NULL) {
         inherits(prepared, "grip_misf_gkk_prepared"))) {
     stop(
       "prepared must be an object from grip.prepare.misf.geodesic.mds() ",
-      "or grip.prepare.misf.geodesic.kk()"
+      "or prepare.misf.geodesic.kk()"
     )
   }
   grip.validate.geodesic.mds.prepared(prepared, coords = coords)
@@ -1045,7 +1045,7 @@ grip.geodesic.misf.place.level.with.layout <- function(prepared,
         ),
         grip_args
       )
-      do.call(grip.layout.globalrep, args)
+      do.call(globalrep.grip, args)
     },
     weighted_grip = {
       args <- c(
@@ -1059,7 +1059,7 @@ grip.geodesic.misf.place.level.with.layout <- function(prepared,
         if (!is.null(weighted_preset)) list(preset = weighted_preset) else list(),
         weighted_args
       )
-      do.call(grip.layout.globalrep.weighted, args)
+      do.call(globalrep.weighted.grip, args)
     }
   )
   local.coords <- as.matrix(local.coords)
@@ -1643,7 +1643,7 @@ grip.geodesic.misf.describe.top.level <- function(prepared,
     vertex_ids = vertex_ids,
     level = level_id
   )
-  level_prepared <- grip.prepare.graph.geodesic.mds(
+  level_prepared <- prepare.graph.geodesic.mds(
     edges = level_graph$edges,
     n = level_graph$n,
     edge_weights = level_graph$edge_weights,
@@ -2774,9 +2774,9 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'   `edges`.
 #' @param tie_mode Shortest-path aggregation mode inherited by both the full
 #'   graph cache and the top-level coarse graph.
-#' @param num_init Target top-level active-set size passed to `grip.build.misf`.
+#' @param num_init Target top-level active-set size passed to `build.misf`.
 #' @param num_nbrs Per-level local-neighborhood schedule metadata passed to
-#'   `grip.build.misf`.
+#'   `build.misf`.
 #' @param dim Target coarse-level embedding dimension used by the top-level
 #'   pure-GMDS solve.
 #' @param top_level_mode Either `"solve"` to run the coarse pure-GMDS solve
@@ -2840,7 +2840,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
     seed <- grip.validate.count(seed, "seed")
   }
 
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = n,
     adj_list = adj_list,
@@ -2848,7 +2848,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
     edge_weights = edge_weights,
     tie_mode = tie_mode
   )
-  misf <- grip.build.misf(
+  misf <- build.misf(
     edges = prepared$edges,
     n = prepared$n,
     adj_list = prepared$adj_list,
@@ -2940,7 +2940,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #' and finishes with a short full-graph pure-GMDS polish.
 #'
 #' The function accepts either a graph-first GMDS prepared object from
-#' [grip.prepare.graph.geodesic.mds()], a MISF-GMDS prepared object from
+#' [prepare.graph.geodesic.mds()], a MISF-GMDS prepared object from
 #' [grip.prepare.misf.geodesic.mds()], or raw graph inputs.
 #'
 #' @param prepared Optional prepared object. This can be either a graph-first
@@ -2980,12 +2980,12 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #' @param insertion_layout_k Neighborhood size used to build the sparse active
 #'   graph for layout-based insertion.
 #' @param insertion_weighted_preset Optional weighted GRIP preset forwarded to
-#'   `grip.layout.globalrep.weighted()` when `insertion_mode =
+#'   `globalrep.weighted.grip()` when `insertion_mode =
 #'   "weighted_grip"`.
 #' @param insertion_grip_args Optional named list of extra arguments forwarded
-#'   to `grip.layout.globalrep()` when `insertion_mode = "grip"`.
+#'   to `globalrep.grip()` when `insertion_mode = "grip"`.
 #' @param insertion_weighted_args Optional named list of extra arguments
-#'   forwarded to `grip.layout.globalrep.weighted()` when `insertion_mode =
+#'   forwarded to `globalrep.weighted.grip()` when `insertion_mode =
 #'   "weighted_grip"`.
 #' @param insertion_fr_niter Number of FR iterations used when `insertion_mode
 #'   = "fr"`.

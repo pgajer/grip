@@ -205,9 +205,9 @@ gripui_validate_project <- function(project) {
   invisible(TRUE)
 }
 
-#' Convert `grip.compare.layouts()` output into a `gripui_project`
+#' Convert `compare.layouts()` output into a `gripui_project`
 #'
-#' @param compare_obj Result of `grip.compare.layouts()`.
+#' @param compare_obj Result of `compare.layouts()`.
 #' @param graph Optional graph object, named graph list, or path to a graph RDS.
 #'   Defaults to `NULL` when only catalog exploration is needed.
 #' @param vertex_data Optional vertex metadata added to `graph`.
@@ -219,7 +219,7 @@ gripui_validate_project <- function(project) {
 #'
 #' @examples
 #' edges <- edges.path(5)
-#' cmp <- grip.compare.layouts(
+#' cmp <- compare.layouts(
 #'   edges = edges,
 #'   n = 5,
 #'   candidates = "default",
@@ -237,7 +237,7 @@ gripui_project_from_compare <- function(compare_obj,
                                         graph_info = NULL,
                                         title = NULL) {
   if (!is.list(compare_obj) || !is.data.frame(compare_obj$runs)) {
-    stop("compare_obj must be a result from grip.compare.layouts()")
+    stop("compare_obj must be a result from compare.layouts()")
   }
   graph <- gripui.normalize.graph.input(graph)
   if (is.null(graph)) {

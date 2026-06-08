@@ -51,14 +51,14 @@ test_that("landmark geodesic KK scoring is exact on a weighted path realization"
     x = c(0, 1, 3),
     y = c(0, 0, 0)
   )
-  prepared <- grip.prepare.landmark.geodesic.kk(
+  prepared <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 3L,
     edge_weights = c(1, 2),
     local_nbrs = 1L,
     landmark_count = 1L
   )
-  score <- grip.score.landmark.geodesic.kk(coords, prepared = prepared)
+  score <- score.landmark.geodesic.kk(coords, prepared = prepared)
 
   expect_equal(score$n.pairs[[1L]], 3L)
   expect_equal(score$scale.L0[[1L]], 1, tolerance = 1e-10)
@@ -69,13 +69,13 @@ test_that("landmark geodesic KK scoring is exact on a weighted path realization"
 
 test_that("prepared landmark geodesic KK caches are deterministic and reusable", {
   edges <- edges.mesh(3, 3)
-  prepared1 <- grip.prepare.landmark.geodesic.kk(
+  prepared1 <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 9L,
     local_nbrs = 2L,
     landmark_count = 2L
   )
-  prepared2 <- grip.prepare.landmark.geodesic.kk(
+  prepared2 <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 9L,
     local_nbrs = 2L,
@@ -88,14 +88,14 @@ test_that("prepared landmark geodesic KK caches are deterministic and reusable",
 
   set.seed(22)
   coords <- matrix(rnorm(18), ncol = 2L)
-  direct <- grip.score.landmark.geodesic.kk(
+  direct <- score.landmark.geodesic.kk(
     coords = coords,
     edges = edges,
     n = 9L,
     local_nbrs = 2L,
     landmark_count = 2L
   )
-  cached <- grip.score.landmark.geodesic.kk(coords = coords, prepared = prepared1)
+  cached <- score.landmark.geodesic.kk(coords = coords, prepared = prepared1)
 
   expect_equal(direct$lgkk.energy[[1L]], cached$lgkk.energy[[1L]], tolerance = 1e-10)
   expect_equal(direct$scale.L0[[1L]], cached$scale.L0[[1L]], tolerance = 1e-10)
@@ -103,7 +103,7 @@ test_that("prepared landmark geodesic KK caches are deterministic and reusable",
 
 test_that("landmark geodesic KK prefers the canonical carpet over a perturbed carpet", {
   built <- build_test_sierpinski_carpet_lgkk(2L)
-  prepared <- grip.prepare.landmark.geodesic.kk(
+  prepared <- prepare.landmark.geodesic.kk(
     edges = built$edges,
     n = nrow(built$coords),
     local_nbrs = 6L,
@@ -114,8 +114,8 @@ test_that("landmark geodesic KK prefers the canonical carpet over a perturbed ca
   set.seed(11)
   perturbed <- perturbed + matrix(rnorm(length(perturbed), sd = 0.15), ncol = 2L)
 
-  canonical_score <- grip.score.landmark.geodesic.kk(built$coords, prepared = prepared)
-  perturbed_score <- grip.score.landmark.geodesic.kk(perturbed, prepared = prepared)
+  canonical_score <- score.landmark.geodesic.kk(built$coords, prepared = prepared)
+  perturbed_score <- score.landmark.geodesic.kk(perturbed, prepared = prepared)
 
   expect_lt(canonical_score$lgkk.energy[[1L]], perturbed_score$lgkk.energy[[1L]])
   expect_lt(canonical_score$lgkk.weighted.rmse[[1L]], perturbed_score$lgkk.weighted.rmse[[1L]])
@@ -123,7 +123,7 @@ test_that("landmark geodesic KK prefers the canonical carpet over a perturbed ca
 
 test_that("landmark geodesic KK optimizer decreases the prototype energy", {
   built <- build_test_sierpinski_carpet_lgkk(2L)
-  prepared <- grip.prepare.landmark.geodesic.kk(
+  prepared <- prepare.landmark.geodesic.kk(
     edges = built$edges,
     n = nrow(built$coords),
     local_nbrs = 6L,
@@ -134,14 +134,14 @@ test_that("landmark geodesic KK optimizer decreases the prototype energy", {
   set.seed(19)
   perturbed <- perturbed + matrix(rnorm(length(perturbed), sd = 0.2), ncol = 2L)
 
-  before <- grip.score.landmark.geodesic.kk(perturbed, prepared = prepared)
-  opt <- grip.optimize.landmark.geodesic.kk(
+  before <- score.landmark.geodesic.kk(perturbed, prepared = prepared)
+  opt <- landmark.geodesic.kk(
     coords = perturbed,
     prepared = prepared,
     max_iter = 8L,
     return_trace = TRUE
   )
-  after <- grip.score.landmark.geodesic.kk(opt$coords, prepared = prepared)
+  after <- score.landmark.geodesic.kk(opt$coords, prepared = prepared)
 
   expect_lt(after$lgkk.energy[[1L]], before$lgkk.energy[[1L]])
   expect_lt(after$lgkk.weighted.rel.rmse[[1L]], before$lgkk.weighted.rel.rmse[[1L]])

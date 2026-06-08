@@ -1,6 +1,6 @@
 test_that("globalrep layout returns a finite matrix", {
   edges <- edges.path(10)
-  coords <- grip.layout.globalrep(edges, n = 10, dim = 2,
+  coords <- globalrep.grip(edges, n = 10, dim = 2,
                                   placement = "barycenter",
                                   rounds = 5, final_rounds = 3,
                                   num_init = 5, num_nbrs = 6,
@@ -14,7 +14,7 @@ test_that("globalrep layout returns a finite matrix", {
 
 test_that("globalrep seeded runs are deterministic", {
   edges <- edges.cycle(12)
-  coords1 <- grip.layout.globalrep(edges, n = 12, dim = 2,
+  coords1 <- globalrep.grip(edges, n = 12, dim = 2,
                                    placement = "barycenter",
                                    rounds = 4, final_rounds = 2,
                                    num_init = 4, num_nbrs = 5,
@@ -22,7 +22,7 @@ test_that("globalrep seeded runs are deterministic", {
                                    coarse_repulsion_sample = 8,
                                    coarse_repulsion_exact_below = 32,
                                    seed = 42)
-  coords2 <- grip.layout.globalrep(edges, n = 12, dim = 2,
+  coords2 <- globalrep.grip(edges, n = 12, dim = 2,
                                    placement = "barycenter",
                                    rounds = 4, final_rounds = 2,
                                    num_init = 4, num_nbrs = 5,
@@ -33,16 +33,16 @@ test_that("globalrep seeded runs are deterministic", {
   expect_identical(coords1, coords2)
 })
 
-test_that("globalrep with zero coarse repulsion matches grip.layout.legacy", {
+test_that("globalrep with zero coarse repulsion matches legacy.grip", {
   edges <- edges.mesh(5, 5)
-  coords_base <- grip.layout.legacy(edges, n = 25, dim = 2,
+  coords_base <- legacy.grip(edges, n = 25, dim = 2,
                                     placement = "barycenter",
                                     rounds = 8, final_rounds = 8,
                                     num_init = 6, num_nbrs = 8,
                                     r = 0.15, s = 3.0,
                                     repulsion_factor = 1.5,
                                     seed = 29)
-  coords_globalrep <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_globalrep <- globalrep.grip(edges, n = 25, dim = 2,
                                             placement = "barycenter",
                                             rounds = 8, final_rounds = 8,
                                             num_init = 6, num_nbrs = 8,
@@ -55,16 +55,16 @@ test_that("globalrep with zero coarse repulsion matches grip.layout.legacy", {
   expect_identical(coords_base, coords_globalrep)
 })
 
-test_that("grip.layout is an alias of grip.layout.globalrep", {
+test_that("grip is an alias of globalrep.grip", {
   edges <- edges.mesh(5, 5)
-  coords_primary <- grip.layout(edges, n = 25, dim = 2, seed = 17)
-  coords_alias <- grip.layout.globalrep(edges, n = 25, dim = 2, seed = 17)
+  coords_primary <- grip(edges, n = 25, dim = 2, seed = 17)
+  coords_alias <- globalrep.grip(edges, n = 25, dim = 2, seed = 17)
   expect_identical(coords_primary, coords_alias)
 })
 
 test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
   edges <- edges.mesh(5, 5)
-  coords_none <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_none <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -72,7 +72,7 @@ test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
                                        coarse_repulsion_sample = 8,
                                        coarse_repulsion_exact_below = 32,
                                        seed = 31)
-  coords_more <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_more <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -85,7 +85,7 @@ test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
 
 test_that("globalrep final_mode can switch the final stage", {
   edges <- edges.mesh(5, 5)
-  coords_fr <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_fr <- globalrep.grip(edges, n = 25, dim = 2,
                                      placement = "barycenter",
                                      rounds = 8, final_rounds = 8,
                                      num_init = 6, num_nbrs = 8,
@@ -94,7 +94,7 @@ test_that("globalrep final_mode can switch the final stage", {
                                      coarse_repulsion_exact_below = 32,
                                      final_mode = "fr",
                                      seed = 31)
-  coords_kkr <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_kkr <- globalrep.grip(edges, n = 25, dim = 2,
                                       placement = "barycenter",
                                       rounds = 8, final_rounds = 8,
                                       num_init = 6, num_nbrs = 8,
@@ -108,7 +108,7 @@ test_that("globalrep final_mode can switch the final stage", {
 
 test_that("globalrep structural final-stage knobs can change the layout", {
   edges <- edges.mesh(5, 5)
-  coords_base <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_base <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -117,7 +117,7 @@ test_that("globalrep structural final-stage knobs can change the layout", {
                                        coarse_repulsion_exact_below = 32,
                                        final_mode = "fr",
                                        seed = 31)
-  coords_struct <- grip.layout.globalrep(edges, n = 25, dim = 2,
+  coords_struct <- globalrep.grip(edges, n = 25, dim = 2,
                                          placement = "barycenter",
                                          rounds = 8, final_rounds = 8,
                                          num_init = 6, num_nbrs = 8,
@@ -135,7 +135,7 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
 
-  coords_base <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_base <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -144,7 +144,7 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
                                        coarse_repulsion_exact_below = 32,
                                        level0_insertion_mode = "inherit",
                                        seed = 41)
-  coords_bary <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_bary <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -153,7 +153,7 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
                                        coarse_repulsion_exact_below = 32,
                                        level0_insertion_mode = "barycenter",
                                        seed = 41)
-  coords_no_local_kk <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_no_local_kk <- globalrep.grip(edges, n = n, dim = 2,
                                               placement = "barycenter",
                                               rounds = 8, final_rounds = 8,
                                               num_init = 6, num_nbrs = 8,
@@ -162,7 +162,7 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
                                               coarse_repulsion_exact_below = 32,
                                               level0_local_kk_steps = 0,
                                               seed = 41)
-  coords_ls <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_ls <- globalrep.grip(edges, n = n, dim = 2,
                                      placement = "barycenter",
                                      rounds = 8, final_rounds = 8,
                                      num_init = 6, num_nbrs = 8,
@@ -182,7 +182,7 @@ test_that("global insertion anchor knobs can change the layout", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
 
-  coords_base <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_base <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -192,7 +192,7 @@ test_that("global insertion anchor knobs can change the layout", {
                                        insertion_anchor_count = 3,
                                        insertion_anchor_scope = "any_higher",
                                        seed = 53)
-  coords_more <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_more <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -202,7 +202,7 @@ test_that("global insertion anchor knobs can change the layout", {
                                        insertion_anchor_count = 6,
                                        insertion_anchor_scope = "any_higher",
                                        seed = 53)
-  coords_prev <- grip.layout.globalrep(edges, n = n, dim = 2,
+  coords_prev <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
                                        rounds = 8, final_rounds = 8,
                                        num_init = 6, num_nbrs = 8,
@@ -221,7 +221,7 @@ test_that("insertion anchor strategy can change the layout", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
 
-  coords_first <- grip.layout.globalrep(
+  coords_first <- globalrep.grip(
     edges, n = n, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -233,7 +233,7 @@ test_that("insertion anchor strategy can change the layout", {
     insertion_anchor_strategy = "first",
     seed = 71
   )
-  coords_band <- grip.layout.globalrep(
+  coords_band <- globalrep.grip(
     edges, n = n, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -245,7 +245,7 @@ test_that("insertion anchor strategy can change the layout", {
     insertion_anchor_strategy = "distance_band",
     seed = 71
   )
-  coords_balanced <- grip.layout.globalrep(
+  coords_balanced <- globalrep.grip(
     edges, n = n, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -257,7 +257,7 @@ test_that("insertion anchor strategy can change the layout", {
     insertion_anchor_strategy = "balanced_band",
     seed = 71
   )
-  coords_spread_prev <- grip.layout.globalrep(
+  coords_spread_prev <- globalrep.grip(
     edges, n = n, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -279,7 +279,7 @@ test_that("insertion anchor strategy can change the layout", {
 
 test_that("globalrep LGKK polish knobs can change the layout", {
   edges <- edges.mesh(5, 5)
-  coords_base <- grip.layout.globalrep(
+  coords_base <- globalrep.grip(
     edges, n = 25, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -289,7 +289,7 @@ test_that("globalrep LGKK polish knobs can change the layout", {
     lgkk_polish_rounds = 0,
     seed = 61
   )
-  coords_polish <- grip.layout.globalrep(
+  coords_polish <- globalrep.grip(
     edges, n = 25, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -306,7 +306,7 @@ test_that("globalrep LGKK polish knobs can change the layout", {
 
 test_that("globalrep multiscale LGKK knobs can change the layout", {
   edges <- edges.mesh(5, 5)
-  coords_base <- grip.layout.globalrep(
+  coords_base <- globalrep.grip(
     edges, n = 25, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -316,7 +316,7 @@ test_that("globalrep multiscale LGKK knobs can change the layout", {
     lgkk_multiscale_rounds = 0,
     seed = 67
   )
-  coords_lgkk <- grip.layout.globalrep(
+  coords_lgkk <- globalrep.grip(
     edges, n = 25, dim = 2,
     rounds = 8, final_rounds = 8,
     num_init = 6, num_nbrs = 8,
@@ -347,7 +347,7 @@ test_that("globalrep staged LGKK budgets can change weighted layouts", {
     if (r1 == r2 && abs(c1 - c2) == 1L) 1 else 2
   })
 
-  coords_shared <- grip.layout.globalrep(
+  coords_shared <- globalrep.grip(
     edges, n = h * w, dim = 2,
     edge_weights = edge_weights,
     lgkk_multiscale_rounds = 4,
@@ -357,7 +357,7 @@ test_that("globalrep staged LGKK budgets can change weighted layouts", {
     lgkk_active_limit = 4096,
     seed = 1
   )
-  coords_a3 <- grip.layout.globalrep(
+  coords_a3 <- globalrep.grip(
     edges, n = h * w, dim = 2,
     edge_weights = edge_weights,
     lgkk_multiscale_rounds = 0,
@@ -377,103 +377,103 @@ test_that("globalrep staged LGKK budgets can change weighted layouts", {
 test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           coarse_repulsion_factor = -0.1,
                           seed = 1),
     "coarse_repulsion_factor must be >= 0"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           coarse_repulsion_sample = 0,
                           seed = 1),
     "coarse_repulsion_sample must be a positive integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           coarse_repulsion_exact_below = 0,
                           seed = 1),
     "coarse_repulsion_exact_below must be a positive integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           final_anchor_factor = -0.1,
                           seed = 1),
     "final_anchor_factor must be >= 0"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           final_move_scale_after_first = 1.1,
                           seed = 1),
     "final_move_scale_after_first must be in \\[0, 1\\]"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           insertion_anchor_count = 0,
                           seed = 1),
     "insertion_anchor_count must be a positive integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           insertion_anchor_scope = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           final_mode = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           level0_insertion_mode = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           level0_anchor_count = 0,
                           seed = 1),
     "level0_anchor_count must be a positive integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           level0_local_kk_steps = -1,
                           seed = 1),
     "level0_local_kk_steps must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_polish_rounds = -1,
                           seed = 1),
     "lgkk_polish_rounds must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_local_nbrs = -1,
                           seed = 1),
     "lgkk_local_nbrs must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_landmark_count = -1,
                           seed = 1),
     "lgkk_landmark_count must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_rounds_coarse = -1,
                           seed = 1),
     "lgkk_rounds_coarse must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_rounds_pre_final = -1,
                           seed = 1),
     "lgkk_rounds_pre_final must be a non-negative integer"
   )
   expect_error(
-    grip.layout.globalrep(edges, n = 10, dim = 2,
+    globalrep.grip(edges, n = 10, dim = 2,
                           lgkk_rounds_final = -1,
                           seed = 1),
     "lgkk_rounds_final must be a non-negative integer"
@@ -490,8 +490,8 @@ test_that("globalrep adaptive default final_rounds schedule is stable", {
 
 test_that("globalrep small-graph defaults match the new fixed candidate profile", {
   edges <- edges.path(12)
-  coords_default <- grip.layout.globalrep(edges, n = 12, dim = 2, seed = 7)
-  coords_explicit <- grip.layout.globalrep(
+  coords_default <- globalrep.grip(edges, n = 12, dim = 2, seed = 7)
+  coords_explicit <- globalrep.grip(
     edges, n = 12, dim = 2,
     placement = "barycenter",
     rounds = 160, final_rounds = 384,
@@ -517,8 +517,8 @@ test_that("globalrep small-graph defaults match the new fixed candidate profile"
 test_that("globalrep larger-graph defaults taper final_rounds only", {
   n <- 1001L
   edges <- edges.path(n)
-  coords_default <- grip.layout.globalrep(edges, n = n, dim = 2, seed = 9)
-  coords_explicit <- grip.layout.globalrep(
+  coords_default <- globalrep.grip(edges, n = n, dim = 2, seed = 9)
+  coords_explicit <- globalrep.grip(
     edges, n = n, dim = 2,
     placement = "barycenter",
     rounds = 160, final_rounds = 320,
@@ -541,17 +541,17 @@ test_that("globalrep larger-graph defaults taper final_rounds only", {
   expect_identical(coords_default, coords_explicit)
 })
 
-test_that("globalrep disconnected handling matches grip.layout.legacy when disabled", {
+test_that("globalrep disconnected handling matches legacy.grip when disabled", {
   edges <- rbind(
     cbind(1:2, 2:3),
     cbind(5:6, 6:7)
   )
   expect_warning(
-    coords_base <- grip.layout.legacy(edges, n = 7, dim = 2, seed = 11),
+    coords_base <- legacy.grip(edges, n = 7, dim = 2, seed = 11),
     "laying out components separately"
   )
   expect_warning(
-    coords_globalrep <- grip.layout.globalrep(edges, n = 7, dim = 2,
+    coords_globalrep <- globalrep.grip(edges, n = 7, dim = 2,
                                               rounds = 20,
                                               final_rounds = 25,
                                               num_init = 36,

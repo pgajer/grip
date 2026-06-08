@@ -2,7 +2,7 @@ test_that("weighted ND layout returns finite deterministic coordinates above 3D"
   edges <- edges.mesh(3, 4)
   weights <- rep(1, nrow(edges))
 
-  coords1 <- grip.layout.weighted.nd(
+  coords1 <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 12,
@@ -14,7 +14,7 @@ test_that("weighted ND layout returns finite deterministic coordinates above 3D"
     repulsion_factor = 0.4,
     seed = 71
   )
-  coords2 <- grip.layout.weighted.nd(
+  coords2 <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 12,
@@ -37,7 +37,7 @@ test_that("weighted ND layout remains available in 2D and 3D without using legac
   edges <- edges.cycle(8)
   weights <- seq_len(nrow(edges)) / nrow(edges) + 1
 
-  coords2 <- grip.layout.weighted.nd(
+  coords2 <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 8,
@@ -47,7 +47,7 @@ test_that("weighted ND layout remains available in 2D and 3D without using legac
     num_init = 4,
     seed = 73
   )
-  coords3 <- grip.layout.weighted.nd(
+  coords3 <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 8,
@@ -69,7 +69,7 @@ test_that("weighted ND layout responds to nonuniform edge lengths", {
   weights_flat <- rep(1, nrow(edges))
   weights_shaped <- c(1, 1, 4, 4, 1, 1)
 
-  coords_flat <- grip.layout.weighted.nd(
+  coords_flat <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights_flat,
     n = 7,
@@ -80,7 +80,7 @@ test_that("weighted ND layout responds to nonuniform edge lengths", {
     repulsion_factor = 0,
     seed = 79
   )
-  coords_shaped <- grip.layout.weighted.nd(
+  coords_shaped <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights_shaped,
     n = 7,
@@ -99,7 +99,7 @@ test_that("weighted ND MISF skeleton matches legacy weighted MISF ordering", {
   edges <- edges.mesh(4, 4)
   weights <- seq_len(nrow(edges)) / nrow(edges) + 1
 
-  legacy <- grip.build.misf.weighted(
+  legacy <- build.weighted.misf(
     edges = edges,
     edge_weights = weights,
     n = 16,
@@ -170,7 +170,7 @@ test_that("weighted ND trace mirrors legacy weighted-GRIP active-level phases", 
     trace.every = 1,
     seed = 81
   )
-  legacy <- do.call(grip.layout.trace.legacy, c(args, list(trace = "round")))
+  legacy <- do.call(trace.legacy.grip, c(args, list(trace = "round")))
   nd <- do.call(grip:::grip.layout.weighted.nd.trace, args)
 
   expect_identical(nd$meta$phase, legacy$meta$phase)
@@ -287,7 +287,7 @@ test_that("weighted ND insertion placement and anchor controls are usable", {
   edges <- edges.mesh(3, 3)
   weights <- rep(1, nrow(edges))
 
-  circle <- grip.layout.weighted.nd(
+  circle <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 9,
@@ -299,7 +299,7 @@ test_that("weighted ND insertion placement and anchor controls are usable", {
     num_nbrs = 6,
     seed = 91
   )
-  tuned <- grip.layout.weighted.nd(
+  tuned <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 9,
@@ -340,7 +340,7 @@ test_that("weighted ND insertion placement and anchor controls are usable", {
   expect_true(all(is.finite(tuned)))
   expect_true(all(is.finite(spread$final)))
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = weights,
       n = 9,
@@ -359,7 +359,7 @@ test_that("weighted ND legacy final-stage and metric-search controls are usable"
   edges <- edges.mesh(3, 4)
   weights <- seq_len(nrow(edges)) / nrow(edges) + 1
 
-  baseline <- grip.layout.weighted.nd(
+  baseline <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 12,
@@ -370,7 +370,7 @@ test_that("weighted ND legacy final-stage and metric-search controls are usable"
     num_nbrs = 6,
     seed = 93
   )
-  scaled <- grip.layout.weighted.nd(
+  scaled <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 12,
@@ -383,7 +383,7 @@ test_that("weighted ND legacy final-stage and metric-search controls are usable"
     metric_neighbor_cap = 8,
     seed = 93
   )
-  kk <- grip.layout.weighted.nd(
+  kk <- weighted.grip.nd(
     edges = edges,
     edge_weights = weights,
     n = 12,
@@ -406,7 +406,7 @@ test_that("weighted ND legacy final-stage and metric-search controls are usable"
 
 test_that("weighted ND layout packs disconnected components", {
   edges <- matrix(c(1, 2, 3, 4), ncol = 2, byrow = TRUE)
-  coords <- grip.layout.weighted.nd(
+  coords <- weighted.grip.nd(
     edges = edges,
     edge_weights = c(1, 2),
     n = 4,
@@ -421,7 +421,7 @@ test_that("weighted ND layout packs disconnected components", {
   expect_equal(dim(coords), c(4, 4))
   expect_true(all(is.finite(coords)))
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = c(1, 2),
       n = 4,
@@ -438,7 +438,7 @@ test_that("weighted ND layout packs disconnected components", {
 
 test_that("weighted ND layout keeps weighted presets usable with ND constraints", {
   edges <- edges.kary.tree(k = 2, depth = 3)
-  coords <- grip.layout.weighted.nd(
+  coords <- weighted.grip.nd(
     edges = edges,
     edge_weights = rep(1, nrow(edges)),
     n = max(edges),
@@ -452,7 +452,7 @@ test_that("weighted ND layout keeps weighted presets usable with ND constraints"
   expect_equal(dim(coords), c(max(edges), 4))
   expect_true(all(is.finite(coords)))
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = max(edges),
@@ -470,11 +470,11 @@ test_that("weighted ND layout validates dimensions and required weights", {
   edges <- edges.path(5)
 
   expect_error(
-    grip.layout.weighted.nd(edges = edges, n = 5, dim = 4),
+    weighted.grip.nd(edges = edges, n = 5, dim = 4),
     "requires edge weights"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -483,7 +483,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
     "dim must be >= 2"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -492,7 +492,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
     "dim must be an integer"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -502,7 +502,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
     "num_init must be >= 7"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -512,7 +512,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
     "final_move_scale_after_first must be in \\[0, 1\\]"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -522,7 +522,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.weighted.nd(
+    weighted.grip.nd(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 5,
@@ -536,7 +536,7 @@ test_that("weighted ND layout validates dimensions and required weights", {
 test_that("legacy weighted GRIP dimensionality remains capped at 3D", {
   edges <- edges.path(6)
   expect_error(
-    grip.layout.globalrep.weighted(
+    globalrep.weighted.grip(
       edges = edges,
       edge_weights = rep(1, nrow(edges)),
       n = 6,

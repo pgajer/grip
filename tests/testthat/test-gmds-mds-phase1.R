@@ -2,7 +2,7 @@ phase1.run.gmds.mesh.case <- function(bundle,
                                       truth_coords,
                                       dim = 2L,
                                       max_iter = 8L) {
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights
@@ -45,7 +45,7 @@ test_that("Phase 1 classical MDS diagnostics are finite on a flat mesh", {
     amplitude = 0,
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights
