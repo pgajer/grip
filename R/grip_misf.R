@@ -25,7 +25,7 @@ grip.complete.vertex_depth.from.levels <- function(levels, n) {
 
 #' Build a maximal independent set filtration (MISF) for a graph
 #'
-#' `grip.build.misf()` exposes the maximal independent set filtration already
+#' `build.misf()` exposes the maximal independent set filtration already
 #' constructed internally by the GRIP layout engine. The result is graph-first:
 #' you can supply either an edge list plus `n`, or an adjacency/weight-list
 #' pair.
@@ -64,11 +64,11 @@ grip.complete.vertex_depth.from.levels <- function(levels, n) {
 #'
 #' @examples
 #' edges <- edges.mesh(4, 4)
-#' misf <- grip.build.misf(edges = edges, n = 16, num_init = 6, seed = 1)
+#' misf <- build.misf(edges = edges, n = 16, num_init = 6, seed = 1)
 #' misf$misf_size
 #' misf$levels[[1L]]
 #' @export
-grip.build.misf <- function(edges = NULL,
+build.misf <- function(edges = NULL,
                             n = NULL,
                             adj_list = NULL,
                             weight_list = NULL,

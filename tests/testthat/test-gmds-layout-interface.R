@@ -1,12 +1,12 @@
 test_that("GMDS layout result constructor preserves common shape", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
-  diagnostics <- grip.score.gmds.layout(coords, prepared = prepared)
-  layout <- grip.gmds.layout.result(
+  diagnostics <- score.gmds(coords, prepared = prepared)
+  layout <- gmds.result(
     coords = coords,
     method = "fixture",
     prepared = prepared,
@@ -30,13 +30,13 @@ test_that("GMDS layout result constructor preserves common shape", {
 })
 
 test_that("common diagnostics are exact on a weighted path realization", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
-  diagnostics <- grip.score.gmds.layout(
+  diagnostics <- score.gmds(
     coords = coords,
     prepared = prepared,
     scale_mode = "identity"
@@ -51,13 +51,49 @@ test_that("common diagnostics are exact on a weighted path realization", {
   expect_equal(diagnostics$shortcut.fraction[[1L]], 0)
 })
 
+test_that("flat path-length diagnostics match the R fallback", {
+  prepared <- prepare.graph.geodesic.mds(
+    edges = edges.mesh(4L, 4L),
+    n = 16L
+  )
+  coords <- cbind(
+    seq_len(16L),
+    rev(seq_len(16L)),
+    sqrt(seq_len(16L)),
+    sin(seq_len(16L))
+  )
+  fast <- grip:::grip.geodesic.kk.path.lengths(coords, prepared)
+  fallback <- grip:::grip.geodesic.kk.path.lengths.r(coords, prepared)
+
+  expect_equal(fast, fallback, tolerance = 1e-12)
+})
+
+test_that("flat path-length diagnostics handle tie-averaged path coefficients", {
+  edges <- rbind(c(1L, 2L), c(2L, 4L), c(1L, 3L), c(3L, 4L))
+  prepared <- prepare.graph.geodesic.mds(
+    edges = edges,
+    n = 4L,
+    tie_mode = "average"
+  )
+  coords <- rbind(
+    c(0, 0),
+    c(1, 0),
+    c(0, 2),
+    c(2, 2)
+  )
+  fast <- grip:::grip.geodesic.kk.path.lengths(coords, prepared)
+  fallback <- grip:::grip.geodesic.kk.path.lengths.r(coords, prepared)
+
+  expect_equal(fast, fallback, tolerance = 1e-12)
+})
+
 test_that("metric MDS baseline returns common GMDS layout result", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
     edge_weights = rep(1, 4L)
   )
-  layout <- grip.metric.mds.layout(prepared = prepared, dim = 2L)
+  layout <- metric.mds(prepared = prepared, dim = 2L)
 
   expect_s3_class(layout, "grip_gmds_layout")
   expect_equal(layout$method, "metric_mds")
@@ -70,19 +106,44 @@ test_that("metric MDS baseline returns common GMDS layout result", {
   expect_true("positive_eigen_fraction" %in% names(layout$metadata))
 })
 
+test_that("metric MDS skips full path cache for cold no-diagnostic calls", {
+  edges <- edges.mesh(6L, 6L)
+  prepared <- prepare.graph.geodesic.mds(edges = edges, n = 36L)
+  full <- metric.mds(prepared = prepared, dim = 2L, diagnostics = FALSE)
+  fast <- metric.mds(edges = edges, n = 36L, dim = 2L, diagnostics = FALSE)
+
+  expect_s3_class(fast, "grip_gmds_layout")
+  expect_s3_class(fast$prepared, "grip_metric_mds_prepared")
+  expect_equal(fast$prepared$pair_mode, "distance_matrix_only")
+  expect_equal(length(fast$prepared$path_edges), 0L)
+  expect_equal(fast$coords, full$coords, tolerance = 1e-10)
+  expect_null(fast$diagnostics)
+})
+
+test_that("metric MDS keeps full path cache when diagnostics are requested", {
+  edges <- edges.mesh(4L, 4L)
+  layout <- metric.mds(edges = edges, n = 16L, dim = 2L, diagnostics = TRUE)
+
+  expect_s3_class(layout$prepared, "grip_gmds_prepared")
+  expect_false(inherits(layout$prepared, "grip_metric_mds_prepared"))
+  expect_equal(layout$prepared$pair_mode, "all_pairs")
+  expect_gt(length(layout$prepared$path_edges), 0L)
+  expect_s3_class(layout$diagnostics, "data.frame")
+})
+
 test_that("profiled diagnostics factor out global scale", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 2, 1)
   )
   coords <- 3 * cbind(c(0, 1, 3, 4), 0)
-  profiled <- grip.score.gmds.layout(
+  profiled <- score.gmds(
     coords = coords,
     prepared = prepared,
     scale_mode = "profiled"
   )
-  identity <- grip.score.gmds.layout(
+  identity <- score.gmds(
     coords = coords,
     prepared = prepared,
     scale_mode = "identity"

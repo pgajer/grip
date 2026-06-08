@@ -495,10 +495,10 @@ grip_weighted_nd_gflow_parity_compare_one <- function(case,
     tuning
   )
   legacy_time <- system.time({
-    legacy <- do.call(grip.layout.weighted, common)
+    legacy <- do.call(weighted.grip, common)
   })[["elapsed"]]
   nd_time <- system.time({
-    nd <- do.call(grip.layout.weighted.nd, common)
+    nd <- do.call(weighted.grip.nd, common)
   })[["elapsed"]]
 
   aligned <- grip_weighted_nd_gflow_parity_align(legacy, nd)
@@ -689,7 +689,7 @@ grip_weighted_nd_gflow_trace_compare_one <- function(case,
     )
   )
   nd_trace_fn <- get("grip.layout.weighted.nd.trace", asNamespace("grip"))
-  legacy <- do.call(grip.layout.trace.weighted, legacy_args)
+  legacy <- do.call(trace.weighted.grip, legacy_args)
   nd <- do.call(nd_trace_fn, common)
 
   frame_count <- min(length(legacy$frames), length(nd$frames))

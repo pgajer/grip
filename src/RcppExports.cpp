@@ -269,6 +269,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_geodesic_mds_flat_path_lengths_cpp
+Rcpp::NumericVector grip_geodesic_mds_flat_path_lengths_cpp(Rcpp::IntegerVector flat_pair_edge_offsets, Rcpp::IntegerVector flat_edge_u, Rcpp::IntegerVector flat_edge_v, Rcpp::NumericVector flat_edge_coeff, Rcpp::NumericMatrix coords, double edge_length_epsilon);
+RcppExport SEXP _grip_grip_geodesic_mds_flat_path_lengths_cpp(SEXP flat_pair_edge_offsetsSEXP, SEXP flat_edge_uSEXP, SEXP flat_edge_vSEXP, SEXP flat_edge_coeffSEXP, SEXP coordsSEXP, SEXP edge_length_epsilonSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type flat_pair_edge_offsets(flat_pair_edge_offsetsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type flat_edge_u(flat_edge_uSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type flat_edge_v(flat_edge_vSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type flat_edge_coeff(flat_edge_coeffSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< double >::type edge_length_epsilon(edge_length_epsilonSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_geodesic_mds_flat_path_lengths_cpp(flat_pair_edge_offsets, flat_edge_u, flat_edge_v, flat_edge_coeff, coords, edge_length_epsilon));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_geodesic_mds_flat_repulsion_stats_cpp
 Rcpp::List grip_geodesic_mds_flat_repulsion_stats_cpp(Rcpp::IntegerVector repulsion_u, Rcpp::IntegerVector repulsion_v, Rcpp::NumericVector repulsion_target, Rcpp::NumericMatrix coords, double edge_length_epsilon, double repulsion_weight);
 RcppExport SEXP _grip_grip_geodesic_mds_flat_repulsion_stats_cpp(SEXP repulsion_uSEXP, SEXP repulsion_vSEXP, SEXP repulsion_targetSEXP, SEXP coordsSEXP, SEXP edge_length_epsilonSEXP, SEXP repulsion_weightSEXP) {
@@ -733,6 +749,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_optimize_geodesic_mds_adj_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_adj_cpp, 12},
     {"_grip_grip_optimize_geodesic_mds_cache_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_cache_cpp, 15},
     {"_grip_grip_optimize_geodesic_mds_flat_cpp", (DL_FUNC) &_grip_grip_optimize_geodesic_mds_flat_cpp, 30},
+    {"_grip_grip_geodesic_mds_flat_path_lengths_cpp", (DL_FUNC) &_grip_grip_geodesic_mds_flat_path_lengths_cpp, 6},
     {"_grip_grip_geodesic_mds_flat_repulsion_stats_cpp", (DL_FUNC) &_grip_grip_geodesic_mds_flat_repulsion_stats_cpp, 6},
     {"_grip_grip_geodesic_misf_insert_vertex_cpp", (DL_FUNC) &_grip_grip_geodesic_misf_insert_vertex_cpp, 10},
     {"_grip_grip_layout_weighted_nd_adj_cpp", (DL_FUNC) &_grip_grip_layout_weighted_nd_adj_cpp, 23},

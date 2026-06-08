@@ -1,7 +1,7 @@
-test_that("grip.layout.trace exposes the canonical MISF stage schema", {
+test_that("trace.grip exposes the canonical MISF stage schema", {
   edges <- edges.mesh(6, 6)
 
-  tr <- grip.layout.trace(
+  tr <- trace.grip(
     edges = edges,
     n = 36L,
     dim = 3L,

@@ -379,7 +379,7 @@ test_that("MISF sparse refinement lowers active-level energy and final polish lo
 
 test_that("high-level MISF-GMDS optimizer runs from a graph-first prepared object", {
   edges <- edges.mesh(4, 4)
-  graph.prepared <- grip.prepare.graph.geodesic.mds(
+  graph.prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = 16L,
     tie_mode = "average"
@@ -465,7 +465,7 @@ test_that("high-level MISF-GMDS optimizer supports weighted-KK lower-level place
 
 test_that("MISF-GMDS scorer summarizes fits and direct coords consistently", {
   edges <- edges.mesh(4, 4)
-  graph.prepared <- grip.prepare.graph.geodesic.mds(
+  graph.prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = 16L,
     tie_mode = "average"

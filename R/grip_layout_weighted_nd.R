@@ -27,7 +27,7 @@ grip.validate.weighted.nd.graph <- function(edges = NULL,
                                             adj_list = NULL,
                                             weight_list = NULL,
                                             edge_weights = NULL,
-                                            caller = "grip.layout.weighted.nd") {
+                                            caller = "weighted.grip.nd") {
   if (!is.null(edges) && !is.null(adj_list)) {
     stop(sprintf("%s() accepts either edges or adj_list, not both", caller))
   }
@@ -120,7 +120,7 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
                                                     dim = 3,
                                                     seed = 6,
                                                     length_normalization = c("median", "mean", "none"),
-                                                    caller = "grip.layout.weighted.nd") {
+                                                    caller = "weighted.grip.nd") {
   length_normalization <- match.arg(length_normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   graph <- grip.validate.weighted.nd.graph(
@@ -154,7 +154,7 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 
 #' Weighted GRIP layout in arbitrary dimensions
 #'
-#' \code{grip.layout.weighted.nd()} is an opt-in weighted GRIP layout backend
+#' \code{weighted.grip.nd()} is an opt-in weighted GRIP layout backend
 #' for embeddings in dimensions \code{dim >= 2}. It is implemented beside the
 #' legacy 2D/3D GRIP code path so that existing weighted-GRIP entry points and
 #' their dimensionality checks are unchanged.
@@ -207,7 +207,7 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @return Numeric matrix with one row per vertex and \code{dim} columns.
 #' @export
-grip.layout.weighted.nd <- function(edges = NULL,
+weighted.grip.nd <- function(edges = NULL,
                                     n = NULL,
                                     adj_list = NULL,
                                     weight_list = NULL,
@@ -240,7 +240,7 @@ grip.layout.weighted.nd <- function(edges = NULL,
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   preset <- grip.normalize.weighted.preset(
     preset,
-    fn = "grip.layout.weighted.nd"
+    fn = "weighted.grip.nd"
   )
   resolved <- grip.resolve.weighted.preset(
     preset = preset,
@@ -285,7 +285,7 @@ grip.layout.weighted.nd <- function(edges = NULL,
     dim = dim,
     seed = seed,
     length_normalization = length_normalization,
-    caller = "grip.layout.weighted.nd"
+    caller = "weighted.grip.nd"
   )
 
   rounds <- grip.validate.nd.scalar.integer(resolved$rounds, "rounds", min = 0L)
@@ -295,7 +295,7 @@ grip.layout.weighted.nd <- function(edges = NULL,
   tinit_factor <- grip.validate.nd.scalar.integer(tinit_factor, "tinit_factor", min = 1L)
   metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
     metric_neighbor_cap = metric_neighbor_cap,
-    caller = "grip.layout.weighted.nd"
+    caller = "weighted.grip.nd"
   )
   insertion_anchor_count <- grip.validate.nd.scalar.integer(
     insertion_anchor_count, "insertion_anchor_count", min = 1L

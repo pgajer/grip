@@ -303,9 +303,9 @@ grip.optimize.edge.repulsive.stage.R <- function(coords,
 
 #' Evaluate a pure repulsive layout objective
 #'
-#' `grip.repulsive.state()` evaluates only the repulsion term used by the
+#' `repulsive.state()` evaluates only the repulsion term used by the
 #' experimental GMDS repulsive-unfolding operators. Unlike
-#' [grip.edge.repulsive.state()], this function has no graph-edge term and does
+#' [edge.repulsive.state()], this function has no graph-edge term and does
 #' not require placeholder edges or edge lengths.
 #'
 #' @param coords Numeric `n` by `dim` coordinate matrix.
@@ -326,7 +326,7 @@ grip.optimize.edge.repulsive.stage.R <- function(coords,
 #' @return A list containing energy, unscaled repulsion energy, gradient,
 #'   gradient norm, and embedded pair lengths.
 #' @export
-grip.repulsive.state <- function(coords,
+repulsive.state <- function(coords,
                                  lambda = 1,
                                  pair.index = NULL,
                                  pair.weights = NULL,
@@ -371,12 +371,12 @@ grip.repulsive.state <- function(coords,
 
 #' Optimize one pure repulsive layout stage
 #'
-#' `grip.optimize.repulsive.stage()` performs a gradient-descent stage for the
-#' pure repulsion objective evaluated by [grip.repulsive.state()]. It is intended
+#' `repulsive.stage()` performs a gradient-descent stage for the
+#' pure repulsion objective evaluated by [repulsive.state()]. It is intended
 #' for GMDS experiments that need to inspect repulsion separately from
 #' edge-length repair.
 #'
-#' @inheritParams grip.repulsive.state
+#' @inheritParams repulsive.state
 #' @param max.iter Maximum number of gradient-descent iterations.
 #' @param initial.step Initial gradient step size.
 #' @param step.shrink Multiplicative shrink factor used by backtracking.
@@ -391,7 +391,7 @@ grip.repulsive.state <- function(coords,
 #' @return A list with `coords`, final `state`, a data-frame `trace`, and,
 #'   when requested, a list of coordinate `frames`.
 #' @export
-grip.optimize.repulsive.stage <- function(coords,
+repulsive.stage <- function(coords,
                                           lambda = 1,
                                           pair.index = NULL,
                                           pair.weights = NULL,
@@ -511,7 +511,7 @@ grip.optimize.repulsive.stage <- function(coords,
 
 #' Evaluate an edge-isometric repulsive unfolding objective
 #'
-#' `grip.edge.repulsive.state()` evaluates an experimental GMDS objective that
+#' `edge.repulsive.state()` evaluates an experimental GMDS objective that
 #' combines an edge-isometric term with a configurable repulsion term. The edge
 #' term penalizes deviation of embedded edge lengths from graph edge lengths.
 #' The repulsion term can be evaluated on all vertex pairs or on a selected pair
@@ -547,7 +547,7 @@ grip.optimize.repulsive.stage <- function(coords,
 #'   gradient, gradient norm, feasibility flag, embedded edge lengths, relative
 #'   edge lengths, edge residuals, and number of upper-barrier wall violations.
 #' @export
-grip.edge.repulsive.state <- function(coords,
+edge.repulsive.state <- function(coords,
                                       edges,
                                       edge.lengths,
                                       edge.weights = NULL,
@@ -622,12 +622,12 @@ grip.edge.repulsive.state <- function(coords,
 
 #' Optimize one edge-isometric repulsive unfolding stage
 #'
-#' `grip.optimize.edge.repulsive.stage()` performs one gradient-descent stage
-#' for the objective evaluated by `grip.edge.repulsive.state()`. It uses Armijo
+#' `edge.repulsive.stage()` performs one gradient-descent stage
+#' for the objective evaluated by `edge.repulsive.state()`. It uses Armijo
 #' backtracking, optionally recenters coordinates after each proposal, and
 #' returns the final coordinates plus a per-iteration trace.
 #'
-#' @inheritParams grip.edge.repulsive.state
+#' @inheritParams edge.repulsive.state
 #' @param max.iter Maximum number of gradient-descent iterations.
 #' @param initial.step Initial gradient step size.
 #' @param step.shrink Multiplicative shrink factor used by backtracking.
@@ -642,7 +642,7 @@ grip.edge.repulsive.state <- function(coords,
 #' @return A list with `coords`, final `state`, a data-frame `trace`, and,
 #'   when requested, a list of coordinate `frames`.
 #' @export
-grip.optimize.edge.repulsive.stage <- function(coords,
+edge.repulsive.stage <- function(coords,
                                                edges,
                                                edge.lengths,
                                                edge.weights = NULL,

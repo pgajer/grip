@@ -29,7 +29,7 @@ grip.normalize.weight_list <- function(weight_list,
   )
 }
 
-grip.normalize.weighted.preset <- function(preset, fn = "grip.layout.weighted") {
+grip.normalize.weighted.preset <- function(preset, fn = "weighted.grip") {
   if (is.null(preset)) {
     return(NULL)
   }
@@ -179,7 +179,7 @@ grip.validate.weighted.layout.inputs <- function(edges = NULL,
                                                  placement = "barycenter",
                                                  seed = 6,
                                                  length_normalization = c("median", "mean", "none"),
-                                                 caller = "grip.layout.globalrep.weighted") {
+                                                 caller = "globalrep.weighted.grip") {
   length_normalization <- match.arg(length_normalization)
   validated <- grip.validate.layout.inputs(
     edges = edges,
@@ -206,7 +206,7 @@ grip.validate.weighted.layout.inputs <- function(edges = NULL,
 }
 
 grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NULL,
-                                                        caller = "grip.layout.weighted") {
+                                                        caller = "weighted.grip") {
   if (is.null(metric_neighbor_cap)) {
     return(0L)
   }
@@ -222,7 +222,7 @@ grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NU
 
 #' Build a weighted MISF hierarchy
 #'
-#' \code{grip.build.misf.weighted()} builds the weighted max-independent-set
+#' \code{build.weighted.misf()} builds the weighted max-independent-set
 #' filtration used by the weighted GRIP layout core. It is primarily a
 #' developer and benchmarking helper for comparing weighted and combinatorial
 #' hierarchies on the same graph.
@@ -242,7 +242,7 @@ grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NU
 #'   \code{misf_height}, \code{top_level_size}, \code{weight_scale}, and
 #'   \code{length_normalization}.
 #' @export
-grip.build.misf.weighted <- function(edges = NULL,
+build.weighted.misf <- function(edges = NULL,
                                      n = NULL,
                                      adj_list = NULL,
                                      weight_list = NULL,
@@ -261,7 +261,7 @@ grip.build.misf.weighted <- function(edges = NULL,
     placement = "barycenter",
     seed = seed,
     length_normalization = length_normalization,
-    caller = "grip.build.misf.weighted"
+    caller = "build.weighted.misf"
   )
 
   out <- grip_build_weighted_misf_adj_cpp(
@@ -279,13 +279,13 @@ grip.build.misf.weighted <- function(edges = NULL,
 
 #' Compute a weighted geometry-aware GRIP layout
 #'
-#' \code{grip.layout.globalrep.weighted()} is the weighted counterpart to
-#' \code{\link{grip.layout.globalrep}()}. It keeps the current combinatorial
+#' \code{globalrep.weighted.grip()} is the weighted counterpart to
+#' \code{\link{globalrep.grip}()}. It keeps the current combinatorial
 #' GRIP entry points intact and runs a separate weighted multiscale core that
 #' uses edge lengths in the filtration, local neighborhoods, insertion,
 #' refinement forces, and optional in-core multiscale LGKK refinement.
 #'
-#' @inheritParams grip.layout.globalrep
+#' @inheritParams globalrep.grip
 #' @param preset Optional weighted tuning preset. \code{NULL} uses the
 #'   quality-first defaults for the weighted core. \code{"mesh"} targets
 #'   rectangular and near-mesh weighted surfaces, \code{"cylinder"} targets
@@ -305,7 +305,7 @@ grip.build.misf.weighted <- function(edges = NULL,
 #'   \code{"median"} (default), \code{"mean"}, or \code{"none"}.
 #' @return A numeric matrix with \code{n} rows and \code{dim} columns.
 #' @export
-grip.layout.globalrep.weighted <- function(edges = NULL,
+globalrep.weighted.grip <- function(edges = NULL,
                                            n = NULL,
                                            adj_list = NULL,
                                            weight_list = NULL,
@@ -357,7 +357,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
 
   preset <- grip.normalize.weighted.preset(
     preset,
-    fn = "grip.layout.globalrep.weighted"
+    fn = "globalrep.weighted.grip"
   )
 
   resolved <- grip.resolve.weighted.preset(
@@ -406,7 +406,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
     placement = placement,
     seed = seed,
     length_normalization = length_normalization,
-    caller = "grip.layout.globalrep.weighted"
+    caller = "globalrep.weighted.grip"
   )
   adj_list <- validated$adj_list
   weight_list <- validated$weight_list
@@ -415,7 +415,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
   seed <- validated$seed
   metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
     metric_neighbor_cap = metric_neighbor_cap,
-    caller = "grip.layout.globalrep.weighted"
+    caller = "globalrep.weighted.grip"
   )
 
   if (is.null(preset) && final_rounds_missing) {
@@ -570,13 +570,13 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
 
 #' Trace a weighted geometry-aware GRIP layout
 #'
-#' \code{grip.layout.trace.weighted()} records the weighted GRIP layout
-#' trajectory. It mirrors \code{\link{grip.layout.trace}()} but uses the
+#' \code{trace.weighted.grip()} records the weighted GRIP layout
+#' trajectory. It mirrors \code{\link{trace.grip}()} but uses the
 #' weighted GRIP sister core, including optional in-core multiscale LGKK
 #' refinement.
 #'
-#' @inheritParams grip.layout.globalrep.weighted
-#' @inheritParams grip.layout.trace
+#' @inheritParams globalrep.weighted.grip
+#' @inheritParams trace.grip
 #' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
 #'   \code{trace.every}, and \code{diagnostics}. \code{final} is the final
 #'   coordinate matrix. \code{frames} is a list of coordinate matrices with
@@ -588,7 +588,7 @@ grip.layout.globalrep.weighted <- function(edges = NULL,
 #'   appends per-frame quality metrics such as \code{edge.length.cv},
 #'   \code{sampled.nonedge.sep.ratio}, and optional \code{procrustes.rmse}.
 #' @export
-grip.layout.trace.weighted <- function(edges = NULL,
+trace.weighted.grip <- function(edges = NULL,
                                        n = NULL,
                                        adj_list = NULL,
                                        weight_list = NULL,
@@ -647,7 +647,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
 
   preset <- grip.normalize.weighted.preset(
     preset,
-    fn = "grip.layout.trace.weighted"
+    fn = "trace.weighted.grip"
   )
 
   resolved <- grip.resolve.weighted.preset(
@@ -705,7 +705,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
     placement = placement,
     seed = seed,
     length_normalization = length_normalization,
-    caller = "grip.layout.trace.weighted"
+    caller = "trace.weighted.grip"
   )
   adj_list <- validated$adj_list
   weight_list <- validated$weight_list
@@ -714,7 +714,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
   seed <- validated$seed
   metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
     metric_neighbor_cap = metric_neighbor_cap,
-    caller = "grip.layout.trace.weighted"
+    caller = "trace.weighted.grip"
   )
 
   if (is.null(preset) && final_rounds_missing) {
@@ -779,7 +779,7 @@ grip.layout.trace.weighted <- function(edges = NULL,
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
-      "grip.layout.trace.weighted() currently supports only connected graphs; input graph has %d connected components.",
+      "trace.weighted.grip() currently supports only connected graphs; input graph has %d connected components.",
       n.comp
     ))
   }
@@ -880,12 +880,12 @@ grip.layout.trace.weighted <- function(edges = NULL,
   out
 }
 
-#' Alias of \code{grip.layout.globalrep.weighted()}
+#' Alias of \code{globalrep.weighted.grip()}
 #'
-#' @inheritParams grip.layout.globalrep.weighted
+#' @inheritParams globalrep.weighted.grip
 #' @return A numeric matrix with \code{n} rows and \code{dim} columns.
 #' @export
-grip.layout.weighted <- function(edges = NULL,
+weighted.grip <- function(edges = NULL,
                                  n = NULL,
                                  adj_list = NULL,
                                  weight_list = NULL,
@@ -926,5 +926,5 @@ grip.layout.weighted <- function(edges = NULL,
                                  tinit_factor = 6,
                                  seed = 6,
                                  disconnected = c("components", "error")) {
-  grip.forward_call(grip.layout.globalrep.weighted, match.call(expand.dots = FALSE), env = parent.frame())
+  grip.forward_call(globalrep.weighted.grip, match.call(expand.dots = FALSE), env = parent.frame())
 }

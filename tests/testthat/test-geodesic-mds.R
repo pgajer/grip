@@ -7,7 +7,7 @@ test_that("geodesic MDS scoring is exact on a weighted path realization", {
     x = c(0, 1, 3),
     y = c(0, 0, 0)
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = edges,
     n = 3L,
     edge_weights = c(1, 2)
@@ -52,7 +52,7 @@ test_that("graph-first geodesic MDS preparation matches the data-native wrapper"
   )
 
   built <- grip:::grip.prepare.geodesic.mds.graph(data = data, k = 2L, connect = "mst")
-  prepared.graph <- grip.prepare.graph.geodesic.mds(
+  prepared.graph <- prepare.graph.geodesic.mds(
     edges = built$edges,
     n = nrow(data),
     edge_weights = built$edge_weights,
@@ -95,7 +95,7 @@ test_that("compiled geodesic MDS optimizer decreases path stress on a perturbed 
     x = 0:4,
     y = rep(0, 5)
   )
-  prepared <- grip.prepare.geodesic.kk(edges = edges, n = 5L)
+  prepared <- prepare.geodesic.kk(edges = edges, n = 5L)
 
   perturbed <- canonical
   set.seed(41)
@@ -138,7 +138,7 @@ test_that("geodesic MDS can optimize directly from data with cmdscale initializa
 
 test_that("per-vertex anchor pinning matches between the R and C++ GMDS engines", {
   edges <- edges.path(5L)
-  prepared <- grip.prepare.geodesic.kk(edges = edges, n = 5L)
+  prepared <- prepare.geodesic.kk(edges = edges, n = 5L)
   anchor.coords <- cbind(
     x = 0:4,
     y = rep(0, 5)

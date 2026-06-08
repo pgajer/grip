@@ -1876,6 +1876,68 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
 }
 
 // [[Rcpp::export]]
+Rcpp::NumericVector grip_geodesic_mds_flat_path_lengths_cpp(
+    Rcpp::IntegerVector flat_pair_edge_offsets,
+    Rcpp::IntegerVector flat_edge_u,
+    Rcpp::IntegerVector flat_edge_v,
+    Rcpp::NumericVector flat_edge_coeff,
+    Rcpp::NumericMatrix coords,
+    double edge_length_epsilon = 1e-8)
+{
+    if(coords.nrow() <= 0)
+        Rcpp::stop("coords must have at least one row");
+    if(coords.ncol() <= 0)
+        Rcpp::stop("coords must have at least one column");
+    for(int i = 0; i < coords.size(); i++){
+        if(!std::isfinite(coords[i]))
+            Rcpp::stop("coords must contain only finite values");
+    }
+    if(!std::isfinite(edge_length_epsilon) || edge_length_epsilon < 0.0)
+        Rcpp::stop("edge_length_epsilon must be finite and >= 0");
+    if(flat_pair_edge_offsets.size() < 1)
+        Rcpp::stop("flat_pair_edge_offsets must have at least one element");
+    if(flat_edge_u.size() != flat_edge_v.size() ||
+       flat_edge_u.size() != flat_edge_coeff.size())
+        Rcpp::stop("flat edge arrays must have the same length");
+    if(flat_pair_edge_offsets[0] != 0)
+        Rcpp::stop("flat_pair_edge_offsets must start at 0");
+    if(flat_pair_edge_offsets[flat_pair_edge_offsets.size() - 1] != flat_edge_u.size())
+        Rcpp::stop("flat_pair_edge_offsets must end at length(flat_edge_u)");
+    for(int i = 1; i < flat_pair_edge_offsets.size(); i++){
+        if(flat_pair_edge_offsets[i] < flat_pair_edge_offsets[i - 1])
+            Rcpp::stop("flat_pair_edge_offsets must be nondecreasing");
+    }
+    for(int i = 0; i < flat_edge_u.size(); i++){
+        if(flat_edge_u[i] < 0 || flat_edge_u[i] >= coords.nrow() ||
+           flat_edge_v[i] < 0 || flat_edge_v[i] >= coords.nrow())
+            Rcpp::stop("flat edge arrays must use 0-based vertex ids within [0, nrow(coords) - 1]");
+        if(!std::isfinite(flat_edge_coeff[i]) || flat_edge_coeff[i] < 0.0)
+            Rcpp::stop("flat_edge_coeff must contain finite values >= 0");
+    }
+
+    Rcpp::NumericVector pathLengths(flat_pair_edge_offsets.size() - 1);
+    const double eps2 = edge_length_epsilon * edge_length_epsilon;
+    const int dim = coords.ncol();
+    for(int pairIndex = 0; pairIndex < pathLengths.size(); pairIndex++){
+        const int edgeBegin = flat_pair_edge_offsets[pairIndex];
+        const int edgeEnd = flat_pair_edge_offsets[pairIndex + 1];
+        double h = 0.0;
+        for(int edgeIndex = edgeBegin; edgeIndex < edgeEnd; edgeIndex++){
+            const int u = flat_edge_u[edgeIndex];
+            const int v = flat_edge_v[edgeIndex];
+            double squared = 0.0;
+            for(int j = 0; j < dim; j++){
+                const double diff = coords(u, j) - coords(v, j);
+                squared += diff * diff;
+            }
+            h += flat_edge_coeff[edgeIndex] * std::sqrt(squared + eps2);
+        }
+        pathLengths[pairIndex] = h;
+    }
+    return pathLengths;
+}
+
+// [[Rcpp::export]]
 Rcpp::List grip_geodesic_mds_flat_repulsion_stats_cpp(
     Rcpp::IntegerVector repulsion_u,
     Rcpp::IntegerVector repulsion_v,

@@ -21,7 +21,7 @@ test_that("MISF-GMDS and MISF-GKK expose the same canonical stage schema", {
     seed = 101L
   )
 
-  gkk.fit <- grip.optimize.misf.geodesic.kk(
+  gkk.fit <- misf.geodesic.kk(
     edges = edges,
     n = 16L,
     num_init = 4L,

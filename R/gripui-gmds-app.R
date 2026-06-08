@@ -85,8 +85,8 @@ gripui.gmds.method.catalog <- function() {
       label = "GRIP",
       objective_label = "Classical GRIP multiscale layout",
       refinement_phrase = "GRIP local-KK",
-      prepare_fn = "grip.build.misf",
-      optimize_fn = "grip.layout.trace",
+      prepare_fn = "build.misf",
+      optimize_fn = "trace.grip",
       fit_class = "grip_misf_grip_fit"
     ),
     gmds = list(
@@ -104,8 +104,8 @@ gripui.gmds.method.catalog <- function() {
       objective_label = "Full geodesic-KK",
       refinement_phrase = "full geodesic-KK",
       pair_mode = "full",
-      prepare_fn = "grip.prepare.misf.geodesic.kk",
-      optimize_fn = "grip.optimize.misf.geodesic.kk",
+      prepare_fn = "prepare.misf.geodesic.kk",
+      optimize_fn = "misf.geodesic.kk",
       fit_class = "grip_misf_gkk_fit"
     ),
     lgkk = list(
@@ -114,8 +114,8 @@ gripui.gmds.method.catalog <- function() {
       objective_label = "Landmark geodesic-KK",
       refinement_phrase = "landmark geodesic-KK",
       pair_mode = "landmark",
-      prepare_fn = "grip.prepare.misf.geodesic.kk",
-      optimize_fn = "grip.optimize.misf.geodesic.kk",
+      prepare_fn = "prepare.misf.geodesic.kk",
+      optimize_fn = "misf.geodesic.kk",
       fit_class = "grip_misf_gkk_fit"
     )
   )
@@ -1218,14 +1218,14 @@ gripui.gmds.repro.code <- function(bundle) {
       payload$code,
       "",
       sprintf(
-        "misf <- grip.build.misf(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, num_init = %dL, num_nbrs = %dL, seed = %dL)",
+        "misf <- build.misf(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, num_init = %dL, num_nbrs = %dL, seed = %dL)",
         settings$num_init,
         settings$grip_num_nbrs,
         settings$grip_seed
       ),
       sprintf(
         paste0(
-          "tr <- grip.layout.trace(edges = graph$edges, n = graph$n, dim = %dL, ",
+          "tr <- trace.grip(edges = graph$edges, n = graph$n, dim = %dL, ",
           "placement = \"barycenter\", rounds = %dL, final_rounds = %dL, ",
           "num_init = %dL, num_nbrs = %dL, trace = \"round\", trace.every = 1L, seed = %dL)"
         ),
@@ -1290,7 +1290,7 @@ gripui.gmds.repro.code <- function(bundle) {
     payload$code,
     "",
     sprintf(
-      "prepared <- grip.prepare.misf.geodesic.kk(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, tie_mode = \"average\", num_init = %dL, dim = %dL, top_level_mode = \"skip\", top_level_pair_mode = \"%s\", top_level_local_nbrs = %dL, top_level_landmark_count = %dL, seed = %dL)",
+      "prepared <- prepare.misf.geodesic.kk(edges = graph$edges, n = graph$n, edge_weights = graph$edge_weights, tie_mode = \"average\", num_init = %dL, dim = %dL, top_level_mode = \"skip\", top_level_pair_mode = \"%s\", top_level_local_nbrs = %dL, top_level_landmark_count = %dL, seed = %dL)",
       settings$num_init,
       settings$dim,
       settings$pair_mode,
@@ -1300,7 +1300,7 @@ gripui.gmds.repro.code <- function(bundle) {
     ),
     sprintf(
       paste0(
-        "fit <- grip.optimize.misf.geodesic.kk(prepared = prepared, dim = %dL, ",
+        "fit <- misf.geodesic.kk(prepared = prepared, dim = %dL, ",
         "top_level_pair_mode = \"%s\", top_level_full_limit = %dL, top_level_local_nbrs = %dL, top_level_landmark_count = %dL, ",
         "top_level_restarts = 1L, top_level_max_iter = %dL, ",
         "insertion_anchor_policy = \"prev_level_spread\", insertion_max_iter = %dL, ",
@@ -1471,7 +1471,7 @@ gripui.gmds.compute.bundle <- function(desc,
       n = payload$n,
       edges = payload$edges,
       edge_weights = payload$edge_weights,
-      misf = grip.build.misf(
+      misf = build.misf(
         edges = payload$edges,
         n = payload$n,
         edge_weights = payload$edge_weights,
@@ -1492,7 +1492,7 @@ gripui.gmds.compute.bundle <- function(desc,
     prepared$top_level_dim <- dim
 
     elapsed <- system.time({
-      raw.trace <- grip.layout.trace(
+      raw.trace <- trace.grip(
         edges = payload$edges,
         n = payload$n,
         edge_weights = payload$edge_weights,
@@ -1576,7 +1576,7 @@ gripui.gmds.compute.bundle <- function(desc,
     pair.mode <- NA_character_
     pair.full.limit <- NA_integer_
   } else {
-    prepared <- grip.prepare.misf.geodesic.kk(
+    prepared <- prepare.misf.geodesic.kk(
       edges = payload$edges,
       n = payload$n,
       edge_weights = payload$edge_weights,
@@ -1595,7 +1595,7 @@ gripui.gmds.compute.bundle <- function(desc,
     pair.mode <- method.spec$pair_mode
     pair.full.limit <- max(payload$n, length(prepared$top_level_vertices))
 
-    fit <- grip.optimize.misf.geodesic.kk(
+    fit <- misf.geodesic.kk(
       prepared = prepared,
       dim = dim,
       top_level_pair_mode = pair.mode,

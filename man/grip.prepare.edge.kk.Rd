@@ -2,48 +2,16 @@
 % Please edit documentation in R/grip_quality.R
 \name{grip.prepare.edge.kk}
 \alias{grip.prepare.edge.kk}
-\title{Prepare an edge-only graph for edge-KK repair}
+\title{Deprecated edge-KK preparation name}
 \usage{
-grip.prepare.edge.kk(
-  edges = NULL,
-  n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL
-)
+grip.prepare.edge.kk(...)
 }
 \arguments{
-\item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
-
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to
-\code{max(edges)}.}
-
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
-
-\item{weight_list}{Optional parallel list of positive edge weights.}
-
-\item{edge_weights}{Optional positive edge-weight vector parallel to
-\code{edges}.}
+\item{...}{Arguments passed to [prepare.edge.kk()].}
 }
 \value{
-A lightweight prepared object of class
-  \code{"grip_edge_kk_prepared"} layered on the common
-  \code{"grip_gmds_prepared"} graph class. It contains canonical graph
-  edges and edge targets but no all-pairs geodesic cache.
+See [prepare.edge.kk()].
 }
 \description{
-\code{grip.prepare.edge.kk()} validates an undirected weighted graph and
-returns the lightweight prepared object used by
-\code{\link{grip.optimize.edge.kk.layout}()} when only graph-edge targets are
-needed. Unlike \code{\link{grip.prepare.graph.geodesic.mds}()}, this helper
-does not compute all-pairs shortest paths, path caches, or a dense graph
-distance matrix.
-}
-\details{
-Use this helper when a starting layout is already available, for example from
-\code{\link{grip.layout.weighted}()}, and the next step is scalable edge-KK
-local repair. Edge-only objects support edge-fidelity diagnostics through
-\code{\link{grip.score.gmds.layout}()}; all-pairs GMDS path and chord
-diagnostics are unavailable and are reported as \code{NA}.
+This long name is deprecated. Use [prepare.edge.kk()] instead.
 }

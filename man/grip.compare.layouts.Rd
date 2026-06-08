@@ -2,113 +2,16 @@
 % Please edit documentation in R/grip_quality.R
 \name{grip.compare.layouts}
 \alias{grip.compare.layouts}
-\title{Compare multiple layout candidates across seeds}
+\title{Deprecated layout comparison name}
 \usage{
-grip.compare.layouts(
-  edges = NULL,
-  n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  dim = 2,
-  candidates = c("default"),
-  search = NULL,
-  clusters = NULL,
-  seeds = 1:3,
-  sample.size.stress = 2000L,
-  sample.size.nonedge = 5000L,
-  edge.crossings = c("auto", "always", "never"),
-  edge.crossings.max.edges = 1000L,
-  score.weights = grip.default.compare.score.weights(),
-  return.layouts = FALSE,
-  disconnected = c("components", "error")
-)
+grip.compare.layouts(...)
 }
 \arguments{
-\item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
-
-\item{n}{Number of vertices.}
-
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
-
-\item{weight_list}{Optional parallel list of positive edge weights.}
-
-\item{edge_weights}{Optional positive edge-weight vector parallel to
-\code{edges}.}
-
-\item{dim}{Layout dimension (2 or 3).}
-
-\item{candidates}{Either a character vector such as
-\code{c("default", "mesh", "tree")} or a named list of candidate layout
-specifications. Each list element may be \code{NULL} (use defaults), a
-single preset name, or a named list of \code{\link{grip.layout}()}
-tuning arguments such as \code{preset}, \code{placement},
-\code{rounds}, or \code{repulsion_factor}.}
-
-\item{search}{Optional named list describing a grid search over layout
-settings. Any of \code{preset}, \code{placement}, \code{rounds},
-\code{final_rounds}, \code{num_init}, \code{num_nbrs}, \code{r},
-\code{s}, \code{repulsion_factor}, and \code{tinit_factor} may be supplied
-as vectors. All combinations are expanded into candidates. Special fields
-\code{candidate.prefix} and \code{include.base} control candidate naming
-and whether the all-first-values setting is guaranteed to appear.}
-
-\item{clusters}{Optional cluster or community labels used to compute
-\code{cluster.separation}.}
-
-\item{seeds}{Integer seeds used for repeated runs.}
-
-\item{sample.size.stress}{Number of sampled pairs used for
-\code{sampled.stress}.}
-
-\item{sample.size.nonedge}{Number of sampled non-edge pairs used for
-\code{sampled.nonedge.sep.ratio}.}
-
-\item{edge.crossings}{How to compute \code{edge.crossings} for 2D layouts.}
-
-\item{edge.crossings.max.edges}{Edge-count threshold for
-\code{edge.crossings = "auto"}.}
-
-\item{score.weights}{Optional named numeric vector used to compute
-\code{score.composite}. Set to \code{NULL} to omit the composite score.}
-
-\item{return.layouts}{If \code{TRUE}, include the realized coordinate
-matrices in the return value.}
-
-\item{disconnected}{Passed through to \code{\link{grip.layout}()}.}
+\item{...}{Arguments passed to [compare.layouts()].}
 }
 \value{
-A list with \code{runs} and \code{summary} data frames and,
-  optionally, realized \code{layouts}.
+See [compare.layouts()].
 }
 \description{
-\code{grip.compare.layouts()} computes layouts for several candidate presets
-or parameter lists, optionally expands a local parameter search, scores each
-run with \code{\link{grip.score.layout}()}, and summarizes both quality
-metrics and seed-to-seed stability. This is the main real-data workflow for
-graphs where no canonical embedding is known.
-}
-\examples{
-edges <- edges.path(5)
-cmp <- grip.compare.layouts(
-  edges = edges,
-  n = 5,
-  dim = 2,
-  candidates = c("default", "tree"),
-  seeds = 1L
-)
-cmp$summary[, c("candidate", "rounds", "final.rounds")]
-
-search.cmp <- grip.compare.layouts(
-  edges = edges,
-  n = 5,
-  dim = 2,
-  search = list(
-    candidate.prefix = "path.search",
-    rounds = c(4L, 6L),
-    final_rounds = c(4L, 6L)
-  ),
-  seeds = 1L
-)
-search.cmp$summary[, c("candidate", "rounds", "final.rounds")]
+This long name is deprecated. Use [compare.layouts()] instead.
 }

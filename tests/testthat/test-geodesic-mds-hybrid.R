@@ -11,7 +11,7 @@ make_flat_mesh_bundle <- function(h) {
 
 test_that("tie-averaged cache counts all 3x3 mesh corner shortest paths", {
   bundle <- make_flat_mesh_bundle(3L)
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -72,8 +72,8 @@ test_that("tie-averaged GMDS fixes the flat orthogonal mesh symmetry failure", {
       sprintf("devtools::load_all(%s, quiet = TRUE, export_all = TRUE, helpers = FALSE)", dQuote(pkg_root)),
       "bundle <- mesh.surface.graph(5L, 5L, surface = 'saddle', amplitude = 0, connectivity = 'orthogonal', normalize = 'median')",
       "truth <- bundle$coords_param",
-      "prepared.single <- grip.prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'single')",
-      "prepared.avg <- grip.prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'average')",
+      "prepared.single <- prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'single')",
+      "prepared.avg <- prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'average')",
       "opt.single <- grip.optimize.geodesic.mds(prepared = prepared.single, dim = 2L, init = 'cmdscale', engine = 'cpp', max_iter = 25L)",
       "opt.avg <- grip.optimize.geodesic.mds(prepared = prepared.avg, dim = 2L, init = 'cmdscale', engine = 'cpp', max_iter = 25L)",
       "rho.single <- grip.align.to.target.nd(opt.single$coords, truth, allow.reflection = TRUE)$rmse",
@@ -104,7 +104,7 @@ test_that("threaded flat optimizer matches the serial flat optimizer", {
     c(
       sprintf("devtools::load_all(%s, quiet = TRUE, export_all = TRUE, helpers = FALSE)", dQuote(pkg_root)),
       "bundle <- mesh.surface.graph(10L, 10L, surface = 'saddle', amplitude = 0, connectivity = 'orthogonal', normalize = 'median')",
-      "prepared <- grip.prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'average')",
+      "prepared <- prepare.geodesic.kk(edges = bundle$edges, n = bundle$n, edge_weights = bundle$edge_weights, tie_mode = 'average')",
       "cmd <- grip.classical.mds.embedding(prepared, dim = 2L, eig = TRUE)",
       "opt.serial <- grip.optimize.geodesic.mds(coords = cmd$coords, prepared = prepared, engine = 'cpp', max_iter = 3L, n_threads = 1L, return_trace = TRUE)",
       "opt.parallel <- grip.optimize.geodesic.mds(coords = cmd$coords, prepared = prepared, engine = 'cpp', max_iter = 3L, n_threads = 2L, return_trace = TRUE)",
@@ -135,7 +135,7 @@ test_that("anchored scoring and continuation expose the tether contribution", {
     x = c(0, 1, 3),
     y = c(0, 0, 0)
   )
-  prepared <- grip.prepare.geodesic.kk(edges = edges, n = 3L)
+  prepared <- prepare.geodesic.kk(edges = edges, n = 3L)
 
   base <- grip.score.geodesic.mds(coords, prepared = prepared)
   anchored <- grip.score.geodesic.mds(

@@ -26,7 +26,7 @@ grip.classical.mds.embedding <- function(prepared,
   if (is.null(prepared$distance_matrix)) {
     stop(
       "metric MDS requires an all-pairs prepared object with distance_matrix; ",
-      "grip.prepare.edge.kk() objects are edge-only"
+      "prepare.edge.kk() objects are edge-only"
     )
   }
 

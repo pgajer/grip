@@ -10,7 +10,7 @@ grip.new.misf.geodesic.kk.fit <- function(x = list()) {
 
 grip.validate.misf.geodesic.kk.prepared <- function(prepared, coords = NULL) {
   if (!inherits(prepared, "grip_misf_gkk_prepared")) {
-    stop("prepared must be an object from grip.prepare.misf.geodesic.kk()")
+    stop("prepared must be an object from prepare.misf.geodesic.kk()")
   }
   if (!is.null(coords) && nrow(coords) != prepared$n) {
     stop("nrow(coords) must match the graph size stored in prepared")
@@ -20,7 +20,7 @@ grip.validate.misf.geodesic.kk.prepared <- function(prepared, coords = NULL) {
 
 grip.validate.misf.geodesic.kk.fit <- function(fit) {
   if (!inherits(fit, "grip_misf_gkk_fit")) {
-    stop("fit must be an object from grip.optimize.misf.geodesic.kk()")
+    stop("fit must be an object from misf.geodesic.kk()")
   }
   fit
 }
@@ -69,7 +69,7 @@ grip.resolve.misf.geodesic.kk.prepared <- function(prepared = NULL,
     resolved.tie.mode <- if (is.null(tie_mode)) "average" else {
       match.arg(tie_mode, c("single", "average"))
     }
-    return(grip.prepare.misf.geodesic.kk(
+    return(prepare.misf.geodesic.kk(
       edges = edges,
       n = n,
       adj_list = adj_list,
@@ -95,8 +95,8 @@ grip.resolve.misf.geodesic.kk.prepared <- function(prepared = NULL,
   }
   if (!inherits(prepared, "grip_gkk_prepared")) {
     stop(
-      "prepared must be NULL, an object from grip.prepare.geodesic.kk(), ",
-      "or an object from grip.prepare.misf.geodesic.kk()"
+      "prepared must be NULL, an object from prepare.geodesic.kk(), ",
+      "or an object from prepare.misf.geodesic.kk()"
     )
   }
   resolved.dim <- if (is.null(dim)) 2L else grip.validate.count(dim, "dim")
@@ -105,7 +105,7 @@ grip.resolve.misf.geodesic.kk.prepared <- function(prepared = NULL,
   } else {
     match.arg(tie_mode, c("single", "average"))
   }
-  grip.prepare.misf.geodesic.kk(
+  prepare.misf.geodesic.kk(
     n = prepared$n,
     adj_list = prepared$adj_list,
     weight_list = prepared$weight_list,
@@ -161,7 +161,7 @@ grip.geodesic.misf.kk.score.prepared <- function(coords,
   effective.pair.mode <- grip.geodesic.misf.kk.score.kind(prepared)
   prepared <- grip.geodesic.misf.kk.add.prepared.class(prepared, effective.pair.mode)
   if (identical(effective.pair.mode, "landmark")) {
-    grip.score.landmark.geodesic.kk(
+    score.landmark.geodesic.kk(
       coords = coords,
       prepared = prepared,
       stiffness = stiffness,
@@ -169,7 +169,7 @@ grip.geodesic.misf.kk.score.prepared <- function(coords,
       edge_length_epsilon = edge_length_epsilon
     )
   } else {
-    grip.score.geodesic.kk(
+    score.geodesic.kk(
       coords = coords,
       prepared = prepared,
       stiffness = stiffness,
@@ -196,7 +196,7 @@ grip.geodesic.misf.kk.resolve.score.prepared <- function(prepared,
     grip.geodesic.misf.kk.add.prepared.class(prepared, "full")
   } else {
     grip.geodesic.misf.kk.add.prepared.class(
-      grip.prepare.landmark.geodesic.kk(
+      prepare.landmark.geodesic.kk(
         n = prepared$n,
         adj_list = prepared$adj_list,
         weight_list = prepared$weight_list,
@@ -293,7 +293,7 @@ grip.geodesic.misf.kk.optimize.prepared <- function(coords,
 
   if (!use.anchor) {
     fit <- if (identical(effective.pair.mode, "landmark")) {
-      grip.optimize.landmark.geodesic.kk(
+      landmark.geodesic.kk(
         coords = coords,
         prepared = prepared,
         max_iter = max_iter,
@@ -309,7 +309,7 @@ grip.geodesic.misf.kk.optimize.prepared <- function(coords,
         return_trace = return_trace
       )
     } else {
-      grip.optimize.geodesic.kk(
+      geodesic.kk(
         coords = coords,
         prepared = prepared,
         max_iter = max_iter,
@@ -609,7 +609,7 @@ grip.geodesic.misf.kk.resolve.top.level.prepared <- function(prepared,
         !is.null(prepared$top_level_prepared_full)) {
       prepared$top_level_prepared_full
     } else {
-      grip.prepare.geodesic.kk(
+      prepare.geodesic.kk(
         edges = prepared$top_level_graph$edges,
         n = prepared$top_level_graph$n,
         edge_weights = prepared$top_level_graph$edge_weights,
@@ -622,7 +622,7 @@ grip.geodesic.misf.kk.resolve.top.level.prepared <- function(prepared,
         !is.null(prepared$top_level_prepared_sparse)) {
       prepared$top_level_prepared_sparse
     } else {
-      grip.prepare.landmark.geodesic.kk(
+      prepare.landmark.geodesic.kk(
         edges = prepared$top_level_graph$edges,
         n = prepared$top_level_graph$n,
         edge_weights = prepared$top_level_graph$edge_weights,
@@ -1056,7 +1056,7 @@ grip.geodesic.misf.kk.resolve.final.prepared <- function(prepared,
     grip.geodesic.misf.kk.add.prepared.class(prepared, "full")
   } else {
     grip.geodesic.misf.kk.add.prepared.class(
-      grip.prepare.landmark.geodesic.kk(
+      prepare.landmark.geodesic.kk(
         n = prepared$n,
         adj_list = prepared$adj_list,
         weight_list = prepared$weight_list,
@@ -1336,7 +1336,7 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 
 #' Prepare a MISF-based multiscale geodesic-KK object
 #'
-#' `grip.prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
+#' `prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
 #' geodesic-KK pipeline by layering the maximal independent set filtration
 #' (MISF) on top of the existing full geodesic-KK cache. The prepared object
 #' stores the graph metadata, the coarsest admissible top-level graph, the
@@ -1350,10 +1350,10 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #' @param weight_list Optional parallel list of positive edge weights.
 #' @param edge_weights Optional positive edge-weight vector parallel to `edges`.
 #' @param tie_mode Shortest-path aggregation mode inherited from
-#'   [grip.prepare.geodesic.kk()].
-#' @param num_init Target top-level active-set size passed to `grip.build.misf`.
+#'   [prepare.geodesic.kk()].
+#' @param num_init Target top-level active-set size passed to `build.misf`.
 #' @param num_nbrs Per-level local-neighborhood schedule metadata passed to
-#'   `grip.build.misf`.
+#'   `build.misf`.
 #' @param dim Target embedding dimension (`2` or `3`) for the multiscale solve.
 #' @param top_level_mode Either `"solve"` or `"skip"`. When set to `"solve"`,
 #'   the coarsest admissible MISF level is optimized immediately and stored in
@@ -1380,7 +1380,7 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #'
 #' @examples
 #' edges <- edges.mesh(4, 4)
-#' prepared <- grip.prepare.misf.geodesic.kk(
+#' prepared <- prepare.misf.geodesic.kk(
 #'   edges = edges,
 #'   n = 16,
 #'   tie_mode = "average",
@@ -1390,7 +1390,7 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #' )
 #' prepared$top_level_vertices
 #' @export
-grip.prepare.misf.geodesic.kk <- function(edges = NULL,
+prepare.misf.geodesic.kk <- function(edges = NULL,
                                           n = NULL,
                                           adj_list = NULL,
                                           weight_list = NULL,
@@ -1430,7 +1430,7 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
     seed <- grip.validate.count(seed, "seed")
   }
 
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = edges,
     n = n,
     adj_list = adj_list,
@@ -1438,7 +1438,7 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
     edge_weights = edge_weights,
     tie_mode = tie_mode
   )
-  misf <- grip.build.misf(
+  misf <- build.misf(
     edges = prepared$edges,
     n = prepared$n,
     adj_list = prepared$adj_list,
@@ -1462,13 +1462,13 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
     active_n = top_level_graph$n,
     full_limit = top_level_full_limit
   )
-  top_level_prepared_full <- grip.prepare.geodesic.kk(
+  top_level_prepared_full <- prepare.geodesic.kk(
     edges = top_level_graph$edges,
     n = top_level_graph$n,
     edge_weights = top_level_graph$edge_weights,
     tie_mode = tie_mode
   )
-  top_level_prepared_sparse <- grip.prepare.landmark.geodesic.kk(
+  top_level_prepared_sparse <- prepare.landmark.geodesic.kk(
     edges = top_level_graph$edges,
     n = top_level_graph$n,
     edge_weights = top_level_graph$edge_weights,
@@ -1574,13 +1574,13 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
 
 #' Optimize an embedding with the MISF-based geodesic-KK pipeline
 #'
-#' `grip.optimize.misf.geodesic.kk()` runs a multiscale MISF-based geodesic-KK
+#' `misf.geodesic.kk()` runs a multiscale MISF-based geodesic-KK
 #' pipeline. It solves the top MISF graph with either full GKK or sparse LGKK,
 #' inserts lower-level vertices with the existing MISF placement helpers, refines
 #' each active MISF level under a GKK/LGKK objective, and finishes with a final
 #' full-graph polish.
 #'
-#' @inheritParams grip.prepare.misf.geodesic.kk
+#' @inheritParams prepare.misf.geodesic.kk
 #' @param prepared Optional prepared object. This can be either a full
 #'   geodesic-KK prepared object or a MISF-GKK prepared object.
 #' @param top_level_pair_mode Optional override for the top-level pair policy.
@@ -1644,7 +1644,7 @@ grip.prepare.misf.geodesic.kk <- function(edges = NULL,
 #'   score summary.
 #'
 #' @export
-grip.optimize.misf.geodesic.kk <- function(prepared = NULL,
+misf.geodesic.kk <- function(prepared = NULL,
                                            edges = NULL,
                                            n = NULL,
                                            adj_list = NULL,
@@ -2192,7 +2192,7 @@ grip.optimize.misf.geodesic.kk <- function(prepared = NULL,
       total = as.double(top.level.elapsed + insertion.elapsed + refinement.elapsed + final.polish.elapsed)
     )
   ))
-  fit$score <- grip.score.misf.geodesic.kk(
+  fit$score <- score.misf.geodesic.kk(
     fit = fit,
     return_trace = isTRUE(return_trace)
   )
@@ -2201,13 +2201,13 @@ grip.optimize.misf.geodesic.kk <- function(prepared = NULL,
 
 #' Score a MISF-based geodesic-KK fit
 #'
-#' `grip.score.misf.geodesic.kk()` summarizes external coordinates against a
+#' `score.misf.geodesic.kk()` summarizes external coordinates against a
 #' MISF-GKK prepared object using either the exact full geodesic-KK scorer or
 #' the sparse landmark geodesic-KK scorer, depending on `score_pair_mode`. When
 #' a full MISF-GKK fit is supplied, the function also carries over the
 #' multiscale stage metadata and any trace tables retained by the optimizer.
 #'
-#' @param fit Optional fit from [grip.optimize.misf.geodesic.kk()].
+#' @param fit Optional fit from [misf.geodesic.kk()].
 #' @param coords Optional coordinate matrix used when `fit` is omitted.
 #' @param prepared Optional MISF-GKK prepared object used when `fit` is omitted.
 #' @param stiffness Global stiffness constant \(K\).
@@ -2231,7 +2231,7 @@ grip.optimize.misf.geodesic.kk <- function(prepared = NULL,
 #'   available.
 #'
 #' @export
-grip.score.misf.geodesic.kk <- function(fit = NULL,
+score.misf.geodesic.kk <- function(fit = NULL,
                                         coords = NULL,
                                         prepared = NULL,
                                         stiffness = 1.0,
@@ -2298,7 +2298,7 @@ grip.score.misf.geodesic.kk <- function(fit = NULL,
   score.prepared <- score.resolved$prepared
   score.mode <- score.resolved$pair_resolution$effective
   final.score <- if (identical(score.mode, "landmark")) {
-    grip.score.landmark.geodesic.kk(
+    score.landmark.geodesic.kk(
       coords = coords,
       prepared = score.prepared,
       stiffness = stiffness,
@@ -2306,7 +2306,7 @@ grip.score.misf.geodesic.kk <- function(fit = NULL,
       edge_length_epsilon = edge_length_epsilon
     )
   } else {
-    grip.score.geodesic.kk(
+    score.geodesic.kk(
       coords = coords,
       prepared = score.prepared,
       stiffness = stiffness,

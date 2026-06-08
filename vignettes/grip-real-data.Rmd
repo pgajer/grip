@@ -29,9 +29,9 @@ recovered. The practical goal is to find a layout that is:
 In `grip`, that usually leads to one of two workflows:
 
 1. a **combinatorial workflow** for unweighted or topology-first graphs, based
-   on `grip.compare.layouts()` and `grip.score.layout()`,
+   on `compare.layouts()` and `score.layout()`,
 2. a **weighted workflow** for graphs whose edge lengths carry real geometry,
-   based on `grip.layout.weighted()`, weighted scoring, and often 3D layouts.
+   based on `weighted.grip()`, weighted scoring, and often 3D layouts.
 
 This vignette shows both patterns. The bundled karate-club and Krackhardt-kite
 graphs illustrate the first one. The bundled coarsened HMP/U01 graph
@@ -39,10 +39,10 @@ illustrates the second.
 
 The same package-level decision rule still applies:
 
-- ordinary unweighted or topology-first graphs: start with `grip.layout()`,
-  `grip.compare.layouts()`, and `grip.score.layout()`,
+- ordinary unweighted or topology-first graphs: start with `grip()`,
+  `compare.layouts()`, and `score.layout()`,
 - weighted graphs with meaningful edge lengths: start with
-  `grip.layout.weighted()`, usually with 3D in the candidate set,
+  `weighted.grip()`, usually with 3D in the candidate set,
 - when a promising solve needs explanation rather than another run: add trace,
 - when a smaller weighted candidate set needs stronger metric-aware comparison:
   add GKK/LGKK as advanced public experimental tools.
@@ -105,7 +105,7 @@ plot.layout.triptych <- function(layouts,
   op <- par(mfrow = c(1, length(layouts)), mar = c(1.2, 1.2, 3.2, 1.2))
   on.exit(par(op), add = TRUE)
   for (i in seq_along(layouts)) {
-    grip.plot(
+    plot.layout(
       layouts[[i]],
       edges,
       projection = if (ncol(layouts[[i]]) == 3L) "ortho" else NULL,
@@ -155,7 +155,7 @@ karate.n <- max(karate.edges)
 karate.club <- read.karate.club()
 karate.cols <- ifelse(karate.club == "Mr. Hi", "#1b9e77", "#d95f02")
 
-karate.cmp <- grip.compare.layouts(
+karate.cmp <- compare.layouts(
   edges = karate.edges,
   n = karate.n,
   dim = 3,
@@ -198,7 +198,7 @@ After the first shortlist, it is usually better to search locally than to
 launch a wide, blind parameter sweep.
 
 ```{r}
-karate.search <- grip.compare.layouts(
+karate.search <- compare.layouts(
   edges = karate.edges,
   n = karate.n,
   dim = 3,
@@ -257,7 +257,7 @@ often enough to realize one or two layouts and score them directly.
 kite.edges <- read.edge.csv("krackhardt-kite-edges.csv")
 kite.n <- max(kite.edges)
 
-kite.coords <- grip.layout(
+kite.coords <- grip(
   kite.edges,
   n = kite.n,
   dim = 2,
@@ -265,11 +265,11 @@ kite.coords <- grip.layout(
   seed = 5
 )
 
-grip.score.layout(kite.coords, edges = kite.edges, n = kite.n)
+score.layout(kite.coords, edges = kite.edges, n = kite.n)
 ```
 
 ```{r fig.width=5.4, fig.height=4.2}
-grip.plot(
+plot.layout(
   kite.coords,
   kite.edges,
   main = "Krackhardt kite",
@@ -279,7 +279,7 @@ grip.plot(
 )
 ```
 
-`grip.score.layout()` is especially useful when:
+`score.layout()` is especially useful when:
 
 - the layout was generated once and cached,
 - the layout came from another tool,
@@ -334,11 +334,11 @@ hmp.weight.cv
 
 For graphs like this, the weighted workflow differs from the combinatorial one:
 
-- start with `grip.layout.weighted()` rather than `grip.layout()`,
+- start with `weighted.grip()` rather than `grip()`,
 - prefer 3D as the primary layout space,
 - and assess geometry with a weighted graph-metric criterion when possible.
 
-A plain `grip.layout()` solve can still be useful here as a topology-first
+A plain `grip()` solve can still be useful here as a topology-first
 baseline, but it should not be the default when the edge lengths themselves
 matter scientifically.
 
@@ -346,14 +346,14 @@ The direct weighted-candidate pattern looks like this:
 
 ```{r eval=FALSE}
 weighted.candidates <- list(
-  weighted_default = grip.layout.weighted(
+  weighted_default = weighted.grip(
     adj_list = hmp.u01.gc.coarse$adj_list,
     weight_list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
     dim = 3,
     seed = 1
   ),
-  weighted_irregular = grip.layout.weighted(
+  weighted_irregular = weighted.grip(
     adj_list = hmp.u01.gc.coarse$adj_list,
     weight_list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
@@ -364,7 +364,7 @@ weighted.candidates <- list(
 )
 
 weighted.scores <- lapply(weighted.candidates, function(coords) {
-  grip.score.layout(
+  score.layout(
     coords,
     adj_list = hmp.u01.gc.coarse$adj_list,
     weight_list = hmp.u01.gc.coarse$weight_list,
@@ -380,10 +380,10 @@ weighted.scores <- lapply(weighted.candidates, function(coords) {
 For smaller weighted real graphs, it is also worth comparing candidate layouts
 with:
 
-- `grip.prepare.geodesic.kk()`
-- `grip.score.geodesic.kk()`
-- `grip.prepare.landmark.geodesic.kk()`
-- `grip.score.landmark.geodesic.kk()`
+- `prepare.geodesic.kk()`
+- `score.geodesic.kk()`
+- `prepare.landmark.geodesic.kk()`
+- `score.landmark.geodesic.kk()`
 
 because those make the weighted graph metric explicit rather than relying only
 on the general-purpose layout heuristics. These GKK/LGKK helpers are public,
@@ -504,12 +504,12 @@ artifact paths, see the companion article `HMP/U01 Weighted Graph Case Study`.
 
 ## Practical guidance
 
-- Use `grip.compare.layouts()` for unweighted or topology-first real graphs.
+- Use `compare.layouts()` for unweighted or topology-first real graphs.
 - Use a small candidate shortlist before any local search.
 - Keep 3D in the candidate set when the graph is structurally rich.
 - If edge lengths are scientifically meaningful, switch to
-  `grip.layout.weighted()`.
-- Use `grip.layout.trace()` or `grip.layout.trace.weighted()` when a promising
+  `weighted.grip()`.
+- Use `trace.grip()` or `trace.weighted.grip()` when a promising
   solve needs diagnosis rather than another broad sweep.
 - For weighted graphs, treat 3D as the primary evaluation space and use
   GKK/LGKK scoring only when the graph is small enough for those advanced

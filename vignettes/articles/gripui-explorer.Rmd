@@ -62,7 +62,7 @@ usual workflow is:
 2. wrap them into a project,
 3. launch the app.
 
-### Building a project from `grip.compare.layouts()`
+### Building a project from `compare.layouts()`
 
 The shortest path is `gripui_project_from_compare()`.
 
@@ -70,7 +70,7 @@ The shortest path is `gripui_project_from_compare()`.
 edges <- edges.mesh(5, 5)
 n <- 25L
 
-cmp <- grip.compare.layouts(
+cmp <- compare.layouts(
   edges = edges,
   n = n,
   dim = 2,

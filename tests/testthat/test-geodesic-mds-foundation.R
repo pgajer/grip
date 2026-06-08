@@ -8,7 +8,7 @@ edge_lengths_from_coords <- function(edges, coords) {
 }
 
 test_that("path graphs admit exact zero-stress realizations", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 1.5, 0.7),
@@ -38,7 +38,7 @@ test_that("path graphs admit exact zero-stress realizations", {
 
 test_that("shared-edge triangles show nonunique exact GMDS minima", {
   s3 <- sqrt(3) / 2
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = matrix(
       c(
         1L, 2L,
@@ -94,7 +94,7 @@ test_that("selected tree examples admit exact zero-stress realizations", {
     c(0.0, 1.5),
     c(0.0, -0.75)
   )
-  star.prepared <- grip.prepare.graph.geodesic.mds(
+  star.prepared <- prepare.graph.geodesic.mds(
     edges = star.edges,
     n = 5L,
     edge_weights = edge_lengths_from_coords(star.edges, star.coords),
@@ -113,7 +113,7 @@ test_that("selected tree examples admit exact zero-stress realizations", {
     c(0.4, 2.1),
     c(2.2, 1.9)
   )
-  tree.prepared <- grip.prepare.graph.geodesic.mds(
+  tree.prepared <- prepare.graph.geodesic.mds(
     edges = tree.edges,
     n = nrow(tree.coords),
     edge_weights = edge_lengths_from_coords(tree.edges, tree.coords),
@@ -134,13 +134,13 @@ test_that("tie_mode average records tied shortest paths on a square", {
     ncol = 2L,
     byrow = TRUE
   )
-  prepared_single <- grip.prepare.graph.geodesic.mds(
+  prepared_single <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "single"
   )
-  prepared_average <- grip.prepare.graph.geodesic.mds(
+  prepared_average <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
@@ -177,13 +177,13 @@ test_that("tie_mode average is relabeling-invariant on the square objective", {
   perm <- c(2L, 3L, 4L, 1L)
   square_edges_perm <- matrix(perm[square_edges], ncol = 2L)
 
-  prepared_a <- grip.prepare.graph.geodesic.mds(
+  prepared_a <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "average"
   )
-  prepared_b <- grip.prepare.graph.geodesic.mds(
+  prepared_b <- prepare.graph.geodesic.mds(
     edges = square_edges_perm,
     n = 4L,
     edge_weights = rep(1, 4L),
@@ -222,25 +222,25 @@ test_that("diamond ties document single-mode label dependence and average-mode i
     c(1.0, 1.0)
   )
 
-  prepared_single <- grip.prepare.graph.geodesic.mds(
+  prepared_single <- prepare.graph.geodesic.mds(
     edges = diamond_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "single"
   )
-  prepared_single_perm <- grip.prepare.graph.geodesic.mds(
+  prepared_single_perm <- prepare.graph.geodesic.mds(
     edges = diamond_edges_perm,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "single"
   )
-  prepared_average <- grip.prepare.graph.geodesic.mds(
+  prepared_average <- prepare.graph.geodesic.mds(
     edges = diamond_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "average"
   )
-  prepared_average_perm <- grip.prepare.graph.geodesic.mds(
+  prepared_average_perm <- prepare.graph.geodesic.mds(
     edges = diamond_edges_perm,
     n = 4L,
     edge_weights = rep(1, 4L),
@@ -274,25 +274,25 @@ test_that("3x3 lattice patches restore symmetry under tie_mode average", {
       2.7, 2.9, 2.5)
   )
 
-  prepared_single <- grip.prepare.graph.geodesic.mds(
+  prepared_single <- prepare.graph.geodesic.mds(
     edges = lattice_edges,
     n = 9L,
     edge_weights = rep(1, nrow(lattice_edges)),
     tie_mode = "single"
   )
-  prepared_single_perm <- grip.prepare.graph.geodesic.mds(
+  prepared_single_perm <- prepare.graph.geodesic.mds(
     edges = lattice_edges_perm,
     n = 9L,
     edge_weights = rep(1, nrow(lattice_edges_perm)),
     tie_mode = "single"
   )
-  prepared_average <- grip.prepare.graph.geodesic.mds(
+  prepared_average <- prepare.graph.geodesic.mds(
     edges = lattice_edges,
     n = 9L,
     edge_weights = rep(1, nrow(lattice_edges)),
     tie_mode = "average"
   )
-  prepared_average_perm <- grip.prepare.graph.geodesic.mds(
+  prepared_average_perm <- prepare.graph.geodesic.mds(
     edges = lattice_edges_perm,
     n = 9L,
     edge_weights = rep(1, nrow(lattice_edges_perm)),

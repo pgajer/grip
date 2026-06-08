@@ -78,7 +78,7 @@ gripui.paraboloid.gmds.make.case <- function(side = 12L, amplitude = 0.35) {
     normalize = "median"
   )
   graph <- grip.build.adj.from.edges(bundle$edges, n = bundle$n)
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,

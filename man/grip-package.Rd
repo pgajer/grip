@@ -2,30 +2,29 @@
 % Please edit documentation in R/grip-package.R
 \docType{package}
 \name{grip-package}
-\alias{grip}
 \alias{grip-package}
 \title{grip: Graph dRawing with Intelligent Placement}
 \description{
 Fast multiscale graph layouts in 2D and 3D.
 }
 \details{
-The recommended workflows are \code{\link{grip.layout}()} for unweighted
-graphs and \code{\link{grip.layout.weighted}()} for weighted graphs. The
+The recommended workflows are \code{\link{grip}()} for unweighted
+graphs and \code{\link{weighted.grip}()} for weighted graphs. The
 package also
-provides \code{\link{grip.score.layout}()} and
-\code{\link{grip.compare.layouts}()} for real-data layout selection,
-\code{\link{grip.layout.trace}()} and
-\code{\link{grip.layout.trace.weighted}()} for multiscale diagnostics,
+provides \code{\link{score.layout}()} and
+\code{\link{compare.layouts}()} for real-data layout selection,
+\code{\link{trace.grip}()} and
+\code{\link{trace.weighted.grip}()} for multiscale diagnostics,
 and advanced public experimental geodesic-KK helpers such as
-\code{\link{grip.prepare.edge.kk}()},
-\code{\link{grip.prepare.geodesic.kk}()},
-\code{\link{grip.score.geodesic.kk}()},
-\code{\link{grip.prepare.landmark.geodesic.kk}()}, and
-\code{\link{grip.score.landmark.geodesic.kk}()} for weighted-layout
+\code{\link{prepare.edge.kk}()},
+\code{\link{prepare.geodesic.kk}()},
+\code{\link{score.geodesic.kk}()},
+\code{\link{prepare.landmark.geodesic.kk}()}, and
+\code{\link{score.landmark.geodesic.kk}()} for weighted-layout
 evaluation and refinement. Convenience graph generators such as
 \code{\link{edges.path}()}, \code{\link{edges.sierpinski.triangle}()},
 and \code{\link{edges.sierpinski.tetrahedron}()}, quick plotting via
-\code{\link{grip.plot}()}, and optional Shiny explorers round out the
+\code{\link{plot.layout}()}, and optional Shiny explorers round out the
 package.
 }
 \references{

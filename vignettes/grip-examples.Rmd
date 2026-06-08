@@ -20,11 +20,11 @@ knitr::opts_chunk$set(
 
 `grip` has four main user workflows:
 
-- `grip.layout()` for ordinary unweighted or topology-first graphs,
-- `grip.layout.weighted()` when edge lengths carry geometry you want to keep,
-- `grip.compare.layouts()` and `grip.score.layout()` when you want a
+- `grip()` for ordinary unweighted or topology-first graphs,
+- `weighted.grip()` when edge lengths carry geometry you want to keep,
+- `compare.layouts()` and `score.layout()` when you want a
   disciplined real-data shortlist,
-- `grip.layout.trace()` and `grip.layout.trace.weighted()` when you need
+- `trace.grip()` and `trace.weighted.grip()` when you need
   diagnostics rather than just a final picture.
 
 This vignette is the shortest path through the default workflow. It shows how
@@ -46,12 +46,12 @@ library(grip)
 
 ## A first unweighted layout
 
-For an ordinary unweighted graph, `grip.layout()` is the default starting
+For an ordinary unweighted graph, `grip()` is the default starting
 point. Here is a small mesh in 2D.
 
 ```{r}
 mesh.edges <- edges.mesh(5, 5)
-mesh.coords <- grip.layout(
+mesh.coords <- grip(
   mesh.edges,
   n = 25,
   dim = 2,
@@ -59,7 +59,7 @@ mesh.coords <- grip.layout(
   seed = 1
 )
 
-mesh.score <- grip.score.layout(mesh.coords, edges = mesh.edges, n = 25)
+mesh.score <- score.layout(mesh.coords, edges = mesh.edges, n = 25)
 knitr::kable(mesh.score[, c(
   "sampled.stress",
   "edge.length.cv",
@@ -68,10 +68,10 @@ knitr::kable(mesh.score[, c(
 ```
 
 ```{r fig.width=5.2, fig.height=4.6}
-grip.plot(
+plot.layout(
   mesh.coords,
   mesh.edges,
-  main = "grip.layout() on a 5x5 mesh",
+  main = "grip() on a 5x5 mesh",
   pch = 16,
   cex = 0.65,
   edge.col = "gray82"
@@ -87,11 +87,11 @@ For small and medium unweighted graphs, that is often all you need:
 ## Compare a few plausible candidates
 
 If the first picture matters, it is usually better to compare a short candidate
-list than to tune blindly. `grip.compare.layouts()` runs several seeds and
+list than to tune blindly. `compare.layouts()` runs several seeds and
 summarizes the results in a score table.
 
 ```{r}
-mesh.cmp <- grip.compare.layouts(
+mesh.cmp <- compare.layouts(
   edges = mesh.edges,
   n = 25,
   dim = 2,
@@ -121,27 +121,27 @@ That same pattern scales to real graphs:
 ## What if the graph is weighted?
 
 If a graph has edge weights but those weights are mostly metadata, a
-topology-first `grip.layout()` run can still be a useful baseline. When the
+topology-first `grip()` run can still be a useful baseline. When the
 edge lengths represent geometry that the layout should preserve, the default
 path changes:
 
-- start from `grip.layout.weighted()`,
+- start from `weighted.grip()`,
 - prefer 3D when the graph geometry is genuinely three-dimensional,
 - and add GKK/LGKK only later if you need advanced geodesic-aware scoring or
   polish on a smaller weighted candidate set.
 
 ## When should you switch workflows?
 
-Start with `grip.layout()` when the graph is fundamentally unweighted and you
+Start with `grip()` when the graph is fundamentally unweighted and you
 mainly care about its combinatorial structure.
 
 Switch to the other guides when the task changes:
 
-- use `grip.layout.weighted()` when edge lengths encode geometry you care
+- use `weighted.grip()` when edge lengths encode geometry you care
   about,
-- use `grip.compare.layouts()` on real graphs when you want a disciplined
+- use `compare.layouts()` on real graphs when you want a disciplined
   shortlist rather than a single run,
-- use `grip.layout.trace()` or `grip.layout.trace.weighted()` when you want to
+- use `trace.grip()` or `trace.weighted.grip()` when you want to
   inspect how a solve evolves,
 - use GKK/LGKK only after you already have weighted candidate layouts and need
   advanced experimental geodesic-aware scoring or polish,

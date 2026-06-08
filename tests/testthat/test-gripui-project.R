@@ -61,7 +61,7 @@ test_that("gripui_project normalizes minimal layout catalogs", {
 
 test_that("gripui_project_from_compare attaches in-memory coordinates", {
   edges <- edges.path(6)
-  cmp <- grip.compare.layouts(
+  cmp <- compare.layouts(
     edges = edges,
     n = 6,
     candidates = c("default"),

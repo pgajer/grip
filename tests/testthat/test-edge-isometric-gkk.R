@@ -1,10 +1,10 @@
 test_that("edge-length density stiffness handles uniform and continuation cases", {
-  equal <- grip.edge.length.density.stiffness(rep(2, 5), method = "density")
+  equal <- edge.length.density.stiffness(rep(2, 5), method = "density")
   expect_s3_class(equal, "grip_edge_length_stiffness")
   expect_equal(equal$stiffness, rep(1, 5), tolerance = 1e-12)
   expect_equal(mean(equal$stiffness), 1, tolerance = 1e-12)
 
-  mixed <- grip.edge.length.density.stiffness(
+  mixed <- edge.length.density.stiffness(
     c(rep(1, 20), rep(4, 4)),
     method = "density",
     mix = 1
@@ -14,7 +14,7 @@ test_that("edge-length density stiffness handles uniform and continuation cases"
 
 test_that("edge-length density stiffness emphasizes modal edge scale", {
   weights <- c(rep(1, 40), rep(4, 8), rep(8, 4))
-  stiff <- grip.edge.length.density.stiffness(
+  stiff <- edge.length.density.stiffness(
     weights,
     method = "density",
     mix = 0,
@@ -28,7 +28,7 @@ test_that("edge-length density stiffness emphasizes modal edge scale", {
 
 test_that("edge-length stiffness clipping is respected after normalization", {
   weights <- c(rep(1, 20), rep(5, 5))
-  stiff <- grip.edge.length.density.stiffness(
+  stiff <- edge.length.density.stiffness(
     weights,
     method = "density",
     stiffness_floor = 0.5,
@@ -43,7 +43,7 @@ test_that("edge-length stiffness clipping is respected after normalization", {
 test_that("edge-only edge-KK preparation avoids all-pairs caches", {
   edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L))
   edge.weights <- c(1, 1.3, 0.9, 1.7)
-  prepared <- grip.prepare.edge.kk(
+  prepared <- prepare.edge.kk(
     edges = edges,
     n = 4L,
     edge_weights = edge.weights
@@ -67,12 +67,12 @@ test_that("edge-only edge-KK preparation avoids all-pairs caches", {
 test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", {
   edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L), c(1L, 3L))
   edge.weights <- c(1, 1.4, 1.1, 1.2, 1.8)
-  prepared <- grip.prepare.edge.kk(
+  prepared <- prepare.edge.kk(
     edges = edges,
     n = 4L,
     edge_weights = edge.weights
   )
-  init <- grip.layout.weighted(
+  init <- weighted.grip(
     edges = edges,
     n = 4L,
     edge_weights = edge.weights,
@@ -81,8 +81,8 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
     final_rounds = 4L,
     seed = 11L
   )
-  before <- grip.score.gmds.layout(init, prepared = prepared)
-  fit <- grip.optimize.edge.kk.layout(
+  before <- score.gmds(init, prepared = prepared)
+  fit <- edge.kk(
     coords = init,
     prepared = prepared,
     dim = 3L,
@@ -105,7 +105,7 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
 
 test_that("edge-only preparation rejects duplicate undirected edges", {
   expect_error(
-    grip.prepare.edge.kk(
+    prepare.edge.kk(
       edges = rbind(c(1L, 2L), c(2L, 1L)),
       n = 2L,
       edge_weights = c(1, 1)
@@ -115,18 +115,18 @@ test_that("edge-only preparation rejects duplicate undirected edges", {
 })
 
 test_that("edge-only preparation does not support metric-MDS initialization", {
-  prepared <- grip.prepare.edge.kk(
+  prepared <- prepare.edge.kk(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 1, 1)
   )
 
   expect_error(
-    grip.metric.mds.layout(prepared = prepared),
+    metric.mds(prepared = prepared),
     "metric MDS requires an all-pairs prepared object"
   )
   expect_error(
-    grip.optimize.edge.kk.layout(
+    edge.kk(
       prepared = prepared,
       dim = 2L,
       init = "metric_mds",
@@ -218,14 +218,14 @@ test_that("edge-isometric energy gradient supports higher-dimensional coordinate
   expect_equal(state$gradient, fd, tolerance = 1e-5)
 })
 
-test_that("edge-isometric optimizer preserves exact weighted path layouts", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("edge-KK optimizer preserves exact weighted path layouts", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
-  fit <- grip.optimize.edge.isometric.layout(
+  fit <- edge.kk(
     coords = coords,
     prepared = prepared,
     dim = 2L,
@@ -236,19 +236,19 @@ test_that("edge-isometric optimizer preserves exact weighted path layouts", {
   )
 
   expect_s3_class(fit, "grip_gmds_layout")
-  expect_equal(fit$method, "edge_isometric_gkk")
+  expect_equal(fit$method, "edge_kk")
   expect_lt(fit$diagnostics$edge.rel.rmse[[1L]], 1e-8)
   expect_lt(fit$diagnostics$gmds.stress[[1L]], 1e-8)
 })
 
-test_that("edge-isometric optimizer preserves exact higher-dimensional weighted path layouts", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("edge-KK optimizer preserves exact higher-dimensional weighted path layouts", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
     edge_weights = c(1, 2, 1.5, 0.75)
   )
   coords <- cbind(c(0, 1, 3, 4.5, 5.25), matrix(0, nrow = 5L, ncol = 3L))
-  fit <- grip.optimize.edge.kk.layout(
+  fit <- edge.kk(
     coords = coords,
     prepared = prepared,
     dim = 4L,
@@ -266,8 +266,8 @@ test_that("edge-isometric optimizer preserves exact higher-dimensional weighted 
   expect_lt(fit$diagnostics$gmds.stress[[1L]], 1e-8)
 })
 
-test_that("edge-KK wrappers are equivalent to edge-isometric optimizer", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("deprecated edge-KK wrappers preserve optimizer behavior", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L)),
     n = 4L,
     edge_weights = c(1, 1.3, 0.9, 1.7)
@@ -291,33 +291,46 @@ test_that("edge-KK wrappers are equivalent to edge-isometric optimizer", {
     engine = "cpp"
   )
 
-  old <- do.call(grip.optimize.edge.isometric.layout, args)
-  preferred <- do.call(grip.optimize.edge.kk.layout, args)
-  legacy <- do.call(grip.optimize.edge.gkk.layout, args)
+  canonical <- do.call(edge.kk, args)
+  expect_warning(
+    preferred <- do.call(grip.optimize.edge.kk.layout, args),
+    "deprecated"
+  )
+  expect_warning(
+    legacy.gkk <- do.call(grip.optimize.edge.gkk.layout, args),
+    "deprecated"
+  )
+  expect_warning(
+    legacy.isometric <- do.call(grip.optimize.edge.isometric.layout, args),
+    "deprecated"
+  )
 
-  expect_equal(preferred$coords, old$coords, tolerance = 1e-12)
-  expect_equal(legacy$coords, old$coords, tolerance = 1e-12)
-  expect_equal(preferred$trace$energy, old$trace$energy, tolerance = 1e-12)
-  expect_equal(legacy$trace$edge.rel.rmse, old$trace$edge.rel.rmse, tolerance = 1e-12)
-  expect_equal(old$method, "edge_isometric_gkk")
+  expect_equal(preferred$coords, canonical$coords, tolerance = 1e-12)
+  expect_equal(legacy.gkk$coords, canonical$coords, tolerance = 1e-12)
+  expect_equal(legacy.isometric$coords, canonical$coords, tolerance = 1e-12)
+  expect_equal(preferred$trace$energy, canonical$trace$energy, tolerance = 1e-12)
+  expect_equal(legacy.gkk$trace$edge.rel.rmse, canonical$trace$edge.rel.rmse, tolerance = 1e-12)
+  expect_equal(legacy.isometric$trace$edge.rel.rmse, canonical$trace$edge.rel.rmse, tolerance = 1e-12)
+  expect_equal(canonical$method, "edge_kk")
   expect_equal(preferred$method, "edge_kk")
-  expect_equal(legacy$method, "edge_kk")
-  expect_equal(preferred$metadata$legacy_method, "edge_isometric_gkk")
+  expect_equal(legacy.gkk$method, "edge_kk")
+  expect_equal(legacy.isometric$method, "edge_isometric_gkk")
+  expect_equal(legacy.isometric$metadata$preferred_method, "edge_kk")
 })
 
-test_that("edge-isometric optimizer decreases edge error from perturbed layout", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("edge-KK optimizer decreases edge error from perturbed layout", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
     edge_weights = rep(1, 4L)
   )
   start <- cbind(c(0, 0.7, 1.9, 2.4, 4.2), c(0, 0.4, -0.2, 0.5, -0.1))
-  before <- grip.score.gmds.layout(
+  before <- score.gmds(
     start,
     prepared = prepared,
     scale_mode = "identity"
   )
-  fit <- grip.optimize.edge.isometric.layout(
+  fit <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
@@ -335,8 +348,8 @@ test_that("edge-isometric optimizer decreases edge error from perturbed layout",
   expect_true(is.data.frame(fit$metadata$stage_summaries))
 })
 
-test_that("C++ edge-isometric optimizer matches R reference engine", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("C++ edge-KK optimizer matches R reference engine", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(4L, 1L), c(1L, 3L)),
     n = 4L,
     edge_weights = c(1, 1.4, 1, 1.3, 1.8)
@@ -359,8 +372,8 @@ test_that("C++ edge-isometric optimizer matches R reference engine", {
     initial_step = 0.2,
     return_trace = TRUE
   )
-  fit.cpp <- do.call(grip.optimize.edge.isometric.layout, c(args, list(engine = "cpp")))
-  fit.r <- do.call(grip.optimize.edge.isometric.layout, c(args, list(engine = "R")))
+  fit.cpp <- do.call(edge.kk, c(args, list(engine = "cpp")))
+  fit.r <- do.call(edge.kk, c(args, list(engine = "R")))
 
   expect_equal(fit.cpp$coords, fit.r$coords, tolerance = 1e-10)
   expect_equal(fit.cpp$trace$energy, fit.r$trace$energy, tolerance = 1e-10)
@@ -369,8 +382,8 @@ test_that("C++ edge-isometric optimizer matches R reference engine", {
   expect_equal(fit.r$metadata$engine, "r_gradient_descent_armijo")
 })
 
-test_that("C++ edge-isometric optimizer matches R reference engine in higher dimensions", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("C++ edge-KK optimizer matches R reference engine in higher dimensions", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = rbind(
       c(1L, 2L), c(2L, 3L), c(3L, 4L),
       c(4L, 5L), c(1L, 5L), c(2L, 5L)
@@ -398,8 +411,8 @@ test_that("C++ edge-isometric optimizer matches R reference engine in higher dim
     return_trace = TRUE,
     diagnostics = FALSE
   )
-  fit.cpp <- do.call(grip.optimize.edge.isometric.layout, c(args, list(engine = "cpp")))
-  fit.r <- do.call(grip.optimize.edge.isometric.layout, c(args, list(engine = "R")))
+  fit.cpp <- do.call(edge.kk, c(args, list(engine = "cpp")))
+  fit.r <- do.call(edge.kk, c(args, list(engine = "R")))
 
   expect_equal(dim(fit.cpp$coords), c(5L, 4L))
   expect_equal(fit.cpp$coords, fit.r$coords, tolerance = 1e-10)
@@ -407,14 +420,14 @@ test_that("C++ edge-isometric optimizer matches R reference engine in higher dim
   expect_equal(fit.cpp$trace$edge.rel.rmse, fit.r$trace$edge.rel.rmse, tolerance = 1e-10)
 })
 
-test_that("C++ edge-isometric optimizer supports fixed and user scale modes", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+test_that("C++ edge-KK optimizer supports fixed and user scale modes", {
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 2, 1)
   )
   start <- 2 * cbind(c(0, 1.1, 3.2, 4.0), c(0, 0.2, -0.1, 0.1))
-  fixed <- grip.optimize.edge.isometric.layout(
+  fixed <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
@@ -424,7 +437,7 @@ test_that("C++ edge-isometric optimizer supports fixed and user scale modes", {
     max_iter = 3L,
     engine = "cpp"
   )
-  user <- grip.optimize.edge.isometric.layout(
+  user <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
@@ -444,17 +457,17 @@ test_that("C++ edge-isometric optimizer supports fixed and user scale modes", {
 })
 
 test_that("metric-MDS initialization supports higher-dimensional edge-KK layouts", {
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(6L),
     n = 6L,
     edge_weights = c(1, 1.5, 0.75, 1.25, 1)
   )
-  init <- grip.metric.mds.layout(
+  init <- metric.mds(
     prepared = prepared,
     dim = 4L,
     diagnostics = TRUE
   )
-  fit <- grip.optimize.edge.kk.layout(
+  fit <- edge.kk(
     prepared = prepared,
     dim = 4L,
     init = "metric_mds",

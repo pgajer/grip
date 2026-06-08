@@ -76,7 +76,7 @@ check_edge_gkk_barrier_parity <- function(fixture, distance.eps = 1e-10) {
     scale = 1,
     edge_length_epsilon = distance.eps
   )
-  barrier <- grip.edge.repulsive.state(
+  barrier <- edge.repulsive.state(
     coords = fixture$coords,
     edges = fixture$edges,
     edge.lengths = fixture$ell,
@@ -86,7 +86,7 @@ check_edge_gkk_barrier_parity <- function(fixture, distance.eps = 1e-10) {
     distance.eps = distance.eps,
     engine = "cpp"
   )
-  barrier.r <- grip.edge.repulsive.state(
+  barrier.r <- edge.repulsive.state(
     coords = fixture$coords,
     edges = fixture$edges,
     edge.lengths = fixture$ell,
@@ -139,7 +139,7 @@ test_that("ell-squared conversion is necessary for non-unit edge lengths", {
     scale = 1,
     edge_length_epsilon = 1e-10
   )
-  relative.weight.barrier <- grip.edge.repulsive.state(
+  relative.weight.barrier <- edge.repulsive.state(
     coords = fixture$coords,
     edges = fixture$edges,
     edge.lengths = fixture$ell,

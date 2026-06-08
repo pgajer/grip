@@ -446,7 +446,7 @@ plot_readme_trace_gif <- function(path, trace_obj, edges,
 carpet4 <- build_sierpinski_carpet(4)
 triangle6 <- build_sierpinski_triangle(6)
 
-carpet4_trace_2d <- grip.layout.trace(
+carpet4_trace_2d <- trace.grip(
   carpet4$edges,
   n = max(carpet4$edges),
   dim = 2,
@@ -458,7 +458,7 @@ carpet4_trace_2d <- grip.layout.trace(
 
 # Match the diagnostic triangle panels by using the carpet preset and aligning
 # each trace frame to the canonical recursive triangle before rendering.
-triangle6_trace_2d <- grip.layout.trace(
+triangle6_trace_2d <- trace.grip(
   triangle6$edges,
   n = max(triangle6$edges),
   dim = 2,

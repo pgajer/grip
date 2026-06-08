@@ -40,7 +40,7 @@ test_that("gripui_app constructs a Shiny app object", {
   expect_true(is.function(app$serverFuncSource))
 })
 
-test_that("gripui_app constructs from grip.compare.layouts output", {
+test_that("gripui_app constructs from compare.layouts output", {
   old.rgl <- getOption("rgl.useNULL")
   options(rgl.useNULL = TRUE)
   on.exit(options(rgl.useNULL = old.rgl), add = TRUE)
@@ -52,7 +52,7 @@ test_that("gripui_app constructs from grip.compare.layouts output", {
   skip_if_not_installed("rgl")
 
   edges <- edges.path(5)
-  cmp <- grip.compare.layouts(
+  cmp <- compare.layouts(
     edges = edges,
     n = 5,
     candidates = "default",

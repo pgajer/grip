@@ -432,8 +432,8 @@ grip.carpet.diagnostics <- function(coords, target.coords) {
 
 #' Geometry-aware diagnostics against a canonical target
 #'
-#' \code{grip.geometry.diagnostics()} augments the graph-aware quality measures
-#' in \code{\link{grip.score.layout}()} with target-aware geometric diagnostics.
+#' \code{geometry.diagnostics()} augments the graph-aware quality measures
+#' in \code{\link{score.layout}()} with target-aware geometric diagnostics.
 #' The function aligns \code{coords} to \code{target.coords} using an orthogonal
 #' Procrustes fit, then reports global symmetry, local angle preservation,
 #' edge-axis concentration, and, for Sierpinski carpet layouts, boundary,
@@ -461,7 +461,7 @@ grip.carpet.diagnostics <- function(coords, target.coords) {
 #'
 #' @return A one-row data frame of geometric diagnostics.
 #' @export
-grip.geometry.diagnostics <- function(coords,
+geometry.diagnostics <- function(coords,
                                       target.coords,
                                       edges,
                                       family = NULL,
@@ -1033,8 +1033,8 @@ grip.prepare.geodesic.mds.graph <- function(data,
 grip.validate.geodesic.mds.prepared <- function(prepared, coords = NULL) {
   if (!inherits(prepared, "grip_geodesic_kk_prepared")) {
     stop(
-      "prepared must be NULL or an object from grip.prepare.edge.kk(), ",
-      "grip.prepare.graph.geodesic.mds(), or grip.prepare.geodesic.kk()"
+      "prepared must be NULL or an object from prepare.edge.kk(), ",
+      "prepare.graph.geodesic.mds(), or prepare.geodesic.kk()"
     )
   }
   if (!is.null(coords) && nrow(coords) != prepared$n) {
@@ -1058,7 +1058,7 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
                                           adj_list = NULL,
                                           weight_list = NULL,
                                           edge_weights = NULL,
-                                          caller = "grip.prepare.geodesic.kk") {
+                                          caller = "prepare.geodesic.kk") {
   if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
     n <- max(as.integer(edges), na.rm = TRUE)
   }
@@ -1481,9 +1481,16 @@ grip.build.geodesic.mds.path.cache <- function(pair.matrix,
   )
 }
 
-grip.geodesic.kk.path.lengths <- function(coords,
-                                          prepared,
-                                          edge_length_epsilon = 1e-8) {
+grip.geodesic.kk.has.flat.path.cache <- function(prepared) {
+  !is.null(prepared$flat_pair_edge_offsets) &&
+    !is.null(prepared$flat_edge_u) &&
+    !is.null(prepared$flat_edge_v) &&
+    !is.null(prepared$flat_edge_coeff)
+}
+
+grip.geodesic.kk.path.lengths.r <- function(coords,
+                                            prepared,
+                                            edge_length_epsilon = 1e-8) {
   vapply(seq_along(prepared$path_edges), function(i) {
     edges <- prepared$path_edges[[i]]
     if (nrow(edges) == 0L) {
@@ -1493,6 +1500,26 @@ grip.geodesic.kk.path.lengths <- function(coords,
     edge.lengths <- sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
     sum(grip.path.edge.coefficients(prepared, i, nrow(edges)) * edge.lengths)
   }, numeric(1L))
+}
+
+grip.geodesic.kk.path.lengths <- function(coords,
+                                          prepared,
+                                          edge_length_epsilon = 1e-8) {
+  if (grip.geodesic.kk.has.flat.path.cache(prepared)) {
+    return(grip_geodesic_mds_flat_path_lengths_cpp(
+      flat_pair_edge_offsets = prepared$flat_pair_edge_offsets,
+      flat_edge_u = prepared$flat_edge_u,
+      flat_edge_v = prepared$flat_edge_v,
+      flat_edge_coeff = prepared$flat_edge_coeff,
+      coords = coords,
+      edge_length_epsilon = edge_length_epsilon
+    ))
+  }
+  grip.geodesic.kk.path.lengths.r(
+    coords = coords,
+    prepared = prepared,
+    edge_length_epsilon = edge_length_epsilon
+  )
 }
 
 grip.geodesic.kk.fit.scale <- function(path.lengths,
@@ -1730,7 +1757,7 @@ grip.geodesic.kk.evaluate.state <- function(coords,
 
 #' Prepare sparse landmark-geodesic KK data for repeated layout evaluation
 #'
-#' \code{grip.prepare.landmark.geodesic.kk()} builds the deterministic shortest
+#' \code{prepare.landmark.geodesic.kk()} builds the deterministic shortest
 #' path trees, graph-distance cache, sparse local-plus-landmark pair set, and
 #' chosen path realizations needed to evaluate the landmark geodesic KK energy
 #' repeatedly on the same graph. This is intended as a reusable preparation step
@@ -1757,7 +1784,7 @@ grip.geodesic.kk.evaluate.state <- function(coords,
 #' @return A list with the sparse pair set, graph distances, chosen paths, and
 #'   other cached data. The object has class \code{"grip_lgkk_prepared"}.
 #' @export
-grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
+prepare.landmark.geodesic.kk <- function(edges = NULL,
                                               n = NULL,
                                               adj_list = NULL,
                                               weight_list = NULL,
@@ -1773,7 +1800,7 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
     adj_list = adj_list,
     weight_list = weight_list,
     edge_weights = edge_weights,
-    caller = "grip.prepare.landmark.geodesic.kk"
+    caller = "prepare.landmark.geodesic.kk"
   )
   pair.matrix <- grip.landmark.geodesic.kk.pair.matrix(
     dist.matrix = base$distance_matrix,
@@ -1807,7 +1834,7 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 
 #' Prepare full geodesic KK data for repeated layout evaluation
 #'
-#' \code{grip.prepare.geodesic.kk()} builds the deterministic all-pairs shortest
+#' \code{prepare.geodesic.kk()} builds the deterministic all-pairs shortest
 #' path cache needed to evaluate or optimize the full geodesic Kamada--Kawai
 #' objective repeatedly on the same connected graph.
 #'
@@ -1817,7 +1844,7 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 #' (\code{tie_mode = "average"}), together with the graph distance and the
 #' corresponding cached edge realization. This is the full all-pairs analogue of
 #' the sparse landmark cache used by
-#' \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#' \code{\link{prepare.landmark.geodesic.kk}()}.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
@@ -1835,7 +1862,7 @@ grip.prepare.landmark.geodesic.kk <- function(edges = NULL,
 #' @return A list with the all-pairs graph distances, chosen paths, and cached
 #'   path-edge realizations. The object has class \code{"grip_gkk_prepared"}.
 #' @export
-grip.prepare.geodesic.kk <- function(edges = NULL,
+prepare.geodesic.kk <- function(edges = NULL,
                                      n = NULL,
                                      adj_list = NULL,
                                      weight_list = NULL,
@@ -1848,7 +1875,7 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
     adj_list = adj_list,
     weight_list = weight_list,
     edge_weights = edge_weights,
-    caller = "grip.prepare.geodesic.kk"
+    caller = "prepare.geodesic.kk"
   )
   pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
   cache <- grip.build.geodesic.mds.path.cache(
@@ -1895,7 +1922,7 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
 
 #' Score a layout under the landmark geodesic KK energy
 #'
-#' \code{grip.score.landmark.geodesic.kk()} evaluates a layout using the
+#' \code{score.landmark.geodesic.kk()} evaluates a layout using the
 #' landmark geodesic KK objective described in
 #' \code{landmark\_geodesic\_kk\_spec\_2026-03-30.tex}. Distances are measured
 #' along fixed chosen graph shortest paths, not by straight-line chord length.
@@ -1906,7 +1933,7 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional object returned by
-#'   \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#'   \code{\link{prepare.landmark.geodesic.kk}()}.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for an undirected graph.
@@ -1928,7 +1955,7 @@ grip.prepare.geodesic.kk <- function(edges = NULL,
 #' @return A one-row data frame with the fitted scale factor and landmark
 #'   geodesic KK energy summary.
 #' @export
-grip.score.landmark.geodesic.kk <- function(coords,
+score.landmark.geodesic.kk <- function(coords,
                                             prepared = NULL,
                                             edges = NULL,
                                             n = NULL,
@@ -1943,7 +1970,7 @@ grip.score.landmark.geodesic.kk <- function(coords,
                                             return_pair_details = FALSE) {
   coords <- grip.validate.coords(coords)
   if (is.null(prepared)) {
-    prepared <- grip.prepare.landmark.geodesic.kk(
+    prepared <- prepare.landmark.geodesic.kk(
       edges = edges,
       n = if (is.null(n)) nrow(coords) else n,
       adj_list = adj_list,
@@ -1956,7 +1983,7 @@ grip.score.landmark.geodesic.kk <- function(coords,
   prepared <- grip.validate.prepared.object(
     prepared = prepared,
     class_name = "grip_lgkk_prepared",
-    prepare_fun_name = "grip.prepare.landmark.geodesic.kk",
+    prepare_fun_name = "prepare.landmark.geodesic.kk",
     coords = coords
   )
 
@@ -2012,7 +2039,7 @@ grip.score.landmark.geodesic.kk <- function(coords,
 
 #' Score a layout under the full geodesic KK energy
 #'
-#' \code{grip.score.geodesic.kk()} evaluates a layout using the full all-pairs
+#' \code{score.geodesic.kk()} evaluates a layout using the full all-pairs
 #' geodesic Kamada--Kawai objective. Distances are measured along fixed chosen
 #' graph shortest paths, not by straight-line chord length.
 #'
@@ -2022,7 +2049,7 @@ grip.score.landmark.geodesic.kk <- function(coords,
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional object returned by
-#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#'   \code{\link{prepare.geodesic.kk}()}.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for an undirected graph.
@@ -2044,7 +2071,7 @@ grip.score.landmark.geodesic.kk <- function(coords,
 #' @return A one-row data frame with the fitted or user-supplied scale factor
 #'   and full geodesic KK energy summary.
 #' @export
-grip.score.geodesic.kk <- function(coords,
+score.geodesic.kk <- function(coords,
                                    prepared = NULL,
                                    edges = NULL,
                                    n = NULL,
@@ -2060,7 +2087,7 @@ grip.score.geodesic.kk <- function(coords,
   coords <- grip.validate.coords(coords)
   scale_mode <- match.arg(scale_mode)
   if (is.null(prepared)) {
-    prepared <- grip.prepare.geodesic.kk(
+    prepared <- prepare.geodesic.kk(
       edges = edges,
       n = if (is.null(n)) nrow(coords) else n,
       adj_list = adj_list,
@@ -2071,7 +2098,7 @@ grip.score.geodesic.kk <- function(coords,
   prepared <- grip.validate.prepared.object(
     prepared = prepared,
     class_name = "grip_gkk_prepared",
-    prepare_fun_name = "grip.prepare.geodesic.kk",
+    prepare_fun_name = "prepare.geodesic.kk",
     coords = coords
   )
 
@@ -2108,7 +2135,7 @@ grip.score.geodesic.kk <- function(coords,
 
 #' Optimize a layout under the landmark geodesic KK energy
 #'
-#' \code{grip.optimize.landmark.geodesic.kk()} applies a deterministic
+#' \code{landmark.geodesic.kk()} applies a deterministic
 #' warm-started gradient-descent polish under the sparse landmark geodesic KK
 #' energy. This is the first experimental optimizer prototype: it starts from an
 #' existing layout and refines it, rather than replacing the full multiscale
@@ -2121,7 +2148,7 @@ grip.score.geodesic.kk <- function(coords,
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional object returned by
-#'   \code{\link{grip.prepare.landmark.geodesic.kk}()}.
+#'   \code{\link{prepare.landmark.geodesic.kk}()}.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for an undirected graph.
@@ -2151,7 +2178,7 @@ grip.score.geodesic.kk <- function(coords,
 #' @return A list with \code{coords}, \code{trace}, \code{frames},
 #'   \code{prepared}, and \code{score}.
 #' @export
-grip.optimize.landmark.geodesic.kk <- function(coords,
+landmark.geodesic.kk <- function(coords,
                                                prepared = NULL,
                                                edges = NULL,
                                                n = NULL,
@@ -2173,7 +2200,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
                                                return_trace = FALSE) {
   coords <- grip.validate.coords(coords)
   if (is.null(prepared)) {
-    prepared <- grip.prepare.landmark.geodesic.kk(
+    prepared <- prepare.landmark.geodesic.kk(
       edges = edges,
       n = if (is.null(n)) nrow(coords) else n,
       adj_list = adj_list,
@@ -2186,7 +2213,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
   prepared <- grip.validate.prepared.object(
     prepared = prepared,
     class_name = "grip_lgkk_prepared",
-    prepare_fun_name = "grip.prepare.landmark.geodesic.kk",
+    prepare_fun_name = "prepare.landmark.geodesic.kk",
     coords = coords
   )
 
@@ -2211,7 +2238,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
   }
 
   if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
-    score <- grip.score.landmark.geodesic.kk(
+    score <- score.landmark.geodesic.kk(
       coords = coords,
       prepared = prepared,
       stiffness = stiffness,
@@ -2317,7 +2344,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
   }
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
-  score <- grip.score.landmark.geodesic.kk(
+  score <- score.landmark.geodesic.kk(
     coords = current,
     prepared = prepared,
     stiffness = stiffness,
@@ -2340,7 +2367,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
 
 #' Optimize a layout under the full geodesic KK energy
 #'
-#' \code{grip.optimize.geodesic.kk()} applies a deterministic gradient-descent
+#' \code{geodesic.kk()} applies a deterministic gradient-descent
 #' polish under the full all-pairs geodesic Kamada--Kawai objective.
 #'
 #' The optimizer supports three scale policies. With
@@ -2352,7 +2379,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional object returned by
-#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#'   \code{\link{prepare.geodesic.kk}()}.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for an undirected graph.
@@ -2382,7 +2409,7 @@ grip.optimize.landmark.geodesic.kk <- function(coords,
 #' @return A list with \code{coords}, \code{trace}, \code{frames},
 #'   \code{prepared}, and \code{score}.
 #' @export
-grip.optimize.geodesic.kk <- function(coords,
+geodesic.kk <- function(coords,
                                       prepared = NULL,
                                       edges = NULL,
                                       n = NULL,
@@ -2405,7 +2432,7 @@ grip.optimize.geodesic.kk <- function(coords,
   coords <- grip.validate.coords(coords)
   scale_mode <- match.arg(scale_mode)
   if (is.null(prepared)) {
-    prepared <- grip.prepare.geodesic.kk(
+    prepared <- prepare.geodesic.kk(
       edges = edges,
       n = if (is.null(n)) nrow(coords) else n,
       adj_list = adj_list,
@@ -2416,7 +2443,7 @@ grip.optimize.geodesic.kk <- function(coords,
   prepared <- grip.validate.prepared.object(
     prepared = prepared,
     class_name = "grip_gkk_prepared",
-    prepare_fun_name = "grip.prepare.geodesic.kk",
+    prepare_fun_name = "prepare.geodesic.kk",
     coords = coords
   )
 
@@ -2471,7 +2498,7 @@ grip.optimize.geodesic.kk <- function(coords,
   score.scale <- if (identical(score.mode, "user")) fixed.scale.L0 else NULL
 
   if (nrow(coords) <= 1L || length(prepared$pair_graph_distance) == 0L || max_iter == 0L) {
-    score <- grip.score.geodesic.kk(
+    score <- score.geodesic.kk(
       coords = coords,
       prepared = prepared,
       stiffness = stiffness,
@@ -2587,7 +2614,7 @@ grip.optimize.geodesic.kk <- function(coords,
   }
 
   trace.df <- do.call(rbind, trace.rows[seq_len(used)])
-  score <- grip.score.geodesic.kk(
+  score <- score.geodesic.kk(
     coords = current,
     prepared = prepared,
     stiffness = stiffness,
@@ -3401,7 +3428,7 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
 
 grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
                                                      weight.list = NULL,
-                                                     caller = "grip.prepare.edge.kk") {
+                                                     caller = "prepare.edge.kk") {
   edges <- list()
   edge.weights <- numeric(0L)
   for (u in seq_along(adj.list)) {
@@ -3445,17 +3472,17 @@ grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
 
 #' Prepare an edge-only graph for edge-KK repair
 #'
-#' \code{grip.prepare.edge.kk()} validates an undirected weighted graph and
+#' \code{prepare.edge.kk()} validates an undirected weighted graph and
 #' returns the lightweight prepared object used by
-#' \code{\link{grip.optimize.edge.kk.layout}()} when only graph-edge targets are
-#' needed. Unlike \code{\link{grip.prepare.graph.geodesic.mds}()}, this helper
+#' \code{\link{edge.kk}()} when only graph-edge targets are
+#' needed. Unlike \code{\link{prepare.graph.geodesic.mds}()}, this helper
 #' does not compute all-pairs shortest paths, path caches, or a dense graph
 #' distance matrix.
 #'
 #' Use this helper when a starting layout is already available, for example from
-#' \code{\link{grip.layout.weighted}()}, and the next step is scalable edge-KK
+#' \code{\link{weighted.grip}()}, and the next step is scalable edge-KK
 #' local repair. Edge-only objects support edge-fidelity diagnostics through
-#' \code{\link{grip.score.gmds.layout}()}; all-pairs GMDS path and chord
+#' \code{\link{score.gmds}()}; all-pairs GMDS path and chord
 #' diagnostics are unavailable and are reported as \code{NA}.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
@@ -3472,11 +3499,11 @@ grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
 #'   \code{"grip_gmds_prepared"} graph class. It contains canonical graph
 #'   edges and edge targets but no all-pairs geodesic cache.
 #' @export
-grip.prepare.edge.kk <- function(edges = NULL,
-                                 n = NULL,
-                                 adj_list = NULL,
-                                 weight_list = NULL,
-                                 edge_weights = NULL) {
+prepare.edge.kk <- function(edges = NULL,
+                            n = NULL,
+                            adj_list = NULL,
+                            weight_list = NULL,
+                            edge_weights = NULL) {
   if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
     n <- max(as.integer(edges), na.rm = TRUE)
   }
@@ -3502,7 +3529,7 @@ grip.prepare.edge.kk <- function(edges = NULL,
   bundle <- grip.canonical.edge.bundle.from.adj.list(
     adj.list = sorted$adj_list,
     weight.list = sorted$weight_list,
-    caller = "grip.prepare.edge.kk"
+    caller = "prepare.edge.kk"
   )
   comp <- grip.connected.components(sorted$adj_list, validated$n)
 
@@ -3535,9 +3562,21 @@ grip.prepare.edge.kk <- function(edges = NULL,
   prepared
 }
 
+#' Deprecated edge-KK preparation name
+#'
+#' This long name is deprecated. Use [prepare.edge.kk()] instead.
+#'
+#' @param ... Arguments passed to [prepare.edge.kk()].
+#' @return See [prepare.edge.kk()].
+#' @export
+grip.prepare.edge.kk <- function(...) {
+  .Deprecated("prepare.edge.kk")
+  prepare.edge.kk(...)
+}
+
 #' Prepare a graph-first geodesic-MDS path cache
 #'
-#' \code{grip.prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
+#' \code{prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
 #' geodesic cache for an arbitrary connected weighted graph. This is the
 #' graph-first entry point corresponding to the manuscript's definition of GMDS
 #' on a connected weighted graph together with a chosen geodesic family
@@ -3564,7 +3603,7 @@ grip.prepare.edge.kk <- function(edges = NULL,
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
 #' @export
-grip.prepare.graph.geodesic.mds <- function(edges = NULL,
+prepare.graph.geodesic.mds <- function(edges = NULL,
                                             n = NULL,
                                             adj_list = NULL,
                                             weight_list = NULL,
@@ -3577,7 +3616,7 @@ grip.prepare.graph.geodesic.mds <- function(edges = NULL,
     adj_list = adj_list,
     weight_list = weight_list,
     edge_weights = edge_weights,
-    caller = "grip.prepare.graph.geodesic.mds"
+    caller = "prepare.graph.geodesic.mds"
   )
   pair.matrix <- grip.full.geodesic.kk.pair.matrix(base$n)
   cache <- grip.build.geodesic.mds.path.cache(
@@ -3627,7 +3666,7 @@ grip.prepare.graph.geodesic.mds <- function(edges = NULL,
 #' \code{grip.prepare.geodesic.mds()} builds a deterministic symmetric
 #' \eqn{k}-nearest-neighbor graph from an input data matrix, augments it to
 #' connectedness when requested, and then delegates to
-#' \code{\link{grip.prepare.graph.geodesic.mds}()} to prepare the full all-pairs
+#' \code{\link{prepare.graph.geodesic.mds}()} to prepare the full all-pairs
 #' chosen geodesic cache used by the geodesic-MDS scorer and optimizer.
 #'
 #' The current implementation uses Euclidean distances in the input space to
@@ -3635,7 +3674,7 @@ grip.prepare.graph.geodesic.mds <- function(edges = NULL,
 #' \code{connect = "mst"}, the Euclidean minimum spanning tree is unioned with
 #' the \eqn{k}-NN graph before the full path cache is built. This function is
 #' the data-native convenience wrapper; the graph-first API is
-#' \code{\link{grip.prepare.graph.geodesic.mds}()}.
+#' \code{\link{prepare.graph.geodesic.mds}()}.
 #'
 #' @param data Numeric matrix whose rows are observations.
 #' @param k Symmetric \eqn{k}-NN neighborhood size.
@@ -3659,7 +3698,7 @@ grip.prepare.geodesic.mds <- function(data,
     k = k,
     connect = connect
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = built$edges,
     n = nrow(built$data),
     edge_weights = built$edge_weights,
@@ -3688,9 +3727,9 @@ grip.prepare.geodesic.mds <- function(data,
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param prepared Optional prepared geodesic object from
-#'   \code{\link{grip.prepare.graph.geodesic.mds}()},
+#'   \code{\link{prepare.graph.geodesic.mds}()},
 #'   \code{\link{grip.prepare.geodesic.mds}()}, or
-#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#'   \code{\link{prepare.geodesic.kk}()}.
 #' @param data Optional data matrix used when \code{prepared} is omitted.
 #' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
 #'   omitted.
@@ -3838,9 +3877,9 @@ grip.score.geodesic.mds <- function(coords,
 #' @param coords Optional numeric coordinate matrix with 2 or 3 columns. If
 #'   omitted, coordinates are initialized according to \code{init}.
 #' @param prepared Optional prepared object from
-#'   \code{\link{grip.prepare.graph.geodesic.mds}()},
+#'   \code{\link{prepare.graph.geodesic.mds}()},
 #'   \code{\link{grip.prepare.geodesic.mds}()}, or
-#'   \code{\link{grip.prepare.geodesic.kk}()}.
+#'   \code{\link{prepare.geodesic.kk}()}.
 #' @param data Optional input data matrix used when \code{prepared} is omitted.
 #' @param k Optional \eqn{k}-NN neighborhood size used when \code{prepared} is
 #'   omitted.
@@ -4992,7 +5031,7 @@ grip.resolve.compare.candidate <- function(candidate, dim = 2L) {
   repulsion.missing <- !("repulsion_factor" %in% names(candidate))
 
   preset <- if ("preset" %in% names(candidate)) candidate$preset else NULL
-  preset <- grip.normalize.preset(preset, fn = "grip.compare.layouts")
+  preset <- grip.normalize.preset(preset, fn = "compare.layouts")
 
   resolved <- grip.resolve.preset(
     preset = preset,
@@ -5116,9 +5155,9 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
 
 #' Score a single layout using graph-aware quality heuristics
 #'
-#' \code{grip.score.layout()} evaluates a realized layout without assuming a
+#' \code{score.layout()} evaluates a realized layout without assuming a
 #' canonical embedding. It is the low-level scoring helper behind
-#' \code{\link{grip.compare.layouts}()} and is most useful when you already have
+#' \code{\link{compare.layouts}()} and is most useful when you already have
 #' one realized layout in hand, for example from a cached run or another graph
 #' drawing tool. For real-world graphs, quality is judged by graph-distance
 #' faithfulness, edge-length consistency, separation of non-neighbors, and
@@ -5150,22 +5189,22 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
 #' @return A one-row data frame with dot-delimited metric names.
 #' @examples
 #' edges <- edges.mesh(5, 5)
-#' coords <- grip.layout(edges, n = 25, dim = 2, preset = "mesh", seed = 1)
-#' grip.score.layout(coords, edges = edges, n = 25)
+#' coords <- grip(edges, n = 25, dim = 2, preset = "mesh", seed = 1)
+#' score.layout(coords, edges = edges, n = 25)
 #' @export
-grip.score.layout <- function(coords,
-                              edges = NULL,
-                              n = NULL,
-                              adj_list = NULL,
-                              weight_list = NULL,
-                              edge_weights = NULL,
-                              clusters = NULL,
-                              sample.size.stress = 2000L,
-                              sample.size.nonedge = 5000L,
-                              stress.seed = 1L,
-                              nonedge.seed = 1L,
-                              edge.crossings = c("auto", "always", "never"),
-                              edge.crossings.max.edges = 1000L) {
+score.layout <- function(coords,
+                         edges = NULL,
+                         n = NULL,
+                         adj_list = NULL,
+                         weight_list = NULL,
+                         edge_weights = NULL,
+                         clusters = NULL,
+                         sample.size.stress = 2000L,
+                         sample.size.nonedge = 5000L,
+                         stress.seed = 1L,
+                         nonedge.seed = 1L,
+                         edge.crossings = c("auto", "always", "never"),
+                         edge.crossings.max.edges = 1000L) {
   coords <- grip.validate.coords(coords)
   edge.crossings <- match.arg(edge.crossings)
   if (is.null(n)) {
@@ -5220,11 +5259,23 @@ grip.score.layout <- function(coords,
   )
 }
 
+#' Deprecated layout scoring name
+#'
+#' This long name is deprecated. Use [score.layout()] instead.
+#'
+#' @param ... Arguments passed to [score.layout()].
+#' @return See [score.layout()].
+#' @export
+grip.score.layout <- function(...) {
+  .Deprecated("score.layout")
+  score.layout(...)
+}
+
 #' Compare multiple layout candidates across seeds
 #'
-#' \code{grip.compare.layouts()} computes layouts for several candidate presets
+#' \code{compare.layouts()} computes layouts for several candidate presets
 #' or parameter lists, optionally expands a local parameter search, scores each
-#' run with \code{\link{grip.score.layout}()}, and summarizes both quality
+#' run with \code{\link{score.layout}()}, and summarizes both quality
 #' metrics and seed-to-seed stability. This is the main real-data workflow for
 #' graphs where no canonical embedding is known.
 #'
@@ -5238,7 +5289,7 @@ grip.score.layout <- function(coords,
 #' @param candidates Either a character vector such as
 #'   \code{c("default", "mesh", "tree")} or a named list of candidate layout
 #'   specifications. Each list element may be \code{NULL} (use defaults), a
-#'   single preset name, or a named list of \code{\link{grip.layout}()}
+#'   single preset name, or a named list of \code{\link{grip}()}
 #'   tuning arguments such as \code{preset}, \code{placement},
 #'   \code{rounds}, or \code{repulsion_factor}.
 #' @param search Optional named list describing a grid search over layout
@@ -5262,13 +5313,13 @@ grip.score.layout <- function(coords,
 #'   \code{score.composite}. Set to \code{NULL} to omit the composite score.
 #' @param return.layouts If \code{TRUE}, include the realized coordinate
 #'   matrices in the return value.
-#' @param disconnected Passed through to \code{\link{grip.layout}()}.
+#' @param disconnected Passed through to \code{\link{grip}()}.
 #'
 #' @return A list with \code{runs} and \code{summary} data frames and,
 #'   optionally, realized \code{layouts}.
 #' @examples
 #' edges <- edges.path(5)
-#' cmp <- grip.compare.layouts(
+#' cmp <- compare.layouts(
 #'   edges = edges,
 #'   n = 5,
 #'   dim = 2,
@@ -5277,7 +5328,7 @@ grip.score.layout <- function(coords,
 #' )
 #' cmp$summary[, c("candidate", "rounds", "final.rounds")]
 #'
-#' search.cmp <- grip.compare.layouts(
+#' search.cmp <- compare.layouts(
 #'   edges = edges,
 #'   n = 5,
 #'   dim = 2,
@@ -5290,23 +5341,23 @@ grip.score.layout <- function(coords,
 #' )
 #' search.cmp$summary[, c("candidate", "rounds", "final.rounds")]
 #' @export
-grip.compare.layouts <- function(edges = NULL,
-                                 n = NULL,
-                                 adj_list = NULL,
-                                 weight_list = NULL,
-                                 edge_weights = NULL,
-                                 dim = 2,
-                                 candidates = c("default"),
-                                 search = NULL,
-                                 clusters = NULL,
-                                 seeds = 1:3,
-                                 sample.size.stress = 2000L,
-                                 sample.size.nonedge = 5000L,
-                                 edge.crossings = c("auto", "always", "never"),
-                                 edge.crossings.max.edges = 1000L,
-                                 score.weights = grip.default.compare.score.weights(),
-                                 return.layouts = FALSE,
-                                 disconnected = c("components", "error")) {
+compare.layouts <- function(edges = NULL,
+                            n = NULL,
+                            adj_list = NULL,
+                            weight_list = NULL,
+                            edge_weights = NULL,
+                            dim = 2,
+                            candidates = c("default"),
+                            search = NULL,
+                            clusters = NULL,
+                            seeds = 1:3,
+                            sample.size.stress = 2000L,
+                            sample.size.nonedge = 5000L,
+                            edge.crossings = c("auto", "always", "never"),
+                            edge.crossings.max.edges = 1000L,
+                            score.weights = grip.default.compare.score.weights(),
+                            return.layouts = FALSE,
+                            disconnected = c("components", "error")) {
   candidates.missing <- missing(candidates)
   edge.crossings <- match.arg(edge.crossings)
   disconnected <- match.arg(disconnected)
@@ -5361,7 +5412,7 @@ grip.compare.layouts <- function(edges = NULL,
       started <- proc.time()[["elapsed"]]
       row <- tryCatch({
         coords <- do.call(
-          grip.layout,
+          grip,
           c(
             graph.args,
             list(
@@ -5382,7 +5433,7 @@ grip.compare.layouts <- function(edges = NULL,
           )
         )
         layouts.by.candidate[[candidate.name]][[as.character(seed)]] <- coords
-        score <- grip.score.layout(
+        score <- score.layout(
           coords = coords,
           adj_list = validated$adj_list,
           weight_list = validated$weight_list,
@@ -5461,4 +5512,16 @@ grip.compare.layouts <- function(edges = NULL,
     out$layouts <- layouts.by.candidate
   }
   out
+}
+
+#' Deprecated layout comparison name
+#'
+#' This long name is deprecated. Use [compare.layouts()] instead.
+#'
+#' @param ... Arguments passed to [compare.layouts()].
+#' @return See [compare.layouts()].
+#' @export
+grip.compare.layouts <- function(...) {
+  .Deprecated("compare.layouts")
+  compare.layouts(...)
 }

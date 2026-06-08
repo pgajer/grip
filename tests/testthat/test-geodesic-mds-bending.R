@@ -7,7 +7,7 @@ test_that("geodesic-MDS scoring exposes bending energy", {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -39,7 +39,7 @@ test_that("C++ and R bending-regularized GMDS agree for one iteration", {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,

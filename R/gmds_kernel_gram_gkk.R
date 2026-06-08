@@ -340,7 +340,7 @@ grip.kernel.gram.score <- function(coords,
 
 #' Optimize a kernel Gram-gKK layout
 #'
-#' `grip.optimize.kernel.gram.gkk.layout()` extends edge-only gKK with a local
+#' `kernel.gram.gkk()` extends edge-only gKK with a local
 #' Riemannian star penalty. The off-diagonal Gram term preserves target inner
 #' products between pairs of incident edge directions:
 #' \deqn{
@@ -352,7 +352,7 @@ grip.kernel.gram.score <- function(coords,
 #' The star weights are built by [graph.riemannian.star.structure()], usually
 #' with an antipodal kernel controlled by `angle.power`.
 #'
-#' @inheritParams grip.optimize.edge.isometric.layout
+#' @inheritParams edge.kk
 #' @param X Optional ambient/source coordinates used to build `star` when `star`
 #'   is omitted.
 #' @param star Optional object from [graph.riemannian.star.structure()].
@@ -363,14 +363,14 @@ grip.kernel.gram.score <- function(coords,
 #' @param lambda.edge,lambda.gram Non-negative weights for the diagonal
 #'   edge-length and off-diagonal Gram penalties.
 #' @param stiffness_method,stiffness_transform,density_mix,bandwidth,density_n
-#'   Parameters passed to [grip.edge.length.density.stiffness()] to construct
+#'   Parameters passed to [edge.length.density.stiffness()] to construct
 #'   edge-length stiffnesses for the diagonal edge term.
 #' @param distance_power,stiffness_floor,stiffness_ceiling Additional stiffness
 #'   constructor parameters.
 #'
 #' @return A `"grip_gmds_layout"` object with method `"kernel_gram_gkk"`.
 #' @export
-grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
+kernel.gram.gkk <- function(coords = NULL,
                                                  prepared = NULL,
                                                  edges = NULL,
                                                  n = NULL,
@@ -482,7 +482,7 @@ grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
   }
   edges <- prepared$edges
   edge.targets <- as.double(prepared$edge_targets)
-  stiff <- grip.edge.length.density.stiffness(
+  stiff <- edge.length.density.stiffness(
     edge_weights = edge.targets,
     method = stiffness_method,
     mix = density_mix,
@@ -543,7 +543,7 @@ grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
     )
     diag <- if (isTRUE(diagnostics)) {
       cbind(
-        grip.score.gmds.layout(
+        score.gmds(
           coords = current,
           prepared = prepared,
           scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
@@ -555,7 +555,7 @@ grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
     } else {
       NULL
     }
-    return(grip.gmds.layout.result(
+    return(gmds.result(
       coords = current,
       method = "kernel_gram_gkk",
       prepared = prepared,
@@ -697,7 +697,7 @@ grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
   gram.diag <- grip.kernel.gram.score(current, star, edge_scale = edge.scale, lambda.gram = lambda.gram)
   diag <- if (isTRUE(diagnostics)) {
     cbind(
-      grip.score.gmds.layout(
+      score.gmds(
         coords = current,
         prepared = prepared,
         scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
@@ -709,7 +709,7 @@ grip.optimize.kernel.gram.gkk.layout <- function(coords = NULL,
   } else {
     NULL
   }
-  grip.gmds.layout.result(
+  gmds.result(
     coords = current,
     method = "kernel_gram_gkk",
     prepared = prepared,

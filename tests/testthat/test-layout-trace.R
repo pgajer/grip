@@ -1,6 +1,6 @@
 test_that("round trace returns frames, metadata, and inactive NA rows", {
   edges <- edges.path(8)
-  tr <- grip.layout.trace(edges = edges,
+  tr <- trace.grip(edges = edges,
                           n = 8,
                           dim = 2,
                           placement = "barycenter",
@@ -31,24 +31,24 @@ test_that("round trace returns frames, metadata, and inactive NA rows", {
   expect_equal(tr$frames[[length(tr$frames)]], tr$final)
 })
 
-test_that("grip.layout.trace final matches grip.layout", {
+test_that("trace.grip final matches grip", {
   edges <- edges.path(8)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = 8,
                                   dim = 2,
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 41)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = 8,
                         dim = 2,
                         seed = 41)
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for kk_repulse mode", {
+test_that("trace.grip final matches grip for kk_repulse mode", {
   edges <- edges.mesh(5, 5)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = 25,
                                   dim = 2,
                                   rounds = 8,
@@ -62,7 +62,7 @@ test_that("grip.layout.trace final matches grip.layout for kk_repulse mode", {
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 41)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = 25,
                         dim = 2,
                         rounds = 8,
@@ -77,9 +77,9 @@ test_that("grip.layout.trace final matches grip.layout for kk_repulse mode", {
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for structural FR knobs", {
+test_that("trace.grip final matches grip for structural FR knobs", {
   edges <- edges.mesh(5, 5)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = 25,
                                   dim = 2,
                                   rounds = 8,
@@ -95,7 +95,7 @@ test_that("grip.layout.trace final matches grip.layout for structural FR knobs",
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 41)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = 25,
                         dim = 2,
                         rounds = 8,
@@ -112,10 +112,10 @@ test_that("grip.layout.trace final matches grip.layout for structural FR knobs",
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for level-0 insertion knobs", {
+test_that("trace.grip final matches grip for level-0 insertion knobs", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = n,
                                   dim = 2,
                                   rounds = 8,
@@ -131,7 +131,7 @@ test_that("grip.layout.trace final matches grip.layout for level-0 insertion kno
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 41)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = n,
                         dim = 2,
                         rounds = 8,
@@ -148,10 +148,10 @@ test_that("grip.layout.trace final matches grip.layout for level-0 insertion kno
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for insertion anchor knobs", {
+test_that("trace.grip final matches grip for insertion anchor knobs", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = n,
                                   dim = 2,
                                   rounds = 8,
@@ -166,7 +166,7 @@ test_that("grip.layout.trace final matches grip.layout for insertion anchor knob
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 43)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = n,
                         dim = 2,
                         rounds = 8,
@@ -182,10 +182,10 @@ test_that("grip.layout.trace final matches grip.layout for insertion anchor knob
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for spread_prev insertion", {
+test_that("trace.grip final matches grip for spread_prev insertion", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
-  tr_primary <- grip.layout.trace(
+  tr_primary <- trace.grip(
     edges = edges,
     n = n,
     dim = 2,
@@ -205,7 +205,7 @@ test_that("grip.layout.trace final matches grip.layout for spread_prev insertion
     trace.every = 1,
     seed = 71
   )
-  coords <- grip.layout(
+  coords <- grip(
     edges = edges,
     n = n,
     dim = 2,
@@ -226,9 +226,9 @@ test_that("grip.layout.trace final matches grip.layout for spread_prev insertion
   expect_identical(tr_primary$final, coords)
 })
 
-test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
+test_that("trace.grip final matches grip for LGKK polish", {
   edges <- edges.mesh(5, 5)
-  tr_primary <- grip.layout.trace(edges = edges,
+  tr_primary <- trace.grip(edges = edges,
                                   n = 25,
                                   dim = 2,
                                   rounds = 8,
@@ -244,7 +244,7 @@ test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
                                   trace = "level",
                                   trace.every = 1,
                                   seed = 47)
-  coords <- grip.layout(edges = edges,
+  coords <- grip(edges = edges,
                         n = 25,
                         dim = 2,
                         rounds = 8,
@@ -263,9 +263,9 @@ test_that("grip.layout.trace final matches grip.layout for LGKK polish", {
   expect_equal(tr_primary$frames[[length(tr_primary$frames)]], tr_primary$final)
 })
 
-test_that("grip.layout.trace final matches grip.layout for multiscale LGKK", {
+test_that("trace.grip final matches grip for multiscale LGKK", {
   edges <- edges.mesh(5, 5)
-  tr_primary <- grip.layout.trace(
+  tr_primary <- trace.grip(
     edges = edges,
     n = 25,
     dim = 2,
@@ -285,7 +285,7 @@ test_that("grip.layout.trace final matches grip.layout for multiscale LGKK", {
     trace.every = 1,
     seed = 73
   )
-  coords <- grip.layout(
+  coords <- grip(
     edges = edges,
     n = 25,
     dim = 2,
@@ -308,7 +308,7 @@ test_that("grip.layout.trace final matches grip.layout for multiscale LGKK", {
   expect_true(any(tr_primary$meta$phase == "lgkk"))
 })
 
-test_that("grip.layout.trace final matches grip.layout for staged multiscale LGKK", {
+test_that("trace.grip final matches grip for staged multiscale LGKK", {
   h <- 6L
   w <- 6L
   edges <- edges.mesh(h, w)
@@ -322,7 +322,7 @@ test_that("grip.layout.trace final matches grip.layout for staged multiscale LGK
     if (r1 == r2 && abs(c1 - c2) == 1L) 1 else 2
   })
 
-  tr_primary <- grip.layout.trace(
+  tr_primary <- trace.grip(
     edges = edges,
     n = h * w,
     dim = 2,
@@ -339,7 +339,7 @@ test_that("grip.layout.trace final matches grip.layout for staged multiscale LGK
     trace.every = 1,
     seed = 1
   )
-  coords <- grip.layout(
+  coords <- grip(
     edges = edges,
     n = h * w,
     dim = 2,
@@ -362,8 +362,8 @@ test_that("grip.layout.trace final matches grip.layout for staged multiscale LGK
 test_that("trace can append per-frame diagnostics against a target", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
-  target <- grip.layout(edges = edges, n = n, dim = 2, seed = 17)
-  tr <- grip.layout.trace(edges = edges,
+  target <- grip(edges = edges, n = n, dim = 2, seed = 17)
+  tr <- trace.grip(edges = edges,
                           n = n,
                           dim = 2,
                           trace = "level",
@@ -387,7 +387,7 @@ test_that("trace can append per-frame diagnostics against a target", {
 
 test_that("level trace thins level-start snapshots and keeps endpoints", {
   edges <- edges.cycle(12)
-  tr_dense <- grip.layout.trace(edges = edges,
+  tr_dense <- trace.grip(edges = edges,
                                 n = 12,
                                 dim = 2,
                                 placement = "barycenter",
@@ -398,7 +398,7 @@ test_that("level trace thins level-start snapshots and keeps endpoints", {
                                 trace = "level",
                                 trace.every = 1,
                                 seed = 77)
-  tr_sparse <- grip.layout.trace(edges = edges,
+  tr_sparse <- trace.grip(edges = edges,
                                  n = 12,
                                  dim = 2,
                                  placement = "barycenter",
@@ -426,7 +426,7 @@ test_that("trace rejects disconnected graphs for now", {
     cbind(5:6, 6:7)
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 7,
                       dim = 2,
                       trace = "round",
@@ -438,7 +438,7 @@ test_that("trace rejects disconnected graphs for now", {
 test_that("trace validates tuning parameters", {
   edges <- edges.path(8)
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       num_nbrs = 0,
@@ -447,7 +447,7 @@ test_that("trace validates tuning parameters", {
     "num_nbrs must be a positive integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       repulsion_factor = -0.1,
@@ -456,7 +456,7 @@ test_that("trace validates tuning parameters", {
     "repulsion_factor must be >= 0"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       coarse_repulsion_factor = -0.1,
@@ -465,7 +465,7 @@ test_that("trace validates tuning parameters", {
     "coarse_repulsion_factor must be >= 0"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       final_anchor_factor = -0.1,
@@ -474,7 +474,7 @@ test_that("trace validates tuning parameters", {
     "final_anchor_factor must be >= 0"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       final_move_scale_after_first = 1.1,
@@ -483,7 +483,7 @@ test_that("trace validates tuning parameters", {
     "final_move_scale_after_first must be in \\[0, 1\\]"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       insertion_anchor_count = 0,
@@ -492,7 +492,7 @@ test_that("trace validates tuning parameters", {
     "insertion_anchor_count must be a positive integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       insertion_anchor_scope = "banana",
@@ -501,7 +501,7 @@ test_that("trace validates tuning parameters", {
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       diagnostics = "light",
@@ -511,7 +511,7 @@ test_that("trace validates tuning parameters", {
     "nrow\\(target_coords\\) must match the graph size"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       final_mode = "banana",
@@ -520,7 +520,7 @@ test_that("trace validates tuning parameters", {
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       level0_insertion_mode = "banana",
@@ -529,7 +529,7 @@ test_that("trace validates tuning parameters", {
     "'arg' should be one of"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       level0_anchor_count = 0,
@@ -538,7 +538,7 @@ test_that("trace validates tuning parameters", {
     "level0_anchor_count must be a positive integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       level0_local_kk_steps = -1,
@@ -547,7 +547,7 @@ test_that("trace validates tuning parameters", {
     "level0_local_kk_steps must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_polish_rounds = -1,
@@ -556,7 +556,7 @@ test_that("trace validates tuning parameters", {
     "lgkk_polish_rounds must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_local_nbrs = -1,
@@ -565,7 +565,7 @@ test_that("trace validates tuning parameters", {
     "lgkk_local_nbrs must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_landmark_count = -1,
@@ -574,7 +574,7 @@ test_that("trace validates tuning parameters", {
     "lgkk_landmark_count must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_rounds_coarse = -1,
@@ -583,7 +583,7 @@ test_that("trace validates tuning parameters", {
     "lgkk_rounds_coarse must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_rounds_pre_final = -1,
@@ -592,7 +592,7 @@ test_that("trace validates tuning parameters", {
     "lgkk_rounds_pre_final must be a non-negative integer"
   )
   expect_error(
-    grip.layout.trace(edges = edges,
+    trace.grip(edges = edges,
                       n = 8,
                       dim = 2,
                       lgkk_rounds_final = -1,
@@ -604,7 +604,7 @@ test_that("trace validates tuning parameters", {
 
 test_that("trace repulsion_factor changes the final layout with a fixed seed", {
   edges <- edges.mesh(5, 5)
-  tr_none <- grip.layout.trace(edges = edges,
+  tr_none <- trace.grip(edges = edges,
                                n = 25,
                                dim = 2,
                                placement = "barycenter",
@@ -616,7 +616,7 @@ test_that("trace repulsion_factor changes the final layout with a fixed seed", {
                                trace = "level",
                                trace.every = 1,
                                seed = 29)
-  tr_more <- grip.layout.trace(edges = edges,
+  tr_more <- trace.grip(edges = edges,
                                n = 25,
                                dim = 2,
                                placement = "barycenter",
@@ -634,14 +634,14 @@ test_that("trace repulsion_factor changes the final layout with a fixed seed", {
 test_that("trace carpet preset matches the explicit carpet tuning profile", {
   edges <- edges.sierpinski.carpet(2)
   n <- max(edges)
-  tr_preset <- grip.layout.trace(edges = edges,
+  tr_preset <- trace.grip(edges = edges,
                                  n = n,
                                  dim = 2,
                                  preset = "carpet",
                                  trace = "level",
                                  trace.every = 1,
                                  seed = 41)
-  tr_explicit <- grip.layout.trace(edges = edges,
+  tr_explicit <- trace.grip(edges = edges,
                                    n = n,
                                    dim = 2,
                                    placement = "barycenter",
@@ -662,14 +662,14 @@ test_that("trace carpet preset matches the explicit carpet tuning profile", {
 test_that("trace mesh preset matches the explicit mesh tuning profile", {
   edges <- edges.mesh(4, 4)
   n <- max(edges)
-  tr_preset <- grip.layout.trace(edges = edges,
+  tr_preset <- trace.grip(edges = edges,
                                  n = n,
                                  dim = 2,
                                  preset = "mesh",
                                  trace = "level",
                                  trace.every = 1,
                                  seed = 51)
-  tr_explicit <- grip.layout.trace(edges = edges,
+  tr_explicit <- trace.grip(edges = edges,
                                    n = n,
                                    dim = 2,
                                    placement = "barycenter",
@@ -690,14 +690,14 @@ test_that("trace mesh preset matches the explicit mesh tuning profile", {
 test_that("trace torus preset matches the explicit torus tuning profile", {
   edges <- edges.torus(4, 4)
   n <- max(edges)
-  tr_preset <- grip.layout.trace(edges = edges,
+  tr_preset <- trace.grip(edges = edges,
                                  n = n,
                                  dim = 3,
                                  preset = "torus",
                                  trace = "level",
                                  trace.every = 1,
                                  seed = 59)
-  tr_explicit <- grip.layout.trace(edges = edges,
+  tr_explicit <- trace.grip(edges = edges,
                                    n = n,
                                    dim = 3,
                                    placement = "barycenter",
@@ -718,14 +718,14 @@ test_that("trace torus preset matches the explicit torus tuning profile", {
 test_that("trace tree preset matches the explicit tree tuning profile", {
   edges <- edges.kary.tree(k = 2, depth = 4)
   n <- max(edges)
-  tr_preset <- grip.layout.trace(edges = edges,
+  tr_preset <- trace.grip(edges = edges,
                                  n = n,
                                  dim = 2,
                                  preset = "tree",
                                  trace = "level",
                                  trace.every = 1,
                                  seed = 71)
-  tr_explicit <- grip.layout.trace(edges = edges,
+  tr_explicit <- trace.grip(edges = edges,
                                    n = n,
                                    dim = 2,
                                    placement = "circle",
@@ -747,14 +747,14 @@ test_that("trace tree preset uses barycenter placement in 3D without warning", {
   edges <- edges.kary.tree(k = 2, depth = 4)
   n <- max(edges)
   expect_no_warning({
-    tr_preset <- grip.layout.trace(edges = edges,
+    tr_preset <- trace.grip(edges = edges,
                                    n = n,
                                    dim = 3,
                                    preset = "tree",
                                    trace = "level",
                                    trace.every = 1,
                                    seed = 73)
-    tr_explicit <- grip.layout.trace(edges = edges,
+    tr_explicit <- trace.grip(edges = edges,
                                      n = n,
                                      dim = 3,
                                      placement = "barycenter",

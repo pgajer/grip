@@ -17,7 +17,7 @@ test_that("Phase 6 paraboloid slice runs on regular and irregular meshes", {
   cases <- list(regular = regular, irregular = irregular)
   for (case_name in names(cases)) {
     bundle <- cases[[case_name]]
-    prepared <- grip.prepare.graph.geodesic.mds(
+    prepared <- prepare.graph.geodesic.mds(
       edges = bundle$edges,
       n = bundle$n,
       edge_weights = bundle$edge_weights,

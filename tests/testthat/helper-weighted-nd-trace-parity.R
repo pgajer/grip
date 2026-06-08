@@ -93,7 +93,7 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
   )
   nd_args <- common
 
-  legacy <- do.call(grip.layout.trace.weighted, legacy_args)
+  legacy <- do.call(trace.weighted.grip, legacy_args)
   nd_trace_fn <- get("grip.layout.weighted.nd.trace", asNamespace("grip"))
   nd <- do.call(nd_trace_fn, nd_args)
 
@@ -296,7 +296,7 @@ grip_weighted_nd_trace_parity_neighbor_diagnostic <- function(fixture,
     fixture$edge_weights,
     fixture$n
   )
-  legacy <- grip.build.misf.weighted(
+  legacy <- build.weighted.misf(
     edges = fixture$edges,
     edge_weights = fixture$edge_weights,
     n = fixture$n,

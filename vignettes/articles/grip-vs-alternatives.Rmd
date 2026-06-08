@@ -36,7 +36,7 @@ library(grip)
 
 ## Shared scoring idea
 
-`grip.score.layout()` can score a realized layout from any source. That remains
+`score.layout()` can score a realized layout from any source. That remains
 one of the most useful parts of the package, because it lets you compare
 candidate layouts even when they come from different packages.
 
@@ -46,7 +46,7 @@ score_layout <- function(coords, edges, n,
                          edge.crossings = "auto",
                          sample.size.stress = 2000L,
                          sample.size.nonedge = 5000L) {
-  grip.score.layout(
+  score.layout(
     coords = coords,
     edges = edges,
     n = n,
@@ -62,8 +62,8 @@ score_layout <- function(coords, edges, n,
 
 For weighted geometry-aware graphs, the package also provides a stronger metric:
 
-- `grip.prepare.geodesic.kk()`
-- `grip.score.geodesic.kk()`
+- `prepare.geodesic.kk()`
+- `score.geodesic.kk()`
 
 Those GKK/LGKK-style tools are advanced public experimental utilities rather
 than the default onboarding path, and they are used in the second half of this
@@ -96,7 +96,7 @@ plot_layout <- function(coords,
       )
     }
   } else {
-    grip.plot(
+    plot.layout(
       coords,
       edges,
       projection = "ortho",
@@ -231,7 +231,7 @@ That second question needs a different benchmark track.
 For weighted graphs with meaningful edge lengths, a pure topology-only
 comparison is no longer enough. The weighted track in `grip` is built around:
 
-- `grip.layout.weighted()`
+- `weighted.grip()`
 - optional experimental LGKK-based refinement
 - and full geodesic-KK scoring.
 
@@ -245,7 +245,7 @@ weighted.mesh <- mesh.surface.graph(
   amplitude = 0.8
 )
 
-coords.combinatorial <- grip.layout(
+coords.combinatorial <- grip(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   dim = 3,
@@ -253,7 +253,7 @@ coords.combinatorial <- grip.layout(
   seed = 1
 )
 
-coords.weighted <- grip.layout.weighted(
+coords.weighted <- weighted.grip(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
@@ -262,7 +262,7 @@ coords.weighted <- grip.layout.weighted(
   seed = 1
 )
 
-coords.weighted.lgkk <- grip.layout.weighted(
+coords.weighted.lgkk <- weighted.grip(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
@@ -272,7 +272,7 @@ coords.weighted.lgkk <- grip.layout.weighted(
   seed = 1
 )
 
-gkk.prepared <- grip.prepare.geodesic.kk(
+gkk.prepared <- prepare.geodesic.kk(
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights
@@ -283,7 +283,7 @@ weighted.summary <- do.call(
   list(
     cbind(
       method = "Combinatorial GRIP",
-      grip.score.geodesic.kk(
+      score.geodesic.kk(
         coords.combinatorial,
         prepared = gkk.prepared
       )[, c(
@@ -294,7 +294,7 @@ weighted.summary <- do.call(
     ),
     cbind(
       method = "Weighted GRIP",
-      grip.score.geodesic.kk(
+      score.geodesic.kk(
         coords.weighted,
         prepared = gkk.prepared
       )[, c(
@@ -305,7 +305,7 @@ weighted.summary <- do.call(
     ),
     cbind(
       method = "Weighted GRIP + LGKK polish",
-      grip.score.geodesic.kk(
+      score.geodesic.kk(
         coords.weighted.lgkk,
         prepared = gkk.prepared
       )[, c(
@@ -350,15 +350,15 @@ for:
 For ordinary unweighted graphs:
 
 - compare `grip` with `igraph` and `graphlayouts`,
-- use `grip.score.layout()` to evaluate all of them on the same graph,
+- use `score.layout()` to evaluate all of them on the same graph,
 - and expect the answer to depend on graph family and graph size.
 
 For weighted geometric graphs:
 
-- start with `grip.layout.weighted()`,
+- start with `weighted.grip()`,
 - use 3D as the primary layout space when the geometry demands it,
 - and evaluate candidate layouts with geodesic-aware criteria such as
-  `grip.score.geodesic.kk()`.
+  `score.geodesic.kk()`.
 
 That is the main conceptual change in the package since the original version of
 this article was written.

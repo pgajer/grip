@@ -1,14 +1,14 @@
 test_that("weighted trace requires edge weights", {
   edges <- edges.mesh(4, 4)
   expect_error(
-    grip.layout.trace.weighted(edges = edges, n = 16, dim = 2, seed = 1),
+    trace.weighted.grip(edges = edges, n = 16, dim = 2, seed = 1),
     "requires edge weights"
   )
 })
 
 test_that("weighted round trace returns frames, metadata, and inactive NA rows", {
   graph <- mesh.surface.graph(4, 5, surface = "saddle", amplitude = 0.6)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -46,7 +46,7 @@ test_that("weighted round trace returns frames, metadata, and inactive NA rows",
 
 test_that("weighted trace final matches weighted layout", {
   graph <- mesh.surface.graph(5, 5, surface = "ripple", amplitude = 0.5)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -62,7 +62,7 @@ test_that("weighted trace final matches weighted layout", {
     trace.every = 1,
     seed = 41
   )
-  coords <- grip.layout.weighted(
+  coords <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -81,7 +81,7 @@ test_that("weighted trace final matches weighted layout", {
 
 test_that("weighted trace final matches weighted layout for LGKK polish", {
   graph <- mesh.surface.graph(5, 5, surface = "paraboloid", amplitude = 0.4)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -100,7 +100,7 @@ test_that("weighted trace final matches weighted layout for LGKK polish", {
     trace.every = 1,
     seed = 47
   )
-  coords <- grip.layout.weighted(
+  coords <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -123,7 +123,7 @@ test_that("weighted trace final matches weighted layout for LGKK polish", {
 
 test_that("weighted trace diagnostics are produced", {
   graph <- mesh.surface.graph(4, 5, surface = "saddle", amplitude = 0.6)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -155,7 +155,7 @@ test_that("weighted trace presets match explicit tuning profiles", {
     amplitude = 0.25
   )
 
-  tr_mesh_preset <- grip.layout.trace.weighted(
+  tr_mesh_preset <- trace.weighted.grip(
     edges = mesh$edges,
     edge_weights = mesh$edge_weights,
     n = mesh$n,
@@ -165,7 +165,7 @@ test_that("weighted trace presets match explicit tuning profiles", {
     trace.every = 1,
     seed = 211
   )
-  tr_mesh_explicit <- grip.layout.trace.weighted(
+  tr_mesh_explicit <- trace.weighted.grip(
     edges = mesh$edges,
     edge_weights = mesh$edge_weights,
     n = mesh$n,
@@ -183,7 +183,7 @@ test_that("weighted trace presets match explicit tuning profiles", {
     seed = 211
   )
 
-  tr_irregular_preset <- grip.layout.trace.weighted(
+  tr_irregular_preset <- trace.weighted.grip(
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -193,7 +193,7 @@ test_that("weighted trace presets match explicit tuning profiles", {
     trace.every = 1,
     seed = 223
   )
-  tr_irregular_explicit <- grip.layout.trace.weighted(
+  tr_irregular_explicit <- trace.weighted.grip(
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -220,7 +220,7 @@ test_that("weighted trace presets match explicit tuning profiles", {
 test_that("weighted trace rejects invalid presets", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    grip.layout.trace.weighted(
+    trace.weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -228,13 +228,13 @@ test_that("weighted trace rejects invalid presets", {
       preset = "bogus",
       seed = 227
     ),
-    "preset for grip.layout.trace.weighted must be NULL"
+    "preset for trace.weighted.grip must be NULL"
   )
 })
 
 test_that("weighted trace respects metric neighbor cap and matches weighted layout", {
   graph <- torus.surface.graph(5, 5, surface = "pinched", amplitude = 0.18)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -245,7 +245,7 @@ test_that("weighted trace respects metric neighbor cap and matches weighted layo
     trace.every = 1,
     seed = 229
   )
-  coords <- grip.layout.weighted(
+  coords <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -262,7 +262,7 @@ test_that("weighted trace respects metric neighbor cap and matches weighted layo
 test_that("weighted trace rejects invalid metric neighbor caps", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    grip.layout.trace.weighted(
+    trace.weighted.grip(
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -276,7 +276,7 @@ test_that("weighted trace rejects invalid metric neighbor caps", {
 
 test_that("weighted trace final matches weighted layout for multiscale LGKK", {
   graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -297,7 +297,7 @@ test_that("weighted trace final matches weighted layout for multiscale LGKK", {
     trace.every = 1,
     seed = 239
   )
-  coords <- grip.layout.weighted(
+  coords <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -323,7 +323,7 @@ test_that("weighted trace final matches weighted layout for multiscale LGKK", {
 
 test_that("weighted trace final matches weighted layout for staged multiscale LGKK", {
   graph <- cylinder.surface.graph(5, 6, surface = "hourglass", amplitude = 0.25)
-  tr <- grip.layout.trace.weighted(
+  tr <- trace.weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -347,7 +347,7 @@ test_that("weighted trace final matches weighted layout for staged multiscale LG
     trace.every = 1,
     seed = 241
   )
-  coords <- grip.layout.weighted(
+  coords <- weighted.grip(
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,

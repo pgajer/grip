@@ -2,7 +2,7 @@
 % Please edit documentation in R/gripui-project.R
 \name{gripui_project_from_compare}
 \alias{gripui_project_from_compare}
-\title{Convert `grip.compare.layouts()` output into a `gripui_project`}
+\title{Convert `compare.layouts()` output into a `gripui_project`}
 \usage{
 gripui_project_from_compare(
   compare_obj,
@@ -13,7 +13,7 @@ gripui_project_from_compare(
 )
 }
 \arguments{
-\item{compare_obj}{Result of `grip.compare.layouts()`.}
+\item{compare_obj}{Result of `compare.layouts()`.}
 
 \item{graph}{Optional graph object, named graph list, or path to a graph RDS.
 Defaults to `NULL` when only catalog exploration is needed.}
@@ -28,11 +28,11 @@ Defaults to `NULL` when only catalog exploration is needed.}
 A `gripui_project`.
 }
 \description{
-Convert `grip.compare.layouts()` output into a `gripui_project`
+Convert `compare.layouts()` output into a `gripui_project`
 }
 \examples{
 edges <- edges.path(5)
-cmp <- grip.compare.layouts(
+cmp <- compare.layouts(
   edges = edges,
   n = 5,
   candidates = "default",

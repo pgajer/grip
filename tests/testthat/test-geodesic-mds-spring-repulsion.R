@@ -11,7 +11,7 @@ finite_difference_gradient <- function(fn, x, eps = 1e-6) {
 }
 
 test_that("prepared geodesic objects retain graph edge targets and repulsion caches", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   expect_equal(prepared$edge_targets, rep(1, 3))
 
   cached <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
@@ -33,7 +33,7 @@ test_that("prepared geodesic objects retain graph edge targets and repulsion cac
 })
 
 test_that("repulsion pair selection is deterministic and matches the flattened cache", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   cached <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
     repulsion_weight = 0.2,
@@ -56,7 +56,7 @@ test_that("repulsion pair selection is deterministic and matches the flattened c
 })
 
 test_that("edge spring energy gradient matches finite differences", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords <- rbind(
     c(0.0, 0.0),
     c(0.8, 0.2),
@@ -84,7 +84,7 @@ test_that("edge spring energy gradient matches finite differences", {
 })
 
 test_that("graph-aware repulsion energy gradient matches finite differences", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   prepared <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
     repulsion_weight = 0.9,
@@ -121,7 +121,7 @@ test_that("graph-aware repulsion energy gradient matches finite differences", {
 })
 
 test_that("compiled repulsion stats match the R implementation exactly on a deterministic cache", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   prepared <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
     repulsion_weight = 0.9,
@@ -159,7 +159,7 @@ test_that("compiled repulsion stats match the R implementation exactly on a dete
 })
 
 test_that("geodesic MDS scoring reports spring and repulsion contributions", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords <- rbind(
     c(0.0, 0.0),
     c(0.5, 0.0),
@@ -193,7 +193,7 @@ test_that("geodesic MDS scoring reports spring and repulsion contributions", {
 })
 
 test_that("compiled optimizer matches the R engine for spring-repulsion GMDS", {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords <- rbind(
     c(0.0, 0.0),
     c(0.2, 0.0),

@@ -8,13 +8,84 @@ grip.gmds.require.prepared <- function(prepared = NULL,
   if (!is.null(prepared)) {
     return(grip.validate.geodesic.mds.prepared(prepared, coords = coords))
   }
-  grip.prepare.graph.geodesic.mds(
+  prepare.graph.geodesic.mds(
     edges = edges,
     n = if (is.null(n) && !is.null(coords)) nrow(coords) else n,
     adj_list = adj_list,
     weight_list = weight_list,
     edge_weights = edge_weights
   )
+}
+
+grip.metric.mds.distance.prepared <- function(edges = NULL,
+                                              n = NULL,
+                                              adj_list = NULL,
+                                              weight_list = NULL,
+                                              edge_weights = NULL) {
+  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
+    n <- max(as.integer(edges), na.rm = TRUE)
+  }
+  if (is.null(n) && !is.null(adj_list)) {
+    n <- length(adj_list)
+  }
+  if (is.null(n) || !is.finite(n) || n <= 0L) {
+    stop("n must be provided or inferable from edges/adj_list")
+  }
+  n <- as.integer(n)
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = 2L,
+    placement = "barycenter",
+    seed = 1L
+  )
+
+  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
+  adj.list <- sorted$adj_list
+  weight.list <- sorted$weight_list
+  edge.matrix <- grip.edges.from.adj.list(adj.list)
+  edge.targets <- grip.edge.weights.from.adj.list(adj.list, weight.list)
+  dist.matrix <- do.call(rbind, lapply(seq_len(validated$n), function(source) {
+    grip.graph.distances(adj.list, weight.list, source)
+  }))
+  finite.mask <- row(dist.matrix) != col(dist.matrix)
+  if (any(!is.finite(dist.matrix[finite.mask]))) {
+    stop("metric.mds() currently requires a connected graph")
+  }
+
+  prepared <- list(
+    n = validated$n,
+    edges = edge.matrix,
+    edge_targets = edge.targets,
+    adj_list = adj.list,
+    weight_list = weight.list,
+    pair_matrix = matrix(integer(), ncol = 2L),
+    pair_graph_distance = numeric(0L),
+    path_vertices = list(),
+    path_edges = list(),
+    path_edge_weights = list(),
+    pair_path_count_log = numeric(0L),
+    flat_pair_edge_offsets = 0L,
+    flat_edge_u = integer(0L),
+    flat_edge_v = integer(0L),
+    flat_edge_coeff = numeric(0L),
+    distance_matrix = dist.matrix,
+    graph_diameter = max(dist.matrix),
+    pair_mode = "distance_matrix_only",
+    graph_build_mode = "graph_input"
+  )
+  class(prepared) <- c(
+    "grip_metric_mds_prepared",
+    "grip_gmds_prepared",
+    "grip_gkk_prepared",
+    "grip_geodesic_kk_prepared",
+    "list"
+  )
+  prepared
 }
 
 grip.gmds.fit.scale.unweighted <- function(observed,
@@ -133,16 +204,16 @@ grip.gmds.band.weights <- function(graph.distances,
 
 #' Score a layout with the common GMDS diagnostic panel
 #'
-#' `grip.score.gmds.layout()` is the Phase 0 common scorer for GMDS-oriented
+#' `score.gmds()` is the Phase 0 common scorer for GMDS-oriented
 #' layout experiments. It summarizes edge-length fidelity, fixed-path geodesic
 #' stress, short/mid/long geodesic bands, ordinary metric-MDS chord stress, and
 #' simple spread/shortcut diagnostics for any coordinate matrix on a prepared
 #' graph.
 #'
 #' @param coords Numeric coordinate matrix.
-#' @param prepared Optional object returned by [grip.prepare.edge.kk()],
-#'   [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
-#'   Edge-only objects from [grip.prepare.edge.kk()] report only edge
+#' @param prepared Optional object returned by [prepare.edge.kk()],
+#'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
+#'   Edge-only objects from [prepare.edge.kk()] report only edge
 #'   diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.
 #' @param edges Two-column edge matrix used when `prepared` is omitted.
 #' @param n Number of vertices used when `prepared` is omitted.
@@ -161,7 +232,7 @@ grip.gmds.band.weights <- function(graph.distances,
 #'
 #' @return A one-row data frame with the common diagnostic columns.
 #' @export
-grip.score.gmds.layout <- function(coords,
+score.gmds <- function(coords,
                                    prepared = NULL,
                                    edges = NULL,
                                    n = NULL,
@@ -310,7 +381,7 @@ grip.score.gmds.layout <- function(coords,
 
 #' Construct a common GMDS layout result
 #'
-#' `grip.gmds.layout.result()` wraps coordinates, method metadata, optional
+#' `gmds.result()` wraps coordinates, method metadata, optional
 #' traces, and optional diagnostics in a common result shape used by the
 #' experimental GMDS layout program.
 #'
@@ -324,7 +395,7 @@ grip.score.gmds.layout <- function(coords,
 #' @return A list of class `"grip_gmds_layout"` with fields `coords`, `method`,
 #'   `prepared`, `trace`, `diagnostics`, and `metadata`.
 #' @export
-grip.gmds.layout.result <- function(coords,
+gmds.result <- function(coords,
                                     method,
                                     prepared = NULL,
                                     trace = NULL,
@@ -374,23 +445,26 @@ print.grip_gmds_layout <- function(x, ...) {
 
 #' Metric-MDS baseline layout for GMDS experiments
 #'
-#' `grip.metric.mds.layout()` computes the current metric-MDS baseline using
+#' `metric.mds()` computes the current metric-MDS baseline using
 #' `stats::cmdscale()` on the graph shortest-path distance matrix and returns a
 #' common `"grip_gmds_layout"` result.
 #'
-#' @inheritParams grip.score.gmds.layout
+#' @inheritParams score.gmds
 #' @param prepared Optional all-pairs prepared object returned by
-#'   [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
-#'   Edge-only objects from [grip.prepare.edge.kk()] are intentionally rejected
+#'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
+#'   Edge-only objects from [prepare.edge.kk()] are intentionally rejected
 #'   because metric MDS requires a graph distance matrix.
 #' @param dim Target embedding dimension. Values greater than 3 are supported
 #'   for GMDS and edge-KK workflows.
 #' @param add,eig Passed to `stats::cmdscale()`.
-#' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
+#' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel. If
+#'   `FALSE` and raw graph inputs are supplied, `metric.mds()` uses a
+#'   distance-matrix-only preparation path and does not build the full
+#'   all-pairs path cache.
 #'
 #' @return A `"grip_gmds_layout"` object.
 #' @export
-grip.metric.mds.layout <- function(prepared = NULL,
+metric.mds <- function(prepared = NULL,
                                    edges = NULL,
                                    n = NULL,
                                    adj_list = NULL,
@@ -405,14 +479,24 @@ grip.metric.mds.layout <- function(prepared = NULL,
                                    edge_length_epsilon = 1e-8,
                                    band_quantiles = c(1 / 3, 2 / 3)) {
   scale_mode <- match.arg(scale_mode)
-  prepared <- grip.gmds.require.prepared(
-    prepared = prepared,
-    edges = edges,
-    n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights
-  )
+  prepared <- if (is.null(prepared) && !isTRUE(diagnostics)) {
+    grip.metric.mds.distance.prepared(
+      edges = edges,
+      n = n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
+    )
+  } else {
+    grip.gmds.require.prepared(
+      prepared = prepared,
+      edges = edges,
+      n = n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
+    )
+  }
   fit <- grip.classical.mds.embedding(
     prepared = prepared,
     dim = dim,
@@ -420,7 +504,7 @@ grip.metric.mds.layout <- function(prepared = NULL,
     eig = eig
   )
   diag <- if (isTRUE(diagnostics)) {
-    grip.score.gmds.layout(
+    score.gmds(
       coords = fit$coords,
       prepared = prepared,
       scale_mode = scale_mode,
@@ -431,7 +515,7 @@ grip.metric.mds.layout <- function(prepared = NULL,
   } else {
     NULL
   }
-  grip.gmds.layout.result(
+  gmds.result(
     coords = fit$coords,
     method = "metric_mds",
     prepared = prepared,
@@ -481,7 +565,7 @@ grip.apply.stiffness.transform <- function(x, transform) {
 
 #' Construct edge-length stiffnesses for edge-isometric GMDS layouts
 #'
-#' `grip.edge.length.density.stiffness()` is the Phase 1 constructor for
+#' `edge.length.density.stiffness()` is the Phase 1 constructor for
 #' edge-only geodesic-MDS experiments. It turns positive edge lengths into
 #' spring stiffnesses normalized to mean one. The `"density"` method emphasizes
 #' edge lengths near the empirical edge-length density mode, and `mix` provides
@@ -504,7 +588,7 @@ grip.apply.stiffness.transform <- function(x, transform) {
 #' @return A list with `stiffness`, raw signal diagnostics, estimated mode, and
 #'   clipping/normalization metadata.
 #' @export
-grip.edge.length.density.stiffness <- function(edge_weights,
+edge.length.density.stiffness <- function(edge_weights,
                                                method = c("density", "uniform", "distance_power"),
                                                mix = 0,
                                                bandwidth = NULL,
@@ -780,10 +864,10 @@ grip.edge.isometric.initial.coords <- function(prepared,
     if (is.null(prepared$distance_matrix)) {
       stop(
         "init = \"metric_mds\" requires an all-pairs prepared object; ",
-        "pass coords, use init = \"random\", or prepare with grip.prepare.graph.geodesic.mds()"
+        "pass coords, use init = \"random\", or prepare with prepare.graph.geodesic.mds()"
       )
     }
-    return(grip.metric.mds.layout(
+    return(metric.mds(
       prepared = prepared,
       dim = dim,
       diagnostics = FALSE
@@ -796,13 +880,13 @@ grip.edge.isometric.initial.coords <- function(prepared,
   sweep(out, 2L, colMeans(out), "-", check.margin = FALSE)
 }
 
-#' Optimize an edge-isometric GMDS layout
+#' Optimize an edge-KK local repair layout
 #'
-#' `grip.optimize.edge.isometric.layout()` is the edge-KK local repair operator
-#' for the experimental GMDS layout program. Earlier notes called this operator
-#' edge-gKK; edge-KK is the preferred name because the objective is restricted
-#' to graph edges rather than all graph-geodesic pairs. It minimizes
-#' weighted edge-length stress
+#' `edge.kk()` is the edge-restricted Kamada--Kawai local repair operator for
+#' the experimental GMDS layout program. Earlier notes called this operator
+#' edge-gKK or edge-isometric GMDS; edge-KK is the preferred name because the
+#' objective is restricted to graph edges rather than all graph-geodesic pairs.
+#' It minimizes weighted edge-length stress
 #' \deqn{
 #'   \frac{1}{2}\sum_{(i,j)\in E} k_{ij}
 #'   \left(\|z_i-z_j\|_2 - s w_{ij}\right)^2
@@ -812,16 +896,16 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' toward uniform stiffnesses.
 #'
 #' For scalable repair from an existing layout, pass `coords` together with an
-#' edge-only object from [grip.prepare.edge.kk()]. If `coords` is omitted and
+#' edge-only object from [prepare.edge.kk()]. If `coords` is omitted and
 #' `init = "metric_mds"`, use an all-pairs prepared object from
-#' [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()] instead.
+#' [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
 #'
-#' @inheritParams grip.score.gmds.layout
+#' @inheritParams score.gmds
 #' @param coords Optional starting coordinates. If omitted, `init` is used.
 #' @param dim Target embedding dimension.
 #' @param init Starting layout used when `coords` is omitted.
 #' @param stiffness_method,stiffness_transform,density_mix_schedule,bandwidth,density_n
-#'   Parameters passed to [grip.edge.length.density.stiffness()].
+#'   Parameters passed to [edge.length.density.stiffness()].
 #' @param distance_power,stiffness_floor,stiffness_ceiling Additional stiffness
 #'   constructor parameters.
 #' @param scale_mode Scale policy for edge targets. `"profiled"` analytically
@@ -839,41 +923,40 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
 #'   edge-stress loop; `"R"` keeps the reference prototype.
 #'
-#' @return A `"grip_gmds_layout"` object with method `"edge_isometric_gkk"`
-#'   for compatibility with existing experiment assets.
+#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
 #' @export
-grip.optimize.edge.isometric.layout <- function(coords = NULL,
-                                                prepared = NULL,
-                                                edges = NULL,
-                                                n = NULL,
-                                                adj_list = NULL,
-                                                weight_list = NULL,
-                                                edge_weights = NULL,
-                                                dim = 2L,
-                                                init = c("metric_mds", "random"),
-                                                stiffness_method = c("density", "uniform", "distance_power"),
-                                                stiffness_transform = c("identity", "sqrt", "log"),
-                                                density_mix_schedule = c(0, 0.25, 0.5, 0.75, 1),
-                                                bandwidth = NULL,
-                                                density_n = 512L,
-                                                distance_power = 0,
-                                                stiffness_floor = 0,
-                                                stiffness_ceiling = Inf,
-                                                scale_mode = c("profiled", "identity", "fixed_initial", "user"),
-                                                scale = NULL,
-                                                max_iter = 50L,
-                                                initial_step = 1.0,
-                                                step_shrink = 0.5,
-                                                armijo_factor = 1e-4,
-                                                grad_tol = 1e-8,
-                                                min_step = 1e-8,
-                                                edge_length_epsilon = 1e-8,
-                                                distance_floor = 1e-8,
-                                                recenter = TRUE,
-                                                return_trace = TRUE,
-                                                diagnostics = TRUE,
-                                                seed = 1L,
-                                                engine = c("cpp", "R")) {
+edge.kk <- function(coords = NULL,
+                    prepared = NULL,
+                    edges = NULL,
+                    n = NULL,
+                    adj_list = NULL,
+                    weight_list = NULL,
+                    edge_weights = NULL,
+                    dim = 2L,
+                    init = c("metric_mds", "random"),
+                    stiffness_method = c("density", "uniform", "distance_power"),
+                    stiffness_transform = c("identity", "sqrt", "log"),
+                    density_mix_schedule = c(0, 0.25, 0.5, 0.75, 1),
+                    bandwidth = NULL,
+                    density_n = 512L,
+                    distance_power = 0,
+                    stiffness_floor = 0,
+                    stiffness_ceiling = Inf,
+                    scale_mode = c("profiled", "identity", "fixed_initial", "user"),
+                    scale = NULL,
+                    max_iter = 50L,
+                    initial_step = 1.0,
+                    step_shrink = 0.5,
+                    armijo_factor = 1e-4,
+                    grad_tol = 1e-8,
+                    min_step = 1e-8,
+                    edge_length_epsilon = 1e-8,
+                    distance_floor = 1e-8,
+                    recenter = TRUE,
+                    return_trace = TRUE,
+                    diagnostics = TRUE,
+                    seed = 1L,
+                    engine = c("cpp", "R")) {
   init <- match.arg(init)
   stiffness_method <- match.arg(stiffness_method)
   stiffness_transform <- match.arg(stiffness_transform)
@@ -935,7 +1018,7 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
   edges <- prepared$edges
   edge.targets <- as.double(prepared$edge_targets)
   stiffness.objects <- lapply(density_mix_schedule, function(mix) {
-    grip.edge.length.density.stiffness(
+    edge.length.density.stiffness(
       edge_weights = edge.targets,
       method = stiffness_method,
       mix = mix,
@@ -1018,7 +1101,7 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
       )
     })
     diag <- if (isTRUE(diagnostics)) {
-      grip.score.gmds.layout(
+      score.gmds(
         coords = current,
         prepared = prepared,
         scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
@@ -1028,9 +1111,9 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
     } else {
       NULL
     }
-    return(grip.gmds.layout.result(
+    return(gmds.result(
       coords = current,
-      method = "edge_isometric_gkk",
+      method = "edge_kk",
       prepared = prepared,
       trace = trace.df,
       diagnostics = diag,
@@ -1182,7 +1265,7 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
     frames <- list(current)
   }
   diag <- if (isTRUE(diagnostics)) {
-    grip.score.gmds.layout(
+    score.gmds(
       coords = current,
       prepared = prepared,
       scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
@@ -1192,9 +1275,9 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
   } else {
     NULL
   }
-  grip.gmds.layout.result(
+  gmds.result(
     coords = current,
-    method = "edge_isometric_gkk",
+    method = "edge_kk",
     prepared = prepared,
     trace = trace.df,
     diagnostics = diag,
@@ -1210,35 +1293,31 @@ grip.optimize.edge.isometric.layout <- function(coords = NULL,
   )
 }
 
-#' Optimize an edge-KK local repair layout
+#' Deprecated edge-KK layout names
 #'
-#' `grip.optimize.edge.kk.layout()` is the preferred public name for the
-#' edge-restricted Kamada--Kawai local repair operator implemented by
-#' [grip.optimize.edge.isometric.layout()]. It is a thin compatibility wrapper:
-#' the optimization path is identical, but the returned `method` field is
-#' normalized to `"edge_kk"` for new reports and experiment manifests.
+#' These long names are deprecated. Use [edge.kk()] instead.
 #'
-#' @inheritParams grip.optimize.edge.isometric.layout
-#' @param ... Arguments passed to [grip.optimize.edge.isometric.layout()].
-#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @param ... Arguments passed to [edge.kk()].
+#' @return A `"grip_gmds_layout"` object.
 #' @export
 grip.optimize.edge.kk.layout <- function(...) {
-  out <- grip.optimize.edge.isometric.layout(...)
-  out$metadata$legacy_method <- out$method
-  out$method <- "edge_kk"
-  out
+  .Deprecated("edge.kk")
+  edge.kk(...)
 }
 
-#' Legacy alias for edge-KK local repair
-#'
-#' `grip.optimize.edge.gkk.layout()` is kept as a quiet compatibility alias for
-#' older notes that used the name edge-gKK. New code should use
-#' [grip.optimize.edge.kk.layout()].
-#'
-#' @inheritParams grip.optimize.edge.kk.layout
-#' @param ... Arguments passed to [grip.optimize.edge.kk.layout()].
-#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @rdname grip.optimize.edge.kk.layout
 #' @export
 grip.optimize.edge.gkk.layout <- function(...) {
-  grip.optimize.edge.kk.layout(...)
+  .Deprecated("edge.kk")
+  edge.kk(...)
+}
+
+#' @rdname grip.optimize.edge.kk.layout
+#' @export
+grip.optimize.edge.isometric.layout <- function(...) {
+  .Deprecated("edge.kk")
+  out <- edge.kk(...)
+  out$metadata$preferred_method <- out$method
+  out$method <- "edge_isometric_gkk"
+  out
 }

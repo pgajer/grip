@@ -1,7 +1,7 @@
-test_that("grip.score.layout returns the expected metrics", {
+test_that("score.layout returns the expected metrics", {
   edges <- edges.mesh(4, 4)
-  coords <- grip.layout(edges, n = 16, dim = 2, preset = "mesh", seed = 1)
-  score <- grip.score.layout(coords, edges = edges, n = 16)
+  coords <- grip(edges, n = 16, dim = 2, preset = "mesh", seed = 1)
+  score <- score.layout(coords, edges = edges, n = 16)
 
   expect_s3_class(score, "data.frame")
   expect_equal(nrow(score), 1)
@@ -24,7 +24,7 @@ test_that("grip.score.layout returns the expected metrics", {
   )]))))
 })
 
-test_that("grip.score.layout counts 2D edge crossings exactly", {
+test_that("score.layout counts 2D edge crossings exactly", {
   coords <- matrix(c(
     0, 0,
     1, 1,
@@ -36,7 +36,7 @@ test_that("grip.score.layout counts 2D edge crossings exactly", {
     c(3, 4)
   )
 
-  score <- grip.score.layout(
+  score <- score.layout(
     coords = coords,
     edges = edges,
     n = 4,
@@ -46,7 +46,7 @@ test_that("grip.score.layout counts 2D edge crossings exactly", {
   expect_equal(score$edge.crossings[[1L]], 1)
 })
 
-test_that("grip.score.layout computes cluster separation when clusters are supplied", {
+test_that("score.layout computes cluster separation when clusters are supplied", {
   coords <- matrix(c(
     0.0, 0.0,
     0.2, 0.1,
@@ -58,7 +58,7 @@ test_that("grip.score.layout computes cluster separation when clusters are suppl
     c(3, 4)
   )
 
-  score <- grip.score.layout(
+  score <- score.layout(
     coords = coords,
     edges = edges,
     n = 4,
@@ -70,9 +70,9 @@ test_that("grip.score.layout computes cluster separation when clusters are suppl
   expect_gt(score$cluster.separation[[1L]], 1)
 })
 
-test_that("grip.compare.layouts summarizes runs and seed stability", {
+test_that("compare.layouts summarizes runs and seed stability", {
   edges <- edges.mesh(4, 4)
-  cmp <- grip.compare.layouts(
+  cmp <- compare.layouts(
     edges = edges,
     n = 16,
     dim = 2,
@@ -98,9 +98,9 @@ test_that("grip.compare.layouts summarizes runs and seed stability", {
   expect_true(is.finite(mesh.row$stability.procrustes.mean[[1L]]))
 })
 
-test_that("grip.compare.layouts expands search grids into candidates", {
+test_that("compare.layouts expands search grids into candidates", {
   edges <- edges.mesh(4, 4)
-  cmp <- grip.compare.layouts(
+  cmp <- compare.layouts(
     edges = edges,
     n = 16,
     dim = 2,
