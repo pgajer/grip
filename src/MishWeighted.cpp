@@ -7,6 +7,7 @@
 #include <functional>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <queue>
 #include <sstream>
 #include <vector>
@@ -896,8 +897,11 @@ void DrawGraph::KK_spring_weighted_v1(const size_tt vert,
                                       size_tt mishLayer)
 {
     disp[vert].set_to_zero();
-    std::ostringstream attractionEdges;
-    attractionEdges << std::setprecision(17);
+    std::unique_ptr<std::ostringstream> attractionEdges;
+    if(collectRefinementStepDetails){
+        attractionEdges.reset(new std::ostringstream());
+        *attractionEdges << std::setprecision(17);
+    }
     for(const MetricNeighbor &neighbor : rootNbrsLayer){
         if(neighbor.vert >= numOfVert || neighbor.vert == vert || neighbor.dist <= 0.0)
             continue;
@@ -905,50 +909,59 @@ void DrawGraph::KK_spring_weighted_v1(const size_tt vert,
         vect += pos[neighbor.vert];
         vect -= pos[vert];
         double norm2Local = (double)vect.fnorm2();
-        std::vector<double> deltaFlat(dim);
-        deltaFlat[0] = vect.getX();
-        if(dim > 1)
-            deltaFlat[1] = vect.getY();
-        if(dim > 2)
-            deltaFlat[2] = vect.getZ();
-        coord_t desired = edge * neighbor.dist;
-        coord_t desired2 = desired * desired;
-        const double finalScale =
-            static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
+        std::vector<double> deltaFlat;
+        coord_t desired = 0;
+        coord_t desired2 = 0;
+        double finalScale = 0.0;
+        if(collectRefinementStepDetails){
+            deltaFlat.resize(dim);
+            deltaFlat[0] = vect.getX();
+            if(dim > 1)
+                deltaFlat[1] = vect.getY();
+            if(dim > 2)
+                deltaFlat[2] = vect.getZ();
+            desired = edge * neighbor.dist;
+            desired2 = desired * desired;
+            finalScale =
+                static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
+        }
         vect *= (float)(norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
-        if(attractionEdges.tellp() > 0)
-            attractionEdges << ";";
-        attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
-                        << neighbor.dist;
-        lastAttractionDisp[0] += vect.getX();
-        if(dim > 1)
-            lastAttractionDisp[1] += vect.getY();
-        if(dim > 2)
-            lastAttractionDisp[2] += vect.getZ();
-        std::vector<double> stepFlat(dim);
-        std::vector<double> cumulativeFlat(dim);
-        stepFlat[0] = vect.getX();
-        cumulativeFlat[0] = lastAttractionDisp[0];
-        if(dim > 1){
-            stepFlat[1] = vect.getY();
-            cumulativeFlat[1] = lastAttractionDisp[1];
+        if(collectRefinementStepDetails){
+            if(attractionEdges->tellp() > 0)
+                *attractionEdges << ";";
+            *attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
+                             << neighbor.dist;
+            lastAttractionDisp[0] += vect.getX();
+            if(dim > 1)
+                lastAttractionDisp[1] += vect.getY();
+            if(dim > 2)
+                lastAttractionDisp[2] += vect.getZ();
+            std::vector<double> stepFlat(dim);
+            std::vector<double> cumulativeFlat(dim);
+            stepFlat[0] = vect.getX();
+            cumulativeFlat[0] = lastAttractionDisp[0];
+            if(dim > 1){
+                stepFlat[1] = vect.getY();
+                cumulativeFlat[1] = lastAttractionDisp[1];
+            }
+            if(dim > 2){
+                stepFlat[2] = vect.getZ();
+                cumulativeFlat[2] = lastAttractionDisp[2];
+            }
+            lastAttractionTermNeighbors.push_back(static_cast<int>(neighbor.vert) + 1);
+            lastAttractionTermWeights.push_back(neighbor.dist);
+            lastAttractionTermNorm2.push_back(norm2Local);
+            lastAttractionTermDesired.push_back(desired);
+            lastAttractionTermDesired2.push_back(desired2);
+            lastAttractionTermScale.push_back(finalScale);
+            lastAttractionTermDelta.push_back(std::move(deltaFlat));
+            lastAttractionTermStep.push_back(std::move(stepFlat));
+            lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         }
-        if(dim > 2){
-            stepFlat[2] = vect.getZ();
-            cumulativeFlat[2] = lastAttractionDisp[2];
-        }
-        lastAttractionTermNeighbors.push_back(static_cast<int>(neighbor.vert) + 1);
-        lastAttractionTermWeights.push_back(neighbor.dist);
-        lastAttractionTermNorm2.push_back(norm2Local);
-        lastAttractionTermDesired.push_back(desired);
-        lastAttractionTermDesired2.push_back(desired2);
-        lastAttractionTermScale.push_back(finalScale);
-        lastAttractionTermDelta.push_back(std::move(deltaFlat));
-        lastAttractionTermStep.push_back(std::move(stepFlat));
-        lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         disp[vert] += vect;
     }
-    lastAttractionEdges = attractionEdges.str();
+    if(collectRefinementStepDetails)
+        lastAttractionEdges = attractionEdges->str();
 
     if(mishLayer > 0 && activeVertCount > 1)
         add_coarse_global_repulsion(vert, activeVertCount);
@@ -968,8 +981,11 @@ void DrawGraph::KK_spring_weighted_final_v1(const size_tt vert,
 {
     (void)mishLayer;
     disp[vert].set_to_zero();
-    std::ostringstream attractionEdges;
-    attractionEdges << std::setprecision(17);
+    std::unique_ptr<std::ostringstream> attractionEdges;
+    if(collectRefinementStepDetails){
+        attractionEdges.reset(new std::ostringstream());
+        *attractionEdges << std::setprecision(17);
+    }
     for(const MetricNeighbor &neighbor : rootNbrsLayer){
         if(neighbor.vert >= numOfVert || neighbor.vert == vert || neighbor.dist <= 0.0)
             continue;
@@ -977,50 +993,59 @@ void DrawGraph::KK_spring_weighted_final_v1(const size_tt vert,
         vect += pos[neighbor.vert];
         vect -= pos[vert];
         double norm2Local = (double)vect.fnorm2();
-        std::vector<double> deltaFlat(dim);
-        deltaFlat[0] = vect.getX();
-        if(dim > 1)
-            deltaFlat[1] = vect.getY();
-        if(dim > 2)
-            deltaFlat[2] = vect.getZ();
-        coord_t desired = edge * neighbor.dist;
-        coord_t desired2 = desired * desired;
-        const double finalScale =
-            static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
+        std::vector<double> deltaFlat;
+        coord_t desired = 0;
+        coord_t desired2 = 0;
+        double finalScale = 0.0;
+        if(collectRefinementStepDetails){
+            deltaFlat.resize(dim);
+            deltaFlat[0] = vect.getX();
+            if(dim > 1)
+                deltaFlat[1] = vect.getY();
+            if(dim > 2)
+                deltaFlat[2] = vect.getZ();
+            desired = edge * neighbor.dist;
+            desired2 = desired * desired;
+            finalScale =
+                static_cast<double>(static_cast<float>(norm2Local / desired2 - 1.0));
+        }
         vect *= (float)(norm2Local / (neighbor.dist * neighbor.dist * edge2) - 1.0);
-        if(attractionEdges.tellp() > 0)
-            attractionEdges << ";";
-        attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
-                        << neighbor.dist;
-        lastAttractionDisp[0] += vect.getX();
-        if(dim > 1)
-            lastAttractionDisp[1] += vect.getY();
-        if(dim > 2)
-            lastAttractionDisp[2] += vect.getZ();
-        std::vector<double> stepFlat(dim);
-        std::vector<double> cumulativeFlat(dim);
-        stepFlat[0] = vect.getX();
-        cumulativeFlat[0] = lastAttractionDisp[0];
-        if(dim > 1){
-            stepFlat[1] = vect.getY();
-            cumulativeFlat[1] = lastAttractionDisp[1];
+        if(collectRefinementStepDetails){
+            if(attractionEdges->tellp() > 0)
+                *attractionEdges << ";";
+            *attractionEdges << static_cast<int>(neighbor.vert) + 1 << ":"
+                             << neighbor.dist;
+            lastAttractionDisp[0] += vect.getX();
+            if(dim > 1)
+                lastAttractionDisp[1] += vect.getY();
+            if(dim > 2)
+                lastAttractionDisp[2] += vect.getZ();
+            std::vector<double> stepFlat(dim);
+            std::vector<double> cumulativeFlat(dim);
+            stepFlat[0] = vect.getX();
+            cumulativeFlat[0] = lastAttractionDisp[0];
+            if(dim > 1){
+                stepFlat[1] = vect.getY();
+                cumulativeFlat[1] = lastAttractionDisp[1];
+            }
+            if(dim > 2){
+                stepFlat[2] = vect.getZ();
+                cumulativeFlat[2] = lastAttractionDisp[2];
+            }
+            lastAttractionTermNeighbors.push_back(static_cast<int>(neighbor.vert) + 1);
+            lastAttractionTermWeights.push_back(neighbor.dist);
+            lastAttractionTermNorm2.push_back(norm2Local);
+            lastAttractionTermDesired.push_back(desired);
+            lastAttractionTermDesired2.push_back(desired2);
+            lastAttractionTermScale.push_back(finalScale);
+            lastAttractionTermDelta.push_back(std::move(deltaFlat));
+            lastAttractionTermStep.push_back(std::move(stepFlat));
+            lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         }
-        if(dim > 2){
-            stepFlat[2] = vect.getZ();
-            cumulativeFlat[2] = lastAttractionDisp[2];
-        }
-        lastAttractionTermNeighbors.push_back(static_cast<int>(neighbor.vert) + 1);
-        lastAttractionTermWeights.push_back(neighbor.dist);
-        lastAttractionTermNorm2.push_back(norm2Local);
-        lastAttractionTermDesired.push_back(desired);
-        lastAttractionTermDesired2.push_back(desired2);
-        lastAttractionTermScale.push_back(finalScale);
-        lastAttractionTermDelta.push_back(std::move(deltaFlat));
-        lastAttractionTermStep.push_back(std::move(stepFlat));
-        lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         disp[vert] += vect;
     }
-    lastAttractionEdges = attractionEdges.str();
+    if(collectRefinementStepDetails)
+        lastAttractionEdges = attractionEdges->str();
 
     if(activeVertCount > 1)
         add_active_global_repulsion(vert, activeVertCount, fedge2);
@@ -1042,21 +1067,27 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
     double norm2Local;
 
     disp[vert].set_to_zero();
-    std::fill(lastAttractionDisp.begin(), lastAttractionDisp.end(), 0.0);
-    std::fill(lastRepulsionDisp.begin(), lastRepulsionDisp.end(), 0.0);
-    lastAttractionTermNeighbors.clear();
-    lastAttractionTermWeights.clear();
-    lastAttractionTermNorm2.clear();
-    lastAttractionTermDesired.clear();
-    lastAttractionTermDesired2.clear();
-    lastAttractionTermScale.clear();
-    lastAttractionTermDelta.clear();
-    lastAttractionTermStep.clear();
-    lastAttractionTermCumulative.clear();
-    std::ostringstream attractionEdges;
-    std::ostringstream repulsionNeighbors;
-    attractionEdges << std::setprecision(17);
-    repulsionNeighbors << std::setprecision(17);
+    if(collectRefinementStepDetails){
+        std::fill(lastAttractionDisp.begin(), lastAttractionDisp.end(), 0.0);
+        std::fill(lastRepulsionDisp.begin(), lastRepulsionDisp.end(), 0.0);
+        lastAttractionTermNeighbors.clear();
+        lastAttractionTermWeights.clear();
+        lastAttractionTermNorm2.clear();
+        lastAttractionTermDesired.clear();
+        lastAttractionTermDesired2.clear();
+        lastAttractionTermScale.clear();
+        lastAttractionTermDelta.clear();
+        lastAttractionTermStep.clear();
+        lastAttractionTermCumulative.clear();
+    }
+    std::unique_ptr<std::ostringstream> attractionEdges;
+    std::unique_ptr<std::ostringstream> repulsionNeighbors;
+    if(collectRefinementStepDetails){
+        attractionEdges.reset(new std::ostringstream());
+        repulsionNeighbors.reset(new std::ostringstream());
+        *attractionEdges << std::setprecision(17);
+        *repulsionNeighbors << std::setprecision(17);
+    }
 
     size_tt degLocal = graph.adjList[0][vert];
     for(size_tt adjVert = 0; adjVert < degLocal; adjVert++){
@@ -1065,48 +1096,55 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
         vect += pos[overt];
         vect -= pos[vert];
         norm2Local = (double)vect.norm2();
-        std::vector<double> deltaFlat(dim);
-        deltaFlat[0] = vect.getX();
-        if(dim > 1)
-            deltaFlat[1] = vect.getY();
-        if(dim > 2)
-            deltaFlat[2] = vect.getZ();
-        const double scale = static_cast<double>(static_cast<float>(norm2Local));
+        std::vector<double> deltaFlat;
+        if(collectRefinementStepDetails){
+            deltaFlat.resize(dim);
+            deltaFlat[0] = vect.getX();
+            if(dim > 1)
+                deltaFlat[1] = vect.getY();
+            if(dim > 2)
+                deltaFlat[2] = vect.getZ();
+        }
         vect *= (float)norm2Local;
-        coord_t desired = edge * graph.get_edge_weight(vert, adjVert);
+        coord_t edgeWeight = graph.get_edge_weight(vert, adjVert);
+        coord_t desired = edge * edgeWeight;
         coord_t desired2 = desired * desired;
         vect /= desired2;
-        const double finalScale = scale / desired2;
-        if(attractionEdges.tellp() > 0)
-            attractionEdges << ";";
-        attractionEdges << static_cast<int>(overt) + 1 << ":"
-                        << graph.get_edge_weight(vert, adjVert);
-        lastAttractionDisp[0] += vect.getX();
-        if(dim > 1)
-            lastAttractionDisp[1] += vect.getY();
-        if(dim > 2)
-            lastAttractionDisp[2] += vect.getZ();
-        std::vector<double> stepFlat(dim);
-        std::vector<double> cumulativeFlat(dim);
-        stepFlat[0] = vect.getX();
-        cumulativeFlat[0] = lastAttractionDisp[0];
-        if(dim > 1){
-            stepFlat[1] = vect.getY();
-            cumulativeFlat[1] = lastAttractionDisp[1];
+        double finalScale = 0.0;
+        if(collectRefinementStepDetails){
+            finalScale =
+                static_cast<double>(static_cast<float>(norm2Local)) / desired2;
+            if(attractionEdges->tellp() > 0)
+                *attractionEdges << ";";
+            *attractionEdges << static_cast<int>(overt) + 1 << ":"
+                             << edgeWeight;
+            lastAttractionDisp[0] += vect.getX();
+            if(dim > 1)
+                lastAttractionDisp[1] += vect.getY();
+            if(dim > 2)
+                lastAttractionDisp[2] += vect.getZ();
+            std::vector<double> stepFlat(dim);
+            std::vector<double> cumulativeFlat(dim);
+            stepFlat[0] = vect.getX();
+            cumulativeFlat[0] = lastAttractionDisp[0];
+            if(dim > 1){
+                stepFlat[1] = vect.getY();
+                cumulativeFlat[1] = lastAttractionDisp[1];
+            }
+            if(dim > 2){
+                stepFlat[2] = vect.getZ();
+                cumulativeFlat[2] = lastAttractionDisp[2];
+            }
+            lastAttractionTermNeighbors.push_back(static_cast<int>(overt) + 1);
+            lastAttractionTermWeights.push_back(edgeWeight);
+            lastAttractionTermNorm2.push_back(norm2Local);
+            lastAttractionTermDesired.push_back(desired);
+            lastAttractionTermDesired2.push_back(desired2);
+            lastAttractionTermScale.push_back(finalScale);
+            lastAttractionTermDelta.push_back(std::move(deltaFlat));
+            lastAttractionTermStep.push_back(std::move(stepFlat));
+            lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         }
-        if(dim > 2){
-            stepFlat[2] = vect.getZ();
-            cumulativeFlat[2] = lastAttractionDisp[2];
-        }
-        lastAttractionTermNeighbors.push_back(static_cast<int>(overt) + 1);
-        lastAttractionTermWeights.push_back(graph.get_edge_weight(vert, adjVert));
-        lastAttractionTermNorm2.push_back(norm2Local);
-        lastAttractionTermDesired.push_back(desired);
-        lastAttractionTermDesired2.push_back(desired2);
-        lastAttractionTermScale.push_back(finalScale);
-        lastAttractionTermDelta.push_back(std::move(deltaFlat));
-        lastAttractionTermStep.push_back(std::move(stepFlat));
-        lastAttractionTermCumulative.push_back(std::move(cumulativeFlat));
         disp[vert] += vect;
     }
 
@@ -1120,15 +1158,17 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
         if(!norm2Local)
             continue;
         vect *= (float)(fedge2 / norm2Local);
-        if(repulsionNeighbors.tellp() > 0)
-            repulsionNeighbors << ";";
-        repulsionNeighbors << static_cast<int>(neighbor.vert) + 1 << ":"
-                           << neighbor.dist;
-        lastRepulsionDisp[0] += vect.getX();
-        if(dim > 1)
-            lastRepulsionDisp[1] += vect.getY();
-        if(dim > 2)
-            lastRepulsionDisp[2] += vect.getZ();
+        if(collectRefinementStepDetails){
+            if(repulsionNeighbors->tellp() > 0)
+                *repulsionNeighbors << ";";
+            *repulsionNeighbors << static_cast<int>(neighbor.vert) + 1 << ":"
+                                << neighbor.dist;
+            lastRepulsionDisp[0] += vect.getX();
+            if(dim > 1)
+                lastRepulsionDisp[1] += vect.getY();
+            if(dim > 2)
+                lastRepulsionDisp[2] += vect.getZ();
+        }
         disp[vert] += vect;
     }
 
@@ -1142,8 +1182,10 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
         disp[vert] *= edge / norm;
         dispNorm[vert] = disp[vert].norm();
     }
-    lastAttractionEdges = attractionEdges.str();
-    lastRepulsionNeighbors = repulsionNeighbors.str();
+    if(collectRefinementStepDetails){
+        lastAttractionEdges = attractionEdges->str();
+        lastRepulsionNeighbors = repulsionNeighbors->str();
+    }
 }
 
 void DrawGraph::mish_engine_weighted()
@@ -1218,25 +1260,34 @@ void DrawGraph::mish_engine_weighted()
             currentRoundInLevel = ctr;
             bool recordSteps =
                 should_record_refinement_step(traceLevelIndex, misfLevel, currentRoundInLevel);
-            std::vector<size_t> stepRows(csize, static_cast<size_t>(-1));
+            std::vector<size_t> stepRows;
+            if(recordSteps)
+                stepRows.assign(csize, static_cast<size_t>(-1));
+            collectRefinementStepDetails = recordSteps;
             for(size_tt i = 0; i < csize; i++){
-                Point<> coordBefore = pos[mish[i]];
-                coord_t heatBefore = heat[mish[i]];
-                float oldCosBefore = old_cos[mish[i]];
-                coord_t oldDispNormBefore = oldDispNorm[mish[i]];
-                std::fill(lastAttractionDisp.begin(), lastAttractionDisp.end(), 0.0);
-                std::fill(lastRepulsionDisp.begin(), lastRepulsionDisp.end(), 0.0);
-                lastAttractionEdges.clear();
-                lastRepulsionNeighbors.clear();
-                lastAttractionTermNeighbors.clear();
-                lastAttractionTermWeights.clear();
-                lastAttractionTermNorm2.clear();
-                lastAttractionTermDesired.clear();
-                lastAttractionTermDesired2.clear();
-                lastAttractionTermScale.clear();
-                lastAttractionTermDelta.clear();
-                lastAttractionTermStep.clear();
-                lastAttractionTermCumulative.clear();
+                Point<> coordBefore;
+                coord_t heatBefore = 0;
+                float oldCosBefore = 0;
+                coord_t oldDispNormBefore = 0;
+                if(recordSteps){
+                    coordBefore = pos[mish[i]];
+                    heatBefore = heat[mish[i]];
+                    oldCosBefore = old_cos[mish[i]];
+                    oldDispNormBefore = oldDispNorm[mish[i]];
+                    std::fill(lastAttractionDisp.begin(), lastAttractionDisp.end(), 0.0);
+                    std::fill(lastRepulsionDisp.begin(), lastRepulsionDisp.end(), 0.0);
+                    lastAttractionEdges.clear();
+                    lastRepulsionNeighbors.clear();
+                    lastAttractionTermNeighbors.clear();
+                    lastAttractionTermWeights.clear();
+                    lastAttractionTermNorm2.clear();
+                    lastAttractionTermDesired.clear();
+                    lastAttractionTermDesired2.clear();
+                    lastAttractionTermScale.clear();
+                    lastAttractionTermDelta.clear();
+                    lastAttractionTermStep.clear();
+                    lastAttractionTermCumulative.clear();
+                }
                 if(!misfLevel && finalStageMode == FINAL_STAGE_KK_REPULSE)
                     KK_spring_weighted_final_v1(mish[i], metricNbrs[mish[i]][misfLevel], misfLevel);
                 else if(!misfLevel)
@@ -1244,11 +1295,19 @@ void DrawGraph::mish_engine_weighted()
                 else
                     KK_spring_weighted_v1(mish[i], metricNbrs[mish[i]][misfLevel], misfLevel);
 
-                Point<> preTempDisp = disp[mish[i]];
-                coord_t preTempDispNorm = dispNorm[mish[i]];
+                Point<> preTempDisp;
+                coord_t preTempDispNorm = 0;
+                if(recordSteps){
+                    preTempDisp = disp[mish[i]];
+                    preTempDispNorm = dispNorm[mish[i]];
+                }
                 update_Local_Temp_v2(mish[i]);
-                coord_t heatAfter = heat[mish[i]];
-                float oldCosAfter = old_cos[mish[i]];
+                coord_t heatAfter = 0;
+                float oldCosAfter = 0;
+                if(recordSteps){
+                    heatAfter = heat[mish[i]];
+                    oldCosAfter = old_cos[mish[i]];
+                }
                 oldDisp[mish[i]] = disp[mish[i]];
                 oldDispNorm[mish[i]] = dispNorm[mish[i]];
                 disp[mish[i]] *= (coord_t)heat[mish[i]];
@@ -1289,6 +1348,7 @@ void DrawGraph::mish_engine_weighted()
                 if(recordSteps && stepRows[i] != static_cast<size_t>(-1))
                     record_refinement_step_after(stepRows[i], mish[i]);
             }
+            collectRefinementStepDetails = false;
             trace_round_in_level = ctr;
             trace_after_round(csize, trace_round_in_level);
         }

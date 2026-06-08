@@ -410,6 +410,7 @@ private:
     std::vector<int> traceRounds;
     std::vector<int> traceActiveCounts;
     bool refinementStepTraceEnabled;
+    bool collectRefinementStepDetails;
     int refinementStepTraceLevelIndex;
     int refinementStepTraceMisfLevel;
     int refinementStepTraceRoundStart;
