@@ -895,10 +895,12 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' `density_mix_schedule` runs a continuation from density-weighted stiffnesses
 #' toward uniform stiffnesses.
 #'
-#' For scalable repair from an existing layout, pass `coords` together with an
-#' edge-only object from [prepare.edge.kk()]. If `coords` is omitted and
-#' `init = "metric_mds"`, use an all-pairs prepared object from
-#' [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
+#' For scalable repair from an existing layout, pass `coords` or an edge-only
+#' object from [prepare.edge.kk()]. When raw graph inputs are supplied,
+#' `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
+#' `init != "metric_mds"`. If `coords` is omitted and `init = "metric_mds"`,
+#' use an all-pairs prepared object from [prepare.graph.geodesic.mds()] or
+#' [prepare.geodesic.kk()] instead.
 #'
 #' @inheritParams score.gmds
 #' @param coords Optional starting coordinates. If omitted, `init` is used.
@@ -962,15 +964,27 @@ edge.kk <- function(coords = NULL,
   stiffness_transform <- match.arg(stiffness_transform)
   scale_mode <- match.arg(scale_mode)
   engine <- match.arg(engine)
-  prepared <- grip.gmds.require.prepared(
-    prepared = prepared,
-    coords = coords,
-    edges = edges,
-    n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights
-  )
+  prepared <- if (!is.null(prepared)) {
+    grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  } else if (!is.null(coords) || !identical(init, "metric_mds")) {
+    prepare.edge.kk(
+      edges = edges,
+      n = if (is.null(n) && !is.null(coords)) nrow(coords) else n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
+    )
+  } else {
+    grip.gmds.require.prepared(
+      prepared = NULL,
+      coords = coords,
+      edges = edges,
+      n = n,
+      adj_list = adj_list,
+      weight_list = weight_list,
+      edge_weights = edge_weights
+    )
+  }
   if (is.null(prepared$edges) || is.null(prepared$edge_targets)) {
     stop("prepared object must contain edges and edge_targets")
   }
