@@ -40,6 +40,102 @@ test_that("edge-length stiffness clipping is respected after normalization", {
   expect_lte(max(stiff$mixed_signal), 1.5)
 })
 
+test_that("edge-only edge-KK preparation avoids all-pairs caches", {
+  edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L))
+  edge.weights <- c(1, 1.3, 0.9, 1.7)
+  prepared <- grip.prepare.edge.kk(
+    edges = edges,
+    n = 4L,
+    edge_weights = edge.weights
+  )
+
+  expect_s3_class(prepared, "grip_edge_kk_prepared")
+  expect_s3_class(prepared, "grip_gmds_prepared")
+  expect_equal(prepared$n, 4L)
+  expect_equal(
+    prepared$edges,
+    rbind(c(1L, 2L), c(1L, 4L), c(2L, 3L), c(3L, 4L))
+  )
+  expect_equal(prepared$edge_targets, c(1, 1.7, 1.3, 0.9))
+  expect_equal(prepared$pair_mode, "edge_only")
+  expect_equal(nrow(prepared$pair_matrix), 0L)
+  expect_length(prepared$pair_graph_distance, 0L)
+  expect_null(prepared$distance_matrix)
+  expect_equal(prepared$n_components, 1L)
+})
+
+test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", {
+  edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L), c(1L, 3L))
+  edge.weights <- c(1, 1.4, 1.1, 1.2, 1.8)
+  prepared <- grip.prepare.edge.kk(
+    edges = edges,
+    n = 4L,
+    edge_weights = edge.weights
+  )
+  init <- grip.layout.weighted(
+    edges = edges,
+    n = 4L,
+    edge_weights = edge.weights,
+    dim = 3L,
+    rounds = 4L,
+    final_rounds = 4L,
+    seed = 11L
+  )
+  before <- grip.score.gmds.layout(init, prepared = prepared)
+  fit <- grip.optimize.edge.kk.layout(
+    coords = init,
+    prepared = prepared,
+    dim = 3L,
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    scale_mode = "profiled",
+    max_iter = 4L,
+    diagnostics = TRUE,
+    engine = "cpp"
+  )
+
+  expect_s3_class(fit, "grip_gmds_layout")
+  expect_equal(fit$method, "edge_kk")
+  expect_equal(dim(fit$coords), c(4L, 3L))
+  expect_s3_class(fit$prepared, "grip_edge_kk_prepared")
+  expect_true(is.na(before$gmds.stress[[1L]]))
+  expect_true(is.na(fit$diagnostics$gmds.stress[[1L]]))
+  expect_lte(fit$diagnostics$edge.rel.rmse[[1L]], before$edge.rel.rmse[[1L]])
+})
+
+test_that("edge-only preparation rejects duplicate undirected edges", {
+  expect_error(
+    grip.prepare.edge.kk(
+      edges = rbind(c(1L, 2L), c(2L, 1L)),
+      n = 2L,
+      edge_weights = c(1, 1)
+    ),
+    "duplicate undirected edges"
+  )
+})
+
+test_that("edge-only preparation does not support metric-MDS initialization", {
+  prepared <- grip.prepare.edge.kk(
+    edges = edges.path(4L),
+    n = 4L,
+    edge_weights = c(1, 1, 1)
+  )
+
+  expect_error(
+    grip.metric.mds.layout(prepared = prepared),
+    "metric MDS requires an all-pairs prepared object"
+  )
+  expect_error(
+    grip.optimize.edge.kk.layout(
+      prepared = prepared,
+      dim = 2L,
+      init = "metric_mds",
+      max_iter = 1L
+    ),
+    "init = \"metric_mds\" requires an all-pairs prepared object"
+  )
+})
+
 test_that("edge-isometric energy gradient matches finite differences", {
   edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L))
   coords <- matrix(c(

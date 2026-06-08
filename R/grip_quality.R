@@ -1032,7 +1032,10 @@ grip.prepare.geodesic.mds.graph <- function(data,
 
 grip.validate.geodesic.mds.prepared <- function(prepared, coords = NULL) {
   if (!inherits(prepared, "grip_geodesic_kk_prepared")) {
-    stop("prepared must be NULL or an object from grip.prepare.geodesic.mds() / grip.prepare.geodesic.kk()")
+    stop(
+      "prepared must be NULL or an object from grip.prepare.edge.kk(), ",
+      "grip.prepare.graph.geodesic.mds(), or grip.prepare.geodesic.kk()"
+    )
   }
   if (!is.null(coords) && nrow(coords) != prepared$n) {
     stop("nrow(coords) must match the graph size stored in prepared")
@@ -3396,6 +3399,142 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
   fit
 }
 
+grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
+                                                     weight.list = NULL,
+                                                     caller = "grip.prepare.edge.kk") {
+  edges <- list()
+  edge.weights <- numeric(0L)
+  for (u in seq_along(adj.list)) {
+    nb <- as.integer(adj.list[[u]])
+    if (length(nb) == 0L) next
+    keep <- nb > u
+    if (!any(keep)) next
+    chosen <- nb[keep]
+    edges[[length(edges) + 1L]] <- cbind(rep.int(u, length(chosen)), chosen)
+    if (is.null(weight.list)) {
+      edge.weights <- c(edge.weights, rep.int(1, length(chosen)))
+    } else {
+      edge.weights <- c(edge.weights, as.double(weight.list[[u]][keep]))
+    }
+  }
+
+  edges <- .bind_edges(edges)
+  if (nrow(edges) == 0L) {
+    return(list(edges = .empty_edge_matrix(), edge_targets = numeric(0L)))
+  }
+  edges <- cbind(pmin(edges[, 1L], edges[, 2L]), pmax(edges[, 1L], edges[, 2L]))
+  keep <- edges[, 1L] != edges[, 2L]
+  edges <- edges[keep, , drop = FALSE]
+  edge.weights <- edge.weights[keep]
+  if (nrow(edges) == 0L) {
+    return(list(edges = .empty_edge_matrix(), edge_targets = numeric(0L)))
+  }
+  keys <- paste(edges[, 1L], edges[, 2L], sep = "-")
+  if (any(duplicated(keys))) {
+    stop(
+      sprintf(
+        "%s() does not support duplicate undirected edges; collapse duplicate edges before preparing edge-KK",
+        caller
+      ),
+      call. = FALSE
+    )
+  }
+  storage.mode(edges) <- "integer"
+  list(edges = edges, edge_targets = as.double(edge.weights))
+}
+
+#' Prepare an edge-only graph for edge-KK repair
+#'
+#' \code{grip.prepare.edge.kk()} validates an undirected weighted graph and
+#' returns the lightweight prepared object used by
+#' \code{\link{grip.optimize.edge.kk.layout}()} when only graph-edge targets are
+#' needed. Unlike \code{\link{grip.prepare.graph.geodesic.mds}()}, this helper
+#' does not compute all-pairs shortest paths, path caches, or a dense graph
+#' distance matrix.
+#'
+#' Use this helper when a starting layout is already available, for example from
+#' \code{\link{grip.layout.weighted}()}, and the next step is scalable edge-KK
+#' local repair. Edge-only objects support edge-fidelity diagnostics through
+#' \code{\link{grip.score.gmds.layout}()}; all-pairs GMDS path and chord
+#' diagnostics are unavailable and are reported as \code{NA}.
+#'
+#' @param edges Two-column integer matrix of edges (1-based vertex ids).
+#' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
+#'   \code{length(adj_list)}. If omitted with \code{edges}, defaults to
+#'   \code{max(edges)}.
+#' @param adj_list Adjacency list (1-based) for an undirected graph.
+#' @param weight_list Optional parallel list of positive edge weights.
+#' @param edge_weights Optional positive edge-weight vector parallel to
+#'   \code{edges}.
+#'
+#' @return A lightweight prepared object of class
+#'   \code{"grip_edge_kk_prepared"} layered on the common
+#'   \code{"grip_gmds_prepared"} graph class. It contains canonical graph
+#'   edges and edge targets but no all-pairs geodesic cache.
+#' @export
+grip.prepare.edge.kk <- function(edges = NULL,
+                                 n = NULL,
+                                 adj_list = NULL,
+                                 weight_list = NULL,
+                                 edge_weights = NULL) {
+  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
+    n <- max(as.integer(edges), na.rm = TRUE)
+  }
+  if (is.null(n) && !is.null(adj_list)) {
+    n <- length(adj_list)
+  }
+  if (is.null(n) || !is.finite(n) || n <= 0L) {
+    stop("n must be provided or inferable from edges/adj_list", call. = FALSE)
+  }
+  n <- as.integer(n)
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj_list = adj_list,
+    weight_list = weight_list,
+    edge_weights = edge_weights,
+    dim = 2L,
+    placement = "barycenter",
+    seed = 1L
+  )
+  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
+  bundle <- grip.canonical.edge.bundle.from.adj.list(
+    adj.list = sorted$adj_list,
+    weight.list = sorted$weight_list,
+    caller = "grip.prepare.edge.kk"
+  )
+  comp <- grip.connected.components(sorted$adj_list, validated$n)
+
+  prepared <- list(
+    n = validated$n,
+    edges = bundle$edges,
+    edge_targets = bundle$edge_targets,
+    adj_list = sorted$adj_list,
+    weight_list = sorted$weight_list,
+    pair_matrix = matrix(integer(), ncol = 2L),
+    pair_graph_distance = numeric(0L),
+    path_vertices = list(),
+    path_edges = list(),
+    path_edge_weights = list(),
+    pair_path_count_log = numeric(0L),
+    graph_diameter = NA_real_,
+    distance_matrix = NULL,
+    pair_mode = "edge_only",
+    graph_build_mode = "edge_input",
+    n_components = length(unique(comp)),
+    component_id = comp
+  )
+  class(prepared) <- c(
+    "grip_edge_kk_prepared",
+    "grip_gmds_prepared",
+    "grip_gkk_prepared",
+    "grip_geodesic_kk_prepared",
+    "list"
+  )
+  prepared
+}
+
 #' Prepare a graph-first geodesic-MDS path cache
 #'
 #' \code{grip.prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
@@ -3424,7 +3563,7 @@ grip.geodesic.mds.cmdscale.init <- function(prepared, dim) {
 #'
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
-#' @noRd
+#' @export
 grip.prepare.graph.geodesic.mds <- function(edges = NULL,
                                             n = NULL,
                                             adj_list = NULL,

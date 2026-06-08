@@ -22,8 +22,10 @@ grip.metric.mds.layout(
 )
 }
 \arguments{
-\item{prepared}{Optional object returned by
-[grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].}
+\item{prepared}{Optional all-pairs prepared object returned by
+[grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
+Edge-only objects from [grip.prepare.edge.kk()] are intentionally rejected
+because metric MDS requires a graph distance matrix.}
 
 \item{edges}{Two-column edge matrix used when `prepared` is omitted.}
 

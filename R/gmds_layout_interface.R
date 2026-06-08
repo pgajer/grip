@@ -140,8 +140,10 @@ grip.gmds.band.weights <- function(graph.distances,
 #' graph.
 #'
 #' @param coords Numeric coordinate matrix.
-#' @param prepared Optional object returned by
+#' @param prepared Optional object returned by [grip.prepare.edge.kk()],
 #'   [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
+#'   Edge-only objects from [grip.prepare.edge.kk()] report only edge
+#'   diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.
 #' @param edges Two-column edge matrix used when `prepared` is omitted.
 #' @param n Number of vertices used when `prepared` is omitted.
 #' @param adj_list Optional adjacency list used when `prepared` is omitted.
@@ -377,6 +379,10 @@ print.grip_gmds_layout <- function(x, ...) {
 #' common `"grip_gmds_layout"` result.
 #'
 #' @inheritParams grip.score.gmds.layout
+#' @param prepared Optional all-pairs prepared object returned by
+#'   [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
+#'   Edge-only objects from [grip.prepare.edge.kk()] are intentionally rejected
+#'   because metric MDS requires a graph distance matrix.
 #' @param dim Target embedding dimension. Values greater than 3 are supported
 #'   for GMDS and edge-KK workflows.
 #' @param add,eig Passed to `stats::cmdscale()`.
@@ -771,6 +777,12 @@ grip.edge.isometric.initial.coords <- function(prepared,
   }
   init <- match.arg(init)
   if (identical(init, "metric_mds")) {
+    if (is.null(prepared$distance_matrix)) {
+      stop(
+        "init = \"metric_mds\" requires an all-pairs prepared object; ",
+        "pass coords, use init = \"random\", or prepare with grip.prepare.graph.geodesic.mds()"
+      )
+    }
     return(grip.metric.mds.layout(
       prepared = prepared,
       dim = dim,
@@ -798,6 +810,11 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' using deterministic gradient descent with Armijo backtracking. The default
 #' `density_mix_schedule` runs a continuation from density-weighted stiffnesses
 #' toward uniform stiffnesses.
+#'
+#' For scalable repair from an existing layout, pass `coords` together with an
+#' edge-only object from [grip.prepare.edge.kk()]. If `coords` is omitted and
+#' `init = "metric_mds"`, use an all-pairs prepared object from
+#' [grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()] instead.
 #'
 #' @inheritParams grip.score.gmds.layout
 #' @param coords Optional starting coordinates. If omitted, `init` is used.
