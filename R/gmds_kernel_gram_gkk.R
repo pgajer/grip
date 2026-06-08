@@ -353,6 +353,8 @@ grip.kernel.gram.score <- function(coords,
 #' with an antipodal kernel controlled by `angle.power`.
 #'
 #' @inheritParams edge.kk
+#' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
+#'   frames.
 #' @param X Optional ambient/source coordinates used to build `star` when `star`
 #'   is omitted.
 #' @param star Optional object from [graph.riemannian.star.structure()].

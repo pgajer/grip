@@ -919,7 +919,9 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param initial_step,step_shrink,armijo_factor,grad_tol,min_step Line-search
 #'   controls.
 #' @param recenter If `TRUE`, recenter the layout after accepted steps.
-#' @param return_trace If `TRUE`, keep per-iteration trace rows.
+#' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
+#'   frames. If `FALSE`, omit those payloads while retaining compact stage
+#'   summaries in `metadata$stage_summaries`.
 #' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
 #' @param seed Random seed used only for `init = "random"`.
 #' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
@@ -1096,10 +1098,10 @@ edge.kk <- function(coords = NULL,
     )
     current <- fit$coords
     trace.df <- fit$trace
+    stage.final <- fit$stage_final
     stage.summaries <- lapply(seq_along(stiffness.objects), function(stage.idx) {
       stiff <- stiffness.objects[[stage.idx]]
-      rows <- trace.df[trace.df$stage == stage.idx, , drop = FALSE]
-      final <- rows[nrow(rows), , drop = FALSE]
+      final <- stage.final[stage.final$stage == stage.idx, , drop = FALSE]
       data.frame(
         stage = stage.idx,
         mix = density_mix_schedule[[stage.idx]],
@@ -1146,7 +1148,7 @@ edge.kk <- function(coords = NULL,
   fixed.scale <- NULL
   trace.rows <- list()
   stage.summaries <- vector("list", length(density_mix_schedule))
-  frames <- list(current)
+  frames <- if (isTRUE(return_trace)) list(current) else NULL
 
   for (stage.idx in seq_along(density_mix_schedule)) {
     mix <- density_mix_schedule[[stage.idx]]
@@ -1193,18 +1195,20 @@ edge.kk <- function(coords = NULL,
       edge_length_epsilon = edge_length_epsilon,
       distance_floor = distance_floor
     )
-    trace.rows[[length(trace.rows) + 1L]] <- data.frame(
-      stage = stage.idx,
-      mix = mix,
-      iteration = 0L,
-      energy = state$energy,
-      gradient_norm = state$gradient_norm,
-      step = NA_real_,
-      accepted = TRUE,
-      edge.scale = state$edge_scale,
-      edge.rel.rmse = state$edge_rel_rmse,
-      stringsAsFactors = FALSE
-    )
+    if (isTRUE(return_trace)) {
+      trace.rows[[length(trace.rows) + 1L]] <- data.frame(
+        stage = stage.idx,
+        mix = mix,
+        iteration = 0L,
+        energy = state$energy,
+        gradient_norm = state$gradient_norm,
+        step = NA_real_,
+        accepted = TRUE,
+        edge.scale = state$edge_scale,
+        edge.rel.rmse = state$edge_rel_rmse,
+        stringsAsFactors = FALSE
+      )
+    }
 
     for (iter in seq_len(max_iter)) {
       if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
@@ -1238,18 +1242,20 @@ edge.kk <- function(coords = NULL,
         }
         step <- step * step_shrink
       }
-      trace.rows[[length(trace.rows) + 1L]] <- data.frame(
-        stage = stage.idx,
-        mix = mix,
-        iteration = iter,
-        energy = if (accepted) candidate.state$energy else state$energy,
-        gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
-        step = if (accepted) step else NA_real_,
-        accepted = accepted,
-        edge.scale = if (accepted) candidate.state$edge_scale else state$edge_scale,
-        edge.rel.rmse = if (accepted) candidate.state$edge_rel_rmse else state$edge_rel_rmse,
-        stringsAsFactors = FALSE
-      )
+      if (isTRUE(return_trace)) {
+        trace.rows[[length(trace.rows) + 1L]] <- data.frame(
+          stage = stage.idx,
+          mix = mix,
+          iteration = iter,
+          energy = if (accepted) candidate.state$energy else state$energy,
+          gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
+          step = if (accepted) step else NA_real_,
+          accepted = accepted,
+          edge.scale = if (accepted) candidate.state$edge_scale else state$edge_scale,
+          edge.rel.rmse = if (accepted) candidate.state$edge_rel_rmse else state$edge_rel_rmse,
+          stringsAsFactors = FALSE
+        )
+      }
       if (!accepted) {
         break
       }
@@ -1274,9 +1280,10 @@ edge.kk <- function(coords = NULL,
     )
   }
 
-  trace.df <- do.call(rbind, trace.rows)
-  if (!isTRUE(return_trace)) {
-    frames <- list(current)
+  trace.df <- if (isTRUE(return_trace)) {
+    do.call(rbind, trace.rows)
+  } else {
+    NULL
   }
   diag <- if (isTRUE(diagnostics)) {
     score.gmds(
