@@ -103,6 +103,53 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
   expect_lte(fit$diagnostics$edge.rel.rmse[[1L]], before$edge.rel.rmse[[1L]])
 })
 
+test_that("edge-KK raw graph input uses edge-only preparation when coordinates are supplied", {
+  edges <- edges.mesh(4L, 4L, connectivity = "orthogonal")
+  coords <- cbind(
+    rep(seq_len(4L), times = 4L),
+    rep(seq_len(4L), each = 4L)
+  )
+  fit <- edge.kk(
+    coords = coords,
+    edges = edges,
+    n = nrow(coords),
+    edge_weights = rep(1, nrow(edges)),
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    max_iter = 1L,
+    diagnostics = TRUE,
+    return_trace = FALSE,
+    engine = "cpp"
+  )
+
+  expect_s3_class(fit$prepared, "grip_edge_kk_prepared")
+  expect_equal(fit$prepared$pair_mode, "edge_only")
+  expect_null(fit$prepared$distance_matrix)
+  expect_true(is.na(fit$diagnostics$gmds.stress[[1L]]))
+  expect_equal(nrow(fit$coords), nrow(coords))
+})
+
+test_that("edge-KK random initialization uses edge-only preparation from raw graph input", {
+  edges <- edges.path(6L)
+  fit <- edge.kk(
+    edges = edges,
+    n = 6L,
+    init = "random",
+    stiffness_method = "uniform",
+    density_mix_schedule = 1,
+    max_iter = 1L,
+    diagnostics = FALSE,
+    return_trace = FALSE,
+    seed = 5L,
+    engine = "cpp"
+  )
+
+  expect_s3_class(fit$prepared, "grip_edge_kk_prepared")
+  expect_equal(fit$prepared$pair_mode, "edge_only")
+  expect_null(fit$prepared$distance_matrix)
+  expect_equal(dim(fit$coords), c(6L, 2L))
+})
+
 test_that("edge-only preparation rejects duplicate undirected edges", {
   expect_error(
     prepare.edge.kk(

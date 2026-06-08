@@ -111,8 +111,10 @@ using deterministic gradient descent with Armijo backtracking. The default
 toward uniform stiffnesses.
 }
 \details{
-For scalable repair from an existing layout, pass `coords` together with an
-edge-only object from [prepare.edge.kk()]. If `coords` is omitted and
-`init = "metric_mds"`, use an all-pairs prepared object from
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
+For scalable repair from an existing layout, pass `coords` or an edge-only
+object from [prepare.edge.kk()]. When raw graph inputs are supplied,
+`edge.kk()` uses edge-only preparation whenever `coords` are supplied or
+`init != "metric_mds"`. If `coords` is omitted and `init = "metric_mds"`,
+use an all-pairs prepared object from [prepare.graph.geodesic.mds()] or
+[prepare.geodesic.kk()] instead.
 }
