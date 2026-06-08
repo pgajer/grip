@@ -107,7 +107,8 @@ controls.}
 
 \item{recenter}{If `TRUE`, recenter the layout after accepted steps.}
 
-\item{return_trace}{If `TRUE`, keep per-iteration trace rows.}
+\item{return_trace}{If `TRUE`, keep per-iteration trace rows and coordinate
+frames.}
 
 \item{diagnostics}{If `TRUE`, attach the common GMDS diagnostic panel.}
 

@@ -269,6 +269,15 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
     std::vector<bool> trace_accepted;
     std::vector<double> trace_edge_scale;
     std::vector<double> trace_edge_rel_rmse;
+    std::vector<int> final_stage;
+    std::vector<double> final_mix;
+    std::vector<int> final_iteration;
+    std::vector<double> final_energy;
+    std::vector<double> final_gradient_norm;
+    std::vector<double> final_step;
+    std::vector<bool> final_accepted;
+    std::vector<double> final_edge_scale;
+    std::vector<double> final_edge_rel_rmse;
     Rcpp::List frames;
     if(return_trace)
         frames.push_back(Rcpp::clone(coords));
@@ -285,15 +294,20 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
                                          scale,
                                          edge_length_epsilon,
                                          distance_floor);
-        trace_stage.push_back(stage + 1);
-        trace_mix.push_back(mix_schedule[stage]);
-        trace_iteration.push_back(0);
-        trace_energy.push_back(state.energy);
-        trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
-        trace_step.push_back(NA_REAL);
-        trace_accepted.push_back(true);
-        trace_edge_scale.push_back(state.edgeScale);
-        trace_edge_rel_rmse.push_back(state.edgeRelRmse);
+        int currentIteration = 0;
+        double currentStep = NA_REAL;
+        bool currentAccepted = true;
+        if(return_trace){
+            trace_stage.push_back(stage + 1);
+            trace_mix.push_back(mix_schedule[stage]);
+            trace_iteration.push_back(currentIteration);
+            trace_energy.push_back(state.energy);
+            trace_gradient_norm.push_back(std::sqrt(state.gradNorm2));
+            trace_step.push_back(currentStep);
+            trace_accepted.push_back(currentAccepted);
+            trace_edge_scale.push_back(state.edgeScale);
+            trace_edge_rel_rmse.push_back(state.edgeRelRmse);
+        }
 
         for(int iter = 1; iter <= max_iter; iter++){
             if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
@@ -331,15 +345,20 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
                 step *= step_shrink;
             }
 
-            trace_stage.push_back(stage + 1);
-            trace_mix.push_back(mix_schedule[stage]);
-            trace_iteration.push_back(iter);
-            trace_energy.push_back(accepted ? candidateState.energy : state.energy);
-            trace_gradient_norm.push_back(std::sqrt(accepted ? candidateState.gradNorm2 : state.gradNorm2));
-            trace_step.push_back(accepted ? step : NA_REAL);
-            trace_accepted.push_back(accepted);
-            trace_edge_scale.push_back(accepted ? candidateState.edgeScale : state.edgeScale);
-            trace_edge_rel_rmse.push_back(accepted ? candidateState.edgeRelRmse : state.edgeRelRmse);
+            currentIteration = iter;
+            currentStep = accepted ? step : NA_REAL;
+            currentAccepted = accepted;
+            if(return_trace){
+                trace_stage.push_back(stage + 1);
+                trace_mix.push_back(mix_schedule[stage]);
+                trace_iteration.push_back(currentIteration);
+                trace_energy.push_back(accepted ? candidateState.energy : state.energy);
+                trace_gradient_norm.push_back(std::sqrt(accepted ? candidateState.gradNorm2 : state.gradNorm2));
+                trace_step.push_back(currentStep);
+                trace_accepted.push_back(currentAccepted);
+                trace_edge_scale.push_back(accepted ? candidateState.edgeScale : state.edgeScale);
+                trace_edge_rel_rmse.push_back(accepted ? candidateState.edgeRelRmse : state.edgeRelRmse);
+            }
 
             if(!accepted)
                 break;
@@ -349,23 +368,48 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
             if(return_trace)
                 frames.push_back(Rcpp::clone(coords));
         }
+
+        final_stage.push_back(stage + 1);
+        final_mix.push_back(mix_schedule[stage]);
+        final_iteration.push_back(currentIteration);
+        final_energy.push_back(state.energy);
+        final_gradient_norm.push_back(std::sqrt(state.gradNorm2));
+        final_step.push_back(currentStep);
+        final_accepted.push_back(currentAccepted);
+        final_edge_scale.push_back(state.edgeScale);
+        final_edge_rel_rmse.push_back(state.edgeRelRmse);
     }
 
-    if(!return_trace){
-        frames = Rcpp::List::create(Rcpp::clone(coords));
+    Rcpp::RObject trace;
+    Rcpp::RObject frame_output;
+    if(return_trace){
+        trace = build_trace_df(trace_stage,
+                               trace_mix,
+                               trace_iteration,
+                               trace_energy,
+                               trace_gradient_norm,
+                               trace_step,
+                               trace_accepted,
+                               trace_edge_scale,
+                               trace_edge_rel_rmse);
+        frame_output = frames;
+    } else {
+        trace = R_NilValue;
+        frame_output = R_NilValue;
     }
 
     return Rcpp::List::create(
         Rcpp::_["coords"] = coords,
-        Rcpp::_["trace"] = build_trace_df(trace_stage,
-                                          trace_mix,
-                                          trace_iteration,
-                                          trace_energy,
-                                          trace_gradient_norm,
-                                          trace_step,
-                                          trace_accepted,
-                                          trace_edge_scale,
-                                          trace_edge_rel_rmse),
-        Rcpp::_["frames"] = frames
+        Rcpp::_["trace"] = trace,
+        Rcpp::_["stage_final"] = build_trace_df(final_stage,
+                                                final_mix,
+                                                final_iteration,
+                                                final_energy,
+                                                final_gradient_norm,
+                                                final_step,
+                                                final_accepted,
+                                                final_edge_scale,
+                                                final_edge_rel_rmse),
+        Rcpp::_["frames"] = frame_output
     );
 }

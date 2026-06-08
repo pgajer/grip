@@ -126,6 +126,9 @@ test_that("edge-KK raw graph input uses edge-only preparation when coordinates a
   expect_equal(fit$prepared$pair_mode, "edge_only")
   expect_null(fit$prepared$distance_matrix)
   expect_true(is.na(fit$diagnostics$gmds.stress[[1L]]))
+  expect_null(fit$trace)
+  expect_null(fit$metadata$frames)
+  expect_s3_class(fit$metadata$stage_summaries, "data.frame")
   expect_equal(nrow(fit$coords), nrow(coords))
 })
 
@@ -147,7 +150,30 @@ test_that("edge-KK random initialization uses edge-only preparation from raw gra
   expect_s3_class(fit$prepared, "grip_edge_kk_prepared")
   expect_equal(fit$prepared$pair_mode, "edge_only")
   expect_null(fit$prepared$distance_matrix)
+  expect_null(fit$trace)
+  expect_null(fit$metadata$frames)
   expect_equal(dim(fit$coords), c(6L, 2L))
+})
+
+test_that("edge-KK omits trace rows and frames when tracing is disabled in R engine", {
+  edges <- edges.path(5L)
+  start <- cbind(seq_len(5L), c(0.1, -0.2, 0.3, -0.1, 0.2))
+  fit <- edge.kk(
+    coords = start,
+    edges = edges,
+    n = 5L,
+    stiffness_method = "uniform",
+    density_mix_schedule = c(0, 1),
+    max_iter = 2L,
+    diagnostics = FALSE,
+    return_trace = FALSE,
+    engine = "R"
+  )
+
+  expect_null(fit$trace)
+  expect_null(fit$metadata$frames)
+  expect_s3_class(fit$metadata$stage_summaries, "data.frame")
+  expect_equal(nrow(fit$metadata$stage_summaries), 2L)
 })
 
 test_that("edge-only preparation rejects duplicate undirected edges", {
