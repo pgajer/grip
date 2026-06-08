@@ -50,8 +50,10 @@ grip.optimize.kernel.gram.gkk.layout(
 \arguments{
 \item{coords}{Optional starting coordinates. If omitted, `init` is used.}
 
-\item{prepared}{Optional object returned by
-[grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].}
+\item{prepared}{Optional object returned by [grip.prepare.edge.kk()],
+[grip.prepare.graph.geodesic.mds()] or [grip.prepare.geodesic.kk()].
+Edge-only objects from [grip.prepare.edge.kk()] report only edge
+diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
 \item{edges}{Two-column edge matrix used when `prepared` is omitted.}
 

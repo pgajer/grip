@@ -17,6 +17,7 @@ provides \code{\link{grip.score.layout}()} and
 \code{\link{grip.layout.trace}()} and
 \code{\link{grip.layout.trace.weighted}()} for multiscale diagnostics,
 and advanced public experimental geodesic-KK helpers such as
+\code{\link{grip.prepare.edge.kk}()},
 \code{\link{grip.prepare.geodesic.kk}()},
 \code{\link{grip.score.geodesic.kk}()},
 \code{\link{grip.prepare.landmark.geodesic.kk}()}, and

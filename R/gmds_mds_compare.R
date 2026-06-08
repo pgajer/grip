@@ -23,6 +23,12 @@ grip.classical.mds.embedding <- function(prepared,
   if (dim < 2L) {
     stop("dim must be at least 2")
   }
+  if (is.null(prepared$distance_matrix)) {
+    stop(
+      "metric MDS requires an all-pairs prepared object with distance_matrix; ",
+      "grip.prepare.edge.kk() objects are edge-only"
+    )
+  }
 
   fit <- stats::cmdscale(
     stats::as.dist(prepared$distance_matrix),
