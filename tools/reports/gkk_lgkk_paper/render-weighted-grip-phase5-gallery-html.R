@@ -1,6 +1,16 @@
 #!/usr/bin/env Rscript
 
-repo_root <- normalizePath("/Users/pgajer/current_projects/grip", winslash = "/", mustWork = TRUE)
+script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+repo_root <- if (length(script_arg) > 0L) {
+  script_path <- sub("^--file=", "", script_arg[[1L]])
+  normalizePath(
+    file.path(dirname(script_path), "..", "..", ".."),
+    winslash = "/",
+    mustWork = TRUE
+  )
+} else {
+  normalizePath(getwd(), winslash = "/", mustWork = TRUE)
+}
 setwd(repo_root)
 
 options(rgl.useNULL = TRUE)

@@ -1732,8 +1732,7 @@ grip.geodesic.misf.resolve.top.level <- function(prepared,
 #' `grip.geodesic.misf.induced_level_graph()` extracts a level of the maximal
 #' independent set filtration and turns it into the weighted complete graph
 #' whose edge weights are the original full-graph geodesic distances restricted
-#' to that level. This is the coarse graph used by the Phase 2 MISF-GMDS
-#' initializer.
+#' to that level. This is the coarse graph used by the MISF-GMDS initializer.
 #'
 #' @param prepared A graph-first GMDS prepared object or a MISF-GMDS prepared
 #'   object.
@@ -1799,8 +1798,8 @@ grip.geodesic.misf.induced_level_graph <- function(prepared,
 #' Solve the coarsest MISF level with restartable pure GMDS
 #'
 #' `grip.geodesic.misf.solve.top.level()` runs a pure-GMDS solve on the coarse
-#' top MISF graph using multiple random restarts. It is the Phase 2 replacement
-#' for ad hoc random or spectral top-level initialization.
+#' top MISF graph using multiple random restarts, replacing ad hoc random or
+#' spectral top-level initialization.
 #'
 #' @param prepared A MISF-GMDS prepared object from
 #'   `grip.prepare.misf.geodesic.mds()`, or directly a graph-first GMDS
@@ -1820,7 +1819,7 @@ grip.geodesic.misf.induced_level_graph <- function(prepared,
 #' @param armijo_factor Armijo decrease constant.
 #' @param grad_tol Gradient-norm stopping tolerance.
 #' @param min_step Minimum accepted line-search step.
-#' @param n_threads Number of compiled-engine threads.
+#' @param n_threads Number of compiled-engine threads, capped at two.
 #' @param recenter Whether to recenter accepted proposals to zero mean.
 #' @param return_trace Whether to retain per-iteration traces/frames for the
 #'   best restart.
@@ -2762,8 +2761,7 @@ grip.geodesic.misf.final.polish <- function(prepared,
 #'
 #' `grip.prepare.misf.geodesic.mds()` augments the graph-first GMDS prepared
 #' object with the maximal independent set filtration extracted from GRIP and a
-#' restartable pure-GMDS solve on the coarsest admissible MISF level. This is
-#' the Phase 2 preparation layer for the new MISF-based GMDS initializer.
+#' restartable pure-GMDS solve on the coarsest admissible MISF level.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with `adj_list`, defaults to
@@ -3009,7 +3007,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #' @param edge_length_epsilon Small non-negative stabilizer added inside
 #'   embedded edge lengths during the refinement and final-polish stages.
 #' @param n_threads Number of compiled-engine threads used by the refinement and
-#'   final-polish stages.
+#'   final-polish stages, capped at two.
 #' @param return_trace If `TRUE`, include detailed per-stage traces.
 #' @param return_frames If `TRUE`, retain intermediate coordinate frames for the
 #'   multiscale stages.

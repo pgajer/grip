@@ -121,7 +121,7 @@ test_that("landmark geodesic KK prefers the canonical carpet over a perturbed ca
   expect_lt(canonical_score$lgkk.weighted.rmse[[1L]], perturbed_score$lgkk.weighted.rmse[[1L]])
 })
 
-test_that("landmark geodesic KK optimizer decreases the prototype energy", {
+test_that("landmark geodesic KK optimizer decreases the objective", {
   built <- build_test_sierpinski_carpet_lgkk(2L)
   prepared <- prepare.landmark.geodesic.kk(
     edges = built$edges,

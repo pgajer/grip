@@ -1,7 +1,6 @@
 #ifndef POINT_HPP
 #define POINT_HPP
 
-#include <iostream>
 #include <cmath>
 #include <cstddef>
 #include <algorithm>
@@ -48,9 +47,7 @@ public:
     bool operator<(const Point<T>& p) const;
     bool operator==(const Point<T>& right) const;
 
-    //
-    // this (op) constant oparators
-    //
+    // Constant operators.
     template<typename U>
     Point<T> operator*(U constant) const {
         Point<T> result(*this);
@@ -173,9 +170,6 @@ public:
 
     // Friend functions
     template<typename U>
-    friend std::ostream& operator<<(std::ostream& output, const Point<U>& p);
-
-    template<typename U>
     friend Point<T> operator*(U constant, const Point<T>& p) {
         return p * constant;
     }
@@ -281,18 +275,6 @@ T Point<T>::scal_pr(const Point<T> &u, const Point<T> &v, const Point<T> &w) con
 template<class T>
 void Point<T>::set_to_zero() {
     std::fill(coord, coord + dim, T());
-}
-
-// Implementations of friend functions
-
-template<typename T>
-std::ostream& operator<<(std::ostream& output, const Point<T>& p) {
-    output << '(';
-    for (size_t i = 0; i < p.dim - 1; ++i) {
-        output << p.coord[i] << ", ";
-    }
-    output << p.coord[p.dim - 1] << ')';
-    return output;
 }
 
 template<typename T, typename U>

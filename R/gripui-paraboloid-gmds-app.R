@@ -284,7 +284,7 @@ gripui.paraboloid.gmds.ui <- function(title, subtitle) {
       shiny::numericInput("lambda_repulsion", "lambda_R", value = 0.20, min = 0, step = 0.05),
       shiny::numericInput("lambda_edge", "lambda_E", value = 0.25, min = 0, step = 0.05),
       shiny::numericInput("max_iter", "Max iterations", value = 15L, min = 0L, step = 1L),
-      shiny::numericInput("n_threads", "Threads (0 = auto)", value = 0L, min = 0L, step = 1L),
+      shiny::numericInput("n_threads", "Threads (0 = auto, max 2)", value = 0L, min = 0L, max = 2L, step = 1L),
       shiny::actionButton("render_layouts", "Compute layouts", class = "btn-primary"),
       shiny::uiOutput("render_status"),
       shiny::tags$hr(),

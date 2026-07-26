@@ -1,4 +1,4 @@
-// GRIP layout engine and the supporting routines
+// GRIP layout engine.
 
 #include "DrawGraph.h"
 
@@ -6,8 +6,7 @@
 //
 //	mish_engine()
 //
-//      this is a version fo mish_engine which utilizes repulsive
-//      forces
+//      Run multiscale refinement with attractive and repulsive forces.
 //
 //**************************************************************
 void DrawGraph::mish_engine()
@@ -49,9 +48,6 @@ void DrawGraph::mish_engine()
             }
             trace_begin_level(csize);
             
-            debug("csize="<< numOfInitVert
-                  << ", rounds=" << rounds);
-
         } else if ( ctr == rounds ){
             if(!createList)
                 lgkk_refine_level(csize, misfLevel, trace_round_in_level);
@@ -68,14 +64,13 @@ void DrawGraph::mish_engine()
             else
                 break;
 
-            // DETERMINING rounds
+            // Determine the refinement budget for the next level.
             rounds = sched3(csize,
                             0, initRounds,
                             numOfVert, finalRounds);        
 
 
-            // RESETTING INITIALIZATION CONSTANTS FOR NEW AND OLD
-            // VERTICES
+            // Reset the temperature for previously placed vertices.
             for(size_tt i = 0; i < prevSize; i++)
                   heat[mish[i]] = tinit;
         
@@ -90,10 +85,6 @@ void DrawGraph::mish_engine()
             trace_round_in_level = 0;
             trace_begin_level(csize);
             
-            debug("csize="<< csize
-                  <<", nbr["<<misfLevel<<"]="<< nbr[misfLevel]
-                  <<", rounds=" << rounds);
-        
         }// end of PREPROCESSING SECTION if( firstRound ){} else if( ...
 
     
@@ -151,8 +142,7 @@ void DrawGraph::FR_spring(const size_tt vert,
                           size_tt misfLayer)
 {
     size_tt overt; // other vertex
-//    double dist2;// square of the graph theoretic dist between vert and overt
-    double norm2;// square of the Eucleadian distance between vert and overt
+    double norm2; // Square of the Euclidean distance between vert and overt.
     
     size_tt *ptr;
     ptr = vertNbrs;
@@ -185,8 +175,6 @@ void DrawGraph::FR_spring(const size_tt vert,
         size_tt graphDist = *ptr++;
         if(!graphDist || overt >= numOfVert || overt == vert)
             continue;
-//      for( size_t overt = 0; overt < numOfVert; overt++)
-//          if(  overt != vert ){
         vect.set_to_zero();
         vect += pos[vert];
         vect -= pos[overt];
@@ -200,19 +188,6 @@ void DrawGraph::FR_spring(const size_tt vert,
     if(!misfLayer)
         add_final_anchor_force(vert);
     
-//      for(size_tt i = 0; i < 2*nbr[misfLayer]; i += 2){
-//          overt = *ptr++;
-//          dist2 = (double)(*ptr) * (*ptr++);
-//          if(!dist2)
-//              continue;
-//          vect.set_to_zero();
-//          vect += pos[overt];
-//          vect -= pos[vert];
-//          norm2 = (double)vect.fnorm2();
-//          vect *= (float)(norm2/(dist2 * edge2) - 1);
-//          disp[vert] += vect;
-//      }
-
     coord_t norm = disp[vert].fnorm();
     dispNorm[vert] = ROUND_L(norm);
 

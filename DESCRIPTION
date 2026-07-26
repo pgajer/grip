@@ -1,7 +1,7 @@
 Package: grip
 Type: Package
 Title: Graph Drawing with Intelligent Placement (GRIP)
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
 Description: Implements the GRIP multiscale graph layout workflow for
@@ -34,6 +34,7 @@ Suggests:
     shiny,
     testthat (>= 3.0.0)
 LinkingTo: Rcpp
+SystemRequirements: C++17
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-RoxygenNote: 7.3.3
+Config/roxygen2/version: 8.0.0

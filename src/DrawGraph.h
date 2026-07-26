@@ -1,10 +1,8 @@
-// DrawGraph.hpp a header file for DrawGraph class
+// DrawGraph class declaration.
 
 #ifndef DRAW_GRAPH_HPP
 #define DRAW_GRAPH_HPP
 
-#include <iostream>
-#include <new>
 #include <cmath>
 #include <queue>
 #include <cstdint>
@@ -16,7 +14,6 @@
 #include "Point.h"
 #include "Graph.h"
 #include "FastQueue.h"
-#include "Debug.h"
 
 using size_tt = uint32_t;
 
@@ -43,8 +40,8 @@ using size_tt = uint32_t;
 
 //**************************************************************
 //
-//	Class name : DrawGraph - compact version
-//      for the GRIP layout engine
+//	Class name: DrawGraph
+//      GRIP layout engine state and operations.
 //
 //**************************************************************
 class DrawGraph 
@@ -158,7 +155,7 @@ class DrawGraph
                    std::queue<size_tt> *bfsVectQueue,
                    size_tt shift,   // bfsVector starts at dist shift from root
                    size_tt depthLim);
-    void create_misf();  // version of create_mish() creating also vertDepth
+    void create_misf();
     void create_misf_weighted();
     void KK_spring_v4(const size_tt root,
                       size_tt *rootNbrsLayer,
@@ -220,10 +217,6 @@ class DrawGraph
     // dimensional centered at 0 cube whose edge has length = width
     // parameter
     void rand_Positions();
-    void print_Positions(std::ostream &output = std::cout);
-    void print_Positions_To_File(const char *posFile = NULL);
-    void read_Positions_From_File(const char *posFile);
-
     size_tt get_Dim() const { return dim; }
     size_tt get_Diam() const { return diam; }
     size_tt get_NumOfVert() const { return numOfVert; }
@@ -302,9 +295,6 @@ class DrawGraph
                                 coord_t old_disp_norm_initial,
                                 coord_t old_disp_norm_after);
     
-    //memory exception handler
-    static void noMoreMemory();
-
     bool createList;
     
 private:
@@ -314,8 +304,7 @@ private:
     size_tt initRounds;
     size_tt finalRounds; 
     size_tt numOfVert;                 // this is inherited from graph
-    // we make it a data of DrawGraph to avoid frequent referals
-    // to graph.get_numOfVert()
+    // Store this in DrawGraph to avoid repeated graph.get_numOfVert() calls.
 
     const coord_t edge;               // desired edge length [128]
     const coord_t edge2;              // = edge * edge
@@ -605,7 +594,6 @@ private:
     // log to the base 2
     int ilog(int n){
         if( n <= 0 ){
-            debug("ERROR: ilog is def only for positive numbers");
             throw std::invalid_argument("ilog is defined only for positive integers");
         }
         int k = 0;

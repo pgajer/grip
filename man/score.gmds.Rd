@@ -57,8 +57,8 @@ mid, and long bands.}
 A one-row data frame with the common diagnostic columns.
 }
 \description{
-`score.gmds()` is the Phase 0 common scorer for GMDS-oriented
-layout experiments. It summarizes edge-length fidelity, fixed-path geodesic
+`score.gmds()` provides a common diagnostic panel for GMDS-oriented
+layouts. It summarizes edge-length fidelity, fixed-path geodesic
 stress, short/mid/long geodesic bands, ordinary metric-MDS chord stress, and
 simple spread/shortcut diagnostics for any coordinate matrix on a prepared
 graph.

@@ -83,12 +83,11 @@ A list with \code{coords}, \code{trace}, \code{frames},
 \description{
 \code{landmark.geodesic.kk()} applies a deterministic
 warm-started gradient-descent polish under the sparse landmark geodesic KK
-energy. This is the first experimental optimizer prototype: it starts from an
-existing layout and refines it, rather than replacing the full multiscale
-GRIP refinement pipeline.
+energy. It starts from an existing layout and refines it, rather than
+replacing the full multiscale GRIP refinement pipeline.
 }
 \details{
-The current prototype fits the LGKK target scale \code{L0} once from the
+The implementation fits the LGKK target scale \code{L0} once from the
 starting layout and then optimizes against those fixed target path lengths.
 That keeps the gradient simple and makes the resulting line search robust for
 an initial implementation.

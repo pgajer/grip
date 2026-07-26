@@ -420,7 +420,7 @@ test_that("level trace thins level-start snapshots and keeps endpoints", {
   expect_equal(tr_dense$final, tr_sparse$final)
 })
 
-test_that("trace rejects disconnected graphs for now", {
+test_that("trace rejects disconnected graphs", {
   edges <- rbind(
     cbind(1:2, 2:3),
     cbind(5:6, 6:7)

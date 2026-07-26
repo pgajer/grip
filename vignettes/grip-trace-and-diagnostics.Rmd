@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 ## Why trace a layout?
 
 Most graph-layout functions return only the final coordinate matrix. That is
-enough for plotting, but it hides the most useful debugging information:
+enough for plotting, but it hides the most useful diagnostic information:
 
 - how the multiscale hierarchy opened,
 - whether the geometry stabilized gradually or abruptly,
@@ -251,7 +251,7 @@ The most useful components are:
 ## Practical guidance
 
 - Start with `trace = "level"` and `diagnostics = "light"`.
-- Use `trace = "round"` only when you need finer-grained debugging.
+- Use `trace = "round"` only when you need finer-grained diagnostics.
 - Supply `target_coords` when a meaningful geometric target exists.
 - Prefer weighted traces for weighted graph families; they are much more
   interpretable than tracing the combinatorial solver on a graph with

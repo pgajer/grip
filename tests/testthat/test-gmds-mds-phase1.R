@@ -1,7 +1,7 @@
-phase1.run.gmds.mesh.case <- function(bundle,
-                                      truth_coords,
-                                      dim = 2L,
-                                      max_iter = 8L) {
+run.gmds.mesh.case <- function(bundle,
+                               truth_coords,
+                               dim = 2L,
+                               max_iter = 8L) {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
@@ -38,7 +38,7 @@ phase1.run.gmds.mesh.case <- function(bundle,
   )
 }
 
-test_that("Phase 1 classical MDS diagnostics are finite on a flat mesh", {
+test_that("classical MDS diagnostics are finite on a flat mesh", {
   bundle <- mesh.surface.graph(
     6, 6,
     surface = "saddle",
@@ -66,14 +66,14 @@ test_that("Phase 1 classical MDS diagnostics are finite on a flat mesh", {
   )
 })
 
-test_that("Phase 1 GMDS refinement sharply lowers path stress on flat meshes", {
+test_that("GMDS refinement sharply lowers path stress on flat meshes", {
   bundle <- mesh.surface.graph(
     6, 6,
     surface = "saddle",
     amplitude = 0,
     normalize = "median"
   )
-  run <- phase1.run.gmds.mesh.case(
+  run <- run.gmds.mesh.case(
     bundle = bundle,
     truth_coords = bundle$coords_param,
     dim = 2L
@@ -88,7 +88,7 @@ test_that("Phase 1 GMDS refinement sharply lowers path stress on flat meshes", {
   expect_true(run$fit_after$rmse > run$fit_before$rmse)
 })
 
-test_that("Phase 1 GMDS refinement lowers path stress on slit-channel meshes", {
+test_that("GMDS refinement lowers path stress on slit-channel meshes", {
   bundle <- occupied.mesh.surface.graph(
     keep.slit.channels(
       10, 10,
@@ -103,7 +103,7 @@ test_that("Phase 1 GMDS refinement lowers path stress on slit-channel meshes", {
     amplitude = 0,
     normalize = "median"
   )
-  run <- phase1.run.gmds.mesh.case(
+  run <- run.gmds.mesh.case(
     bundle = bundle,
     truth_coords = bundle$coords_param,
     dim = 2L
@@ -117,7 +117,7 @@ test_that("Phase 1 GMDS refinement lowers path stress on slit-channel meshes", {
   expect_true(all(is.finite(run$opt$coords)))
 })
 
-test_that("Phase 1 GMDS refinement lowers path stress for 3D ripple meshes", {
+test_that("GMDS refinement lowers path stress for 3D ripple meshes", {
   bundle <- mesh.surface.graph(
     6, 6,
     surface = "ripple",
@@ -126,7 +126,7 @@ test_that("Phase 1 GMDS refinement lowers path stress for 3D ripple meshes", {
     freq_v = 2,
     normalize = "median"
   )
-  run <- phase1.run.gmds.mesh.case(
+  run <- run.gmds.mesh.case(
     bundle = bundle,
     truth_coords = bundle$coords_surface,
     dim = 3L
@@ -156,12 +156,12 @@ test_that("diagonal mesh connectivity improves GMDS geometry on simple flat mesh
     normalize = "median"
   )
 
-  orth.run <- phase1.run.gmds.mesh.case(
+  orth.run <- run.gmds.mesh.case(
     bundle = orth,
     truth_coords = orth$coords_param,
     dim = 2L
   )
-  diag.run <- phase1.run.gmds.mesh.case(
+  diag.run <- run.gmds.mesh.case(
     bundle = diag,
     truth_coords = diag$coords_param,
     dim = 2L
@@ -190,12 +190,12 @@ test_that("diagonal mesh connectivity improves GMDS geometry on simple ripple me
     normalize = "median"
   )
 
-  orth.run <- phase1.run.gmds.mesh.case(
+  orth.run <- run.gmds.mesh.case(
     bundle = orth,
     truth_coords = orth$coords_param,
     dim = 2L
   )
-  diag.run <- phase1.run.gmds.mesh.case(
+  diag.run <- run.gmds.mesh.case(
     bundle = diag,
     truth_coords = diag$coords_param,
     dim = 2L

@@ -400,9 +400,9 @@ draw_readme_trace_frame <- function(path, coords, edges, xlim, ylim,
 }
 
 plot_readme_trace_gif <- function(path, trace_obj, edges,
-                                  width = 1200, height = 1200,
-                                  fps = 5, motion_frames = 112,
-                                  final_hold_sec = 8,
+                                  width = 600, height = 600,
+                                  fps = 4, motion_frames = 48,
+                                  final_hold_sec = 3,
                                   target_coords = NULL,
                                   target_corners = NULL,
                                   pad_frac = 0.06,

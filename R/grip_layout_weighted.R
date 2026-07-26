@@ -224,7 +224,7 @@ grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NU
 #'
 #' \code{build.weighted.misf()} builds the weighted max-independent-set
 #' filtration used by the weighted GRIP layout core. It is primarily a
-#' developer and benchmarking helper for comparing weighted and combinatorial
+#' diagnostic and benchmarking helper for comparing weighted and combinatorial
 #' hierarchies on the same graph.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).

@@ -638,21 +638,29 @@ test_that("metric-MDS initialization supports higher-dimensional edge-KK layouts
     n = 6L,
     edge_weights = c(1, 1.5, 0.75, 1.25, 1)
   )
-  init <- metric.mds(
-    prepared = prepared,
-    dim = 4L,
-    diagnostics = TRUE
+  expect_warning(
+    init <- metric.mds(
+      prepared = prepared,
+      dim = 4L,
+      diagnostics = TRUE
+    ),
+    "only 2 of the first 4 eigenvalues are > 0",
+    fixed = TRUE
   )
-  fit <- edge.kk(
-    prepared = prepared,
-    dim = 4L,
-    init = "metric_mds",
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "identity",
-    max_iter = 3L,
-    diagnostics = FALSE,
-    engine = "cpp"
+  expect_warning(
+    fit <- edge.kk(
+      prepared = prepared,
+      dim = 4L,
+      init = "metric_mds",
+      stiffness_method = "uniform",
+      density_mix_schedule = 1,
+      scale_mode = "identity",
+      max_iter = 3L,
+      diagnostics = FALSE,
+      engine = "cpp"
+    ),
+    "only 2 of the first 4 eigenvalues are > 0",
+    fixed = TRUE
   )
 
   expect_s3_class(init, "grip_gmds_layout")

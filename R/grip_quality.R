@@ -2137,11 +2137,10 @@ score.geodesic.kk <- function(coords,
 #'
 #' \code{landmark.geodesic.kk()} applies a deterministic
 #' warm-started gradient-descent polish under the sparse landmark geodesic KK
-#' energy. This is the first experimental optimizer prototype: it starts from an
-#' existing layout and refines it, rather than replacing the full multiscale
-#' GRIP refinement pipeline.
+#' energy. It starts from an existing layout and refines it, rather than
+#' replacing the full multiscale GRIP refinement pipeline.
 #'
-#' The current prototype fits the LGKK target scale \code{L0} once from the
+#' The implementation fits the LGKK target scale \code{L0} once from the
 #' starting layout and then optimizes against those fixed target path lengths.
 #' That keeps the gradient simple and makes the resulting line search robust for
 #' an initial implementation.
@@ -2372,8 +2371,8 @@ landmark.geodesic.kk <- function(coords,
 #'
 #' The optimizer supports three scale policies. With
 #' \code{scale_mode = "fixed_initial"} the target scale is fit once from the
-#' starting layout and then held fixed during optimization, matching the current
-#' LGKK prototype behavior. With \code{scale_mode = "profiled"} the scale is
+#' starting layout and then held fixed during optimization, matching the
+#' landmark geodesic KK behavior. With \code{scale_mode = "profiled"} the scale is
 #' re-fit analytically at each evaluation. With \code{scale_mode = "user"}, a
 #' fixed user-supplied \code{scale.L0} is used throughout.
 #'
@@ -3721,8 +3720,8 @@ grip.prepare.geodesic.mds <- function(data,
 #' \code{grip.score.geodesic.mds()} evaluates an embedding using the fixed-path
 #' geodesic-MDS criterion from the manuscript: the target for each unordered
 #' vertex pair is the corresponding graph geodesic itself, with no fitted scale
-#' factor and no KK-style inverse-distance weighting. This Phase 1 extension
-#' also allows a graph-generic edge-spring term and a graph-distance-aware
+#' factor and no KK-style inverse-distance weighting. The scorer also allows a
+#' graph-generic edge-spring term and a graph-distance-aware
 #' one-sided repulsion term to be included in the reported total energy.
 #'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
@@ -3947,8 +3946,8 @@ grip.score.geodesic.mds <- function(coords,
 #' @param grad_tol Non-negative stopping tolerance on the gradient norm.
 #' @param min_step Positive minimum accepted line-search step.
 #' @param n_threads Number of CPU threads used by the flattened compiled
-#'   optimizer. \code{0} picks an automatic value and \code{1} forces serial
-#'   evaluation.
+#'   optimizer. \code{0} picks an automatic value, \code{1} forces serial
+#'   evaluation, and all values are capped at two threads.
 #' @param recenter If \code{TRUE}, recenter accepted proposals to zero mean.
 #' @param return_trace If \code{TRUE}, include per-iteration diagnostics and
 #'   accepted frames.

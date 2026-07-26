@@ -204,8 +204,8 @@ grip.gmds.band.weights <- function(graph.distances,
 
 #' Score a layout with the common GMDS diagnostic panel
 #'
-#' `score.gmds()` is the Phase 0 common scorer for GMDS-oriented
-#' layout experiments. It summarizes edge-length fidelity, fixed-path geodesic
+#' `score.gmds()` provides a common diagnostic panel for GMDS-oriented
+#' layouts. It summarizes edge-length fidelity, fixed-path geodesic
 #' stress, short/mid/long geodesic bands, ordinary metric-MDS chord stress, and
 #' simple spread/shortcut diagnostics for any coordinate matrix on a prepared
 #' graph.
@@ -565,8 +565,8 @@ grip.apply.stiffness.transform <- function(x, transform) {
 
 #' Construct edge-length stiffnesses for edge-isometric GMDS layouts
 #'
-#' `edge.length.density.stiffness()` is the Phase 1 constructor for
-#' edge-only geodesic-MDS experiments. It turns positive edge lengths into
+#' `edge.length.density.stiffness()` constructs stiffnesses for edge-only
+#' geodesic-MDS layouts. It turns positive edge lengths into
 #' spring stiffnesses normalized to mean one. The `"density"` method emphasizes
 #' edge lengths near the empirical edge-length density mode, and `mix` provides
 #' a continuation path from that density-weighted signal to uniform stiffness.
@@ -965,8 +965,8 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
 #' @param seed Random seed used for `init = "weighted_grip"` and
 #'   `init = "random"`.
-#' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
-#'   edge-stress loop; `"R"` keeps the reference prototype.
+#' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the
+#'   edge-stress loop; `"R"` uses the reference implementation.
 #'
 #' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
 #' @export

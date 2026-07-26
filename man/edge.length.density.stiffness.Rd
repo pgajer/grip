@@ -43,8 +43,8 @@ A list with `stiffness`, raw signal diagnostics, estimated mode, and
   clipping/normalization metadata.
 }
 \description{
-`edge.length.density.stiffness()` is the Phase 1 constructor for
-edge-only geodesic-MDS experiments. It turns positive edge lengths into
+`edge.length.density.stiffness()` constructs stiffnesses for edge-only
+geodesic-MDS layouts. It turns positive edge lengths into
 spring stiffnesses normalized to mean one. The `"density"` method emphasizes
 edge lengths near the empirical edge-length density mode, and `mix` provides
 a continuation path from that density-weighted signal to uniform stiffness.

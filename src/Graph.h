@@ -1,23 +1,17 @@
-// Graph.hpp a header file for Graph class
+// Graph class declaration.
 
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
-#include <iostream>
-#include <fstream>
 #include <cstdlib>
 #include <ctime>
-#include <string>
 #include <vector>
 #include <utility>
 #include <cstdint>
 
 #include "Point.h"
-#include "Debug.h"
 
 using size_tt = uint32_t;
-
-#define DEBUG_GRAPH 0
 
 //**************************************************************
 //
@@ -26,20 +20,9 @@ using size_tt = uint32_t;
 //	Description: A class for generating graphs and performing
 //      some operations on them.
 //
-//      Date: 9/6/99
-//
-//      10/23/99: replacing compact adjList by fat adjList, where
-//      compact adjList is an adjacency list in which the entries
-//      for the i-th vertex contain references only to vertices of
-//      index > i, and fat adjacency list is the standard one.
-//
-//      Author: Pawel Gajer
-//
 //**************************************************************
 class Graph
 {
-    friend std::ostream &operator<<(std::ostream &output,
-                                    const Graph &graph);
 public:
     friend class DrawGraph;
     friend class MesaPlot;
@@ -74,10 +57,6 @@ public:
     void torus_Graph(size_tt h, size_tt w);
     void tree(size_tt h, size_tt w);
   
-    void print_Cpt_Adj_List_To_File();// print compact Adj list ...
-    void read_Cpt_Adj_List_From_File(const char *file);
-    //    void read_Graph_From_IWB_File_v1(const char *file);
-    void read_Graph_From_IWB_File(const char *file);    
     void from_edge_list(size_tt n,
                         const std::vector<std::pair<size_tt, size_tt>> &edges,
                         const std::vector<coord_t> *weights = nullptr);
@@ -98,13 +77,11 @@ public:
     }
     bool has_weights() const { return adjWeight != nullptr; }
     
-    // return maximal degree vertex, its degree, and also
-    // minimal degree of the graph
+    // Return a maximal-degree vertex and report the degree range.
     size_tt get_Max_Deg_Vert(size_tt &max_deg, size_tt &min_deg) const;
     
     // fast random number generator from "Numerical Recipes in C"
     // section "An even quicker generator" p. 284.
-    //    unsigned long idum;
     unsigned long fast_Rand() const;
     void sfast_Rand(unsigned int seed) const;
     
@@ -124,14 +101,14 @@ private:
 
 
     
-    // swap two intergers, coord_t or two Point<>
+    // Swap two integers, coord_t values, or Point<> objects.
     void swap(int &a, int &b);
     void swap(size_tt &a, size_tt &b);    
     void swap(Point<> &a, Point<> &b); 
 
     // perform a permutation of 'array' of 'len' elements
-    // ( we can set 'len' to be any number <= lenght[array])
-    // put the first newLen elements of 'array' into newArray
+    // (We can set 'len' to be any number <= length(array).)
+    // Put the first newLen elements of 'array' into newArray.
     void rand_Perm(size_tt *array,
                    size_tt len,
                    size_tt *newArray,
@@ -139,10 +116,6 @@ private:
     
     int min(int a, int b) const { return (a >= b) ? b : a; }
 
-    // convert an int n into a string object.
-    std::string itoa(int n);
-    // reverse string s in place 
-    void reverse(char cstrg[]);
 };
 
 #endif

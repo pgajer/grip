@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 
-REPO_ROOT = Path("/Users/pgajer/current_projects/grip")
+REPO_ROOT = Path(__file__).resolve().parents[3]
 BENCHMARK_CANDIDATES = [
     REPO_ROOT / "output" / "gkk_lgkk_paper" / "benchmarks" / "weighted-grip-phase5-family-panel-2026-04-02",
     REPO_ROOT / "output" / "gkk_lgkk_paper" / "benchmarks" / "weighted-grip-phase5-smoke-check",
@@ -420,7 +420,7 @@ Figure~\ref{{fig:gkk-rel-rmse}} shows the main quality result. Lower is better. 
 The interactive 3D companion for this report is:
 
 \begin{{center}}
-\url{{/Users/pgajer/current_projects/grip/output/gkk_lgkk_paper/html/weighted_grip_phase5_layout_gallery_2026-04-02.html}}
+\path{{output/gkk_lgkk_paper/html/weighted_grip_phase5_layout_gallery_2026-04-02.html}}
 \end{{center}}
 
 It organizes the primary 3D benchmark layouts by family for the representative benchmark seed 1, and includes the target geometry plus every benchmarked layout method used in Phase 5.
