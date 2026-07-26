@@ -29,10 +29,12 @@
 
 ## Recommended before upload
 
-- [ ] Submit the exact archive to Win-builder `R-release`, `R-devel`, and
+- [x] Submit the exact archive to Win-builder `R-release`, `R-devel`, and
   `R-oldrelease`
-- [ ] Confirm all three Win-builder result emails report no errors, warnings,
-  or notes
+- [x] Confirm the Win-builder `R-release` result reports 0 errors, 0 warnings,
+  and only the expected new-submission note
+- [ ] Confirm the Win-builder `R-devel` and `R-oldrelease` result emails report
+  no errors, warnings, or unexpected notes
 - [x] Complete the local R-devel check: 0 errors, 0 warnings, and two
   environment/submission-status notes (`New submission`; local HTML
   Tidy/V8 unavailable)
