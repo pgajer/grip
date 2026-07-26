@@ -7,7 +7,7 @@
 - [x] Re-run `R CMD check --as-cran` in a clean local build environment with
   `R_MAKEVARS_USER=/dev/null`
 - [x] Confirm vignette build succeeds
-- [x] Confirm tests pass locally: 2,191 pass, 0 fail, 0 warn, 0 skips
+- [x] Confirm tests pass locally: 2,193 pass, 0 fail, 0 warn, 0 skips
 - [x] Confirm URL checks pass with `urlchecker::url_check()`
 - [x] Draft `cran-comments.md`
 - [x] Add Linux GitHub Actions check prep
@@ -24,8 +24,8 @@
 - [x] Confirm the provenance and release suitability of bundled data and assets
 - [x] Confirm GPL-3 is the intended package license
 - [x] Confirm no current Bioconductor 3.23 package is named `grip`
-- [x] Confirm the exact tarball is 4,102,686 bytes with SHA-256
-  `e14026325fb41c61625da727e42f623aec9173f0fd0044165ffd548ad0480c0d`
+- [x] Confirm the exact tarball is 4,102,769 bytes with SHA-256
+  `454c8627761c6721ab34ac6df70f47d48438f9fbdb5259a28871785088648728`
 
 ## Recommended before upload
 

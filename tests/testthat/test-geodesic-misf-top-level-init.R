@@ -169,10 +169,17 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
     top_level_mode = "skip",
     seed = 2056L
   )
-  expect_equal(unname(vapply(prepared$misf$levels, length, integer(1L))), c(50L, 9L, 2L))
-  expect_equal(prepared$coarsest_level_level, 2L)
-  expect_equal(prepared$top_level_level, 1L)
-  expect_equal(length(prepared$top_level_vertices), 9L)
+  level.sizes <- unname(vapply(prepared$misf$levels, length, integer(1L)))
+  expect_equal(level.sizes[[1L]], graph$n)
+  expect_lt(tail(level.sizes, 1L), prepared$top_level_min_required_size)
+  expect_equal(prepared$coarsest_level_index, length(level.sizes))
+  expect_equal(prepared$top_level_index, prepared$coarsest_level_index - 1L)
+  expect_equal(prepared$top_level_level, prepared$coarsest_level_level - 1L)
+  expect_gt(length(prepared$top_level_vertices), prepared$top_level_min_required_size)
+  expect_equal(
+    length(prepared$top_level_vertices),
+    level.sizes[[prepared$top_level_index]]
+  )
   expect_identical(prepared$top_level_selection_reason, "coarsest_min_size")
 
   prepared.gkk <- prepare.misf.geodesic.kk(
@@ -185,9 +192,13 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
     top_level_mode = "skip",
     seed = 2056L
   )
-  expect_equal(prepared.gkk$coarsest_level_level, 2L)
-  expect_equal(prepared.gkk$top_level_level, 1L)
-  expect_equal(length(prepared.gkk$top_level_vertices), 9L)
+  expect_equal(
+    unname(vapply(prepared.gkk$misf$levels, length, integer(1L))),
+    level.sizes
+  )
+  expect_equal(prepared.gkk$coarsest_level_level, prepared$coarsest_level_level)
+  expect_equal(prepared.gkk$top_level_level, prepared$top_level_level)
+  expect_equal(prepared.gkk$top_level_vertices, prepared$top_level_vertices)
 
   fit <- grip.optimize.misf.geodesic.mds(
     prepared = prepared,

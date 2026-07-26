@@ -21,14 +21,14 @@ Non-package utilities and machine-specific paths are not installed.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 2 notes
 
-The clean submission-style check was run on the exact source archive
-`grip_0.1.1.tar.gz`. All 2,191 test expectations passed with no skips. The
-test suite is self-contained and does not depend on another source checkout.
+The clean submission-style check was run with R-devel on the exact source
+archive `grip_0.1.1.tar.gz`. All 2,193 test expectations passed with no skips.
+The test suite is self-contained and does not depend on another source
+checkout.
 
-The same exact archive was checked with R-devel with 0 errors and 0 warnings.
-Its two notes were the expected `New submission` incoming-feasibility note and
+The two notes were the expected `New submission` incoming-feasibility note and
 a local-tool note that recent HTML Tidy and V8 were unavailable for optional
 HTML manual validation.
 
