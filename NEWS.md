@@ -8,6 +8,8 @@
   queue state handling.
 * Removes non-package utilities from the installed package and removes
   machine-specific installed paths.
+* Shortens graph-family save filenames so they remain portable under long
+  Windows temporary-directory paths.
 * Expands the pkgdown reference index and reduces README animation assets for
   a smaller source package.
 * Declares the package C++17 requirement explicitly.

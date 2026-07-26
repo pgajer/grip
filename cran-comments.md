@@ -24,7 +24,7 @@ Non-package utilities and machine-specific paths are not installed.
 0 errors | 0 warnings | 2 notes
 
 The clean submission-style check was run with R-devel on the exact source
-archive `grip_0.1.1.tar.gz`. All 2,193 test expectations passed with no skips.
+archive `grip_0.1.1.tar.gz`. All 2,194 test expectations passed with no skips.
 The test suite is self-contained and does not depend on another source
 checkout.
 

@@ -182,6 +182,7 @@ test_that("family save helpers create readable paths and complete bundles", {
   expect_true(file.exists(path))
   expect_match(path, "tmp/gripui-family-graphs/sampled_rectangle", fixed = TRUE)
   expect_match(basename(path), "sampled_rectangle__n-80__k-6__seed-1")
+  expect_lte(nchar(basename(path), type = "bytes"), 120L)
   expect_match(basename(path), "20260406-123456\\.rds$")
   expect_match(basename(unique_path), "__01\\.rds$")
   expect_identical(bundle$family_id, payload$family_id)

@@ -134,7 +134,7 @@ gripui.family.save.key.ids <- function(values) {
   preferred <- c("n", "k", "seed", "surface", "graph_space", "normalize", "xmin", "xmax", "ymin", "ymax")
   ids <- intersect(preferred, names(values))
   if (length(ids) > 0L) {
-    return(ids)
+    return(utils::head(ids, 4L))
   }
   names(values)[seq_len(min(4L, length(values)))]
 }
@@ -191,7 +191,16 @@ gripui.family.unique.save.path <- function(path) {
 }
 
 gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
-  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  save_dir <- dirname(path)
+  if (!dir.exists(save_dir)) {
+    dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  if (!dir.exists(save_dir)) {
+    stop(
+      sprintf("Could not create the graph-family save directory '%s'.", save_dir),
+      call. = FALSE
+    )
+  }
   bundle <- list(
     family_id = payload$family_id,
     family_label = payload$family_label,
