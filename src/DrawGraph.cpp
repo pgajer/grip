@@ -181,7 +181,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
     //
     // initializing marked array, which will be used in BFSs
     marked = new int[numOfVert];
-    for(int i = 0; i < numOfVert; i++) 
+    for(size_tt i = 0; i < numOfVert; i++)
         marked[i] = -1;
     
     log_2_n = ilog(numOfVert)+2;
@@ -203,7 +203,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
     
     // resetting marked array values for BFSs in the main part of
     // the program - MishEngine(s).cpp
-    for(int i = 0; i < numOfVert; i++){
+    for(size_tt i = 0; i < numOfVert; i++){
         marked[i] = -1;
     }
     
@@ -1116,7 +1116,7 @@ void DrawGraph::clear_lgkk_level_cache()
  */
 void DrawGraph::create_misf() {
     // Initialize variables for MISF construction
-    size_tt depthLim;
+    size_tt depthLim = 0;
     size_tt shift = 0;
     std::queue<size_tt> **bfsVectQueue = new std::queue<size_tt>*[numOfVert];
     for(size_tt i = 0; i < numOfVert; i++)
@@ -1192,7 +1192,7 @@ void DrawGraph::create_misf() {
         misfSize[misfLevel] = mishSizeCurrLevel;
 
         // Prepare BFS queues for the next level
-        for (int i = 0; i < numOfVert; i++)
+        for (size_tt i = 0; i < numOfVert; i++)
             marked[i] = -1;
         shift = (size_tt)pow(2, misfLevel-1) + 1;
         for (size_tt i = 0; i < mishSizeCurrLevel; i++) {

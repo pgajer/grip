@@ -229,7 +229,14 @@ gripui.family.saved.bundle.files <- function(family_id, root = getwd()) {
     return(character(0L))
   }
   info <- file.info(paths)
-  paths[order(info$mtime, decreasing = TRUE, na.last = TRUE)]
+  filenames <- basename(paths)
+  stamp.pattern <- "^.*__(\\d{8}-\\d{6})(?:__\\d+)?\\.[Rr][Dd][Ss]$"
+  stamps <- ifelse(
+    grepl(stamp.pattern, filenames),
+    sub(stamp.pattern, "\\1", filenames),
+    ""
+  )
+  paths[order(info$mtime, stamps, filenames, decreasing = TRUE, na.last = TRUE)]
 }
 
 gripui.family.saved.bundle.choices <- function(desc, root = getwd()) {

@@ -1,3 +1,10 @@
+# grip 0.1.2
+
+* Makes saved graph-family bundle ordering deterministic when files have tied
+  modification times, as can occur on Windows.
+* Corrects two undersized adjacency allocations in the compiled triangular
+  mesh generator.
+
 # grip 0.1.1
 
 * Adds geodesic-MDS, geodesic-KK, landmark, MISF, weighted, and interactive
