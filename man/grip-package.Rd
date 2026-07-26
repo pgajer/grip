@@ -49,4 +49,9 @@ Useful links:
 \author{
 \strong{Maintainer}: Pawel Gajer \email{pgajer@gmail.com}
 
+Authors:
+\itemize{
+  \item Pawel Gajer \email{pgajer@gmail.com}
+}
+
 }

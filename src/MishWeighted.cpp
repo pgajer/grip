@@ -231,12 +231,14 @@ void DrawGraph::create_misf_weighted()
                 });
         }
 
-        assert(misfLevel < log_2_n);
+        if(misfLevel >= log_2_n)
+            throw std::runtime_error("weighted MISF level exceeded the allocated hierarchy");
         misfSize[misfLevel] = mishSizeCurrLevel;
         misfLevel++;
     } while(itr);
 
-    assert(misfLevel <= log_2_n);
+    if(misfLevel > log_2_n)
+        throw std::runtime_error("weighted MISF level exceeded the allocated hierarchy");
     misfLevel -= 1;
     while(misfLevel > 0 && misfSize[misfLevel] < numOfInitVert)
         misfLevel--;

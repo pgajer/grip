@@ -116,8 +116,8 @@ frames.}
 
 \item{seed}{Random seed used only for `init = "random"`.}
 
-\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
-edge-stress loop; `"R"` keeps the reference prototype.}
+\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the
+edge-stress loop; `"R"` uses the reference implementation.}
 }
 \value{
 A `"grip_gmds_layout"` object with method `"kernel_gram_gkk"`.

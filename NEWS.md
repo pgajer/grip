@@ -1,3 +1,17 @@
+# grip 0.1.1
+
+* Adds geodesic-MDS, geodesic-KK, landmark, MISF, weighted, and interactive
+  layout workflows developed since the initial submission.
+* Caps compiled parallel work at two threads to comply with CRAN resource
+  limits, including when automatic thread selection is requested.
+* Replaces native assertion aborts with recoverable errors and strengthens
+  queue state handling.
+* Removes non-package utilities from the installed package and removes
+  machine-specific installed paths.
+* Expands the pkgdown reference index and reduces README animation assets for
+  a smaller source package.
+* Declares the package C++17 requirement explicitly.
+
 # grip 0.1.0
 
 * First public release of `grip`.

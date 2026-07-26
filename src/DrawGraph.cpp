@@ -1,7 +1,3 @@
-// FILE: DrawGraph.cpp - member function definitions for DrawGraph class.
-//   
-// April 1, 2000 - moved all changes info to the file changes
-//
 #include "DrawGraph.h"
 #include <algorithm>
 #include <functional>
@@ -61,6 +57,8 @@ DrawGraph::DrawGraph(const Graph &_graph,
   tinit(edge / _tinit_factor),
   SMALL_DIST(32),  // Initialize with the desired value
   SMALL_DIST2(2 * SMALL_DIST + 1),  // Initialize based on SMALL_DIST
+  metricNeighborCap(0),
+  metricScratchEpoch(0),
   numOfInitVert(std::min(_numOfInitVert, _graph.get_numOfVert())),
   numOfNbrs(_numOfNbrs),
   r(_r), s(_s),
@@ -104,8 +102,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
                 ? LGKK_SCOPE_COARSE
                 : LGKK_SCOPE_ALL),
   lgkkActiveLimit(std::max<size_tt>(1, _lgkkActiveLimit)),
-  metricNeighborCap(0),
-  metricScratchEpoch(0),
   weightedCore(_weightedCore),
   activeVertCount(0),
   misfLevel(0),
@@ -115,6 +111,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
   traceMode(TRACE_NONE),
   traceEvery(1),
   traceLevelIndex(0),
+  finalAnchorPos(_graph.get_numOfVert()),
   refinementStepTraceEnabled(false),
   collectRefinementStepDetails(false),
   refinementStepTraceLevelIndex(-1),
@@ -124,17 +121,12 @@ DrawGraph::DrawGraph(const Graph &_graph,
   insertionTraceEnabled(false),
   lastAttractionDisp(static_cast<size_t>(_dim), 0.0),
   lastRepulsionDisp(static_cast<size_t>(_dim), 0.0),
-  finalAnchorPos(_graph.get_numOfVert()),
   lgkkCacheActiveCount(0),
   lgkkCacheMisfLevel(-1),
   lgkkCacheScaleL0(1.0)
 {
-#define DEBUG 0
     if( dim != 2 && dim != 3 )
         throw std::runtime_error("only 2D and 3D layouts are supported");
-#if DEBUG 
-    debug("Entering constructor\n");
-#endif
 
     pos          = new Point<>[numOfVert];
     disp         = new Point<>[numOfVert];
@@ -177,7 +169,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
         maxCxty = initCxty;
     AvgDeg /= (float)numOfVert;
         
-    //debug("maxCxty="<< maxCxty<< ", AvgDeg="<< AvgDeg);
 
     // mish is the "maximal independent set hierarchy"
     mish = new size_tt[numOfVert]; // max ind set hierarchy
@@ -194,7 +185,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
         marked[i] = -1;
     
     log_2_n = ilog(numOfVert)+2;
-//        debug("log_2_n="<< log_2_n-2);
     misfSize  = new size_tt[log_2_n];
     vertDepth = new size_tt[numOfVert];
     for(size_tt i = 0; i < log_2_n; i++)
@@ -214,7 +204,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
     // resetting marked array values for BFSs in the main part of
     // the program - MishEngine(s).cpp
     for(int i = 0; i < numOfVert; i++){
-//        debug("marked["<<i<<"]="<<marked[i]);
         marked[i] = -1;
     }
     
@@ -230,7 +219,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
         itr++;
     }
         
-    //debug("smallLevel="<<smallLevel);
 
     // numOfNbrs directly controls the retained local graph-distance
     // neighborhood size used by the refinement routines.
@@ -242,33 +230,6 @@ DrawGraph::DrawGraph(const Graph &_graph,
         itr++;
     }
 
-#if 0
-    std::cout << "<DrawGraph.cpp>["<<__LINE__<<"] nbr:       ";
-    itr = 0;
-    while( itr < log_2_n && misfSize[itr] ){
-        std::cout << nbr[itr++] << ' ';
-    }
-    std::cout << "\n";
-        
-    std::cout << "<DrawGraph.cpp>["<<__LINE__<<"] misfSize: ";
-    itr = 0;
-    while( itr < log_2_n && misfSize[itr] ){
-        std::cout << misfSize[itr++] << ' ';
-    }
-    std::cout << "\n";
-#endif
-
-//          std::cout << "<DrawGraph.cpp>[169] mish: ";
-//          for(size_tt v = 0; v < min(40,(int)numOfVert); v++)
-//              std::cout << mish[v] << ' ';
-//          std::cout << endl;
-        
-//          std::cout << "<DrawGraph.cpp>[174] vertDepth: ";
-//          for(size_tt v = 0; v < numOfVert; v++)
-//              std::cout << vertDepth[v]<< ' ';
-//          std::cout << endl;
-        
-            
     nbrs = new size_tt**[numOfVert];
     nbrsDepth = new size_tt[numOfVert];
     metricNbrs = new std::vector<MetricNeighbor>*[numOfVert];
@@ -294,14 +255,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
                 diam = height;
         }
     }
-    //debug("diam="<<diam);
         
     boxSize = (coord_t)(edge * .7 * diam);
     box2Size = 2 * boxSize + 1;
         
-#if DEBUG    
-    debug("Leaving constructor\n");
-#endif
 }
 
 void DrawGraph::configure_trace(size_tt mode, size_tt every)
@@ -594,11 +551,6 @@ DrawGraph::~DrawGraph(){
     delete [] inv;
     delete [] misfSize;
 
-    //
-    // MORE PROPERLY the first double for loop should be
-    // executed in KK_spring when unused parts of nbrs[i]
-    // are deleted
-    //
     if(nbrs){
         for(size_tt i = 0; i < numOfVert; i++){
             if(nbrs[i]){
@@ -654,7 +606,6 @@ Point<> DrawGraph::rand_Point()
         return
             Point<>((coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
                     (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-//                   0);
                     (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize);
 }
 
@@ -1157,61 +1108,11 @@ void DrawGraph::clear_lgkk_level_cache()
     lgkkPairs.clear();
 }
 
-//****************************************************************
-//
-//    memory exception handler
-//
-//****************************************************************
-void DrawGraph::noMoreMemory(){
-        throw std::bad_alloc();
-}
-
 /**
- * @file DrawGraph.cpp
- * @brief Implementation of the Maximal Independent Set Filtration (MISF) algorithm.
- */
-
-/**
- * @brief Constructs a Maximal Independent Set Filtration (MISF) for the graph.
+ * Construct a maximal independent set filtration for the graph.
  *
- * This function implements the MISF algorithm, which creates a hierarchical
- * decomposition of the graph into nested independent sets. Each level of the
- * filtration contains vertices that are increasingly far apart.
- *
- * @details The MISF algorithm works as follows:
- * 1. Start with the full vertex set V_0 = V.
- * 2. For each level i (starting from 1):
- *    a. Randomly select vertices from V_(i-1) to form V_i.
- *    b. Ensure that the graph distance between any two vertices in V_i is at least 2^(i-1) + 1.
- *    c. Continue until V_i is maximal (no more vertices can be added).
- * 3. Repeat steps 2a-c for increasing i until the filtration depth is reached.
- *
- * The implementation uses efficient data structures and algorithms to achieve
- * an average time complexity of O(n log n) for most graphs.
- *
- * @pre The graph structure (adjacency lists, etc.) must be initialized before calling this function.
- * @post The MISF structure is constructed and stored in the class member variables.
- *
- * @note This function modifies the graph structure in-place.
- *
- * @see bfs_cmisf() for the breadth-first search implementation used in distance calculations.
- *
- * @todo Parallelize BFS computations for improved performance on large graphs.
- * @todo Investigate more sophisticated random sampling techniques to improve independent set quality.
- *
- * Key member variables used/modified:
- * @li mish: Array representing the MISF structure.
- * @li misfSize: Array storing the size of each MISF level.
- * @li vertDepth: Array recording the depth (level) of each vertex in the filtration.
- * @li numOfVert: Total number of vertices in the graph.
- * @li numOfInitVert: Number of initial vertices to consider.
- * @li misfLevel: The current level of MISF being constructed.
- * @li initMishHeight: The final height of the MISF structure.
- *
- * @throw std::bad_alloc If memory allocation for bfsVectQueue fails.
- * @throw std::runtime_error If assertions on misfLevel or log_2_n fail.
- *
- * @warning This function assumes that the graph is connected. Behavior for disconnected graphs is undefined.
+ * Each successive level is a maximal subset whose vertices satisfy the
+ * level-specific graph-distance separation.
  */
 void DrawGraph::create_misf() {
     // Initialize variables for MISF construction
@@ -1286,7 +1187,8 @@ void DrawGraph::create_misf() {
         depthLim = (size_tt)pow(2, misfLevel);
         depthLim = std::min(depthLim, (size_tt)(numOfVert-1));
 
-        assert(misfLevel < log_2_n);
+        if(misfLevel >= log_2_n)
+            throw std::runtime_error("MISF level exceeded the allocated hierarchy");
         misfSize[misfLevel] = mishSizeCurrLevel;
 
         // Prepare BFS queues for the next level
@@ -1305,7 +1207,8 @@ void DrawGraph::create_misf() {
     } while (itr);
 
     // Finalize MISF construction
-    assert(misfLevel <= log_2_n);
+    if(misfLevel > log_2_n)
+        throw std::runtime_error("MISF level exceeded the allocated hierarchy");
     misfLevel -= 1;
     while (misfSize[misfLevel] < numOfInitVert)
         misfLevel--;
@@ -1318,7 +1221,6 @@ void DrawGraph::create_misf() {
         misfSize[misfLevel] = numOfInitVert;
     }
 
-    //debug("misfLevel=" << misfLevel);
     initMishHeight = misfLevel;
 
     // Clean up
@@ -1387,7 +1289,7 @@ void DrawGraph::bfs_cmisf(size_tt root,
     size_tt vert = root;
     size_tt currentDepth = 1;
     FastQueue< size_tt > vertDepthQueue(4*numOfVert); // an array based queue
-    // consisitaing of vertex, its dist from root, vertex, its dist from root,...
+    // consisting of vertex, its distance from root, vertex, its distance from root, ...
 
     marked[root] = root; // all elements discovered in this BFS are marked
     // with index root
@@ -1395,7 +1297,7 @@ void DrawGraph::bfs_cmisf(size_tt root,
     size_tt mishSizeLim = misfSize[misfLevel];
 
     while( currentDepth <= depthLim ){
-        // Mark and process vert's un_marked adjacent vertices,
+        // Mark and process vert's unmarked adjacent vertices.
         // and place them in the queue.
         for (size_tt adjVert = 0; adjVert < deg[vert]; adjVert++){
             size_tt overt = graph.adjList[vert+1][adjVert];

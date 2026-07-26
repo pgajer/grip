@@ -1,9 +1,4 @@
-test_that("weighted ND trace parity diagnostics run when explicitly enabled", {
-  skip_if_not(
-    identical(Sys.getenv("GRIP_RUN_TRACE_PARITY_TESTS"), "true"),
-    "Set GRIP_RUN_TRACE_PARITY_TESTS=true to run weighted ND trace parity diagnostics."
-  )
-
+test_that("weighted ND trace parity diagnostics remain aligned", {
   metrics <- grip_weighted_nd_trace_parity_run(dims = c(2L, 3L))
   first <- grip_weighted_nd_trace_parity_first_divergence(metrics)
   neighbors <- grip_weighted_nd_trace_parity_neighbor_run(dims = c(2L, 3L))

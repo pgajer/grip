@@ -8,7 +8,7 @@
 ## graphlayouts.
 ##
 ## Usage:
-##   Rscript inst/scripts/precompute-vs-alternatives.R
+##   Rscript tools/pkg/precompute-vs-alternatives.R
 ## ------------------------------------------------------------------
 
 library(grip)

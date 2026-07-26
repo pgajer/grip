@@ -1692,7 +1692,7 @@ gripui.gmds.ui <- function(catalog, title, subtitle = NULL) {
       shiny::numericInput("gmds_insertion_max_iter", "Insertion max iter", value = 24L, min = 0L, step = 1L),
       shiny::numericInput("gmds_refinement_max_iter", "Refinement max iter", value = 2L, min = 0L, step = 1L),
       shiny::numericInput("gmds_final_polish_max_iter", "Final polish max iter", value = 2L, min = 0L, step = 1L),
-      shiny::numericInput("gmds_n_threads", "Threads (0 = auto)", value = 0L, min = 0L, step = 1L),
+      shiny::numericInput("gmds_n_threads", "Threads (0 = auto, max 2)", value = 0L, min = 0L, max = 2L, step = 1L),
       shiny::tags$hr(),
       shiny::tags$h5("Display"),
       shiny::sliderInput("gmds_vertex_alpha", "Selected vertex opacity", min = 0.10, max = 1, value = 0.95, step = 0.05),

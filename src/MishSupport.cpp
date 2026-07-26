@@ -12,7 +12,7 @@
 //
 //       bfs_me_init_v2
 //
-//       version of bfs() utilizing nbrs 3D array
+//       Initialize retained graph-distance neighborhoods with BFS.
 //
 //****************************************************************
 size_tt DrawGraph::bfs_me_init_v2(size_tt root)
@@ -70,7 +70,7 @@ size_tt DrawGraph::bfs_me_init_v2(size_tt root)
 //
 //       bfs_me_v4
 //
-//       version of bfs() utilizing nbrs 3D array
+//       Place a vertex and retain its graph-distance neighborhood with BFS.
 //
 //****************************************************************
 void DrawGraph::bfs_me_v4(size_tt root)
@@ -795,7 +795,7 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
 {
     size_tt overt; // other vertex
     double dist2;// square of the graph theoretic dist between vert and overt
-    double norm2;// square of the Eucleadian distance between vert and overt
+    double norm2; // Square of the Euclidean distance between vert and overt.
     
     size_tt *ptr;
     ptr = vertNbrs;
@@ -875,15 +875,8 @@ void DrawGraph::KK_spring_final(const size_tt vert,
 //
 //    KK_spring_local()
 //
-//    local beautification used for determining initial positions
-//    of "new vertices"
-//
-//    This version destoys bfs if destroyBFS flag is true.
-//
-//    the force is calculated using the whole bfs tree, so it is
-//    assumed that it is guaged correctly.
-//    bfs (=bfsVectQueue) is shifted by 'shift', so one needs to
-//    take this into account when computing the force vector
+//    Compute a local spring displacement for a newly inserted vertex
+//    using its selected anchors and their graph distances.
 //
 //**************************************************************
 void DrawGraph::KK_spring_local(const size_tt vert,
@@ -892,8 +885,6 @@ void DrawGraph::KK_spring_local(const size_tt vert,
                                 size_tt size)
 {
     coord_t norm2;   // its norm squared
-//    queue<size_tt> currentQueue;
-
     disp[vert].set_to_zero();
     for(size_tt i = 0; i < size; i++){
         vect.set_to_zero();
@@ -952,8 +943,6 @@ void DrawGraph::update_Local_Temp_v3( size_tt vert, coord_t r, coord_t s)
     if( normOldDisp != 0 && normNewDisp != 0 ){
         coord_t scalProd = disp[vert] * oldDisp[vert];
         coord_t cos = scalProd/(normOldDisp * normNewDisp);
-//        r = 0.15;
-//        s = 3.0;        
         if( old_cos[vert] * cos > 0 )
             temp += (coord_t)(temp * s * cos * r);
         else
@@ -976,8 +965,7 @@ void DrawGraph::FR_spring_v2(const size_tt vert,
                              size_tt misfLayer)
 {
     size_tt overt; // other vertex
-//    double dist2;// square of the graph theoretic dist between vert and overt
-    double norm2;// square of the Eucleadian distance between vert and overt
+    double norm2; // Square of the Euclidean distance between vert and overt.
     
     size_tt *ptr;
     ptr = vertNbrs;

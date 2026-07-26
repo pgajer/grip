@@ -101,8 +101,8 @@ summaries in `metadata$stage_summaries`.}
 \item{seed}{Random seed used for `init = "weighted_grip"` and
 `init = "random"`.}
 
-\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the hot
-edge-stress loop; `"R"` keeps the reference prototype.}
+\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the
+edge-stress loop; `"R"` uses the reference implementation.}
 }
 \value{
 A `"grip_gmds_layout"` object with method `"edge_kk"`.

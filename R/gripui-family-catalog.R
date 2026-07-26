@@ -119,7 +119,7 @@
                                 builder,
                                 presets = NULL,
                                 code = NULL,
-                                implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+                                implementation = "R/graph_helpers.R",
                                 stochastic = FALSE) {
   if (is.null(presets)) {
     presets <- list()
@@ -147,7 +147,7 @@
                                        params,
                                        arg_ids = NULL,
                                        presets = NULL,
-                                       implementation = "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+                                       implementation = "R/graph_helpers.R",
                                        stochastic = FALSE) {
   .gripui.family.desc(
     id = id,
@@ -473,7 +473,7 @@
 #' names(catalog)
 #' catalog$mesh$function_name
 gripui_graph_family_catalog <- function() {
-  graph_impl <- "/Users/pgajer/current_projects/grip/R/graph_helpers.R"
+  graph_impl <- "R/graph_helpers.R"
 
   list(
     mesh = .gripui.family.simple.desc(

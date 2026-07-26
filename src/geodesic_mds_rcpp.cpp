@@ -128,23 +128,29 @@ void validate_geodesic_mds_args(int max_iter,
 int resolve_gmds_thread_count(int requested,
                               size_t pairCount)
 {
+    const int maxThreads = 2;
     if(pairCount == 0)
         return 1;
 
     if(requested > 0)
-        return std::max(1, requested);
+        return std::min(maxThreads, std::max(1, requested));
 
     const char *envValue = std::getenv("GRIP_GMDS_THREADS");
     if(envValue != nullptr){
         int parsed = std::atoi(envValue);
         if(parsed > 0)
-            return parsed;
+            return std::min(maxThreads, parsed);
     }
 
     unsigned int hw = std::thread::hardware_concurrency();
     if(hw == 0)
         return 1;
-    return static_cast<int>(std::max<unsigned int>(1U, hw));
+    return static_cast<int>(
+        std::min<unsigned int>(
+            static_cast<unsigned int>(maxThreads),
+            std::max<unsigned int>(1U, hw)
+        )
+    );
 }
 
 double logsumexp_values(const std::vector<double> &values)

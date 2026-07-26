@@ -63,73 +63,77 @@ reference:
   - title: Layout computation
     desc: Compute graph layouts using the multiscale GRIP algorithm.
     contents:
-      - grip.layout
-      - grip.layout.globalrep
-      - grip.layout.legacy
-      - grip.layout.trace
-      - grip.layout.trace.legacy
+      - grip
+      - globalrep.grip
+      - legacy.grip
+      - trace.grip
+      - trace.legacy.grip
 
   - title: Quality metrics
     desc: Score and compare layouts across seeds and parameter settings.
     contents:
-      - grip.score.layout
-      - grip.geometry.diagnostics
-      - grip.compare.layouts
-      - grip.params.from.summary
+      - score.layout
+      - geometry.diagnostics
+      - compare.layouts
+      - params.from.summary
 
   - title: Landmark geodesic KK
     desc: Prepare, score, and optimize layouts with the sparse landmark-geodesic KK objective.
     contents:
-      - grip.prepare.landmark.geodesic.kk
-      - grip.score.landmark.geodesic.kk
-      - grip.optimize.landmark.geodesic.kk
+      - prepare.landmark.geodesic.kk
+      - score.landmark.geodesic.kk
+      - landmark.geodesic.kk
 
   - title: Weighted layout computation
     desc: Compute geometry-aware layouts and multiscale filtrations for weighted graphs.
     contents:
-      - grip.layout.weighted
-      - grip.layout.weighted.nd
-      - grip.layout.globalrep.weighted
-      - grip.layout.trace.weighted
-      - grip.build.misf
-      - grip.build.misf.weighted
+      - weighted.grip
+      - weighted.grip.nd
+      - globalrep.weighted.grip
+      - trace.weighted.grip
+      - build.misf
+      - build.weighted.misf
 
   - title: Geodesic MDS and edge optimization
     desc: Score, initialize, and polish weighted layouts with GMDS-oriented objectives.
     contents:
-      - grip.score.gmds.layout
-      - grip.gmds.layout.result
-      - grip.metric.mds.layout
-      - grip.edge.length.density.stiffness
+      - score.gmds
+      - gmds.result
+      - metric.mds
+      - prepare.graph.geodesic.mds
+      - edge.length.density.stiffness
+      - prepare.edge.kk
+      - grip.prepare.edge.kk
+      - edge.kk
       - grip.optimize.edge.isometric.layout
       - grip.optimize.edge.kk.layout
       - grip.optimize.edge.gkk.layout
-      - grip.edge.repulsive.state
-      - grip.optimize.edge.repulsive.stage
-      - grip.repulsive.state
-      - grip.optimize.repulsive.stage
+      - edge.repulsive.state
+      - edge.repulsive.stage
+      - repulsive.state
+      - repulsive.stage
       - graph.riemannian.star.structure
-      - grip.optimize.kernel.gram.gkk.layout
+      - kernel.gram.gkk
 
   - title: Full geodesic KK
     desc: Prepare, score, and optimize layouts under the full geodesic Kamada-Kawai objective.
     contents:
-      - grip.prepare.geodesic.kk
-      - grip.score.geodesic.kk
-      - grip.optimize.geodesic.kk
+      - prepare.geodesic.kk
+      - score.geodesic.kk
+      - geodesic.kk
 
   - title: MISF Geodesic KK
     desc: Prepare, score, and optimize multiscale geodesic-KK layouts using MISF hierarchies.
     contents:
-      - grip.prepare.misf.geodesic.kk
-      - grip.score.misf.geodesic.kk
-      - grip.optimize.misf.geodesic.kk
+      - prepare.misf.geodesic.kk
+      - score.misf.geodesic.kk
+      - misf.geodesic.kk
 
   - title: Visualization
     desc: Plot layouts in 2D and 3D.
     contents:
-      - grip.plot
-      - grip.project.3d
+      - plot.layout
+      - project.3d
 
   - title: Graph generators
     desc: Build common graph families as edge-list matrices.
@@ -206,3 +210,6 @@ reference:
   - title: Package
     contents:
       - grip-package
+      - deprecated-grip-api
+      - grip.score.layout
+      - grip.compare.layouts

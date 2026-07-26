@@ -1,39 +1,40 @@
 ## Resubmission
 
 This is a resubmission of `grip`, an R package implementing the GRIP
-algorithm for 2D and 3D graph layout.
+algorithm and related weighted and geodesic methods for 2D and 3D graph
+layout.
 
 Per CRAN feedback, I replaced the unnecessary `\dontrun{}` wrappers and
 rewrote the runnable examples so they execute quickly.
 
+Since the previous submission, version 0.1.1 adds weighted, geodesic-MDS,
+geodesic-KK, landmark, MISF, and interactive layout workflows. Compiled
+parallel work is capped at two threads, including automatic thread selection.
+Non-package utilities and machine-specific paths are not installed.
+
 ## Test environments
 
-* macOS Tahoe 26.3.1 (Apple Silicon), R 4.5.2
-* macOS Tahoe 26.3.1 (Apple Silicon), R 4.5.2, clean user compiler settings
-  via `R_MAKEVARS_USER=/dev/null`
+* macOS Tahoe 26.3.1 (Apple Silicon), R 4.6.1
+* Apple clang 17.0.0, C++17, clean user compiler settings via
+  `R_MAKEVARS_USER=/dev/null`
+* macOS Tahoe 26.3.1 (Apple Silicon), R-devel 4.7.0 (2026-06-24 r90190)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 3 notes
+0 errors | 0 warnings | 0 notes
 
-The clean submission-style check was run with:
+The clean submission-style check was run on the exact source archive
+`grip_0.1.1.tar.gz`. All 2,191 test expectations passed with no skips. The
+test suite is self-contained and does not depend on another source checkout.
 
-* `env R_MAKEVARS_USER=/dev/null R CMD build .`
-* `env R_MAKEVARS_USER=/dev/null R CMD check --as-cran grip_0.1.0.tar.gz`
+The same exact archive was checked with R-devel with 0 errors and 0 warnings.
+Its two notes were the expected `New submission` incoming-feasibility note and
+a local-tool note that recent HTML Tidy and V8 were unavailable for optional
+HTML manual validation.
+
+The package name was also checked against the current CRAN and Bioconductor
+package indexes; no case-insensitive `grip` match was found.
 
 ## Notes
 
-1. `This is a new submission.`
-
-   This is expected because `grip` has not yet been accepted by CRAN; this
-   upload is a revised resubmission responding to CRAN feedback.
-2. `unable to verify current time`
-
-   This appears to be an environment-specific note from the local check
-   environment rather than a package issue.
-3. `HTML Tidy` is not recent enough on the local machine, so HTML validation
-   was skipped during `R CMD check --as-cran`:
-
-   `Skipping checking HTML validation: 'tidy' doesn't look like recent enough HTML Tidy.`
-
-   This is an environment-specific note rather than a package issue.
+This is a revised new-package submission responding to prior CRAN feedback.

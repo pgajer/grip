@@ -1,4 +1,4 @@
-test_that("Phase 6 paraboloid slice runs on regular and irregular meshes", {
+test_that("paraboloid slice runs on regular and irregular meshes", {
   regular <- mesh.surface.graph(
     6, 6,
     surface = "paraboloid",

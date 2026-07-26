@@ -87,8 +87,8 @@ polish under the full all-pairs geodesic Kamada--Kawai objective.
 \details{
 The optimizer supports three scale policies. With
 \code{scale_mode = "fixed_initial"} the target scale is fit once from the
-starting layout and then held fixed during optimization, matching the current
-LGKK prototype behavior. With \code{scale_mode = "profiled"} the scale is
+starting layout and then held fixed during optimization, matching the
+landmark geodesic KK behavior. With \code{scale_mode = "profiled"} the scale is
 re-fit analytically at each evaluation. With \code{scale_mode = "user"}, a
 fixed user-supplied \code{scale.L0} is used throughout.
 }
