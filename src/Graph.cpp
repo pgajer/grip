@@ -147,7 +147,7 @@ void Graph::twistedTorus( size_tt h, size_tt w,
   adjList[0] = new size_tt[numOfVert];
 
   //setting degrees for all vertices to 4 and allocating memory
-  for(int i=0;i<numOfVert;i++) {
+  for(size_tt i=0;i<numOfVert;i++) {
     adjList[0][i]=0;
     adjList[i + 1 ] = new size_tt[4]; //adjList[0][i]];
   }
@@ -184,7 +184,7 @@ void Graph::torus( size_tt h, size_tt w )
     adjList[0] = new size_tt[numOfVert];
 
     //setting degrees for all vertices to 4 and allocating memory
-    for(int i=0;i<numOfVert;i++) {
+    for(size_tt i=0;i<numOfVert;i++) {
       adjList[0][i]=4;
       adjList[i + 1 ] = new size_tt[4]; //adjList[0][i]];
     }
@@ -194,7 +194,7 @@ void Graph::torus( size_tt h, size_tt w )
     //
 
     // interior vertices
-    for(int i=1; i < w-1; i++)
+    for(size_tt i=1; i < w-1; i++)
         for(size_tt v = 1; v < h-1; v++){
             adjList[ (v + i*h) + 1][0] = v + (i-1)*h;
             adjList[ (v + i*h) + 1][1] = v-1 + i*h;
@@ -217,14 +217,14 @@ void Graph::torus( size_tt h, size_tt w )
     }
 
     // top horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ i*h + 1][0] = (i-1)*h;
         adjList[ i*h + 1][1] = 1 + i*h;
         adjList[ i*h + 1][2] = (i+1)*h;
     }
 
     // bottom horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ h + i*h ][0] = h-1 + (i-1)*h;
         adjList[ h + i*h ][1] = h-2 + i*h;
         adjList[ h + i*h ][2] = h-1 + (i+1)*h;
@@ -249,7 +249,7 @@ void Graph::torus( size_tt h, size_tt w )
     adjList[ h + (w-1)*h ][1] = h-2 + (w-1)*h;
 
     // making the leftmost and rightmost columns adjacent
-      for(int j=0;j<h;j++){
+      for(size_tt j=0;j<h;j++){
 	int qqq=(w-1)*h+j;
 	adjList[j+1][adjList[0][j]-1]=qqq;
 	adjList[qqq+1][adjList[0][j]-1]=j;
@@ -257,7 +257,7 @@ void Graph::torus( size_tt h, size_tt w )
 
       // making the top and bottom row adjacent
       int twist=1;
-      for(int j=0;j<numOfVert;j+=h){
+      for(size_tt j=0;j<numOfVert;j+=h){
           int tw=(h*w+j+h*twist-1)%(h*w);
 	  adjList[j+1][3]=tw;
 	  adjList[tw+1][3]=j;
@@ -378,7 +378,7 @@ void Graph::mesh_Graph(size_tt h, size_tt w)
     // Set degrees of the first column.
     adjList[0][0]=2;
     adjList[0][h-1]=2;
-    for(int k=1; k < h-1; k++)
+    for(size_tt k=1; k < h-1; k++)
         adjList[0][k]=3;
 
     
@@ -387,7 +387,7 @@ void Graph::mesh_Graph(size_tt h, size_tt w)
         adjList[v+1] = new size_tt[adjList[0][v]];
 
     // setting degrees and memory alloc of the elements of the remaining columns
-    for(int i=1; i<w; i++){     
+    for(size_tt i=1; i<w; i++){
         if( i == w-1 ){
             for(size_tt v = 0; v < h; v++){
                 adjList[ 0 ][ v + i*h ] = adjList[0][v];
@@ -405,7 +405,7 @@ void Graph::mesh_Graph(size_tt h, size_tt w)
     //
 
     // interior vertices
-    for(int i=1; i < w-1; i++)
+    for(size_tt i=1; i < w-1; i++)
         for(size_tt v = 1; v < h-1; v++){
             adjList[ (v + i*h) + 1][0] = v + (i-1)*h;
             adjList[ (v + i*h) + 1][1] = v-1 + i*h;
@@ -428,14 +428,14 @@ void Graph::mesh_Graph(size_tt h, size_tt w)
     }
 
     // top horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ i*h + 1][0] = (i-1)*h;
         adjList[ i*h + 1][1] = 1 + i*h;
         adjList[ i*h + 1][2] = (i+1)*h;
     }
 
     // bottom horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ h + i*h ][0] = h-1 + (i-1)*h;
         adjList[ h + i*h ][1] = h-2 + i*h;
         adjList[ h + i*h ][2] = h-1 + (i+1)*h;
@@ -479,7 +479,7 @@ void Graph::square_Cylinder( size_tt h, size_tt w)
     // Set degrees of the first column.
     adjList[0][0]=3;
     adjList[0][h-1]=3;
-    for(int k=1; k < h-1; k++)
+    for(size_tt k=1; k < h-1; k++)
         adjList[0][k]=4;
 
     
@@ -488,7 +488,7 @@ void Graph::square_Cylinder( size_tt h, size_tt w)
         adjList[v+1] = new size_tt[adjList[0][v]];
 
     // setting degrees and memory alloc of the elements of the remaining columns
-    for(int i=1; i<w; i++){     
+    for(size_tt i=1; i<w; i++){
         if( i == w-1 ){
             for(size_tt v = 0; v < h; v++){
                 adjList[ 0 ][ v + i*h ] = adjList[0][v];
@@ -506,7 +506,7 @@ void Graph::square_Cylinder( size_tt h, size_tt w)
     //
 
     // interior vertices
-    for(int i=1; i < w-1; i++)
+    for(size_tt i=1; i < w-1; i++)
         for(size_tt v = 1; v < h-1; v++){
             adjList[ (v + i*h) + 1][0] = v + (i-1)*h;
             adjList[ (v + i*h) + 1][1] = v-1 + i*h;
@@ -529,14 +529,14 @@ void Graph::square_Cylinder( size_tt h, size_tt w)
     }
 
     // top horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ i*h + 1][0] = (i-1)*h;
         adjList[ i*h + 1][1] = 1 + i*h;
         adjList[ i*h + 1][2] = (i+1)*h;
     }
 
     // bottom horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ h + i*h ][0] = h-1 + (i-1)*h;
         adjList[ h + i*h ][1] = h-2 + i*h;
         adjList[ h + i*h ][2] = h-1 + (i+1)*h;
@@ -562,7 +562,7 @@ void Graph::square_Cylinder( size_tt h, size_tt w)
     
 
 
-      for(int j=0;j<h;j++){
+      for(size_tt j=0;j<h;j++){
 	int qqq=(w-1)*h+j;
 	adjList[j+1][adjList[0][j]-1]=qqq;
 	adjList[qqq+1][adjList[0][j]-1]=j;
@@ -769,29 +769,29 @@ void Graph::rand_Graph( size_tt h, size_tt w)
     adjList[0][0]=base;
     adjList[1] = new size_tt[h-1];
     
-    for(int i=1;i<first_leaf;i++) {
+    for(size_tt i=1;i<first_leaf;i++) {
       adjList[0][i]=base+1;
       adjList[i+1] = new size_tt[h-1];
     }
-    for(int i=first_leaf;i<numOfVert;i++) {
+    for(size_tt i=first_leaf;i<numOfVert;i++) {
       adjList[0][i]=1;
       adjList[i+1] = new size_tt[h-1];
     }
     
     //setting adjacencies for the root  
-    for (int i=0;i<base;i++)
+    for (size_tt i=0;i<base;i++)
       adjList[1][i]=i+1;
     
     //setting adjacencies for the internal nodes
     
-    for(int i=1;i<first_leaf;i++){
+    for(size_tt i=1;i<first_leaf;i++){
       adjList[i+1][0]=(size_tt)((i-1)/base);
-      for(int j=1;j<=base;j++)
+      for(size_tt j=1;j<=base;j++)
 	adjList[i+1][j]=base*i+j;
     }
     
     //setting adjacencies for the leafs
-    for(int i=first_leaf;i<numOfVert;i++) 
+    for(size_tt i=first_leaf;i<numOfVert;i++)
       adjList[i+1][0]=(size_tt)((i-1)/base);
     
   }
@@ -965,7 +965,7 @@ void Graph::tree(size_tt depth,size_tt base)
   
   //compute the total number of vertices of the tree
   size_tt total=0;
-  for(int i=0;i<depth;i++)
+  for(size_tt i=0;i<depth;i++)
     total = total + (size_tt)pow(base,i);
   numOfVert = total;
 
@@ -974,31 +974,31 @@ void Graph::tree(size_tt depth,size_tt base)
   adjList[0][0]=base;
   adjList[1] = new size_tt[base];
   
-  int first_leaf=numOfVert-(size_tt)pow(base,depth-1);
+  size_tt first_leaf=numOfVert-(size_tt)pow(base,depth-1);
 
-  for(int i=1;i<first_leaf;i++) {
+  for(size_tt i=1;i<first_leaf;i++) {
     adjList[0][i]=base+1;
     adjList[i+1] = new size_tt[base+1];
   }
-  for(int i=first_leaf;i<numOfVert;i++) {
+  for(size_tt i=first_leaf;i<numOfVert;i++) {
     adjList[0][i]=1;
     adjList[i+1] = new size_tt[1];
   }
 
   //setting adjacencies for the root  
-  for (int i=0;i<base;i++)
+  for (size_tt i=0;i<base;i++)
     adjList[1][i]=i+1;
 
   //setting adjacencies for the internal nodes
 
-  for(int i=1;i<first_leaf;i++){
+  for(size_tt i=1;i<first_leaf;i++){
     adjList[i+1][0]=(size_tt)((i-1)/base);
-    for(int j=1;j<=base;j++)
+    for(size_tt j=1;j<=base;j++)
       adjList[i+1][j]=base*i+j;
   }
 		 
   //setting adjacencies for the leafs
-  for(int i=first_leaf;i<numOfVert;i++) 
+  for(size_tt i=first_leaf;i<numOfVert;i++)
     adjList[i+1][0]=(size_tt)((i-1)/base);
 
 
@@ -1021,7 +1021,7 @@ void Graph::meshX( size_tt height )
     // Set degrees of the first column.
     adjList[0][0]=2;
     adjList[0][h-1]=2;
-    for(int k=1; k < h-1; k++)
+    for(size_tt k=1; k < h-1; k++)
         adjList[0][k]=3;
 
     
@@ -1030,7 +1030,7 @@ void Graph::meshX( size_tt height )
         adjList[v+1] = new size_tt[adjList[0][v]];
 
     // setting degrees and memory alloc of the elements of the remaining columns
-    for(int i=1; i<w; i++){     
+    for(size_tt i=1; i<w; i++){
         if( i == w-1 ){
             for(size_tt v = 0; v < h; v++){
                 adjList[ 0 ][ v + i*h ] = adjList[0][v];
@@ -1048,7 +1048,7 @@ void Graph::meshX( size_tt height )
     //
 
     // interior vertices
-    for(int i=1; i < w-1; i++)
+    for(size_tt i=1; i < w-1; i++)
         for(size_tt v = 1; v < h-1; v++){
             adjList[ (v + i*h) + 1][0] = v + (i-1)*h;
             adjList[ (v + i*h) + 1][1] = v-1 + i*h;
@@ -1071,14 +1071,14 @@ void Graph::meshX( size_tt height )
     }
 
     // top horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ i*h + 1][0] = (i-1)*h;
         adjList[ i*h + 1][1] = 1 + i*h;
         adjList[ i*h + 1][2] = (i+1)*h;
     }
 
     // bottom horizontal edge
-    for(int i=1; i < w-1; i++){
+    for(size_tt i=1; i < w-1; i++){
         adjList[ h + i*h ][0] = h-1 + (i-1)*h;
         adjList[ h + i*h ][1] = h-2 + i*h;
         adjList[ h + i*h ][2] = h-1 + (i+1)*h;
@@ -1146,8 +1146,8 @@ void Graph::meshT(size_tt h)
   adjList[1][0]=1;
   adjList[1][1]=2;
 
-  for(int i=2;i<=h;i++) {
-    for(int j=1;j<=i;j++){
+  for(size_tt i=2;i<=h;i++) {
+    for(size_tt j=1;j<=i;j++){
       index=index+1;
       if (i!=h){
 	if (j==1) {
@@ -1227,8 +1227,8 @@ void Graph::meshTX(size_tt h)
   adjList[numOfVert][1]=numOfVert-h-1;
   adjList[numOfVert][2]=numOfVert-2;
 
-  for(int i=2;i<=h;i++) {
-    for(int j=1;j<=i;j++){
+  for(size_tt i=2;i<=h;i++) {
+    for(size_tt j=1;j<=i;j++){
       index=index+1;
       if (i!=h){
 	if (j==1) {
@@ -1261,14 +1261,14 @@ void Graph::meshTX(size_tt h)
       else {
 	if(j==1) {	
 	  adjList[0][index]=3;
-	  adjList[index+1]=new size_tt[2];
+	  adjList[index+1]=new size_tt[3];
 	  adjList[index+1][0]=index-(i-1);
 	  adjList[index+1][1]=index+1;
 	  adjList[index+1][2]=numOfVert-1;
 	}
 	else if(j==i) {
 	  adjList[0][index]=3;
-	  adjList[index+1]=new size_tt[2];
+	  adjList[index+1]=new size_tt[3];
 	  adjList[index+1][0]=index-i;
 	  adjList[index+1][1]=index-1;
 	  adjList[index+1][2]=numOfVert-1;
@@ -1359,12 +1359,12 @@ void Graph::sierpinski(size_tt h, size_tt density)
 {
   if (density == 0) {
     size_tt temp=3;
-    for(int i=1;i<=h;i++)
+    for(size_tt i=1;i<=h;i++)
       temp=temp+(size_tt)pow(3,i);
     numOfVert=temp;
     adjList = new size_tt*[numOfVert+1];
     adjList[0]=new size_tt[numOfVert];
-    for(int i=0;i<numOfVert;i++) {
+    for(size_tt i=0;i<numOfVert;i++) {
       adjList[i+1] = new size_tt[4];
       adjList[0][i]=0;
     }
@@ -1375,7 +1375,7 @@ void Graph::sierpinski(size_tt h, size_tt density)
     numOfVert = sierpinski_recurse3D(h,0,0,1,2,3,false);
     adjList = new size_tt*[numOfVert+1];
     adjList[0]=new size_tt[numOfVert];
-    for(int i=0;i<numOfVert;i++) {
+    for(size_tt i=0;i<numOfVert;i++) {
       adjList[i+1] = new size_tt[6];
       adjList[0][i]=0;
     }

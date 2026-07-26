@@ -210,6 +210,10 @@ test_that("saved bundle helpers list files newest-first and expose load modes", 
   )
   grip:::gripui.family.save.bundle(payload, path1)
   grip:::gripui.family.save.bundle(payload, path2)
+  Sys.setFileTime(
+    c(path1, path2),
+    as.POSIXct("2026-04-06 10:00:00", tz = "America/New_York")
+  )
 
   files <- grip:::gripui.family.saved.bundle.files(desc$id, root = root)
   choices <- grip:::gripui.family.saved.bundle.choices(desc, root = root)

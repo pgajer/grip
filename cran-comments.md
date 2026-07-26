@@ -7,7 +7,12 @@ layout.
 Per CRAN feedback, I replaced the unnecessary `\dontrun{}` wrappers and
 rewrote the runnable examples so they execute quickly.
 
-Since the previous submission, version 0.1.1 adds weighted, geodesic-MDS,
+In response to the automated CRAN pre-tests for version 0.1.1, I made saved
+bundle ordering deterministic when Windows reports tied file modification
+times and corrected two undersized adjacency allocations identified by GCC
+16. The package now compiles without warnings under a strict GCC 15 build.
+
+Since the previous submission, version 0.1.2 adds weighted, geodesic-MDS,
 geodesic-KK, landmark, MISF, and interactive layout workflows. Compiled
 parallel work is capped at two threads, including automatic thread selection.
 Non-package utilities and machine-specific paths are not installed.
@@ -18,19 +23,24 @@ Non-package utilities and machine-specific paths are not installed.
 * Apple clang 17.0.0, C++17, clean user compiler settings via
   `R_MAKEVARS_USER=/dev/null`
 * macOS Tahoe 26.3.1 (Apple Silicon), R-devel 4.7.0 (2026-06-24 r90190)
+* GCC 15.2.0, C++17, with `-Wall`
 
 ## R CMD check results
 
 0 errors | 0 warnings | 2 notes
 
 The clean submission-style check was run with R-devel on the exact source
-archive `grip_0.1.1.tar.gz`. All 2,194 test expectations passed with no skips.
+archive `grip_0.1.2.tar.gz`. All 2,194 test expectations passed with no skips.
 The test suite is self-contained and does not depend on another source
 checkout.
 
 The two notes were the expected `New submission` incoming-feasibility note and
 a local-tool note that recent HTML Tidy and V8 were unavailable for optional
 HTML manual validation.
+
+The words flagged by the incoming spell check are intentional: Gajer and
+Kobourov are author surnames, KK is the standard abbreviation for
+Kamada-Kawai, and multiscale is a technical term.
 
 The package name was also checked against the current CRAN and Bioconductor
 package indexes; no case-insensitive `grip` match was found.

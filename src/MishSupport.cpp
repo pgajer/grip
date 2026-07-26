@@ -49,7 +49,7 @@ size_tt DrawGraph::bfs_me_init_v2(size_tt root)
                 vertDepthQueue.enqueue(overt);
                 vertDepthQueue.enqueue(currentDepth);
 
-                for(int i = bottomNbrsLayer;
+                for(size_tt i = bottomNbrsLayer;
                     i <= std::min(vertDepth[overt], vertDepth[root]); i++){
                     if(nbrCounter[i] < 2*nbr[i]){
                         nbrs[root][i][nbrCounter[i]++] = overt;
@@ -160,7 +160,7 @@ void DrawGraph::bfs_me_v4(size_tt root)
                 vertDepthQueue.enqueue(overt);
                 vertDepthQueue.enqueue(currentDepth);
                 
-                for(int i = bottomNbrsLayer;
+                for(size_tt i = bottomNbrsLayer;
                     i <= std::min(vertDepth[overt], vertDepth[root]); i++)
                     if(nbrCounter[i] < 2*nbr[i]){
                         nbrs[root][i][nbrCounter[i]++] = overt;
