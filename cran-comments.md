@@ -24,6 +24,9 @@ Non-package utilities and machine-specific paths are not installed.
   `R_MAKEVARS_USER=/dev/null`
 * macOS Tahoe 26.3.1 (Apple Silicon), R-devel 4.7.0 (2026-06-24 r90190)
 * GCC 15.2.0, C++17, with `-Wall`
+* Win-builder R-release, R-devel, and R-oldrelease
+* R-hub Linux, Windows, and macOS, R-devel
+* GitHub Actions R-release, R-devel, and R-oldrel-1
 
 ## R CMD check results
 
@@ -37,6 +40,10 @@ checkout.
 The two notes were the expected `New submission` incoming-feasibility note and
 a local-tool note that recent HTML Tidy and V8 were unavailable for optional
 HTML manual validation.
+
+Each Win-builder check reported 0 errors, 0 warnings, and only the expected
+new-submission note. The R-hub and GitHub Actions checks completed
+successfully on all listed platforms and R versions.
 
 The words flagged by the incoming spell check are intentional: Gajer and
 Kobourov are author surnames, KK is the standard abbreviation for

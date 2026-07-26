@@ -30,20 +30,20 @@
 
 ## Recommended before upload
 
-- [ ] Submit the exact `grip_0.1.2.tar.gz` archive to Win-builder `R-release`,
+- [x] Submit the exact `grip_0.1.2.tar.gz` archive to Win-builder `R-release`,
   `R-devel`, and
   `R-oldrelease`
-- [ ] Confirm the Win-builder `R-release` result reports 0 errors, 0 warnings,
+- [x] Confirm the Win-builder `R-release` result reports 0 errors, 0 warnings,
   and only the expected new-submission note
-- [ ] Confirm the Win-builder `R-devel` and `R-oldrelease` result emails report
+- [x] Confirm the Win-builder `R-devel` and `R-oldrelease` result emails report
   no errors, warnings, or unexpected notes
 - [x] Complete the local R-devel check: 0 errors, 0 warnings, and two
   environment/submission-status notes (`New submission`; local HTML
   Tidy/V8 unavailable)
 - [x] Commit and push the release changes
-- [ ] Confirm the GitHub Actions `R-devel`, `R-release`, and `R-oldrel-1`
+- [x] Confirm the GitHub Actions `R-devel`, `R-release`, and `R-oldrel-1`
   matrix and pkgdown workflow pass on the release commit
-- [ ] Run and confirm R-hub Linux, Windows, and macOS checks
+- [x] Run and confirm R-hub Linux, Windows, and macOS checks
 - [x] Verify the exact tarball to upload is `grip_0.1.2.tar.gz`
 
 ## Submission steps
