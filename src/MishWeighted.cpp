@@ -969,7 +969,7 @@ void DrawGraph::KK_spring_weighted_v1(const size_tt vert,
         add_coarse_global_repulsion(vert, activeVertCount);
 
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge / norm;
@@ -1053,7 +1053,7 @@ void DrawGraph::KK_spring_weighted_final_v1(const size_tt vert,
         add_active_global_repulsion(vert, activeVertCount, fedge2);
 
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge / norm;
@@ -1178,7 +1178,7 @@ void DrawGraph::FR_spring_weighted_v1(const size_tt vert,
         add_final_anchor_force(vert);
 
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge / norm;

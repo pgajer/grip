@@ -14,11 +14,10 @@
 #include "Point.h"
 #include "Graph.h"
 #include "FastQueue.h"
+#include "Rounding.h"
 
 using size_tt = uint32_t;
 
-#define ROUND(a)       ((a)>0 ? (int)((a)+0.5) : -(int)(0.5-(a)))
-#define ROUND_L(a) ((a)>0 ? (unsigned long)((a)+0.5) : -(unsigned long)(0.5-(a)))
 #define PLACEMENT_BARYCENTER 0
 #define PLACEMENT_CIRCLE 1
 #define TRACE_NONE 0

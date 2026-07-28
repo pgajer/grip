@@ -628,7 +628,9 @@ void DrawGraph::lgkk_refine_level(size_tt activeCount,
             pos[vert] = activePos[i];
             disp[vert] = acceptedMove[i];
             oldDisp[vert] = acceptedMove[i];
-            dispNorm[vert] = ROUND_L(acceptedMove[i].fnorm());
+            dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(
+                acceptedMove[i].fnorm()
+            );
             oldDispNorm[vert] = dispNorm[vert];
         }
 
@@ -819,7 +821,7 @@ void DrawGraph::KK_spring_v4(const size_tt vert,
         add_coarse_global_repulsion(vert, activeVertCount);
     
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
     
     if(dispNorm[vert]){
         disp[vert] *= edge/norm;    
@@ -863,7 +865,7 @@ void DrawGraph::KK_spring_final(const size_tt vert,
         add_active_global_repulsion(vert, activeVertCount, fedge2);
 
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge/norm;
@@ -1008,7 +1010,7 @@ void DrawGraph::FR_spring_v2(const size_tt vert,
         disp[vert] += vect;
     }
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge/norm;    
