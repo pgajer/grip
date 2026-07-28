@@ -115,17 +115,17 @@ MISF-GKK solve.}
 \item{insertion_layout_k}{Optional active-level layout graph size used by
 layout-based insertion modes.}
 
-\item{insertion_weighted_preset}{Optional weighted preset forwarded by future
-weighted insertion modes.}
+\item{insertion_weighted_preset}{Optional preset passed to weighted GRIP
+insertion.}
 
-\item{insertion_grip_args}{Optional named list of extra arguments for future
-combinatorial GRIP insertion modes.}
+\item{insertion_grip_args}{Optional named list of extra arguments passed to
+combinatorial GRIP insertion.}
 
 \item{insertion_weighted_args}{Optional named list of extra arguments for
-future weighted GRIP insertion modes.}
+weighted GRIP insertion.}
 
-\item{insertion_fr_niter}{Optional FR iteration budget for future FR-based
-insertion modes.}
+\item{insertion_fr_niter}{Optional FR iteration budget for FR-based
+insertion.}
 
 \item{refinement_pair_mode}{Optional active-level pair policy.}
 

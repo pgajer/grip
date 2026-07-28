@@ -7,9 +7,6 @@
 
 using coord_t = double;
 
-#define ROUND(a) ((a)>0 ? (int)((a)+0.5) : -(int)(0.5-(a)))
-#define ROUND_L(a) ((a)>0 ? (unsigned long)((a)+0.5) : -(unsigned long)(0.5-(a)))
-
 template <class T = coord_t>
 class Point {
 public:

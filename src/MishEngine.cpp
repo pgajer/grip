@@ -189,7 +189,7 @@ void DrawGraph::FR_spring(const size_tt vert,
         add_final_anchor_force(vert);
     
     coord_t norm = disp[vert].fnorm();
-    dispNorm[vert] = ROUND_L(norm);
+    dispNorm[vert] = grip::detail::round_to_integer<unsigned long>(norm);
 
     if(dispNorm[vert]){
         disp[vert] *= edge/norm;    

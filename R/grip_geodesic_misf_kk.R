@@ -1598,14 +1598,14 @@ prepare.misf.geodesic.kk <- function(edges = NULL,
 #' @param insertion_mode Optional insertion warm-start mode.
 #' @param insertion_layout_k Optional active-level layout graph size used by
 #'   layout-based insertion modes.
-#' @param insertion_weighted_preset Optional weighted preset forwarded by future
-#'   weighted insertion modes.
-#' @param insertion_grip_args Optional named list of extra arguments for future
-#'   combinatorial GRIP insertion modes.
+#' @param insertion_weighted_preset Optional preset passed to weighted GRIP
+#'   insertion.
+#' @param insertion_grip_args Optional named list of extra arguments passed to
+#'   combinatorial GRIP insertion.
 #' @param insertion_weighted_args Optional named list of extra arguments for
-#'   future weighted GRIP insertion modes.
-#' @param insertion_fr_niter Optional FR iteration budget for future FR-based
-#'   insertion modes.
+#'   weighted GRIP insertion.
+#' @param insertion_fr_niter Optional FR iteration budget for FR-based
+#'   insertion.
 #' @param refinement_pair_mode Optional active-level pair policy.
 #' @param refinement_full_limit Optional active-level exact/sparse threshold.
 #' @param refinement_local_nbrs Optional active-level sparse local neighborhood
@@ -2219,10 +2219,10 @@ misf.geodesic.kk <- function(prepared = NULL,
 #'   `"landmark"`, or `"auto"`.
 #' @param score_full_limit Active-set size threshold used when
 #'   `score_pair_mode = "auto"`.
-#' @param score_local_nbrs Planned sparse local-neighborhood size for future
-#'   LGKK-based scoring.
-#' @param score_landmark_count Planned sparse landmark count for future
-#'   LGKK-based scoring.
+#' @param score_local_nbrs Sparse local-neighborhood size used for
+#'   landmark-based scoring.
+#' @param score_landmark_count Sparse landmark count used for landmark-based
+#'   scoring.
 #' @param return_trace If `TRUE`, attach any trace tables stored inside `fit`.
 #'
 #' @return A one-row data frame with final MISF-GKK summary fields and either

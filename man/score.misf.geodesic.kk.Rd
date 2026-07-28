@@ -39,11 +39,11 @@ embedded edge length.}
 \item{score_full_limit}{Active-set size threshold used when
 `score_pair_mode = "auto"`.}
 
-\item{score_local_nbrs}{Planned sparse local-neighborhood size for future
-LGKK-based scoring.}
+\item{score_local_nbrs}{Sparse local-neighborhood size used for
+landmark-based scoring.}
 
-\item{score_landmark_count}{Planned sparse landmark count for future
-LGKK-based scoring.}
+\item{score_landmark_count}{Sparse landmark count used for landmark-based
+scoring.}
 
 \item{return_trace}{If `TRUE`, attach any trace tables stored inside `fit`.}
 }
