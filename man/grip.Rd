@@ -43,7 +43,10 @@ grip(
   lgkk_active_limit = 4096L,
   tinit_factor = 6,
   seed = 6,
-  disconnected = c("components", "error")
+  disconnected = c("components", "error"),
+  metric = c("hop", "edge_length"),
+  metric_neighbor_cap = NULL,
+  length_normalization = c("median", "mean", "none")
 )
 }
 \arguments{
@@ -53,12 +56,16 @@ grip(
 
 \item{adj_list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of edge weights (edge lengths).
-If NULL, all edges are treated as weight 1. All weights must be finite
-and strictly positive.}
+\item{weight_list}{Parallel list of edge lengths for \code{adj_list}.
+The edge-length-metric engine requires it; in the hop-metric engine,
+\code{NULL} treats all edges as length 1. All supplied lengths must be
+finite and strictly positive.}
 
-\item{edge_weights}{Optional vector of edge weights for \code{edges}. All
-weights must be finite and strictly positive.}
+\item{edge_weights}{Vector of edge lengths for \code{edges}, in the same
+order as its rows. The edge-length-metric engine requires it; in the
+hop-metric engine, \code{NULL} treats all edges as length 1. All supplied
+lengths must be finite and strictly positive. The selected engine
+determines whether lengths also define graph distances.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
 
@@ -199,6 +206,26 @@ skip the multiscale LGKK stage.}
 \code{"components"} (default) lays out each connected component separately
 and packs them into one coordinate matrix; \code{"error"} stops with an
 error.}
+
+\item{metric}{Graph metric used by the multiscale GRIP engine.
+\code{"hop"} (default) uses unweighted shortest-path hop counts to build
+the MISF hierarchy and graph neighborhoods. \code{"edge_length"} uses
+shortest-path distances obtained by summing the supplied positive edge
+lengths. See \bold{Edge-length semantics} for the exact role of edge
+lengths in each mode.}
+
+\item{metric_neighbor_cap}{Weighted-metric search limit used only when
+\code{metric = "edge_length"}. \code{NULL} performs the exact weighted
+neighborhood search and stops once the required neighbors and anchors are
+filled. A positive integer enables an approximate search by limiting the
+number of settled vertices per search. It is an error to supply this
+argument with \code{metric = "hop"}.}
+
+\item{length_normalization}{Global normalization applied only when
+\code{metric = "edge_length"}: \code{"median"} (default) divides every
+edge length by their median, \code{"mean"} divides by their mean, and
+\code{"none"} preserves the supplied numerical scale. It is an error to
+supply this argument with \code{metric = "hop"}.}
 }
 \value{
 A numeric matrix with `n` rows and `dim` columns.
@@ -210,6 +237,46 @@ preserving the usual GRIP refinement structure. With \code{preset = NULL},
 the default profile is tuned for higher-quality layouts and automatically
 tapers \code{final_rounds} on larger graphs.
 }
+\details{
+\strong{Edge-length semantics}
+
+The arguments \code{edge_weights} and \code{weight_list} are historically
+named but represent positive edge \emph{lengths} or traversal costs, not
+connection strengths, capacities, or similarities. A larger value requests
+a longer geometric edge. If the available values are strengths for which a
+larger value means a closer connection, convert them to positive lengths
+before calling \code{grip()}, for example with a scientifically appropriate
+reciprocal or other monotone decreasing transformation.
+
+With \code{metric = "hop"}, the standard GRIP hierarchy, insertion anchors,
+and retained local neighborhoods use combinatorial shortest-path distance:
+every traversed edge contributes one hop. When edge lengths are supplied,
+they are nevertheless used as the desired lengths of adjacent vertex pairs
+in the attractive force calculation. Thus this mode is useful when topology
+should determine the multiscale organization but adjacent edges should have
+unequal target lengths. No global length normalization is performed in this
+mode. If no lengths are supplied, every edge has desired length one. Optional
+LGKK stages use the supplied edge lengths for their geodesic distances even
+though the standard GRIP stages remain hop based.
+
+With \code{metric = "edge_length"}, positive edge lengths are required. The
+same lengths determine desired adjacent-edge lengths and the shortest-path
+metric used for the MISF hierarchy, insertion anchors, retained graph
+neighborhoods, and LGKK stages. Dijkstra-style weighted shortest paths are
+used instead of hop-count breadth-first searches. By default, all lengths
+are divided by their median before layout; this preserves relative geometry
+while placing the numerical scale near the solver's unit scale. Use
+\code{length_normalization = "mean"} for mean scaling or \code{"none"} when
+the absolute supplied scale is intentional. Multiplying all input lengths
+by the same positive constant therefore leaves the default normalized solve
+unchanged.
+
+For \code{edges} input, provide one value per row through
+\code{edge_weights}. For \code{adj_list} input, provide a parallel
+\code{weight_list}: \code{weight_list[[i]][j]} is the length of the edge from
+vertex \code{i} to \code{adj_list[[i]][j]}. For an undirected graph, the
+adjacency and length entries should be symmetric.
+}
 \examples{
 edges <- edges.mesh(4, 4)
 coords <- grip(edges, n = max(edges), dim = 2,
@@ -218,6 +285,15 @@ coords <- grip(edges, n = max(edges), dim = 2,
                       coarse_repulsion_exact_below = 32,
                       seed = 1)
 round(coords, 3)
+
+# Use edge lengths throughout the multiscale graph metric.
+path <- cbind(1:5, 2:6)
+lengths <- c(1, 1, 2, 1, 1)
+weighted.coords <- grip(
+  path, n = 6, edge_weights = lengths,
+  metric = "edge_length", dim = 2,
+  rounds = 4, final_rounds = 4, num_init = 3, seed = 1
+)
 }
 \references{
 Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent

@@ -231,7 +231,7 @@ That second question needs a different benchmark track.
 For weighted graphs with meaningful edge lengths, a pure topology-only
 comparison is no longer enough. The weighted track in `grip` is built around:
 
-- `weighted.grip()`
+- `grip(metric = "edge_length")`
 - optional experimental LGKK-based refinement
 - and full geodesic-KK scoring.
 
@@ -253,7 +253,7 @@ coords.combinatorial <- grip(
   seed = 1
 )
 
-coords.weighted <- weighted.grip(
+coords.weighted <- grip(metric = "edge_length",
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
@@ -262,7 +262,7 @@ coords.weighted <- weighted.grip(
   seed = 1
 )
 
-coords.weighted.lgkk <- weighted.grip(
+coords.weighted.lgkk <- grip(metric = "edge_length",
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
@@ -355,7 +355,7 @@ For ordinary unweighted graphs:
 
 For weighted geometric graphs:
 
-- start with `weighted.grip()`,
+- start with `grip(metric = "edge_length")`,
 - use 3D as the primary layout space when the geometry demands it,
 - and evaluate candidate layouts with geodesic-aware criteria such as
   `score.geodesic.kk()`.

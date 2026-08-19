@@ -2,7 +2,7 @@
 % Please edit documentation in R/grip_layout.R
 \name{trace.grip}
 \alias{trace.grip}
-\title{Compute a GRIP layout trace}
+\title{Trace a GRIP layout}
 \usage{
 trace.grip(
   edges = NULL,
@@ -50,7 +50,10 @@ trace.grip(
   diagnostic_sample_size_nonedge = 1000L,
   diagnostic_sample_size_stress = 500L,
   diagnostic_nonedge_seed = 1L,
-  diagnostic_stress_seed = 1L
+  diagnostic_stress_seed = 1L,
+  metric = c("hop", "edge_length"),
+  metric_neighbor_cap = NULL,
+  length_normalization = c("median", "mean", "none")
 )
 }
 \arguments{
@@ -60,12 +63,16 @@ trace.grip(
 
 \item{adj_list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of edge weights (edge lengths).
-If NULL, all edges are treated as weight 1. All weights must be finite
-and strictly positive.}
+\item{weight_list}{Parallel list of edge lengths for \code{adj_list}.
+The edge-length-metric engine requires it; in the hop-metric engine,
+\code{NULL} treats all edges as length 1. All supplied lengths must be
+finite and strictly positive.}
 
-\item{edge_weights}{Optional vector of edge weights for \code{edges}. All
-weights must be finite and strictly positive.}
+\item{edge_weights}{Vector of edge lengths for \code{edges}, in the same
+order as its rows. The edge-length-metric engine requires it; in the
+hop-metric engine, \code{NULL} treats all edges as length 1. All supplied
+lengths must be finite and strictly positive. The selected engine
+determines whether lengths also define graph distances.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
 
@@ -203,9 +210,10 @@ skip the multiscale LGKK stage.}
 \item{seed}{Optional RNG seed for reproducibility. If NULL, uses current time.}
 
 \item{trace}{Snapshot granularity. \code{"round"} records the coarsest
-initialization, each level start, every \code{trace.every} completed rounds,
-and the final layout. \code{"level"} records the coarsest initialization,
-every \code{trace.every}th level start, and the final layout.}
+initialization, each level start, every \code{trace.every} completed
+rounds, and the final layout. \code{"level"} records the coarsest
+initialization, every \code{trace.every}th level start, and the final
+layout.}
 
 \item{trace.every}{Positive integer thinning factor for recorded rounds or
 levels. Initial and final snapshots are always included.}
@@ -215,11 +223,12 @@ extra scoring, \code{"light"} appends lightweight shape diagnostics, and
 \code{"full"} also computes sampled stress on each traced frame.}
 
 \item{target_coords}{Optional numeric target coordinate matrix used to append
-per-frame Procrustes RMSE diagnostics. It must have `n` rows and `dim`
-columns.}
+per-frame Procrustes RMSE diagnostics. It must have \code{n} rows and
+\code{dim} columns.}
 
 \item{diagnostic_sample_size_nonedge}{Positive integer sample size used for
-per-frame non-edge separation diagnostics when \code{diagnostics != "none"}.}
+per-frame non-edge separation diagnostics when
+\code{diagnostics != "none"}.}
 
 \item{diagnostic_sample_size_stress}{Positive integer sample size used for
 per-frame sampled stress when \code{diagnostics = "full"}.}
@@ -229,40 +238,43 @@ separation diagnostics.}
 
 \item{diagnostic_stress_seed}{RNG seed base used for per-frame sampled stress
 diagnostics.}
+
+\item{metric}{Graph metric traced by the multiscale engine:
+\code{"hop"} (default) or \code{"edge_length"}. See
+\code{\link{grip}()} for the exact role and normalization of supplied edge
+lengths in each mode.}
+
+\item{metric_neighbor_cap}{Weighted-metric search limit used only when
+\code{metric = "edge_length"}. \code{NULL} performs the exact weighted
+neighborhood search and stops once the required neighbors and anchors are
+filled. A positive integer enables an approximate search by limiting the
+number of settled vertices per search. It is an error to supply this
+argument with \code{metric = "hop"}.}
+
+\item{length_normalization}{Global normalization applied only when
+\code{metric = "edge_length"}: \code{"median"} (default) divides every
+edge length by their median, \code{"mean"} divides by their mean, and
+\code{"none"} preserves the supplied numerical scale. It is an error to
+supply this argument with \code{metric = "hop"}.}
 }
 \value{
-A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
-  \code{trace.every}, canonical \code{stage_trace} and \code{stage_data},
-  and optionally \code{diagnostics} and \code{lgkk.polish}. \code{final} is
-  the final coordinate matrix. \code{frames} is a list of coordinate
-  matrices with \code{NA} rows for vertices that have not yet been
-  introduced by GRIP. \code{meta} is a data frame describing each frame with
-  columns \code{frame}, \code{phase}, \code{level_index}, \code{misf_level},
-  \code{round_in_level}, and \code{active_vertices}. \code{stage_trace} and
-  \code{stage_data} lift the raw frames onto the shared MISF stage schema
-  used by the geodesic multiscale methods, with canonical states such as
-  \code{seed}, \code{initial_placement}, \code{top_level},
-  \code{insertion}, \code{refinement}, and \code{final_polish}. When
-  diagnostics are requested, \code{diagnostics} is a data frame parallel to
-  \code{meta} that appends per-frame quality metrics such as
-  \code{edge.length.cv}, \code{sampled.nonedge.sep.ratio}, and optional
-  \code{procrustes.rmse}.
+A list containing the final layout, recorded coordinate frames,
+  frame metadata, trace settings, canonical stage data, and any requested
+  diagnostics.
 }
 \description{
-This traces the primary \code{\link{grip}()} engine, including the
-coarse-level global-repulsion term used by the quality-first default layout.
-For backwards-compatible traces of the historical local-force wrapper, use
-\code{\link{trace.legacy.grip}()}.
+This is the tracing counterpart to \code{\link{grip}()}. The
+\code{metric} argument selects the hop-based or edge-length-based compiled
+engine while the remaining trace and diagnostic options keep the same
+meaning in both cases. See \code{\link{grip}()} for detailed edge-length
+semantics.
 }
 \examples{
 edges <- cbind(1:5, 2:6)
-tr <- trace.grip(edges, n = 6, dim = 2,
-                        placement = "barycenter",
-                        rounds = 3, final_rounds = 2,
-                        num_init = 3, num_nbrs = 4,
-                        trace = "level",
-                        trace.every = 1,
-                        diagnostics = "light",
-                        seed = 1)
-tr$diagnostics
+tr <- trace.grip(
+  edges, n = 6, metric = "hop", dim = 2,
+  rounds = 3, final_rounds = 2, num_init = 3,
+  trace = "level", diagnostics = "light", seed = 1
+)
+tr$meta
 }

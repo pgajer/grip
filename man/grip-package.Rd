@@ -8,13 +8,13 @@
 Fast multiscale graph layouts in 2D and 3D.
 }
 \details{
-The recommended workflows are \code{\link{grip}()} for unweighted
-graphs and \code{\link{weighted.grip}()} for weighted graphs. The
-package also
+The recommended workflow is \code{\link{grip}()} with
+\code{metric = "hop"} for topology-first layouts or
+\code{metric = "edge_length"} when positive edge lengths define the graph
+metric. The package also
 provides \code{\link{score.layout}()} and
 \code{\link{compare.layouts}()} for real-data layout selection,
-\code{\link{trace.grip}()} and
-\code{\link{trace.weighted.grip}()} for multiscale diagnostics,
+\code{\link{trace.grip}()} for multiscale diagnostics under either metric,
 and advanced public experimental geodesic-KK helpers such as
 \code{\link{prepare.edge.kk}()},
 \code{\link{prepare.geodesic.kk}()},

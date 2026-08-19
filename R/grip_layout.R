@@ -789,12 +789,17 @@ grip.validate.layout.inputs <- function(edges = NULL,
 
 #' Compute a GRIP layout with coarse global repulsion
 #'
-#' This compatibility entry point is an alias of \code{\link{grip}()}.
-#' It keeps the old global-repulsion name available during the API migration,
-#' while using the same quality-first multiscale GRIP engine and adaptive
-#' \code{final_rounds} schedule as the primary layout API.
+#' This compatibility entry point is equivalent to
+#' \code{\link{grip}(..., metric = "hop")}. It keeps the old
+#' global-repulsion name available while using the same quality-first
+#' multiscale GRIP engine and adaptive \code{final_rounds} schedule as the
+#' primary layout API.
 #'
 #' @inheritParams grip
+#' @param weight_list Optional parallel list of positive edge lengths for
+#'   \code{adj_list}. \code{NULL} treats every edge as length 1.
+#' @param edge_weights Optional positive edge lengths for \code{edges}, in row
+#'   order. \code{NULL} treats every edge as length 1.
 #' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
 #'   coarse-level active-set repulsion term. \code{0} disables that extra term;
 #'   when the remaining tuning arguments also match
@@ -1145,11 +1150,21 @@ globalrep.grip <- function(edges = NULL,
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
 #' @param adj_list Adjacency list (1-based) for undirected graphs.
-#' @param weight_list Optional parallel list of edge weights (edge lengths).
-#'   If NULL, all edges are treated as weight 1. All weights must be finite
-#'   and strictly positive.
-#' @param edge_weights Optional vector of edge weights for \code{edges}. All
-#'   weights must be finite and strictly positive.
+#' @param weight_list Parallel list of edge lengths for \code{adj_list}.
+#'   The edge-length-metric engine requires it; in the hop-metric engine,
+#'   \code{NULL} treats all edges as length 1. All supplied lengths must be
+#'   finite and strictly positive.
+#' @param edge_weights Vector of edge lengths for \code{edges}, in the same
+#'   order as its rows. The edge-length-metric engine requires it; in the
+#'   hop-metric engine, \code{NULL} treats all edges as length 1. All supplied
+#'   lengths must be finite and strictly positive. The selected engine
+#'   determines whether lengths also define graph distances.
+#' @param metric Graph metric used by the multiscale GRIP engine.
+#'   \code{"hop"} (default) uses unweighted shortest-path hop counts to build
+#'   the MISF hierarchy and graph neighborhoods. \code{"edge_length"} uses
+#'   shortest-path distances obtained by summing the supplied positive edge
+#'   lengths. See \bold{Edge-length semantics} for the exact role of edge
+#'   lengths in each mode.
 #' @param dim Layout dimension (2 or 3). Default is 3.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
 #' @param preset Optional tuning preset. \code{NULL} uses the quality-first
@@ -1250,12 +1265,62 @@ globalrep.grip <- function(edges = NULL,
 #' @param lgkk_active_limit Positive integer upper bound on the active-set size
 #'   for compiled multiscale LGKK cache construction. Levels larger than this
 #'   skip the multiscale LGKK stage.
+#' @param metric_neighbor_cap Weighted-metric search limit used only when
+#'   \code{metric = "edge_length"}. \code{NULL} performs the exact weighted
+#'   neighborhood search and stops once the required neighbors and anchors are
+#'   filled. A positive integer enables an approximate search by limiting the
+#'   number of settled vertices per search. It is an error to supply this
+#'   argument with \code{metric = "hop"}.
+#' @param length_normalization Global normalization applied only when
+#'   \code{metric = "edge_length"}: \code{"median"} (default) divides every
+#'   edge length by their median, \code{"mean"} divides by their mean, and
+#'   \code{"none"} preserves the supplied numerical scale. It is an error to
+#'   supply this argument with \code{metric = "hop"}.
 #' @param tinit_factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
 #'   \code{"components"} (default) lays out each connected component separately
 #'   and packs them into one coordinate matrix; \code{"error"} stops with an
 #'   error.
+#' @details
+#' \strong{Edge-length semantics}
+#'
+#' The arguments \code{edge_weights} and \code{weight_list} are historically
+#' named but represent positive edge \emph{lengths} or traversal costs, not
+#' connection strengths, capacities, or similarities. A larger value requests
+#' a longer geometric edge. If the available values are strengths for which a
+#' larger value means a closer connection, convert them to positive lengths
+#' before calling \code{grip()}, for example with a scientifically appropriate
+#' reciprocal or other monotone decreasing transformation.
+#'
+#' With \code{metric = "hop"}, the standard GRIP hierarchy, insertion anchors,
+#' and retained local neighborhoods use combinatorial shortest-path distance:
+#' every traversed edge contributes one hop. When edge lengths are supplied,
+#' they are nevertheless used as the desired lengths of adjacent vertex pairs
+#' in the attractive force calculation. Thus this mode is useful when topology
+#' should determine the multiscale organization but adjacent edges should have
+#' unequal target lengths. No global length normalization is performed in this
+#' mode. If no lengths are supplied, every edge has desired length one. Optional
+#' LGKK stages use the supplied edge lengths for their geodesic distances even
+#' though the standard GRIP stages remain hop based.
+#'
+#' With \code{metric = "edge_length"}, positive edge lengths are required. The
+#' same lengths determine desired adjacent-edge lengths and the shortest-path
+#' metric used for the MISF hierarchy, insertion anchors, retained graph
+#' neighborhoods, and LGKK stages. Dijkstra-style weighted shortest paths are
+#' used instead of hop-count breadth-first searches. By default, all lengths
+#' are divided by their median before layout; this preserves relative geometry
+#' while placing the numerical scale near the solver's unit scale. Use
+#' \code{length_normalization = "mean"} for mean scaling or \code{"none"} when
+#' the absolute supplied scale is intentional. Multiplying all input lengths
+#' by the same positive constant therefore leaves the default normalized solve
+#' unchanged.
+#'
+#' For \code{edges} input, provide one value per row through
+#' \code{edge_weights}. For \code{adj_list} input, provide a parallel
+#' \code{weight_list}: \code{weight_list[[i]][j]} is the length of the edge from
+#' vertex \code{i} to \code{adj_list[[i]][j]}. For an undirected graph, the
+#' adjacency and length entries should be symmetric.
 #' @references
 #' Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
 #' Placement. \emph{Journal of Graph Algorithms and Applications}, 6(3),
@@ -1274,6 +1339,15 @@ globalrep.grip <- function(edges = NULL,
 #'                       coarse_repulsion_exact_below = 32,
 #'                       seed = 1)
 #' round(coords, 3)
+#'
+#' # Use edge lengths throughout the multiscale graph metric.
+#' path <- cbind(1:5, 2:6)
+#' lengths <- c(1, 1, 2, 1, 1)
+#' weighted.coords <- grip(
+#'   path, n = 6, edge_weights = lengths,
+#'   metric = "edge_length", dim = 2,
+#'   rounds = 4, final_rounds = 4, num_init = 3, seed = 1
+#' )
 #' @export
 grip <- function(edges = NULL,
                         n = NULL,
@@ -1313,8 +1387,30 @@ grip <- function(edges = NULL,
                         lgkk_active_limit = 4096L,
                         tinit_factor = 6,
                         seed = 6,
-                        disconnected = c("components", "error")) {
-  grip.forward_call(globalrep.grip, match.call(expand.dots = FALSE), env = parent.frame())
+                        disconnected = c("components", "error"),
+                        metric = c("hop", "edge_length"),
+                        metric_neighbor_cap = NULL,
+                        length_normalization = c("median", "mean", "none")) {
+  metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
+  length_normalization_missing <- missing(length_normalization)
+  metric <- match.arg(metric)
+
+  call <- match.call(expand.dots = FALSE)
+  call$metric <- NULL
+
+  if (identical(metric, "hop")) {
+    if (!metric_neighbor_cap_missing) {
+      stop("metric_neighbor_cap is only available when metric = 'edge_length'", call. = FALSE)
+    }
+    if (!length_normalization_missing) {
+      stop("length_normalization is only available when metric = 'edge_length'", call. = FALSE)
+    }
+    call$metric_neighbor_cap <- NULL
+    call$length_normalization <- NULL
+    return(grip.forward_call(globalrep.grip, call, env = parent.frame()))
+  }
+
+  grip.forward_call(globalrep.weighted.grip, call, env = parent.frame())
 }
 
 #' Compute the legacy GRIP layout
@@ -1577,8 +1673,8 @@ legacy.grip <- function(edges = NULL,
 #'                         diagnostics = "light",
 #'                         seed = 1)
 #' tr$diagnostics
-#' @export
-trace.grip <- function(edges = NULL,
+#' @noRd
+grip.trace.hop <- function(edges = NULL,
                               n = NULL,
                               adj_list = NULL,
                               weight_list = NULL,
@@ -1851,6 +1947,124 @@ trace.grip <- function(edges = NULL,
   out$stage_data <- stage.bundle$stage_data
   class(out) <- c("grip_layout_trace", class(out))
   out
+}
+
+#' Trace a GRIP layout
+#'
+#' This is the tracing counterpart to \code{\link{grip}()}. The
+#' \code{metric} argument selects the hop-based or edge-length-based compiled
+#' engine while the remaining trace and diagnostic options keep the same
+#' meaning in both cases. See \code{\link{grip}()} for detailed edge-length
+#' semantics.
+#'
+#' @inheritParams grip
+#' @param metric Graph metric traced by the multiscale engine:
+#'   \code{"hop"} (default) or \code{"edge_length"}. See
+#'   \code{\link{grip}()} for the exact role and normalization of supplied edge
+#'   lengths in each mode.
+#' @param trace Snapshot granularity. \code{"round"} records the coarsest
+#'   initialization, each level start, every \code{trace.every} completed
+#'   rounds, and the final layout. \code{"level"} records the coarsest
+#'   initialization, every \code{trace.every}th level start, and the final
+#'   layout.
+#' @param trace.every Positive integer thinning factor for recorded rounds or
+#'   levels. Initial and final snapshots are always included.
+#' @param diagnostics Optional per-frame diagnostic mode. \code{"none"} skips
+#'   extra scoring, \code{"light"} appends lightweight shape diagnostics, and
+#'   \code{"full"} also computes sampled stress on each traced frame.
+#' @param target_coords Optional numeric target coordinate matrix used to append
+#'   per-frame Procrustes RMSE diagnostics. It must have \code{n} rows and
+#'   \code{dim} columns.
+#' @param diagnostic_sample_size_nonedge Positive integer sample size used for
+#'   per-frame non-edge separation diagnostics when
+#'   \code{diagnostics != "none"}.
+#' @param diagnostic_sample_size_stress Positive integer sample size used for
+#'   per-frame sampled stress when \code{diagnostics = "full"}.
+#' @param diagnostic_nonedge_seed RNG seed base used for per-frame non-edge
+#'   separation diagnostics.
+#' @param diagnostic_stress_seed RNG seed base used for per-frame sampled stress
+#'   diagnostics.
+#' @return A list containing the final layout, recorded coordinate frames,
+#'   frame metadata, trace settings, canonical stage data, and any requested
+#'   diagnostics.
+#' @examples
+#' edges <- cbind(1:5, 2:6)
+#' tr <- trace.grip(
+#'   edges, n = 6, metric = "hop", dim = 2,
+#'   rounds = 3, final_rounds = 2, num_init = 3,
+#'   trace = "level", diagnostics = "light", seed = 1
+#' )
+#' tr$meta
+#' @export
+trace.grip <- function(edges = NULL,
+                       n = NULL,
+                       adj_list = NULL,
+                       weight_list = NULL,
+                       edge_weights = NULL,
+                       dim = 3,
+                       placement = c("barycenter", "circle"),
+                       preset = NULL,
+                       rounds = 160,
+                       final_rounds = 384,
+                       num_init = 24,
+                       num_nbrs = 20,
+                       r = 0.03,
+                       s = 7.5,
+                       repulsion_factor = 2.5,
+                       coarse_repulsion_factor = 1.5,
+                       coarse_repulsion_sample = 16,
+                       coarse_repulsion_exact_below = 64,
+                       final_anchor_factor = 0,
+                       final_move_scale_after_first = 1,
+                       final_mode = c("fr", "kk_repulse"),
+                       insertion_anchor_count = 3,
+                       insertion_anchor_scope = c("any_higher", "prev_misf"),
+                       insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                       level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
+                       level0_anchor_count = insertion_anchor_count,
+                       level0_local_kk_steps = 3,
+                       lgkk_polish_rounds = 0L,
+                       lgkk_multiscale_rounds = 0L,
+                       lgkk_rounds_coarse = NULL,
+                       lgkk_rounds_pre_final = NULL,
+                       lgkk_rounds_final = NULL,
+                       lgkk_local_nbrs = 20L,
+                       lgkk_landmark_count = 8L,
+                       lgkk_multiscale_scope = c("all", "coarse"),
+                       lgkk_active_limit = 4096L,
+                       tinit_factor = 6,
+                       seed = 6,
+                       trace = c("round", "level"),
+                       trace.every = 1,
+                       diagnostics = c("none", "light", "full"),
+                       target_coords = NULL,
+                       diagnostic_sample_size_nonedge = 1000L,
+                       diagnostic_sample_size_stress = 500L,
+                       diagnostic_nonedge_seed = 1L,
+                       diagnostic_stress_seed = 1L,
+                       metric = c("hop", "edge_length"),
+                       metric_neighbor_cap = NULL,
+                       length_normalization = c("median", "mean", "none")) {
+  metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
+  length_normalization_missing <- missing(length_normalization)
+  metric <- match.arg(metric)
+
+  call <- match.call(expand.dots = FALSE)
+  call$metric <- NULL
+
+  if (identical(metric, "hop")) {
+    if (!metric_neighbor_cap_missing) {
+      stop("metric_neighbor_cap is only available when metric = 'edge_length'", call. = FALSE)
+    }
+    if (!length_normalization_missing) {
+      stop("length_normalization is only available when metric = 'edge_length'", call. = FALSE)
+    }
+    call$metric_neighbor_cap <- NULL
+    call$length_normalization <- NULL
+    return(grip.forward_call(grip.trace.hop, call, env = parent.frame()))
+  }
+
+  grip.forward_call(grip.trace.edge.length, call, env = parent.frame())
 }
 
 #' Compute a trace for the legacy GRIP layout

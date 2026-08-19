@@ -31,7 +31,7 @@ In `grip`, that usually leads to one of two workflows:
 1. a **combinatorial workflow** for unweighted or topology-first graphs, based
    on `compare.layouts()` and `score.layout()`,
 2. a **weighted workflow** for graphs whose edge lengths carry real geometry,
-   based on `weighted.grip()`, weighted scoring, and often 3D layouts.
+   based on `grip(metric = "edge_length")`, weighted scoring, and often 3D layouts.
 
 This vignette shows both patterns. The bundled karate-club and Krackhardt-kite
 graphs illustrate the first one. The bundled coarsened HMP/U01 graph
@@ -42,7 +42,7 @@ The same package-level decision rule still applies:
 - ordinary unweighted or topology-first graphs: start with `grip()`,
   `compare.layouts()`, and `score.layout()`,
 - weighted graphs with meaningful edge lengths: start with
-  `weighted.grip()`, usually with 3D in the candidate set,
+  `grip(metric = "edge_length")`, usually with 3D in the candidate set,
 - when a promising solve needs explanation rather than another run: add trace,
 - when a smaller weighted candidate set needs stronger metric-aware comparison:
   add GKK/LGKK as advanced public experimental tools.
@@ -334,7 +334,7 @@ hmp.weight.cv
 
 For graphs like this, the weighted workflow differs from the combinatorial one:
 
-- start with `weighted.grip()` rather than `grip()`,
+- start with `grip(metric = "edge_length")` rather than `grip()`,
 - prefer 3D as the primary layout space,
 - and assess geometry with a weighted graph-metric criterion when possible.
 
@@ -346,14 +346,14 @@ The direct weighted-candidate pattern looks like this:
 
 ```{r eval=FALSE}
 weighted.candidates <- list(
-  weighted_default = weighted.grip(
+  weighted_default = grip(metric = "edge_length",
     adj_list = hmp.u01.gc.coarse$adj_list,
     weight_list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
     dim = 3,
     seed = 1
   ),
-  weighted_irregular = weighted.grip(
+  weighted_irregular = grip(metric = "edge_length",
     adj_list = hmp.u01.gc.coarse$adj_list,
     weight_list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
@@ -508,8 +508,8 @@ artifact paths, see the companion article `HMP/U01 Weighted Graph Case Study`.
 - Use a small candidate shortlist before any local search.
 - Keep 3D in the candidate set when the graph is structurally rich.
 - If edge lengths are scientifically meaningful, switch to
-  `weighted.grip()`.
-- Use `trace.grip()` or `trace.weighted.grip()` when a promising
+  `grip(metric = "edge_length")`.
+- Use `trace.grip()` or `trace.grip(metric = "edge_length")` when a promising
   solve needs diagnosis rather than another broad sweep.
 - For weighted graphs, treat 3D as the primary evaluation space and use
   GKK/LGKK scoring only when the graph is small enough for those advanced

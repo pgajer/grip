@@ -29,7 +29,7 @@ grip.normalize.weight_list <- function(weight_list,
   )
 }
 
-grip.normalize.weighted.preset <- function(preset, fn = "weighted.grip") {
+grip.normalize.weighted.preset <- function(preset, fn = "grip") {
   if (is.null(preset)) {
     return(NULL)
   }
@@ -206,7 +206,7 @@ grip.validate.weighted.layout.inputs <- function(edges = NULL,
 }
 
 grip.validate.weighted.metric.search.inputs <- function(metric_neighbor_cap = NULL,
-                                                        caller = "weighted.grip") {
+                                                        caller = "grip") {
   if (is.null(metric_neighbor_cap)) {
     return(0L)
   }
@@ -279,13 +279,17 @@ build.weighted.misf <- function(edges = NULL,
 
 #' Compute a weighted geometry-aware GRIP layout
 #'
-#' \code{globalrep.weighted.grip()} is the weighted counterpart to
-#' \code{\link{globalrep.grip}()}. It keeps the current combinatorial
-#' GRIP entry points intact and runs a separate weighted multiscale core that
-#' uses edge lengths in the filtration, local neighborhoods, insertion,
-#' refinement forces, and optional in-core multiscale LGKK refinement.
+#' \code{globalrep.weighted.grip()} is the compatibility backend equivalent to
+#' \code{\link{grip}(..., metric = "edge_length")}. It runs the edge-length
+#' multiscale core, which uses edge lengths in the filtration, local
+#' neighborhoods, insertion, refinement forces, and optional in-core
+#' multiscale LGKK refinement.
 #'
 #' @inheritParams globalrep.grip
+#' @param weight_list Parallel list of positive edge lengths for
+#'   \code{adj_list}; required when adjacency-list input is used.
+#' @param edge_weights Positive edge lengths for \code{edges}, in row order;
+#'   required when edge-list input is used.
 #' @param preset Optional weighted tuning preset. \code{NULL} uses the
 #'   quality-first defaults for the weighted core. \code{"mesh"} targets
 #'   rectangular and near-mesh weighted surfaces, \code{"cylinder"} targets
@@ -568,27 +572,9 @@ globalrep.weighted.grip <- function(edges = NULL,
   grip.pack.component.layouts(layouts = layouts, comp = comp, n = n, dim = dim)
 }
 
-#' Trace a weighted geometry-aware GRIP layout
-#'
-#' \code{trace.weighted.grip()} records the weighted GRIP layout
-#' trajectory. It mirrors \code{\link{trace.grip}()} but uses the
-#' weighted GRIP sister core, including optional in-core multiscale LGKK
-#' refinement.
-#'
-#' @inheritParams globalrep.weighted.grip
-#' @inheritParams trace.grip
-#' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
-#'   \code{trace.every}, and \code{diagnostics}. \code{final} is the final
-#'   coordinate matrix. \code{frames} is a list of coordinate matrices with
-#'   \code{NA} rows for vertices that have not yet been introduced by GRIP.
-#'   \code{meta} is a data frame describing each frame with columns
-#'   \code{frame}, \code{phase}, \code{level_index}, \code{misf_level},
-#'   \code{round_in_level}, and \code{active_vertices}. When diagnostics are
-#'   requested, \code{diagnostics} is a data frame parallel to \code{meta} that
-#'   appends per-frame quality metrics such as \code{edge.length.cv},
-#'   \code{sampled.nonedge.sep.ratio}, and optional \code{procrustes.rmse}.
-#' @export
-trace.weighted.grip <- function(edges = NULL,
+#' Internal edge-length-metric GRIP trace engine
+#' @noRd
+grip.trace.edge.length <- function(edges = NULL,
                                        n = NULL,
                                        adj_list = NULL,
                                        weight_list = NULL,
@@ -647,7 +633,7 @@ trace.weighted.grip <- function(edges = NULL,
 
   preset <- grip.normalize.weighted.preset(
     preset,
-    fn = "trace.weighted.grip"
+    fn = "trace.grip"
   )
 
   resolved <- grip.resolve.weighted.preset(
@@ -705,16 +691,17 @@ trace.weighted.grip <- function(edges = NULL,
     placement = placement,
     seed = seed,
     length_normalization = length_normalization,
-    caller = "trace.weighted.grip"
+    caller = "trace.grip"
   )
   adj_list <- validated$adj_list
   weight_list <- validated$weight_list
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
+  trace.edges <- grip.edges.from.adj.list(adj_list)
   metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
     metric_neighbor_cap = metric_neighbor_cap,
-    caller = "trace.weighted.grip"
+    caller = "trace.grip"
   )
 
   if (is.null(preset) && final_rounds_missing) {
@@ -779,7 +766,7 @@ trace.weighted.grip <- function(edges = NULL,
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
-      "trace.weighted.grip() currently supports only connected graphs; input graph has %d connected components.",
+      "trace.grip() currently supports only connected graphs; input graph has %d connected components.",
       n.comp
     ))
   }
@@ -876,55 +863,12 @@ trace.weighted.grip <- function(edges = NULL,
     nonedge.seed = diagnostic_nonedge_seed,
     stress.seed = diagnostic_stress_seed
   )
+  stage.bundle <- grip.layout.trace.as.stage.bundle(
+    trace = out,
+    edges = trace.edges
+  )
+  out$stage_trace <- stage.bundle$stage_trace
+  out$stage_data <- stage.bundle$stage_data
   class(out) <- c("grip_layout_trace", class(out))
   out
-}
-
-#' Alias of \code{globalrep.weighted.grip()}
-#'
-#' @inheritParams globalrep.weighted.grip
-#' @return A numeric matrix with \code{n} rows and \code{dim} columns.
-#' @export
-weighted.grip <- function(edges = NULL,
-                                 n = NULL,
-                                 adj_list = NULL,
-                                 weight_list = NULL,
-                                 edge_weights = NULL,
-                                 dim = 3,
-                                 placement = c("barycenter", "circle"),
-                                 preset = NULL,
-                                 rounds = 160,
-                                 final_rounds = 384,
-                                 num_init = 24,
-                                 num_nbrs = 20,
-                                 r = 0.03,
-                                 s = 7.5,
-                                 repulsion_factor = 2.5,
-                                 coarse_repulsion_factor = 1.5,
-                                 coarse_repulsion_sample = 16,
-                                 coarse_repulsion_exact_below = 64,
-                                 final_anchor_factor = 0,
-                                 final_move_scale_after_first = 1,
-                                 final_mode = c("fr", "kk_repulse"),
-                                 insertion_anchor_count = 3,
-                                 insertion_anchor_scope = c("any_higher", "prev_misf"),
-                                 insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                                 level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                                 level0_anchor_count = insertion_anchor_count,
-                                 level0_local_kk_steps = 3,
-                                 lgkk_polish_rounds = 0L,
-                                 lgkk_multiscale_rounds = 0L,
-                                 lgkk_rounds_coarse = NULL,
-                                 lgkk_rounds_pre_final = NULL,
-                                 lgkk_rounds_final = NULL,
-                                 lgkk_local_nbrs = 20L,
-                                 lgkk_landmark_count = 8L,
-                                 lgkk_multiscale_scope = c("all", "coarse"),
-                                 lgkk_active_limit = 4096L,
-                                 metric_neighbor_cap = NULL,
-                                 length_normalization = c("median", "mean", "none"),
-                                 tinit_factor = 6,
-                                 seed = 6,
-                                 disconnected = c("components", "error")) {
-  grip.forward_call(globalrep.weighted.grip, match.call(expand.dots = FALSE), env = parent.frame())
 }

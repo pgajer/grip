@@ -887,21 +887,25 @@ grip.edge.isometric.initial.coords <- function(prepared,
     if (!(dim %in% c(2L, 3L))) {
       stop("init = \"weighted_grip\" requires dim to be 2 or 3")
     }
-    reserved <- c("edges", "n", "adj_list", "weight_list", "edge_weights", "dim", "seed")
+    reserved <- c(
+      "edges", "n", "adj_list", "weight_list", "edge_weights",
+      "dim", "seed", "metric"
+    )
     conflicts <- intersect(weighted.grip.arg.names, reserved)
     if (length(conflicts) > 0L) {
       stop(
-        "weighted.grip.args must not include graph, dimension, or seed arguments: ",
+        "weighted.grip.args must not include graph, dimension, seed, or metric arguments: ",
         paste(conflicts, collapse = ", ")
       )
     }
-    return(do.call(weighted.grip, c(
+    return(do.call(grip, c(
       list(
         edges = prepared$edges,
         n = prepared$n,
         edge_weights = prepared$edge_targets,
         dim = dim,
-        seed = seed
+        seed = seed,
+        metric = "edge_length"
       ),
       weighted.grip.args
     )))
@@ -941,11 +945,12 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param dim Target embedding dimension.
 #' @param init Starting layout used when `coords` is omitted. `"metric_mds"`
 #'   uses ordinary metric MDS from an all-pairs prepared object,
-#'   `"weighted_grip"` runs [weighted.grip()] on the graph edges first, and
+#'   `"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
+#'   graph edges first, and
 #'   `"random"` uses centered Gaussian coordinates.
 #' @param weighted.grip.args Named list of additional tuning arguments passed
-#'   to [weighted.grip()] when `init = "weighted_grip"`. Graph inputs,
-#'   `dim`, and `seed` are supplied by `edge.kk()` and may not be repeated here.
+#'   to [grip()] when `init = "weighted_grip"`. Graph inputs, `dim`, `seed`,
+#'   and `metric` are supplied by `edge.kk()` and may not be repeated here.
 #' @param stiffness_method,stiffness_transform,density_mix_schedule,bandwidth,density_n
 #'   Parameters passed to [edge.length.density.stiffness()].
 #' @param distance_power,stiffness_floor,stiffness_ceiling Additional stiffness

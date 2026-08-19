@@ -11,11 +11,11 @@ multiscale graph layout. Its primary unweighted and weighted workflows target
 2D and 3D, while opt-in weighted-GRIP, metric-MDS, and edge-KK workflows also
 support higher-dimensional embeddings. The main workflow is:
 
-- `grip()` for unweighted graphs,
-- `weighted.grip()` for weighted graphs,
+- `grip(metric = "hop")` for topology-first layouts,
+- `grip(metric = "edge_length")` when edge lengths define the graph metric,
 - `compare.layouts()` and `score.layout()` for real-data layout
   selection,
-- `trace.grip()` and `trace.weighted.grip()` for diagnostics.
+- `trace.grip()` with the same metric choice for diagnostics.
 
 The package also includes advanced public experimental geodesic-KK utilities
 for weighted-layout scoring and polish. It builds on the GRIP method described
@@ -45,15 +45,13 @@ plot.layout(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 ## Features
 
 - Multiscale force-directed layout in 2D and 3D via C++ (Rcpp).
-- `grip()` for unweighted graphs.
-- `weighted.grip()` for weighted graphs.
+- A unified `grip()` interface for hop-metric and edge-length-metric layouts.
 - Opt-in multiscale weighted layout in dimensions greater than 3 via
   `weighted.grip.nd()`, with higher-dimensional metric-MDS and edge-KK
   workflows available through `metric.mds()` and `edge.kk()`.
 - Layout comparison and quality scoring across seeds and parameter settings
   (`compare.layouts()`, `score.layout()`).
-- Multiscale trace diagnostics for both workflows
-  (`trace.grip()`, `trace.weighted.grip()`).
+- Multiscale trace diagnostics for both metrics via `trace.grip()`.
 - Advanced public experimental geodesic-KK utilities for weighted-layout
   scoring and polish (`prepare.geodesic.kk()`,
   `score.geodesic.kk()`, `prepare.landmark.geodesic.kk()`,
@@ -79,15 +77,26 @@ you pass overrides the preset value.
 
 ## Choosing a workflow
 
-- Start with `grip()` when the graph is unweighted.
-- Switch to `weighted.grip()` when the graph is weighted.
+- Start with `grip(metric = "hop")`, the default, when topology should define
+  the multiscale hierarchy and graph neighborhoods.
+- Use `grip(metric = "edge_length")` when positive edge lengths should also
+  define shortest-path distances, hierarchy construction, neighborhoods, and
+  insertion anchors.
 - Use `compare.layouts()` and `score.layout()` when the graph is
   important enough to justify a candidate shortlist rather than a single run.
-- Use `trace.grip()` or `trace.weighted.grip()` when you need to
-  diagnose how a solve evolved.
+- Use `trace.grip()` with the corresponding `metric` when you need to diagnose
+  how a solve evolved.
 - Add GKK/LGKK only after you already have weighted candidate layouts and need
   geodesic-aware scoring or polish; these are advanced public experimental
   tools rather than the default starting point.
+
+The historical argument names `edge_weights` and `weight_list` represent
+positive edge **lengths**, not connection strengths. With `metric = "hop"`,
+supplied lengths set adjacent-edge force targets while standard GRIP hierarchy
+and neighborhood searches still count hops. With `metric = "edge_length"`,
+the lengths also define weighted shortest paths throughout the multiscale
+engine and are median-normalized by default. See `?grip` for the complete
+semantics and normalization options.
 
 ## Gallery
 
@@ -112,12 +121,14 @@ coords <- grip(edges, n = 18, dim = 2, placement = "circle", seed = 2)
 plot.layout(coords, edges, pch = 16, cex = 0.7)
 ```
 
-**Weighted adjacency list (geometry-aware)**
+**Edge-length-metric adjacency list (geometry-aware)**
 ```r
 adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
 weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
-coords <- weighted.grip(adj_list = adj_list, weight_list = weight_list,
-                               n = 4, dim = 2, seed = 12)
+coords <- grip(
+  adj_list = adj_list, weight_list = weight_list,
+  metric = "edge_length", n = 4, dim = 2, seed = 12
+)
 plot.layout(coords)
 ```
 
