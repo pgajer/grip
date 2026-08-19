@@ -61,7 +61,6 @@ plot.layout(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 - Tuned presets for common graph families (see table below).
 - Static 3D projection for vignettes and reports
   (`plot.layout(projection = "ortho")`, `project.3d()`).
-- Optional Shiny explorers and interactive 3D viewing via `rgl`.
 
 ## Presets
 
