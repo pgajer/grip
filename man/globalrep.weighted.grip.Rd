@@ -55,12 +55,11 @@ globalrep.weighted.grip(
 
 \item{adj_list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of edge weights (edge lengths).
-If NULL, all edges are treated as weight 1. All weights must be finite
-and strictly positive.}
+\item{weight_list}{Parallel list of positive edge lengths for
+\code{adj_list}; required when adjacency-list input is used.}
 
-\item{edge_weights}{Optional vector of edge weights for \code{edges}. All
-weights must be finite and strictly positive.}
+\item{edge_weights}{Positive edge lengths for \code{edges}, in row order;
+required when edge-list input is used.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
 
@@ -218,9 +217,9 @@ error.}
 A numeric matrix with \code{n} rows and \code{dim} columns.
 }
 \description{
-\code{globalrep.weighted.grip()} is the weighted counterpart to
-\code{\link{globalrep.grip}()}. It keeps the current combinatorial
-GRIP entry points intact and runs a separate weighted multiscale core that
-uses edge lengths in the filtration, local neighborhoods, insertion,
-refinement forces, and optional in-core multiscale LGKK refinement.
+\code{globalrep.weighted.grip()} is the compatibility backend equivalent to
+\code{\link{grip}(..., metric = "edge_length")}. It runs the edge-length
+multiscale core, which uses edge lengths in the filtration, local
+neighborhoods, insertion, refinement forces, and optional in-core
+multiscale LGKK refinement.
 }

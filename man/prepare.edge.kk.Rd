@@ -42,7 +42,8 @@ distance matrix.
 }
 \details{
 Use this helper when a starting layout is already available, for example from
-\code{\link{weighted.grip}()}, and the next step is scalable edge-KK
+\code{\link{grip}(..., metric = "edge_length")}, and the next step is
+scalable edge-KK
 local repair. Edge-only objects support edge-fidelity diagnostics through
 \code{\link{score.gmds}()}; all-pairs GMDS path and chord
 diagnostics are unavailable and are reported as \code{NA}.

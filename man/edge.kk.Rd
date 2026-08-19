@@ -62,12 +62,13 @@ diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
 \item{init}{Starting layout used when `coords` is omitted. `"metric_mds"`
 uses ordinary metric MDS from an all-pairs prepared object,
-`"weighted_grip"` runs [weighted.grip()] on the graph edges first, and
+`"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
+graph edges first, and
 `"random"` uses centered Gaussian coordinates.}
 
 \item{weighted.grip.args}{Named list of additional tuning arguments passed
-to [weighted.grip()] when `init = "weighted_grip"`. Graph inputs,
-`dim`, and `seed` are supplied by `edge.kk()` and may not be repeated here.}
+to [grip()] when `init = "weighted_grip"`. Graph inputs, `dim`, `seed`,
+and `metric` are supplied by `edge.kk()` and may not be repeated here.}
 
 \item{stiffness_method, stiffness_transform, density_mix_schedule, bandwidth, density_n}{Parameters passed to [edge.length.density.stiffness()].}
 

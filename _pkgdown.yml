@@ -87,10 +87,8 @@ reference:
   - title: Weighted layout computation
     desc: Compute geometry-aware layouts and multiscale filtrations for weighted graphs.
     contents:
-      - weighted.grip
       - weighted.grip.nd
       - globalrep.weighted.grip
-      - trace.weighted.grip
       - build.misf
       - build.weighted.misf
 

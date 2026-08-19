@@ -18,24 +18,20 @@ knitr::opts_chunk$set(
 
 ## Why weighted layouts deserve their own vignette
 
-Classical GRIP is fundamentally combinatorial: it sees the graph topology and
-uses graph-distance neighborhoods, but it does not treat edge lengths as a
-first-class geometric signal throughout the multiscale hierarchy.
+Classical GRIP is fundamentally combinatorial: it sees graph topology through
+hop-count neighborhoods. The unified `grip()` interface can instead make
+positive edge lengths a first-class geometric signal throughout the
+multiscale hierarchy:
 
-That is exactly why `grip` now includes a weighted sister API:
-
-- `weighted.grip()`
-- `globalrep.weighted.grip()`
-- `trace.weighted.grip()`
-- `build.weighted.misf()`
-
-Use these when edge lengths represent geometry you care about rather than just
-optional metadata.
+- `grip(metric = "hop")` selects the topology-first engine,
+- `grip(metric = "edge_length")` selects the edge-length-metric engine,
+- `trace.grip()` accepts the same `metric` choice, and
+- `build.weighted.misf()` exposes weighted hierarchy construction directly.
 
 The package decision rule is:
 
-- use `grip()` for ordinary unweighted or topology-first graphs,
-- use `weighted.grip()` when edge lengths carry geometry you want to
+- use `grip(metric = "hop")` for ordinary unweighted or topology-first graphs,
+- use `grip(metric = "edge_length")` when edge lengths carry geometry you want to
   preserve,
 - add GKK/LGKK only after you already have weighted candidate layouts and need
   advanced experimental geodesic-aware scoring or polish.
@@ -91,7 +87,7 @@ coords.unweighted <- grip(
   seed = 1
 )
 
-coords.weighted <- weighted.grip(
+coords.weighted <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
   edge_weights = surface.mesh$edge_weights,
@@ -162,7 +158,7 @@ The graph metric can be difficult or impossible to represent faithfully in 2D
 without substantial distortion.
 
 ```{r}
-coords.weighted.2d <- weighted.grip(
+coords.weighted.2d <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
   edge_weights = surface.mesh$edge_weights,
@@ -171,7 +167,7 @@ coords.weighted.2d <- weighted.grip(
   seed = 2
 )
 
-coords.weighted.3d <- weighted.grip(
+coords.weighted.3d <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
   edge_weights = surface.mesh$edge_weights,
@@ -270,7 +266,7 @@ tree.graph <- kary.tree.weighted.graph(
   branch_spread = 0.25
 )
 
-tree.coords <- weighted.grip(
+tree.coords <- grip(metric = "edge_length",
   tree.graph$edges,
   n = tree.graph$n,
   edge_weights = tree.graph$edge_weights,
@@ -310,7 +306,7 @@ themselves rather than in a chosen 3D embedding.
 
 The weighted API also supports:
 
-- `trace.weighted.grip()` for traced weighted solves,
+- `trace.grip(metric = "edge_length")` for traced weighted solves,
 - `prepare.geodesic.kk()` / `score.geodesic.kk()` for full GKK
   evaluation,
 - `prepare.landmark.geodesic.kk()` /
@@ -320,14 +316,14 @@ The weighted API also supports:
   multiscale refinement.
 
 These GKK/LGKK tools are public, but they are not the default entry path. For
-most weighted problems, start with `weighted.grip()` and use the
+most weighted problems, start with `grip(metric = "edge_length")` and use the
 geodesic tools only when you need a stronger metric comparison or an
 experimental polish step.
 
 Here is the smallest traced weighted example pattern:
 
 ```{r eval=FALSE}
-surface.trace <- trace.weighted.grip(
+surface.trace <- trace.grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
   edge_weights = surface.mesh$edge_weights,

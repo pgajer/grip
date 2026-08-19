@@ -72,7 +72,7 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
     n = 4L,
     edge_weights = edge.weights
   )
-  init <- weighted.grip(
+  init <- grip(metric = "edge_length",
     edges = edges,
     n = 4L,
     edge_weights = edge.weights,
@@ -112,13 +112,14 @@ test_that("edge-KK weighted-GRIP initialization uses edge-only preparation", {
     edge_weights = edge.weights
   )
   weighted.args <- list(rounds = 4L, final_rounds = 4L, num_init = 3L)
-  init <- do.call(weighted.grip, c(
+  init <- do.call(grip, c(
     list(
       edges = prepared$edges,
       n = prepared$n,
       edge_weights = prepared$edge_targets,
       dim = 3L,
-      seed = 11L
+      seed = 11L,
+      metric = "edge_length"
     ),
     weighted.args
   ))

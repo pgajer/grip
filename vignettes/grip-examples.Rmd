@@ -20,12 +20,12 @@ knitr::opts_chunk$set(
 
 `grip` has four main user workflows:
 
-- `grip()` for ordinary unweighted or topology-first graphs,
-- `weighted.grip()` when edge lengths carry geometry you want to keep,
+- `grip(metric = "hop")` for ordinary unweighted or topology-first graphs,
+- `grip(metric = "edge_length")` when edge lengths carry geometry you want to keep,
 - `compare.layouts()` and `score.layout()` when you want a
   disciplined real-data shortlist,
-- `trace.grip()` and `trace.weighted.grip()` when you need
-  diagnostics rather than just a final picture.
+- `trace.grip()` with the corresponding metric when you need diagnostics
+  rather than just a final picture.
 
 This vignette is the shortest path through the default workflow. It shows how
 to:
@@ -125,7 +125,7 @@ topology-first `grip()` run can still be a useful baseline. When the
 edge lengths represent geometry that the layout should preserve, the default
 path changes:
 
-- start from `weighted.grip()`,
+- start from `grip(metric = "edge_length")`,
 - prefer 3D when the graph geometry is genuinely three-dimensional,
 - and add GKK/LGKK only later if you need advanced geodesic-aware scoring or
   polish on a smaller weighted candidate set.
@@ -137,11 +137,11 @@ mainly care about its combinatorial structure.
 
 Switch to the other guides when the task changes:
 
-- use `weighted.grip()` when edge lengths encode geometry you care
+- use `grip(metric = "edge_length")` when edge lengths encode geometry you care
   about,
 - use `compare.layouts()` on real graphs when you want a disciplined
   shortlist rather than a single run,
-- use `trace.grip()` or `trace.weighted.grip()` when you want to
+- use `trace.grip()` or `trace.grip(metric = "edge_length")` when you want to
   inspect how a solve evolves,
 - use GKK/LGKK only after you already have weighted candidate layouts and need
   advanced experimental geodesic-aware scoring or polish,

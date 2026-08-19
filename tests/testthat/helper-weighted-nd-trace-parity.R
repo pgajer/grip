@@ -88,12 +88,13 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
       lgkk_polish_rounds = 0L,
       lgkk_multiscale_rounds = 0L,
       metric_neighbor_cap = NULL,
+      metric = "edge_length",
       diagnostics = "none"
     )
   )
   nd_args <- common
 
-  legacy <- do.call(trace.weighted.grip, legacy_args)
+  legacy <- do.call(trace.grip, legacy_args)
   nd_trace_fn <- get("grip.layout.weighted.nd.trace", asNamespace("grip"))
   nd <- do.call(nd_trace_fn, nd_args)
 

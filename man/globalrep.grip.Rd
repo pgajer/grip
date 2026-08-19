@@ -53,12 +53,11 @@ globalrep.grip(
 
 \item{adj_list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of edge weights (edge lengths).
-If NULL, all edges are treated as weight 1. All weights must be finite
-and strictly positive.}
+\item{weight_list}{Optional parallel list of positive edge lengths for
+\code{adj_list}. \code{NULL} treats every edge as length 1.}
 
-\item{edge_weights}{Optional vector of edge weights for \code{edges}. All
-weights must be finite and strictly positive.}
+\item{edge_weights}{Optional positive edge lengths for \code{edges}, in row
+order. \code{NULL} treats every edge as length 1.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
 
@@ -207,10 +206,11 @@ error.}
 A numeric matrix with `n` rows and `dim` columns.
 }
 \description{
-This compatibility entry point is an alias of \code{\link{grip}()}.
-It keeps the old global-repulsion name available during the API migration,
-while using the same quality-first multiscale GRIP engine and adaptive
-\code{final_rounds} schedule as the primary layout API.
+This compatibility entry point is equivalent to
+\code{\link{grip}(..., metric = "hop")}. It keeps the old
+global-repulsion name available while using the same quality-first
+multiscale GRIP engine and adaptive \code{final_rounds} schedule as the
+primary layout API.
 }
 \examples{
 edges <- edges.mesh(4, 4)

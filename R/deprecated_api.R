@@ -52,15 +52,15 @@ grip.layout.trace.legacy <- function(...) {
 #' @rdname deprecated-grip-api
 #' @export
 grip.layout.trace.weighted <- function(...) {
-  .Deprecated("trace.weighted.grip")
-  trace.weighted.grip(...)
+  .Deprecated("trace.grip")
+  trace.grip(..., metric = "edge_length")
 }
 
 #' @rdname deprecated-grip-api
 #' @export
 grip.layout.weighted <- function(...) {
-  .Deprecated("weighted.grip")
-  weighted.grip(...)
+  .Deprecated("grip")
+  grip(..., metric = "edge_length")
 }
 
 #' @rdname deprecated-grip-api

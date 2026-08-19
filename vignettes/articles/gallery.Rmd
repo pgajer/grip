@@ -26,11 +26,11 @@ For many of these families, the package stores both:
 
 - a target geometry used to induce edge lengths, and
 - a weighted graph bundle that can be passed directly to
-  `weighted.grip()`.
+  `grip(metric = "edge_length")`.
 
 As a workflow guide, use `grip()` on the purely topological versions of
 these families when you want an unweighted baseline, and use
-`weighted.grip()` on the weighted bundles when the induced geometry is
+`grip(metric = "edge_length")` on the weighted bundles when the induced geometry is
 part of the problem. Advanced GKK/LGKK scoring can be layered onto smaller
 weighted examples later, but that is not the main purpose of this article.
 
@@ -117,7 +117,7 @@ mesh.graph <- mesh.surface.graph(
   amplitude = 0.8
 )
 
-mesh.coords <- weighted.grip(
+mesh.coords <- grip(metric = "edge_length",
   mesh.graph$edges,
   n = mesh.graph$n,
   edge_weights = mesh.graph$edge_weights,
@@ -163,7 +163,7 @@ torus.graph <- torus.surface.graph(
   twist = 0.18
 )
 
-torus.coords <- weighted.grip(
+torus.coords <- grip(metric = "edge_length",
   torus.graph$edges,
   n = torus.graph$n,
   edge_weights = torus.graph$edge_weights,
@@ -209,7 +209,7 @@ vicsek.graph <- vicsek.surface.graph(
   amplitude = 0.55
 )
 
-vicsek.coords <- weighted.grip(
+vicsek.coords <- grip(metric = "edge_length",
   vicsek.graph$edges,
   n = vicsek.graph$n,
   edge_weights = vicsek.graph$edge_weights,
@@ -248,7 +248,7 @@ annulus.graph <- irregular.annulus.surface.graph(
   amplitude = 0.2
 )
 
-annulus.coords <- weighted.grip(
+annulus.coords <- grip(metric = "edge_length",
   annulus.graph$edges,
   n = annulus.graph$n,
   edge_weights = annulus.graph$edge_weights,
@@ -286,7 +286,7 @@ cube.graph <- cube.channel.network.surface.graph(
   twist = 0.2
 )
 
-cube.coords <- weighted.grip(
+cube.coords <- grip(metric = "edge_length",
   cube.graph$edges,
   n = cube.graph$n,
   edge_weights = cube.graph$edge_weights,
@@ -335,7 +335,7 @@ tree.graph <- kary.tree.weighted.graph(
   branch_spread = 0.25
 )
 
-tree.coords <- weighted.grip(
+tree.coords <- grip(metric = "edge_length",
   tree.graph$edges,
   n = tree.graph$n,
   edge_weights = tree.graph$edge_weights,

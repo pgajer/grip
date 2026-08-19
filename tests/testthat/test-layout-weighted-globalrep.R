@@ -46,9 +46,9 @@ test_that("weighted globalrep layout returns a finite deterministic matrix", {
   expect_identical(coords1, coords2)
 })
 
-test_that("weighted.grip is an alias of weighted globalrep", {
+test_that("grip edge-length mode matches the weighted backend", {
   graph <- mesh.surface.graph(4, 5, surface = "ripple", amplitude = 0.5)
-  coords_primary <- weighted.grip(
+  coords_primary <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -186,7 +186,7 @@ test_that("weighted MISF helper is deterministic and normalization-aware", {
 
 test_that("weighted mesh preset matches the explicit tuning profile", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.5)
-  coords_preset <- weighted.grip(
+  coords_preset <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -194,7 +194,7 @@ test_that("weighted mesh preset matches the explicit tuning profile", {
     preset = "mesh",
     seed = 101
   )
-  coords_explicit <- weighted.grip(
+  coords_explicit <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -214,7 +214,7 @@ test_that("weighted mesh preset matches the explicit tuning profile", {
 
 test_that("weighted cylinder preset matches the explicit tuning profile", {
   graph <- cylinder.surface.graph(4, 6, surface = "hourglass", amplitude = 0.25)
-  coords_preset <- weighted.grip(
+  coords_preset <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -222,7 +222,7 @@ test_that("weighted cylinder preset matches the explicit tuning profile", {
     preset = "cylinder",
     seed = 103
   )
-  coords_explicit <- weighted.grip(
+  coords_explicit <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -249,7 +249,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     amplitude = 0.25
   )
 
-  sphere_preset <- weighted.grip(
+  sphere_preset <- grip(metric = "edge_length",
     edges = sphere$edges,
     edge_weights = sphere$edge_weights,
     n = sphere$n,
@@ -257,7 +257,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     preset = "sphere",
     seed = 107
   )
-  sphere_explicit <- weighted.grip(
+  sphere_explicit <- grip(metric = "edge_length",
     edges = sphere$edges,
     edge_weights = sphere$edge_weights,
     n = sphere$n,
@@ -273,7 +273,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     seed = 107
   )
 
-  irregular_preset <- weighted.grip(
+  irregular_preset <- grip(metric = "edge_length",
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -281,7 +281,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
     preset = "irregular",
     seed = 109
   )
-  irregular_explicit <- weighted.grip(
+  irregular_explicit <- grip(metric = "edge_length",
     edges = irregular$edges,
     edge_weights = irregular$edge_weights,
     n = irregular$n,
@@ -303,7 +303,7 @@ test_that("weighted sphere and irregular presets match explicit tuning profiles"
 
 test_that("weighted tree preset matches explicit tuning profile and overrides cleanly", {
   tree <- kary.tree.weighted.graph(k = 2, depth = 3)
-  coords_preset <- weighted.grip(
+  coords_preset <- grip(metric = "edge_length",
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -311,7 +311,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     preset = "tree",
     seed = 113
   )
-  coords_explicit <- weighted.grip(
+  coords_explicit <- grip(metric = "edge_length",
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -326,7 +326,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     repulsion_factor = 0.0,
     seed = 113
   )
-  coords_override <- weighted.grip(
+  coords_override <- grip(metric = "edge_length",
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -335,7 +335,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
     repulsion_factor = 0.5,
     seed = 127
   )
-  coords_override_explicit <- weighted.grip(
+  coords_override_explicit <- grip(metric = "edge_length",
     edges = tree$edges,
     edge_weights = tree$edge_weights,
     n = tree$n,
@@ -358,7 +358,7 @@ test_that("weighted tree preset matches explicit tuning profile and overrides cl
 test_that("invalid weighted preset is rejected", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    weighted.grip(
+    grip(metric = "edge_length",
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,
@@ -372,7 +372,7 @@ test_that("invalid weighted preset is rejected", {
 
 test_that("weighted metric neighbor cap preserves exact results when sufficiently large", {
   graph <- torus.surface.graph(5, 5, surface = "pinched", amplitude = 0.18)
-  coords_exact <- weighted.grip(
+  coords_exact <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -380,7 +380,7 @@ test_that("weighted metric neighbor cap preserves exact results when sufficientl
     preset = "torus",
     seed = 151
   )
-  coords_capped <- weighted.grip(
+  coords_capped <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -400,7 +400,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     surface = "folded",
     amplitude = 0.3
   )
-  coords1 <- weighted.grip(
+  coords1 <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -409,7 +409,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     metric_neighbor_cap = 8,
     seed = 157
   )
-  coords2 <- weighted.grip(
+  coords2 <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -418,7 +418,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
     metric_neighbor_cap = 8,
     seed = 157
   )
-  coords_exact <- weighted.grip(
+  coords_exact <- grip(metric = "edge_length",
     edges = graph$edges,
     edge_weights = graph$edge_weights,
     n = graph$n,
@@ -435,7 +435,7 @@ test_that("weighted metric neighbor cap yields deterministic approximate layouts
 test_that("invalid weighted metric neighbor cap is rejected", {
   graph <- mesh.surface.graph(4, 4, surface = "saddle", amplitude = 0.4)
   expect_error(
-    weighted.grip(
+    grip(metric = "edge_length",
       edges = graph$edges,
       edge_weights = graph$edge_weights,
       n = graph$n,

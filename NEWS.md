@@ -1,3 +1,14 @@
+# grip 0.1.3
+
+* Unifies topology-first and edge-length-metric layouts under
+  `grip(metric = "hop")` and `grip(metric = "edge_length")`.
+* Gives `trace.grip()` the same metric selection and removes the short-lived
+  `weighted.grip()` and `trace.weighted.grip()` entry points in favor of the
+  unified API.
+* Documents precisely how positive edge lengths affect force targets,
+  shortest paths, multiscale hierarchy construction, neighborhoods,
+  normalization, and optional LGKK stages in each metric mode.
+
 # grip 0.1.2
 
 * Makes saved graph-family bundle ordering deterministic when files have tied

@@ -1,12 +1,12 @@
 Package: grip
 Type: Package
 Title: Graph Drawing with Intelligent Placement (GRIP)
-Version: 0.1.2
+Version: 0.1.3
 Authors@R:
     person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
-Description: Implements the GRIP multiscale graph layout workflow for
-    ordinary graphs and a geometry-aware weighted GRIP workflow for
-    weighted graphs in 2D and 3D. Provides layout scoring, candidate
+Description: Implements GRIP multiscale graph layout with a unified choice
+    between hop-count and geometry-aware edge-length graph metrics in 2D and
+    3D. Provides layout scoring, candidate
     comparison, multiscale trace diagnostics, synthetic graph families,
     and advanced experimental geodesic-KK utilities for weighted-layout
     evaluation and polish. Based on Gajer and Kobourov (2002)

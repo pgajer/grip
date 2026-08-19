@@ -28,15 +28,17 @@ enough for plotting, but it hides the most useful diagnostic information:
 - and whether a weighted solve is actually getting closer to the intended
   metric geometry.
 
-The trace APIs in `grip` make those questions visible:
+The `trace.grip()` API makes those questions visible through the same metric
+choice as `grip()`:
 
-- `trace.grip()` for combinatorial layouts,
-- `trace.weighted.grip()` for weighted geometry-aware layouts.
+- `trace.grip(metric = "hop")` for combinatorial layouts,
+- `trace.grip(metric = "edge_length")` for edge-length geometry-aware layouts.
 
 Tracing follows the same package decision rule:
 
-- ordinary unweighted or topology-first graphs: trace `trace.grip()`,
-- weighted geometry-aware graphs: trace `trace.weighted.grip()`,
+- ordinary unweighted or topology-first graphs: trace
+  `trace.grip(metric = "hop")`,
+- weighted geometry-aware graphs: trace `trace.grip(metric = "edge_length")`,
 - real-data layout search: add trace only when a shortlist or one promising
   solve needs explanation,
 - advanced GKK/LGKK hooks can appear in weighted traces, but they remain
@@ -186,7 +188,7 @@ weighted.mesh <- mesh.surface.graph(
   amplitude = 0.8
 )
 
-weighted.trace <- trace.weighted.grip(
+weighted.trace <- trace.grip(metric = "edge_length",
   weighted.mesh$edges,
   n = weighted.mesh$n,
   edge_weights = weighted.mesh$edge_weights,
