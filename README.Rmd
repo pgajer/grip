@@ -7,7 +7,9 @@ output: github_document
 # grip
 
 **grip** (Graph dRawing with Intelligent Placement) is an R package for
-multiscale graph layout in 2D and 3D. The main workflow is:
+multiscale graph layout. Its primary unweighted and weighted workflows target
+2D and 3D, while opt-in weighted-GRIP, metric-MDS, and edge-KK workflows also
+support higher-dimensional embeddings. The main workflow is:
 
 - `grip()` for unweighted graphs,
 - `weighted.grip()` for weighted graphs,
@@ -45,6 +47,9 @@ plot.layout(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 - Multiscale force-directed layout in 2D and 3D via C++ (Rcpp).
 - `grip()` for unweighted graphs.
 - `weighted.grip()` for weighted graphs.
+- Opt-in multiscale weighted layout in dimensions greater than 3 via
+  `weighted.grip.nd()`, with higher-dimensional metric-MDS and edge-KK
+  workflows available through `metric.mds()` and `edge.kk()`.
 - Layout comparison and quality scoring across seeds and parameter settings
   (`compare.layouts()`, `score.layout()`).
 - Multiscale trace diagnostics for both workflows
