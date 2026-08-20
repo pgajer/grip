@@ -1,14 +1,14 @@
 # Spec: Shiny App for Exploring Synthetic Graph Family Geometries
 
-This document specifies a Shiny app for interactively exploring the synthetic graph families implemented in [R/graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R). The app should let a user browse all families, adjust family-specific topology and geometry parameters, and inspect the resulting graph geometry through embedded `rglwidget` 3D views.
+This document specifies a Shiny app for interactively exploring the synthetic graph families implemented in [R/graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R). The app should let a user browse all families, adjust family-specific topology and geometry parameters, and inspect the resulting graph geometry through embedded `rglwidget` 3D views.
 
 The recommendation is to build this as a geometry-first sibling of the existing `gripui` app rather than forcing it into the current layout-catalog workflow. The existing `gripui` infrastructure is still highly reusable:
 
-- app entry pattern in [R/gripui-app.R](/Users/pgajer/current_projects/grip/R/gripui-app.R)
-- theme/layout structure in [R/gripui-ui.R](/Users/pgajer/current_projects/grip/R/gripui-ui.R)
-- server organization in [R/gripui-server.R](/Users/pgajer/current_projects/grip/R/gripui-server.R)
-- `rglwidget` rendering in [R/gripui-render.R](/Users/pgajer/current_projects/grip/R/gripui-render.R)
-- CSS in [inst/app/www/gripui.css](/Users/pgajer/current_projects/grip/inst/app/www/gripui.css)
+- app entry pattern in [R/gripui-app.R](https://github.com/pgajer/grip/blob/main/R/gripui-app.R)
+- theme/layout structure in [R/gripui-ui.R](https://github.com/pgajer/grip/blob/main/R/gripui-ui.R)
+- server organization in [R/gripui-server.R](https://github.com/pgajer/grip/blob/main/R/gripui-server.R)
+- `rglwidget` rendering in [R/gripui-render.R](https://github.com/pgajer/grip/blob/main/R/gripui-render.R)
+- CSS in [inst/app/www/gripui.css](https://github.com/pgajer/grip/blob/main/inst/app/www/gripui.css)
 
 ## 1. Goal
 
@@ -194,7 +194,7 @@ Each family descriptor should include:
 - `summary`
   - one-paragraph description
 - `implementation_ref`
-  - source location in [R/graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R)
+  - source location in [R/graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R)
 - `output_adapter`
   - function that normalizes builder output into a standard app payload
 - `supports_param_view`
@@ -421,7 +421,7 @@ This is simpler and still covers the full implemented perforated-family branch.
 
 ### 8.1 Primary 3D view
 
-Use a refactored version of `gripui.render.rglwidget()` from [R/gripui-render.R](/Users/pgajer/current_projects/grip/R/gripui-render.R).
+Use a refactored version of `gripui.render.rglwidget()` from [R/gripui-render.R](https://github.com/pgajer/grip/blob/main/R/gripui-render.R).
 
 Recommended changes:
 
@@ -505,8 +505,8 @@ The app should contain an in-app gallery sourced from a fixed list of presets.
 
 This gallery should mirror the generated R Markdown/HTML gallery:
 
-- [graph_geometry_gallery_2026-03-31.Rmd](/Users/pgajer/current_projects/grip/dev/design/graph_geometry_gallery_2026-03-31.Rmd)
-- [graph_geometry_gallery_2026-03-31.html](/Users/pgajer/current_projects/grip/dev/design/graph_geometry_gallery_2026-03-31.html)
+- [graph_geometry_gallery_2026-03-31.Rmd](https://github.com/pgajer/grip/blob/main/dev/design/graph_geometry_gallery_2026-03-31.Rmd)
+- [graph_geometry_gallery_2026-03-31.html](https://github.com/pgajer/grip/blob/main/dev/design/graph_geometry_gallery_2026-03-31.html)
 
 Recommendation:
 
@@ -521,26 +521,26 @@ That avoids duplicated preset definitions drifting over time.
 
 Recommended new files:
 
-- [R/gripui-family-catalog.R](/Users/pgajer/current_projects/grip/R/gripui-family-catalog.R)
+- [R/gripui-family-catalog.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-catalog.R)
   - family registry
   - parameter metadata
   - preset definitions
-- [R/gripui-family-normalize.R](/Users/pgajer/current_projects/grip/R/gripui-family-normalize.R)
+- [R/gripui-family-normalize.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-normalize.R)
   - normalize family outputs to the common payload
   - tree display embedding helper
-- [R/gripui-family-ui.R](/Users/pgajer/current_projects/grip/R/gripui-family-ui.R)
+- [R/gripui-family-ui.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-ui.R)
   - app UI
   - dynamic parameter module UI
-- [R/gripui-family-server.R](/Users/pgajer/current_projects/grip/R/gripui-family-server.R)
+- [R/gripui-family-server.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-server.R)
   - server logic
   - reactive build pipeline
-- [R/gripui-family-app.R](/Users/pgajer/current_projects/grip/R/gripui-family-app.R)
+- [R/gripui-family-app.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-app.R)
   - exported app entry points
-- [R/gripui-family-render.R](/Users/pgajer/current_projects/grip/R/gripui-family-render.R)
+- [R/gripui-family-render.R](https://github.com/pgajer/grip/blob/main/R/gripui-family-render.R)
   - 3D viewer
   - parameter-domain plot
   - summary-card helpers
-- [inst/app/www/gripui-family.css](/Users/pgajer/current_projects/grip/inst/app/www/gripui-family.css)
+- [inst/app/www/gripui-family.css](https://github.com/pgajer/grip/blob/main/inst/app/www/gripui-family.css)
   - app-specific styling
 
 ### 11.1 Reuse from existing `gripui`
@@ -685,9 +685,9 @@ Recommended tests:
 
 Recommended files:
 
-- [tests/testthat/test-gripui-family-catalog.R](/Users/pgajer/current_projects/grip/tests/testthat/test-gripui-family-catalog.R)
-- [tests/testthat/test-gripui-family-normalize.R](/Users/pgajer/current_projects/grip/tests/testthat/test-gripui-family-normalize.R)
-- [tests/testthat/test-gripui-family-app.R](/Users/pgajer/current_projects/grip/tests/testthat/test-gripui-family-app.R)
+- [tests/testthat/test-gripui-family-catalog.R](https://github.com/pgajer/grip/blob/main/tests/testthat/test-gripui-family-catalog.R)
+- [tests/testthat/test-gripui-family-normalize.R](https://github.com/pgajer/grip/blob/main/tests/testthat/test-gripui-family-normalize.R)
+- [tests/testthat/test-gripui-family-app.R](https://github.com/pgajer/grip/blob/main/tests/testthat/test-gripui-family-app.R)
 
 ## 18. Phased implementation plan
 

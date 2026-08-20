@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all rchk winbuilder-release winbuilder-devel
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all repo-hygiene rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -40,13 +40,13 @@ build-log: clean document
 	R CMD build . > $(LOGDIR)/$(PKGNAME)_build.log 2>&1
 	@echo "Build output saved to $(LOGDIR)/$(PKGNAME)_build.log"
 
-check: build
+check: repo-hygiene build
 	R CMD check --as-cran $(TARBALL)
 
-check-clean: build
+check-clean: repo-hygiene build
 	env R_MAKEVARS_USER=/dev/null R CMD check --as-cran $(TARBALL)
 
-check-fast: build
+check-fast: repo-hygiene build
 	R CMD check --as-cran --no-examples --no-tests --no-manual $(TARBALL)
 
 check-examples: build
@@ -77,6 +77,9 @@ paper-html:
 
 paper-all:
 	Rscript tools/reports/rjournal_paper/render-paper.R --all
+
+repo-hygiene:
+	@tools/check-dev-source-only.sh
 
 rchk:
 	@tools/check_rchk.sh

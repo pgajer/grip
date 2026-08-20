@@ -18,10 +18,13 @@ Coverage notes:
 Rendering:
 
 ```r
-rmarkdown::render("dev/design/graph_geometry_gallery_2026-03-31.Rmd")
+rmarkdown::render(
+  "dev/design/graph-families/graph_geometry_gallery_2026-03-31.Rmd",
+  output_dir = "output/shared/html"
+)
 ```
 
-The underlying implementations live in [R/graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R).
+The underlying implementations live in [R/graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R).
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
