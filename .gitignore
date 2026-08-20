@@ -17,6 +17,7 @@ CRAN-SUBMISSION
 # R build/check artifacts
 *.Rcheck/
 .claude/
+/docs/
 .Rproj.user/
 .Rhistory
 .RData
