@@ -47,3 +47,4 @@ jobs:
           branch: gh-pages
           folder: docs
           clean: true
+          single-commit: true
