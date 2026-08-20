@@ -74,8 +74,8 @@ Tracked planning document:
 - `dev/design/grip_kk_round2_action_plan_2026-03-28.md`
 
 Generated experiment outputs:
-- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.md`
-- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.csv`
-- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-contact-sheet.png`
-- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-final-rounds-lines.png`
-- `dev/design/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-tradeoff-scatter.png`
+- `output/gkk_lgkk_paper/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.md`
+- `output/gkk_lgkk_paper/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-summary.csv`
+- `output/gkk_lgkk_paper/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-contact-sheet.png`
+- `output/gkk_lgkk_paper/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-final-rounds-lines.png`
+- `output/gkk_lgkk_paper/tmp/carpet-level4-finalstage-round2/carpet-level4-finalstage-round2-tradeoff-scatter.png`

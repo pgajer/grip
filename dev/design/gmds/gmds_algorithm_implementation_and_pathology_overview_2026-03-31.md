@@ -11,7 +11,7 @@ It has four goals:
 4. make explicit the main pathology questions that motivated those experiments.
 
 The original mathematical motivation lives in the companion manuscript
-[`geodesic_mds.tex`](/Users/pgajer/current_projects/geodesic_MDS/manuscript/geodesic_mds.tex).
+[`geodesic_mds.tex`](${GEODESIC_MDS_PROJECT_ROOT}/manuscript/geodesic_mds.tex).
 The implementation work described here lives in the `grip` package.
 
 ## Central Questions
@@ -74,12 +74,12 @@ The algorithm first computes:
 
 In `grip`, this graph-preparation layer is implemented primarily in:
 
-- [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+- [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 
 The public entry points are:
 
-- [`grip.prepare.geodesic.kk()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`grip.prepare.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+- [`grip.prepare.geodesic.kk()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`grip.prepare.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 
 ### 2. Base Fixed-Path GMDS Objective
 
@@ -123,8 +123,8 @@ This was crucial for orthogonal meshes because it removed symmetry-breaking arti
 
 The relevant implementation files are:
 
-- [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+- [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 
 The main public control is:
 
@@ -144,7 +144,7 @@ In practice, `grip` uses the internal helper `grip.classical.mds.embedding`, whi
 
 Implementation:
 
-- [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+- [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 
 Benchmark scripts consistently start from:
 
@@ -174,12 +174,12 @@ Public controls:
 
 Implementation:
 
-- [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+- [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 
 The detailed design note is:
 
-- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
+- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
 
 ### 6. First-Order Smoothness Regularization
 
@@ -194,8 +194,8 @@ Interpretation:
 
 Implementation:
 
-- base smoothness support in [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- compiled support in [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+- base smoothness support in [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- compiled support in [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 
 Public controls:
 
@@ -223,18 +223,18 @@ This was meant to penalize concentrated second-order curvature more directly tha
 
 Implementation files:
 
-- stencil helpers: [`R/zz_geodesic_mds_bending.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending.R)
-- bending statistics: [`R/zz_geodesic_mds_bending_stats.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_stats.R)
+- stencil helpers: [`R/zz_geodesic_mds_bending.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending.R)
+- bending statistics: [`R/zz_geodesic_mds_bending_stats.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_stats.R)
 - bending-aware score / optimize overrides:
-  - [`R/zz_geodesic_mds_bending_core.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_core.R)
-  - [`R/zz_geodesic_mds_bending_score.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_score.R)
-  - [`R/zz_geodesic_mds_bending_opt_r.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_opt_r.R)
-  - [`R/zz_geodesic_mds_bending_optimize.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_optimize.R)
+  - [`R/zz_geodesic_mds_bending_core.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_core.R)
+  - [`R/zz_geodesic_mds_bending_score.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_score.R)
+  - [`R/zz_geodesic_mds_bending_opt_r.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_opt_r.R)
+  - [`R/zz_geodesic_mds_bending_optimize.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_optimize.R)
 - compiled optimizer:
-  - [`src/geodesic_mds_bending_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_bending_rcpp.cpp)
+  - [`src/geodesic_mds_bending_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_bending_rcpp.cpp)
 - generated exports:
-  - [`R/RcppExports.R`](/Users/pgajer/current_projects/grip/R/RcppExports.R)
-  - [`src/RcppExports.cpp`](/Users/pgajer/current_projects/grip/src/RcppExports.cpp)
+  - [`R/RcppExports.R`](https://github.com/pgajer/grip/blob/main/R/RcppExports.R)
+  - [`src/RcppExports.cpp`](https://github.com/pgajer/grip/blob/main/src/RcppExports.cpp)
 
 Public controls:
 
@@ -263,11 +263,11 @@ This is implemented in two layers:
 Key files:
 
 - base R path and scheduling logic:
-  - [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+  - [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 - compiled flat-cache optimizer with tie-averaging, anchors, and smoothness:
-  - [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+  - [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 - compiled flat-cache optimizer with bending:
-  - [`src/geodesic_mds_bending_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_bending_rcpp.cpp)
+  - [`src/geodesic_mds_bending_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_bending_rcpp.cpp)
 
 ## Implementation Map
 
@@ -275,10 +275,10 @@ Key files:
 
 The main public functions are:
 
-- [`grip.prepare.geodesic.kk()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`grip.prepare.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`grip.score.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- [`grip.optimize.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+- [`grip.prepare.geodesic.kk()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`grip.prepare.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`grip.score.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- [`grip.optimize.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 
 Conceptually:
 
@@ -290,7 +290,7 @@ Conceptually:
 
 Most of the base GMDS logic lives in:
 
-- [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+- [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 
 This file contains:
 
@@ -309,12 +309,12 @@ The bending implementation was added as a clean overlay rather than a wholesale 
 
 That bending layer lives in:
 
-- [`R/zz_geodesic_mds_bending.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending.R)
-- [`R/zz_geodesic_mds_bending_core.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_core.R)
-- [`R/zz_geodesic_mds_bending_score.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_score.R)
-- [`R/zz_geodesic_mds_bending_opt_r.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_opt_r.R)
-- [`R/zz_geodesic_mds_bending_optimize.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_optimize.R)
-- [`R/zz_geodesic_mds_bending_stats.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_stats.R)
+- [`R/zz_geodesic_mds_bending.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending.R)
+- [`R/zz_geodesic_mds_bending_core.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_core.R)
+- [`R/zz_geodesic_mds_bending_score.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_score.R)
+- [`R/zz_geodesic_mds_bending_opt_r.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_opt_r.R)
+- [`R/zz_geodesic_mds_bending_optimize.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_optimize.R)
+- [`R/zz_geodesic_mds_bending_stats.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_stats.R)
 
 ### Compiled Kernels
 
@@ -323,37 +323,37 @@ The compiled path is what all serious benchmarks use.
 Files:
 
 - base flat-cache optimizer and tie-averaged cache support:
-  - [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+  - [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 - bending-aware optimizer:
-  - [`src/geodesic_mds_bending_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_bending_rcpp.cpp)
+  - [`src/geodesic_mds_bending_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_bending_rcpp.cpp)
 
 Generated interface files:
 
-- [`R/RcppExports.R`](/Users/pgajer/current_projects/grip/R/RcppExports.R)
-- [`src/RcppExports.cpp`](/Users/pgajer/current_projects/grip/src/RcppExports.cpp)
+- [`R/RcppExports.R`](https://github.com/pgajer/grip/blob/main/R/RcppExports.R)
+- [`src/RcppExports.cpp`](https://github.com/pgajer/grip/blob/main/src/RcppExports.cpp)
 
 ### Tests
 
 The focused regression coverage is in:
 
-- base GMDS: [`tests/testthat/test-geodesic-mds.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds.R)
-- tie-averaging and hybrid behavior: [`tests/testthat/test-geodesic-mds-hybrid.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-hybrid.R)
-- smoothness regularization: [`tests/testthat/test-geodesic-mds-smoothness.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-smoothness.R)
-- bending regularization: [`tests/testthat/test-geodesic-mds-bending.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-bending.R)
-- Phase 1 GMDS/MDS comparisons: [`tests/testthat/test-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-gmds-mds-phase1.R)
+- base GMDS: [`tests/testthat/test-geodesic-mds.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds.R)
+- tie-averaging and hybrid behavior: [`tests/testthat/test-geodesic-mds-hybrid.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-hybrid.R)
+- smoothness regularization: [`tests/testthat/test-geodesic-mds-smoothness.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-smoothness.R)
+- bending regularization: [`tests/testthat/test-geodesic-mds-bending.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-bending.R)
+- Phase 1 GMDS/MDS comparisons: [`tests/testthat/test-gmds-mds-phase1.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-gmds-mds-phase1.R)
 
 ### Benchmark and Report Generators
 
 The main experiment drivers are:
 
 - Phase 1 cross-family comparison:
-  - [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
 - paraboloid pathology report:
-  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
 - paraboloid first-order regularization report:
-  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
 - paraboloid second-order bending report:
-  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
+  - [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
 
 ## Experiment Sequence
 
@@ -364,11 +364,11 @@ Before the pathology studies, the first task was to decide how GMDS should fit i
 Key design notes:
 
 - infrastructure design:
-  - [`geodesic_mds_infrastructure_design_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
+  - [`geodesic_mds_infrastructure_design_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
 - infrastructure action plan:
-  - [`geodesic_mds_infrastructure_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_action_plan_2026-03-31.md)
+  - [`geodesic_mds_infrastructure_action_plan_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_infrastructure_action_plan_2026-03-31.md)
 - cross-family comparison test-suite design:
-  - [`gmds_mds_comparison_test_suite_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_mds_comparison_test_suite_2026-03-31.md)
+  - [`gmds_mds_comparison_test_suite_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/gmds_mds_comparison_test_suite_2026-03-31.md)
 
 These notes established the main experimental baseline:
 
@@ -380,12 +380,12 @@ These notes established the main experimental baseline:
 
 Primary report:
 
-- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
-- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
+- PDF: [`gmds_mds_comparison_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
+- LaTeX: [`gmds_mds_comparison_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
 
 Main questions:
 
@@ -409,7 +409,7 @@ This phase also clarified an important interpretation point:
 
 Design note:
 
-- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
+- [`geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_hybrid_tether_and_tie_average_2026-03-31.md)
 
 This note answered the first pathology question on orthogonal grids:
 
@@ -427,12 +427,12 @@ So after this point the remaining pathology story shifted away from flat grids a
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_pathology_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_pathology_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_pathology_report_2026-03-31/paraboloid_gmds_pathology_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
 
 Main questions:
 
@@ -453,12 +453,12 @@ This was the first strong piece of evidence that the missing ingredient is not j
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_regularization_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_regularization_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_regularization_report_2026-03-31/paraboloid_gmds_regularization_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
 
 Main question:
 
@@ -476,12 +476,12 @@ This ruled out the simplest regularization hypothesis.
 
 Primary report:
 
-- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.pdf)
-- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.tex)
+- PDF: [`paraboloid_gmds_bending_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.pdf)
+- LaTeX: [`paraboloid_gmds_bending_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/paraboloid_gmds_bending_report_2026-03-31/paraboloid_gmds_bending_report_2026-03-31.tex)
 
 Driver:
 
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
 
 Main question:
 
@@ -502,10 +502,10 @@ This is currently the strongest negative result:
 
 The performance concern was addressed in the later section of the Phase 1 report and in the related action-plan note:
 
-- [`gmds_performance_action_plan_2026-03-31.md`](/Users/pgajer/current_projects/grip/dev/design/gmds_performance_action_plan_2026-03-31.md)
+- [`gmds_performance_action_plan_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/gmds_performance_action_plan_2026-03-31.md)
 - Phase 1 report performance section:
-  - [`gmds_mds_comparison_report_2026-03-31.tex`](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
-  - [`gmds_mds_comparison_report_2026-03-31.pdf`](/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
+  - [`gmds_mds_comparison_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
+  - [`gmds_mds_comparison_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
 
 The main point was:
 
@@ -569,30 +569,30 @@ That is why the next likely direction is not just more step-size tuning, and not
 ### Algorithm and implementation
 
 - base GMDS implementation:
-  - [`R/grip_quality.R`](/Users/pgajer/current_projects/grip/R/grip_quality.R)
+  - [`R/grip_quality.R`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
 - compiled optimizer:
-  - [`src/geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
+  - [`src/geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
 - bending optimizer:
-  - [`src/geodesic_mds_bending_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_bending_rcpp.cpp)
+  - [`src/geodesic_mds_bending_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_bending_rcpp.cpp)
 - bending R overlay:
-  - [`R/zz_geodesic_mds_bending.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending.R)
-  - [`R/zz_geodesic_mds_bending_core.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_core.R)
-  - [`R/zz_geodesic_mds_bending_score.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_score.R)
-  - [`R/zz_geodesic_mds_bending_opt_r.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_opt_r.R)
-  - [`R/zz_geodesic_mds_bending_optimize.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_optimize.R)
-  - [`R/zz_geodesic_mds_bending_stats.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_stats.R)
+  - [`R/zz_geodesic_mds_bending.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending.R)
+  - [`R/zz_geodesic_mds_bending_core.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_core.R)
+  - [`R/zz_geodesic_mds_bending_score.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_score.R)
+  - [`R/zz_geodesic_mds_bending_opt_r.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_opt_r.R)
+  - [`R/zz_geodesic_mds_bending_optimize.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_optimize.R)
+  - [`R/zz_geodesic_mds_bending_stats.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_stats.R)
 
 ### Tests
 
-- [`tests/testthat/test-geodesic-mds.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds.R)
-- [`tests/testthat/test-geodesic-mds-hybrid.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-hybrid.R)
-- [`tests/testthat/test-geodesic-mds-smoothness.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-smoothness.R)
-- [`tests/testthat/test-geodesic-mds-bending.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds-bending.R)
-- [`tests/testthat/test-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-gmds-mds-phase1.R)
+- [`tests/testthat/test-geodesic-mds.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds.R)
+- [`tests/testthat/test-geodesic-mds-hybrid.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-hybrid.R)
+- [`tests/testthat/test-geodesic-mds-smoothness.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-smoothness.R)
+- [`tests/testthat/test-geodesic-mds-bending.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds-bending.R)
+- [`tests/testthat/test-gmds-mds-phase1.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-gmds-mds-phase1.R)
 
 ### Report generators
 
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
-- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-mds-phase1.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-pathology.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-regularization.R)
+- [`tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R`](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-paraboloid-gmds-bending.R)

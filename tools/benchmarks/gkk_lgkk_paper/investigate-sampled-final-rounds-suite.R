@@ -10,7 +10,7 @@ if (!requireNamespace("callr", quietly = TRUE)) {
 pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
 sys.source(file.path("tools", "benchmarks", "gkk_lgkk_paper", "benchmark-globalrep-fixed-candidate.R"), envir = environment())
 
-output_root <- file.path("dev", "manual", "tmp", "sampled-final-rounds-suite-2026-03-28")
+output_root <- file.path("output", "gkk_lgkk_paper", "tmp", "sampled-final-rounds-suite-2026-03-28")
 dir.create(output_root, recursive = TRUE, showWarnings = FALSE)
 comparison_root <- file.path(output_root, "png-comparisons")
 smoothness_root <- file.path(output_root, "png-smoothness")

@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 
 run_tag <- "lgkk-optimizer-suite-2026-03-30"
-manual_root <- file.path("dev", "manual")
+manual_root <- file.path("output", "gkk_lgkk_paper")
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
-pdf_dir <- file.path(manual_root, "pdf", run_tag)
+pdf_dir <- file.path(manual_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 

@@ -942,8 +942,8 @@ if (sys.nframe() == 0L) {
   baseline_profile <- resolve_baseline_profile(args)
   baseline_candidate_id <- if (!is.null(args$baseline_id)) args$baseline_id else "torus_tetrahedron_baseline"
 
-  tuning_root <- file.path("dev", "manual")
-  tuning_pdf_dir <- file.path(tuning_root, "pdf", run_tag, "torus")
+  tuning_root <- file.path("output", "gkk_lgkk_paper")
+  tuning_pdf_dir <- file.path(tuning_root, "reports", run_tag, "torus")
   tuning_tmp_dir <- file.path(tuning_root, "tmp", run_tag)
   tuning_preview_dir <- file.path(tuning_tmp_dir, "pdf-previews")
   dir.create(tuning_pdf_dir, recursive = TRUE, showWarnings = FALSE)

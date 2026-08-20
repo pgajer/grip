@@ -11,8 +11,8 @@ setwd(repo_root)
 
 options(rgl.useNULL = TRUE)
 
-manual_root <- file.path(repo_root, "dev", "manual")
-interactive_dir <- file.path(manual_root, "interactive-prototypes")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
+interactive_dir <- file.path(manual_root, "html")
 tmp_dir <- file.path(manual_root, "tmp", "paraboloid-gmds-bending-2026-03-31")
 output_html <- file.path(
   interactive_dir,

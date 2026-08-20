@@ -10,14 +10,14 @@ repo_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), wi
 setwd(repo_root)
 
 run_tag <- "gmds-spring-repulsion-phase1-2026-04-01"
-manual_root <- file.path(repo_root, "dev", "manual")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
-pdf_dir <- file.path(manual_root, "pdf", run_tag)
+pdf_dir <- file.path(manual_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
-tex_path <- file.path(manual_root, "pdf", "gmds_spring_repulsion_phase1_report_2026-04-01.tex")
-pdf_path <- file.path(manual_root, "pdf", "gmds_spring_repulsion_phase1_report_2026-04-01.pdf")
+tex_path <- file.path(manual_root, "reports", "gmds_spring_repulsion_phase1_report_2026-04-01.tex")
+pdf_path <- file.path(manual_root, "reports", "gmds_spring_repulsion_phase1_report_2026-04-01.pdf")
 rds_path <- file.path(tmp_dir, "gmds_spring_repulsion_phase1_results.rds")
 metrics_csv <- file.path(tmp_dir, "gmds_spring_repulsion_phase1_metrics.csv")
 unit_csv <- file.path(tmp_dir, "gmds_spring_repulsion_phase1_unit_checks.csv")
@@ -671,7 +671,7 @@ metrics_2d <- metrics[metrics$dim == 2L, , drop = FALSE]
 metrics_3d <- metrics[metrics$dim == 3L, , drop = FALSE]
 case_figure_rel <- function(case_id) file.path(run_tag, basename(case_results[[case_id]]$figure_path))
 tradeoff_rel <- file.path(run_tag, basename(tradeoff_path))
-rds_rel <- file.path("dev", "manual", "tmp", run_tag, basename(rds_path))
+rds_rel <- file.path("output", "geodesic_mds_paper", "tmp", run_tag, basename(rds_path))
 
 tex_lines <- c(
   "\\documentclass[11pt]{article}",

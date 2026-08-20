@@ -10,14 +10,14 @@ repo_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), wi
 setwd(repo_root)
 
 run_tag <- "gmds-v2-paraboloid-suite-2026-04-01"
-manual_root <- file.path(repo_root, "dev", "manual")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
-pdf_dir <- file.path(manual_root, "pdf", run_tag)
+pdf_dir <- file.path(manual_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
-tex_path <- file.path(manual_root, "pdf", "gmds_v2_paraboloid_suite_report_2026-04-01.tex")
-pdf_path <- file.path(manual_root, "pdf", "gmds_v2_paraboloid_suite_report_2026-04-01.pdf")
+tex_path <- file.path(manual_root, "reports", "gmds_v2_paraboloid_suite_report_2026-04-01.tex")
+pdf_path <- file.path(manual_root, "reports", "gmds_v2_paraboloid_suite_report_2026-04-01.pdf")
 rds_path <- file.path(tmp_dir, "gmds_v2_paraboloid_suite_results.rds")
 metrics_csv <- file.path(tmp_dir, "gmds_v2_paraboloid_suite_metrics.csv")
 foundation_csv <- file.path(tmp_dir, "gmds_v2_paraboloid_suite_foundation.csv")

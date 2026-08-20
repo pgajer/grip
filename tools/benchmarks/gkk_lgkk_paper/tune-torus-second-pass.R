@@ -143,11 +143,11 @@ run_torus_tuner <- function(tag,
     stop(sprintf("torus tuning run '%s' failed with exit code %s", tag, status))
   }
 
-  tmp_dir <- file.path("dev", "manual", "tmp", tag)
+  tmp_dir <- file.path("output", "gkk_lgkk_paper", "tmp", tag)
   list(
     tag = tag,
     tmp_dir = tmp_dir,
-    pdf_dir = file.path("dev", "manual", "pdf", tag, "torus"),
+    pdf_dir = file.path("output", "gkk_lgkk_paper", "reports", tag, "torus"),
     summary_path = file.path(tmp_dir, "torus-tuning-summary.md"),
     family_csv = file.path(tmp_dir, "torus-tuning-family-ranking.csv"),
     graph_csv = file.path(tmp_dir, "torus-tuning-graph-summary.csv"),
@@ -306,7 +306,7 @@ dense_results[[length(dense_results) + 1L]] <- run_torus_tuner(
   baseline_id = baseline_id
 )
 
-master_tmp_dir <- file.path("dev", "manual", "tmp", run_tag)
+master_tmp_dir <- file.path("output", "gkk_lgkk_paper", "tmp", run_tag)
 dir.create(master_tmp_dir, recursive = TRUE, showWarnings = FALSE)
 master_summary_path <- file.path(master_tmp_dir, "torus-second-pass-summary.md")
 write_master_summary(

@@ -16,13 +16,13 @@ This note proposes a new synthetic family for `grip`:
 The motivation is the recent MISF-GMDS paraboloid work. We currently have:
 
 - regular rectangular meshes via
-  [mesh.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3702),
+  [mesh.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3702),
 - occupied/perforated rectangular meshes via
-  [occupied.mesh.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3095),
+  [occupied.mesh.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3095),
 - and several genuinely irregular non-rectangular families such as
-  [irregular.annulus.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L5796)
+  [irregular.annulus.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5796)
   and
-  [irregular.sphere.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L5166).
+  [irregular.sphere.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5166).
 
 What is still missing is a family that is:
 
@@ -113,7 +113,7 @@ Equivalently:
 `v0_i in [-y_scale, y_scale]`, monotone increasing
 
 with rectangular indexing exactly matching
-[mesh.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3702).
+[mesh.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3702).
 
 ### Step 2. Perturb interval lengths, not vertex order
 
@@ -213,7 +213,7 @@ After constructing `coords_param = (u'', v'')`, define
 - `ripple`: `z = amplitude * sin(pi * freq_u * u) * cos(pi * freq_v * v)`
 
 So this family stays aligned with the existing
-[mesh.surface.embedding()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3665)
+[mesh.surface.embedding()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3665)
 logic, except that it adds `flat` and replaces regular parameter coordinates by
 deterministically irregular ones.
 
@@ -224,7 +224,7 @@ Use the existing edge-weight helper:
 `edge_weights = .edge.weights.from.embedding(edges, coords_surface, normalize = ...)`
 
 and keep the bundle format parallel to
-[mesh.surface.graph()](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3702).
+[mesh.surface.graph()](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3702).
 
 ## Why These Parameters
 
@@ -270,7 +270,7 @@ This will help later diagnostics and report generation.
 ### 1. Core helper internals
 
 File:
-- [graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R)
+- [graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R)
 
 Add private helpers:
 
@@ -287,7 +287,7 @@ These should:
 ### 2. Exported public helpers
 
 File:
-- [graph_helpers.R](/Users/pgajer/current_projects/grip/R/graph_helpers.R)
+- [graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R)
 
 Add public functions:
 
@@ -297,28 +297,28 @@ Add public functions:
 
 These should be documented under a new helper block, parallel to:
 
-- [mesh_surface_helpers](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L3616)
-- [irregular_annulus_surface_helpers](/Users/pgajer/current_projects/grip/R/graph_helpers.R#L5708)
+- [mesh_surface_helpers](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3616)
+- [irregular_annulus_surface_helpers](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5708)
 
 ### 3. Documentation
 
 Files to regenerate:
 
-- [NAMESPACE](/Users/pgajer/current_projects/grip/NAMESPACE)
+- [NAMESPACE](https://github.com/pgajer/grip/blob/main/NAMESPACE)
 - new `.Rd` files under
-  [man](/Users/pgajer/current_projects/grip/man)
+  [man](https://github.com/pgajer/grip/blob/main/man)
 
 Update the catalog note:
 
-- [graph_families_generated_in_thread_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/graph_families_generated_in_thread_2026-03-31.md)
+- [graph_families_generated_in_thread_2026-03-31.md](https://github.com/pgajer/grip/blob/main/dev/design/graph_families_generated_in_thread_2026-03-31.md)
 
 ### 4. Tests
 
 Files:
 
-- [test-graph-helpers.R](/Users/pgajer/current_projects/grip/tests/testthat/test-graph-helpers.R)
+- [test-graph-helpers.R](https://github.com/pgajer/grip/blob/main/tests/testthat/test-graph-helpers.R)
 - or a new
-  [test-irregular-rectangle-helpers.R](/Users/pgajer/current_projects/grip/tests/testthat/test-irregular-rectangle-helpers.R)
+  [test-irregular-rectangle-helpers.R](https://github.com/pgajer/grip/blob/main/tests/testthat/test-irregular-rectangle-helpers.R)
 
 Add tests for:
 
@@ -334,7 +334,7 @@ Add tests for:
 
 Files to extend after the family exists:
 
-- [benchmark-gmds-misf-paraboloid.R](/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R)
+- [benchmark-gmds-misf-paraboloid.R](https://github.com/pgajer/grip/blob/main/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R)
 - future MISF-GMDS reports
 
 The first benchmark use should compare:

@@ -18,14 +18,14 @@ run_tag <- if (smoke) {
   "gmds-misf-lower-level-placement-2026-04-02"
 }
 
-design_root <- file.path(repo_root, "dev", "design")
+design_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 tmp_dir <- file.path(design_root, "tmp", run_tag)
-pdf_dir <- file.path(design_root, "pdf", run_tag)
+pdf_dir <- file.path(design_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
-tex_path <- file.path(design_root, "pdf", "gmds_misf_lower_level_placement_report_2026-04-02.tex")
-pdf_path <- file.path(design_root, "pdf", "gmds_misf_lower_level_placement_report_2026-04-02.pdf")
+tex_path <- file.path(design_root, "reports", "gmds_misf_lower_level_placement_report_2026-04-02.tex")
+pdf_path <- file.path(design_root, "reports", "gmds_misf_lower_level_placement_report_2026-04-02.pdf")
 rds_path <- file.path(tmp_dir, "gmds_misf_lower_level_placement_results.rds")
 metrics_csv <- file.path(tmp_dir, "gmds_misf_lower_level_placement_metrics.csv")
 stage_csv <- file.path(tmp_dir, "gmds_misf_lower_level_placement_stage_traces.csv")

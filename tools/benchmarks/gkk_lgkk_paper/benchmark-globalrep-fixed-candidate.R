@@ -924,9 +924,9 @@ if (sys.nframe() == 0L) {
     stop("No graph specs selected")
   }
 
-  out_root <- file.path("dev", "manual")
+  out_root <- file.path("output", "gkk_lgkk_paper")
   out_tmp_dir <- file.path(out_root, "tmp", run_tag)
-  out_pdf_dir <- file.path(out_root, "pdf", run_tag)
+  out_pdf_dir <- file.path(out_root, "reports", run_tag)
   out_preview_dir <- file.path(out_tmp_dir, "pdf-previews")
   dir.create(out_tmp_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(out_pdf_dir, recursive = TRUE, showWarnings = FALSE)

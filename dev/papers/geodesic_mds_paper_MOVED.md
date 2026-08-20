@@ -4,11 +4,11 @@ The Geodesic MDS paper workspace has moved out of `grip`.
 
 Canonical location:
 
-`/Users/pgajer/current_projects/geodesicMDS/manuscript`
+`${GEODESIC_MDS_PROJECT_ROOT}/manuscript`
 
 Related durable project notes now live in:
 
-`/Users/pgajer/current_projects/geodesicMDS/notes`
+`${GEODESIC_MDS_PROJECT_ROOT}/notes`
 
 This `grip` repository keeps the lower-level layout and optimization
 implementation. The `geodesicMDS` repository is now the project home for the

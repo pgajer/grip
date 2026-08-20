@@ -8,7 +8,7 @@
 ##   setwd("dev/papers/rjournal_paper/figures/scripts")
 ##   source("run-all.R")
 ##
-## All figures are written to ../figures/ as PDF files.
+## All figures are written to output/rjournal_paper/figures/.
 
 scripts <- c(
   "fig-architecture.R",
@@ -35,4 +35,4 @@ for (s in scripts) {
   cat("\n")
 }
 
-cat("=== Done. Check ../figures/ for output PDFs. ===\n")
+cat("=== Done. Check output/rjournal_paper/figures/. ===\n")

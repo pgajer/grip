@@ -4,7 +4,7 @@ Date: 2026-03-31
 
 This note proposes a phased comparison suite for geodesic MDS (GMDS) versus
 classical MDS on the synthetic graph families documented in
-[graph_families_generated_in_thread_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/graph_families_generated_in_thread_2026-03-31.md).
+[graph_families_generated_in_thread_2026-03-31.md](https://github.com/pgajer/grip/blob/main/dev/design/graph_families_generated_in_thread_2026-03-31.md).
 
 ## Goal
 

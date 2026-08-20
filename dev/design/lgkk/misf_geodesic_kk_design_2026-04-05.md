@@ -45,15 +45,15 @@ This design does **not** aim to:
 ## Relevant Current Code
 
 - exact full geodesic-KK preparation, scoring, and optimization in
-  [grip_quality.R](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1790)
+  [grip_quality.R](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1790)
 - standalone landmark geodesic-KK preparation, scoring, and optimization in
-  [grip_quality.R](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1713)
+  [grip_quality.R](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1713)
 - MISF-based GMDS preparation, optimization, and scoring in
-  [grip_geodesic_misf.R](/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R#L1658)
+  [grip_geodesic_misf.R](https://github.com/pgajer/grip/blob/main/R/grip_geodesic_misf.R#L1658)
 - MISF extraction API in
-  [grip_misf.R](/Users/pgajer/current_projects/grip/R/grip_misf.R)
+  [grip_misf.R](https://github.com/pgajer/grip/blob/main/R/grip_misf.R)
 - multiscale LGKK integration in the main GRIP solver in
-  [grip_layout.R](/Users/pgajer/current_projects/grip/R/grip_layout.R#L849)
+  [grip_layout.R](https://github.com/pgajer/grip/blob/main/R/grip_layout.R#L849)
 
 ## Core Design Decision
 

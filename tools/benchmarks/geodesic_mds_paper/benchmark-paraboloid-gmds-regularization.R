@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 
 run_tag <- "paraboloid-gmds-regularization-2026-03-31"
-manual_root <- file.path("dev", "manual")
+manual_root <- file.path("output", "geodesic_mds_paper")
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
-pdf_dir <- file.path(manual_root, "pdf", run_tag)
+pdf_dir <- file.path(manual_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -838,7 +838,7 @@ save_surface_panel_grid(
   truth_index = 1L
 )
 
-tex_path <- file.path(manual_root, "pdf", "paraboloid_gmds_regularization_report_2026-03-31.tex")
+tex_path <- file.path(manual_root, "reports", "paraboloid_gmds_regularization_report_2026-03-31.tex")
 write_report(
   case = case,
   selected_df = selected_df,
@@ -877,7 +877,7 @@ cat("\n")
 if (nzchar(Sys.which("latexmk"))) {
   cat(sprintf(
     "Compile the PDF with: (cd %s && latexmk -pdf %s)\n",
-    file.path(manual_root, "pdf"),
+    file.path(manual_root, "reports"),
     basename(tex_path)
   ))
 }

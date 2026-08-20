@@ -22,6 +22,8 @@ SUMMARY_PATH = (
     / "data"
     / "summary_metrics.csv"
 )
+FIGURE_DIR = REPO_ROOT / "output" / "gkk_lgkk_paper" / "figures"
+FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Load data ---
 df = pd.read_csv(SUMMARY_PATH)
@@ -122,6 +124,6 @@ ax.spines["right"].set_visible(False)
 ax.grid(True, alpha=0.25, linewidth=0.4)
 
 fig.tight_layout()
-fig.savefig("fig5_pareto_scatter.pdf", bbox_inches="tight", dpi=300)
-fig.savefig("fig5_pareto_scatter.png", bbox_inches="tight", dpi=200)
+fig.savefig(FIGURE_DIR / "fig5_pareto_scatter.pdf", bbox_inches="tight", dpi=300)
+fig.savefig(FIGURE_DIR / "fig5_pareto_scatter.png", bbox_inches="tight", dpi=200)
 print("Figure 5 saved.")

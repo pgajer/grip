@@ -13,9 +13,9 @@ Design a **generic graph** replacement for plain GMDS that:
 
 This note treats the current `grip` GMDS implementation as the starting point:
 
-- path-stress and R optimizer in [/Users/pgajer/current_projects/grip/R/grip_quality.R](/Users/pgajer/current_projects/grip/R/grip_quality.R)
-- flattened C++ kernels in [/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp)
-- current prepared geodesic object in [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2956](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2956)
+- path-stress and R optimizer in [<repo-root>/R/grip_quality.R](https://github.com/pgajer/grip/blob/main/R/grip_quality.R)
+- flattened C++ kernels in [<repo-root>/src/geodesic_mds_rcpp.cpp](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp)
+- current prepared geodesic object in [<repo-root>/R/grip_quality.R#L2956](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2956)
 
 ## Why Change The Objective
 
@@ -29,8 +29,8 @@ where the implemented embedded path length is
 
 This is exactly what the current R and C++ code does:
 
-- R path term accumulation in [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2760](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2760)
-- C++ flat path term accumulation in [/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L834](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L834)
+- R path term accumulation in [<repo-root>/R/grip_quality.R#L2760](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2760)
+- C++ flat path term accumulation in [<repo-root>/src/geodesic_mds_rcpp.cpp#L834](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L834)
 
 That term controls **path lengths**, but it does not directly control:
 
@@ -183,7 +183,7 @@ A simple implementation is:
 - `gamma_t = gamma_0 + (t/T) * (gamma_T - gamma_0)`
 - `beta_t = beta`
 
-This fits naturally with the existing schedule machinery already used for anchor and smoothness weights in [/Users/pgajer/current_projects/grip/R/grip_quality.R#L3264](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3264).
+This fits naturally with the existing schedule machinery already used for anchor and smoothness weights in [<repo-root>/R/grip_quality.R#L3264](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3264).
 
 ## Gradients
 
@@ -195,8 +195,8 @@ Keep the current gradient unchanged:
 
 This is already implemented in:
 
-- [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2772](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2772)
-- [/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L849](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L849)
+- [<repo-root>/R/grip_quality.R#L2772](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2772)
+- [<repo-root>/src/geodesic_mds_rcpp.cpp#L849](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L849)
 
 ### Edge Spring Term
 
@@ -248,7 +248,7 @@ So it is meaningful for:
 
 ### 1. Extend The Prepared Object
 
-Add the following fields to the prepared GMDS object produced in [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2989](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2989):
+Add the following fields to the prepared GMDS object produced in [<repo-root>/R/grip_quality.R#L2989](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2989):
 
 - `graph_edge_matrix`
 - `graph_edge_target`
@@ -267,7 +267,7 @@ The repulsion pairs can be built from `prepared$distance_matrix` and `prepared$a
 
 ### 2. Add New R-Level API Arguments
 
-Extend [/Users/pgajer/current_projects/grip/R/grip_quality.R#L3176](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3176) with:
+Extend [<repo-root>/R/grip_quality.R#L3176](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3176) with:
 
 - `edge_spring_weight`
 - `edge_spring_weight_end`
@@ -294,9 +294,9 @@ Suggested first defaults:
 
 Add the new terms first in the R evaluation path:
 
-- extend [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2723](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2723)
-- extend [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2807](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2807)
-- extend [/Users/pgajer/current_projects/grip/R/grip_quality.R#L2902](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2902)
+- extend [<repo-root>/R/grip_quality.R#L2723](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2723)
+- extend [<repo-root>/R/grip_quality.R#L2807](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2807)
+- extend [<repo-root>/R/grip_quality.R#L2902](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2902)
 
 This gives:
 
@@ -306,12 +306,12 @@ This gives:
 
 ### 4. Then Add The C++ Flat Kernel
 
-Extend the flat state evaluator in [/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L911](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L911):
+Extend the flat state evaluator in [<repo-root>/src/geodesic_mds_rcpp.cpp#L911](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L911):
 
 - keep `accumulate_flat_pair_range()` for path stress,
 - add `accumulate_flat_edge_springs()`,
 - add `accumulate_flat_repulsion()`,
-- add schedules for edge and repulsion weights parallel to `resolve_anchor_schedule()` in [/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L707](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L707).
+- add schedules for edge and repulsion weights parallel to `resolve_anchor_schedule()` in [<repo-root>/src/geodesic_mds_rcpp.cpp#L707](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L707).
 
 This should plug into the current flattened optimizer path used by
 `grip_optimize_geodesic_mds_flat_cpp()`.

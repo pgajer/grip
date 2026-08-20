@@ -11,7 +11,8 @@ figure_output_path <- function(file.name) {
   } else {
     getwd()
   }
-  out.dir <- file.path(normalizePath(file.path(script.dir, "..")), "figures")
+  repo.root <- normalizePath(file.path(script.dir, "../../../../.."))
+  out.dir <- file.path(repo.root, "output", "rjournal_paper", "figures")
   dir.create(out.dir, recursive = TRUE, showWarnings = FALSE)
   file.path(out.dir, file.name)
 }

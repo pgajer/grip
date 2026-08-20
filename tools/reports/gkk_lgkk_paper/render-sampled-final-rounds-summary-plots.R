@@ -4,7 +4,7 @@ args <- commandArgs(trailingOnly = TRUE)
 root <- if (length(args) >= 1L) {
   args[[1L]]
 } else {
-  file.path("dev", "manual", "tmp", "sampled-final-rounds-suite-2026-03-28")
+  file.path("output", "gkk_lgkk_paper", "tmp", "sampled-final-rounds-suite-2026-03-28")
 }
 
 overall_path <- file.path(root, "sampled-final-rounds-overall-summary.csv")

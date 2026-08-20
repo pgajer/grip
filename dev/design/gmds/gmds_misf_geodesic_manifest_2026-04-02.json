@@ -2,7 +2,7 @@
   "name": "GMDS MISF Geodesic-Isometry Manifest",
   "date": "2026-04-02",
   "status": "planned_only",
-  "project_root": "/Users/pgajer/current_projects/grip",
+  "project_root": ".",
   "purpose": "Replace cMDS-based GMDS initialization on difficult graph families with a MISF-based coarse-to-fine geodesic-isometry pipeline that reuses GRIP's MISF scaffold while keeping pure GMDS as the numerical core objective.",
   "motivation": {
     "summary": [
@@ -11,15 +11,15 @@
       "MISF is the most promising next intervention because it provides a multiscale coarse-to-fine scaffold that can replace the global spectral initializer."
     ],
     "references": [
-      "/Users/pgajer/current_projects/grip/references/literature/graph_drawing/A Fast Multi-Dimensional Algorithm for Drawing Large Graphs.pdf",
-      "/Users/pgajer/current_projects/grip/references/literature/graph_drawing/GRIP: Graph dRawing with Intelligent Placement.pdf"
+      "./references/literature/graph_drawing/A Fast Multi-Dimensional Algorithm for Drawing Large Graphs.pdf",
+      "./references/literature/graph_drawing/GRIP: Graph dRawing with Intelligent Placement.pdf"
     ],
     "existing_code_anchors": [
-      "/Users/pgajer/current_projects/grip/src/DrawGraph.cpp",
-      "/Users/pgajer/current_projects/grip/src/MishEngine.cpp",
-      "/Users/pgajer/current_projects/grip/src/MishSupport.cpp",
-      "/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp",
-      "/Users/pgajer/current_projects/grip/R/grip_quality.R"
+      "./src/DrawGraph.cpp",
+      "./src/MishEngine.cpp",
+      "./src/MishSupport.cpp",
+      "./src/geodesic_mds_rcpp.cpp",
+      "./R/grip_quality.R"
     ]
   },
   "scope_boundaries": {
@@ -93,16 +93,16 @@
       "title": "MISF extraction layer",
       "goal": "Expose GRIP's MISF structure in a graph-first reusable form.",
       "files_to_modify": [
-        "/Users/pgajer/current_projects/grip/src/DrawGraph.h",
-        "/Users/pgajer/current_projects/grip/src/DrawGraph.cpp",
-        "/Users/pgajer/current_projects/grip/src/grip_rcpp.cpp",
-        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
-        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
-        "/Users/pgajer/current_projects/grip/NAMESPACE"
+        "./src/DrawGraph.h",
+        "./src/DrawGraph.cpp",
+        "./src/grip_rcpp.cpp",
+        "./src/RcppExports.cpp",
+        "./R/RcppExports.R",
+        "./NAMESPACE"
       ],
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/R/grip_misf.R",
-        "/Users/pgajer/current_projects/grip/tests/testthat/test-grip-misf.R"
+        "./R/grip_misf.R",
+        "./tests/testthat/test-grip-misf.R"
       ],
       "deliverables": [
         "grip_build_misf_cpp low-level export",
@@ -121,11 +121,11 @@
       "title": "Prepared object and top-level coarse GMDS solve",
       "goal": "Replace cMDS/random top-level initialization by a pure GMDS solve on the coarsest MISF level.",
       "files_to_modify": [
-        "/Users/pgajer/current_projects/grip/R/grip_quality.R",
-        "/Users/pgajer/current_projects/grip/NAMESPACE"
+        "./R/grip_quality.R",
+        "./NAMESPACE"
       ],
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+        "./R/grip_geodesic_misf.R"
       ],
       "deliverables": [
         "grip.prepare.misf.geodesic.mds",
@@ -146,13 +146,13 @@
       "title": "Geodesic insertion of new MISF levels",
       "goal": "Insert successive levels using weighted geodesic anchor distances rather than GRIP's Euclidean graph-drawing insertion.",
       "files_to_modify": [
-        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
-        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
-        "/Users/pgajer/current_projects/grip/NAMESPACE"
+        "./src/RcppExports.cpp",
+        "./R/RcppExports.R",
+        "./NAMESPACE"
       ],
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/src/geodesic_misf_rcpp.cpp",
-        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+        "./src/geodesic_misf_rcpp.cpp",
+        "./R/grip_geodesic_misf.R"
       ],
       "deliverables": [
         "Compiled weighted trilateration helper",
@@ -173,14 +173,14 @@
       "title": "Sparse local GMDS refinement",
       "goal": "Refine each active MISF level using sparse pure GMDS instead of local KK or FR.",
       "files_to_modify": [
-        "/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp",
-        "/Users/pgajer/current_projects/grip/src/RcppExports.cpp",
-        "/Users/pgajer/current_projects/grip/R/RcppExports.R",
-        "/Users/pgajer/current_projects/grip/R/grip_quality.R",
-        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R"
+        "./src/geodesic_mds_rcpp.cpp",
+        "./src/RcppExports.cpp",
+        "./R/RcppExports.R",
+        "./R/grip_quality.R",
+        "./R/grip_geodesic_misf.R"
       ],
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-misf.R"
+        "./tests/testthat/test-geodesic-misf.R"
       ],
       "deliverables": [
         "Compiled sparse-subset pure-GMDS optimizer path",
@@ -201,14 +201,14 @@
       "title": "High-level API and trace output",
       "goal": "Expose MISF-GMDS as a clean experimental algorithm with per-level trace support.",
       "files_to_modify": [
-        "/Users/pgajer/current_projects/grip/R/grip_geodesic_misf.R",
-        "/Users/pgajer/current_projects/grip/NAMESPACE"
+        "./R/grip_geodesic_misf.R",
+        "./NAMESPACE"
       ],
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/man/grip.build.misf.Rd",
-        "/Users/pgajer/current_projects/grip/man/grip.prepare.misf.geodesic.mds.Rd",
-        "/Users/pgajer/current_projects/grip/man/grip.optimize.misf.geodesic.mds.Rd",
-        "/Users/pgajer/current_projects/grip/man/grip.score.misf.geodesic.mds.Rd"
+        "./man/grip.build.misf.Rd",
+        "./man/grip.prepare.misf.geodesic.mds.Rd",
+        "./man/grip.optimize.misf.geodesic.mds.Rd",
+        "./man/grip.score.misf.geodesic.mds.Rd"
       ],
       "deliverables": [
         "grip.optimize.misf.geodesic.mds",
@@ -229,9 +229,9 @@
       "title": "Paraboloid-first validation slice",
       "goal": "Verify that MISF-GMDS improves basin selection on the graph families that motivated the work.",
       "files_to_add": [
-        "/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-misf-paraboloid.R",
-        "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R",
-        "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-paraboloid-html.R"
+        "./tests/testthat/test-geodesic-misf-paraboloid.R",
+        "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-paraboloid.R",
+        "./tools/reports/geodesic_mds_paper/render-gmds-misf-paraboloid-html.R"
       ],
       "deliverables": [
         "Paraboloid-focused benchmark report",

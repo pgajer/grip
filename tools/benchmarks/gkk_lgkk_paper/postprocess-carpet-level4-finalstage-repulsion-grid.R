@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-output_root <- file.path("dev", "manual", "tmp", "carpet-level4-finalstage-repulsion-grid")
+output_root <- file.path("output", "gkk_lgkk_paper", "tmp", "carpet-level4-finalstage-repulsion-grid")
 
 if (requireNamespace("devtools", quietly = TRUE)) {
   devtools::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)

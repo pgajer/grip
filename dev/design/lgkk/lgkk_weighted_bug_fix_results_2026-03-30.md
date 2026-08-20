@@ -34,7 +34,7 @@ frontier ties are resolved by actual vertex id rather than active-set index.
 - `devtools::test(filter='layout-(globalrep|trace)|landmark-geodesic-kk')`
   passed with `121` tests.
 - Focused benchmark rerun:
-  [summary](/Users/pgajer/current_projects/grip/dev/design/tmp/lgkk-multiscale-linesearch-2026-03-30/lgkk-multiscale-integration-summary.md)
+  [summary](https://github.com/pgajer/grip/blob/main/output/gkk_lgkk_paper/tmp/lgkk-multiscale-linesearch-2026-03-30/lgkk-multiscale-integration-summary.md)
 
 ## Key Results
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
-pdf_dir <- file.path("dev", "manual", "pdf")
-preview_dir <- file.path("dev", "manual", "tmp", "pdfs")
+pdf_dir <- file.path("output", "gkk_lgkk_paper", "reports")
+preview_dir <- file.path("output", "gkk_lgkk_paper", "tmp", "pdfs")
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(preview_dir, recursive = TRUE, showWarnings = FALSE)
 

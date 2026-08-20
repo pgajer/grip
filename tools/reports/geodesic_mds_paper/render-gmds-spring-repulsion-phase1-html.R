@@ -11,9 +11,9 @@ setwd(repo_root)
 
 options(rgl.useNULL = TRUE)
 
-manual_root <- file.path(repo_root, "dev", "manual")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 tmp_dir <- file.path(manual_root, "tmp", "gmds-spring-repulsion-phase1-2026-04-01")
-interactive_dir <- file.path(manual_root, "interactive-prototypes")
+interactive_dir <- file.path(manual_root, "html")
 output_html <- file.path(
   interactive_dir,
   "gmds_spring_repulsion_phase1_3d_panels_2026-04-01.html"

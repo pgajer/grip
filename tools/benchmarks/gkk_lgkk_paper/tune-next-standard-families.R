@@ -512,7 +512,7 @@ run_family_stage <- function(tag,
                              search_seed,
                              out_root) {
   stage_tmp_dir <- file.path(out_root, "tmp", tag)
-  stage_pdf_dir <- file.path(out_root, "pdf", tag, spec$family)
+  stage_pdf_dir <- file.path(out_root, "reports", tag, spec$family)
   stage_preview_dir <- file.path(stage_tmp_dir, "pdf-previews")
   dir.create(stage_tmp_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(stage_pdf_dir, recursive = TRUE, showWarnings = FALSE)
@@ -766,7 +766,7 @@ broad_seeds <- if (!is.null(args$broad_seeds)) parse_int_vector(args$broad_seeds
 validation_seeds <- if (!is.null(args$validation_seeds)) parse_int_vector(args$validation_seeds, "validation_seeds") else 1:4
 base_search_seed <- if (!is.null(args$search_seed)) parse_int_scalar(args$search_seed, "search_seed") else 20260331L
 
-out_root <- file.path("dev", "manual")
+out_root <- file.path("output", "gkk_lgkk_paper")
 family_results <- list()
 for (i in seq_along(family_configs)) {
   cfg <- family_configs[[i]]

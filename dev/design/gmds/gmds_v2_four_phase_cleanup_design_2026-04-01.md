@@ -26,24 +26,24 @@ This note proposes a four-phase cleanup to get there.
 The current implementation already contains most of the raw ingredients:
 
 - graph-native all-pairs geodesic preparation:
-  [`grip.prepare.geodesic.kk()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1820)
+  [`grip.prepare.geodesic.kk()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1820)
 - data-native `k`-NN preparation:
-  [`grip.prepare.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3363)
+  [`grip.prepare.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3363)
 - pure fixed-path GMDS scoring:
-  [`grip.score.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3472)
+  [`grip.score.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3472)
 - pure fixed-path GMDS optimization:
-  [`grip.optimize.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3649)
+  [`grip.optimize.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3649)
 - flattened compiled path-stress kernel:
-  [`geodesic_mds_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L834)
+  [`geodesic_mds_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L834)
 
 The generic graph terms proposed earlier also already exist in prototype form:
 
 - graph-edge springs:
-  [`grip.geodesic.mds.edge.spring.stats()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2788)
+  [`grip.geodesic.mds.edge.spring.stats()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2788)
 - graph-aware repulsion:
-  [`grip.geodesic.mds.repulsion.stats()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2862)
+  [`grip.geodesic.mds.repulsion.stats()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2862)
 - graph-term cache builder:
-  [`grip.geodesic.mds.ensure.graph.term.cache()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2720)
+  [`grip.geodesic.mds.ensure.graph.term.cache()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2720)
 
 However, these additions are currently mixed into the same public GMDS API, and
 the spring/repulsion terms still force a fallback to the R engine rather than
@@ -90,14 +90,14 @@ This function should accept:
 - `tie_mode = c("single", "average")`
 
 Internally, it can largely wrap the same lower-level graph preparation used by
-[`grip.prepare.geodesic.kk()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1820),
+[`grip.prepare.geodesic.kk()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1820),
 but it should return an object whose semantics are clearly GMDS rather than KK.
 
 #### 2. Recast the current data-native function as a convenience wrapper
 
 Keep:
 
-- [`grip.prepare.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3363)
+- [`grip.prepare.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3363)
 
 but explicitly define it as:
 
@@ -122,9 +122,9 @@ clearly that:
 #### 4. Tighten naming around the objective
 
 The current names are fairly good, but the documentation of
-[`grip.score.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3472)
+[`grip.score.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3472)
 and
-[`grip.optimize.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3649)
+[`grip.optimize.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3649)
 should emphasize:
 
 - these are the **pure fixed-path GMDS** functions by default,
@@ -206,9 +206,9 @@ This function should be documented as:
 
 The bending and mesh-only code in:
 
-- [`zz_geodesic_mds_bending_core.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_core.R)
-- [`zz_geodesic_mds_bending_optimize.R`](/Users/pgajer/current_projects/grip/R/zz_geodesic_mds_bending_optimize.R)
-- [`geodesic_mds_bending_rcpp.cpp`](/Users/pgajer/current_projects/grip/src/geodesic_mds_bending_rcpp.cpp)
+- [`zz_geodesic_mds_bending_core.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_core.R)
+- [`zz_geodesic_mds_bending_optimize.R`](https://github.com/pgajer/grip/blob/main/R/zz_geodesic_mds_bending_optimize.R)
+- [`geodesic_mds_bending_rcpp.cpp`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_bending_rcpp.cpp)
 
 should remain available for specialized experiments, but they should not define
 what GMDS means in the package.
@@ -239,11 +239,11 @@ prototype code.
 R already contains:
 
 - graph-edge spring gradient and energy:
-  [`grip.geodesic.mds.edge.spring.stats()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2788)
+  [`grip.geodesic.mds.edge.spring.stats()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2788)
 - graph-aware repulsion gradient and energy:
-  [`grip.geodesic.mds.repulsion.stats()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2862)
+  [`grip.geodesic.mds.repulsion.stats()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2862)
 - automatic repulsion-pair cache construction:
-  [`grip.build.graph.repulsion.cache()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L2660)
+  [`grip.build.graph.repulsion.cache()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L2660)
 
 The flat compiled GMDS path already supports:
 
@@ -254,7 +254,7 @@ The flat compiled GMDS path already supports:
 
 in:
 
-- [`grip_optimize_geodesic_mds_flat_cpp()`](/Users/pgajer/current_projects/grip/src/geodesic_mds_rcpp.cpp#L1365)
+- [`grip_optimize_geodesic_mds_flat_cpp()`](https://github.com/pgajer/grip/blob/main/src/geodesic_mds_rcpp.cpp#L1365)
 
 ### Proposed C++ Additions
 

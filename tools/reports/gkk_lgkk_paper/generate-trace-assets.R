@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-fig_dir <- file.path("dev", "manual", "figures")
+fig_dir <- file.path("output", "gkk_lgkk_paper", "reports", "figures")
 dir.create(fig_dir, recursive = TRUE, showWarnings = FALSE)
 
 if (requireNamespace("devtools", quietly = TRUE)) {

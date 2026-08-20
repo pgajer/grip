@@ -952,10 +952,10 @@ write_tracked_summary <- function(path,
     lines,
     "",
     "Primary outputs:",
-    sprintf("- Stage-1 summary: `dev/design/tmp/%s/stage1-summary.md`", run_tag),
-    sprintf("- Stage-2 summary: `dev/design/tmp/%s/stage2-summary.md`", run_tag),
-    sprintf("- Stage-2 candidate CSV: `dev/design/tmp/%s/stage2-candidate-summary.csv`", run_tag),
-    sprintf("- Stage-2 family CSV: `dev/design/tmp/%s/stage2-family-summary.csv`", run_tag)
+    sprintf("- Stage-1 summary: `output/gkk_lgkk_paper/tmp/%s/stage1-summary.md`", run_tag),
+    sprintf("- Stage-2 summary: `output/gkk_lgkk_paper/tmp/%s/stage2-summary.md`", run_tag),
+    sprintf("- Stage-2 candidate CSV: `output/gkk_lgkk_paper/tmp/%s/stage2-candidate-summary.csv`", run_tag),
+    sprintf("- Stage-2 family CSV: `output/gkk_lgkk_paper/tmp/%s/stage2-family-summary.csv`", run_tag)
   )
   writeLines(lines, con = path)
 }
@@ -967,7 +967,7 @@ if (sys.nframe() == 0L) {
   kk_max_vertices <- if (!is.null(args$kk_max_vertices)) parse_int_scalar(args$kk_max_vertices, "kk_max_vertices") else 10000L
   representative_max_vertices <- if (!is.null(args$representative_max_vertices)) parse_int_scalar(args$representative_max_vertices, "representative_max_vertices") else 10000L
 
-  out_root <- file.path("dev", "manual")
+  out_root <- file.path("output", "gkk_lgkk_paper")
   out_tmp_dir <- file.path(out_root, "tmp", run_tag)
   dir.create(out_tmp_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -1023,7 +1023,7 @@ if (sys.nframe() == 0L) {
   draw_stage2_scatter(stage2_scatter_png, stage2_result$candidate_summary)
   draw_family_heatmap(stage2_heatmap_png, stage2_result$family_summary)
 
-  tracked_summary_path <- file.path("dev", "manual", "grip_kk_cross_family_summary_2026-03-28.md")
+  tracked_summary_path <- file.path("output", "gkk_lgkk_paper", "grip_kk_cross_family_summary_2026-03-28.md")
   write_tracked_summary(
     path = tracked_summary_path,
     stage1_result = stage1_result,

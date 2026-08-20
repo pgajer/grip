@@ -29,10 +29,10 @@
     "irregular_rectangle_15x15": ["flat", "saddle", "paraboloid", "ripple"]
   },
   "artifacts": {
-    "benchmark": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-g-deferred-portfolio.R",
-    "renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-g-deferred-portfolio-html.R",
-    "report_source_dir": "/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_misf_phase_g_deferred_portfolio_report_2026-04-05",
-    "tmp_dir": "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-phase-g-deferred-portfolio-2026-04-05",
-    "interactive_dir": "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes"
+    "benchmark": "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-g-deferred-portfolio.R",
+    "renderer": "./tools/reports/geodesic_mds_paper/render-gmds-misf-phase-g-deferred-portfolio-html.R",
+    "report_source_dir": "./output/geodesic_mds_paper/reports/gmds_misf_phase_g_deferred_portfolio_report_2026-04-05",
+    "tmp_dir": "./output/geodesic_mds_paper/tmp/gmds-misf-phase-g-deferred-portfolio-2026-04-05",
+    "interactive_dir": "./output/geodesic_mds_paper/html"
   }
 }

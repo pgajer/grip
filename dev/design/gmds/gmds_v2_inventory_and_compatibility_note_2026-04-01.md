@@ -17,9 +17,9 @@ Before changing semantics, identify:
 
 The currently exported GMDS-facing functions are:
 
-- [`grip.prepare.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3363)
-- [`grip.score.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3472)
-- [`grip.optimize.geodesic.mds()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L3649)
+- [`grip.prepare.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3363)
+- [`grip.score.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3472)
+- [`grip.optimize.geodesic.mds()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L3649)
 
 Their current behavior is:
 
@@ -33,9 +33,9 @@ Their current behavior is:
 The graph-native low-level machinery already exists:
 
 - graph input normalization:
-  [`grip.prepare.geodesic.kk.base()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1038)
+  [`grip.prepare.geodesic.kk.base()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1038)
 - all-pairs chosen-path cache:
-  [`grip.prepare.geodesic.kk()`](/Users/pgajer/current_projects/grip/R/grip_quality.R#L1820)
+  [`grip.prepare.geodesic.kk()`](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L1820)
 
 That means the new manuscript-aligned graph-first GMDS API can be added without
 rewriting the core path-cache logic.
@@ -46,7 +46,7 @@ At the time of this pass, the directly relevant call sites were:
 
 ### Tests
 
-- [`test-geodesic-mds.R`](/Users/pgajer/current_projects/grip/tests/testthat/test-geodesic-mds.R)
+- [`test-geodesic-mds.R`](https://github.com/pgajer/grip/blob/main/tests/testthat/test-geodesic-mds.R)
 
 This file assumed:
 
@@ -57,9 +57,9 @@ This file assumed:
 
 ### Documentation
 
-- [`grip.prepare.geodesic.mds.Rd`](/Users/pgajer/current_projects/grip/man/grip.prepare.geodesic.mds.Rd)
-- [`grip.score.geodesic.mds.Rd`](/Users/pgajer/current_projects/grip/man/grip.score.geodesic.mds.Rd)
-- [`grip.optimize.geodesic.mds.Rd`](/Users/pgajer/current_projects/grip/man/grip.optimize.geodesic.mds.Rd)
+- [`grip.prepare.geodesic.mds.Rd`](https://github.com/pgajer/grip/blob/main/man/grip.prepare.geodesic.mds.Rd)
+- [`grip.score.geodesic.mds.Rd`](https://github.com/pgajer/grip/blob/main/man/grip.score.geodesic.mds.Rd)
+- [`grip.optimize.geodesic.mds.Rd`](https://github.com/pgajer/grip/blob/main/man/grip.optimize.geodesic.mds.Rd)
 
 These pages still described the data-native entry point as if it were the only
 public preparation path.
@@ -70,9 +70,9 @@ The current design and experiment notes already point to a graph-first
 understanding of GMDS, but the code-level naming had not caught up fully. The
 main relevant notes are:
 
-- [geodesic_mds_infrastructure_design_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
-- [gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md](/Users/pgajer/current_projects/grip/dev/design/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md)
-- [gmds_v2_four_phase_cleanup_design_2026-04-01.md](/Users/pgajer/current_projects/grip/dev/design/gmds_v2_four_phase_cleanup_design_2026-04-01.md)
+- [geodesic_mds_infrastructure_design_2026-03-31.md](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
+- [gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md](https://github.com/pgajer/grip/blob/main/dev/design/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md)
+- [gmds_v2_four_phase_cleanup_design_2026-04-01.md](https://github.com/pgajer/grip/blob/main/dev/design/gmds_v2_four_phase_cleanup_design_2026-04-01.md)
 
 ## Compatibility Strategy
 

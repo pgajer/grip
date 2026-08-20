@@ -3,7 +3,7 @@
 Date: 2026-04-05
 
 This note turns `EXP-6` from
-[experiments_plan_2026-04-05.md](/Users/pgajer/current_projects/grip/dev/papers/gkk_lgkk_paper/experiments_plan_2026-04-05.md)
+[experiments_plan_2026-04-05.md](https://github.com/pgajer/grip/blob/main/dev/papers/gkk_lgkk_paper/experiments_plan_2026-04-05.md)
 into a concrete runnable benchmark specification.
 
 Current driver:
@@ -177,7 +177,7 @@ Use the same full-graph start construction for all direct baselines:
 4. center the layout
 
 This should match the current style already used in
-[benchmark-kk-gkk-lgkk-mesh-suite.R](/Users/pgajer/current_projects/grip/tools/benchmarks/gkk_lgkk_paper/benchmark-kk-gkk-lgkk-mesh-suite.R).
+[benchmark-kk-gkk-lgkk-mesh-suite.R](https://github.com/pgajer/grip/blob/main/tools/benchmarks/gkk_lgkk_paper/benchmark-kk-gkk-lgkk-mesh-suite.R).
 
 ### MISF-GKK start
 

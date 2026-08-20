@@ -491,8 +491,8 @@ seeds <- if (!is.null(args$seeds)) parse_int_vector(args$seeds, "seeds") else 1:
 top_n <- if (!is.null(args$top_n)) parse_int_scalar(args$top_n, "top_n") else 12L
 run_tag <- validate_run_tag(if (!is.null(args$tag)) args$tag else sprintf("globalrep-carpet-level%d-tuning", level))
 
-tuning_root <- file.path("dev", "manual")
-tuning_pdf_dir <- file.path(tuning_root, "pdf", run_tag, "carpet")
+tuning_root <- file.path("output", "gkk_lgkk_paper")
+tuning_pdf_dir <- file.path(tuning_root, "reports", run_tag, "carpet")
 tuning_tmp_dir <- file.path(tuning_root, "tmp", run_tag)
 tuning_preview_dir <- file.path(tuning_tmp_dir, "pdf-previews")
 dir.create(tuning_pdf_dir, recursive = TRUE, showWarnings = FALSE)

@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-output_root <- file.path("dev", "manual", "tmp", "carpet-level4-grip-kk-hybrid-study")
+output_root <- file.path("output", "gkk_lgkk_paper", "tmp", "carpet-level4-grip-kk-hybrid-study")
 dir.create(output_root, recursive = TRUE, showWarnings = FALSE)
 
 if (requireNamespace("devtools", quietly = TRUE)) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 run_tag <- "lgkk-multiscale-linesearch-2026-03-30"
-manual_root <- file.path("dev", "manual")
+manual_root <- file.path("output", "gkk_lgkk_paper")
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 

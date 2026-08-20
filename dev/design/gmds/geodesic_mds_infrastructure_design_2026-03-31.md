@@ -16,7 +16,7 @@ The target behavior is:
 4. Report Stress-1 style diagnostics using the fixed denominator `sum_{i < j} delta_ij^2`.
 
 This matches the manuscript formulation in
-[geodesic_mds.tex](/Users/pgajer/current_projects/geodesic_MDS/manuscript/geodesic_mds.tex#L614).
+[geodesic_mds.tex](${GEODESIC_MDS_PROJECT_ROOT}/manuscript/geodesic_mds.tex#L614).
 
 ## Existing Assets in `grip`
 
@@ -25,7 +25,7 @@ The package already contains most of the reusable mathematical machinery.
 ### R path-cache and scoring infrastructure
 
 The recent geodesic-KK code in
-[grip_quality.R](/Users/pgajer/current_projects/grip/R/grip_quality.R#L804)
+[grip_quality.R](https://github.com/pgajer/grip/blob/main/R/grip_quality.R#L804)
 already provides:
 
 - deterministic shortest-path-tree construction for weighted and unweighted graphs,
@@ -50,18 +50,18 @@ The multiscale LGKK implementation inside `DrawGraph` already proves that the co
 Relevant code:
 
 - deterministic active-set shortest paths:
-  [MishSupport.cpp](/Users/pgajer/current_projects/grip/src/MishSupport.cpp#L201)
+  [MishSupport.cpp](https://github.com/pgajer/grip/blob/main/src/MishSupport.cpp#L201)
 - sparse path-cache construction:
-  [MishSupport.cpp](/Users/pgajer/current_projects/grip/src/MishSupport.cpp#L399)
+  [MishSupport.cpp](https://github.com/pgajer/grip/blob/main/src/MishSupport.cpp#L399)
 - compiled geodesic gradient-descent refinement:
-  [MishSupport.cpp](/Users/pgajer/current_projects/grip/src/MishSupport.cpp#L504)
+  [MishSupport.cpp](https://github.com/pgajer/grip/blob/main/src/MishSupport.cpp#L504)
 
 The package also already has the low-level graph and point abstractions that a standalone compiled geodesic-MDS optimizer can reuse:
 
 - `Graph`:
-  [Graph.h](/Users/pgajer/current_projects/grip/src/Graph.h)
+  [Graph.h](https://github.com/pgajer/grip/blob/main/src/Graph.h)
 - `Point`:
-  [Point.h](/Users/pgajer/current_projects/grip/src/Point.h)
+  [Point.h](https://github.com/pgajer/grip/blob/main/src/Point.h)
 
 ## Architectural Decision
 

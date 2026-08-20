@@ -20,6 +20,9 @@ Current runnable benchmark drivers:
 - `tools/benchmarks/gkk_lgkk_paper/benchmark-kk-gkk-lgkk-mesh-suite.R`
 - `tools/benchmarks/gkk_lgkk_paper/benchmark-misf-gkk-panel.R`
 
+Figure source lives under `figures/source/`. Generated figures belong under
+`output/gkk_lgkk_paper/figures/`.
+
 Historical manuscript fragments still live under `dev/papers/methods/`, but the active concept notes and rendered reports have already been rehomed under:
 
 - `dev/papers/gkk_lgkk_paper/notes/`

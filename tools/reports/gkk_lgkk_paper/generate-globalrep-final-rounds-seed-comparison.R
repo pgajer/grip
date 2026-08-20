@@ -279,9 +279,9 @@ results$coords <- coords_list
 
 results <- results[order(results$seed, match(results$variant_label, c("best_384", "variant_200"))), , drop = FALSE]
 
-tmp_dir_local <- file.path("dev", "manual", "tmp", tag)
+tmp_dir_local <- file.path("output", "gkk_lgkk_paper", "tmp", tag)
 preview_dir_local <- file.path(tmp_dir_local, "pdf-previews")
-pdf_dir_local <- file.path("dev", "manual", "pdf", tag, "carpet")
+pdf_dir_local <- file.path("output", "gkk_lgkk_paper", "reports", tag, "carpet")
 dir.create(preview_dir_local, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir_local, recursive = TRUE, showWarnings = FALSE)
 

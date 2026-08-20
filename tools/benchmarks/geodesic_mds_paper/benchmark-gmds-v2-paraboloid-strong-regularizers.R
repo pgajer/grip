@@ -9,10 +9,10 @@ script_path <- normalizePath(sub("^--file=", "", file_arg[[1L]]), winslash = "/"
 repo_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), winslash = "/", mustWork = TRUE)
 setwd(repo_root)
 
-manual_root <- file.path(repo_root, "dev", "manual")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 base_run_tag <- "gmds-v2-paraboloid-regularized-2026-04-01"
 tmp_dir <- file.path(manual_root, "tmp", base_run_tag)
-pdf_dir <- file.path(manual_root, "pdf", base_run_tag)
+pdf_dir <- file.path(manual_root, "reports", base_run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 

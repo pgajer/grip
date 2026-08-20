@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-manual_root <- file.path("dev", "manual", "tmp", "carpet-layout-timing-level4-5")
+manual_root <- file.path("output", "gkk_lgkk_paper", "tmp", "carpet-layout-timing-level4-5")
 png_dir <- file.path(manual_root, "png")
 dir.create(manual_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(png_dir, recursive = TRUE, showWarnings = FALSE)

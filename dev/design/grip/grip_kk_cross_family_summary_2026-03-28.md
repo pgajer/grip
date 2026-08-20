@@ -51,9 +51,9 @@ Best GRIP setting by family:
 - `torus`: `grip_torus_preset_reference`
 
 Primary outputs:
-- Stage-1 summary: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage1-summary.md`
-- Stage-2 summary: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage2-summary.md`
-- Stage-2 candidate CSV: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage2-candidate-summary.csv`
-- Stage-2 family CSV: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage2-family-summary.csv`
-- Universal common-subset summary: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage2-universal-common-summary.md`
-- Best GRIP-by-family summary: `dev/design/tmp/grip-kk-cross-family-full-2026-03-28/stage2-best-grip-family-summary.md`
+- Stage-1 summary: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage1-summary.md`
+- Stage-2 summary: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage2-summary.md`
+- Stage-2 candidate CSV: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage2-candidate-summary.csv`
+- Stage-2 family CSV: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage2-family-summary.csv`
+- Universal common-subset summary: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage2-universal-common-summary.md`
+- Best GRIP-by-family summary: `output/gkk_lgkk_paper/tmp/grip-kk-cross-family-full-2026-03-28/stage2-best-grip-family-summary.md`

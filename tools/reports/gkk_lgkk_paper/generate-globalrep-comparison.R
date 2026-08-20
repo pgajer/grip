@@ -165,8 +165,8 @@ globalrep_coords <- grip.layout(
 baseline_metrics <- compute_metrics(baseline_coords, canonical_coords, edges, seed)
 globalrep_metrics <- compute_metrics(globalrep_coords, canonical_coords, edges, seed)
 
-pdf_dir_local <- file.path("dev", "manual", "pdf", tag, family)
-tmp_dir_local <- file.path("dev", "manual", "tmp", tag)
+pdf_dir_local <- file.path("output", "gkk_lgkk_paper", "reports", tag, family)
+tmp_dir_local <- file.path("output", "gkk_lgkk_paper", "tmp", tag)
 preview_dir_local <- file.path(tmp_dir_local, "pdf-previews")
 dir.create(pdf_dir_local, recursive = TRUE, showWarnings = FALSE)
 dir.create(preview_dir_local, recursive = TRUE, showWarnings = FALSE)

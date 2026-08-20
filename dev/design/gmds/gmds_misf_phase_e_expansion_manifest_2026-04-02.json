@@ -22,8 +22,8 @@
         "15x15",
         "20x20_optional"
       ],
-      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-mesh-geometries.R",
-      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-mesh-geometries-html.R",
+      "benchmark_script": "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-mesh-geometries.R",
+      "html_renderer": "./tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-mesh-geometries-html.R",
       "report_prefix": "gmds_misf_phase_e_mesh_geometries_report",
       "html_prefix": "gmds_misf_phase_e_mesh_geometries_3d",
       "decision_gate": "Proceed to Block 2 only after reviewing whether the current Phase E pipeline remains stable across all four surface geometries."
@@ -45,8 +45,8 @@
         "16x16",
         "20x20"
       ],
-      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-perforated-rectangles.R",
-      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-perforated-rectangles-html.R",
+      "benchmark_script": "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-perforated-rectangles.R",
+      "html_renderer": "./tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-perforated-rectangles-html.R",
       "report_prefix": "gmds_misf_phase_e_perforated_rectangles_report",
       "html_prefix": "gmds_misf_phase_e_perforated_rectangles_3d",
       "decision_gate": "Proceed to Block 3 only after reviewing whether the Phase E pipeline survives moderate topological complication in rectangle-like families."
@@ -67,8 +67,8 @@
         "family_default_small",
         "family_default_medium"
       ],
-      "benchmark_script": "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-annulus-sphere.R",
-      "html_renderer": "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-annulus-sphere-html.R",
+      "benchmark_script": "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-phase-e-annulus-sphere.R",
+      "html_renderer": "./tools/reports/geodesic_mds_paper/render-gmds-misf-phase-e-annulus-sphere-html.R",
       "report_prefix": "gmds_misf_phase_e_annulus_sphere_report",
       "html_prefix": "gmds_misf_phase_e_annulus_sphere_3d",
       "decision_gate": "Use this block to decide whether the current Phase E seeded MISF-GMDS strategy generalizes beyond rectangle-derived families."

@@ -7,8 +7,10 @@
 
 library(grip)
 
-## Output directory (relative to this script's location)
-fig_dir <- file.path(dirname(sys.frame(1)$ofile %||% "."), "..", "figures")
+## Generated figures live outside dev/, which contains source files only.
+script_dir <- dirname(normalizePath(sys.frame(1)$ofile %||% "."))
+repo_root <- normalizePath(file.path(script_dir, "../../../../.."))
+fig_dir <- file.path(repo_root, "output", "rjournal_paper", "figures")
 dir.create(fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 ## Convenience: save a PDF figure at R-Journal-friendly dimensions

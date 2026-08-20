@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
-manual_root <- file.path("dev", "manual")
-pdf_dir <- file.path(manual_root, "pdf", "sierpinski-baseline")
+manual_root <- file.path("output", "gkk_lgkk_paper")
+pdf_dir <- file.path(manual_root, "reports", "sierpinski-baseline")
 tmp_dir <- file.path(manual_root, "tmp", "sierpinski-baseline")
 preview_dir <- file.path(tmp_dir, "pdf-previews")
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)

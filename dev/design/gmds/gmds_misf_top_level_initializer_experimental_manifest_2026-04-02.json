@@ -2,7 +2,7 @@
   "name": "GMDS MISF Top-Level Initializer Experimental Manifest",
   "date": "2026-04-02",
   "status": "planned_only",
-  "project_root": "/Users/pgajer/current_projects/grip",
+  "project_root": ".",
   "purpose": "Evaluate whether existing graph-drawing layouts in grip, especially the new weighted GRIP sister API with in-core multiscale LGKK refinement, provide better top-level MISF basins for subsequent GMDS correction than cMDS.",
   "core_questions": [
     "Which initializer gives the most plausible top MISF scaffold?",
@@ -14,17 +14,17 @@
   "families_phase1": [
     {
       "id": "regular_paraboloid_12",
-      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "generator": "./R/graph_helpers.R",
       "label": "Regular paraboloid mesh 12x12"
     },
     {
       "id": "regular_paraboloid_15",
-      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "generator": "./R/graph_helpers.R",
       "label": "Regular paraboloid mesh 15x15"
     },
     {
       "id": "irregular_rectangle_paraboloid_15",
-      "generator": "/Users/pgajer/current_projects/grip/R/graph_helpers.R",
+      "generator": "./R/graph_helpers.R",
       "label": "Irregular rectangle paraboloid 15x15"
     }
   ],
@@ -39,15 +39,15 @@
     "edge_relaxation"
   ],
   "weighted_layout_references": [
-    "/Users/pgajer/current_projects/grip/R/grip_layout_weighted.R",
-    "/Users/pgajer/current_projects/grip/src/MishWeighted.cpp",
-    "/Users/pgajer/current_projects/grip/src/grip_rcpp.cpp",
-    "/Users/pgajer/current_projects/grip/tests/testthat/test-layout-weighted-globalrep.R",
-    "/Users/pgajer/current_projects/grip/tests/testthat/test-layout-weighted-trace.R",
-    "/Users/pgajer/current_projects/grip/tools/benchmarks/gkk_lgkk_paper/benchmark-weighted-grip-family-panel.R",
-    "/Users/pgajer/current_projects/grip/output/pdf/weighted_grip_phase5_report_2026-04-02.tex",
-    "/Users/pgajer/current_projects/grip/output/pdf/render-weighted-grip-phase5-report.py",
-    "/Users/pgajer/current_projects/grip/output/pdf/render-weighted-grip-phase5-gallery-html.R"
+    "./R/grip_layout_weighted.R",
+    "./src/MishWeighted.cpp",
+    "./src/grip_rcpp.cpp",
+    "./tests/testthat/test-layout-weighted-globalrep.R",
+    "./tests/testthat/test-layout-weighted-trace.R",
+    "./tools/benchmarks/gkk_lgkk_paper/benchmark-weighted-grip-family-panel.R",
+    "./output/pdf/weighted_grip_phase5_report_2026-04-02.tex",
+    "./output/pdf/render-weighted-grip-phase5-report.py",
+    "./output/pdf/render-weighted-grip-phase5-gallery-html.R"
   ],
   "correction_pipeline": {
     "stage_1": {
@@ -76,9 +76,9 @@
       "goal": "Compare top-level MISF seeds before any GMDS correction.",
       "runs": "3 families x 8 initializers x 1 deterministic seed",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-top-level-initializers-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_misf_top_level_initializer_report_2026-04-02/gmds_misf_top_level_initializer_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_top_level_initializer_3d_2026-04-02.html"
+        "./output/geodesic_mds_paper/tmp/gmds-misf-top-level-initializers-2026-04-02/",
+        "./output/geodesic_mds_paper/reports/gmds_misf_top_level_initializer_report_2026-04-02/gmds_misf_top_level_initializer_report_2026-04-02.tex",
+        "./output/geodesic_mds_paper/html/gmds_misf_top_level_initializer_3d_2026-04-02.html"
       ]
     },
     {
@@ -87,9 +87,9 @@
       "goal": "Test which seeds remain good after short regularized and pure GMDS correction.",
       "runs": "3 families x best 2 initializers from Phase A x 3 stages",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-top-level-corrections-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_misf_top_level_corrections_report_2026-04-02/gmds_misf_top_level_corrections_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_top_level_corrections_3d_2026-04-02.html"
+        "./output/geodesic_mds_paper/tmp/gmds-misf-top-level-corrections-2026-04-02/",
+        "./output/geodesic_mds_paper/reports/gmds_misf_top_level_corrections_report_2026-04-02/gmds_misf_top_level_corrections_report_2026-04-02.tex",
+        "./output/geodesic_mds_paper/html/gmds_misf_top_level_corrections_3d_2026-04-02.html"
       ]
     },
     {
@@ -98,9 +98,9 @@
       "goal": "Propagate the best top-level strategies through the full multiscale pipeline.",
       "runs": "3 families x baseline current pipeline x best 1-2 top-level strategies",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-full-pipeline-initializers-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/design/geodesic_mds/reports/gmds_misf_seeded_pipeline_report_2026-04-02/gmds_misf_seeded_pipeline_report_2026-04-02.tex",
-        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_full_pipeline_3d_2026-04-02.html"
+        "./output/geodesic_mds_paper/tmp/gmds-misf-full-pipeline-initializers-2026-04-02/",
+        "./output/geodesic_mds_paper/reports/gmds_misf_seeded_pipeline_report_2026-04-02/gmds_misf_seeded_pipeline_report_2026-04-02.tex",
+        "./output/geodesic_mds_paper/html/gmds_misf_full_pipeline_3d_2026-04-02.html"
       ]
     },
     {
@@ -109,9 +109,9 @@
       "goal": "Compare lower-level placement variants after top-level seeding is improved.",
       "runs": "best top-level strategy x current insertion vs weighted GRIP vs weighted KK vs GRIP vs KK vs optional FR placement",
       "required_outputs": [
-        "/Users/pgajer/current_projects/grip/dev/design/tmp/gmds-misf-lower-level-placement-2026-04-02/",
-        "/Users/pgajer/current_projects/grip/output/geodesic_mds_paper/reports/orphans/gmds_misf_lower_level_placement_report_2026-04-02/",
-        "/Users/pgajer/current_projects/grip/dev/design/interactive-prototypes/gmds_misf_lower_level_placement_3d_2026-04-02.html"
+        "./output/geodesic_mds_paper/tmp/gmds-misf-lower-level-placement-2026-04-02/",
+        "./output/geodesic_mds_paper/reports/orphans/gmds_misf_lower_level_placement_report_2026-04-02/",
+        "./output/geodesic_mds_paper/html/gmds_misf_lower_level_placement_3d_2026-04-02.html"
       ]
     }
   ],
@@ -130,14 +130,14 @@
     "preferred_delivery": "single combined HTML if size is manageable; otherwise one HTML per phase"
   },
   "scripts_to_add_when_executed": [
-    "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-top-level-initializers.R",
-    "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-top-level-corrections.R",
-    "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-full-pipeline-initializers.R",
-    "/Users/pgajer/current_projects/grip/tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-lower-level-placement.R",
-    "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-top-level-initializers-html.R",
-    "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-top-level-corrections-html.R",
-    "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-full-pipeline-html.R",
-    "/Users/pgajer/current_projects/grip/tools/reports/geodesic_mds_paper/render-gmds-misf-lower-level-placement-html.R"
+    "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-top-level-initializers.R",
+    "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-top-level-corrections.R",
+    "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-full-pipeline-initializers.R",
+    "./tools/benchmarks/geodesic_mds_paper/benchmark-gmds-misf-lower-level-placement.R",
+    "./tools/reports/geodesic_mds_paper/render-gmds-misf-top-level-initializers-html.R",
+    "./tools/reports/geodesic_mds_paper/render-gmds-misf-top-level-corrections-html.R",
+    "./tools/reports/geodesic_mds_paper/render-gmds-misf-full-pipeline-html.R",
+    "./tools/reports/geodesic_mds_paper/render-gmds-misf-lower-level-placement-html.R"
   ],
   "acceptance_criteria": [
     "At least one non-cMDS initializer clearly improves top-level rho and visual plausibility.",

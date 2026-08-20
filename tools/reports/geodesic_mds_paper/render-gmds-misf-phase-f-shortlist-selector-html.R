@@ -11,9 +11,9 @@ setwd(repo_root)
 
 options(rgl.useNULL = TRUE)
 
-design_root <- file.path(repo_root, "dev", "design")
+design_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 tmp_dir <- file.path(design_root, "tmp", "gmds-misf-phase-f-shortlist-selector-2026-04-05")
-interactive_dir <- file.path(design_root, "interactive-prototypes")
+interactive_dir <- file.path(design_root, "html")
 output_html <- file.path(interactive_dir, "gmds_misf_phase_f_shortlist_selector_3d_2026-04-05.html")
 rds_path <- file.path(tmp_dir, "gmds_misf_phase_f_shortlist_selector_results.rds")
 

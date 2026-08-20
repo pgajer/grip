@@ -18,8 +18,8 @@ run_tag <- if (smoke) {
   "gmds-misf-phase-f-shortlist-selector-2026-04-05"
 }
 
-design_root <- file.path(repo_root, "dev", "design")
-paper_design_root <- file.path(design_root, "geodesic_mds")
+design_root <- file.path(repo_root, "output", "geodesic_mds_paper")
+paper_design_root <- design_root
 report_name <- "gmds_misf_phase_f_shortlist_selector_report_2026-04-05"
 report_source_dir <- file.path(paper_design_root, "reports", report_name)
 report_output_dir <- file.path(repo_root, "output", "geodesic_mds_paper", "reports", report_name)

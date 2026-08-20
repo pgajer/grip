@@ -9,17 +9,17 @@ script_path <- normalizePath(sub("^--file=", "", file_arg[[1L]]), winslash = "/"
 repo_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), winslash = "/", mustWork = TRUE)
 setwd(repo_root)
 
-manual_root <- file.path(repo_root, "dev", "manual")
+manual_root <- file.path(repo_root, "output", "geodesic_mds_paper")
 run_tag <- "gmds-paraboloid-identifiability-2026-04-01"
 tmp_dir <- file.path(manual_root, "tmp", run_tag)
-pdf_dir <- file.path(manual_root, "pdf", run_tag)
+pdf_dir <- file.path(manual_root, "reports", run_tag)
 dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
 metrics_csv <- file.path(tmp_dir, "paraboloid_identifiability_metrics.csv")
 profiles_csv <- file.path(tmp_dir, "paraboloid_identifiability_fold_profiles.csv")
 rds_path <- file.path(tmp_dir, "paraboloid_identifiability_embeddings.rds")
-appendix_tex_path <- file.path(manual_root, "pdf", "gmds_v2_paraboloid_identifiability_appendix_2026-04-01.tex")
+appendix_tex_path <- file.path(manual_root, "reports", "gmds_v2_paraboloid_identifiability_appendix_2026-04-01.tex")
 plot_path <- file.path(pdf_dir, "paraboloid_identifiability_fold_profiles.png")
 snapshot_path <- file.path(pdf_dir, "paraboloid_identifiability_snapshots.png")
 

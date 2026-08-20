@@ -152,8 +152,8 @@ run_tag <- validate_run_tag(if (!is.null(args$tag)) args$tag else "sierpinski-tu
 
 search_space <- apply_search_overrides(search_space, families = families, args = args)
 
-tuning_root <- file.path("dev", "manual")
-tuning_pdf_dir <- file.path(tuning_root, "pdf", run_tag)
+tuning_root <- file.path("output", "gkk_lgkk_paper")
+tuning_pdf_dir <- file.path(tuning_root, "reports", run_tag)
 tuning_tmp_dir <- file.path(tuning_root, "tmp", run_tag)
 tuning_preview_dir <- file.path(tuning_tmp_dir, "pdf-previews")
 dir.create(tuning_pdf_dir, recursive = TRUE, showWarnings = FALSE)

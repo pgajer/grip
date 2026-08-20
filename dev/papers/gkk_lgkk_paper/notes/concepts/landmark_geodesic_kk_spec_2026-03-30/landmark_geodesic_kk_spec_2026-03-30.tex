@@ -26,7 +26,7 @@
 
 \title{Standalone Specification for a Landmark Geodesic Kamada--Kawai Solver\\
 \large v1 Prototype and v2 Fully Faithful Multiscale Target}
-\author{Codex design note for the \filepath{/Users/pgajer/current_projects/grip} repository}
+\author{Codex design note for the \filepath{<repo-root>} repository}
 \date{March 30, 2026}
 
 \begin{document}
@@ -114,12 +114,12 @@ a time. The current implementation:
 
 In the current codebase this logic lives primarily in:
 \begin{itemize}[leftmargin=1.4em]
-  \item \filepath{/Users/pgajer/current_projects/grip/src/MishSupport.cpp}
+  \item \filepath{<repo-root>/src/MishSupport.cpp}
     (\code{bfs\_me\_v4()} and \code{KK\_spring\_local()}),
-  \item \filepath{/Users/pgajer/current_projects/grip/src/DrawGraph.cpp}
+  \item \filepath{<repo-root>/src/DrawGraph.cpp}
     (\code{initial\_position\_barycenter()} and
     \code{initial\_position\_circle()}),
-  \item \filepath{/Users/pgajer/current_projects/grip/src/MishEngine.cpp}
+  \item \filepath{<repo-root>/src/MishEngine.cpp}
     (per-level opening and active-set refinement).
 \end{itemize}
 

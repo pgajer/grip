@@ -22,6 +22,8 @@ SUMMARY_PATH = (
     / "data"
     / "summary_metrics.csv"
 )
+FIGURE_DIR = REPO_ROOT / "output" / "gkk_lgkk_paper" / "figures"
+FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Load data ---
 df = pd.read_csv(SUMMARY_PATH)
@@ -103,6 +105,6 @@ ax.spines["right"].set_visible(False)
 ax.grid(axis="y", alpha=0.3, linewidth=0.4)
 
 fig.tight_layout()
-fig.savefig("fig7_2d_vs_3d.pdf", bbox_inches="tight", dpi=300)
-fig.savefig("fig7_2d_vs_3d.png", bbox_inches="tight", dpi=200)
+fig.savefig(FIGURE_DIR / "fig7_2d_vs_3d.pdf", bbox_inches="tight", dpi=300)
+fig.savefig(FIGURE_DIR / "fig7_2d_vs_3d.png", bbox_inches="tight", dpi=200)
 print("Figure 7 saved.")

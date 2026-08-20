@@ -13,7 +13,7 @@ repo_root <- normalizePath(getwd(), winslash = "/", mustWork = TRUE)
 
 pkgload::load_all(repo_root, quiet = TRUE, export_all = FALSE, helpers = FALSE)
 
-out_dir <- file.path(repo_root, "dev", "manual", "interactive-prototypes")
+out_dir <- file.path(repo_root, "output", "shared", "html")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 edges_to_segments <- function(edges, coords) {
