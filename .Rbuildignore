@@ -2,7 +2,6 @@
 (^|/)\.DS_Store$
 (^|/)\.git$
 (^|/)\.gitignore$
-^Archives$
 ^papers$
 ^Makefile$
 ^Makefile_.*$
@@ -38,7 +37,6 @@
 ^.*\.Rcheck$
 ^grip_.*\.tar\.gz$
 ^cran-comments\.md$
-^CRAN-SUBMISSION-CHECKLIST\.md$
 ^README\.html$
 ^README\.Rmd$
 ^references($|/)
