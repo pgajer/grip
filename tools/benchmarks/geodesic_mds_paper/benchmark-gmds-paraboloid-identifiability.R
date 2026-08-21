@@ -197,7 +197,7 @@ build_regular_case <- function(side = 12L, amplitude = 0.35) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -232,7 +232,7 @@ build_irregular_case <- function(side = 12L, amplitude = 0.35) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -388,7 +388,7 @@ plot_snapshots <- function(cases, output_path) {
                            fmt_num(align_to_target_nd(fit_fold$coords, case$truth, allow.reflection = TRUE)$rmse, 4L)))
     )
     for (panel in panels) {
-      grip.plot(
+      plot.layout(
         coords = panel$coords,
         edges = case$edges,
         projection = "ortho",

@@ -19,7 +19,6 @@ A named logical vector of length 4.
 }
 \description{
 Convenience constructors for the four-slot triangle masks used by
-\code{\link{edges.recursive.triangle.mask}()} and
 \code{\link{recursive.triangle.mask.surface.graph}()}. The slots correspond
 to the three corner subtriangles and the central inverted subtriangle created
 by one barycentric refinement of an equilateral triangle.

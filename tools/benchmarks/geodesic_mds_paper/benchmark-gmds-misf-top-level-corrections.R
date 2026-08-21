@@ -474,7 +474,7 @@ save_stage_panel <- function(case_result, stage, file_path, title_line) {
   for (entry in entries) {
     row <- entry$metrics[1L, , drop = FALSE]
     if (all(is.finite(entry$display_coords))) {
-      grip.plot(
+      plot.layout(
         coords = entry$display_coords,
         edges = case_result$case$display_edges,
         projection = "ortho",

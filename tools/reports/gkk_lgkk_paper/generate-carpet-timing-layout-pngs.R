@@ -22,10 +22,10 @@ sys.source(file.path("tools", "benchmarks", "gkk_lgkk_paper", "benchmark-sierpin
 
 layout_cases <- data.frame(
   level = c(4L, 4L, 4L, 5L, 5L, 5L),
-  method_id = c("grip.layout", "igraph_fr", "igraph_kk",
-                "grip.layout", "igraph_fr", "igraph_kk"),
-  method_label = c("grip.layout()", "igraph::layout_with_fr()", "igraph::layout_with_kk()",
-                   "grip.layout()", "igraph::layout_with_fr()", "igraph::layout_with_kk()"),
+  method_id = c("grip", "igraph_fr", "igraph_kk",
+                "grip", "igraph_fr", "igraph_kk"),
+  method_label = c("grip()", "igraph::layout_with_fr()", "igraph::layout_with_kk()",
+                   "grip()", "igraph::layout_with_fr()", "igraph::layout_with_kk()"),
   timeout_sec = c(180L, 180L, 180L, 300L, 300L, 300L),
   seed = c(1L, 1L, 1L, 1L, 1L, 1L),
   stringsAsFactors = FALSE
@@ -37,7 +37,7 @@ run_layout_case <- function(method_id, edges, n, seed, timeout_sec, repo_root) {
       result <- callr::r(
         function(method_id, edges, n, seed, repo_root) {
           suppressPackageStartupMessages({
-            if (identical(method_id, "grip.layout")) {
+            if (identical(method_id, "grip")) {
               devtools::load_all(repo_root, quiet = TRUE, export_all = FALSE, helpers = FALSE)
             } else {
               library(igraph)
@@ -45,8 +45,8 @@ run_layout_case <- function(method_id, edges, n, seed, timeout_sec, repo_root) {
           })
 
           gc()
-          if (identical(method_id, "grip.layout")) {
-            grip_fun <- get("grip.layout", envir = asNamespace("grip"))
+          if (identical(method_id, "grip")) {
+            grip_fun <- get("grip", envir = asNamespace("grip"))
             started <- proc.time()[["elapsed"]]
             coords <- grip_fun(edges = edges, n = n, dim = 2, seed = seed)
             elapsed <- proc.time()[["elapsed"]] - started
@@ -242,7 +242,7 @@ lines <- c(
   "# Carpet Layout PNGs",
   "",
   "This report renders the seed-1 layouts corresponding to the timing comparison for",
-  "`grip.layout()`, `igraph::layout_with_fr()`, and `igraph::layout_with_kk()` on",
+  "`grip()`, `igraph::layout_with_fr()`, and `igraph::layout_with_kk()` on",
   "Sierpinski carpet levels 4 and 5.",
   "",
   sprintf("- contact sheet: `%s`", sheet_path),

@@ -102,8 +102,8 @@ evaluate_layout <- function(spec, label, args, seed = 1L) {
     if (!is.null(spec$edge_weights)) list(edge_weights = spec$edge_weights) else list(),
     args
   )
-  timed <- system.time(coords <- do.call(grip.layout, full_args))
-  diag <- grip.geometry.diagnostics(
+  timed <- system.time(coords <- do.call(grip, full_args))
+  diag <- geometry.diagnostics(
     coords = coords,
     target.coords = spec$canonical,
     edges = spec$edges,
@@ -112,7 +112,7 @@ evaluate_layout <- function(spec, label, args, seed = 1L) {
     sample.size.wedges = 2048L,
     rng.seed = seed
   )
-  lgkk <- grip.score.landmark.geodesic.kk(
+  lgkk <- score.landmark.geodesic.kk(
     coords = coords,
     edges = spec$edges,
     edge_weights = spec$edge_weights,
@@ -206,7 +206,7 @@ mesh_results <- lapply(mesh_configs, function(cfg) {
 
 trace_compare <- function(args) {
   tr <- do.call(
-    grip.layout.trace,
+    trace.grip,
     c(
       list(edges = carpet$edges, n = nrow(carpet$canonical), dim = 2, seed = 1L,
            trace = "round", trace.every = 1L),
@@ -214,7 +214,7 @@ trace_compare <- function(args) {
     )
   )
   first_idx <- which(tr$meta$active_vertices == nrow(carpet$canonical))[1L]
-  first_diag <- grip.geometry.diagnostics(
+  first_diag <- geometry.diagnostics(
     coords = tr$frames[[first_idx]],
     target.coords = carpet$canonical,
     edges = carpet$edges,
@@ -223,7 +223,7 @@ trace_compare <- function(args) {
     sample.size.wedges = 2048L,
     rng.seed = 1L
   )
-  final_diag <- grip.geometry.diagnostics(
+  final_diag <- geometry.diagnostics(
     coords = tr$final,
     target.coords = carpet$canonical,
     edges = carpet$edges,

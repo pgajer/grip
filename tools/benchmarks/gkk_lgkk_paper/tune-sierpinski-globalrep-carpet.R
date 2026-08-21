@@ -245,7 +245,7 @@ run_candidate <- function(spec, candidate, seed) {
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout(
+  coords <- grip(
     edges = spec$edges,
     n = n,
     dim = 2,
@@ -533,13 +533,13 @@ family_rankings <- score_candidates(summary_metrics)
 best_candidate <- family_rankings[1L, , drop = FALSE]
 
 n <- max(edges)
-standard_default_coords <- grip.layout.legacy(
+standard_default_coords <- legacy.grip(
   edges = edges,
   n = n,
   dim = 2,
   seed = comparison_seed
 )
-tuned_coords <- grip.layout(
+tuned_coords <- grip(
   edges = edges,
   n = n,
   dim = 2,

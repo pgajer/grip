@@ -109,7 +109,7 @@ make_case <- function(side, amplitude = 0.35) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -147,7 +147,7 @@ save_snapshot_grid <- function(case, trajectory_df, method_label, output_path, l
 
   for (i in idx) {
     row <- trajectory_df[i, , drop = FALSE]
-    grip.plot(
+    plot.layout(
       coords = row$display_coords[[1L]],
       edges = case$edges,
       projection = "ortho",

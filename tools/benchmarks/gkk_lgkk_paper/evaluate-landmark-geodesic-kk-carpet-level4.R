@@ -29,14 +29,14 @@ canonical <- built$coords
 n <- nrow(canonical)
 graph <- igraph::graph_from_edgelist(as.matrix(edges), directed = FALSE)
 
-prepared <- grip.prepare.landmark.geodesic.kk(
+prepared <- prepare.landmark.geodesic.kk(
   edges = edges,
   n = n,
   local_nbrs = local_nbrs,
   landmark_count = landmark_count
 )
 
-trace_fr <- grip.layout.trace(
+trace_fr <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -52,7 +52,7 @@ if (length(pre_final_idx) == 0L) {
 }
 
 coords_true_no_final <- trace_fr$frames[[pre_final_idx[[1L]]]]
-coords_f1 <- grip.layout(
+coords_f1 <- grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -60,13 +60,13 @@ coords_f1 <- grip.layout(
   final_mode = "fr",
   final_rounds = 1L
 )
-coords_default <- grip.layout(
+coords_default <- grip(
   edges = edges,
   n = n,
   dim = 2,
   seed = seed
 )
-coords_best_struct <- grip.layout(
+coords_best_struct <- grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -83,8 +83,8 @@ fmt <- function(x, digits = 4L) {
 }
 
 score_one <- function(candidate, title, coords) {
-  lgkk <- grip.score.landmark.geodesic.kk(coords, prepared = prepared)
-  geom <- grip.geometry.diagnostics(
+  lgkk <- score.landmark.geodesic.kk(coords, prepared = prepared)
+  geom <- geometry.diagnostics(
     coords = coords,
     target.coords = canonical,
     edges = edges,
@@ -108,7 +108,7 @@ scores <- do.call(rbind, list(
   score_one("true_no_final", "True No Final", coords_true_no_final),
   score_one("f1", "f1 (1 FR round)", coords_f1),
   score_one("best_struct_round3", "Best Round-3 Structural", coords_best_struct),
-  score_one("grip_default", "Current grip.layout()", coords_default),
+  score_one("grip_default", "Current grip()", coords_default),
   score_one("igraph_kk", "igraph::KK", coords_kk)
 ))
 rownames(scores) <- NULL
@@ -207,7 +207,7 @@ writeLines(
     sprintf("- seed: `%d`", seed),
     sprintf("- local_nbrs: `%d`", local_nbrs),
     sprintf("- landmark_count: `%d`", landmark_count),
-    "- candidate set: canonical, true pre-final GRIP snapshot, `f1`, best round-3 structural GRIP, current `grip.layout()`, and `igraph::layout_with_kk()`.",
+    "- candidate set: canonical, true pre-final GRIP snapshot, `f1`, best round-3 structural GRIP, current `grip()`, and `igraph::layout_with_kk()`.",
     "",
     "## Outputs",
     "",

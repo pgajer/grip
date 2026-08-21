@@ -1,9 +1,13 @@
 ## Submission
 
-This is an update to `grip` that unifies topology-first and edge-length-metric
-layouts under `grip()` and gives `trace.grip()` the same metric selection. The
-short-lived `weighted.grip()` and `trace.weighted.grip()` compatibility entry
-points have been removed. Documentation and tests now use the unified API.
+This is a deliberately breaking 0.2.0 update. It removes 40 long-form
+compatibility aliases deprecated in the 0.1.x series and makes 53 low-level
+graph-family construction helpers internal, reducing the export count from 194
+to 101. The retained graph-family functions continue to return the same
+documented graph bundles. A complete replacement map is available in
+`help("grip-0.2-migration")`.
+
+CRAN reported no reverse dependencies for `grip` when checked on 2026-08-21.
 
 ## Test environments
 
@@ -13,16 +17,18 @@ points have been removed. Documentation and tests now use the unified API.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 2 notes
 
 The local `R CMD check --as-cran` completed successfully under R-devel. The
-single note is environment-only: the locally installed HTML Tidy is too old
-for optional HTML manual validation.
+first note reports zero days since the previous CRAN update because version
+0.1.3 was published on 2026-08-21, the day of this development check. This
+0.2.0 release is not intended for immediate same-day submission. The second
+note is environment-only: the locally installed HTML Tidy is too old for
+optional HTML manual validation.
 
-The local test suite reported 2,205 passes and three skips because the
-suggested package `DT` was not installed. The GitHub Actions
-R-devel/R-release/R-oldrel-1 matrix, where suggested dependencies are
-installed, completed successfully for the version 0.1.3 package code.
+The package-check test suite reported 2,192 passes, no failures or warnings,
+and six skips for optional Shiny tests. A direct development test run reported
+2,195 passes, no failures or warnings, and three skips.
 
 ## Notes
 

@@ -147,7 +147,7 @@ make_case <- function(id,
     )
   )
 
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -253,7 +253,7 @@ capture_fallback_warning <- function(expr) {
 }
 
 run_unit_checks <- function() {
-  prepared <- grip.prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords_edge <- rbind(c(0.0, 0.0), c(0.8, 0.2), c(1.4, -0.1), c(2.9, 0.3))
   edge_weight <- 0.7
   edge_analytic <- grip:::grip.geodesic.mds.edge.spring.stats(
@@ -505,7 +505,7 @@ save_case_panel_grid <- function(case_result, output_path) {
     method <- case_result$methods[[i]]
     coords <- method$display_coords
     if (case_result$case$dim == 3L) {
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = case_result$case$edges,
         projection = "ortho",
@@ -516,7 +516,7 @@ save_case_panel_grid <- function(case_result, output_path) {
         main = ""
       )
     } else {
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = case_result$case$edges,
         vertex.col = if (identical(method$metrics$method_id[[1L]], "reference")) "#bc6c25" else "#3a5a40",

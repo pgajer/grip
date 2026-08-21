@@ -59,7 +59,7 @@ config_df <- config_df[, c(
 
 run_one <- function(config_row, seed) {
   timed <- time_it({
-    grip.layout(
+    grip(
       edges = edges,
       n = n,
       dim = 2,
@@ -71,7 +71,7 @@ run_one <- function(config_row, seed) {
     )
   })
 
-  geom <- grip.geometry.diagnostics(
+  geom <- geometry.diagnostics(
     coords = timed$value,
     target.coords = canonical,
     edges = edges,
@@ -308,7 +308,7 @@ if (requireNamespace("igraph", quietly = TRUE)) {
   g <- igraph::graph_from_edgelist(edges, directed = FALSE)
   timed_kk <- time_it(igraph::layout_with_kk(g))
   kk_coords <- as.matrix(timed_kk$value)
-  kk_geom <- grip.geometry.diagnostics(
+  kk_geom <- geometry.diagnostics(
     coords = kk_coords,
     target.coords = canonical,
     edges = edges,
@@ -341,7 +341,7 @@ reference_rows <- lapply(reference_ids, function(id) {
   summary_df[summary_df$config_id == id, , drop = FALSE]
 })
 
-f1_trace <- grip.layout.trace(
+f1_trace <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -359,7 +359,7 @@ if (length(true_no_final_idx) == 0L) {
 }
 true_no_final_coords <- f1_trace$frames[[true_no_final_idx[[1L]]]]
 true_no_final_fit <- helper_env$align_to_target(true_no_final_coords, canonical)
-true_no_final_geom <- grip.geometry.diagnostics(
+true_no_final_geom <- geometry.diagnostics(
   coords = true_no_final_coords,
   target.coords = canonical,
   edges = edges,
@@ -383,7 +383,7 @@ best_near_f1_struct <- best_near_f1_struct[order(best_near_f1_struct$procrustes_
 best_near_f1_struct <- best_near_f1_struct[1L, , drop = FALSE]
 
 panel_from_config <- function(config_row, seed = panel_seed, title = NULL) {
-  coords <- grip.layout(
+  coords <- grip(
     edges = edges,
     n = n,
     dim = 2,
@@ -433,7 +433,7 @@ if (!is.null(kk_coords)) {
 }
 
 f1_coords <- f1_trace$final
-f1_geom <- grip.geometry.diagnostics(
+f1_geom <- geometry.diagnostics(
   coords = f1_coords,
   target.coords = canonical,
   edges = edges,
@@ -463,7 +463,7 @@ panel_table <- do.call(
   rbind,
   lapply(panel_specs, function(panel) {
     coords <- panel$coords
-    geom <- grip.geometry.diagnostics(
+    geom <- geometry.diagnostics(
       coords = coords,
       target.coords = canonical,
       edges = edges,

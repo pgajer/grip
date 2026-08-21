@@ -28,8 +28,8 @@ graph_configs <- data.frame(
 )
 
 method_configs <- data.frame(
-  method_id = c("grip.layout", "igraph_fr", "igraph_kk"),
-  method_label = c("grip.layout()", "igraph::layout_with_fr()", "igraph::layout_with_kk()"),
+  method_id = c("grip", "igraph_fr", "igraph_kk"),
+  method_label = c("grip()", "igraph::layout_with_fr()", "igraph::layout_with_kk()"),
   stringsAsFactors = FALSE
 )
 
@@ -43,7 +43,7 @@ run_timed_layout <- function(method_id, edges, n, seed, timeout_sec, repo_root) 
       result <- callr::r(
         function(method_id, edges, n, seed, repo_root) {
           suppressPackageStartupMessages({
-            if (identical(method_id, "grip.layout")) {
+            if (identical(method_id, "grip")) {
               if (requireNamespace("devtools", quietly = TRUE)) {
                 devtools::load_all(repo_root, quiet = TRUE, export_all = FALSE, helpers = FALSE)
               } else {
@@ -55,8 +55,8 @@ run_timed_layout <- function(method_id, edges, n, seed, timeout_sec, repo_root) 
           })
 
           gc()
-          if (identical(method_id, "grip.layout")) {
-            grip_fun <- get("grip.layout", envir = asNamespace("grip"))
+          if (identical(method_id, "grip")) {
+            grip_fun <- get("grip", envir = asNamespace("grip"))
             started <- proc.time()[["elapsed"]]
             coords <- grip_fun(edges = edges, n = n, dim = 2, seed = seed)
             elapsed <- proc.time()[["elapsed"]] - started
@@ -122,7 +122,7 @@ write_summary_markdown <- function(raw_metrics, summary_metrics, graph_info, pat
     "# Carpet Layout Timing",
     "",
     "Methods:",
-    "- `grip.layout()` with the current primary defaults",
+    "- `grip()` with the current primary defaults",
     "- `igraph::layout_with_fr()` with igraph defaults (`niter = 500`)",
     "- `igraph::layout_with_kk()` with igraph defaults (`maxiter = 50 * vcount(graph)`)",
     "",

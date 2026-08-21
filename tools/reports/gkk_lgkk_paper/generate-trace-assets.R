@@ -434,21 +434,21 @@ triangle4 <- edges_sierpinski_triangle(4)
 
 # Keep the animation scripts on the primary layout defaults and only
 # downsample the saved trace frames for a manageable GIF size.
-carpet4_trace_2d <- grip.layout.trace(carpet4,
+carpet4_trace_2d <- trace.grip(carpet4,
                                       n = max(carpet4),
                                       dim = 2,
                                       trace = "round",
                                       trace.every = 8,
                                       seed = 24)
 
-carpet4_trace_3d <- grip.layout.trace(carpet4,
+carpet4_trace_3d <- trace.grip(carpet4,
                                       n = max(carpet4),
                                       dim = 3,
                                       trace = "round",
                                       trace.every = 12,
                                       seed = 24)
 
-triangle4_trace_2d <- grip.layout.trace(triangle4,
+triangle4_trace_2d <- trace.grip(triangle4,
                                         n = max(triangle4),
                                         dim = 2,
                                         placement = "circle",
@@ -456,7 +456,7 @@ triangle4_trace_2d <- grip.layout.trace(triangle4,
                                         trace.every = 6,
                                         seed = 25)
 
-triangle4_trace_3d <- grip.layout.trace(triangle4,
+triangle4_trace_3d <- trace.grip(triangle4,
                                         n = max(triangle4),
                                         dim = 3,
                                         trace = "round",

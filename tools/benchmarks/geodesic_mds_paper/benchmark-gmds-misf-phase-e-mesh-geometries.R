@@ -350,7 +350,7 @@ plot_partial_layout <- function(coords,
       )
     }
   }
-  grip.plot(
+  plot.layout(
     coords = coords[keep, , drop = FALSE],
     edges = display.edges,
     projection = projection,
@@ -568,7 +568,7 @@ run_top_initializer <- function(case, method_spec) {
   } else if (identical(method_id, "grip")) {
     args <- case$unweighted_grip_args
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace(
+    tr <- trace.grip(
       edges = case$layout_graph$edges,
       n = case$top_n,
       dim = cfg$dim,
@@ -587,7 +587,7 @@ run_top_initializer <- function(case, method_spec) {
     note <- sprintf("Trace snapshots: %d selected of %d total frames", length(tr$frames), length(tr$frames))
   } else if (identical(method_id, "weighted_grip")) {
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace.weighted(
+    tr <- trace.grip(metric = "edge_length",
       edges = case$layout_graph$edges,
       edge_weights = case$layout_graph$edge_weights,
       n = case$top_n,
@@ -600,7 +600,7 @@ run_top_initializer <- function(case, method_spec) {
     note <- sprintf("Trace snapshots: %d selected of %d total frames", length(tr$frames), length(tr$frames))
   } else if (identical(method_id, "weighted_grip_polish_lgkk")) {
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace.weighted(
+    tr <- trace.grip(metric = "edge_length",
       edges = case$layout_graph$edges,
       edge_weights = case$layout_graph$edge_weights,
       n = case$top_n,

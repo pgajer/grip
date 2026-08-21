@@ -2,20 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{triangulated_annulus_surface_helpers}
 \alias{triangulated_annulus_surface_helpers}
-\alias{triangulated.annulus.surface.embedding}
 \alias{triangulated.annulus.surface.graph}
 \title{Weighted triangulated annulus surface helpers}
 \usage{
-triangulated.annulus.surface.embedding(
-  resolution = 12,
-  outer_radius = 1,
-  inner_radius = 0.45,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1
-)
-
 triangulated.annulus.surface.graph(
   resolution = 12,
   outer_radius = 1,
@@ -52,7 +41,7 @@ only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{triangulated.annulus.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{triangulated.annulus.surface.graph()} returns a list with components:
@@ -78,9 +67,9 @@ making it a useful complement to the closed triangulated-polyhedron
 families.
 }
 \details{
-\code{triangulated.annulus.surface.embedding()} returns the 3D coordinates
+The \code{coords_surface} component is the 3D coordinates
 of the clipped lattice vertices in the same vertex order as
-\code{edges.triangulated.annulus()}. \code{triangulated.annulus.surface.graph()}
+\code{edges}. \code{triangulated.annulus.surface.graph()}
 returns a reusable weighted-graph bundle with the annulus edges, induced edge
 weights, the 3D embedding, and the 2D annulus parameter coordinates.
 }

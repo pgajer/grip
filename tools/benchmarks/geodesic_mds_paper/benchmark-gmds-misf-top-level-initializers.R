@@ -401,14 +401,14 @@ make_case_regular <- function(side, amplitude = 0.35) {
     seed = cfg$seed + side
   )
   top <- grip.geodesic.misf.induced_level_graph(prepared.misf)
-  top.prepared <- grip.prepare.graph.geodesic.mds(
+  top.prepared <- prepare.graph.geodesic.mds(
     edges = top$edges,
     n = top$n,
     edge_weights = top$edge_weights,
     tie_mode = "average"
   )
   layout.graph <- build_sparse_layout_graph(top$distance_matrix, k = 6L)
-  layout.prepared <- grip.prepare.graph.geodesic.mds(
+  layout.prepared <- prepare.graph.geodesic.mds(
     edges = layout.graph$edges,
     n = top$n,
     edge_weights = layout.graph$edge_weights,
@@ -459,14 +459,14 @@ make_case_irregular_rectangle <- function(side, amplitude = 0.35) {
     seed = cfg$seed + side + 100L
   )
   top <- grip.geodesic.misf.induced_level_graph(prepared.misf)
-  top.prepared <- grip.prepare.graph.geodesic.mds(
+  top.prepared <- prepare.graph.geodesic.mds(
     edges = top$edges,
     n = top$n,
     edge_weights = top$edge_weights,
     tie_mode = "average"
   )
   layout.graph <- build_sparse_layout_graph(top$distance_matrix, k = 6L)
-  layout.prepared <- grip.prepare.graph.geodesic.mds(
+  layout.prepared <- prepare.graph.geodesic.mds(
     edges = layout.graph$edges,
     n = top$n,
     edge_weights = layout.graph$edge_weights,
@@ -548,7 +548,7 @@ run_method <- function(case, method_spec) {
   } else if (identical(method_id, "grip")) {
     args <- case$unweighted_args
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace(
+    tr <- trace.grip(
       edges = layout_graph$edges,
       n = case$top_n,
       dim = cfg$dim,
@@ -568,7 +568,7 @@ run_method <- function(case, method_spec) {
     note <- sprintf("Trace snapshots: %d selected of %d total frames", length(trace_selected), length(tr$frames))
   } else if (identical(method_id, "weighted_grip")) {
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace.weighted(
+    tr <- trace.grip(metric = "edge_length",
       edges = layout_graph$edges,
       edge_weights = layout_graph$edge_weights,
       n = case$top_n,
@@ -582,7 +582,7 @@ run_method <- function(case, method_spec) {
     note <- sprintf("Trace snapshots: %d selected of %d total frames", length(trace_selected), length(tr$frames))
   } else if (identical(method_id, "weighted_grip_core_lgkk")) {
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace.weighted(
+    tr <- trace.grip(metric = "edge_length",
       edges = layout_graph$edges,
       edge_weights = layout_graph$edge_weights,
       n = case$top_n,
@@ -601,7 +601,7 @@ run_method <- function(case, method_spec) {
     note <- sprintf("Trace snapshots: %d selected of %d total frames", length(trace_selected), length(tr$frames))
   } else if (identical(method_id, "weighted_grip_polish_lgkk")) {
     started <- proc.time()[["elapsed"]]
-    tr <- grip.layout.trace.weighted(
+    tr <- trace.grip(metric = "edge_length",
       edges = layout_graph$edges,
       edge_weights = layout_graph$edge_weights,
       n = case$top_n,
@@ -717,7 +717,7 @@ save_final_panel <- function(case_result, file_path) {
   for (entry in entries) {
     row <- entry$metrics[1L, , drop = FALSE]
     if (all(is.finite(entry$display_coords))) {
-      grip.plot(
+      plot.layout(
         coords = entry$display_coords,
         edges = case_result$case$display_edges,
         projection = "ortho",
@@ -763,7 +763,7 @@ save_trace_panel <- function(case_result, file_path) {
       if (j <= length(method$trace_selected)) {
         tr <- method$trace_selected[[j]]
         if (all(is.finite(tr$display_coords))) {
-          grip.plot(
+          plot.layout(
             coords = tr$display_coords,
             edges = case_result$case$display_edges,
             projection = "ortho",

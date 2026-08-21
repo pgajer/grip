@@ -247,7 +247,7 @@ run_one_layout_grip_external_safe <- function(spec, candidate_id, seed) {
       function(edges, dim, cfg, seed) {
         pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
         started <- proc.time()[["elapsed"]]
-        coords <- grip.layout(
+        coords <- grip(
           edges = edges,
           n = max(edges),
           dim = dim,

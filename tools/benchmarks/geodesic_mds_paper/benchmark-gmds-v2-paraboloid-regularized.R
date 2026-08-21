@@ -144,7 +144,7 @@ make_case <- function(side, amplitude = 0.35) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -354,7 +354,7 @@ save_case_panel_grid <- function(case_result, output_path) {
   graphics::par(mfrow = c(2L, 3L), mar = c(1.2, 1.2, 3.0, 0.4), oma = c(0, 0, 1.2, 0))
 
   for (method in methods) {
-    grip.plot(
+    plot.layout(
       coords = method$display_coords,
       edges = case_result$case$edges,
       projection = "ortho",

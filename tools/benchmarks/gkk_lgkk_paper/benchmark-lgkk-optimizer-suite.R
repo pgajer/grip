@@ -166,7 +166,7 @@ run_method <- function(spec, method, seed = 1L) {
   coords <- switch(
     method$kind,
     grip = do.call(
-      grip.layout,
+      grip,
       c(
         list(
           edges = spec$edges,
@@ -198,7 +198,7 @@ score_method <- function(spec, method, result) {
   n <- nrow(spec$canonical)
   lgkk_local_eval <- min(12L, n - 1L)
   lgkk_landmark_eval <- min(6L, n - 1L)
-  geo <- grip.geometry.diagnostics(
+  geo <- geometry.diagnostics(
     coords = result$coords,
     target.coords = spec$canonical,
     edges = spec$edges,
@@ -207,7 +207,7 @@ score_method <- function(spec, method, result) {
     sample.size.wedges = 1000L,
     rng.seed = 1L
   )
-  lgkk <- grip.score.landmark.geodesic.kk(
+  lgkk <- score.landmark.geodesic.kk(
     coords = result$coords,
     edges = spec$edges,
     n = n,

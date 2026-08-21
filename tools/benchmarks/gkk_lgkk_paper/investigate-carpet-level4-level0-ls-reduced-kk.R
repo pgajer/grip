@@ -27,7 +27,7 @@ canonical <- built$coords
 n <- nrow(canonical)
 graph <- igraph::graph_from_edgelist(as.matrix(edges), directed = FALSE)
 
-prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+prepared_lgkk <- prepare.landmark.geodesic.kk(
   edges = edges,
   n = n,
   local_nbrs = 20L,
@@ -39,7 +39,7 @@ format_num <- function(x, digits = 4L) {
 }
 
 score_layout <- function(coords, variant, stage) {
-  geom <- grip.geometry.diagnostics(
+  geom <- geometry.diagnostics(
     coords = coords,
     target.coords = canonical,
     edges = edges,
@@ -48,7 +48,7 @@ score_layout <- function(coords, variant, stage) {
     sample.size.wedges = 1000L,
     rng.seed = 1L
   )
-  lgkk <- grip.score.landmark.geodesic.kk(coords, prepared = prepared_lgkk)
+  lgkk <- score.landmark.geodesic.kk(coords, prepared = prepared_lgkk)
   edge_stats <- helper_env$edge_length_stats(coords, edges)
   data.frame(
     variant = variant,
@@ -71,7 +71,7 @@ score_layout <- function(coords, variant, stage) {
 
 run_variant <- function(name, args = list()) {
   tr <- do.call(
-    grip.layout.trace,
+    trace.grip,
     c(
       list(
         edges = edges,

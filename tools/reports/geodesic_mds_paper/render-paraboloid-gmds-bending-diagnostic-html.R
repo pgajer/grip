@@ -77,7 +77,7 @@ build_case <- function(side = 12L, iter_budget = 25L) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,

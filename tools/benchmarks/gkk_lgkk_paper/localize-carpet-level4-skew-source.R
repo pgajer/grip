@@ -32,7 +32,7 @@ format_num <- function(x, digits = 4L) {
   ifelse(is.finite(x), format(round(x, digits), nsmall = digits, trim = TRUE), "NA")
 }
 
-trace_obj <- grip.layout.trace(
+trace_obj <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -61,7 +61,7 @@ score_frame <- function(frame.coords, meta.row) {
     induced <- grip:::grip.induced.layout.inputs(adj_list, NULL, active)
     coords.active <- frame.coords[induced$vertex.ids, , drop = FALSE]
     target.active <- canonical[induced$vertex.ids, , drop = FALSE]
-    geom.active <- grip.geometry.diagnostics(
+    geom.active <- geometry.diagnostics(
       coords = coords.active,
       target.coords = target.active,
       edges = induced$edges,
@@ -76,7 +76,7 @@ score_frame <- function(frame.coords, meta.row) {
     row$edge.axis.deviation.active <- geom.active$edge.axis.deviation[[1L]]
 
     if (active.count == n) {
-      geom.full <- grip.geometry.diagnostics(
+      geom.full <- geometry.diagnostics(
         coords = coords.active,
         target.coords = canonical,
         edges = edges,
@@ -120,7 +120,7 @@ delta_sym <- c(NA_real_, diff(trace_df$global.symmetry.active))
 largest_sym_drop_idx <- which.min(delta_sym)
 
 kk_coords <- igraph::layout_with_kk(graph)
-kk_geom <- grip.geometry.diagnostics(
+kk_geom <- geometry.diagnostics(
   coords = kk_coords,
   target.coords = canonical,
   edges = edges,
@@ -263,7 +263,7 @@ writeLines(
     "",
     sprintf("- graph: `Sierpinski carpet level %d`", level),
     sprintf("- seed: `%d`", seed),
-    "- method: trace the current `grip.layout()` pipeline round-by-round and score every frame against the canonical carpet.",
+    "- method: trace the current `grip()` pipeline round-by-round and score every frame against the canonical carpet.",
     "",
     "## Key localization points",
     "",

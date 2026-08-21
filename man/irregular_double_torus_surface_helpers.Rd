@@ -2,27 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_double_torus_surface_helpers}
 \alias{irregular_double_torus_surface_helpers}
-\alias{irregular.double.torus.surface.embedding}
 \alias{irregular.double.torus.surface.graph}
 \title{Weighted irregular double-torus surface helpers}
 \usage{
-irregular.double.torus.surface.embedding(
-  slices = 11,
-  tube_count = 14,
-  branch_length = 0.85,
-  branch_offset = 0.72,
-  tube_radius = 0.28,
-  transition_width = 0.42,
-  count_irregularity = 0.2,
-  axial_irregularity = 0.3,
-  phase_twist = 0.35,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.25,
-  freq_x = 2,
-  freq_theta = 2,
-  twist = 0.6
-)
-
 irregular.double.torus.surface.graph(
   slices = 11,
   tube_count = 14,
@@ -82,7 +64,7 @@ tube direction. Used only when \code{surface = "wavy"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.double.torus.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.double.torus.surface.graph()} returns a list with

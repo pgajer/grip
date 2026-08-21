@@ -2,21 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{mesh_surface_helpers}
 \alias{mesh_surface_helpers}
-\alias{mesh.surface.embedding}
 \alias{mesh.surface.graph}
 \title{Weighted mesh surface helpers}
 \usage{
-mesh.surface.embedding(
-  h,
-  w = h,
-  surface = c("saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 mesh.surface.graph(
   h,
   w = h,
@@ -51,14 +39,15 @@ Used only when \code{surface = "ripple"}.}
 
 \item{y_scale}{Positive vertical scaling of the parameter domain.}
 
-\item{connectivity}{Occupied-mesh neighborhood rule passed to
-\code{edges.occupied.mesh()}.}
+\item{connectivity}{Mesh neighborhood rule. `"orthogonal"` keeps the
+four-neighbor grid; `"diagonal"` also adds both diagonals of every unit
+square.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{mesh.surface.embedding()} returns an \code{n x 3} numeric matrix with
+The \code{coords_surface} component is an \code{n x 3} numeric matrix with
 columns \code{x}, \code{y}, and \code{z}.
 
 \code{mesh.surface.graph()} returns a list with components:
@@ -84,7 +73,7 @@ topology is a plain mesh but the intended metric comes from a curved ambient
 geometry.
 }
 \details{
-`mesh.surface.embedding()` returns the 3D coordinates of the lifted grid.
+The `coords_surface` component contains the 3D coordinates of the lifted grid.
 `mesh.surface.graph()` returns a reusable weighted-graph bundle containing the
 mesh edges, induced edge weights, the 3D surface coordinates, and the 2D
 parameter coordinates.

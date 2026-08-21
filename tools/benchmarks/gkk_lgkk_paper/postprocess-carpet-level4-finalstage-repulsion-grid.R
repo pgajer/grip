@@ -157,7 +157,7 @@ if (kk_available) {
   set.seed(1L)
   kk_coords <- igraph::layout_with_kk(g)
   kk_elapsed <- proc.time()[["elapsed"]] - started
-  kk_geom <- grip.geometry.diagnostics(
+  kk_geom <- geometry.diagnostics(
     coords = kk_coords,
     target.coords = canonical,
     edges = edges,
@@ -176,7 +176,7 @@ if (kk_available) {
   )
 }
 
-true_no_final_trace <- grip.layout.trace(
+true_no_final_trace <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -219,7 +219,7 @@ panel_rows <- list(
        title = "f1 r=2.5",
        subtitle = sprintf("sampled_f0 equiv | mean RMSE=%s", format_num(ref_f1$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 1L, repulsion_factor = 2.5),
+         grip(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 1L, repulsion_factor = 2.5),
          canonical
        )$aligned,
        rmse = ref_f1$procrustes_rmse_mean,
@@ -229,7 +229,7 @@ panel_rows <- list(
        title = "f16 r=2.5",
        subtitle = sprintf("default-style ref | mean RMSE=%s", format_num(ref_f16$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 16L, repulsion_factor = 2.5),
+         grip(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 16L, repulsion_factor = 2.5),
          canonical
        )$aligned,
        rmse = ref_f16$procrustes_rmse_mean,
@@ -239,7 +239,7 @@ panel_rows <- list(
        title = "f32 r=2.5",
        subtitle = sprintf("default-style ref | mean RMSE=%s", format_num(ref_f32$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 32L, repulsion_factor = 2.5),
+         grip(edges = edges, n = n, dim = 2, seed = 1L, final_rounds = 32L, repulsion_factor = 2.5),
          canonical
        )$aligned,
        rmse = ref_f32$procrustes_rmse_mean,
@@ -249,7 +249,7 @@ panel_rows <- list(
        title = sprintf("best RMSE f%d r=%.2f", best_rmse$final_rounds[[1L]], best_rmse$repulsion_factor[[1L]]),
        subtitle = sprintf("mean RMSE=%s", format_num(best_rmse$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L,
+         grip(edges = edges, n = n, dim = 2, seed = 1L,
                      final_rounds = best_rmse$final_rounds[[1L]],
                      repulsion_factor = best_rmse$repulsion_factor[[1L]]),
          canonical
@@ -261,7 +261,7 @@ panel_rows <- list(
        title = sprintf("near-KK close-to-f16 f%d r=%.2f", best_near_kk_f16$final_rounds[[1L]], best_near_kk_f16$repulsion_factor[[1L]]),
        subtitle = sprintf("mean RMSE=%s", format_num(best_near_kk_f16$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L,
+         grip(edges = edges, n = n, dim = 2, seed = 1L,
                      final_rounds = best_near_kk_f16$final_rounds[[1L]],
                      repulsion_factor = best_near_kk_f16$repulsion_factor[[1L]]),
          canonical
@@ -273,7 +273,7 @@ panel_rows <- list(
        title = sprintf("near-KK close-to-f32 f%d r=%.2f", best_near_kk_f32$final_rounds[[1L]], best_near_kk_f32$repulsion_factor[[1L]]),
        subtitle = sprintf("mean RMSE=%s", format_num(best_near_kk_f32$procrustes_rmse_mean, 4L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L,
+         grip(edges = edges, n = n, dim = 2, seed = 1L,
                      final_rounds = best_near_kk_f32$final_rounds[[1L]],
                      repulsion_factor = best_near_kk_f32$repulsion_factor[[1L]]),
          canonical
@@ -285,7 +285,7 @@ panel_rows <- list(
        title = sprintf("best quality f%d r=%.2f", best_quality$final_rounds[[1L]], best_quality$repulsion_factor[[1L]]),
        subtitle = sprintf("rank sum=%s", format_num(best_quality$quality_rank_sum, 1L)),
        coords = helper_env$align_to_target(
-         grip.layout(edges = edges, n = n, dim = 2, seed = 1L,
+         grip(edges = edges, n = n, dim = 2, seed = 1L,
                      final_rounds = best_quality$final_rounds[[1L]],
                      repulsion_factor = best_quality$repulsion_factor[[1L]]),
          canonical

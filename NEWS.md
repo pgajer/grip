@@ -1,3 +1,14 @@
+# grip 0.2.0
+
+* Removes the 40 long-form compatibility aliases deprecated in the 0.1
+  series. See `help("grip-0.2-migration")` for the complete replacement map.
+* Narrows the public graph-family API to primitive edge generators,
+  configurable mask helpers, and complete graph bundles. Specialized
+  edge-list builders, standalone surface embeddings, and parameter-coordinate
+  builders remain available internally to those bundles.
+* Makes `gmds.result()` internal; public layout methods continue to return the
+  common `"grip_gmds_layout"` result format.
+
 # grip 0.1.3
 
 * Unifies topology-first and edge-length-metric layouts under

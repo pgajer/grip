@@ -247,7 +247,7 @@ run_one_layout_family <- function(spec, cfg, seed, stress_sample = 3000L, sep_sa
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout.legacy(
+  coords <- legacy.grip(
     edges = spec$edges,
     n = n,
     dim = spec$dim,
@@ -562,7 +562,7 @@ run_family_stage <- function(tag,
   baseline_profile_resolved <- as.list(scored_graphs[scored_graphs$candidate_id == baseline_id, candidate_fields_generic][1L, ])
   tuned_profile_resolved <- as.list(scored_graphs[scored_graphs$candidate_id == comparison_candidate_id, candidate_fields_generic][1L, ])
 
-  baseline_coords <- grip.layout.legacy(
+  baseline_coords <- legacy.grip(
     edges = spec$edges,
     n = max(spec$edges),
     dim = spec$dim,
@@ -576,7 +576,7 @@ run_family_stage <- function(tag,
     repulsion_factor = baseline_profile_resolved$repulsion_factor,
     seed = best_seed_baseline
   )
-  tuned_coords <- grip.layout.legacy(
+  tuned_coords <- legacy.grip(
     edges = spec$edges,
     n = max(spec$edges),
     dim = spec$dim,

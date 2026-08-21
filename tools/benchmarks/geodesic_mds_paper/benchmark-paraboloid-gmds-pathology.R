@@ -105,7 +105,7 @@ new_case <- function(side, iter_budget) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -432,7 +432,7 @@ save_surface_panel_grid <- function(case,
         allow.reflection = TRUE
       )$aligned
     }
-    grip.plot(
+    plot.layout(
       coords = coords,
       edges = case$edges,
       projection = "ortho",
@@ -472,7 +472,7 @@ save_density_grid <- function(results, path) {
     case <- result$case
     metrics <- result$metrics
 
-    grip.plot(
+    plot.layout(
       coords = case$truth,
       edges = case$edges,
       projection = "ortho",
@@ -493,7 +493,7 @@ save_density_grid <- function(results, path) {
         gmds_linear_tether = result$layouts$gmds_linear_tether
       )
       coords <- grip:::grip.align.to.target.nd(coords, case$truth, allow.reflection = TRUE)$aligned
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = case$edges,
         projection = "ortho",

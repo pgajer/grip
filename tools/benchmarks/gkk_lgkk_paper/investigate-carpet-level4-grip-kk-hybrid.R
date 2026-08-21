@@ -37,7 +37,7 @@ time_it <- function(expr) {
 
 score_candidate <- function(candidate_id, candidate_label, coords, elapsed_sec, kk_maxiter = NA_integer_) {
   fit <- helper_env$align_to_target(coords, canonical)
-  graph_score <- grip.score.layout(
+  graph_score <- score.layout(
     coords = coords,
     edges = edges,
     n = n,
@@ -147,9 +147,9 @@ draw_contact_sheet <- function(path, panel_specs) {
   }
 }
 
-message("Tracing grip.layout() with per-frame diagnostics...")
+message("Tracing grip() with per-frame diagnostics...")
 grip_trace_timed <- time_it({
-  grip.layout.trace(
+  trace.grip(
     edges = edges,
     n = n,
     dim = 2,
@@ -164,9 +164,9 @@ grip_trace_timed <- time_it({
 grip_trace <- grip_trace_timed$value
 grip_coords <- grip_trace$final
 
-message("Timing plain grip.layout()...")
+message("Timing plain grip()...")
 grip_plain <- time_it({
-  grip.layout(edges = edges, n = n, dim = 2, seed = seed)
+  grip(edges = edges, n = n, dim = 2, seed = seed)
 })
 
 message("Running pure igraph KK...")
@@ -202,7 +202,7 @@ candidate_metrics[[length(candidate_metrics) + 1L]] <- score_candidate(
 )
 candidate_panels[[length(candidate_panels) + 1L]] <- list(
   coords = grip_fit$aligned,
-  title = "grip.layout()",
+  title = "grip()",
   subtitle = sprintf("seed=%d | %.3fs", seed, grip_plain$elapsed)
 )
 

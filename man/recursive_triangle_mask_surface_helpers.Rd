@@ -2,21 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{recursive_triangle_mask_surface_helpers}
 \alias{recursive_triangle_mask_surface_helpers}
-\alias{recursive.triangle.mask.surface.embedding}
 \alias{recursive.triangle.mask.surface.graph}
 \title{Weighted recursive triangle-mask surface helpers}
 \usage{
-recursive.triangle.mask.surface.embedding(
-  mask = mask.triangle.classic(),
-  level = 2,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 recursive.triangle.mask.surface.graph(
   mask = mask.triangle.classic(),
   level = 2,
@@ -57,7 +45,7 @@ coordinates.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{recursive.triangle.mask.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{recursive.triangle.mask.surface.graph()} returns a list with

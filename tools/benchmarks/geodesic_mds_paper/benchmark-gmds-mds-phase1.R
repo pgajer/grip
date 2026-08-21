@@ -491,7 +491,7 @@ evaluate_method <- function(case,
 }
 
 run_case <- function(case) {
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = case$edges,
     n = case$n,
     edge_weights = case$edge_weights
@@ -770,7 +770,7 @@ save_surface_3d_density_grid <- function(case_results,
     truth <- case$truth_coords
     short.label <- short_case_label(case$label)
 
-    grip.plot(
+    plot.layout(
       coords = truth,
       edges = case$edges,
       projection = "ortho",
@@ -803,7 +803,7 @@ save_surface_3d_density_grid <- function(case_results,
         truth,
         allow.reflection = TRUE
       )$aligned
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = case$edges,
         projection = "ortho",
@@ -889,13 +889,13 @@ run_post_review_case <- function(case,
                                  average_iter = 50L,
                                  tether_weight = 0.05,
                                  tether_weight_end = 0) {
-  prepared.single <- grip.prepare.geodesic.kk(
+  prepared.single <- prepare.geodesic.kk(
     edges = case$edges,
     n = case$n,
     edge_weights = case$edge_weights,
     tie_mode = "single"
   )
-  prepared.average <- grip.prepare.geodesic.kk(
+  prepared.average <- prepare.geodesic.kk(
     edges = case$edges,
     n = case$n,
     edge_weights = case$edge_weights,
@@ -1104,7 +1104,7 @@ run_post_review_case <- function(case,
 run_density_3d_case <- function(case,
                                 tether_weight = 0.05,
                                 tether_weight_end = 0) {
-  prepared.average <- grip.prepare.geodesic.kk(
+  prepared.average <- prepare.geodesic.kk(
     edges = case$edges,
     n = case$n,
     edge_weights = case$edge_weights,
@@ -1276,7 +1276,7 @@ write_optimizer_perf_table <- function(perf.df) {
 }
 
 benchmark_cache_build_case <- function(case) {
-  base <- grip:::grip.prepare.geodesic.kk.base(
+  base <- grip:::prepare.geodesic.kk.base(
     edges = case$edges,
     n = case$n,
     edge_weights = case$edge_weights,

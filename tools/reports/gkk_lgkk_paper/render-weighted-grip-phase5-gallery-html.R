@@ -216,12 +216,12 @@ prepare_family_spec <- function(cfg) {
   spec$family_label <- cfg$label
   spec$preset <- cfg$preset
   spec$graph <- igraph::graph_from_edgelist(as.matrix(spec$edges), directed = FALSE)
-  spec$prepared_gkk <- grip.prepare.geodesic.kk(
+  spec$prepared_gkk <- prepare.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights
   )
-  spec$prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+  spec$prepared_lgkk <- prepare.landmark.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
@@ -232,7 +232,7 @@ prepare_family_spec <- function(cfg) {
 }
 
 score_layout_metrics <- function(spec, coords, runtime_sec) {
-  gkk <- grip.score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
+  gkk <- score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
   procrustes_rmse <- pkg_internal("grip.align.to.target.nd")(coords, spec$coords_surface)$rmse
   list(
     runtime_sec = runtime_sec,
@@ -252,7 +252,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$start <- list(coords = initial, metrics = score_layout_metrics(spec, initial, runtime_sec = NA_real_))
 
   timed <- system.time({
-    coords_grip <- grip.layout.globalrep(
+    coords_grip <- globalrep.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -271,7 +271,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$grip <- list(coords = coords_grip, metrics = score_layout_metrics(spec, coords_grip, unname(timed[["elapsed"]])))
 
   timed <- system.time({
-    coords_wgrip <- grip.layout.globalrep.weighted(
+    coords_wgrip <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -283,7 +283,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$wgrip <- list(coords = coords_wgrip, metrics = score_layout_metrics(spec, coords_wgrip, unname(timed[["elapsed"]])))
 
   timed <- system.time({
-    coords_wgrip_core_lgkk <- grip.layout.globalrep.weighted(
+    coords_wgrip_core_lgkk <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -300,7 +300,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$wgrip_core_lgkk <- list(coords = coords_wgrip_core_lgkk, metrics = score_layout_metrics(spec, coords_wgrip_core_lgkk, unname(timed[["elapsed"]])))
 
   timed <- system.time({
-    coords_wgrip_polish_lgkk <- grip.layout.globalrep.weighted(
+    coords_wgrip_polish_lgkk <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -325,7 +325,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$kk <- list(coords = coords_kk, metrics = score_layout_metrics(spec, coords_kk, unname(timed[["elapsed"]])))
 
   timed <- system.time({
-    coords_gkk <- grip.optimize.geodesic.kk(
+    coords_gkk <- geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_gkk,
       max_iter = benchmark_cfg$gkk_max_iter,
@@ -336,7 +336,7 @@ compute_layouts_3d <- function(spec, seed) {
   methods$gkk <- list(coords = coords_gkk, metrics = score_layout_metrics(spec, coords_gkk, unname(timed[["elapsed"]])))
 
   timed <- system.time({
-    coords_lgkk <- grip.optimize.landmark.geodesic.kk(
+    coords_lgkk <- landmark.geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_lgkk,
       max_iter = benchmark_cfg$lgkk_max_iter,

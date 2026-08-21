@@ -2,24 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_ball_solid_helpers}
 \alias{irregular_ball_solid_helpers}
-\alias{irregular.ball.solid.embedding}
 \alias{irregular.ball.solid.graph}
 \title{Weighted irregular ball solid helpers}
 \usage{
-irregular.ball.solid.embedding(
-  base = c("tetrahedron", "octahedron", "icosahedron"),
-  level = 1,
-  layers = 3,
-  outer_radius = 1,
-  radial_irregularity = 0.25,
-  layer_twist = 0.35,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq_theta = 2,
-  freq_phi = 2,
-  twist = 0.6
-)
-
 irregular.ball.solid.graph(
   base = c("tetrahedron", "octahedron", "icosahedron"),
   level = 1,
@@ -69,7 +54,7 @@ layers.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.ball.solid.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.ball.solid.graph()} returns a list with components:

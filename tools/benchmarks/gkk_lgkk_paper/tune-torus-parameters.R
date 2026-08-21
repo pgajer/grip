@@ -531,7 +531,7 @@ run_one_layout_torus <- function(spec, cfg, seed, stress_sample = 4000L, sep_sam
   n <- max(spec$edges)
   adj <- make_adj_list(spec$edges, n)
   started <- proc.time()[["elapsed"]]
-  coords <- grip.layout.legacy(
+  coords <- legacy.grip(
     edges = spec$edges,
     n = n,
     dim = 3,
@@ -994,7 +994,7 @@ if (sys.nframe() == 0L) {
     baseline_row <- graph_df[graph_df$candidate_id == baseline_candidate_id, , drop = FALSE]
     tuned_row <- graph_df[graph_df$candidate_id == comparison_candidate_id, , drop = FALSE]
 
-    baseline_coords <- grip.layout.legacy(
+    baseline_coords <- legacy.grip(
       edges = spec$edges,
       n = max(spec$edges),
       dim = 3,
@@ -1008,7 +1008,7 @@ if (sys.nframe() == 0L) {
       repulsion_factor = baseline_row$repulsion_factor[[1L]],
       seed = baseline_row$best_seed[[1L]]
     )
-    tuned_coords <- grip.layout.legacy(
+    tuned_coords <- legacy.grip(
       edges = spec$edges,
       n = max(spec$edges),
       dim = 3,

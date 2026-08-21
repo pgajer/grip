@@ -133,12 +133,12 @@ build_mesh_instance <- function(surface_cfg, side) {
   spec$case_id <- sprintf("%s_%02dx%02d", surface_cfg$id, side, side)
   spec$case_label <- sprintf("%s %s", surface_cfg$label, spec$size_label)
   spec$graph <- igraph::graph_from_edgelist(as.matrix(spec$edges), directed = FALSE)
-  spec$prepared_gkk <- grip.prepare.geodesic.kk(
+  spec$prepared_gkk <- prepare.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights
   )
-  spec$prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+  spec$prepared_lgkk <- prepare.landmark.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
@@ -239,11 +239,11 @@ score_classical_kk <- function(coords,
 }
 
 score_layout <- function(spec, coords, dim, seed) {
-  gkk <- grip.score.geodesic.kk(
+  gkk <- score.geodesic.kk(
     coords = coords,
     prepared = spec$prepared_gkk
   )
-  lgkk <- grip.score.landmark.geodesic.kk(
+  lgkk <- score.landmark.geodesic.kk(
     coords = coords,
     prepared = spec$prepared_lgkk
   )
@@ -318,7 +318,7 @@ evaluate_layout <- function(spec, dim, seed) {
   out$kk <- list(coords = coords_kk, row = row_kk)
 
   timed_gkk <- system.time({
-    opt_gkk <- grip.optimize.geodesic.kk(
+    opt_gkk <- geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_gkk,
       max_iter = benchmark_cfg$gkk_max_iter,
@@ -334,7 +334,7 @@ evaluate_layout <- function(spec, dim, seed) {
   out$gkk <- list(coords = opt_gkk$coords, row = row_gkk, trace = opt_gkk$trace)
 
   timed_lgkk <- system.time({
-    opt_lgkk <- grip.optimize.landmark.geodesic.kk(
+    opt_lgkk <- landmark.geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_lgkk,
       max_iter = benchmark_cfg$lgkk_max_iter,
@@ -492,7 +492,7 @@ write_gallery_png <- function(representatives, path) {
       if (!identical(method, "target")) {
         coords <- pkg_internal("grip.align.to.target.nd")(coords, target)$aligned
       }
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = rep_case$spec$edges,
         projection = "ortho",

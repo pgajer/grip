@@ -2,20 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{sierpinski_triangle_surface_helpers}
 \alias{sierpinski_triangle_surface_helpers}
-\alias{sierpinski.triangle.surface.embedding}
 \alias{sierpinski.triangle.surface.graph}
 \title{Weighted Sierpinski triangle surface helpers}
 \usage{
-sierpinski.triangle.surface.embedding(
-  level = 2,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 sierpinski.triangle.surface.graph(
   level = 2,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
@@ -52,7 +41,7 @@ coordinates.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{sierpinski.triangle.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{sierpinski.triangle.surface.graph()} returns a list with components:

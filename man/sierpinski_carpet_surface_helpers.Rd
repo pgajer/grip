@@ -2,20 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{sierpinski_carpet_surface_helpers}
 \alias{sierpinski_carpet_surface_helpers}
-\alias{sierpinski.carpet.surface.embedding}
 \alias{sierpinski.carpet.surface.graph}
 \title{Weighted Sierpinski carpet surface helpers}
 \usage{
-sierpinski.carpet.surface.embedding(
-  level = 2,
-  surface = c("saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 sierpinski.carpet.surface.graph(
   level = 2,
   surface = c("saddle", "paraboloid", "ripple"),
@@ -50,7 +39,7 @@ Used only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{sierpinski.carpet.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}, where
 \code{n = 8^level}.
 
@@ -63,7 +52,7 @@ Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
 classic \eqn{3 \times 3} carpet mask with the center cell removed.
 }
 \details{
-`sierpinski.carpet.surface.embedding()` returns the 3D coordinates of the
+The `coords_surface` component contains the 3D coordinates of the
 occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
 `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
 for the named Sierpinski carpet family.

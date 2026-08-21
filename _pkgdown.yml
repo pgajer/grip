@@ -96,16 +96,11 @@ reference:
     desc: Score, initialize, and polish weighted layouts with GMDS-oriented objectives.
     contents:
       - score.gmds
-      - gmds.result
       - metric.mds
       - prepare.graph.geodesic.mds
       - edge.length.density.stiffness
       - prepare.edge.kk
-      - grip.prepare.edge.kk
       - edge.kk
-      - grip.optimize.edge.isometric.layout
-      - grip.optimize.edge.kk.layout
-      - grip.optimize.edge.gkk.layout
       - edge.repulsive.state
       - edge.repulsive.stage
       - repulsive.state
@@ -139,6 +134,7 @@ reference:
       - edges.mesh
       - edges.cycle
       - edges.path
+      - edges.cube
       - edges.cylinder
       - edges.torus
       - edges.kary.tree
@@ -208,6 +204,4 @@ reference:
   - title: Package
     contents:
       - grip-package
-      - deprecated-grip-api
-      - grip.score.layout
-      - grip.compare.layouts
+      - grip-0.2-migration

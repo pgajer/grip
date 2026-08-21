@@ -205,7 +205,7 @@ write_compare_pdf <- function(path, left_coords, right_coords, edges,
 
 compute_layout <- function(edges, placement, rounds, final_rounds,
                            num_init, num_nbrs, seed) {
-  grip.layout(edges = edges,
+  grip(edges = edges,
               n = max(edges),
               dim = 2,
               placement = placement,

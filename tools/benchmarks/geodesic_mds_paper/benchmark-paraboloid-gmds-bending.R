@@ -104,7 +104,7 @@ new_case <- function(side = 12L, iter_budget = 25L) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.geodesic.kk(
+  prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -340,7 +340,7 @@ save_surface_panel_grid <- function(case,
         allow.reflection = TRUE
       )$aligned
     }
-    grip.plot(
+    plot.layout(
       coords = coords,
       edges = case$edges,
       projection = "ortho",

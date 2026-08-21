@@ -90,7 +90,7 @@ run_layout_external <- function(spec, cfg, seed) {
     function(edges, dim, cfg, seed) {
       pkgload::load_all(".", export_all = FALSE, helpers = FALSE, quiet = TRUE)
       started <- proc.time()[["elapsed"]]
-      coords <- grip.layout(
+      coords <- grip(
         edges = edges,
         n = max(edges),
         dim = dim,
@@ -123,7 +123,7 @@ run_layout_safe <- function(spec, cfg, seed) {
       run_layout_external(spec, cfg, seed)
     } else {
       started <- proc.time()[["elapsed"]]
-      coords <- grip.layout(
+      coords <- grip(
         edges = spec$edges,
         n = n,
         dim = spec$dim,
@@ -158,7 +158,7 @@ run_layout_safe <- function(spec, cfg, seed) {
 }
 
 geometry_metrics <- function(coords, spec, seed) {
-  package_internal("grip.geometry.diagnostics")(
+  package_internal("geometry.diagnostics")(
     coords = coords,
     target.coords = spec$canonical,
     edges = spec$edges,
@@ -170,7 +170,7 @@ geometry_metrics <- function(coords, spec, seed) {
 }
 
 score_metrics <- function(coords, spec, seed) {
-  grip.score.layout(
+  score.layout(
     coords = coords,
     edges = spec$edges,
     n = max(spec$edges),

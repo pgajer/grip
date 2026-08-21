@@ -146,7 +146,7 @@ lambda_label <- function(anchor_start = 0,
 }
 
 run_foundation_checks <- function() {
-  path_prepared <- grip.prepare.graph.geodesic.mds(
+  path_prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
     edge_weights = c(1, 1.5, 0.7),
@@ -156,7 +156,7 @@ run_foundation_checks <- function() {
   path_score <- grip.score.geodesic.mds(coords = path_exact, prepared = path_prepared)
 
   s3 <- sqrt(3) / 2
-  triangle_prepared <- grip.prepare.graph.geodesic.mds(
+  triangle_prepared <- prepare.graph.geodesic.mds(
     edges = matrix(
       c(1L, 2L, 1L, 3L, 2L, 3L, 2L, 4L, 3L, 4L),
       ncol = 2L,
@@ -172,13 +172,13 @@ run_foundation_checks <- function() {
   tri_score_overlapped <- grip.score.geodesic.mds(coords = tri_exact_overlapped, prepared = triangle_prepared)
 
   square_edges <- matrix(c(1L, 2L, 2L, 3L, 3L, 4L, 4L, 1L), ncol = 2L, byrow = TRUE)
-  square_single <- grip.prepare.graph.geodesic.mds(
+  square_single <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
     tie_mode = "single"
   )
-  square_average <- grip.prepare.graph.geodesic.mds(
+  square_average <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
     edge_weights = rep(1, 4L),
@@ -190,7 +190,7 @@ run_foundation_checks <- function() {
 
   square_coords <- rbind(c(0, 0), c(1, 0), c(1, 1), c(0, 1))
   square_perm <- c(2L, 3L, 4L, 1L)
-  square_average_perm <- grip.prepare.graph.geodesic.mds(
+  square_average_perm <- prepare.graph.geodesic.mds(
     edges = matrix(square_perm[square_edges], ncol = 2L),
     n = 4L,
     edge_weights = rep(1, 4L),
@@ -248,7 +248,7 @@ make_case <- function(side, amplitude = 0.35) {
     connectivity = "orthogonal",
     normalize = "median"
   )
-  prepared <- grip.prepare.graph.geodesic.mds(
+  prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
     edge_weights = bundle$edge_weights,
@@ -686,7 +686,7 @@ save_case_panel_grid <- function(case_result, output_path) {
       next
     }
     method <- methods[[i]]
-    grip.plot(
+    plot.layout(
       coords = method$display_coords,
       edges = case_result$case$edges,
       projection = "ortho",

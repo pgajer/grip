@@ -64,7 +64,7 @@ time_it <- function(expr) {
 
 run_one <- function(config_row, seed) {
   timed <- time_it({
-    grip.layout(
+    grip(
       edges = edges,
       n = n,
       dim = 2,
@@ -75,7 +75,7 @@ run_one <- function(config_row, seed) {
   })
 
   fit <- helper_env$align_to_target(timed$value, canonical)
-  quality <- grip.score.layout(
+  quality <- score.layout(
     coords = timed$value,
     edges = edges,
     n = n,
@@ -262,7 +262,7 @@ panel_specs <- list(
   )
 )
 
-sampled_f0_trace <- grip.layout.trace(
+sampled_f0_trace <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -296,7 +296,7 @@ for (config_id in representative_ids) {
     coords <- sampled_f0_trace$final
     panel_title <- "sampled_f0 (= 1 FR round)"
   } else {
-    coords <- grip.layout(
+    coords <- grip(
       edges = edges,
       n = n,
       dim = 2,

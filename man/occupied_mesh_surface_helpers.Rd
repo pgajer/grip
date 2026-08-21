@@ -2,20 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{occupied_mesh_surface_helpers}
 \alias{occupied_mesh_surface_helpers}
-\alias{occupied.mesh.surface.embedding}
 \alias{occupied.mesh.surface.graph}
 \title{Occupied-mesh and perforated-grid helpers}
 \usage{
-occupied.mesh.surface.embedding(
-  keep,
-  surface = c("saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 occupied.mesh.surface.graph(
   keep,
   surface = c("saddle", "paraboloid", "ripple"),
@@ -53,7 +42,7 @@ Used only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{occupied.mesh.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{occupied.mesh.surface.graph()} returns a list with components:
@@ -73,9 +62,9 @@ matrix with columns \code{x}, \code{y}, and \code{z}.
 }
 }
 \description{
-\code{edges.occupied.mesh()} builds a finite occupied-grid graph on the
-retained cells of a rectangular occupancy matrix. The corresponding surface
-helpers lift those occupied cells into \eqn{\mathbb{R}^3} using the same
+`occupied.mesh.surface.graph()` builds a finite occupied-grid graph on the
+retained cells of a rectangular occupancy matrix and lifts those cells into
+\eqn{\mathbb{R}^3} using the same
 \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
 for regular meshes.
 }

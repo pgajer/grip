@@ -21,7 +21,7 @@ edges <- built$edges
 canonical <- built$coords
 n <- nrow(canonical)
 
-trace_fr <- grip.layout.trace(
+trace_fr <- trace.grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -39,7 +39,7 @@ if (length(pre_final_idx) == 0L) {
 pre_final_coords <- trace_fr$frames[[pre_final_idx[[1L]]]]
 
 coords_fr <- trace_fr$final
-coords_kk_repulse <- grip.layout(
+coords_kk_repulse <- grip(
   edges = edges,
   n = n,
   dim = 2,
@@ -47,21 +47,21 @@ coords_kk_repulse <- grip.layout(
   final_mode = "kk_repulse"
 )
 
-diag_pre <- grip.geometry.diagnostics(
+diag_pre <- geometry.diagnostics(
   coords = pre_final_coords,
   target.coords = canonical,
   edges = edges,
   family = "sierpinski.carpet",
   rng.seed = 1L
 )
-diag_fr <- grip.geometry.diagnostics(
+diag_fr <- geometry.diagnostics(
   coords = coords_fr,
   target.coords = canonical,
   edges = edges,
   family = "sierpinski.carpet",
   rng.seed = 1L
 )
-diag_kk <- grip.geometry.diagnostics(
+diag_kk <- geometry.diagnostics(
   coords = coords_kk_repulse,
   target.coords = canonical,
   edges = edges,

@@ -379,22 +379,22 @@ score.gmds <- function(coords,
   )
 }
 
-#' Construct a common GMDS layout result
-#'
-#' `gmds.result()` wraps coordinates, method metadata, optional
-#' traces, and optional diagnostics in a common result shape used by the
-#' experimental GMDS layout program.
-#'
-#' @param coords Numeric coordinate matrix.
-#' @param method Short method identifier.
-#' @param prepared Optional prepared graph object.
-#' @param trace Optional trace table or list.
-#' @param diagnostics Optional one-row diagnostic data frame.
-#' @param metadata Optional named list with method-specific metadata.
-#'
-#' @return A list of class `"grip_gmds_layout"` with fields `coords`, `method`,
-#'   `prepared`, `trace`, `diagnostics`, and `metadata`.
-#' @export
+# Construct a common GMDS layout result
+#
+# `gmds.result()` wraps coordinates, method metadata, optional
+# traces, and optional diagnostics in a common result shape used by the
+# experimental GMDS layout program.
+#
+# @param coords Numeric coordinate matrix.
+# @param method Short method identifier.
+# @param prepared Optional prepared graph object.
+# @param trace Optional trace table or list.
+# @param diagnostics Optional one-row diagnostic data frame.
+# @param metadata Optional named list with method-specific metadata.
+#
+# @return A list of class `"grip_gmds_layout"` with fields `coords`, `method`,
+#   `prepared`, `trace`, `diagnostics`, and `metadata`.
+# @noRd
 gmds.result <- function(coords,
                                     method,
                                     prepared = NULL,
@@ -1360,33 +1360,4 @@ edge.kk <- function(coords = NULL,
       scale_mode = scale_mode
     )
   )
-}
-
-#' Deprecated edge-KK layout names
-#'
-#' These long names are deprecated. Use [edge.kk()] instead.
-#'
-#' @param ... Arguments passed to [edge.kk()].
-#' @return A `"grip_gmds_layout"` object.
-#' @export
-grip.optimize.edge.kk.layout <- function(...) {
-  .Deprecated("edge.kk")
-  edge.kk(...)
-}
-
-#' @rdname grip.optimize.edge.kk.layout
-#' @export
-grip.optimize.edge.gkk.layout <- function(...) {
-  .Deprecated("edge.kk")
-  edge.kk(...)
-}
-
-#' @rdname grip.optimize.edge.kk.layout
-#' @export
-grip.optimize.edge.isometric.layout <- function(...) {
-  .Deprecated("edge.kk")
-  out <- edge.kk(...)
-  out$metadata$preferred_method <- out$method
-  out$method <- "edge_isometric_gkk"
-  out
 }

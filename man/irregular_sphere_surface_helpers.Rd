@@ -2,24 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_sphere_surface_helpers}
 \alias{irregular_sphere_surface_helpers}
-\alias{irregular.sphere.surface.embedding}
 \alias{irregular.sphere.surface.graph}
 \title{Weighted irregular sphere surface helpers}
 \usage{
-irregular.sphere.surface.embedding(
-  bands = 6,
-  equator_count = 28,
-  count_irregularity = 0.2,
-  lat_irregularity = 0.35,
-  phase_twist = 0.35,
-  surface = c("standard", "ellipsoid", "wavy"),
-  radius = 1,
-  amplitude = 0.2,
-  freq_theta = 3,
-  freq_lat = 2,
-  twist = 0.25
-)
-
 irregular.sphere.surface.graph(
   bands = 6,
   equator_count = 28,
@@ -69,7 +54,7 @@ positive values make the shape oblate and negative values make it prolate.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.sphere.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.sphere.surface.graph()} returns a list with components:

@@ -254,7 +254,7 @@ plot_partial_layout <- function(coords,
       )
     }
   }
-  grip.plot(
+  plot.layout(
     coords = coords[keep, , drop = FALSE],
     edges = display.edges,
     projection = projection,

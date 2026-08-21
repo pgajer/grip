@@ -27,7 +27,7 @@ canonical <- built$coords
 n <- nrow(canonical)
 graph <- igraph::graph_from_edgelist(as.matrix(edges), directed = FALSE)
 
-prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+prepared_lgkk <- prepare.landmark.geodesic.kk(
   edges = edges,
   n = n,
   local_nbrs = 20L,
@@ -39,7 +39,7 @@ format_num <- function(x, digits = 4L) {
 }
 
 score_layout <- function(coords, variant, stage) {
-  geom <- grip.geometry.diagnostics(
+  geom <- geometry.diagnostics(
     coords = coords,
     target.coords = canonical,
     edges = edges,
@@ -48,7 +48,7 @@ score_layout <- function(coords, variant, stage) {
     sample.size.wedges = 1000L,
     rng.seed = 1L
   )
-  lgkk <- grip.score.landmark.geodesic.kk(
+  lgkk <- score.landmark.geodesic.kk(
     coords = coords,
     prepared = prepared_lgkk
   )
@@ -74,7 +74,7 @@ score_layout <- function(coords, variant, stage) {
 
 run_variant <- function(name, args = list()) {
   tr <- do.call(
-    grip.layout.trace,
+    trace.grip,
     c(
       list(
         edges = edges,
@@ -312,7 +312,7 @@ writeLines(
     "# Level-0 Insertion Skewness Ablation on Sierpinski Carpet Level 4",
     "",
     sprintf("- Seed: `%d`", seed),
-    "- Baseline uses the current `grip.layout.trace()` default profile in 2D with explicit level-0 defaults (`inherit`, 3 anchors, 3 local KK steps).",
+    "- Baseline uses the current `trace.grip()` default profile in 2D with explicit level-0 defaults (`inherit`, 3 anchors, 3 local KK steps).",
     "- Candidate 1 forces barycentric level-0 placement.",
     "- Candidate 2 removes the level-0 local KK micro-polish.",
     "- Candidate 3 uses level-0 least-squares placement with 6 anchors.",

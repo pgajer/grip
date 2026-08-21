@@ -620,7 +620,7 @@ save_case_panel_grid <- function(case_result, output_path) {
       next
     }
     method <- methods[[i]]
-    grip.plot(
+    plot.layout(
       coords = method$display_coords,
       edges = case_result$case$edges,
       projection = "ortho",
@@ -671,7 +671,7 @@ save_stage_grid <- function(case_result, output_path) {
         stage.edges <- stage.edges[good.edges, , drop = FALSE]
       }
       if (sum(keep) >= 2L && nrow(stage.edges) > 0L) {
-        grip.plot(
+        plot.layout(
           coords = coords,
           edges = stage.edges,
           projection = "ortho",

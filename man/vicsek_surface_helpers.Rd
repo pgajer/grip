@@ -2,20 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{vicsek_surface_helpers}
 \alias{vicsek_surface_helpers}
-\alias{vicsek.surface.embedding}
 \alias{vicsek.surface.graph}
 \title{Weighted Vicsek surface helpers}
 \usage{
-vicsek.surface.embedding(
-  level = 2,
-  surface = c("saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 vicsek.surface.graph(
   level = 2,
   surface = c("saddle", "paraboloid", "ripple"),
@@ -50,7 +39,7 @@ Used only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{vicsek.surface.embedding()} returns an \code{n x 3} numeric matrix
+The \code{coords_surface} component is an \code{n x 3} numeric matrix
 with columns \code{x}, \code{y}, and \code{z}, where \code{n = 5^level}.
 
 \code{vicsek.surface.graph()} returns the same components as
@@ -64,8 +53,8 @@ neighbors. This produces a mesh-derived fractal family with strong
 bottlenecks while remaining orthogonally connected at every level.
 }
 \details{
-`vicsek.surface.embedding()` returns the 3D coordinates of the occupied
-cells in the same vertex order as \code{edges.vicsek()}.
+The `coords_surface` component contains the 3D coordinates of the occupied
+cells in the same vertex order as \code{edges}.
 `vicsek.surface.graph()` returns a reusable weighted-graph bundle for the
 named Vicsek family.
 }

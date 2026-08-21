@@ -64,7 +64,7 @@ best_candidate_cfg <- list(
 )
 
 run_layout <- function(edges, n, seed, final_rounds) {
-  grip.layout(
+  grip(
     edges = edges,
     n = n,
     dim = 2,

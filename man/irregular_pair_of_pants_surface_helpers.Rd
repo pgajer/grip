@@ -2,26 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_pair_of_pants_surface_helpers}
 \alias{irregular_pair_of_pants_surface_helpers}
-\alias{irregular.pair.of.pants.surface.embedding}
 \alias{irregular.pair.of.pants.surface.graph}
 \title{Weighted irregular pair-of-pants surface helpers}
 \usage{
-irregular.pair.of.pants.surface.embedding(
-  slices = 11,
-  outer_count = 28,
-  outer_radius = 1.1,
-  hole_radius = 0.24,
-  hole_offset = 0.38,
-  hole_height = 0.18,
-  count_irregularity = 0.2,
-  vertical_irregularity = 0.35,
-  phase_twist = 0.35,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1
-)
-
 irregular.pair.of.pants.surface.graph(
   slices = 11,
   outer_count = 28,
@@ -78,7 +61,7 @@ only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.pair.of.pants.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.pair.of.pants.surface.graph()} returns a list with

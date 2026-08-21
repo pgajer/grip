@@ -29,9 +29,9 @@ n <- nrow(canonical)
 graph <- igraph::graph_from_edgelist(as.matrix(edges), directed = FALSE)
 
 run_one_layout <- function(method_id, seed) {
-  if (identical(method_id, "grip.layout")) {
+  if (identical(method_id, "grip")) {
     started <- proc.time()[["elapsed"]]
-    coords <- grip.layout(edges = edges, n = n, dim = 2, seed = seed)
+    coords <- grip(edges = edges, n = n, dim = 2, seed = seed)
     elapsed <- proc.time()[["elapsed"]] - started
   } else if (identical(method_id, "igraph_kk")) {
     set.seed(seed)
@@ -45,7 +45,7 @@ run_one_layout <- function(method_id, seed) {
   aligned <- helper_env$align_to_target(coords, canonical)
   data.frame(
     method_id = method_id,
-    method_label = if (identical(method_id, "grip.layout")) "grip.layout()" else "igraph::layout_with_kk()",
+    method_label = if (identical(method_id, "grip")) "grip()" else "igraph::layout_with_kk()",
     seed = seed,
     procrustes_rmse = aligned$rmse,
     elapsed_sec = elapsed,
@@ -59,7 +59,7 @@ format_num <- function(x, digits = 4L) {
 
 raw_metrics <- do.call(
   rbind,
-  lapply(c("grip.layout", "igraph_kk"), function(method_id) {
+  lapply(c("grip", "igraph_kk"), function(method_id) {
     do.call(rbind, lapply(seeds, function(seed) {
       message(sprintf("Running %s on carpet level %d, seed %d/%d...",
                       method_id, level, seed, length(seeds)))
@@ -104,7 +104,7 @@ graphics::boxplot(
   outline = FALSE,
   ylab = "Procrustes RMSE to canonical carpet",
   xlab = "",
-  main = "Level-4 Sierpinski Carpet: grip.layout() vs igraph::layout_with_kk()"
+  main = "Level-4 Sierpinski Carpet: grip() vs igraph::layout_with_kk()"
 )
 graphics::stripchart(
   procrustes_rmse ~ method_label,
@@ -126,13 +126,13 @@ utils::write.csv(raw_metrics, raw_csv_path, row.names = FALSE)
 utils::write.csv(summary_metrics, summary_csv_path, row.names = FALSE)
 
 lines <- c(
-  "# Level-4 Carpet Quality: grip.layout vs igraph KK",
+  "# Level-4 Carpet Quality: grip vs igraph KK",
   "",
   sprintf("- graph: Sierpinski carpet level %d (`%d` vertices, `%d` edges)", level, n, nrow(edges)),
   sprintf("- seeds tested per method: `%d`", length(seeds)),
   "- quality metric: Procrustes RMSE to the canonical carpet embedding",
   "- igraph layout: `igraph::layout_with_kk()` with default settings and `set.seed(seed)` before each run",
-  "- grip layout: `grip.layout()` with the current primary defaults",
+  "- grip layout: `grip()` with the current primary defaults",
   "",
   "Summary:",
   "",

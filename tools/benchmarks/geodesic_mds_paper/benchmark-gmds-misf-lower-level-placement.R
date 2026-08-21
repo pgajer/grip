@@ -260,7 +260,7 @@ build_active_stage_prepared <- function(prepared, level) {
   }
   list(
     active_vertices = active.vertices,
-    prepared = grip.prepare.graph.geodesic.mds(
+    prepared = prepare.graph.geodesic.mds(
       edges = active.edges,
       n = length(active.vertices),
       edge_weights = active.weights,
@@ -768,7 +768,7 @@ save_final_panel <- function(case_result, file_path) {
     entry <- entries[[i]]
     row <- entry$metrics[1L, , drop = FALSE]
     if (all(is.finite(entry$display_coords))) {
-      grip.plot(
+      plot.layout(
         coords = entry$display_coords,
         edges = case_result$case$edges,
         projection = "ortho",
@@ -831,7 +831,7 @@ save_stage_panel <- function(case_result, file_path) {
           stage.edges <- stage.edges[good.edges, , drop = FALSE]
         }
         if (sum(keep) >= 2L && nrow(stage.edges) > 0L) {
-          grip.plot(
+          plot.layout(
             coords = snap$display_coords,
             edges = stage.edges,
             projection = "ortho",

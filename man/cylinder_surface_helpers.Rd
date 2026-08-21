@@ -2,22 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{cylinder_surface_helpers}
 \alias{cylinder_surface_helpers}
-\alias{cylinder.surface.embedding}
 \alias{cylinder.surface.graph}
 \title{Weighted cylinder surface helpers}
 \usage{
-cylinder.surface.embedding(
-  h,
-  w = h,
-  surface = c("barrel", "hourglass", "wavy"),
-  radius = 1,
-  height = 2,
-  amplitude = 0.3,
-  freq_theta = 2,
-  freq_z = 1,
-  twist = 0.25
-)
-
 cylinder.surface.graph(
   h,
   w = h,
@@ -58,7 +45,7 @@ profile must stay positive everywhere.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{cylinder.surface.embedding()} returns an \code{n x 3} numeric matrix
+The \code{coords_surface} component is an \code{n x 3} numeric matrix
 with columns \code{x}, \code{y}, and \code{z}.
 
 \code{cylinder.surface.graph()} returns a list with components:
@@ -83,7 +70,7 @@ graph topology is cylindrical but the intended metric comes from a curved or
 spatially varying 3D realization.
 }
 \details{
-`cylinder.surface.embedding()` returns the 3D coordinates of the embedded
+The `coords_surface` component contains the 3D coordinates of the embedded
 cylindrical grid. `cylinder.surface.graph()` returns a reusable weighted-graph
 bundle containing the cylinder edges, induced edge weights, the 3D surface
 coordinates, and a 2D unwrapped parameterization.

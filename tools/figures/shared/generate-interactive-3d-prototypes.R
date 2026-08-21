@@ -29,7 +29,7 @@ edges_to_segments <- function(edges, coords) {
 
 edges <- edges.torus(8, 8)
 n <- max(edges)
-coords <- grip.layout(edges, n = n, dim = 3, preset = "torus", seed = 21)
+coords <- grip(edges, n = n, dim = 3, preset = "torus", seed = 21)
 segs <- edges_to_segments(edges, coords)
 
 rgl::open3d(useNULL = TRUE)

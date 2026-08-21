@@ -2,22 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{torus_surface_helpers}
 \alias{torus_surface_helpers}
-\alias{torus.surface.embedding}
 \alias{torus.surface.graph}
 \title{Weighted torus surface helpers}
 \usage{
-torus.surface.embedding(
-  h,
-  w = h,
-  surface = c("standard", "pinched", "wavy"),
-  major_radius = 2,
-  minor_radius = 0.75,
-  amplitude = 0.2,
-  freq_major = 2,
-  freq_minor = 1,
-  twist = 0.25
-)
-
 torus.surface.graph(
   h,
   w = h,
@@ -62,7 +49,7 @@ function of the major angle.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{torus.surface.embedding()} returns an \code{n x 3} numeric matrix with
+The \code{coords_surface} component is an \code{n x 3} numeric matrix with
 columns \code{x}, \code{y}, and \code{z}.
 
 \code{torus.surface.graph()} returns a list with components:
@@ -87,7 +74,7 @@ graph topology is toroidal but the intended metric comes from a curved or
 spatially varying 3D realization.
 }
 \details{
-`torus.surface.embedding()` returns the 3D coordinates of the embedded
+The `coords_surface` component contains the 3D coordinates of the embedded
 toroidal grid. `torus.surface.graph()` returns a reusable weighted-graph
 bundle containing the torus edges, induced edge weights, the 3D surface
 coordinates, and a 2D unwrapped parameterization.

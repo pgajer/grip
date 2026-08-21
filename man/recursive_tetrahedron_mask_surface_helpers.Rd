@@ -2,19 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{recursive_tetrahedron_mask_surface_helpers}
 \alias{recursive_tetrahedron_mask_surface_helpers}
-\alias{recursive.tetrahedron.mask.surface.embedding}
 \alias{recursive.tetrahedron.mask.surface.graph}
 \title{Weighted recursive tetrahedron-mask surface helpers}
 \usage{
-recursive.tetrahedron.mask.surface.embedding(
-  mask = mask.tetrahedron.classic(),
-  level = 2,
-  surface = c("standard", "squashed", "twisted", "wavy"),
-  amplitude = 0.3,
-  freq = 2,
-  twist = 0.6
-)
-
 recursive.tetrahedron.mask.surface.graph(
   mask = mask.tetrahedron.classic(),
   level = 2,
@@ -46,7 +36,7 @@ retained at each recursive step.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{recursive.tetrahedron.mask.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{recursive.tetrahedron.mask.surface.graph()} returns a list with

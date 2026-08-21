@@ -339,13 +339,13 @@ prepare_case_spec <- function(family_cfg, tier_cfg) {
   spec$regime <- tier_cfg$regime
   spec$case_id <- sprintf("%s_%s", spec$family_id, spec$size_id)
   spec$graph <- igraph::graph_from_edgelist(as.matrix(spec$edges), directed = FALSE)
-  spec$prepared_gkk <- grip.prepare.geodesic.kk(
+  spec$prepared_gkk <- prepare.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
     tie_mode = "average"
   )
-  spec$prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+  spec$prepared_lgkk <- prepare.landmark.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
@@ -380,8 +380,8 @@ build_initial_layout <- function(spec, seed) {
 }
 
 score_layout <- function(spec, coords, seed) {
-  gkk <- grip.score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
-  lgkk <- grip.score.landmark.geodesic.kk(coords = coords, prepared = spec$prepared_lgkk)
+  gkk <- score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
+  lgkk <- score.landmark.geodesic.kk(coords = coords, prepared = spec$prepared_lgkk)
   classic <- score_classical_kk(coords, prepared = spec$prepared_gkk)
   edge_stats <- pkg_internal("grip.edge.length.stats")(coords, spec$edges)
   sampled_stress <- pkg_internal("grip.sampled.stress")(
@@ -510,7 +510,7 @@ append_stage_trace <- function(trace, spec, seed, method, method_label) {
 run_misf_method <- function(spec,
                             pair_mode,
                             seed) {
-  grip.optimize.misf.geodesic.kk(
+  misf.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
@@ -579,7 +579,7 @@ evaluate_case <- function(spec, seed) {
 
   if (identical(spec$regime, "overlap")) {
     timed_gkk <- system.time({
-      fit_gkk <- grip.optimize.geodesic.kk(
+      fit_gkk <- geodesic.kk(
         coords = coords_kk,
         prepared = spec$prepared_gkk,
         max_iter = benchmark_cfg$gkk_max_iter,
@@ -599,7 +599,7 @@ evaluate_case <- function(spec, seed) {
   }
 
   timed_lgkk <- system.time({
-    fit_lgkk <- grip.optimize.landmark.geodesic.kk(
+    fit_lgkk <- landmark.geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_lgkk,
       max_iter = benchmark_cfg$lgkk_max_iter,
@@ -928,7 +928,7 @@ write_gallery_png <- function(representatives, path) {
       if (!identical(method, "target")) {
         coords <- pkg_internal("grip.align.to.target.nd")(coords, target)$aligned
       }
-      grip.plot(
+      plot.layout(
         coords = coords,
         edges = rep_case$spec$edges,
         projection = "ortho",

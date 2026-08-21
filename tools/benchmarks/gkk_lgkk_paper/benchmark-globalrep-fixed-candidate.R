@@ -272,27 +272,13 @@ build_cylinder_spec_local <- function(h, w) {
 }
 
 build_sphere_graph <- function(h, w) {
-  h <- as.integer(h)
-  w <- as.integer(w)
-  edges <- edges.sphere(h, w)
-  ring.count <- h - 2L
-  coords <- matrix(0, nrow = 2L + ring.count * w, ncol = 3L)
-  coords[1L, ] <- c(0, 0, 1)
-  idx <- 2L
-  for (i in seq_len(ring.count)) {
-    theta <- pi * i / (h - 1L)
-    for (j in seq_len(w)) {
-      phi <- 2 * pi * (j - 1L) / w
-      coords[idx, ] <- c(
-        sin(theta) * cos(phi),
-        sin(theta) * sin(phi),
-        cos(theta)
-      )
-      idx <- idx + 1L
-    }
-  }
-  coords[idx, ] <- c(0, 0, -1)
-  list(edges = edges, coords = coords)
+  graph <- sphere.surface.graph(
+    h = as.integer(h),
+    w = as.integer(w),
+    surface = "standard",
+    normalize = "none"
+  )
+  list(edges = graph$edges, coords = graph$coords_surface)
 }
 
 build_sphere_spec <- function(h, w) {
@@ -467,7 +453,7 @@ run_one_layout_globalrep <- function(spec,
   on.exit(setTimeLimit(cpu = Inf, elapsed = Inf, transient = TRUE), add = TRUE)
   setTimeLimit(elapsed = time_limit_sec, transient = TRUE)
 
-  coords <- grip.layout(
+  coords <- grip(
     edges = spec$edges,
     n = n,
     dim = spec$dim,
@@ -741,7 +727,7 @@ render_representative_figures <- function(specs,
     default_cfg <- resolve_candidate_cfg("globalrep_default", n)
     fixed_cfg <- resolve_candidate_cfg("globalrep_fixed_candidate", n)
 
-    default_coords <- grip.layout(
+    default_coords <- grip(
       edges = spec$edges,
       n = n,
       dim = spec$dim,
@@ -758,7 +744,7 @@ render_representative_figures <- function(specs,
       coarse_repulsion_exact_below = default_cfg$coarse_repulsion_exact_below,
       seed = seed
     )
-    fixed_coords <- grip.layout(
+    fixed_coords <- grip(
       edges = spec$edges,
       n = n,
       dim = spec$dim,

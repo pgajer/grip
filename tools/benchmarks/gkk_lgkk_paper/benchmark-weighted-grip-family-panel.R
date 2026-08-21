@@ -205,12 +205,12 @@ prepare_family_spec <- function(cfg) {
   spec$family_label <- cfg$label
   spec$preset <- cfg$preset
   spec$graph <- igraph::graph_from_edgelist(as.matrix(spec$edges), directed = FALSE)
-  spec$prepared_gkk <- grip.prepare.geodesic.kk(
+  spec$prepared_gkk <- prepare.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights
   )
-  spec$prepared_lgkk <- grip.prepare.landmark.geodesic.kk(
+  spec$prepared_lgkk <- prepare.landmark.geodesic.kk(
     edges = spec$edges,
     n = spec$n,
     edge_weights = spec$edge_weights,
@@ -311,8 +311,8 @@ score_classical_kk <- function(coords,
 }
 
 score_layout <- function(spec, coords, dim, seed) {
-  gkk <- grip.score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
-  lgkk <- grip.score.landmark.geodesic.kk(coords = coords, prepared = spec$prepared_lgkk)
+  gkk <- score.geodesic.kk(coords = coords, prepared = spec$prepared_gkk)
+  lgkk <- score.landmark.geodesic.kk(coords = coords, prepared = spec$prepared_lgkk)
   classic <- score_classical_kk(coords, prepared = spec$prepared_gkk)
   edge_stats <- pkg_internal("grip.edge.length.stats")(coords, spec$edges)
   sampled_stress <- pkg_internal("grip.sampled.stress")(
@@ -396,7 +396,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$start <- row_start
 
   timed_grip <- system.time({
-    coords_grip <- grip.layout.globalrep(
+    coords_grip <- globalrep.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -419,7 +419,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$grip <- row_grip
 
   timed_wgrip <- system.time({
-    coords_wgrip <- grip.layout.globalrep.weighted(
+    coords_wgrip <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -435,7 +435,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$wgrip <- row_wgrip
 
   timed_wgrip_core_lgkk <- system.time({
-    coords_wgrip_core_lgkk <- grip.layout.globalrep.weighted(
+    coords_wgrip_core_lgkk <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -456,7 +456,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$wgrip_core_lgkk <- row_wgrip_core_lgkk
 
   timed_wgrip_lgkk <- system.time({
-    coords_wgrip_lgkk <- grip.layout.globalrep.weighted(
+    coords_wgrip_lgkk <- globalrep.weighted.grip(
       edges = spec$edges,
       edge_weights = spec$edge_weights,
       n = spec$n,
@@ -489,7 +489,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$kk <- row_kk
 
   timed_gkk <- system.time({
-    opt_gkk <- grip.optimize.geodesic.kk(
+    opt_gkk <- geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_gkk,
       max_iter = benchmark_cfg$gkk_max_iter,
@@ -504,7 +504,7 @@ evaluate_case <- function(spec, dim, seed) {
   out$gkk <- row_gkk
 
   timed_lgkk <- system.time({
-    opt_lgkk <- grip.optimize.landmark.geodesic.kk(
+    opt_lgkk <- landmark.geodesic.kk(
       coords = coords_kk,
       prepared = spec$prepared_lgkk,
       max_iter = benchmark_cfg$lgkk_max_iter,

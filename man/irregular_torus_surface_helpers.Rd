@@ -2,25 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_torus_surface_helpers}
 \alias{irregular_torus_surface_helpers}
-\alias{irregular.torus.surface.embedding}
 \alias{irregular.torus.surface.graph}
 \title{Weighted irregular torus surface helpers}
 \usage{
-irregular.torus.surface.embedding(
-  major_rings = 8,
-  tube_count = 16,
-  count_irregularity = 0.2,
-  major_irregularity = 0.25,
-  phase_twist = 0.35,
-  surface = c("standard", "pinched", "wavy"),
-  major_radius = 2,
-  minor_radius = 0.75,
-  amplitude = 0.2,
-  freq_major = 2,
-  freq_minor = 1,
-  twist = 0.25
-)
-
 irregular.torus.surface.graph(
   major_rings = 8,
   tube_count = 16,
@@ -74,7 +58,7 @@ function of the major angle.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.torus.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.torus.surface.graph()} returns a list with components:

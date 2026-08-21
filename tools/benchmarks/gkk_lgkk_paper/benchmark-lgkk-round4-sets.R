@@ -96,7 +96,7 @@ weighted_mesh_spec <- function(h = 6L, w = 6L, horizontal = 1, vertical = 2) {
 }
 
 score_layout <- function(spec, coords, seed = 1L) {
-  geom <- grip.geometry.diagnostics(
+  geom <- geometry.diagnostics(
     coords = coords,
     target.coords = spec$canonical,
     edges = spec$edges,
@@ -105,7 +105,7 @@ score_layout <- function(spec, coords, seed = 1L) {
     sample.size.wedges = 2048L,
     rng.seed = seed
   )
-  lgkk <- grip.score.landmark.geodesic.kk(
+  lgkk <- score.landmark.geodesic.kk(
     coords = coords,
     edges = spec$edges,
     edge_weights = spec$edge_weights,
@@ -132,7 +132,7 @@ evaluate_grip <- function(spec, label, args, seed = 1L) {
     if (!is.null(spec$edge_weights)) list(edge_weights = spec$edge_weights) else list(),
     args
   )
-  timed <- system.time(coords <- do.call(grip.layout, full_args))
+  timed <- system.time(coords <- do.call(grip, full_args))
   metrics <- score_layout(spec, coords, seed = seed)
   metrics$graph <- spec$id
   metrics$graph_label <- spec$label
@@ -143,7 +143,7 @@ evaluate_grip <- function(spec, label, args, seed = 1L) {
 
 evaluate_trace_variant <- function(spec, label, args, seed = 1L) {
   tr <- do.call(
-    grip.layout.trace,
+    trace.grip,
     c(
       list(edges = spec$edges, n = nrow(spec$canonical), dim = 2,
            trace = "round", trace.every = 1L, seed = seed),

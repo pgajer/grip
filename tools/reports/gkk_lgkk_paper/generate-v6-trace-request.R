@@ -299,7 +299,7 @@ message("Computing requested trace animations...")
 carpet4 <- edges_sierpinski_carpet(4)
 triangle5 <- edges_sierpinski_triangle(5)
 
-carpet4_trace_2d <- grip.layout.trace(carpet4,
+carpet4_trace_2d <- trace.grip(carpet4,
                                       n = max(carpet4),
                                       dim = 2,
                                       placement = "barycenter",
@@ -311,7 +311,7 @@ carpet4_trace_2d <- grip.layout.trace(carpet4,
                                       trace.every = 1,
                                       seed = 24)
 
-triangle5_trace_2d <- grip.layout.trace(triangle5,
+triangle5_trace_2d <- trace.grip(triangle5,
                                         n = max(triangle5),
                                         dim = 2,
                                         placement = "circle",

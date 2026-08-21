@@ -2,21 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{sphere_surface_helpers}
 \alias{sphere_surface_helpers}
-\alias{sphere.surface.embedding}
 \alias{sphere.surface.graph}
 \title{Weighted sphere surface helpers}
 \usage{
-sphere.surface.embedding(
-  h,
-  w = h,
-  surface = c("standard", "ellipsoid", "wavy"),
-  radius = 1,
-  amplitude = 0.2,
-  freq_theta = 3,
-  freq_lat = 2,
-  twist = 0.25
-)
-
 sphere.surface.graph(
   h,
   w = h,
@@ -59,7 +47,7 @@ vanishes at the poles.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{sphere.surface.embedding()} returns an \code{n x 3} numeric matrix
+The \code{coords_surface} component is an \code{n x 3} numeric matrix
 with columns \code{x}, \code{y}, and \code{z}, where
 \code{n = 2 + (h - 2) * w}.
 
@@ -85,8 +73,8 @@ graph topology follows the current pole-plus-latitude-rings sphere graph but
 the intended metric comes from a curved or spatially varying 3D realization.
 }
 \details{
-`sphere.surface.embedding()` returns the 3D coordinates of the sampled
-surface in the same vertex order as \code{edges.sphere()}: north pole first,
+The `coords_surface` component contains the 3D coordinates of the sampled
+surface in the same vertex order as \code{edges}: north pole first,
 then latitude rings from north to south, then the south pole.
 `sphere.surface.graph()` returns a reusable weighted-graph bundle containing
 the sphere edges, induced edge weights, the 3D surface coordinates, and a 2D

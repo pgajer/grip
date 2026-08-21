@@ -5,31 +5,31 @@ test_that("basic graph helpers return two-column integer matrices", {
     edges.path(5),
     edges.cycle(6),
     edges.mesh(3, 4),
-    edges.occupied.mesh(occupied_keep),
+    grip:::edges.occupied.mesh(occupied_keep),
     edges.cylinder(3, 4),
-    edges.irregular.ball(),
-    edges.irregular.shell(),
+    grip:::edges.irregular.ball(),
+    grip:::edges.irregular.shell(),
     edges.torus(3, 4),
-    edges.irregular.torus(),
-    edges.sphere(4, 5),
+    grip:::edges.irregular.torus(),
+    grip:::edges.sphere(4, 5),
     edges.cube(3),
-    edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
-    edges.cube.periodic.tunnels(1),
-    edges.cube.asymmetric.cavities(1),
-    edges.cube.channel.network(1),
-    edges.triangulated.polyhedron("octahedron", 1),
-    edges.triangulated.annulus(7),
-    edges.triangulated.pair.of.pants(7),
-    edges.irregular.annulus(),
-    edges.irregular.pair.of.pants(),
-    edges.irregular.double.torus(),
-    edges.irregular.sphere(),
+    grip:::edges.recursive.cube.mask(array(TRUE, dim = c(2, 2, 2)), 2),
+    grip:::edges.cube.periodic.tunnels(1),
+    grip:::edges.cube.asymmetric.cavities(1),
+    grip:::edges.cube.channel.network(1),
+    grip:::edges.triangulated.polyhedron("octahedron", 1),
+    grip:::edges.triangulated.annulus(7),
+    grip:::edges.triangulated.pair.of.pants(7),
+    grip:::edges.irregular.annulus(),
+    grip:::edges.irregular.pair.of.pants(),
+    grip:::edges.irregular.double.torus(),
+    grip:::edges.irregular.sphere(),
     edges.kary.tree(2, 3),
-    edges.recursive.mask.grid(full_mask, 2),
-    edges.recursive.triangle.mask(mask.triangle.classic(), 2),
-    edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
-    edges.menger.sponge(1),
-    edges.vicsek(2),
+    grip:::edges.recursive.mask.grid(full_mask, 2),
+    grip:::edges.recursive.triangle.mask(mask.triangle.classic(), 2),
+    grip:::edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
+    grip:::edges.menger.sponge(1),
+    grip:::edges.vicsek(2),
     edges.sierpinski.triangle(3),
     edges.sierpinski.tetrahedron(2),
     edges.sierpinski.carpet(2)
@@ -53,9 +53,9 @@ test_that("sierpinski tetrahedron counts match the legacy generator", {
 })
 
 test_that("triangulated polyhedron counts match closed-surface formulas", {
-  expect_equal(max(edges.triangulated.polyhedron("tetrahedron", 1)), 10L)
-  expect_equal(max(edges.triangulated.polyhedron("octahedron", 1)), 18L)
-  expect_equal(max(edges.triangulated.polyhedron("icosahedron", 1)), 42L)
+  expect_equal(max(grip:::edges.triangulated.polyhedron("tetrahedron", 1)), 10L)
+  expect_equal(max(grip:::edges.triangulated.polyhedron("octahedron", 1)), 18L)
+  expect_equal(max(grip:::edges.triangulated.polyhedron("icosahedron", 1)), 42L)
 })
 
 test_that("weighted kary tree graph follows custom depth and branch rules", {
@@ -136,7 +136,7 @@ test_that("recursive mask grid reproduces sierpinski carpet topology", {
     byrow = TRUE
   )
 
-  expect_equal(edges.recursive.mask.grid(carpet_mask, 2), edges.sierpinski.carpet(2))
+  expect_equal(grip:::edges.recursive.mask.grid(carpet_mask, 2), edges.sierpinski.carpet(2))
 })
 
 test_that("recursive cube mask reproduces Menger sponge topology", {
@@ -151,39 +151,39 @@ test_that("recursive cube mask reproduces Menger sponge topology", {
     }
   }
 
-  expect_equal(edges.recursive.cube.mask(menger_mask, 2), edges.menger.sponge(2))
+  expect_equal(grip:::edges.recursive.cube.mask(menger_mask, 2), grip:::edges.menger.sponge(2))
 })
 
 test_that("recursive triangle mask reproduces classic sierpinski triangle topology", {
   expect_equal(
-    edges.recursive.triangle.mask(mask.triangle.classic(), 2),
+    grip:::edges.recursive.triangle.mask(mask.triangle.classic(), 2),
     edges.sierpinski.triangle(2)
   )
 })
 
 test_that("recursive tetrahedron mask reproduces classic sierpinski tetrahedron topology", {
   expect_equal(
-    edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
+    grip:::edges.recursive.tetrahedron.mask(mask.tetrahedron.classic(), 2),
     edges.sierpinski.tetrahedron(2)
   )
 })
 
 test_that("vicsek graph labels occupied cells consecutively", {
-  edges <- edges.vicsek(4)
+  edges <- grip:::edges.vicsek(4)
   expect_equal(max(edges), 625L)
   expect_true(all(sort(unique(c(edges))) == seq_len(625L)))
 })
 
 test_that("menger sponge graph labels occupied cells consecutively", {
-  edges <- edges.menger.sponge(2)
+  edges <- grip:::edges.menger.sponge(2)
   expect_equal(max(edges), 400L)
   expect_true(all(sort(unique(c(edges))) == seq_len(400L)))
 })
 
 test_that("named porous cube families label occupied cells consecutively", {
-  periodic <- edges.cube.periodic.tunnels(level = 1)
-  cavities <- edges.cube.asymmetric.cavities(level = 1)
-  channels <- edges.cube.channel.network(level = 1)
+  periodic <- grip:::edges.cube.periodic.tunnels(level = 1)
+  cavities <- grip:::edges.cube.asymmetric.cavities(level = 1)
+  channels <- grip:::edges.cube.channel.network(level = 1)
 
   expect_equal(max(periodic), sum(mask.cube.periodic.tunnels()))
   expect_equal(max(cavities), sum(mask.cube.asymmetric.cavities()))
@@ -205,7 +205,7 @@ test_that("mask helpers return expected connected motifs", {
                c(base_left = TRUE, base_right = TRUE, base_back = TRUE, apex = TRUE))
   expect_equal(mask.tetrahedron.corner.missing("apex"),
                c(base_left = TRUE, base_right = TRUE, base_back = TRUE, apex = FALSE))
-  expect_equal(edges.recursive.mask.grid(mask.cross(3, 1), 2), edges.vicsek(2))
+  expect_equal(grip:::edges.recursive.mask.grid(mask.cross(3, 1), 2), grip:::edges.vicsek(2))
 })
 
 test_that("cube mask helpers return distinct porous keep-arrays", {
@@ -226,20 +226,20 @@ test_that("cube mask helpers return distinct porous keep-arrays", {
 
 test_that("periodic tunnel cube mask contains Menger sponge as the 3x3 special case", {
   expect_equal(
-    edges.cube.periodic.tunnels(
+    grip:::edges.cube.periodic.tunnels(
       level = 2,
       side = 3,
       tunnel_width = 1,
       tunnel_period = 2,
       tunnel_offset = 2
     ),
-    edges.menger.sponge(2)
+    grip:::edges.menger.sponge(2)
   )
 })
 
 test_that("occupied mesh graph labels occupied cells consecutively", {
   keep <- keep.periodic.holes(6, 7, hole_period = 3, hole_height = 1, hole_width = 1)
-  edges <- edges.occupied.mesh(keep)
+  edges <- grip:::edges.occupied.mesh(keep)
 
   expect_equal(max(edges), sum(keep))
   expect_true(all(sort(unique(c(edges))) == seq_len(sum(keep))))
@@ -255,15 +255,15 @@ test_that("mesh connectivity option adds diagonal edges deterministically", {
 
   keep_full <- matrix(TRUE, nrow = 2, ncol = 2)
   keep_missing <- matrix(c(TRUE, TRUE, TRUE, FALSE), nrow = 2, byrow = TRUE)
-  expect_equal(nrow(edges.occupied.mesh(keep_full, connectivity = "diagonal")), 6L)
+  expect_equal(nrow(grip:::edges.occupied.mesh(keep_full, connectivity = "diagonal")), 6L)
   expect_equal(
-    edges.occupied.mesh(keep_missing, connectivity = "diagonal"),
-    edges.occupied.mesh(keep_missing, connectivity = "orthogonal")
+    grip:::edges.occupied.mesh(keep_missing, connectivity = "diagonal"),
+    grip:::edges.occupied.mesh(keep_missing, connectivity = "orthogonal")
   )
 })
 
 test_that("sphere graph labels intermediate latitude rings consecutively", {
-  edges <- edges.sphere(5, 8)
+  edges <- grip:::edges.sphere(5, 8)
   expect_equal(max(edges), 26L)
   expect_true(all(sort(unique(c(edges))) == seq_len(26L)))
 })
@@ -275,67 +275,67 @@ test_that("cube graph matches the cube-surface vertex count", {
 })
 
 test_that("triangulated polyhedron graph labels vertices consecutively", {
-  edges <- edges.triangulated.polyhedron("icosahedron", 1)
+  edges <- grip:::edges.triangulated.polyhedron("icosahedron", 1)
   expect_equal(max(edges), 42L)
   expect_true(all(sort(unique(c(edges))) == seq_len(42L)))
 })
 
 test_that("triangulated annulus graph labels vertices consecutively", {
-  edges <- edges.triangulated.annulus(resolution = 7)
+  edges <- grip:::edges.triangulated.annulus(resolution = 7)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("triangulated pair-of-pants graph labels vertices consecutively", {
-  edges <- edges.triangulated.pair.of.pants(resolution = 7)
+  edges <- grip:::edges.triangulated.pair.of.pants(resolution = 7)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular annulus graph labels vertices consecutively", {
-  edges <- edges.irregular.annulus(rings = 6, outer_count = 24)
+  edges <- grip:::edges.irregular.annulus(rings = 6, outer_count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular ball graph labels vertices consecutively", {
-  edges <- edges.irregular.ball(base = "icosahedron", level = 1, layers = 3)
+  edges <- grip:::edges.irregular.ball(base = "icosahedron", level = 1, layers = 3)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular shell graph labels vertices consecutively", {
-  edges <- edges.irregular.shell(base = "octahedron", level = 1, layers = 3)
+  edges <- grip:::edges.irregular.shell(base = "octahedron", level = 1, layers = 3)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular pair-of-pants graph labels vertices consecutively", {
-  edges <- edges.irregular.pair.of.pants(slices = 11, outer_count = 24)
+  edges <- grip:::edges.irregular.pair.of.pants(slices = 11, outer_count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular torus graph labels vertices consecutively", {
-  edges <- edges.irregular.torus(major_rings = 8, tube_count = 16)
+  edges <- grip:::edges.irregular.torus(major_rings = 8, tube_count = 16)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular double torus graph labels vertices consecutively", {
-  edges <- edges.irregular.double.torus(slices = 11, tube_count = 14)
+  edges <- grip:::edges.irregular.double.torus(slices = 11, tube_count = 14)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular sphere graph labels vertices consecutively", {
-  edges <- edges.irregular.sphere(bands = 6, equator_count = 24)
+  edges <- grip:::edges.irregular.sphere(bands = 6, equator_count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("mesh surface embedding returns finite 3D coordinates", {
-  coords <- mesh.surface.embedding(4, 5, surface = "saddle", amplitude = 0.8)
+  coords <- grip:::mesh.surface.embedding(4, 5, surface = "saddle", amplitude = 0.8)
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -394,13 +394,13 @@ test_that("mesh surface graph supports diagonal connectivity", {
 })
 
 test_that("irregular rectangle parameter coordinates are deterministic and ordered", {
-  coords1 <- irregular.rectangle.param.coords(
+  coords1 <- grip:::irregular.rectangle.param.coords(
     5, 6,
     row_irregularity = 0.22,
     col_irregularity = 0.18,
     interior_warp = 0.06
   )
-  coords2 <- irregular.rectangle.param.coords(
+  coords2 <- grip:::irregular.rectangle.param.coords(
     5, 6,
     row_irregularity = 0.22,
     col_irregularity = 0.18,
@@ -424,13 +424,13 @@ test_that("irregular rectangle parameter coordinates are deterministic and order
 })
 
 test_that("irregular rectangle surface embedding supports flat and curved lifts", {
-  flat <- irregular.rectangle.surface.embedding(
+  flat <- grip:::irregular.rectangle.surface.embedding(
     4, 5,
     surface = "flat",
     row_irregularity = 0.2,
     col_irregularity = 0.15
   )
-  curved <- irregular.rectangle.surface.embedding(
+  curved <- grip:::irregular.rectangle.surface.embedding(
     4, 5,
     surface = "paraboloid",
     amplitude = 0.7,
@@ -496,7 +496,7 @@ test_that("irregular rectangle surface graph supports diagonal connectivity and 
 })
 
 test_that("sampled rectangle helpers are reproducible and respect bounds", {
-  coords1 <- sampled.rectangle.param.coords(
+  coords1 <- grip:::sampled.rectangle.param.coords(
     n = 12,
     xmin = -2,
     xmax = 3,
@@ -504,7 +504,7 @@ test_that("sampled rectangle helpers are reproducible and respect bounds", {
     ymax = 4,
     seed = 42
   )
-  coords2 <- sampled.rectangle.param.coords(
+  coords2 <- grip:::sampled.rectangle.param.coords(
     n = 12,
     xmin = -2,
     xmax = 3,
@@ -512,7 +512,7 @@ test_that("sampled rectangle helpers are reproducible and respect bounds", {
     ymax = 4,
     seed = 42
   )
-  embed <- sampled.rectangle.surface.embedding(
+  embed <- grip:::sampled.rectangle.surface.embedding(
     n = 12,
     xmin = -2,
     xmax = 3,
@@ -664,7 +664,7 @@ test_that("sampled rectangle saved topology can be reweighted on a new surface",
 })
 
 test_that("cylinder surface embedding returns finite 3D coordinates", {
-  coords <- cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
+  coords <- grip:::cylinder.surface.embedding(5, 8, surface = "barrel", amplitude = 0.25)
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -706,7 +706,7 @@ test_that("wavy cylinder graph supports alternate weight normalization", {
 })
 
 test_that("torus surface embedding returns finite 3D coordinates", {
-  coords <- torus.surface.embedding(6, 9, surface = "standard")
+  coords <- grip:::torus.surface.embedding(6, 9, surface = "standard")
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -748,7 +748,7 @@ test_that("wavy torus graph supports alternate weight normalization", {
 })
 
 test_that("sphere surface embedding returns finite 3D coordinates", {
-  coords <- sphere.surface.embedding(6, 9, surface = "standard")
+  coords <- grip:::sphere.surface.embedding(6, 9, surface = "standard")
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -761,7 +761,7 @@ test_that("sphere surface graph returns normalized positive edge weights", {
   spec <- sphere.surface.graph(6, 9, surface = "ellipsoid", amplitude = 0.2)
 
   expect_s3_class(spec, "grip_sphere_surface_graph")
-  expect_equal(spec$edges, edges.sphere(6, 9))
+  expect_equal(spec$edges, grip:::edges.sphere(6, 9))
   expect_equal(spec$n, 38L)
   expect_equal(length(spec$edge_weights), nrow(spec$edges))
   expect_true(all(is.finite(spec$edge_weights)))
@@ -790,7 +790,7 @@ test_that("wavy sphere graph supports alternate weight normalization", {
 })
 
 test_that("triangulated polyhedron surface embedding returns finite 3D coordinates", {
-  coords <- triangulated.polyhedron.surface.embedding(
+  coords <- grip:::triangulated.polyhedron.surface.embedding(
     base = "icosahedron",
     level = 1,
     surface = "twisted",
@@ -813,7 +813,7 @@ test_that("triangulated polyhedron surface graph returns normalized positive edg
   )
 
   expect_s3_class(spec, "grip_triangulated_polyhedron_surface_graph")
-  expect_equal(spec$edges, edges.triangulated.polyhedron("octahedron", 2))
+  expect_equal(spec$edges, grip:::edges.triangulated.polyhedron("octahedron", 2))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(spec$base, "octahedron")
   expect_equal(spec$level, 2L)
@@ -843,7 +843,7 @@ test_that("wavy triangulated polyhedron graph supports alternate normalization",
 })
 
 test_that("triangulated annulus surface embedding returns finite 3D coordinates", {
-  coords <- triangulated.annulus.surface.embedding(
+  coords <- grip:::triangulated.annulus.surface.embedding(
     resolution = 7,
     surface = "folded",
     amplitude = 0.4
@@ -867,7 +867,7 @@ test_that("triangulated annulus surface graph returns normalized positive edge w
   )
 
   expect_s3_class(spec, "grip_triangulated_annulus_surface_graph")
-  expect_equal(spec$edges, edges.triangulated.annulus(resolution = 7))
+  expect_equal(spec$edges, grip:::edges.triangulated.annulus(resolution = 7))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -886,7 +886,7 @@ test_that("triangulated pair-of-pants surface graph returns normalized positive 
   )
 
   expect_s3_class(spec, "grip_triangulated_pair_of_pants_surface_graph")
-  expect_equal(spec$edges, edges.triangulated.pair.of.pants(resolution = 7))
+  expect_equal(spec$edges, grip:::edges.triangulated.pair.of.pants(resolution = 7))
   expect_equal(spec$n, max(spec$edges))
   expect_true(all(spec$edge_weights > 0))
   expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
@@ -910,7 +910,7 @@ test_that("irregular annulus surface graph returns normalized positive edge weig
   )
 
   expect_s3_class(spec, "grip_irregular_annulus_surface_graph")
-  expect_equal(spec$edges, edges.irregular.annulus(rings = 6, outer_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.annulus(rings = 6, outer_count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -935,7 +935,7 @@ test_that("irregular ball solid graph returns normalized positive edge weights",
   )
 
   expect_s3_class(spec, "grip_irregular_ball_solid_graph")
-  expect_equal(spec$edges, edges.irregular.ball(base = "icosahedron", level = 1, layers = 3))
+  expect_equal(spec$edges, grip:::edges.irregular.ball(base = "icosahedron", level = 1, layers = 3))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -961,7 +961,7 @@ test_that("irregular shell solid graph returns normalized positive edge weights"
   )
 
   expect_s3_class(spec, "grip_irregular_shell_solid_graph")
-  expect_equal(spec$edges, edges.irregular.shell(base = "octahedron", level = 1, layers = 3,
+  expect_equal(spec$edges, grip:::edges.irregular.shell(base = "octahedron", level = 1, layers = 3,
                                                  inner_radius = 0.42))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
@@ -988,7 +988,7 @@ test_that("irregular torus surface graph returns normalized positive edge weight
   )
 
   expect_s3_class(spec, "grip_irregular_torus_surface_graph")
-  expect_equal(spec$edges, edges.irregular.torus(major_rings = 8, tube_count = 16))
+  expect_equal(spec$edges, grip:::edges.irregular.torus(major_rings = 8, tube_count = 16))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1012,7 +1012,7 @@ test_that("irregular pair-of-pants surface graph returns normalized positive edg
   )
 
   expect_s3_class(spec, "grip_irregular_pair_of_pants_surface_graph")
-  expect_equal(spec$edges, edges.irregular.pair.of.pants(slices = 11, outer_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.pair.of.pants(slices = 11, outer_count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1038,7 +1038,7 @@ test_that("irregular double torus surface graph returns normalized positive edge
   )
 
   expect_s3_class(spec, "grip_irregular_double_torus_surface_graph")
-  expect_equal(spec$edges, edges.irregular.double.torus(slices = 11, tube_count = 14))
+  expect_equal(spec$edges, grip:::edges.irregular.double.torus(slices = 11, tube_count = 14))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1063,7 +1063,7 @@ test_that("irregular sphere surface graph returns normalized positive edge weigh
   )
 
   expect_s3_class(spec, "grip_irregular_sphere_surface_graph")
-  expect_equal(spec$edges, edges.irregular.sphere(bands = 6, equator_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.sphere(bands = 6, equator_count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1076,7 +1076,7 @@ test_that("irregular sphere surface graph returns normalized positive edge weigh
 })
 
 test_that("sierpinski triangle surface embedding returns finite 3D coordinates", {
-  coords <- sierpinski.triangle.surface.embedding(2, surface = "folded", amplitude = 0.8)
+  coords <- grip:::sierpinski.triangle.surface.embedding(2, surface = "folded", amplitude = 0.8)
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -1117,7 +1117,7 @@ test_that("ripple sierpinski triangle graph supports alternate weight normalizat
 })
 
 test_that("sierpinski tetrahedron surface embedding returns finite 3D coordinates", {
-  coords <- sierpinski.tetrahedron.surface.embedding(2, surface = "twisted", twist = 0.7)
+  coords <- grip:::sierpinski.tetrahedron.surface.embedding(2, surface = "twisted", twist = 0.7)
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -1146,7 +1146,7 @@ test_that("sierpinski tetrahedron surface graph returns normalized positive edge
 test_that("recursive cube mask surface embedding returns finite 3D coordinates", {
   mask <- array(TRUE, dim = c(2, 2, 2))
   mask[1, 1, 2] <- FALSE
-  coords <- recursive.cube.mask.surface.embedding(
+  coords <- grip:::recursive.cube.mask.surface.embedding(
     mask = mask,
     level = 2,
     surface = "twisted",
@@ -1171,7 +1171,7 @@ test_that("recursive cube mask surface graph returns normalized positive edge we
   )
 
   expect_s3_class(spec, "grip_recursive_cube_mask_surface_graph")
-  expect_equal(spec$edges, edges.recursive.cube.mask(mask, 2))
+  expect_equal(spec$edges, grip:::edges.recursive.cube.mask(mask, 2))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(spec$mask, mask != 0)
   expect_equal(spec$mask_side, 2L)
@@ -1196,7 +1196,7 @@ test_that("menger sponge surface graph returns normalized positive edge weights"
   )
 
   expect_s3_class(spec, "grip_menger_sponge_surface_graph")
-  expect_equal(spec$edges, edges.menger.sponge(2))
+  expect_equal(spec$edges, grip:::edges.menger.sponge(2))
   expect_equal(spec$n, 400L)
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1215,7 +1215,7 @@ test_that("periodic tunnel cube surface graph returns normalized positive edge w
   )
 
   expect_s3_class(spec, "grip_cube_periodic_tunnels_surface_graph")
-  expect_equal(spec$edges, edges.cube.periodic.tunnels(level = 1, side = 5))
+  expect_equal(spec$edges, grip:::edges.cube.periodic.tunnels(level = 1, side = 5))
   expect_equal(spec$n, 81L)
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1232,7 +1232,7 @@ test_that("asymmetric cavity cube surface graph returns normalized positive edge
   )
 
   expect_s3_class(spec, "grip_cube_asymmetric_cavities_surface_graph")
-  expect_equal(spec$edges, edges.cube.asymmetric.cavities(level = 1, side = 5))
+  expect_equal(spec$edges, grip:::edges.cube.asymmetric.cavities(level = 1, side = 5))
   expect_equal(spec$n, 116L)
   expect_true(all(spec$edge_weights > 0))
   expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
@@ -1249,7 +1249,7 @@ test_that("channel-network cube surface graph returns normalized positive edge w
   )
 
   expect_s3_class(spec, "grip_cube_channel_network_surface_graph")
-  expect_equal(spec$edges, edges.cube.channel.network(level = 1, side = 5))
+  expect_equal(spec$edges, grip:::edges.cube.channel.network(level = 1, side = 5))
   expect_equal(spec$n, 104L)
   expect_true(all(spec$edge_weights > 0))
   expect_equal(stats::median(spec$edge_weights), 1, tolerance = 1e-10)
@@ -1258,7 +1258,7 @@ test_that("channel-network cube surface graph returns normalized positive edge w
 })
 
 test_that("recursive tetrahedron mask surface embedding returns finite 3D coordinates", {
-  coords <- recursive.tetrahedron.mask.surface.embedding(
+  coords <- grip:::recursive.tetrahedron.mask.surface.embedding(
     mask = mask.tetrahedron.corner.missing("base_right"),
     level = 2,
     surface = "twisted",
@@ -1283,7 +1283,7 @@ test_that("recursive tetrahedron mask surface graph returns normalized positive 
   )
 
   expect_s3_class(spec, "grip_recursive_tetrahedron_mask_surface_graph")
-  expect_equal(spec$edges, edges.recursive.tetrahedron.mask(corner_mask, 2))
+  expect_equal(spec$edges, grip:::edges.recursive.tetrahedron.mask(corner_mask, 2))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(spec$mask, corner_mask)
   expect_equal(length(spec$edge_weights), nrow(spec$edges))
@@ -1298,7 +1298,7 @@ test_that("recursive tetrahedron mask surface graph returns normalized positive 
 })
 
 test_that("recursive triangle mask surface embedding returns finite 3D coordinates", {
-  coords <- recursive.triangle.mask.surface.embedding(
+  coords <- grip:::recursive.triangle.mask.surface.embedding(
     mask = mask.triangle.bridge("right"),
     level = 2,
     surface = "folded",
@@ -1324,7 +1324,7 @@ test_that("recursive triangle mask surface graph returns normalized positive edg
   )
 
   expect_s3_class(spec, "grip_recursive_triangle_mask_surface_graph")
-  expect_equal(spec$edges, edges.recursive.triangle.mask(bridge_mask, 2))
+  expect_equal(spec$edges, grip:::edges.recursive.triangle.mask(bridge_mask, 2))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(spec$mask, bridge_mask)
   expect_equal(length(spec$edge_weights), nrow(spec$edges))
@@ -1356,7 +1356,7 @@ test_that("recursive mask grid surface graph returns normalized positive edge we
   )
 
   expect_s3_class(spec, "grip_recursive_mask_grid_surface_graph")
-  expect_equal(spec$edges, edges.vicsek(2))
+  expect_equal(spec$edges, grip:::edges.vicsek(2))
   expect_equal(spec$n, 25L)
   expect_equal(spec$mask, vicsek_mask != 0)
   expect_equal(spec$mask_size, 3L)
@@ -1366,7 +1366,7 @@ test_that("recursive mask grid surface graph returns normalized positive edge we
 })
 
 test_that("sierpinski carpet surface embedding returns finite 3D coordinates", {
-  coords <- sierpinski.carpet.surface.embedding(2, surface = "saddle", amplitude = 0.8)
+  coords <- grip:::sierpinski.carpet.surface.embedding(2, surface = "saddle", amplitude = 0.8)
 
   expect_true(is.matrix(coords))
   expect_true(is.numeric(coords))
@@ -1418,7 +1418,7 @@ test_that("vicsek surface graph returns normalized positive edge weights", {
   )
 
   expect_s3_class(spec, "grip_vicsek_surface_graph")
-  expect_equal(spec$edges, edges.vicsek(2))
+  expect_equal(spec$edges, grip:::edges.vicsek(2))
   expect_equal(spec$n, 25L)
   expect_equal(spec$family, "vicsek")
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
@@ -1440,7 +1440,7 @@ test_that("occupied mesh surface graph returns normalized positive edge weights"
   )
 
   expect_s3_class(spec, "grip_occupied_mesh_surface_graph")
-  expect_equal(spec$edges, edges.occupied.mesh(keep))
+  expect_equal(spec$edges, grip:::edges.occupied.mesh(keep))
   expect_equal(spec$n, sum(keep))
   expect_equal(length(spec$edge_weights), nrow(spec$edges))
   expect_true(all(spec$edge_weights > 0))
@@ -1467,9 +1467,9 @@ test_that("occupied mesh surface graph supports diagonal connectivity", {
     connectivity = "diagonal"
   )
 
-  expect_equal(spec$edges, edges.occupied.mesh(keep, connectivity = "diagonal"))
+  expect_equal(spec$edges, grip:::edges.occupied.mesh(keep, connectivity = "diagonal"))
   expect_equal(spec$connectivity, "diagonal")
-  expect_true(nrow(spec$edges) > nrow(edges.occupied.mesh(keep, connectivity = "orthogonal")))
+  expect_true(nrow(spec$edges) > nrow(grip:::edges.occupied.mesh(keep, connectivity = "orthogonal")))
   expect_true(all(spec$edge_weights > 0))
 })
 
