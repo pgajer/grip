@@ -119,6 +119,16 @@ names(hmp.results)
 These precomputed artifacts keep the full HMP/U01 workflow available without
 making regular vignette builds excessively heavy.
 
+They can be regenerated from an installed package with:
+
+```{r regenerate-results, eval=FALSE}
+Sys.setenv(GRIP_HMP_RESULTS_OUTPUT = "hmp_vignette_results.rds")
+source(system.file(
+  "scripts", "precompute-hmp-results.R",
+  package = "grip"
+))
+```
+
 ## Where the workflow now lives
 
 For the actual layout-selection workflow on this graph, including:

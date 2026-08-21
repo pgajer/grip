@@ -9,7 +9,18 @@ From the package repository root, render and audit the paper with:
 ```bash
 make paper-all
 make paper-citation-check
+make paper-submission-bundle
 ```
 
 Repository-level rendered deliverables are written under
 `output/rjournal_paper/` by the reporting workflow.
+
+The submission target renders stable PDF and HTML files without the internal
+draft build stamp, verifies citations, and writes a clean, versioned directory
+and ZIP archive under `output/rjournal_paper/submission/`. The archive includes
+the manuscript sources, figure sidecars, motivation letter, package list, and
+the self-contained reproduction supplement.
+
+The manuscript currently targets grip 0.2.0. Do not submit the archive until
+that exact version is publicly visible on CRAN and the final package and paper
+checks have been rerun against it.

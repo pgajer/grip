@@ -41,10 +41,12 @@ for geodesic-embedding methods rather than a claim that a definitive geodesic
 multidimensional scaling algorithm has been established.
 
 Finally, grip is available from CRAN. The accompanying article describes version
-0.1.3 and includes reproducible examples of the interface, quality metrics, and
-comparison workflow. The performance-critical implementation uses Rcpp, while
-the package follows standard R conventions for documentation, testing, and
-examples.
+0.2.0 and includes reproducible examples of the interface, quality metrics, and
+comparison workflow. This release has a deliberately reduced public API of 101
+documented functions; every exported function has an example, and the package
+includes unit tests and workflow vignettes. The performance-critical
+implementation uses Rcpp, while the package follows standard R conventions for
+documentation and testing.
 
 I look forward to the reviewers' feedback and am happy to address any
 questions about the package or the article.
