@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all paper-citation-check repo-hygiene rchk winbuilder-release winbuilder-devel
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all paper-citation-check paper-submission-bundle repo-hygiene rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -83,6 +83,11 @@ paper-citation-check:
 		--tex papers/grip-software-paper/grip-software-paper.tex \
 		--bib papers/grip-software-paper/grip-software-paper.bib \
 		--html papers/grip-software-paper/citation_verification.html
+
+paper-submission-bundle:
+	GRIP_RJOURNAL_SHOW_BUILD_STAMP=false Rscript tools/reports/rjournal_paper/render-paper.R --all --no-timestamp
+	$(MAKE) paper-citation-check
+	Rscript papers/grip-software-paper/scripts/build-submission-bundle.R
 
 repo-hygiene:
 	@tools/check-dev-source-only.sh

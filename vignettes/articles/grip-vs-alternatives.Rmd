@@ -365,10 +365,15 @@ this article was written.
 
 ## Reproducing the external benchmark bundle
 
-To regenerate the precomputed external-package results:
+To regenerate the precomputed external-package results in the current working
+directory:
 
 ```{r reproduce, eval=FALSE}
-source(system.file("scripts", "precompute-vs-alternatives.R", package = "grip"))
+Sys.setenv(GRIP_VS_ALTERNATIVES_OUTPUT = "benchmark_results.rds")
+source(system.file(
+  "scripts", "precompute-vs-alternatives.R",
+  package = "grip"
+))
 ```
 
 The weighted section of this article is generated directly inside the vignette,
