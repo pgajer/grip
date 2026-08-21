@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 if (!requireNamespace("rmarkdown", quietly = TRUE)) {
-  stop("Package 'rmarkdown' is required to render grip-paper-v3.Rmd.")
+  stop("Package 'rmarkdown' is required to render grip-software-paper.Rmd.")
 }
 
 if (!requireNamespace("rjtools", quietly = TRUE)) {
@@ -15,8 +15,8 @@ if (!length(file_arg)) {
 }
 
 script_dir <- dirname(normalizePath(sub("^--file=", "", file_arg[1L])))
-repo_root <- normalizePath(file.path(script_dir, "..", "..", "..", "..", ".."), mustWork = TRUE)
-input_file <- "grip-paper-v3.Rmd"
+repo_root <- normalizePath(file.path(script_dir, "..", "..", ".."), mustWork = TRUE)
+input_file <- "grip-software-paper.Rmd"
 if (!file.exists(input_file)) {
   stop(input_file, " was not found in the current working directory.")
 }
@@ -26,7 +26,7 @@ render_pdf <- !("--html-only" %in% args)
 render_html <- "--html" %in% args || "--all" %in% args
 timestamped <- !("--no-timestamp" %in% args)
 
-timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S")
+timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S", tz = "America/New_York")
 base_name <- tools::file_path_sans_ext(input_file)
 build_dir <- file.path(getwd(), "build")
 build_info_tex <- file.path(build_dir, "manuscript_build_info.tex")
@@ -60,7 +60,11 @@ write_build_info <- function() {
   )
   if (!length(git_commit)) git_commit <- "unknown"
 
-  build_datetime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+  build_datetime <- format(
+    Sys.time(),
+    "%Y-%m-%d %H:%M:%S %Z",
+    tz = "America/New_York"
+  )
 
   lines <- c(
     sprintf("\\renewcommand{\\manuscriptversion}{%s}", escape_tex(git_version[[1L]])),

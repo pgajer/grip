@@ -21,13 +21,10 @@ paper_candidates <- list(
   list(
     dir = file.path(
       repo_root,
-      "dev",
       "papers",
-      "rjournal_paper",
-      "manuscript",
-      "legacy_grip_paper_v3"
+      "grip-software-paper"
     ),
-    input = "grip-paper-v3.Rmd"
+    input = "grip-software-paper.Rmd"
   ),
   list(
     dir = file.path(
@@ -51,7 +48,7 @@ for (candidate in paper_candidates) {
 }
 
 if (is.null(selected)) {
-  stop("Could not locate an R Journal manuscript source under dev/papers/rjournal_paper/manuscript/.")
+  stop("Could not locate the GRIP software-paper manuscript source.")
 }
 
 paper_dir <- normalizePath(selected$dir, mustWork = TRUE)
@@ -68,7 +65,7 @@ render_pdf <- !("--html-only" %in% args)
 render_html <- "--html" %in% args || "--all" %in% args
 timestamped <- !("--no-timestamp" %in% args)
 
-timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S")
+timestamp_suffix <- format(Sys.time(), "%Y%m%d_%H%M%S", tz = "America/New_York")
 base_name <- tools::file_path_sans_ext(input_file)
 
 escape_tex <- function(x) {
@@ -100,7 +97,11 @@ write_build_info <- function() {
   )
   if (!length(git_commit)) git_commit <- "unknown"
 
-  build_datetime <- format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+  build_datetime <- format(
+    Sys.time(),
+    "%Y-%m-%d %H:%M:%S %Z",
+    tz = "America/New_York"
+  )
 
   lines <- c(
     sprintf("\\renewcommand{\\manuscriptversion}{%s}", escape_tex(git_version[[1L]])),
@@ -125,6 +126,19 @@ stable_name <- function(ext) {
   sprintf("%s.%s", base_name, ext)
 }
 
+strip_trailing_whitespace <- function(path) {
+  if (!file.exists(path)) {
+    return(invisible(FALSE))
+  }
+
+  lines <- readLines(path, warn = FALSE)
+  cleaned <- sub("[[:space:]]+$", "", lines)
+  if (!identical(lines, cleaned)) {
+    writeLines(cleaned, path, useBytes = TRUE)
+  }
+  invisible(TRUE)
+}
+
 render_one <- function(output_format, ext) {
   stable_out <- stable_name(ext)
   rmarkdown::render(
@@ -133,6 +147,9 @@ render_one <- function(output_format, ext) {
     quiet = FALSE,
     envir = new.env(parent = globalenv())
   )
+  if (identical(ext, "pdf")) {
+    strip_trailing_whitespace(stable_name("tex"))
+  }
   if (!timestamped) {
     return(file.path(paper_dir, stable_out))
   }
