@@ -50,7 +50,7 @@ check-fast: repo-hygiene build
 	R CMD check --as-cran --no-examples --no-tests --no-manual $(TARBALL)
 
 check-examples: build
-	R CMD check --as-cran --examples $(TARBALL)
+	R CMD check --as-cran --no-tests --no-vignettes --no-manual $(TARBALL)
 
 check-dir:
 	R CMD check --as-cran .
