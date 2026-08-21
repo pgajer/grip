@@ -8,6 +8,8 @@
   builders remain available internally to those bundles.
 * Makes `gmds.result()` internal; public layout methods continue to return the
   common `"grip_gmds_layout"` result format.
+* Adds executable examples for every exported function and an API regression
+  test that enforces this documentation contract.
 
 # grip 0.1.3
 
