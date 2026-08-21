@@ -84,3 +84,5 @@ Archives/package-root/main
 
 # Rendered manuscript PDFs
 dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.pdf
+papers/grip-software-paper/grip-software-paper*.html
+papers/grip-software-paper/grip-software-paper_files/
