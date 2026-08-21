@@ -221,8 +221,8 @@ edge.matrix.from.adj <- function(adj.list) {
 
 # Introduction
 
-Graph layouts are usually optimized for readability, but their coordinates
-are often interpreted as geometric representations as well. In weighted graphs,
+Graph layouts are generally designed for readability, but their coordinates
+may also be interpreted geometrically. In weighted graphs,
 these aims can conflict: a visually clear layout may distort edge lengths and
 shortest-path relationships. \pkg{grip} addresses both through a stable
 multiscale interface for 2D and 3D graph layout and experimental tools for
@@ -842,7 +842,7 @@ par(op)
 The package bundles a coarsened graph derived from Human Microbiome Project
 data [@hmp2012]. The original giant connected component had 6,474 vertices;
 the bundled coarsened graph has 1,828 vertices and 4,656 edges, which is
-large enough that ad hoc manual layout selection becomes impractical.
+large enough to motivate automated candidate comparison.
 
 ```{r hmp-data}
 data(hmp.u01.gc.coarse)
@@ -1007,16 +1007,8 @@ results used here are distributed with the package.
 
 # Discussion
 
-\pkg{grip} brings multiscale 2D and 3D layout generation, graph-geodesic diagnostics,
-and a reproducible assessment workflow into R. The package is most useful in
-three settings:
-
-- graphs large enough that single-scale manual tuning becomes slow, especially
-  when 3D embeddings are useful;
-- weighted graphs whose edge lengths encode geometry and should therefore be
-  used as the layout metric rather than treated as ordinary metadata;
-- analysis workflows where several plausible layouts must be compared
-  reproducibly rather than selected by eye.
+Across the structured, weighted, and HMP examples, \pkg{grip} supports fast
+candidate generation while making layout selection explicit and measurable.
 
 The main interface remains `grip()`, with `trace.grip()` for inspecting the
 multiscale solve. Full GKK, sparse LGKK, and MISF-GKK are explicitly
