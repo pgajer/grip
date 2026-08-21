@@ -26,9 +26,9 @@ first note reports zero days since the previous CRAN update because version
 note is environment-only: the locally installed HTML Tidy is too old for
 optional HTML manual validation.
 
-The package-check test suite reported 2,192 passes, no failures or warnings,
+The package-check test suite reported 2,193 passes, no failures or warnings,
 and six skips for optional Shiny tests. A direct development test run reported
-2,195 passes, no failures or warnings, and three skips.
+2,203 passes with no failures, warnings, or skips.
 
 ## Notes
 

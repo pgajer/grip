@@ -188,3 +188,75 @@ test_that("internalized graph builders remain available to graph bundles", {
     grip:::mesh.surface.embedding(3L, 4L)
   )
 })
+
+test_that("every exported function is called by an associated Rd example", {
+  collect_rd_tag <- function(x, tag) {
+    found <- list()
+    walk <- function(node) {
+      if (inherits(node, "Rd") || is.list(node)) {
+        if (identical(attr(node, "Rd_tag"), tag)) {
+          found[[length(found) + 1L]] <<- node
+        } else {
+          for (child in node) {
+            walk(child)
+          }
+        }
+      }
+    }
+    walk(x)
+    found
+  }
+
+  source_man <- testthat::test_path("..", "..", "man")
+  if (dir.exists(source_man)) {
+    rd <- lapply(
+      list.files(source_man, pattern = "[.]Rd$", full.names = TRUE),
+      tools::parse_Rd
+    )
+  } else {
+    rd <- unname(tools::Rd_db("grip"))
+  }
+
+  topic_info <- lapply(rd, function(topic) {
+    aliases <- vapply(
+      collect_rd_tag(topic, "\\alias"),
+      function(tag) paste0(unlist(tag), collapse = ""),
+      character(1L)
+    )
+    examples <- collect_rd_tag(topic, "\\examples")
+    example_text <- paste(
+      vapply(
+        examples,
+        function(tag) paste0(unlist(tag), collapse = ""),
+        character(1L)
+      ),
+      collapse = "\n"
+    )
+    list(aliases = aliases, example_text = example_text)
+  })
+
+  uncovered <- Filter(
+    function(export) {
+      topics <- Filter(function(topic) export %in% topic$aliases, topic_info)
+      example_text <- paste(
+        vapply(topics, function(topic) topic$example_text, character(1L)),
+        collapse = "\n"
+      )
+      call_pattern <- paste0(
+        "(?<![[:alnum:]_.])",
+        gsub("[.]", "\\\\.", export),
+        "[[:space:]]*[(]"
+      )
+      !nzchar(example_text) || !grepl(call_pattern, example_text, perl = TRUE)
+    },
+    getNamespaceExports("grip")
+  )
+
+  if (length(uncovered)) {
+    testthat::fail(paste(
+      "Exports without explicit Rd example calls:",
+      paste(uncovered, collapse = ", ")
+    ))
+  }
+  succeed()
+})
