@@ -2,22 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{triangulated_pair_of_pants_surface_helpers}
 \alias{triangulated_pair_of_pants_surface_helpers}
-\alias{triangulated.pair.of.pants.surface.embedding}
 \alias{triangulated.pair.of.pants.surface.graph}
 \title{Weighted triangulated pair-of-pants surface helpers}
 \usage{
-triangulated.pair.of.pants.surface.embedding(
-  resolution = 12,
-  outer_radius = 1.1,
-  hole_radius = 0.24,
-  hole_offset = 0.38,
-  hole_height = 0.18,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1
-)
-
 triangulated.pair.of.pants.surface.graph(
   resolution = 12,
   outer_radius = 1.1,
@@ -60,7 +47,7 @@ only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{triangulated.pair.of.pants.surface.embedding()} returns an \code{n x
+The \code{coords_surface} component is an \code{n x
 3} numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{triangulated.pair.of.pants.surface.graph()} returns a list with
@@ -86,9 +73,9 @@ holes. The resulting graph is a triangulated surface with three boundary
 components and a deterministic non-grid topology.
 }
 \details{
-\code{triangulated.pair.of.pants.surface.embedding()} returns the 3D
+The \code{coords_surface} component is the 3D
 coordinates of the clipped lattice vertices in the same vertex order as
-\code{edges.triangulated.pair.of.pants()}.
+\code{edges}.
 \code{triangulated.pair.of.pants.surface.graph()} returns a reusable
 weighted-graph bundle with the pair-of-pants edges, induced edge weights, 3D
 embedding, and the 2D parameter coordinates of the clipped domain.

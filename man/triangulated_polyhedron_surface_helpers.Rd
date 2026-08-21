@@ -2,19 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{triangulated_polyhedron_surface_helpers}
 \alias{triangulated_polyhedron_surface_helpers}
-\alias{triangulated.polyhedron.surface.embedding}
 \alias{triangulated.polyhedron.surface.graph}
 \title{Weighted triangulated polyhedron surface helpers}
 \usage{
-triangulated.polyhedron.surface.embedding(
-  base = c("tetrahedron", "octahedron", "icosahedron"),
-  level = 1,
-  surface = c("standard", "inflated", "twisted", "wavy"),
-  amplitude = 0.25,
-  freq = 2,
-  twist = 0.6
-)
-
 triangulated.polyhedron.surface.graph(
   base = c("tetrahedron", "octahedron", "icosahedron"),
   level = 1,
@@ -48,7 +38,7 @@ triangulation, \code{level = 1} splits each face into four, and so on.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{triangulated.polyhedron.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{triangulated.polyhedron.surface.graph()} returns a list with

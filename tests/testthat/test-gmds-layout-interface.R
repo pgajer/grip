@@ -6,7 +6,7 @@ test_that("GMDS layout result constructor preserves common shape", {
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
   diagnostics <- score.gmds(coords, prepared = prepared)
-  layout <- gmds.result(
+  layout <- grip:::gmds.result(
     coords = coords,
     method = "fixture",
     prepared = prepared,

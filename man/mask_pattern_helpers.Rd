@@ -40,8 +40,7 @@ A logical \eqn{k \times k} keep-mask.
 }
 \description{
 Convenience constructors for connected \eqn{k \times k} keep-masks that can
-be passed to \code{\link{edges.recursive.mask.grid}()} or
-\code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
+be passed to \code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
 carpets. These helpers are meant to provide explicit benchmark motifs such
 as cross, border, corner, and asymmetric-hole patterns.
 }

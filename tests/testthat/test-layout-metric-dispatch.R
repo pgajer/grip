@@ -114,31 +114,3 @@ test_that("trace.grip mirrors layout metric dispatch", {
   trace.hop <- do.call(trace.grip, c(hop.args, list(metric = "hop")))
   expect_identical(trace.default$final, trace.hop$final)
 })
-
-test_that("deprecated long-form weighted names use the unified metric API", {
-  graph <- metric.dispatch.fixture()
-  args <- c(
-    list(edges = graph$edges, edge_weights = graph$edge_lengths),
-    metric.dispatch.layout.args()
-  )
-
-  expected <- do.call(grip, c(args, list(metric = "edge_length")))
-  actual <- NULL
-  expect_warning(
-    actual <- do.call(grip.layout.weighted, args),
-    "deprecated"
-  )
-  expect_identical(actual, expected)
-
-  trace.args <- c(args, list(trace = "level", diagnostics = "none"))
-  expected.trace <- do.call(
-    trace.grip,
-    c(trace.args, list(metric = "edge_length"))
-  )
-  actual.trace <- NULL
-  expect_warning(
-    actual.trace <- do.call(grip.layout.trace.weighted, trace.args),
-    "deprecated"
-  )
-  expect_identical(actual.trace$final, expected.trace$final)
-})

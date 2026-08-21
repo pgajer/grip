@@ -17,7 +17,7 @@ adj_list <- hmp.u01.gc.coarse$adj_list
 weight_list <- hmp.u01.gc.coarse$weight_list
 n <- length(adj_list)
 
-preset_cmp <- grip.compare.layouts(
+preset_cmp <- compare.layouts(
   adj_list = adj_list,
   weight_list = weight_list,
   n = n,
@@ -30,7 +30,7 @@ preset_cmp <- grip.compare.layouts(
   return.layouts = TRUE
 )
 
-local_search_cmp <- grip.compare.layouts(
+local_search_cmp <- compare.layouts(
   adj_list = adj_list,
   weight_list = weight_list,
   n = n,

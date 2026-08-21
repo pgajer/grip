@@ -2,34 +2,10 @@
 % Please edit documentation in R/graph_helpers.R
 \name{sampled_rectangle_surface_helpers}
 \alias{sampled_rectangle_surface_helpers}
-\alias{sampled.rectangle.param.coords}
-\alias{sampled.rectangle.surface.embedding}
 \alias{sampled.rectangle.surface.graph}
 \alias{sampled.rectangle.surface.graphs}
 \title{Sampled rectangle surface helpers}
 \usage{
-sampled.rectangle.param.coords(
-  n,
-  xmin = -1,
-  xmax = 1,
-  ymin = -1,
-  ymax = 1,
-  seed = NULL
-)
-
-sampled.rectangle.surface.embedding(
-  n,
-  xmin = -1,
-  xmax = 1,
-  ymin = -1,
-  ymax = 1,
-  seed = NULL,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1
-)
-
 sampled.rectangle.surface.graph(
   n,
   k,
@@ -71,6 +47,9 @@ sampled.rectangle.surface.graphs(
 \arguments{
 \item{n}{Number of sampled points.}
 
+\item{k}{Integer iKNN neighborhood size (single graph) or vector of
+neighborhood sizes (graph sequence).}
+
 \item{xmin}{Left rectangle boundary.}
 
 \item{xmax}{Right rectangle boundary. Must satisfy \code{xmax > xmin}.}
@@ -93,9 +72,6 @@ direction. Used only when \code{surface = "ripple"}.}
 \item{freq_v}{Positive ripple frequency in the vertical rectangle direction.
 Used only when \code{surface = "ripple"}.}
 
-\item{k}{Integer iKNN neighborhood size (single graph) or vector of
-neighborhood sizes (graph sequence).}
-
 \item{graph_space}{Coordinate system used to build the iKNN graph and its raw
 edge weights. \code{"surface"} uses the 3D embedding and
 \code{"param"} uses the sampled planar coordinates.}
@@ -113,10 +89,10 @@ used to select candidates for geometric pruning.}
 One of \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{sampled.rectangle.param.coords()} returns an \code{n x 2} numeric
+The \code{coords_param} component is an \code{n x 2} numeric
 matrix with columns \code{u} and \code{v}.
 
-\code{sampled.rectangle.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{sampled.rectangle.surface.graph()} returns a list with components:
@@ -173,8 +149,8 @@ present, while the returned edge lengths are taken from the 3D endpoint
 distances in the lifted embedding so that the graph metric reflects the
 chosen surface geometry.
 
-`sampled.rectangle.param.coords()` returns the sampled planar coordinates.
-`sampled.rectangle.surface.embedding()` returns the corresponding 3D
+The `coords_param` component contains the sampled planar coordinates.
+The `coords_surface` component contains the corresponding 3D
 embedding. `sampled.rectangle.surface.graph()` returns a single weighted
 iKNN graph for one \code{k} value, while
 `sampled.rectangle.surface.graphs()` reuses the same sample and embedding

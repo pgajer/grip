@@ -2,21 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{recursive_mask_grid_surface_helpers}
 \alias{recursive_mask_grid_surface_helpers}
-\alias{recursive.mask.grid.surface.embedding}
 \alias{recursive.mask.grid.surface.graph}
 \title{Weighted recursive mask-grid surface helpers}
 \usage{
-recursive.mask.grid.surface.embedding(
-  mask,
-  level = 2,
-  surface = c("saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1
-)
-
 recursive.mask.grid.surface.graph(
   mask,
   level = 2,
@@ -55,7 +43,7 @@ Used only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{recursive.mask.grid.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{recursive.mask.grid.surface.graph()} returns a list with components:
@@ -89,8 +77,8 @@ The \code{mask} is interpreted in standard matrix display orientation: rows
 run from top to bottom and columns run from left to right. Non-zero entries
 are retained at each recursive subdivision step.
 
-`recursive.mask.grid.surface.embedding()` returns the 3D coordinates of the
-occupied cells in the same vertex order as \code{edges.recursive.mask.grid()}.
+The `coords_surface` component contains the 3D coordinates of the
+occupied cells in the same vertex order as \code{edges}.
 `recursive.mask.grid.surface.graph()` returns a reusable weighted-graph
 bundle containing the masked-grid edges, induced edge weights, the 3D
 surface coordinates, and the 2D parameter coordinates of the occupied cells.

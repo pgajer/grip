@@ -2,18 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{sierpinski_tetrahedron_surface_helpers}
 \alias{sierpinski_tetrahedron_surface_helpers}
-\alias{sierpinski.tetrahedron.surface.embedding}
 \alias{sierpinski.tetrahedron.surface.graph}
 \title{Weighted Sierpinski tetrahedron surface helpers}
 \usage{
-sierpinski.tetrahedron.surface.embedding(
-  level = 2,
-  surface = c("standard", "squashed", "twisted", "wavy"),
-  amplitude = 0.3,
-  freq = 2,
-  twist = 0.6
-)
-
 sierpinski.tetrahedron.surface.graph(
   level = 2,
   surface = c("standard", "squashed", "twisted", "wavy"),
@@ -41,7 +32,7 @@ sierpinski.tetrahedron.surface.graph(
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{sierpinski.tetrahedron.surface.graph()} returns the same components as

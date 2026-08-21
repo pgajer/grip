@@ -443,58 +443,6 @@ test_that("edge-KK optimizer preserves exact higher-dimensional weighted path la
   expect_lt(fit$diagnostics$gmds.stress[[1L]], 1e-8)
 })
 
-test_that("deprecated edge-KK wrappers preserve optimizer behavior", {
-  prepared <- prepare.graph.geodesic.mds(
-    edges = rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(1L, 4L)),
-    n = 4L,
-    edge_weights = c(1, 1.3, 0.9, 1.7)
-  )
-  start <- matrix(c(
-    0.0, 0.0,
-    0.8, 0.2,
-    1.7, -0.1,
-    0.2, 1.1
-  ), ncol = 2, byrow = TRUE)
-  args <- list(
-    coords = start,
-    prepared = prepared,
-    dim = 2L,
-    stiffness_method = "uniform",
-    density_mix_schedule = c(0, 1),
-    scale_mode = "profiled",
-    max_iter = 6L,
-    initial_step = 0.2,
-    return_trace = TRUE,
-    engine = "cpp"
-  )
-
-  canonical <- do.call(edge.kk, args)
-  expect_warning(
-    preferred <- do.call(grip.optimize.edge.kk.layout, args),
-    "deprecated"
-  )
-  expect_warning(
-    legacy.gkk <- do.call(grip.optimize.edge.gkk.layout, args),
-    "deprecated"
-  )
-  expect_warning(
-    legacy.isometric <- do.call(grip.optimize.edge.isometric.layout, args),
-    "deprecated"
-  )
-
-  expect_equal(preferred$coords, canonical$coords, tolerance = 1e-12)
-  expect_equal(legacy.gkk$coords, canonical$coords, tolerance = 1e-12)
-  expect_equal(legacy.isometric$coords, canonical$coords, tolerance = 1e-12)
-  expect_equal(preferred$trace$energy, canonical$trace$energy, tolerance = 1e-12)
-  expect_equal(legacy.gkk$trace$edge.rel.rmse, canonical$trace$edge.rel.rmse, tolerance = 1e-12)
-  expect_equal(legacy.isometric$trace$edge.rel.rmse, canonical$trace$edge.rel.rmse, tolerance = 1e-12)
-  expect_equal(canonical$method, "edge_kk")
-  expect_equal(preferred$method, "edge_kk")
-  expect_equal(legacy.gkk$method, "edge_kk")
-  expect_equal(legacy.isometric$method, "edge_isometric_gkk")
-  expect_equal(legacy.isometric$metadata$preferred_method, "edge_kk")
-})
-
 test_that("edge-KK optimizer decreases edge error from perturbed layout", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),

@@ -2,25 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_shell_solid_helpers}
 \alias{irregular_shell_solid_helpers}
-\alias{irregular.shell.solid.embedding}
 \alias{irregular.shell.solid.graph}
 \title{Weighted irregular shell solid helpers}
 \usage{
-irregular.shell.solid.embedding(
-  base = c("tetrahedron", "octahedron", "icosahedron"),
-  level = 1,
-  layers = 3,
-  inner_radius = 0.45,
-  outer_radius = 1,
-  radial_irregularity = 0.25,
-  layer_twist = 0.35,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq_theta = 2,
-  freq_phi = 2,
-  twist = 0.6
-)
-
 irregular.shell.solid.graph(
   base = c("tetrahedron", "octahedron", "icosahedron"),
   level = 1,
@@ -73,7 +57,7 @@ layers.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.shell.solid.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.shell.solid.graph()} returns the same components as

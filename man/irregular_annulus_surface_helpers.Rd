@@ -2,24 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_annulus_surface_helpers}
 \alias{irregular_annulus_surface_helpers}
-\alias{irregular.annulus.surface.embedding}
 \alias{irregular.annulus.surface.graph}
 \title{Weighted irregular annulus surface helpers}
 \usage{
-irregular.annulus.surface.embedding(
-  rings = 6,
-  outer_count = 28,
-  outer_radius = 1,
-  inner_radius = 0.45,
-  count_irregularity = 0.2,
-  radial_irregularity = 0.35,
-  phase_twist = 0.35,
-  surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
-  amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1
-)
-
 irregular.annulus.surface.graph(
   rings = 6,
   outer_count = 28,
@@ -70,7 +55,7 @@ only when \code{surface = "ripple"}.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.annulus.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.annulus.surface.graph()} returns a list with components:

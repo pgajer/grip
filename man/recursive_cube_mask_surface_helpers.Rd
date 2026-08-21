@@ -2,22 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{recursive_cube_mask_surface_helpers}
 \alias{recursive_cube_mask_surface_helpers}
-\alias{recursive.cube.mask.surface.embedding}
 \alias{recursive.cube.mask.surface.graph}
 \title{Weighted recursive cube-mask surface helpers}
 \usage{
-recursive.cube.mask.surface.embedding(
-  mask,
-  level = 2,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq = 2,
-  twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1
-)
-
 recursive.cube.mask.surface.graph(
   mask,
   level = 2,
@@ -61,7 +48,7 @@ coordinates.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{recursive.cube.mask.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{recursive.cube.mask.surface.graph()} returns a list with components:

@@ -28,7 +28,7 @@ score_layout <- function(coords, edges, n,
                          edge.crossings = "auto",
                          sample.size.stress = 2000L,
                          sample.size.nonedge = 5000L) {
-  grip.score.layout(
+  score.layout(
     coords              = coords,
     edges               = edges,
     n                   = n,
@@ -81,11 +81,11 @@ set.seed(1); karate.fr      <- as_coord_matrix(layout_with_fr(karate.ig))
 set.seed(1); karate.kk      <- as_coord_matrix(layout_with_kk(karate.ig))
 set.seed(1); karate.drl     <- as_coord_matrix(layout_with_drl(karate.ig))
 set.seed(1); karate.stress  <- as_coord_matrix(layout_with_stress(karate.ig))
-karate.grip.default <- grip.layout(karate.edges, n = karate.n, dim = 2, seed = 1)
+karate.grip.default <- grip(karate.edges, n = karate.n, dim = 2, seed = 1)
 ## No preset matches this dense social network, so we use manually tuned
 ## parameters: more rounds for convergence, moderate repulsion to spread
 ## the dense core, and barycenter placement.
-karate.grip.tuned   <- grip.layout(karate.edges, n = karate.n, dim = 2,
+karate.grip.tuned   <- grip(karate.edges, n = karate.n, dim = 2,
                                     rounds = 128, final_rounds = 192,
                                     num_nbrs = 16, repulsion_factor = 2.0,
                                     r = 0.05, s = 5.0, seed = 1)
@@ -136,8 +136,8 @@ set.seed(1); mesh.fr      <- as_coord_matrix(layout_with_fr(mesh.ig))
 set.seed(1); mesh.kk      <- as_coord_matrix(layout_with_kk(mesh.ig))
 set.seed(1); mesh.drl     <- as_coord_matrix(layout_with_drl(mesh.ig))
 set.seed(1); mesh.stress  <- as_coord_matrix(layout_with_stress(mesh.ig))
-mesh.grip.default <- grip.layout(mesh.edges, n = mesh.n, dim = 2, seed = 1)
-mesh.grip.mesh    <- grip.layout(mesh.edges, n = mesh.n, dim = 2,
+mesh.grip.default <- grip(mesh.edges, n = mesh.n, dim = 2, seed = 1)
+mesh.grip.mesh    <- grip(mesh.edges, n = mesh.n, dim = 2,
                                   preset = "mesh", seed = 1)
 
 mesh.scores <- rbind(
@@ -180,9 +180,9 @@ set.seed(1); carpet.time.kk      <- system.time(carpet.kk      <- as_coord_matri
 set.seed(1); carpet.time.drl     <- system.time(carpet.drl     <- as_coord_matrix(layout_with_drl(carpet.ig)))
 set.seed(1); carpet.time.stress  <- system.time(carpet.stress  <- as_coord_matrix(layout_with_stress(carpet.ig)))
 carpet.time.grip.default <- system.time(
-  carpet.grip.default <- grip.layout(carpet.edges, n = carpet.n, dim = 2, seed = 1))
+  carpet.grip.default <- grip(carpet.edges, n = carpet.n, dim = 2, seed = 1))
 carpet.time.grip.carpet  <- system.time(
-  carpet.grip.carpet  <- grip.layout(carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 1))
+  carpet.grip.carpet  <- grip(carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 1))
 
 carpet.scores <- rbind(
   cbind(method = "FR (igraph)",
@@ -239,7 +239,7 @@ set.seed(1); hmp.time.fr      <- system.time(hmp.fr     <- as_coord_matrix(layou
 set.seed(1); hmp.time.drl     <- system.time(hmp.drl    <- as_coord_matrix(layout_with_drl(hmp.ig)))
 set.seed(1); hmp.time.stress  <- system.time(hmp.stress <- as_coord_matrix(layout_with_stress(hmp.ig)))
 hmp.time.grip.default <- system.time(
-  hmp.grip.default <- grip.layout(
+  hmp.grip.default <- grip(
     adj_list = hmp.adj, weight_list = hmp.wt, n = hmp.n, dim = 2, seed = 1))
 
 hmp.scores <- rbind(

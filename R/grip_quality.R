@@ -3562,18 +3562,6 @@ prepare.edge.kk <- function(edges = NULL,
   prepared
 }
 
-#' Deprecated edge-KK preparation name
-#'
-#' This long name is deprecated. Use [prepare.edge.kk()] instead.
-#'
-#' @param ... Arguments passed to [prepare.edge.kk()].
-#' @return See [prepare.edge.kk()].
-#' @export
-grip.prepare.edge.kk <- function(...) {
-  .Deprecated("prepare.edge.kk")
-  prepare.edge.kk(...)
-}
-
 #' Prepare a graph-first geodesic-MDS path cache
 #'
 #' \code{prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
@@ -5259,18 +5247,6 @@ score.layout <- function(coords,
   )
 }
 
-#' Deprecated layout scoring name
-#'
-#' This long name is deprecated. Use [score.layout()] instead.
-#'
-#' @param ... Arguments passed to [score.layout()].
-#' @return See [score.layout()].
-#' @export
-grip.score.layout <- function(...) {
-  .Deprecated("score.layout")
-  score.layout(...)
-}
-
 #' Compare multiple layout candidates across seeds
 #'
 #' \code{compare.layouts()} computes layouts for several candidate presets
@@ -5512,16 +5488,4 @@ compare.layouts <- function(edges = NULL,
     out$layouts <- layouts.by.candidate
   }
   out
-}
-
-#' Deprecated layout comparison name
-#'
-#' This long name is deprecated. Use [compare.layouts()] instead.
-#'
-#' @param ... Arguments passed to [compare.layouts()].
-#' @return See [compare.layouts()].
-#' @export
-grip.compare.layouts <- function(...) {
-  .Deprecated("compare.layouts")
-  compare.layouts(...)
 }

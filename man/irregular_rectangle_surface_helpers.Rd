@@ -2,43 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{irregular_rectangle_surface_helpers}
 \alias{irregular_rectangle_surface_helpers}
-\alias{irregular.rectangle.param.coords}
-\alias{irregular.rectangle.surface.embedding}
 \alias{irregular.rectangle.surface.graph}
 \title{Irregular rectangle surface helpers}
 \usage{
-irregular.rectangle.param.coords(
-  h,
-  w = h,
-  x_scale = 1,
-  y_scale = 1,
-  row_irregularity = 0.2,
-  col_irregularity = 0.2,
-  row_phase = 0.35,
-  col_phase = 0.65,
-  interior_warp = 0.08,
-  shear = 0,
-  min_step_ratio = 0.3
-)
-
-irregular.rectangle.surface.embedding(
-  h,
-  w = h,
-  surface = c("flat", "saddle", "paraboloid", "ripple"),
-  amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1,
-  row_irregularity = 0.2,
-  col_irregularity = 0.2,
-  row_phase = 0.35,
-  col_phase = 0.65,
-  interior_warp = 0.08,
-  shear = 0,
-  min_step_ratio = 0.3
-)
-
 irregular.rectangle.surface.graph(
   h,
   w = h,
@@ -63,6 +29,18 @@ irregular.rectangle.surface.graph(
 \item{h}{Number of rows.}
 
 \item{w}{Number of columns. Defaults to \code{h}.}
+
+\item{surface}{Surface family used for the lift. One of \code{"flat"},
+\code{"saddle"}, \code{"paraboloid"}, or \code{"ripple"}.}
+
+\item{amplitude}{Finite numeric amplitude controlling the non-flat
+displacement.}
+
+\item{freq_u}{Positive ripple frequency in the horizontal parameter
+direction. Used only when \code{surface = "ripple"}.}
+
+\item{freq_v}{Positive ripple frequency in the vertical parameter direction.
+Used only when \code{surface = "ripple"}.}
 
 \item{x_scale}{Positive horizontal scaling of the parameter domain.}
 
@@ -90,28 +68,16 @@ Larger values can force a validation error if the mesh cells invert.}
 interval lengths, expressed relative to the unperturbed interval scale.
 Must lie in \code{(0, 1]}.}
 
-\item{surface}{Surface family used for the lift. One of \code{"flat"},
-\code{"saddle"}, \code{"paraboloid"}, or \code{"ripple"}.}
-
-\item{amplitude}{Finite numeric amplitude controlling the non-flat
-displacement.}
-
-\item{freq_u}{Positive ripple frequency in the horizontal parameter
-direction. Used only when \code{surface = "ripple"}.}
-
-\item{freq_v}{Positive ripple frequency in the vertical parameter direction.
-Used only when \code{surface = "ripple"}.}
-
 \item{connectivity}{Mesh neighborhood rule passed to \code{edges.mesh()}.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{irregular.rectangle.param.coords()} returns an \code{n x 2} numeric
+The \code{coords_param} component is an \code{n x 2} numeric
 matrix with columns \code{u} and \code{v}.
 
-\code{irregular.rectangle.surface.embedding()} returns an \code{n x 3}
+The \code{coords_surface} component is an \code{n x 3}
 numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.rectangle.surface.graph()} returns a list with components:
@@ -140,9 +106,9 @@ resulting family stays simply connected and rectangular in topology while
 breaking the strongest row/column symmetries of the lattice.
 }
 \details{
-`irregular.rectangle.param.coords()` returns the irregular planar parameter
+The `coords_param` component contains the irregular planar parameter
 coordinates.
-`irregular.rectangle.surface.embedding()` lifts those coordinates into
+The `coords_surface` component lifts those coordinates into
 \eqn{\mathbb{R}^3}.
 `irregular.rectangle.surface.graph()` returns a reusable weighted-graph
 bundle with the induced Euclidean edge lengths.

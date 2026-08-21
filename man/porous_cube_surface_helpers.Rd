@@ -2,29 +2,11 @@
 % Please edit documentation in R/graph_helpers.R
 \name{porous_cube_surface_helpers}
 \alias{porous_cube_surface_helpers}
-\alias{cube.periodic.tunnels.surface.embedding}
 \alias{cube.periodic.tunnels.surface.graph}
-\alias{cube.asymmetric.cavities.surface.embedding}
 \alias{cube.asymmetric.cavities.surface.graph}
-\alias{cube.channel.network.surface.embedding}
 \alias{cube.channel.network.surface.graph}
 \title{Weighted porous cube-mask surface helpers}
 \usage{
-cube.periodic.tunnels.surface.embedding(
-  level = 2,
-  side = 5,
-  tunnel_width = 1,
-  tunnel_period = 2,
-  tunnel_offset = 2,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq = 2,
-  twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1
-)
-
 cube.periodic.tunnels.surface.graph(
   level = 2,
   side = 5,
@@ -41,20 +23,6 @@ cube.periodic.tunnels.surface.graph(
   normalize = c("median", "mean", "none")
 )
 
-cube.asymmetric.cavities.surface.embedding(
-  level = 2,
-  side = 5,
-  cavity_size = 2,
-  pocket_size = max(1L, cavity_size - 1L),
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq = 2,
-  twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1
-)
-
 cube.asymmetric.cavities.surface.graph(
   level = 2,
   side = 5,
@@ -68,20 +36,6 @@ cube.asymmetric.cavities.surface.graph(
   y_scale = 1,
   z_scale = 1,
   normalize = c("median", "mean", "none")
-)
-
-cube.channel.network.surface.embedding(
-  level = 2,
-  side = 5,
-  channel_width = 1,
-  branch_offset = 2,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq = 2,
-  twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1
 )
 
 cube.channel.network.surface.graph(
@@ -144,7 +98,7 @@ family.}
 channel-network family.}
 }
 \value{
-Each \code{*.surface.embedding()} helper returns an \code{n x 3} numeric
+Each graph bundle's \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}.
 
 Each \code{*.surface.graph()} helper returns the same components as

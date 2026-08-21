@@ -2997,8 +2997,7 @@
 #' Mask pattern helpers for recursive grid families
 #'
 #' Convenience constructors for connected \eqn{k \times k} keep-masks that can
-#' be passed to \code{\link{edges.recursive.mask.grid}()} or
-#' \code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
+#' be passed to \code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
 #' carpets. These helpers are meant to provide explicit benchmark motifs such
 #' as cross, border, corner, and asymmetric-hole patterns.
 #'
@@ -3073,7 +3072,6 @@ mask.asymmetric.holes <- function(k = 5, hole_size = 1) {
 #' Cube mask pattern helpers for recursive porous families
 #'
 #' Convenience constructors for cubic keep-arrays that can be passed to
-#' \code{\link{edges.recursive.cube.mask}()} or
 #' \code{\link{recursive.cube.mask.surface.graph}()} to build cubical porous
 #' benchmark families. These helpers encode three qualitatively different void
 #' patterns: repeated tunnel lattices, interior asymmetric cavities, and
@@ -3139,7 +3137,6 @@ mask.cube.channel.network <- function(side = 5,
 #' Triangle mask helpers for recursive gasket families
 #'
 #' Convenience constructors for the four-slot triangle masks used by
-#' \code{\link{edges.recursive.triangle.mask}()} and
 #' \code{\link{recursive.triangle.mask.surface.graph}()}. The slots correspond
 #' to the three corner subtriangles and the central inverted subtriangle created
 #' by one barycentric refinement of an equilateral triangle.
@@ -3169,7 +3166,6 @@ mask.triangle.bridge <- function(missing = c("top", "left", "right")) {
 #' Tetrahedron mask helpers for recursive gasket families
 #'
 #' Convenience constructors for the four-corner tetrahedron masks used by
-#' \code{\link{edges.recursive.tetrahedron.mask}()} and
 #' \code{\link{recursive.tetrahedron.mask.surface.graph}()}. The slots
 #' correspond to the four corner subtetrahedra created by one barycentric
 #' refinement of a tetrahedron.
@@ -3199,9 +3195,9 @@ mask.tetrahedron.corner.missing <- function(
 
 #' Occupied-mesh and perforated-grid helpers
 #'
-#' \code{edges.occupied.mesh()} builds a finite occupied-grid graph on the
-#' retained cells of a rectangular occupancy matrix. The corresponding surface
-#' helpers lift those occupied cells into \eqn{\mathbb{R}^3} using the same
+#' `occupied.mesh.surface.graph()` builds a finite occupied-grid graph on the
+#' retained cells of a rectangular occupancy matrix and lifts those cells into
+#' \eqn{\mathbb{R}^3} using the same
 #' \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
 #' for regular meshes.
 #'
@@ -3221,7 +3217,7 @@ mask.tetrahedron.corner.missing <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{occupied.mesh.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{occupied.mesh.surface.graph()} returns a list with components:
@@ -3243,8 +3239,8 @@ mask.tetrahedron.corner.missing <- function(
 #' @name occupied_mesh_surface_helpers
 NULL
 
-#' @rdname occupied_mesh_surface_helpers
-#' @export
+# @rdname occupied_mesh_surface_helpers
+# @noRd
 occupied.mesh.surface.embedding <- function(keep,
                                             surface = c("saddle", "paraboloid", "ripple"),
                                             amplitude = 0.75,
@@ -3341,8 +3337,8 @@ occupied.mesh.surface.graph <- function(keep,
 #' Deterministic perforated-grid occupancy helpers
 #'
 #' Convenience constructors for finite occupied grids with non-random holes or
-#' channels. These matrices can be passed to \code{\link{edges.occupied.mesh}()}
-#' or \code{\link{occupied.mesh.surface.graph}()}.
+#' channels. These matrices can be passed to
+#' \code{\link{occupied.mesh.surface.graph}()}.
 #'
 #' @param h Number of rows.
 #' @param w Number of columns. Defaults to \code{h}.
@@ -4367,38 +4363,20 @@ keep.asymmetric.notches <- function(h,
 #' integer edge matrices suitable for \code{\link{grip}()}. These
 #' helpers are meant for examples, experiments, and reproducible tests.
 #'
-#' The occupied-grid, recursive masked-grid, and Sierpinski families are
-#' exposed explicitly rather than overloading a single generator with
-#' layout-dimension-dependent behavior: \code{\link{edges.occupied.mesh}()}
-#' builds a finite perforated-mesh family from an occupancy matrix,
-#' \code{\link{edges.recursive.mask.grid}()} builds a generic square-mask
-#' family, \code{\link{edges.recursive.triangle.mask}()} builds a generic
-#' triangle-mask family, \code{\link{edges.recursive.tetrahedron.mask}()}
-#' builds a generic tetrahedron-mask family,
-#' \code{\link{edges.recursive.cube.mask}()} builds a generic cube-mask
-#' family, \code{\link{edges.vicsek}()} builds the connected axial-cross
-#' variant, \code{\link{edges.menger.sponge}()} builds the classic cubical
-#' sponge variant, \code{\link{edges.triangulated.polyhedron}()} builds a
-#' generic irregular triangulated-surface family,
-#' \code{\link{edges.sierpinski.triangle}()} builds the 2-simplex family,
+#' The exported generators cover primitive paths, cycles, regular meshes,
+#' cylinders, tori, cubes, trees, and the standard Sierpinski families.
+#' Specialized weighted benchmark families are exposed through complete
+#' `*.surface.graph()` and `*.solid.graph()` bundles instead of separate
+#' edge-list and embedding functions. \code{\link{edges.sierpinski.triangle}()}
+#' builds the 2-simplex family,
 #' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
 #' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
 #' carpet graph.
 #'
 #' @return A two-column integer matrix of undirected edges. Vertex labels are
 #'   consecutive integers starting at 1.
-#' @param tunnel_width Width of each removed tunnel band in
-#'   \code{edges.cube.periodic.tunnels()}.
-#' @param tunnel_period Spacing between successive tunnel bands in
-#'   \code{edges.cube.periodic.tunnels()}.
-#' @param tunnel_offset Starting index of the first tunnel band in
-#'   \code{edges.cube.periodic.tunnels()}.
-#' @param cavity_size Side length of the larger interior cavity block in
-#'   \code{edges.cube.asymmetric.cavities()}.
-#' @param pocket_size Side length of the smaller secondary cavity block in
-#'   \code{edges.cube.asymmetric.cavities()}.
-#' @param channel_width Width of each removed channel in
-#'   \code{edges.cube.channel.network()}.
+#' @param level Recursion depth for the Sierpinski graph families. Must be at
+#'   least 1.
 #' @name graph_generators
 NULL
 
@@ -4434,7 +4412,6 @@ edges.cycle <- function(n) {
 #' @param connectivity Mesh neighborhood rule. \code{"orthogonal"} keeps the
 #'   4-neighbor grid; \code{"diagonal"} also adds both diagonals of every unit
 #'   square.
-#' @param keep Logical or numeric occupancy matrix. Non-zero entries are kept.
 #' @export
 edges.mesh <- function(h,
                        w = h,
@@ -4462,11 +4439,11 @@ edges.mesh <- function(h,
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
-#' @describeIn graph_generators Rectangular occupied-grid graph whose vertices
-#'   are kept cells and whose edges connect orthogonally adjacent kept cells.
-#'   With \code{connectivity = "diagonal"}, both diagonals are added for every
-#'   fully occupied 2-by-2 block.
-#' @export
+# @describeIn graph_generators Rectangular occupied-grid graph whose vertices
+#   are kept cells and whose edges connect orthogonally adjacent kept cells.
+#   With \code{connectivity = "diagonal"}, both diagonals are added for every
+#   fully occupied 2-by-2 block.
+# @noRd
 edges.occupied.mesh <- function(keep,
                                 connectivity = c("orthogonal", "diagonal")) {
   .occupied.mesh.edges(keep, connectivity = connectivity)
@@ -4480,7 +4457,7 @@ edges.occupied.mesh <- function(keep,
 #' topology is a plain mesh but the intended metric comes from a curved ambient
 #' geometry.
 #'
-#' `mesh.surface.embedding()` returns the 3D coordinates of the lifted grid.
+#' The `coords_surface` component contains the 3D coordinates of the lifted grid.
 #' `mesh.surface.graph()` returns a reusable weighted-graph bundle containing the
 #' mesh edges, induced edge weights, the 3D surface coordinates, and the 2D
 #' parameter coordinates.
@@ -4497,13 +4474,14 @@ edges.occupied.mesh <- function(keep,
 #'   Used only when \code{surface = "ripple"}.
 #' @param x_scale Positive horizontal scaling of the parameter domain.
 #' @param y_scale Positive vertical scaling of the parameter domain.
-#' @param connectivity Occupied-mesh neighborhood rule passed to
-#'   \code{edges.occupied.mesh()}.
+#' @param connectivity Mesh neighborhood rule. `"orthogonal"` keeps the
+#'   four-neighbor grid; `"diagonal"` also adds both diagonals of every unit
+#'   square.
 #' @param normalize Normalization applied to the induced edge lengths. One of
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{mesh.surface.embedding()} returns an \code{n x 3} numeric matrix with
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix with
 #' columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{mesh.surface.graph()} returns a list with components:
@@ -4524,8 +4502,8 @@ edges.occupied.mesh <- function(keep,
 #' @name mesh_surface_helpers
 NULL
 
-#' @rdname mesh_surface_helpers
-#' @export
+# @rdname mesh_surface_helpers
+# @noRd
 mesh.surface.embedding <- function(h,
                                    w = h,
                                    surface = c("saddle", "paraboloid", "ripple"),
@@ -4630,9 +4608,9 @@ mesh.surface.graph <- function(h,
 #' resulting family stays simply connected and rectangular in topology while
 #' breaking the strongest row/column symmetries of the lattice.
 #'
-#' `irregular.rectangle.param.coords()` returns the irregular planar parameter
+#' The `coords_param` component contains the irregular planar parameter
 #' coordinates.
-#' `irregular.rectangle.surface.embedding()` lifts those coordinates into
+#' The `coords_surface` component lifts those coordinates into
 #' \eqn{\mathbb{R}^3}.
 #' `irregular.rectangle.surface.graph()` returns a reusable weighted-graph
 #' bundle with the induced Euclidean edge lengths.
@@ -4669,10 +4647,10 @@ mesh.surface.graph <- function(h,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.rectangle.param.coords()} returns an \code{n x 2} numeric
+#' The \code{coords_param} component is an \code{n x 2} numeric
 #' matrix with columns \code{u} and \code{v}.
 #'
-#' \code{irregular.rectangle.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.rectangle.surface.graph()} returns a list with components:
@@ -4697,8 +4675,8 @@ mesh.surface.graph <- function(h,
 #' @name irregular_rectangle_surface_helpers
 NULL
 
-#' @rdname irregular_rectangle_surface_helpers
-#' @export
+# @rdname irregular_rectangle_surface_helpers
+# @noRd
 irregular.rectangle.param.coords <- function(h,
                                              w = h,
                                              x_scale = 1,
@@ -4725,8 +4703,8 @@ irregular.rectangle.param.coords <- function(h,
   )$coords
 }
 
-#' @rdname irregular_rectangle_surface_helpers
-#' @export
+# @rdname irregular_rectangle_surface_helpers
+# @noRd
 irregular.rectangle.surface.embedding <- function(h,
                                                   w = h,
                                                   surface = c("flat", "saddle", "paraboloid", "ripple"),
@@ -4882,8 +4860,8 @@ irregular.rectangle.surface.graph <- function(h,
 #' distances in the lifted embedding so that the graph metric reflects the
 #' chosen surface geometry.
 #'
-#' `sampled.rectangle.param.coords()` returns the sampled planar coordinates.
-#' `sampled.rectangle.surface.embedding()` returns the corresponding 3D
+#' The `coords_param` component contains the sampled planar coordinates.
+#' The `coords_surface` component contains the corresponding 3D
 #' embedding. `sampled.rectangle.surface.graph()` returns a single weighted
 #' iKNN graph for one \code{k} value, while
 #' `sampled.rectangle.surface.graphs()` reuses the same sample and embedding
@@ -4918,10 +4896,10 @@ irregular.rectangle.surface.graph <- function(h,
 #'   One of \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{sampled.rectangle.param.coords()} returns an \code{n x 2} numeric
+#' The \code{coords_param} component is an \code{n x 2} numeric
 #' matrix with columns \code{u} and \code{v}.
 #'
-#' \code{sampled.rectangle.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{sampled.rectangle.surface.graph()} returns a list with components:
@@ -4967,8 +4945,8 @@ irregular.rectangle.surface.graph <- function(h,
 #' @name sampled_rectangle_surface_helpers
 NULL
 
-#' @rdname sampled_rectangle_surface_helpers
-#' @export
+# @rdname sampled_rectangle_surface_helpers
+# @noRd
 sampled.rectangle.param.coords <- function(n,
                                            xmin = -1,
                                            xmax = 1,
@@ -4985,8 +4963,8 @@ sampled.rectangle.param.coords <- function(n,
   )$coords_param
 }
 
-#' @rdname sampled_rectangle_surface_helpers
-#' @export
+# @rdname sampled_rectangle_surface_helpers
+# @noRd
 sampled.rectangle.surface.embedding <- function(n,
                                                 xmin = -1,
                                                 xmax = 1,
@@ -5205,7 +5183,7 @@ sampled.rectangle.surface.graphs <- function(n,
 #' graph topology is cylindrical but the intended metric comes from a curved or
 #' spatially varying 3D realization.
 #'
-#' `cylinder.surface.embedding()` returns the 3D coordinates of the embedded
+#' The `coords_surface` component contains the 3D coordinates of the embedded
 #' cylindrical grid. `cylinder.surface.graph()` returns a reusable weighted-graph
 #' bundle containing the cylinder edges, induced edge weights, the 3D surface
 #' coordinates, and a 2D unwrapped parameterization.
@@ -5227,7 +5205,7 @@ sampled.rectangle.surface.graphs <- function(n,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{cylinder.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
 #' with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{cylinder.surface.graph()} returns a list with components:
@@ -5247,8 +5225,8 @@ sampled.rectangle.surface.graphs <- function(n,
 #' @name cylinder_surface_helpers
 NULL
 
-#' @rdname cylinder_surface_helpers
-#' @export
+# @rdname cylinder_surface_helpers
+# @noRd
 cylinder.surface.embedding <- function(h,
                                        w = h,
                                        surface = c("barrel", "hourglass", "wavy"),
@@ -5365,7 +5343,7 @@ cylinder.surface.graph <- function(h,
 #' graph topology is toroidal but the intended metric comes from a curved or
 #' spatially varying 3D realization.
 #'
-#' `torus.surface.embedding()` returns the 3D coordinates of the embedded
+#' The `coords_surface` component contains the 3D coordinates of the embedded
 #' toroidal grid. `torus.surface.graph()` returns a reusable weighted-graph
 #' bundle containing the torus edges, induced edge weights, the 3D surface
 #' coordinates, and a 2D unwrapped parameterization.
@@ -5391,7 +5369,7 @@ cylinder.surface.graph <- function(h,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{torus.surface.embedding()} returns an \code{n x 3} numeric matrix with
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix with
 #' columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{torus.surface.graph()} returns a list with components:
@@ -5411,8 +5389,8 @@ cylinder.surface.graph <- function(h,
 #' @name torus_surface_helpers
 NULL
 
-#' @rdname torus_surface_helpers
-#' @export
+# @rdname torus_surface_helpers
+# @noRd
 torus.surface.embedding <- function(h,
                                     w = h,
                                     surface = c("standard", "pinched", "wavy"),
@@ -5556,7 +5534,7 @@ torus.surface.graph <- function(h,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.torus.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.torus.surface.graph()} returns a list with components:
@@ -5578,8 +5556,8 @@ torus.surface.graph <- function(h,
 #' @name irregular_torus_surface_helpers
 NULL
 
-#' @rdname irregular_torus_surface_helpers
-#' @export
+# @rdname irregular_torus_surface_helpers
+# @noRd
 irregular.torus.surface.embedding <- function(
     major_rings = 8,
     tube_count = 16,
@@ -5796,7 +5774,7 @@ irregular.torus.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.double.torus.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.double.torus.surface.graph()} returns a list with
@@ -5820,8 +5798,8 @@ irregular.torus.surface.graph <- function(
 #' @name irregular_double_torus_surface_helpers
 NULL
 
-#' @rdname irregular_double_torus_surface_helpers
-#' @export
+# @rdname irregular_double_torus_surface_helpers
+# @noRd
 irregular.double.torus.surface.embedding <- function(
     slices = 11,
     tube_count = 14,
@@ -6022,7 +6000,7 @@ irregular.double.torus.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.ball.solid.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.ball.solid.graph()} returns a list with components:
@@ -6046,8 +6024,8 @@ irregular.double.torus.surface.graph <- function(
 #' @name irregular_ball_solid_helpers
 NULL
 
-#' @rdname irregular_ball_solid_helpers
-#' @export
+# @rdname irregular_ball_solid_helpers
+# @noRd
 irregular.ball.solid.embedding <- function(
     base = c("tetrahedron", "octahedron", "icosahedron"),
     level = 1,
@@ -6162,7 +6140,7 @@ irregular.ball.solid.graph <- function(
 #' @inheritParams irregular_ball_solid_helpers
 #'
 #' @return
-#' \code{irregular.shell.solid.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.shell.solid.graph()} returns the same components as
@@ -6172,8 +6150,8 @@ irregular.ball.solid.graph <- function(
 #' @name irregular_shell_solid_helpers
 NULL
 
-#' @rdname irregular_shell_solid_helpers
-#' @export
+# @rdname irregular_shell_solid_helpers
+# @noRd
 irregular.shell.solid.embedding <- function(
     base = c("tetrahedron", "octahedron", "icosahedron"),
     level = 1,
@@ -6289,8 +6267,8 @@ irregular.shell.solid.graph <- function(
 #' graph topology follows the current pole-plus-latitude-rings sphere graph but
 #' the intended metric comes from a curved or spatially varying 3D realization.
 #'
-#' `sphere.surface.embedding()` returns the 3D coordinates of the sampled
-#' surface in the same vertex order as \code{edges.sphere()}: north pole first,
+#' The `coords_surface` component contains the 3D coordinates of the sampled
+#' surface in the same vertex order as \code{edges}: north pole first,
 #' then latitude rings from north to south, then the south pole.
 #' `sphere.surface.graph()` returns a reusable weighted-graph bundle containing
 #' the sphere edges, induced edge weights, the 3D surface coordinates, and a 2D
@@ -6317,7 +6295,7 @@ irregular.shell.solid.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{sphere.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
 #' with columns \code{x}, \code{y}, and \code{z}, where
 #' \code{n = 2 + (h - 2) * w}.
 #'
@@ -6338,8 +6316,8 @@ irregular.shell.solid.graph <- function(
 #' @name sphere_surface_helpers
 NULL
 
-#' @rdname sphere_surface_helpers
-#' @export
+# @rdname sphere_surface_helpers
+# @noRd
 sphere.surface.embedding <- function(h,
                                      w = h,
                                      surface = c("standard", "ellipsoid", "wavy"),
@@ -6508,7 +6486,7 @@ sphere.surface.graph <- function(h,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.sphere.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.sphere.surface.graph()} returns a list with components:
@@ -6530,8 +6508,8 @@ sphere.surface.graph <- function(h,
 #' @name irregular_sphere_surface_helpers
 NULL
 
-#' @rdname irregular_sphere_surface_helpers
-#' @export
+# @rdname irregular_sphere_surface_helpers
+# @noRd
 irregular.sphere.surface.embedding <- function(
     bands = 6,
     equator_count = 28,
@@ -6742,7 +6720,7 @@ irregular.sphere.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{triangulated.polyhedron.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{triangulated.polyhedron.surface.graph()} returns a list with
@@ -6767,8 +6745,8 @@ irregular.sphere.surface.graph <- function(
 #' @name triangulated_polyhedron_surface_helpers
 NULL
 
-#' @rdname triangulated_polyhedron_surface_helpers
-#' @export
+# @rdname triangulated_polyhedron_surface_helpers
+# @noRd
 triangulated.polyhedron.surface.embedding <- function(
     base = c("tetrahedron", "octahedron", "icosahedron"),
     level = 1,
@@ -6880,9 +6858,9 @@ triangulated.polyhedron.surface.graph <- function(
 #' making it a useful complement to the closed triangulated-polyhedron
 #' families.
 #'
-#' \code{triangulated.annulus.surface.embedding()} returns the 3D coordinates
+#' The \code{coords_surface} component is the 3D coordinates
 #' of the clipped lattice vertices in the same vertex order as
-#' \code{edges.triangulated.annulus()}. \code{triangulated.annulus.surface.graph()}
+#' \code{edges}. \code{triangulated.annulus.surface.graph()}
 #' returns a reusable weighted-graph bundle with the annulus edges, induced edge
 #' weights, the 3D embedding, and the 2D annulus parameter coordinates.
 #'
@@ -6903,7 +6881,7 @@ triangulated.polyhedron.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{triangulated.annulus.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{triangulated.annulus.surface.graph()} returns a list with components:
@@ -6924,8 +6902,8 @@ triangulated.polyhedron.surface.graph <- function(
 #' @name triangulated_annulus_surface_helpers
 NULL
 
-#' @rdname triangulated_annulus_surface_helpers
-#' @export
+# @rdname triangulated_annulus_surface_helpers
+# @noRd
 triangulated.annulus.surface.embedding <- function(
     resolution = 12,
     outer_radius = 1,
@@ -7008,9 +6986,9 @@ triangulated.annulus.surface.graph <- function(
 #' holes. The resulting graph is a triangulated surface with three boundary
 #' components and a deterministic non-grid topology.
 #'
-#' \code{triangulated.pair.of.pants.surface.embedding()} returns the 3D
+#' The \code{coords_surface} component is the 3D
 #' coordinates of the clipped lattice vertices in the same vertex order as
-#' \code{edges.triangulated.pair.of.pants()}.
+#' \code{edges}.
 #' \code{triangulated.pair.of.pants.surface.graph()} returns a reusable
 #' weighted-graph bundle with the pair-of-pants edges, induced edge weights, 3D
 #' embedding, and the 2D parameter coordinates of the clipped domain.
@@ -7034,7 +7012,7 @@ triangulated.annulus.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{triangulated.pair.of.pants.surface.embedding()} returns an \code{n x
+#' The \code{coords_surface} component is an \code{n x
 #' 3} numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{triangulated.pair.of.pants.surface.graph()} returns a list with
@@ -7056,8 +7034,8 @@ triangulated.annulus.surface.graph <- function(
 #' @name triangulated_pair_of_pants_surface_helpers
 NULL
 
-#' @rdname triangulated_pair_of_pants_surface_helpers
-#' @export
+# @rdname triangulated_pair_of_pants_surface_helpers
+# @noRd
 triangulated.pair.of.pants.surface.embedding <- function(
     resolution = 12,
     outer_radius = 1.1,
@@ -7174,7 +7152,7 @@ triangulated.pair.of.pants.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.annulus.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.annulus.surface.graph()} returns a list with components:
@@ -7196,8 +7174,8 @@ triangulated.pair.of.pants.surface.graph <- function(
 #' @name irregular_annulus_surface_helpers
 NULL
 
-#' @rdname irregular_annulus_surface_helpers
-#' @export
+# @rdname irregular_annulus_surface_helpers
+# @noRd
 irregular.annulus.surface.embedding <- function(
     rings = 6,
     outer_count = 28,
@@ -7328,7 +7306,7 @@ irregular.annulus.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{irregular.pair.of.pants.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{irregular.pair.of.pants.surface.graph()} returns a list with
@@ -7353,8 +7331,8 @@ irregular.annulus.surface.graph <- function(
 #' @name irregular_pair_of_pants_surface_helpers
 NULL
 
-#' @rdname irregular_pair_of_pants_surface_helpers
-#' @export
+# @rdname irregular_pair_of_pants_surface_helpers
+# @noRd
 irregular.pair.of.pants.surface.embedding <- function(
     slices = 11,
     outer_count = 28,
@@ -7487,7 +7465,7 @@ irregular.pair.of.pants.surface.graph <- function(
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{sierpinski.triangle.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{sierpinski.triangle.surface.graph()} returns a list with components:
@@ -7508,8 +7486,8 @@ irregular.pair.of.pants.surface.graph <- function(
 #' @name sierpinski_triangle_surface_helpers
 NULL
 
-#' @rdname sierpinski_triangle_surface_helpers
-#' @export
+# @rdname sierpinski_triangle_surface_helpers
+# @noRd
 sierpinski.triangle.surface.embedding <- function(level = 2,
                                                   surface = c("flat", "saddle",
                                                               "paraboloid", "ripple",
@@ -7684,7 +7662,7 @@ sierpinski.triangle.surface.graph <- function(level = 2,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{recursive.tetrahedron.mask.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{recursive.tetrahedron.mask.surface.graph()} returns a list with
@@ -7707,8 +7685,8 @@ sierpinski.triangle.surface.graph <- function(level = 2,
 #' @name recursive_tetrahedron_mask_surface_helpers
 NULL
 
-#' @rdname recursive_tetrahedron_mask_surface_helpers
-#' @export
+# @rdname recursive_tetrahedron_mask_surface_helpers
+# @noRd
 recursive.tetrahedron.mask.surface.embedding <- function(
     mask = mask.tetrahedron.classic(),
     level = 2,
@@ -7789,10 +7767,10 @@ recursive.tetrahedron.mask.surface.graph <- function(
 #' tetrahedral gasket but the intended metric comes from a squashed, twisted,
 #' or spatially varying realization.
 #'
-#' @inheritParams recursive.tetrahedron.mask.surface.embedding
+#' @inheritParams recursive.tetrahedron.mask.surface.graph
 #'
 #' @return
-#' \code{sierpinski.tetrahedron.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{sierpinski.tetrahedron.surface.graph()} returns the same components as
@@ -7802,8 +7780,8 @@ recursive.tetrahedron.mask.surface.graph <- function(
 #' @name sierpinski_tetrahedron_surface_helpers
 NULL
 
-#' @rdname sierpinski_tetrahedron_surface_helpers
-#' @export
+# @rdname sierpinski_tetrahedron_surface_helpers
+# @noRd
 sierpinski.tetrahedron.surface.embedding <- function(level = 2,
                                                      surface = c("standard", "squashed",
                                                                  "twisted", "wavy"),
@@ -7924,7 +7902,7 @@ sierpinski.tetrahedron.surface.graph <- function(level = 2,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{recursive.cube.mask.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{recursive.cube.mask.surface.graph()} returns a list with components:
@@ -7948,8 +7926,8 @@ sierpinski.tetrahedron.surface.graph <- function(level = 2,
 #' @name recursive_cube_mask_surface_helpers
 NULL
 
-#' @rdname recursive_cube_mask_surface_helpers
-#' @export
+# @rdname recursive_cube_mask_surface_helpers
+# @noRd
 recursive.cube.mask.surface.embedding <- function(mask,
                                                   level = 2,
                                                   surface = c("standard", "bulged",
@@ -8056,10 +8034,10 @@ recursive.cube.mask.surface.graph <- function(mask,
 #' provide a named cubical 3D benchmark family whose vertices are occupied
 #' subcubes and whose edges connect face-adjacent occupied cells.
 #'
-#' @inheritParams recursive.cube.mask.surface.embedding
+#' @inheritParams recursive.cube.mask.surface.graph
 #'
 #' @return
-#' \code{menger.sponge.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}, where
 #' \code{n = 20^level}.
 #'
@@ -8070,8 +8048,8 @@ recursive.cube.mask.surface.graph <- function(mask,
 #' @name menger_sponge_surface_helpers
 NULL
 
-#' @rdname menger_sponge_surface_helpers
-#' @export
+# @rdname menger_sponge_surface_helpers
+# @noRd
 menger.sponge.surface.embedding <- function(level = 2,
                                             surface = c("standard", "bulged",
                                                         "twisted", "wavy"),
@@ -8162,7 +8140,7 @@ menger.sponge.surface.graph <- function(level = 2,
 #'   channel-network family.
 #'
 #' @return
-#' Each \code{*.surface.embedding()} helper returns an \code{n x 3} numeric
+#' Each graph bundle's \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' Each \code{*.surface.graph()} helper returns the same components as
@@ -8172,8 +8150,8 @@ menger.sponge.surface.graph <- function(level = 2,
 #' @name porous_cube_surface_helpers
 NULL
 
-#' @rdname porous_cube_surface_helpers
-#' @export
+# @rdname porous_cube_surface_helpers
+# @noRd
 cube.periodic.tunnels.surface.embedding <- function(level = 2,
                                                     side = 5,
                                                     tunnel_width = 1,
@@ -8246,8 +8224,8 @@ cube.periodic.tunnels.surface.graph <- function(level = 2,
   out
 }
 
-#' @rdname porous_cube_surface_helpers
-#' @export
+# @rdname porous_cube_surface_helpers
+# @noRd
 cube.asymmetric.cavities.surface.embedding <- function(level = 2,
                                                        side = 5,
                                                        cavity_size = 2,
@@ -8316,8 +8294,8 @@ cube.asymmetric.cavities.surface.graph <- function(level = 2,
   out
 }
 
-#' @rdname porous_cube_surface_helpers
-#' @export
+# @rdname porous_cube_surface_helpers
+# @noRd
 cube.channel.network.surface.embedding <- function(level = 2,
                                                    side = 5,
                                                    channel_width = 1,
@@ -8418,7 +8396,7 @@ cube.channel.network.surface.graph <- function(level = 2,
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{recursive.triangle.mask.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{recursive.triangle.mask.surface.graph()} returns a list with
@@ -8441,8 +8419,8 @@ cube.channel.network.surface.graph <- function(level = 2,
 #' @name recursive_triangle_mask_surface_helpers
 NULL
 
-#' @rdname recursive_triangle_mask_surface_helpers
-#' @export
+# @rdname recursive_triangle_mask_surface_helpers
+# @noRd
 recursive.triangle.mask.surface.embedding <- function(mask = mask.triangle.classic(),
                                                       level = 2,
                                                       surface = c("flat", "saddle",
@@ -8558,8 +8536,8 @@ recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic()
 #' run from top to bottom and columns run from left to right. Non-zero entries
 #' are retained at each recursive subdivision step.
 #'
-#' `recursive.mask.grid.surface.embedding()` returns the 3D coordinates of the
-#' occupied cells in the same vertex order as \code{edges.recursive.mask.grid()}.
+#' The `coords_surface` component contains the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges}.
 #' `recursive.mask.grid.surface.graph()` returns a reusable weighted-graph
 #' bundle containing the masked-grid edges, induced edge weights, the 3D
 #' surface coordinates, and the 2D parameter coordinates of the occupied cells.
@@ -8581,7 +8559,7 @@ recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic()
 #'   \code{"median"}, \code{"mean"}, or \code{"none"}.
 #'
 #' @return
-#' \code{recursive.mask.grid.surface.embedding()} returns an \code{n x 3}
+#' The \code{coords_surface} component is an \code{n x 3}
 #' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 #'
 #' \code{recursive.mask.grid.surface.graph()} returns a list with components:
@@ -8605,8 +8583,8 @@ recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic()
 #' @name recursive_mask_grid_surface_helpers
 NULL
 
-#' @rdname recursive_mask_grid_surface_helpers
-#' @export
+# @rdname recursive_mask_grid_surface_helpers
+# @noRd
 recursive.mask.grid.surface.embedding <- function(mask,
                                                   level = 2,
                                                   surface = c("saddle", "paraboloid", "ripple"),
@@ -8710,15 +8688,15 @@ recursive.mask.grid.surface.graph <- function(mask,
 #' Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
 #' classic \eqn{3 \times 3} carpet mask with the center cell removed.
 #'
-#' `sierpinski.carpet.surface.embedding()` returns the 3D coordinates of the
+#' The `coords_surface` component contains the 3D coordinates of the
 #' occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
 #' `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
 #' for the named Sierpinski carpet family.
 #'
-#' @inheritParams recursive.mask.grid.surface.embedding
+#' @inheritParams recursive.mask.grid.surface.graph
 #'
 #' @return
-#' \code{sierpinski.carpet.surface.embedding()} returns an \code{n x 3} numeric
+#' The \code{coords_surface} component is an \code{n x 3} numeric
 #' matrix with columns \code{x}, \code{y}, and \code{z}, where
 #' \code{n = 8^level}.
 #'
@@ -8729,8 +8707,8 @@ recursive.mask.grid.surface.graph <- function(mask,
 #' @name sierpinski_carpet_surface_helpers
 NULL
 
-#' @rdname sierpinski_carpet_surface_helpers
-#' @export
+# @rdname sierpinski_carpet_surface_helpers
+# @noRd
 sierpinski.carpet.surface.embedding <- function(level = 2,
                                                 surface = c("saddle", "paraboloid", "ripple"),
                                                 amplitude = 0.75,
@@ -8786,15 +8764,15 @@ sierpinski.carpet.surface.graph <- function(level = 2,
 #' neighbors. This produces a mesh-derived fractal family with strong
 #' bottlenecks while remaining orthogonally connected at every level.
 #'
-#' `vicsek.surface.embedding()` returns the 3D coordinates of the occupied
-#' cells in the same vertex order as \code{edges.vicsek()}.
+#' The `coords_surface` component contains the 3D coordinates of the occupied
+#' cells in the same vertex order as \code{edges}.
 #' `vicsek.surface.graph()` returns a reusable weighted-graph bundle for the
 #' named Vicsek family.
 #'
-#' @inheritParams recursive.mask.grid.surface.embedding
+#' @inheritParams recursive.mask.grid.surface.graph
 #'
 #' @return
-#' \code{vicsek.surface.embedding()} returns an \code{n x 3} numeric matrix
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
 #' with columns \code{x}, \code{y}, and \code{z}, where \code{n = 5^level}.
 #'
 #' \code{vicsek.surface.graph()} returns the same components as
@@ -8804,8 +8782,8 @@ sierpinski.carpet.surface.graph <- function(level = 2,
 #' @name vicsek_surface_helpers
 NULL
 
-#' @rdname vicsek_surface_helpers
-#' @export
+# @rdname vicsek_surface_helpers
+# @noRd
 vicsek.surface.embedding <- function(level = 2,
                                      surface = c("saddle", "paraboloid", "ripple"),
                                      amplitude = 0.75,
@@ -8890,24 +8868,24 @@ edges.torus <- function(h, w = h) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
-#' @describeIn graph_generators Deterministically irregular tetrahedralized ball
-#'   graph built from nested subdivided polyhedral shells connected by a
-#'   layered prism-to-tetrahedra edge pattern.
-#' @param base Base polyhedron for \code{edges.triangulated.polyhedron()},
-#'   \code{edges.irregular.ball()}, and \code{edges.irregular.shell()}. One of
-#'   \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
-#' @param level Surface subdivision depth used by \code{edges.irregular.ball()}
-#'   and \code{edges.irregular.shell()}.
-#' @param layers Number of non-center radial layers for
-#'   \code{edges.irregular.ball()} and number of inner-to-outer layers for
-#'   \code{edges.irregular.shell()}.
-#' @param outer_radius Positive outer radius for \code{edges.irregular.ball()}
-#'   and \code{edges.irregular.shell()}.
-#' @param radial_irregularity Radial layer-spacing irregularity level for
-#'   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
-#' @param layer_twist Finite z-axis twist applied across radial layers in
-#'   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
-#' @export
+# @describeIn graph_generators Deterministically irregular tetrahedralized ball
+#   graph built from nested subdivided polyhedral shells connected by a
+#   layered prism-to-tetrahedra edge pattern.
+# @param base Base polyhedron for \code{edges.triangulated.polyhedron()},
+#   \code{edges.irregular.ball()}, and \code{edges.irregular.shell()}. One of
+#   \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
+# @param level Surface subdivision depth used by \code{edges.irregular.ball()}
+#   and \code{edges.irregular.shell()}.
+# @param layers Number of non-center radial layers for
+#   \code{edges.irregular.ball()} and number of inner-to-outer layers for
+#   \code{edges.irregular.shell()}.
+# @param outer_radius Positive outer radius for \code{edges.irregular.ball()}
+#   and \code{edges.irregular.shell()}.
+# @param radial_irregularity Radial layer-spacing irregularity level for
+#   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+# @param layer_twist Finite z-axis twist applied across radial layers in
+#   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+# @noRd
 edges.irregular.ball <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
                                  level = 1,
                                  layers = 3,
@@ -8924,11 +8902,11 @@ edges.irregular.ball <- function(base = c("tetrahedron", "octahedron", "icosahed
   )$edges
 }
 
-#' @describeIn graph_generators Deterministically irregular tetrahedralized shell
-#'   graph built from nested subdivided polyhedral shells connected by a
-#'   layered prism-to-tetrahedra edge pattern.
-#' @param inner_radius Positive inner radius for \code{edges.irregular.shell()}.
-#' @export
+# @describeIn graph_generators Deterministically irregular tetrahedralized shell
+#   graph built from nested subdivided polyhedral shells connected by a
+#   layered prism-to-tetrahedra edge pattern.
+# @param inner_radius Positive inner radius for \code{edges.irregular.shell()}.
+# @noRd
 edges.irregular.shell <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
                                   level = 1,
                                   layers = 3,
@@ -8947,17 +8925,17 @@ edges.irregular.shell <- function(base = c("tetrahedron", "octahedron", "icosahe
   )$edges
 }
 
-#' @describeIn graph_generators Deterministically irregular torus graph built
-#'   from major-cycle rings with varying sample counts and stitched into a
-#'   locally triangulated closed surface.
-#' @param major_rings Number of cyclic major rings for
-#'   \code{edges.irregular.torus()}.
-#' @param tube_count Approximate number of vertices around each minor cycle for
-#'   \code{edges.irregular.torus()} and around each tube-like loop for
-#'   \code{edges.irregular.double.torus()}.
-#' @param major_irregularity Major-angle ring-spacing irregularity level for
-#'   \code{edges.irregular.torus()}.
-#' @export
+# @describeIn graph_generators Deterministically irregular torus graph built
+#   from major-cycle rings with varying sample counts and stitched into a
+#   locally triangulated closed surface.
+# @param major_rings Number of cyclic major rings for
+#   \code{edges.irregular.torus()}.
+# @param tube_count Approximate number of vertices around each minor cycle for
+#   \code{edges.irregular.torus()} and around each tube-like loop for
+#   \code{edges.irregular.double.torus()}.
+# @param major_irregularity Major-angle ring-spacing irregularity level for
+#   \code{edges.irregular.torus()}.
+# @noRd
 edges.irregular.torus <- function(major_rings = 8,
                                   tube_count = 16,
                                   count_irregularity = 0.2,
@@ -8972,9 +8950,9 @@ edges.irregular.torus <- function(major_rings = 8,
   )$edges
 }
 
-#' @describeIn graph_generators Sphere surface graph with \code{h} latitude
-#'   levels (including the poles) and wrapped longitude \code{w}.
-#' @export
+# @describeIn graph_generators Sphere surface graph with \code{h} latitude
+#   levels (including the poles) and wrapped longitude \code{w}.
+# @noRd
 edges.sphere <- function(h, w = h) {
   h <- .as_whole_number(h, "h", min = 3L)
   w <- .as_whole_number(w, "w", min = 3L)
@@ -9001,56 +8979,56 @@ edges.sphere <- function(h, w = h) {
   .normalize_undirected_edges(.bind_edges(edges))
 }
 
-#' @describeIn graph_generators Deterministically irregular annulus graph built
-#'   from concentric sample rings with varying sample counts and stitched into a
-#'   locally triangulated surface-with-boundary graph.
-#' @param rings Number of concentric sample rings for
-#'   \code{edges.irregular.annulus()}.
-#' @param outer_count Approximate number of vertices on the outer boundary for
-#'   \code{edges.irregular.annulus()} and across the widest slices for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param outer_radius Positive outer annulus radius for
-#'   \code{edges.irregular.annulus()} and positive outer boundary radius for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param inner_radius Positive inner annulus radius for
-#'   \code{edges.irregular.annulus()}.
-#' @param equator_count Approximate number of vertices near the equator for
-#'   \code{edges.irregular.sphere()}.
-#' @param count_irregularity Irregularity level for sample counts in
-#'   \code{edges.irregular.torus()}, \code{edges.irregular.annulus()},
-#'   \code{edges.irregular.pair.of.pants()},
-#'   \code{edges.irregular.double.torus()}, and \code{edges.irregular.sphere()}.
-#' @param radial_irregularity Within-ring radial irregularity level for
-#'   \code{edges.irregular.annulus()}.
-#' @param phase_twist Angular phase offset used to desynchronize neighboring
-#'   rings, slice samples, or latitude bands in the irregular torus,
-#'   irregular annulus, irregular pair-of-pants, irregular double torus,
-#'   and irregular sphere families.
-#' @param bands Number of non-pole latitude bands for
-#'   \code{edges.irregular.sphere()}.
-#' @param lat_irregularity Latitude-band spacing irregularity level for
-#'   \code{edges.irregular.sphere()}.
-#' @param slices Number of horizontal sample slices for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param hole_radius Positive radius of each interior hole for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param hole_offset Positive horizontal offset of the two hole centers for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param hole_height Shared vertical coordinate of the two hole centers for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param vertical_irregularity Slice-spacing irregularity level for
-#'   \code{edges.irregular.pair.of.pants()}.
-#' @param branch_length Half-length of the three-loop central region for
-#'   \code{edges.irregular.double.torus()}.
-#' @param branch_offset Offset of the outer loop centers from the middle loop
-#'   for \code{edges.irregular.double.torus()}.
-#' @param tube_radius Baseline radius of each tube-like loop for
-#'   \code{edges.irregular.double.torus()}.
-#' @param transition_width Width of the single-loop to three-loop transition
-#'   regions for \code{edges.irregular.double.torus()}.
-#' @param axial_irregularity Slice-spacing irregularity level for
-#'   \code{edges.irregular.double.torus()}.
-#' @export
+# @describeIn graph_generators Deterministically irregular annulus graph built
+#   from concentric sample rings with varying sample counts and stitched into a
+#   locally triangulated surface-with-boundary graph.
+# @param rings Number of concentric sample rings for
+#   \code{edges.irregular.annulus()}.
+# @param outer_count Approximate number of vertices on the outer boundary for
+#   \code{edges.irregular.annulus()} and across the widest slices for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param outer_radius Positive outer annulus radius for
+#   \code{edges.irregular.annulus()} and positive outer boundary radius for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param inner_radius Positive inner annulus radius for
+#   \code{edges.irregular.annulus()}.
+# @param equator_count Approximate number of vertices near the equator for
+#   \code{edges.irregular.sphere()}.
+# @param count_irregularity Irregularity level for sample counts in
+#   \code{edges.irregular.torus()}, \code{edges.irregular.annulus()},
+#   \code{edges.irregular.pair.of.pants()},
+#   \code{edges.irregular.double.torus()}, and \code{edges.irregular.sphere()}.
+# @param radial_irregularity Within-ring radial irregularity level for
+#   \code{edges.irregular.annulus()}.
+# @param phase_twist Angular phase offset used to desynchronize neighboring
+#   rings, slice samples, or latitude bands in the irregular torus,
+#   irregular annulus, irregular pair-of-pants, irregular double torus,
+#   and irregular sphere families.
+# @param bands Number of non-pole latitude bands for
+#   \code{edges.irregular.sphere()}.
+# @param lat_irregularity Latitude-band spacing irregularity level for
+#   \code{edges.irregular.sphere()}.
+# @param slices Number of horizontal sample slices for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole_radius Positive radius of each interior hole for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole_offset Positive horizontal offset of the two hole centers for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole_height Shared vertical coordinate of the two hole centers for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param vertical_irregularity Slice-spacing irregularity level for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param branch_length Half-length of the three-loop central region for
+#   \code{edges.irregular.double.torus()}.
+# @param branch_offset Offset of the outer loop centers from the middle loop
+#   for \code{edges.irregular.double.torus()}.
+# @param tube_radius Baseline radius of each tube-like loop for
+#   \code{edges.irregular.double.torus()}.
+# @param transition_width Width of the single-loop to three-loop transition
+#   regions for \code{edges.irregular.double.torus()}.
+# @param axial_irregularity Slice-spacing irregularity level for
+#   \code{edges.irregular.double.torus()}.
+# @noRd
 edges.irregular.annulus <- function(rings = 6,
                                     outer_count = 28,
                                     outer_radius = 1,
@@ -9069,10 +9047,10 @@ edges.irregular.annulus <- function(rings = 6,
   )$edges
 }
 
-#' @describeIn graph_generators Deterministically irregular pair-of-pants graph
-#'   built from horizontal slice intervals with varying sample counts and
-#'   stitched into a locally triangulated surface-with-boundary graph.
-#' @export
+# @describeIn graph_generators Deterministically irregular pair-of-pants graph
+#   built from horizontal slice intervals with varying sample counts and
+#   stitched into a locally triangulated surface-with-boundary graph.
+# @noRd
 edges.irregular.pair.of.pants <- function(slices = 11,
                                           outer_count = 28,
                                           outer_radius = 1.1,
@@ -9095,10 +9073,10 @@ edges.irregular.pair.of.pants <- function(slices = 11,
   )$edges
 }
 
-#' @describeIn graph_generators Deterministically irregular double-torus graph
-#'   built from cyclic slices whose cross-sections follow a `1 -> 3 -> 1` loop
-#'   transition between two poles.
-#' @export
+# @describeIn graph_generators Deterministically irregular double-torus graph
+#   built from cyclic slices whose cross-sections follow a `1 -> 3 -> 1` loop
+#   transition between two poles.
+# @noRd
 edges.irregular.double.torus <- function(slices = 11,
                                          tube_count = 14,
                                          branch_length = 0.85,
@@ -9121,10 +9099,10 @@ edges.irregular.double.torus <- function(slices = 11,
   )$edges
 }
 
-#' @describeIn graph_generators Deterministically irregular sphere graph built
-#'   from latitude bands with varying sample counts and stitched into a locally
-#'   triangulated closed surface.
-#' @export
+# @describeIn graph_generators Deterministically irregular sphere graph built
+#   from latitude bands with varying sample counts and stitched into a locally
+#   triangulated closed surface.
+# @noRd
 edges.irregular.sphere <- function(bands = 6,
                                    equator_count = 28,
                                    count_irregularity = 0.2,
@@ -9142,8 +9120,6 @@ edges.irregular.sphere <- function(bands = 6,
 #' @describeIn graph_generators Cube surface graph on the boundary of a
 #'   \code{side x side x side} lattice.
 #' @param side Number of lattice points along each cube edge.
-#' @param base Base polyhedron for \code{edges.triangulated.polyhedron()}. One
-#'   of \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
 #' @export
 edges.cube <- function(side = 2) {
   side <- .as_whole_number(side, "side", min = 2L)
@@ -9325,59 +9301,59 @@ kary.tree.weighted.graph <- function(
   out
 }
 
-#' @describeIn graph_generators Recursively refined square-mask grid graph whose
-#'   vertices are occupied cells and whose edges connect orthogonally adjacent
-#'   cells.
-#' @param mask Keep-mask describing which recursive cells are retained. For
-#'   \code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
-#'   or numeric keep-matrix whose non-zero entries are kept at each recursive
-#'   subdivision step. For
-#'   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
-#'   four-entry vector in \code{left}, \code{right}, \code{top},
-#'   \code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
-#'   \code{mask} must be a four-entry vector in \code{base_left},
-#'   \code{base_right}, \code{base_back}, \code{apex} order. For
-#'   \code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
-#'   or numeric keep-array whose non-zero entries are kept at each recursive
-#'   subdivision step.
-#' @param level Recursion depth. For \code{edges.recursive.mask.grid()},
-#'   \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
-#'   \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
-#'   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
-#'   \code{edges.recursive.tetrahedron.mask()}, and
-#'   \code{edges.triangulated.polyhedron()} also allow \code{level = 0}.
-#' @export
+# @describeIn graph_generators Recursively refined square-mask grid graph whose
+#   vertices are occupied cells and whose edges connect orthogonally adjacent
+#   cells.
+# @param mask Keep-mask describing which recursive cells are retained. For
+#   \code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
+#   or numeric keep-matrix whose non-zero entries are kept at each recursive
+#   subdivision step. For
+#   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
+#   four-entry vector in \code{left}, \code{right}, \code{top},
+#   \code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
+#   \code{mask} must be a four-entry vector in \code{base_left},
+#   \code{base_right}, \code{base_back}, \code{apex} order. For
+#   \code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
+#   or numeric keep-array whose non-zero entries are kept at each recursive
+#   subdivision step.
+# @param level Recursion depth. For \code{edges.recursive.mask.grid()},
+#   \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
+#   \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
+#   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
+#   \code{edges.recursive.tetrahedron.mask()}, and
+#   \code{edges.triangulated.polyhedron()} also allow \code{level = 0}.
+# @noRd
 edges.recursive.mask.grid <- function(mask, level = 2) {
   .recursive.mask.grid.edges(mask, level)
 }
 
-#' @describeIn graph_generators Recursively refined triangle-mask graph whose
-#'   vertices are the retained subdivision vertices of an equilateral triangle.
-#' @export
+# @describeIn graph_generators Recursively refined triangle-mask graph whose
+#   vertices are the retained subdivision vertices of an equilateral triangle.
+# @noRd
 edges.recursive.triangle.mask <- function(mask = mask.triangle.classic(), level = 2) {
   .recursive.triangle.mask.canonical(mask, level)$edges
 }
 
-#' @describeIn graph_generators Recursively refined tetrahedron-mask graph whose
-#'   vertices are the retained subdivision vertices of a tetrahedron.
-#' @export
+# @describeIn graph_generators Recursively refined tetrahedron-mask graph whose
+#   vertices are the retained subdivision vertices of a tetrahedron.
+# @noRd
 edges.recursive.tetrahedron.mask <- function(mask = mask.tetrahedron.classic(),
                                              level = 2) {
   .recursive.tetrahedron.mask.canonical(mask, level)$edges
 }
 
-#' @describeIn graph_generators Recursively refined cube-mask graph whose
-#'   vertices are occupied subcubes and whose edges connect face-adjacent
-#'   occupied cells.
-#' @export
+# @describeIn graph_generators Recursively refined cube-mask graph whose
+#   vertices are occupied subcubes and whose edges connect face-adjacent
+#   occupied cells.
+# @noRd
 edges.recursive.cube.mask <- function(mask, level = 2) {
   .recursive.cube.mask.edges(mask, level)
 }
 
-#' @describeIn graph_generators Triangulated closed-surface graph obtained by
-#'   repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
-#'   icosahedron.
-#' @export
+# @describeIn graph_generators Triangulated closed-surface graph obtained by
+#   repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
+#   icosahedron.
+# @noRd
 edges.triangulated.polyhedron <- function(
     base = c("tetrahedron", "octahedron", "icosahedron"),
     level = 1) {
@@ -9385,23 +9361,23 @@ edges.triangulated.polyhedron <- function(
   .triangulated.polyhedron.canonical(base = base, level = level)$edges
 }
 
-#' @describeIn graph_generators Triangulated annulus graph obtained by clipping
-#'   a regular triangular lattice to the region between two concentric circles.
-#' @param resolution Positive lattice-resolution control used by
-#'   \code{edges.triangulated.annulus()} and
-#'   \code{edges.triangulated.pair.of.pants()}.
-#' @param outer_radius Positive outer boundary radius for
-#'   \code{edges.triangulated.annulus()} and
-#'   \code{edges.triangulated.pair.of.pants()}.
-#' @param inner_radius Positive inner annulus radius for
-#'   \code{edges.triangulated.annulus()}.
-#' @param hole_radius Positive radius of each interior hole for
-#'   \code{edges.triangulated.pair.of.pants()}.
-#' @param hole_offset Positive horizontal offset of the two hole centers for
-#'   \code{edges.triangulated.pair.of.pants()}.
-#' @param hole_height Shared vertical coordinate of the two hole centers for
-#'   \code{edges.triangulated.pair.of.pants()}.
-#' @export
+# @describeIn graph_generators Triangulated annulus graph obtained by clipping
+#   a regular triangular lattice to the region between two concentric circles.
+# @param resolution Positive lattice-resolution control used by
+#   \code{edges.triangulated.annulus()} and
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param outer_radius Positive outer boundary radius for
+#   \code{edges.triangulated.annulus()} and
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param inner_radius Positive inner annulus radius for
+#   \code{edges.triangulated.annulus()}.
+# @param hole_radius Positive radius of each interior hole for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param hole_offset Positive horizontal offset of the two hole centers for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param hole_height Shared vertical coordinate of the two hole centers for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @noRd
 edges.triangulated.annulus <- function(resolution = 12,
                                        outer_radius = 1,
                                        inner_radius = 0.45) {
@@ -9412,10 +9388,10 @@ edges.triangulated.annulus <- function(resolution = 12,
   )$edges
 }
 
-#' @describeIn graph_generators Triangulated pair-of-pants graph obtained by
-#'   clipping a regular triangular lattice to a disk with two interior circular
-#'   holes.
-#' @export
+# @describeIn graph_generators Triangulated pair-of-pants graph obtained by
+#   clipping a regular triangular lattice to a disk with two interior circular
+#   holes.
+# @noRd
 edges.triangulated.pair.of.pants <- function(resolution = 12,
                                              outer_radius = 1.1,
                                              hole_radius = 0.24,
@@ -9430,25 +9406,25 @@ edges.triangulated.pair.of.pants <- function(resolution = 12,
   )$edges
 }
 
-#' @describeIn graph_generators Connected Vicsek-style cross family derived from
-#'   a \code{3 x 3} axial-cross keep-mask.
-#' @export
+# @describeIn graph_generators Connected Vicsek-style cross family derived from
+#   a \code{3 x 3} axial-cross keep-mask.
+# @noRd
 edges.vicsek <- function(level = 2) {
   edges.recursive.mask.grid(.vicsek.mask(), level = level)
 }
 
-#' @describeIn graph_generators Classic Menger-sponge cubical cell-adjacency
-#'   graph derived from the \code{3 x 3 x 3} keep-mask that removes the center
-#'   cube and the six face-center cubes at each recursion step.
-#' @export
+# @describeIn graph_generators Classic Menger-sponge cubical cell-adjacency
+#   graph derived from the \code{3 x 3 x 3} keep-mask that removes the center
+#   cube and the six face-center cubes at each recursion step.
+# @noRd
 edges.menger.sponge <- function(level = 2) {
   edges.recursive.cube.mask(.menger.sponge.mask(), level = level)
 }
 
-#' @describeIn graph_generators Periodic cubical tunnel family derived from a
-#'   repeated tunnel-band keep-mask. The classic Menger sponge appears as the
-#'   \code{side = 3}, \code{tunnel_width = 1} special case.
-#' @export
+# @describeIn graph_generators Periodic cubical tunnel family derived from a
+#   repeated tunnel-band keep-mask. The classic Menger sponge appears as the
+#   \code{side = 3}, \code{tunnel_width = 1} special case.
+# @noRd
 edges.cube.periodic.tunnels <- function(level = 2,
                                         side = 5,
                                         tunnel_width = 1,
@@ -9465,9 +9441,9 @@ edges.cube.periodic.tunnels <- function(level = 2,
   )
 }
 
-#' @describeIn graph_generators Cubical porous family with two offset interior
-#'   cavity blocks repeated recursively.
-#' @export
+# @describeIn graph_generators Cubical porous family with two offset interior
+#   cavity blocks repeated recursively.
+# @noRd
 edges.cube.asymmetric.cavities <- function(level = 2,
                                            side = 5,
                                            cavity_size = 2,
@@ -9482,9 +9458,9 @@ edges.cube.asymmetric.cavities <- function(level = 2,
   )
 }
 
-#' @describeIn graph_generators Cubical porous family with a deterministic
-#'   branched channel network carved through each recursive block.
-#' @export
+# @describeIn graph_generators Cubical porous family with a deterministic
+#   branched channel network carved through each recursive block.
+# @noRd
 edges.cube.channel.network <- function(level = 2,
                                        side = 5,
                                        channel_width = 1,

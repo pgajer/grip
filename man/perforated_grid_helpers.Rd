@@ -88,6 +88,6 @@ A logical occupancy matrix whose \code{TRUE} entries represent
 }
 \description{
 Convenience constructors for finite occupied grids with non-random holes or
-channels. These matrices can be passed to \code{\link{edges.occupied.mesh}()}
-or \code{\link{occupied.mesh.surface.graph}()}.
+channels. These matrices can be passed to
+\code{\link{occupied.mesh.surface.graph}()}.
 }

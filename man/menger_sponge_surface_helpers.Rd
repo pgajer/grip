@@ -2,21 +2,9 @@
 % Please edit documentation in R/graph_helpers.R
 \name{menger_sponge_surface_helpers}
 \alias{menger_sponge_surface_helpers}
-\alias{menger.sponge.surface.embedding}
 \alias{menger.sponge.surface.graph}
 \title{Weighted Menger sponge surface helpers}
 \usage{
-menger.sponge.surface.embedding(
-  level = 2,
-  surface = c("standard", "bulged", "twisted", "wavy"),
-  amplitude = 0.2,
-  freq = 2,
-  twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1
-)
-
 menger.sponge.surface.graph(
   level = 2,
   surface = c("standard", "bulged", "twisted", "wavy"),
@@ -56,7 +44,7 @@ coordinates.}
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 }
 \value{
-\code{menger.sponge.surface.embedding()} returns an \code{n x 3} numeric
+The \code{coords_surface} component is an \code{n x 3} numeric
 matrix with columns \code{x}, \code{y}, and \code{z}, where
 \code{n = 20^level}.
 

@@ -21,7 +21,6 @@ A named logical vector of length 4.
 }
 \description{
 Convenience constructors for the four-corner tetrahedron masks used by
-\code{\link{edges.recursive.tetrahedron.mask}()} and
 \code{\link{recursive.tetrahedron.mask.surface.graph}()}. The slots
 correspond to the four corner subtetrahedra created by one barycentric
 refinement of a tetrahedron.

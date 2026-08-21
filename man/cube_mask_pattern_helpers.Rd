@@ -46,7 +46,6 @@ A logical cubic keep-array.
 }
 \description{
 Convenience constructors for cubic keep-arrays that can be passed to
-\code{\link{edges.recursive.cube.mask}()} or
 \code{\link{recursive.cube.mask.surface.graph}()} to build cubical porous
 benchmark families. These helpers encode three qualitatively different void
 patterns: repeated tunnel lattices, interior asymmetric cavities, and
