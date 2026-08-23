@@ -54,7 +54,14 @@ out.path <- Sys.getenv(
   unset = default_output
 )
 
-library(grip)
+if (is_source_checkout) {
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("Package 'pkgload' is required when running from a source checkout.")
+  }
+  pkgload::load_all(source_root, quiet = TRUE, export_all = FALSE, helpers = FALSE)
+} else {
+  library(grip)
+}
 library(igraph)
 library(graphlayouts)
 
@@ -64,6 +71,35 @@ cat("Precomputing benchmark results for grip-vs-alternatives article...\n")
 
 as_coord_matrix <- function(layout_result) {
   matrix(as.numeric(layout_result), ncol = ncol(layout_result))
+}
+
+benchmark_repeats <- 5L
+
+time_layout <- function(layout_function, repeats = benchmark_repeats, seed = 1L) {
+  elapsed <- numeric(repeats)
+  first_coords <- NULL
+  for (i in seq_len(repeats)) {
+    set.seed(seed)
+    invisible(gc(FALSE))
+    started <- proc.time()[["elapsed"]]
+    coords <- as_coord_matrix(layout_function())
+    elapsed[[i]] <- proc.time()[["elapsed"]] - started
+    if (is.null(first_coords)) first_coords <- coords
+  }
+  list(
+    coords = first_coords,
+    elapsed.sec = elapsed,
+    elapsed.sec.median = stats::median(elapsed),
+    elapsed.sec.iqr = stats::IQR(elapsed)
+  )
+}
+
+system_value <- function(command, args) {
+  value <- tryCatch(
+    system2(command, args, stdout = TRUE, stderr = FALSE),
+    error = function(e) character(0L)
+  )
+  if (!length(value)) NA_character_ else paste(trimws(value), collapse = " ")
 }
 
 score_layout <- function(coords, edges, n,
@@ -266,64 +302,141 @@ results$carpet <- list(
   )
 )
 
-## ---- Benchmark 4: HMP microbial network ----------------------------
-cat("  HMP microbial network...\n")
+## ---- Benchmark 4: weighted saddle mesh ------------------------------
+cat("  Weighted saddle mesh...\n")
 
-data(hmp.u01.gc.coarse)
-hmp.adj   <- hmp.u01.gc.coarse$adj_list
-hmp.wt    <- hmp.u01.gc.coarse$weight_list
-hmp.n     <- length(hmp.adj)
-hmp.cst   <- hmp.u01.gc.coarse$vertex_data$cst
-hmp.edges <- edge.matrix.from.adj(hmp.adj)
-hmp.m     <- nrow(hmp.edges)
-hmp.ig    <- graph_from_edgelist(hmp.edges, directed = FALSE)
+saddle.graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
+saddle.ig <- graph_from_edgelist(saddle.graph$edges, directed = FALSE)
+E(saddle.ig)$weight <- saddle.graph$edge_weights
 
-set.seed(1); hmp.time.fr      <- system.time(hmp.fr     <- as_coord_matrix(layout_with_fr(hmp.ig)))
-set.seed(1); hmp.time.drl     <- system.time(hmp.drl    <- as_coord_matrix(layout_with_drl(hmp.ig)))
-set.seed(1); hmp.time.stress  <- system.time(hmp.stress <- as_coord_matrix(layout_with_stress(hmp.ig)))
-hmp.time.grip.default <- system.time(
-  hmp.grip.default <- grip(
-    adj_list = hmp.adj, weight_list = hmp.wt, n = hmp.n, dim = 2, seed = 1))
+saddle.grip.combinatorial <- grip(
+  saddle.graph$edges, n = saddle.graph$n, dim = 3, preset = "mesh", seed = 1
+)
+saddle.grip.weighted <- grip(
+  saddle.graph$edges, n = saddle.graph$n,
+  edge_weights = saddle.graph$edge_weights,
+  dim = 3, preset = "mesh", metric = "edge_length", seed = 1
+)
+saddle.grip.lgkk <- grip(
+  saddle.graph$edges, n = saddle.graph$n,
+  edge_weights = saddle.graph$edge_weights,
+  dim = 3, preset = "mesh", metric = "edge_length",
+  lgkk_polish_rounds = 6L, seed = 1
+)
+set.seed(1)
+saddle.kk.weighted <- as_coord_matrix(layout_with_kk(
+  saddle.ig,
+  weights = saddle.graph$edge_weights,
+  dim = 3
+))
 
-hmp.scores <- rbind(
-  cbind(method = "FR (igraph)",
-        score_layout(hmp.fr, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "DrL (igraph)",
-        score_layout(hmp.drl, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "Stress (graphlayouts)",
-        score_layout(hmp.stress, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never")),
-  cbind(method = "grip default",
-        score_layout(hmp.grip.default, hmp.edges, hmp.n,
-                     clusters = hmp.cst, edge.crossings = "never"))
+saddle.prepared <- prepare.geodesic.kk(
+  saddle.graph$edges,
+  n = saddle.graph$n,
+  edge_weights = saddle.graph$edge_weights
+)
+saddle.layouts <- list(
+  "Combinatorial GRIP" = saddle.grip.combinatorial,
+  "Weighted GRIP" = saddle.grip.weighted,
+  "Weighted GRIP + LGKK polish" = saddle.grip.lgkk,
+  "Weighted KK (igraph)" = saddle.kk.weighted
+)
+saddle.scores <- do.call(rbind, lapply(names(saddle.layouts), function(method) {
+  cbind(
+    method = method,
+    score.geodesic.kk(saddle.layouts[[method]], prepared = saddle.prepared)
+  )
+}))
+
+results$weighted_saddle <- list(
+  n = saddle.graph$n,
+  m = nrow(saddle.graph$edges),
+  edges = saddle.graph$edges,
+  edge_weights = saddle.graph$edge_weights,
+  target_coords = saddle.graph$coords_surface,
+  scores = saddle.scores,
+  layouts = saddle.layouts
 )
 
+## ---- Benchmark 5: HMP microbial network ----------------------------
+cat("  HMP microbial network...\n")
+
+data(hmp.gc)
+hmp.adj   <- hmp.gc$adj_list
+hmp.wt    <- hmp.gc$weight_list
+hmp.n     <- length(hmp.adj)
+hmp.edges <- edge.matrix.from.adj(hmp.adj)
+hmp.m     <- nrow(hmp.edges)
+## This benchmark isolates topology-oriented layout. The igraph object has no
+## edge-weight attribute, all four layout calls therefore ignore the PCA edge
+## lengths, and score.layout() evaluates hop-distance stress.
+hmp.ig    <- graph_from_edgelist(hmp.edges, directed = FALSE)
+
+hmp.timed <- list(
+  "FR (igraph)" = time_layout(function() layout_with_fr(hmp.ig)),
+  "DrL (igraph)" = time_layout(function() layout_with_drl(hmp.ig)),
+  "Stress (graphlayouts)" = time_layout(function() layout_with_stress(hmp.ig)),
+  "grip default (hop)" = time_layout(function() {
+    grip(adj_list = hmp.adj, n = hmp.n, dim = 2, seed = 1)
+  })
+)
+hmp.layouts <- lapply(hmp.timed, `[[`, "coords")
+
+hmp.scores <- do.call(rbind, lapply(names(hmp.layouts), function(method) {
+  cbind(
+    method = method,
+    score_layout(
+      hmp.layouts[[method]], hmp.edges, hmp.n,
+      edge.crossings = "never"
+    )
+  )
+}))
+
 hmp.timing <- data.frame(
-  method = c("FR (igraph)", "DrL (igraph)",
-             "Stress (graphlayouts)", "grip default"),
-  elapsed.sec = c(hmp.time.fr[["elapsed"]],
-                  hmp.time.drl[["elapsed"]],
-                  hmp.time.stress[["elapsed"]],
-                  hmp.time.grip.default[["elapsed"]])
+  method = names(hmp.timed),
+  n.runs = benchmark_repeats,
+  elapsed.sec.median = vapply(hmp.timed, `[[`, numeric(1L), "elapsed.sec.median"),
+  elapsed.sec.iqr = vapply(hmp.timed, `[[`, numeric(1L), "elapsed.sec.iqr"),
+  stringsAsFactors = FALSE
 )
 
 results$hmp <- list(
   n = hmp.n, m = hmp.m,
-  cst = hmp.cst,
   edges = hmp.edges,
+  graph_metric = "hop distance; edge weights ignored by all benchmark methods",
   scores = hmp.scores,
   timing = hmp.timing,
-  layouts = list(
-    fr = hmp.fr, drl = hmp.drl,
-    stress = hmp.stress,
-    grip.default = hmp.grip.default
-  )
+  layouts = hmp.layouts
 )
 
 ## ---- save ----------------------------------------------------------
 results$session_info <- utils::sessionInfo()
+blas_path <- extSoftVersion()[["BLAS"]]
+if (!is.na(blas_path) && nzchar(blas_path)) {
+  r_home <- normalizePath(R.home(), winslash = "/", mustWork = TRUE)
+  blas_path <- sub(r_home, "<R_HOME>", blas_path, fixed = TRUE)
+}
+results$benchmark_metadata <- list(
+  repeats = benchmark_repeats,
+  timing_statistic = "median elapsed seconds; IQR also retained",
+  seed_policy = "each repeat resets the layout RNG seed to 1",
+  cpu = system_value("sysctl", c("-n", "machdep.cpu.brand_string")),
+  hardware_model = system_value("sysctl", c("-n", "hw.model")),
+  memory_bytes = system_value("sysctl", c("-n", "hw.memsize")),
+  system = Sys.info(),
+  r_version = R.version.string,
+  platform = R.version$platform,
+  blas = blas_path,
+  package_versions = c(
+    grip = if (is_source_checkout) {
+      unname(read.dcf(description_path, fields = "Version")[[1L]])
+    } else {
+      as.character(utils::packageVersion("grip"))
+    },
+    igraph = as.character(utils::packageVersion("igraph")),
+    graphlayouts = as.character(utils::packageVersion("graphlayouts"))
+  )
+)
 
 out.dir <- dirname(out.path)
 if (!dir.exists(out.dir)) dir.create(out.dir, recursive = TRUE)

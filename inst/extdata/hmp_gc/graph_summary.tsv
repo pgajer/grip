@@ -1,0 +1,9 @@
+quantity	value
+source_rows	6536
+hmp_illumina_rows	4411
+usable_vertices	4411
+giant_component_vertices	4391
+graph_edges	9067
+discarded_components	3
+retained_features	169
+selected_k	3

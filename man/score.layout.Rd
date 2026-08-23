@@ -68,6 +68,17 @@ drawing tool. For real-world graphs, quality is judged by graph-distance
 faithfulness, edge-length consistency, separation of non-neighbors, and
 optionally edge crossings or cluster separation.
 }
+\details{
+The sampled stress is scale invariant. For sampled pairs \eqn{p}, let
+\eqn{d_p} be graph distance and \eqn{e_p} be Euclidean layout distance. The
+fitted scale is \eqn{a = \sum_p e_p d_p / \sum_p d_p^2}, and the reported
+value is \eqn{\sqrt{\sum_p(e_p-a d_p)^2 / \sum_p e_p^2}}. Edge-length CV is
+the standard deviation divided by the mean of embedded edge lengths. The
+sampled non-edge separation ratio is the minimum sampled non-edge distance
+divided by the median embedded edge length. Cluster separation is the mean
+pairwise distance between group centroids divided by the mean within-group
+radius.
+}
 \examples{
 edges <- edges.mesh(5, 5)
 coords <- grip(edges, n = 25, dim = 2, preset = "mesh", seed = 1)

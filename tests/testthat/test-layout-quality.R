@@ -24,6 +24,26 @@ test_that("score.layout returns the expected metrics", {
   )]))))
 })
 
+test_that("sampled stress is invariant to global coordinate scale", {
+  edges <- edges.path(8)
+  coords <- cbind(seq_len(8), sin(seq_len(8)))
+  base <- score.layout(
+    coords,
+    edges = edges,
+    n = 8,
+    sample.size.stress = 100L,
+    stress.seed = 11L
+  )$sampled.stress[[1L]]
+  scaled <- score.layout(
+    7.5 * coords,
+    edges = edges,
+    n = 8,
+    sample.size.stress = 100L,
+    stress.seed = 11L
+  )$sampled.stress[[1L]]
+  expect_equal(scaled, base, tolerance = 1e-12)
+})
+
 test_that("score.layout counts 2D edge crossings exactly", {
   coords <- matrix(c(
     0, 0,
