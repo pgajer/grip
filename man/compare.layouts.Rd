@@ -88,6 +88,15 @@ run with \code{\link{score.layout}()}, and summarizes both quality
 metrics and seed-to-seed stability. This is the main real-data workflow for
 graphs where no canonical embedding is known.
 }
+\details{
+Procrustes stability is the mean pairwise root-mean-square vertex distance
+after centering each layout, scaling it to unit maximum radius, and applying
+the optimal orthogonal rotation or reflection. The default composite score
+converts each available summary metric to average ranks on \eqn{[0,1]},
+reverses ranks for higher-is-better metrics, applies the documented weights,
+and renormalizes the weights after omitting unavailable metrics. Lower
+composite scores are better.
+}
 \examples{
 edges <- edges.path(5)
 cmp <- compare.layouts(

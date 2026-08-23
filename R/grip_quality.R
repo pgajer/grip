@@ -4521,7 +4521,11 @@ grip.sampled.stress <- function(coords,
     return(NA_real_)
   }
   scale.factor <- sum(ed * gd) / denom
-  sqrt(mean((ed - scale.factor * gd)^2))
+  layout.denom <- sum(ed * ed)
+  if (!is.finite(layout.denom) || layout.denom <= 0) {
+    return(NA_real_)
+  }
+  sqrt(sum((ed - scale.factor * gd)^2) / layout.denom)
 }
 
 grip.sampled.nonedge.sep.ratio <- function(coords,
@@ -5151,6 +5155,16 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
 #' faithfulness, edge-length consistency, separation of non-neighbors, and
 #' optionally edge crossings or cluster separation.
 #'
+#' The sampled stress is scale invariant. For sampled pairs \eqn{p}, let
+#' \eqn{d_p} be graph distance and \eqn{e_p} be Euclidean layout distance. The
+#' fitted scale is \eqn{a = \sum_p e_p d_p / \sum_p d_p^2}, and the reported
+#' value is \eqn{\sqrt{\sum_p(e_p-a d_p)^2 / \sum_p e_p^2}}. Edge-length CV is
+#' the standard deviation divided by the mean of embedded edge lengths. The
+#' sampled non-edge separation ratio is the minimum sampled non-edge distance
+#' divided by the median embedded edge length. Cluster separation is the mean
+#' pairwise distance between group centroids divided by the mean within-group
+#' radius.
+#'
 #' @param coords Numeric coordinate matrix with 2 or 3 columns.
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices. If omitted with \code{adj_list}, defaults to
@@ -5254,6 +5268,14 @@ score.layout <- function(coords,
 #' run with \code{\link{score.layout}()}, and summarizes both quality
 #' metrics and seed-to-seed stability. This is the main real-data workflow for
 #' graphs where no canonical embedding is known.
+#'
+#' Procrustes stability is the mean pairwise root-mean-square vertex distance
+#' after centering each layout, scaling it to unit maximum radius, and applying
+#' the optimal orthogonal rotation or reflection. The default composite score
+#' converts each available summary metric to average ranks on \eqn{[0,1]},
+#' reverses ranks for higher-is-better metrics, applies the documented weights,
+#' and renormalizes the weights after omitting unavailable metrics. Lower
+#' composite scores are better.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.

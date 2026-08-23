@@ -1,5 +1,5 @@
 ---
-title: "`grip`: Multiscale Graph Layout and Geodesic Embedding Tools in R"
+title: "grip: Multiscale Graph Layout and Geodesic Embedding Tools in R"
 author:
   - name: Pawel Gajer
     affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
@@ -12,7 +12,7 @@ author:
     orcid: ~
     email: ~
 abstract: >
-  \pkg{grip} is an R package for multiscale graph layout and experimental
+  grip is an R package for multiscale graph layout and experimental
   graph-geodesic embedding tools in 2D and 3D. Its stable interface brings the
   GRIP algorithm to R through a C++ core, with an explicit choice between hop
   distance and edge length as the graph metric and trace diagnostics for the
@@ -23,8 +23,13 @@ abstract: >
   current objectives and approximations rather than a definitive geodesic
   multidimensional scaling method. Presets, graph generators, and common
   scoring functions support reproducible comparison of candidate embeddings.
-  This article describes \pkg{grip} 0.2.0 and illustrates its stable and experimental
-  interfaces on synthetic weighted graphs and a microbial network.
+  In a broader data-to-embedding workflow, grip addresses the
+  graph-to-embedding stage, downstream of graph construction tools such as the
+  companion dgraphs package.
+  A shared benchmark illustrates interoperability with igraph and
+  graphlayouts. This article describes grip 0.2.0 and illustrates
+  its stable and experimental interfaces on structured graphs, a synthetic
+  weighted graph, and an HMP-only Illumina 16S microbial network.
 preamble: |
   \usepackage{amsmath}
   \usepackage{xcolor}
@@ -56,7 +61,7 @@ preamble: |
     \apptocmd{\maketitle}{\grippaperbuildstamp}{}{}
   \fi
   \makeatother
-date: "2026-08-21"
+date: "2026-08-23"
 date_received: ~
 journal:
   firstpage: 1
@@ -81,6 +86,11 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
+if (!requireNamespace("grip", quietly = TRUE) ||
+    utils::packageVersion("grip") < "0.2.0") {
+  stop("This article requires grip 0.2.0 or later.")
+}
+
 paper.table.colnames <- c(
   graph = "Graph",
   candidate = "Cand",
@@ -90,6 +100,8 @@ paper.table.colnames <- c(
   `n.edges` = "nE",
   `n.runs` = "Runs",
   `elapsed.sec.mean` = "Sec",
+  `elapsed.sec.median` = "MedSec",
+  `elapsed.sec.iqr` = "IQR",
   `score.composite` = "Comp",
   `sampled.stress` = "Stress",
   `sampled.stress.mean` = "Stress",
@@ -97,12 +109,9 @@ paper.table.colnames <- c(
   `edge.length.cv.mean` = "EdgeCV",
   `sampled.nonedge.sep.ratio` = "NESR",
   `sampled.nonedge.sep.ratio.mean` = "NESR",
-  `cluster.separation` = "ClSep",
-  `cluster.separation.mean` = "ClSep",
   `stability.procrustes.mean` = "PStab",
   `edge.crossings` = "Cross",
   `gkk.weighted.rel.rmse` = "GKK Rel",
-  `gkk.weighted.rmse` = "GKK RMSE",
   `gkk.mean.rel.path.error` = "Path Rel"
 )
 
@@ -193,7 +202,8 @@ plot_layout_panel <- function(coords,
                               projection = NULL,
                               vertex.col = "black",
                               edge.col = "gray82",
-                              cex = 0.5) {
+                              cex = 0.5,
+                              ...) {
   plot.layout(
     coords, edges,
     projection = projection,
@@ -201,8 +211,38 @@ plot_layout_panel <- function(coords,
     edge.col = edge.col,
     pch = 16,
     cex = cex,
+    main = main,
+    ...
+  )
+}
+
+align_to_reference <- function(coords, reference) {
+  centered <- sweep(coords, 2, colMeans(coords), "-", check.margin = FALSE)
+  target <- sweep(reference, 2, colMeans(reference), "-", check.margin = FALSE)
+  rotation.svd <- svd(crossprod(centered, target))
+  rotation <- rotation.svd$u %*% t(rotation.svd$v)
+  scale <- sum(rotation.svd$d) / sum(centered^2)
+  sweep(scale * centered %*% rotation, 2, colMeans(reference), "+", check.margin = FALSE)
+}
+
+plot_common_projection <- function(coords,
+                                   edges,
+                                   main,
+                                   xlim,
+                                   ylim,
+                                   vertex.col = "black") {
+  plot(
+    coords[, 1], coords[, 2],
+    type = "n", asp = 1, axes = FALSE,
+    xlab = "", ylab = "", xlim = xlim, ylim = ylim,
     main = main
   )
+  segments(
+    coords[edges[, 1], 1], coords[edges[, 1], 2],
+    coords[edges[, 2], 1], coords[edges[, 2], 2],
+    col = "gray82"
+  )
+  points(coords[, 1], coords[, 2], pch = 16, cex = 0.55, col = vertex.col)
 }
 
 edge.matrix.from.adj <- function(adj.list) {
@@ -221,35 +261,65 @@ edge.matrix.from.adj <- function(adj.list) {
 
 # Introduction
 
-Graph layouts are generally designed for readability, but their coordinates
-may also be interpreted geometrically. In weighted graphs,
-these aims can conflict: a visually clear layout may distort edge lengths and
-shortest-path relationships. \pkg{grip} addresses both through a stable
-multiscale interface for 2D and 3D graph layout and experimental tools for
-assessing graph-geodesic fidelity.
+Many data-analysis workflows represent observations by a graph and then
+represent that graph in low-dimensional coordinates. Either step can alter the
+geometry: graph construction specifies the edges and weights that induce the
+graph's intrinsic shortest-path geometry, whereas an embedding places the
+vertices in an ambient Euclidean space and thereby induces a second geometry
+through Euclidean chord lengths and embedded graph-path lengths. The question
+of fidelity therefore has two parts: how closely the graph-geodesic structure
+reflects the geometry in the data that the analysis is intended to preserve,
+and how closely the geometry induced by the embedding represents the graph's
+intrinsic geometry. The \CRANpkg{dgraphs} package addresses the first question,
+whereas \CRANpkg{grip} focuses on the second [@gajer2026dgraphs]. The companion
+packages separate these stages:
+
+$$
+X \xrightarrow{\texttt{dgraphs}} G
+  \xrightarrow{\texttt{grip}} Z.
+$$
+
+Within this division of responsibility, \CRANpkg{grip} begins with a supplied
+graph, whether produced by \CRANpkg{dgraphs} or another source. It generates,
+traces, scores, compares, and experimentally refines embeddings. These
+operations support two drawing aims that can conflict in weighted graphs:
+readability and faithful representation of edge lengths and shortest-path
+relationships. This article focuses on that downstream package.
 
 The stable interface implements the original GRIP algorithm [@gajer2002;
 @gajer2004] in a C++ core accessed from R through Rcpp [@eddelbuettel2011].
 GRIP constructs a hierarchy of maximal independent sets, places vertices
 from coarse to fine resolution, and refines the layout locally at each
-level. This hierarchy is what makes it fast enough in practice to generate
-and compare multiple 2D and 3D candidate layouts for graphs with hundreds to
-thousands of vertices. The interface also makes the graph metric explicit:
+level. This hierarchy makes it practical to generate and compare multiple 2D
+and 3D candidate layouts for graphs with hundreds to thousands of vertices.
+The original GRIP refinement is computationally localized rather than global:
+intermediate filtration levels use Kamada--Kawai (KK)-style forces over
+restricted neighborhoods, and the final level uses Fruchterman--Reingold
+refinement [@gajer2002; @kamada1989; @fruchterman1991]. GRIP therefore draws on
+KK geometry without optimizing the classical global all-pairs KK objective.
+The interface also makes the graph metric explicit:
 hop distance supports topology-oriented layouts, whereas edge length allows
 weighted graph geometry to guide the layout.
 
-A separate, explicitly experimental layer provides geodesic variants of the
-Kamada--Kawai (KK) algorithm [@kamada1989]. These methods assess or refine fixed
-input shortest paths by comparing their embedded lengths with the corresponding
-graph distances. They provide concrete objectives for studying graph-geodesic
-fidelity, but they do not yet constitute a general geodesic multidimensional
-scaling method.
+GRIP belongs to a broader multilevel graph-drawing tradition. Related methods
+construct coarse graph hierarchies by matching, clustering, or graph-distance
+sampling and then refine layouts from coarse to fine resolution
+[@harel2002; @walshaw2003; @hachul2005; @hu2005]. The methods differ in their
+coarsening rules, force approximations, and refinement objectives; the package
+contribution here is an R interface to the GRIP maximal-independent-set
+hierarchy rather than a claim that multilevel layout is unique to GRIP.
 
-Within the R ecosystem, \pkg{igraph} provides general-purpose layouts
-[@csardi2006; @igraph2026], \pkg{ggraph} supplies a plotting grammar
-[@pedersen2025], and \pkg{graphlayouts} provides additional layout
-algorithms [@schoch2023]. The contribution of \pkg{grip} is the integration
-of fast multiscale layout, weighted graph geometry, reproducible layout
+A separate, explicitly experimental layer provides geodesic variants of KK.
+These methods assess or refine fixed input shortest paths by comparing their
+embedded lengths with the corresponding graph distances. They provide concrete
+objectives for studying graph-geodesic fidelity, but they do not yet constitute
+a general geodesic multidimensional scaling method.
+
+Within the R ecosystem, \CRANpkg{igraph} provides general-purpose layouts
+[@csardi2006; @igraph2026], \CRANpkg{ggraph} supplies a plotting grammar
+[@pedersen2025], and \CRANpkg{graphlayouts} provides additional layout
+algorithms [@schoch2023]. The contribution of \CRANpkg{grip} is the integration
+of multiscale candidate generation, weighted graph geometry, reproducible layout
 assessment that also applies to layouts computed elsewhere, and experimental
 fixed-path geodesic diagnostics. This article describes the layout and trace
 interfaces, family-specific presets and graph generators, runtime
@@ -271,16 +341,16 @@ return an $n \times d$ numeric matrix of coordinates, where $d$ is 2 or 3.
 ```{r api-summary, echo=FALSE}
 api.summary <- data.frame(
   Function = c(
-    "grip(metric = \"hop\")",
-    "grip(metric = \"edge_length\")",
-    "trace.grip(metric = \"hop\")",
-    "trace.grip(metric = \"edge_length\")"
+    "grip(): hop",
+    "grip(): edge length",
+    "trace.grip(): hop",
+    "trace.grip(): edge length"
   ),
   Purpose = c(
-    "Combinatorial multiscale layout",
+    "Multiscale layout",
     "Weighted multiscale layout",
-    "Combinatorial layout with per-level snapshots",
-    "Weighted layout with per-level snapshots"
+    "Layout with per-level snapshots",
+    "Weighted layout with snapshots"
   ),
   `Graph metric` = c("Hop", "Edge length", "Hop", "Edge length"),
   check.names = FALSE
@@ -311,9 +381,6 @@ calling patterns is shown below.
 
 ```{r api-examples, echo=TRUE}
 library(grip)
-if (utils::packageVersion("grip") < "0.2.0") {
-  stop("This article requires grip 0.2.0 or later.")
-}
 
 edges <- edges.mesh(8, 8)
 coords.mesh <- grip(edges, n = 64, dim = 2, preset = "mesh", seed = 1)
@@ -336,6 +403,15 @@ neighborhood size, repulsion strength, and the random seed. The package also
 packs disconnected components by default, so disconnected graphs can still be
 laid out with a single call.
 
+The stable default solve does not invoke the geodesic-KK research layer. The
+`lgkk_polish_rounds` argument and other `lgkk_*` multiscale controls explicitly
+opt a `grip()` or `trace.grip()` call into experimental landmark-geodesic
+refinement when nonzero. These controls retain the stable input and output types,
+but their numerical semantics are not part of the stable contract.
+`plot.layout()` is a registered S3 method; `trace.grip()` and `score.layout()`
+are standalone functions whose dot-delimited names predate the current
+snake-case argument convention.
+
 ## From graph layout to graph-geodesic fidelity
 
 Let $G=(V,E,\ell)$ be a connected weighted graph and let
@@ -346,7 +422,7 @@ in Kamada--Kawai graph drawing [@kamada1989]. This criterion concerns the
 straight chord between the coordinates, even when the target distance was
 defined by a path through the graph.
 
-The experimental geodesic-KK functions in \pkg{grip} instead prepare an input
+The experimental geodesic-KK functions in \CRANpkg{grip} instead prepare an input
 shortest path $P_{ij}$ and measure its length after embedding,
 
 $$
@@ -354,7 +430,15 @@ L_Z(P_{ij}) = \sum_{(u,v)\in P_{ij}} \lVert z_u-z_v\rVert_2.
 $$
 
 They compare $L_Z(P_{ij})$ with the corresponding input graph distance, up to
-a fitted or specified global scale. By default, preparation retains one
+a fitted or specified global scale. With graph distances $g_p$, embedded path
+lengths $h_p$, and Kamada--Kawai weights $k_p=1/g_p^2$, the default profiled
+scale is the weighted least-squares solution
+
+$$
+L_0 = \frac{\sum_p k_p g_p h_p}{\sum_p k_p g_p^2}.
+$$
+
+All examples in this article use this profiled mode. By default, preparation retains one
 deterministic shortest path for each evaluated pair; an alternative mode
 averages exactly over tied input shortest paths. The paths are fixed during
 scoring and optimization rather than recomputed after every coordinate update.
@@ -366,6 +450,16 @@ low-dimensional embedding, however, exact preservation may be impossible, and
 a low geodesic-KK score establishes fidelity only to the prepared graph metric
 and path family. It does not by itself establish recovery of an unknown
 underlying data geometry.
+
+This objective is related to, but distinct from, geodesic multidimensional
+scaling. Isomap applies classical MDS to shortest-path distance estimates
+[@tenenbaum2000], and its landmark variants reduce the cost by using a subset
+of reference points [@desilva2002]. Stress majorization and PivotMDS likewise
+optimize or approximate chord-distance representations of graph distances
+[@gansner2005; @brandes2007]. The criterion above instead compares each fixed
+input path's length *after embedding* with its graph length. Its landmark
+approximation inherits the scalability motivation of landmark MDS, but not its
+chord-distance objective.
 
 ## Stable and experimental interfaces
 
@@ -389,9 +483,9 @@ family.scope <- data.frame(
   ),
   Purpose = c(
     "Primary layout and trace interface.",
-    "All-pairs fixed-path scoring and gradient polish.",
-    "Sparse fixed-path scoring and warm-started polish.",
-    "Coarse-to-fine geodesic optimization and scoring."
+    "All-pairs path scoring and polish.",
+    "Landmark path scoring and polish.",
+    "Multiscale path scoring and polish."
   ),
   check.names = FALSE
 )
@@ -410,12 +504,20 @@ accessible_kable(
 ```
 
 The stable entry points are `grip()` and `trace.grip()`. The full experimental
-family consists of `prepare.geodesic.kk()`, `score.geodesic.kk()`, and
-`geodesic.kk()`; corresponding landmark and MISF families use the same
-prepare--score--optimize pattern. The landmark family retains a sparse set of
-pairs for scalable evaluation and warm-started polish. The MISF family adds
+family has separate preparation, scoring, and optimization entry points:
+`prepare.geodesic.kk()`, `score.geodesic.kk()`, and `geodesic.kk()`.
+Corresponding landmark geodesic Kamada--Kawai (LGKK) and
+maximal-independent-set filtration (MISF) families use the same
+prepare--score--optimize pattern. LGKK retains, by default, the 20 nearest
+graph-metric neighbors and eight deterministic farthest-point landmarks per
+vertex. The MISF family adds
 coarsening, a top-level geodesic solve, coarse-to-fine insertion, anchored
 active-level refinement, and final geodesic polish.
+
+Experimental functions and opt-in `lgkk_*` controls may change as the research
+interface develops. Such changes are recorded in `NEWS`; deprecation periods
+are provided where feasible, but only the stable entry points and their default
+behavior carry the package's compatibility commitment.
 
 ## Presets, tracing, and graph families
 
@@ -475,110 +577,38 @@ par(op)
 
 The package also ships graph generators for regular grids, trees, recursive
 families such as Sierpinski carpets, and weighted geometric families generated
-from surfaces. These are helpful for examples, regression tests, and
-family-specific benchmarking.
+from surfaces. They provide examples, regression fixtures, and controlled
+benchmarks for the graph-to-embedding interfaces. They are not substitutes for
+data-driven graph construction, which is upstream of the problem addressed by
+\CRANpkg{grip}.
 
-## Representative runtime scale
-
-Table \@ref(tab:runtime-scale) gives the runtime regime the package targets,
-using three representative layouts that cover both 2D and 3D settings. The
-torus row is evaluated directly in the paper build; the larger carpet and HMP
-rows use bundled precomputed artifacts.
-
-```{r runtime-scale}
+```{r precomputed-artifacts, include=FALSE}
 benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
-hmp.results <- read.extdata.rds("hmp_u01_gc_coarse", "vignette_results.rds")
-
-torus.edges <- edges.torus(20, 20)
-torus.elapsed <- system.time(
-  torus.coords <- grip(
-    torus.edges,
-    n = max(torus.edges),
-    dim = 3,
-    preset = "torus",
-    seed = 1
-  )
-)[["elapsed"]]
-torus.score <- score.layout(
-  torus.coords,
-  edges = torus.edges,
-  n = max(torus.edges),
-  sample.size.stress = 2000L,
-  sample.size.nonedge = 2000L,
-  edge.crossings = "never"
-)
-
-carpet.runtime <- merge(
-  benchmark.results$carpet$scores[
-    benchmark.results$carpet$scores$method == "grip carpet preset",
-    c("method", "n.vertices", "n.edges", "dim", "sampled.stress")
-  ],
-  benchmark.results$carpet$timing[
-    benchmark.results$carpet$timing$method == "grip carpet preset",
-    c("method", "elapsed.sec")
-  ],
-  by = "method"
-)
-
-hmp.default <- hmp.results$preset_summary[
-  hmp.results$preset_summary$candidate == "default",
-  ,
-  drop = FALSE
-]
-
-runtime.scale <- data.frame(
-  graph = c("20x20 torus", "Carpet level 4", "HMP/U01 coarse"),
-  dim = c(3L, carpet.runtime$dim, 3L),
-  `n.vertices` = c(max(torus.edges), carpet.runtime$n.vertices, 1828L),
-  `n.edges` = c(nrow(torus.edges), carpet.runtime$n.edges, 4656L),
-  context = c(
-    "Single 3D preset solve",
-    "Single 2D preset solve",
-    "Bundled weighted 3D default candidate"
-  ),
-  elapsed.sec = c(
-    unname(torus.elapsed),
-    carpet.runtime$elapsed.sec,
-    hmp.default$elapsed.sec.mean
-  ),
-  sampled.stress = c(
-    torus.score$sampled.stress[[1L]],
-    carpet.runtime$sampled.stress,
-    hmp.default$sampled.stress.mean
-  ),
-  check.names = FALSE
-)
-
-paper_kable(
-  runtime.scale,
-  caption = paper_table_caption(
-    "Representative 2D and 3D runtime scale for grip.",
-    "nV = number of vertices; nE = number of edges; Sec = elapsed seconds; Stress = sampled stress."
-  ),
-  alt = paste(
-    "Three rows report graph size, embedding dimension, execution context,",
-    "elapsed time, and sampled stress for a torus, Sierpinski carpet, and",
-    "coarsened HMP network."
-  ),
-  digits = 3
-)
 ```
 
-These rows show the practical regime the package is designed for: graphs with
-hundreds to thousands of vertices, including 3D embeddings and a weighted
-real-data example, are laid out in seconds.
+The original GRIP studies considered substantially larger graphs than the
+examples in this article [@gajer2002; @gajer2004]. In the R package, the layout
+solve remains practical beyond the low-thousands regime, but all-pairs graph
+distances, experimental geodesic preparation, repeated scoring, and exact
+crossing counts can become the limiting steps before the multiscale solve
+itself. The scaled benchmark below therefore reports layout time separately
+from scoring time and keeps exact crossings disabled.
 
-# Layout assessment workflow
+# Assessing and refining candidate embeddings
 
-\pkg{grip} treats layout selection as a measurable choice. Users can score
-candidate layouts, compare them across seeds, and inspect the trade-offs
-between graph families and layout objectives.
+\CRANpkg{grip} separates candidate generation from assessment. A candidate may be
+produced by `grip()`, by one of the package's experimental embedding functions,
+or by another R package. It can then be evaluated with the same diagnostics,
+compared across random seeds or parameter choices, and, when appropriate,
+passed to an experimental refinement step. This separation makes the package
+useful as an evaluation framework rather than only as a collection of layout
+engines.
 
-## Quality metrics
+## General layout diagnostics
 
-Table \@ref(tab:metrics-table) summarizes the metrics returned by
-`score.layout()`. The package uses them directly for single-layout scoring
-and for aggregate comparisons across seeds in `compare.layouts()`.
+Table \@ref(tab:metrics-table) lists the diagnostics used in this article from
+`score.layout()`. `compare.layouts()` applies the same scoring function to
+multiple candidates and summarizes repeated seeded runs.
 
 ```{r metrics-table, echo=FALSE}
 metrics.table <- data.frame(
@@ -587,18 +617,16 @@ metrics.table <- data.frame(
     "Edge-length CV",
     "Sampled non-edge separation",
     "Edge crossings",
-    "Cluster separation",
     "Procrustes stability"
   ),
   Meaning = c(
-    "Agreement between layout distances and graph distances",
-    "Uniformity of edge lengths",
-    "Breathing room between non-neighbors",
-    "Readability in 2D",
-    "Separation of known external groups",
-    "Seed-to-seed reproducibility"
+    "Chord agreement with graph distances",
+    "Variation among embedded edges",
+    "Spacing of sampled non-neighbors",
+    "2D segment intersections",
+    "Across-seed reproducibility"
   ),
-  Better = c("Lower", "Lower", "Higher", "Lower", "Higher", "Lower"),
+  Better = c("Lower", "Lower", "Higher", "Lower", "Lower"),
   check.names = FALSE
 )
 
@@ -606,27 +634,126 @@ accessible_kable(
   metrics.table,
   row.names = FALSE,
   align = c("l", "l", "l"),
-  caption = "Quality metrics used by score.layout().",
+  caption = "General layout diagnostics used in the examples.",
   alt = paste(
-    "Six rows define sampled stress, edge-length variation, non-edge",
-    "separation, edge crossings, cluster separation, and Procrustes stability,",
-    "and indicate whether lower or higher values are preferred."
+    "Five rows define sampled stress, edge-length variation, non-edge",
+    "separation, edge crossings, and Procrustes stability, and indicate",
+    "whether lower or higher values are preferred."
   ),
   position = "H"
 )
 ```
 
-`compare.layouts()` runs multiple candidates across seeds, computes these
-metrics for each run, and returns both run-level and summary-level results. The
-summary includes mean quality metrics, a rank-based composite score, and a
-Procrustes stability estimate when multiple seeds are used.
+For sampled stress, let $S$ be the unique unordered vertex pairs obtained from
+uniform pair sampling, $g_p$ the graph distance, and $e_p$ the Euclidean layout
+distance for $p\in S$. The implementation fits
+$a=\sum_{p\in S}e_pg_p/\sum_{p\in S}g_p^2$ and reports the scale-invariant
+quantity
 
-## Evidence for family-specific presets
+$$
+\operatorname{Stress}_S =
+\sqrt{\frac{\sum_{p\in S}(e_p-a g_p)^2}{\sum_{p\in S}e_p^2}}.
+$$
 
-To make the preset claims concrete, Table \@ref(tab:preset-benchmark) compares
-the default layout settings with package-supplied presets on two structured
-families, each run across three seeds. The results are generated directly in
-the paper build.
+The examples use 2,000 sampled pairs unless stated otherwise. Edge-length CV is
+the standard deviation divided by the mean of embedded edge lengths. Sampled
+non-edge separation is the minimum distance among up to 5,000 sampled
+non-edges divided by the median embedded edge length. Edge crossings count
+strict intersections between nonincident segments in 2D; `"auto"` computes
+them for at most 1,000 edges, `"always"` overrides that threshold, and
+`"never"` skips the calculation. Procrustes stability is the mean pairwise
+vertex RMSE after centering each seeded layout, scaling it to unit maximum
+radius, and applying the optimal orthogonal rotation or reflection. The paper
+reports the component diagnostics rather than a composite rank because their
+relative importance depends on the analysis.
+Because sampled non-edge separation depends on graph size, the number of
+sampled non-edges, and the sampled pairs, it should be compared only for the
+same graph under the same sampling protocol; it is not a graph-independent
+quality scale.
+
+## Graph-geodesic diagnostics and refinement
+
+The general diagnostics above concern layout quality and chord-distance
+agreement. The experimental graph-geodesic interface asks a different
+question: how well an embedding preserves the metric of a fixed input graph
+when graph paths are measured after embedding. Table
+\@ref(tab:assessment-functions) shows how the principal functions fit into a
+generate--assess--refine workflow.
+
+```{r assessment-functions, echo=FALSE}
+assessment.functions <- data.frame(
+  Task = c(
+    "Generate candidate",
+    "Assess layout",
+    "Prepare graph paths",
+    "Assess geodesic fidelity",
+    "Prepare edge targets",
+    "Refine candidate"
+  ),
+  Function = c(
+    "grip()",
+    "score.layout(), compare.layouts()",
+    "prepare.geodesic.kk()",
+    "score.gmds(), score.geodesic.kk()",
+    "prepare.edge.kk()",
+    "geodesic.kk(), edge.kk()"
+  ),
+  check.names = FALSE
+)
+
+accessible_kable(
+  assessment.functions,
+  row.names = FALSE,
+  align = c("l", "l"),
+  caption = "Package functions in the candidate generation, assessment, and refinement workflow.",
+  alt = paste(
+    "Six rows map multiscale generation, general scoring, all-pairs path",
+    "preparation, graph-geodesic scoring, lightweight edge preparation, and",
+    "experimental refinement to grip functions."
+  ),
+  position = "H"
+)
+```
+
+`score.gmds()` supplies a common diagnostic panel for any coordinate matrix on
+a prepared graph. With an all-pairs preparation it reports edge fidelity,
+fixed-path geodesic stress, distance-band summaries, and ordinary
+metric-MDS chord stress. With the lightweight object returned by
+`prepare.edge.kk()`, only edge diagnostics are available; the all-pairs
+quantities are reported as unavailable. This distinction matters in practice:
+edge-only assessment and repair avoid a dense shortest-path matrix, whereas
+the full path-based diagnostics retain substantially more information and have
+correspondingly higher memory and runtime costs.
+
+The following executable example shows the lightweight
+prepare--score--refine pattern. Here `prepare.edge.kk()` avoids all-pairs path
+construction; `edge.kk()` returns refined coordinates and a diagnostic panel.
+
+```{r geodesic-workflow, echo=TRUE, results="hide"}
+cycle.edges <- edges.cycle(8)
+theta <- seq(0, 2 * pi, length.out = 9)[-9]
+initial <- cbind(1.4 * cos(theta), 0.7 * sin(theta))
+
+prepared <- prepare.edge.kk(cycle.edges, n = 8)
+before <- score.gmds(initial, prepared = prepared)
+fit <- edge.kk(
+  coords = initial,
+  prepared = prepared,
+  density_mix_schedule = 1,
+  max_iter = 4,
+  return_trace = FALSE
+)
+after <- score.gmds(fit$coords, prepared = prepared)
+```
+
+# Worked package workflows
+
+## Structured graph presets and tracing
+
+To make the preset behavior concrete, Table \@ref(tab:preset-benchmark)
+compares the default settings with package-supplied presets on two structured
+families, each run across ten seeds. The results are generated directly in the
+paper build.
 
 ```{r preset-benchmark}
 mesh.edges <- edges.mesh(12, 12)
@@ -635,7 +762,7 @@ mesh.compare <- compare.layouts(
   n = 144,
   dim = 2,
   candidates = c("default", "mesh"),
-  seeds = 1:3,
+  seeds = 1:10,
   edge.crossings = "always"
 )
 
@@ -646,7 +773,7 @@ carpet.compare <- compare.layouts(
   n = carpet.n,
   dim = 2,
   candidates = c("default", "carpet"),
-  seeds = 1:3,
+  seeds = 1:10,
   edge.crossings = "never"
 )
 
@@ -675,7 +802,7 @@ preset.benchmark <- preset.benchmark[order(preset.benchmark$graph, preset.benchm
 paper_kable(
   preset.benchmark,
   caption = paper_table_caption(
-    "Preset benchmark on two structured graph families, each averaged over three seeds.",
+    "Preset benchmark on two structured graph families, each averaged over ten seeds.",
     "Runs = number of seeds; Sec = mean elapsed seconds; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; NESR = sampled non-edge separation ratio; PStab = Procrustes stability."
   ),
   alt = paste(
@@ -687,319 +814,299 @@ paper_kable(
 )
 ```
 
-These results show why the presets matter. On both graph families, the
-package-supplied preset reduces sampled stress, improves edge-length
-uniformity, increases non-edge separation, and is substantially more stable
-across seeds. The runtime cost is small relative to the improvement in
-layout quality on these families. Figure \@ref(fig:carpet-figure) shows the
-corresponding carpet layouts.
+For these two controlled families, the package-supplied preset reduces sampled
+stress and edge-length variation and produces more reproducible layouts across
+seeds. PStab is itself the across-seed dispersion summary used for this
+comparison. The result is family-specific evidence for the supplied defaults, not a
+claim that one parameter profile is preferable for arbitrary graphs. Figure
+\@ref(fig:carpet-figure) shows the corresponding carpet layouts.
 
 ```{r carpet-figure, fig.cap="Level-3 Sierpinski carpet laid out with the default settings (left) and the carpet preset (right). The preset yields the lower-stress and more stable solution reported in the preceding benchmark table.", fig.alt="Two panels showing a Sierpinski carpet graph. The default layout is more distorted, while the preset layout better preserves the recursive holes.", fig.width=10, fig.height=4, fig.pos="H"}
 carpet.default.coords <- grip(carpet.edges, n = carpet.n, dim = 2, seed = 12)
 carpet.preset.coords <- grip(carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 12)
 
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
-plot_layout_panel(carpet.default.coords, carpet.edges, "Default", cex = 0.3)
-plot_layout_panel(carpet.preset.coords, carpet.edges, "Carpet preset", cex = 0.3)
+plot_layout_panel(
+  carpet.default.coords, carpet.edges, "Default", cex = 0.3,
+  axes = FALSE, xlab = "", ylab = ""
+)
+plot_layout_panel(
+  carpet.preset.coords, carpet.edges, "Carpet preset", cex = 0.3,
+  axes = FALSE, xlab = "", ylab = ""
+)
 par(op)
 ```
 
-# Worked examples
-
-## Weighted graph with geometric edge lengths
+## Fixed weighted graph: graph-geodesic assessment
 
 The edge-length metric is easiest to motivate on a graph whose topology is
 simple but whose geometry is not. The example below uses a $5 \times 5$ mesh
 whose edge lengths are induced by a curved saddle surface. The graph topology
 is unchanged, but the intended metric is no longer the flat grid metric.
 
-The comparison includes three candidates: the combinatorial layout, the
-weighted layout, and the weighted layout followed by a small amount of LGKK
-polish. The scoring uses `score.geodesic.kk()`, which evaluates the
-embedded lengths of fixed input shortest paths against the weighted graph
-metric.
+The comparison includes combinatorial and weighted GRIP layouts, the weighted
+layout followed by six experimental LGKK polish rounds, and the weighted
+three-dimensional Kamada--Kawai implementation in \CRANpkg{igraph}. All candidates
+use seed 1 and otherwise retain their package defaults. The graph is fixed
+before the candidates are generated, and `score.geodesic.kk()` evaluates their
+embedded fixed-path lengths against the same weighted graph metric. The example
+therefore illustrates the graph-to-embedding workflow; it does not evaluate
+how well the graph itself represents an underlying data set.
 
 ```{r weighted-summary}
-weighted.mesh <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
-
-coords.combinatorial <- grip(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  dim = 3,
-  preset = "mesh",
-  seed = 1
+weighted.saddle <- benchmark.results$weighted_saddle
+weighted.mesh <- list(
+  edges = weighted.saddle$edges,
+  n = weighted.saddle$n,
+  edge_weights = weighted.saddle$edge_weights,
+  coords_surface = weighted.saddle$target_coords
 )
 
-coords.weighted <- grip(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  metric = "edge_length",
-  seed = 1
-)
-
-coords.weighted.lgkk <- grip(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  metric = "edge_length",
-  lgkk_polish_rounds = 6L,
-  seed = 1
-)
-
-gkk.prepared <- prepare.geodesic.kk(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights
-)
+coords.combinatorial <- weighted.saddle$layouts[["Combinatorial GRIP"]]
+coords.weighted <- weighted.saddle$layouts[["Weighted GRIP"]]
+coords.weighted.lgkk <- weighted.saddle$layouts[["Weighted GRIP + LGKK polish"]]
+coords.weighted.kk <- weighted.saddle$layouts[["Weighted KK (igraph)"]]
 
 gkk.cols <- c(
   "gkk.weighted.rel.rmse",
-  "gkk.weighted.rmse",
   "gkk.mean.rel.path.error"
 )
 
-gkk.candidates <- list(
-  "Combinatorial GRIP" = coords.combinatorial,
-  "Weighted GRIP" = coords.weighted,
-  "Weighted GRIP + LGKK polish" = coords.weighted.lgkk
-)
-
-weighted.summary <- do.call(
-  rbind,
-  unname(Map(
-    function(method, coords) {
-      cbind(
-        method = method,
-        score.geodesic.kk(coords, prepared = gkk.prepared)[, gkk.cols]
-      )
-    },
-    names(gkk.candidates),
-    gkk.candidates
-  ))
-)
+weighted.summary <- weighted.saddle$scores[, c("method", gkk.cols)]
 
 paper_kable(
   weighted.summary,
   caption = paper_table_caption(
     "Weighted saddle-surface example scored with geodesic-KK criteria.",
-    "GKK Rel = weighted relative RMSE; GKK RMSE = weighted RMSE; Path Rel = mean relative path error."
+    "GKK Rel = weighted relative RMSE; Path Rel = mean relative path error."
   ),
   alt = paste(
-    "Three rows compare combinatorial GRIP, weighted GRIP, and weighted GRIP",
-    "with LGKK polish using weighted geodesic-KK error and relative path error."
+    "Four rows compare combinatorial GRIP, weighted GRIP, weighted GRIP with",
+    "LGKK polish, and weighted igraph Kamada-Kawai using geodesic-KK scores."
   ),
   digits = 3
 )
 ```
 
-On this example, the weighted solve lowers the weighted relative RMSE from
-`r round(weighted.summary$gkk.weighted.rel.rmse[1], 3)` to `r
-round(weighted.summary$gkk.weighted.rel.rmse[2], 3)`, and a short LGKK
-polish reduces it further to `r
-round(weighted.summary$gkk.weighted.rel.rmse[3], 3)`. The same interface
-solves a different layout problem when edge lengths, rather than hop counts,
-define graph geometry.
+The scale-normalized columns are comparable across solvers whose coordinate
+scales differ. The LGKK-polished candidate is optimized against the same
+fixed-path objective used for scoring, so its low value is an in-sample
+optimization result rather than independent validation. The comparison with
+weighted KK shows how the package can apply that criterion to a layout that
+was not optimized for it.
 
-```{r weighted-figure, fig.cap="Weighted mesh example. Top left: target saddle geometry. Top right: combinatorial GRIP. Bottom left: weighted GRIP. Bottom right: weighted GRIP followed by LGKK polish.", fig.alt="A four-panel comparison of a saddle-surface mesh showing the target geometry, the combinatorial layout, the weighted layout, and the weighted layout with LGKK polish.", fig.width=11.2, fig.height=7.2, fig.pos="H"}
-op <- par(mfrow = c(2, 2), mar = c(1, 1, 3, 1))
-plot_layout_panel(
-  weighted.mesh$coords_surface,
-  weighted.mesh$edges,
-  "Target geometry",
-  projection = "ortho",
-  vertex.col = "#666666"
-)
-plot_layout_panel(
-  coords.combinatorial,
-  weighted.mesh$edges,
-  "Combinatorial GRIP",
-  projection = "ortho"
-)
-plot_layout_panel(
-  coords.weighted,
-  weighted.mesh$edges,
-  "Weighted GRIP",
-  projection = "ortho",
-  vertex.col = "#1F3B73"
-)
-plot_layout_panel(
-  coords.weighted.lgkk,
-  weighted.mesh$edges,
-  "Weighted GRIP + LGKK",
-  projection = "ortho",
-  vertex.col = "#7A2E2E"
-)
-par(op)
-```
+Figure \@ref(fig:weighted-figure) also exposes a limitation of the criterion.
+Preserving the weighted graph paths does not uniquely determine the target's
+extrinsic curvature: a comparatively flat realization can have low path loss.
+The panels are similarity-aligned to the target and use one projection and one
+coordinate scale, so this difference is not a viewing-axis artifact.
 
-## Large real-data example: HMP microbial network
-
-The package bundles a coarsened graph derived from Human Microbiome Project
-data [@hmp2012]. The original giant connected component had 6,474 vertices;
-the bundled coarsened graph has 1,828 vertices and 4,656 edges, which is
-large enough to motivate automated candidate comparison.
-
-```{r hmp-data}
-data(hmp.u01.gc.coarse)
-
-cat("Vertices:", length(hmp.u01.gc.coarse$adj_list), "\n")
-cat("Edges:", nrow(edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)), "\n")
-cat(
-  "CST levels:",
-  paste(sort(unique(hmp.u01.gc.coarse$vertex_data$cst)), collapse = ", "),
-  "\n"
-)
-```
-
-The full HMP workflow uses repeated scoring and candidate comparison, so the
-package ships precomputed artifacts for the vignette and the paper. Even in
-that broader workflow, the bundled default weighted candidate runs in about
-`r round(hmp.results$preset_summary$elapsed.sec.mean[hmp.results$preset_summary$candidate == "default"], 1)`
-seconds. Table \@ref(tab:hmp-summary) reports three candidates: the default
-preset, the tree preset, and the strongest local-search candidate by
-cluster-separation score among the bundled precomputed results.
-
-```{r hmp-summary}
-hmp.local.best.idx <- which.max(hmp.results$local_search_summary$cluster.separation.mean)
-hmp.local.best <- hmp.results$local_search_summary[hmp.local.best.idx, , drop = FALSE]
-hmp.display <- rbind(
-  transform(
-    hmp.results$preset_summary[hmp.results$preset_summary$candidate == "default", , drop = FALSE],
-    candidate = "default"
+```{r weighted-figure, fig.cap="Weighted mesh example after similarity alignment to the target and display with a common orthographic projection and scale. Panels show the target geometry, combinatorial GRIP, weighted GRIP, weighted GRIP with LGKK polish, and weighted igraph KK.", fig.alt="Five consistently projected panels compare the target saddle mesh with combinatorial GRIP, weighted GRIP, LGKK-polished weighted GRIP, and weighted igraph Kamada-Kawai. The low-loss polished layout remains visibly flatter than the target.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
+weighted.layouts.aligned <- list(
+  "Target geometry" = weighted.mesh$coords_surface,
+  "Combinatorial GRIP" = align_to_reference(
+    coords.combinatorial, weighted.mesh$coords_surface
   ),
-  transform(
-    hmp.results$preset_summary[hmp.results$preset_summary$candidate == "tree", , drop = FALSE],
-    candidate = "tree"
+  "Weighted GRIP" = align_to_reference(
+    coords.weighted, weighted.mesh$coords_surface
   ),
-  transform(
-    hmp.local.best,
-    candidate = "local search"
+  "Weighted GRIP + LGKK" = align_to_reference(
+    coords.weighted.lgkk, weighted.mesh$coords_surface
+  ),
+  "Weighted KK (igraph)" = align_to_reference(
+    coords.weighted.kk, weighted.mesh$coords_surface
   )
 )
-
-hmp.display <- hmp.display[, c(
-  "candidate", "elapsed.sec.mean", "sampled.stress.mean",
-  "sampled.nonedge.sep.ratio.mean", "cluster.separation.mean",
-  "score.composite"
-)]
-
-paper_kable(
-  hmp.display,
-  caption = paper_table_caption(
-    "Precomputed candidate summary for the bundled HMP graph.",
-    "Sec = elapsed seconds; Stress = sampled stress; NESR = sampled non-edge separation ratio; ClSep = cluster separation; Comp = composite score."
-  ),
-  alt = paste(
-    "Three rows compare the default, tree, and local-search HMP layouts using",
-    "runtime, stress, non-edge separation, cluster separation, and composite",
-    "score."
-  ),
-  digits = 3
+weighted.projected <- lapply(
+  weighted.layouts.aligned,
+  project.3d,
+  azimuth = 35,
+  elevation = 22
 )
-```
+all.projected <- do.call(rbind, weighted.projected)
+xpad <- 0.05 * diff(range(all.projected[, 1]))
+ypad <- 0.05 * diff(range(all.projected[, 2]))
+common.xlim <- range(all.projected[, 1]) + c(-xpad, xpad)
+common.ylim <- range(all.projected[, 2]) + c(-ypad, ypad)
+weighted.colors <- c("#666666", "black", "#1F3B73", "#7A2E2E", "#3A6B35")
 
-The table shows a real trade-off. The default candidate is the fastest of the
-three and has the lowest sampled stress, while the tree and local-search
-candidates produce substantially larger cluster-separation scores. That is
-exactly the kind of choice the comparison workflow is meant to surface, and the
-package leaves the final selection explicit and evidence-based.
-
-```{r hmp-figure, fig.cap="Precomputed 3D layouts for the HMP microbial network, colored by community state type. Left: default candidate. Middle: tree preset. Right: best precomputed local-search candidate by cluster-separation score.", fig.alt="Three orthographic 3D network layouts of the HMP graph colored by community state type, comparing default, tree, and local-search candidates.", fig.width=11, fig.height=3.5, fig.pos="H"}
-hmp.edges <- edge.matrix.from.adj(hmp.u01.gc.coarse$adj_list)
-hmp.cst <- hmp.u01.gc.coarse$vertex_data$cst
-cst.levels <- sort(unique(hmp.cst))
-cst.cols <- setNames(grDevices::hcl.colors(length(cst.levels), "Dark 3"), cst.levels)
-hmp.vertex.cols <- cst.cols[hmp.cst]
-hmp.local.name <- as.character(hmp.results$local_search_summary$candidate[hmp.local.best.idx])
-
-op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
-plot_layout_panel(
-  hmp.results$layouts$preset$default,
-  hmp.edges,
-  "Default",
-  projection = "ortho",
-  vertex.col = hmp.vertex.cols,
-  cex = 0.45
-)
-plot_layout_panel(
-  hmp.results$layouts$preset$tree,
-  hmp.edges,
-  "Tree preset",
-  projection = "ortho",
-  vertex.col = hmp.vertex.cols,
-  cex = 0.45
-)
-plot_layout_panel(
-  hmp.results$layouts$local[[hmp.local.name]],
-  hmp.edges,
-  "Local search",
-  projection = "ortho",
-  vertex.col = hmp.vertex.cols,
-  cex = 0.45
-)
+op <- par(mfrow = c(2, 3), mar = c(1, 1, 3, 1))
+for (i in seq_along(weighted.projected)) {
+  plot_common_projection(
+    weighted.projected[[i]], weighted.mesh$edges,
+    names(weighted.projected)[[i]],
+    xlim = common.xlim, ylim = common.ylim,
+    vertex.col = weighted.colors[[i]]
+  )
+}
+plot.new()
 par(op)
 ```
 
-# Comparison with other R tools
+## Real-data network at package scale
 
-For package evaluation, the most useful comparison is not a checklist of
-features but an evidence-based benchmark. Table \@ref(tab:karate-benchmark)
-therefore uses bundled precomputed results on the Zachary karate club graph
-[@zachary1977], scored with the same layout-quality metrics for all methods.
+```{r hmp-data, include=FALSE}
+data(hmp.gc)
+hmp.edges <- edge.matrix.from.adj(hmp.gc$adj_list)
+hmp.info <- hmp.gc$graph_info
+hmp.data.summary <- data.frame(
+  Quantity = c(
+    "Explicitly labeled HMP Illumina samples",
+    "Samples in the giant component",
+    "Graph edges",
+    "Retained taxonomic features",
+    "Symmetric kNN parameter"
+  ),
+  Value = c(
+    format(hmp.info$hmp_illumina_rows, big.mark = ","),
+    format(hmp.info$original_vertices, big.mark = ","),
+    format(nrow(hmp.edges), big.mark = ","),
+    format(hmp.info$retained_features, big.mark = ","),
+    hmp.info$selected_k
+  ),
+  check.names = FALSE
+)
+```
 
-```{r karate-benchmark}
-karate.display <- benchmark.results$karate$scores[, c(
-  "method",
-  "sampled.stress",
-  "edge.length.cv",
-  "sampled.nonedge.sep.ratio",
-  "cluster.separation",
-  "edge.crossings"
+The package bundles a graph derived only from vaginal microbiome samples
+explicitly labeled as Human Microbiome Project data [@hmp2012] and generated
+by Illumina 16S rRNA amplicon sequencing. Before preprocessing, eligible
+samples must have a `Project` value beginning with `HMP` and a `16S_Platform`
+value equal to `Illumina`.
+
+Taxonomic features detected in at least 1% of the retained HMP samples are
+converted to relative abundance, followed by a ten-component PCA. A symmetric
+$k=3$ nearest-neighbor graph is constructed in that representation: an
+undirected edge is present when either endpoint occurs among the other's three
+nearest neighbors. Edge weights are Euclidean distances in the PCA
+representation. The largest connected component contains 4,391 of the 4,411
+eligible samples and is used without coarsening.
+
+```{r hmp-data-table}
+accessible_kable(
+  hmp.data.summary,
+  row.names = FALSE,
+  align = c("l", "l"),
+  caption = "Construction summary for the bundled HMP-only Illumina 16S graph.",
+  alt = paste(
+    "Five rows report the eligible HMP Illumina sample count, giant-component",
+    "sample and edge counts, retained feature count, and symmetric kNN k."
+  ),
+  position = "H"
+)
+```
+
+# Interoperability and computational scope
+
+\CRANpkg{grip} is intended for R users who need reproducible 2D or 3D graph
+layout, candidate comparison, and metric-aware embedding diagnostics. The
+stable GRIP layout core is single-threaded; selected experimental GMDS
+refinements can use up to two compiled-engine threads.
+
+The assessment functions accept coordinate matrices produced outside
+\CRANpkg{grip}. The bundled benchmark applies a common scoring function to
+Fruchterman--Reingold [@fruchterman1991] and DrL layouts from
+\CRANpkg{igraph} [@igraph2026], stress majorization [@gansner2005] from
+\CRANpkg{graphlayouts}, and a
+default hop-metric GRIP layout on the same HMP-only graph. All four methods are
+run without edge weights, and `score.layout()` uses hop distance. This isolates
+topology-oriented layout and avoids treating PCA distances as attraction
+strengths in packages whose weight conventions differ. The weighted workflow
+in the preceding section evaluates edge-length geometry separately.
+
+## Runtime and shared scoring at package scale
+
+The same script benchmarks four methods on the bundled HMP graph. Each
+two-dimensional layout call is repeated five times with its random-number seed reset to 1;
+Table \@ref(tab:hmp-runtime-benchmark) reports the median elapsed wall time and
+interquartile range. Garbage collection is performed before, rather than
+during, each timed call, and layout scoring is excluded from the reported
+time. The coordinates from the first repeat are evaluated by the common
+scoring function.
+
+```{r hmp-runtime-benchmark}
+hmp.scaled <- merge(
+  benchmark.results$hmp$timing,
+  benchmark.results$hmp$scores,
+  by = "method",
+  sort = FALSE
+)
+hmp.scaled <- hmp.scaled[, c(
+  "method", "n.runs", "elapsed.sec.median", "elapsed.sec.iqr",
+  "sampled.stress", "edge.length.cv",
+  "sampled.nonedge.sep.ratio"
 )]
 
 paper_kable(
-  karate.display,
+  hmp.scaled,
   caption = paper_table_caption(
-    "Small-graph comparison on the Zachary karate club network using a shared scoring function.",
-    "Stress = sampled stress; EdgeCV = edge-length coefficient of variation; NESR = sampled non-edge separation ratio; ClSep = cluster separation; Cross = edge crossings."
+    paste0(
+      "Repeated two-dimensional topology-only layout benchmark on the bundled HMP graph (n = ",
+      format(benchmark.results$hmp$n, big.mark = ","), ", m = ",
+      format(benchmark.results$hmp$m, big.mark = ","), ")."
+    ),
+    "Runs = repeated layout calls; MedSec = median elapsed seconds; IQR = interquartile range; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; NESR = sampled non-edge separation ratio."
   ),
   alt = paste(
-    "Six rows compare Fruchterman-Reingold, Kamada-Kawai, DrL, stress, and two",
-    "grip layouts on the karate-club network using five common layout metrics."
+    "Four rows compare repeated runtime and common quality scores for",
+    "Fruchterman-Reingold, DrL, stress majorization, and default grip on the",
+    "4,391-vertex HMP graph. All methods and scores use the unweighted topology."
   ),
   digits = 3
 )
 ```
 
-On a very small 2D social graph, single-scale methods from \pkg{igraph} and
-\pkg{graphlayouts} perform very well, and \pkg{grip} does not dominate them.
-\pkg{grip} is most useful as a fast multiscale and evaluation-oriented package,
-especially for structured graph families, weighted geometric graphs, and
-workflow-driven layout selection. The comparison also illustrates why the
-scoring functions are valuable on their own: they can be used to assess layouts
-computed outside the package.
+The timing column measures candidate generation, while the adjacent columns
+show what the common scoring interface reports for every candidate. The
+methods optimize different objectives, so the table is read as a runtime and
+diagnostic profile rather than a single ranking.
+The run was performed on `r benchmark.results$benchmark_metadata$hardware_model` with
+`r format(as.numeric(benchmark.results$benchmark_metadata$memory_bytes) / 2^30, digits = 3)`
+GiB of memory and CPU `r benchmark.results$benchmark_metadata$cpu`, using
+`r benchmark.results$benchmark_metadata$r_version`,
+`r benchmark.results$benchmark_metadata$platform`, and the R framework
+reference BLAS. The R-relative BLAS path is retained in the provenance record.
+
+## Computational boundaries
+
+The bundled example contains the full 4,391-vertex giant component of the
+HMP-only symmetric kNN graph; no graph coarsening is used. The stable multiscale
+layout can be applied to larger sparse graphs, and `prepare.edge.kk()` supports
+edge-only diagnostics and repair without constructing an all-pairs path cache.
+By contrast, metric MDS, full geodesic-KK preparation, and complete
+graph-geodesic diagnostic panels require shortest-path information whose time
+and memory costs can dominate the layout solve. Larger quadform and
+data-derived graph studies therefore belong in a separate, systematically
+designed GMDS evaluation rather than as unsupported scaling claims in this
+package article.
 
 # Reproducibility and availability
 
-This article is written in R Markdown using the rjtools output format currently
-recommended by the journal. The tables and the small-graph figures are produced
-from evaluated code in the manuscript. The larger HMP case study and the
-external-package comparison use bundled precomputed `.rds` artifacts so that
-the paper renders quickly during review.
+This article is written with \CRANpkg{rmarkdown} [@allaire2026rmarkdown],
+evaluated with \CRANpkg{knitr} [@xie2025knitr], and rendered using the
+\CRANpkg{rjtools} output format [@oharawild2026rjtools] currently recommended
+by the journal. The tables and the small-graph figures are produced from
+evaluated code in the manuscript. The larger HMP case study, weighted
+external comparison, and repeated scaled benchmark use bundled precomputed
+`.rds` artifacts so that the paper renders quickly during review.
 
 The submission supplement contains the exact precomputed artifacts used here,
-their generation scripts, the coarsened HMP edge and membership tables, and a
-provenance record with file checksums. `precompute-vs-alternatives.R` recreates
-the cross-package benchmark, while `precompute-hmp-results.R` recreates the HMP
-candidate search. The same scripts are retained in the package source tree, so
-the heavier workflows remain independently inspectable and rerunnable.
+their generation scripts, the HMP-only edge and sample tables, the feature
+screening manifest, and a provenance record with file checksums.
+`BENCHMARK_PROVENANCE.md` records the
+timing protocol, hardware, software versions, and boundary between layout and
+scoring time. `build-hmp-only-graph.R` applies the HMP/Illumina cohort filter
+before feature screening and graph construction, while
+`precompute-vs-alternatives.R` recreates the weighted and cross-package
+benchmarks. The final HMP graph and all paper results derived from it are
+independently inspectable and reproducible from the supplied files. The two
+combined upstream abundance and metadata tables are not redistributed and no
+public acquisition procedure for those exact tables is currently supplied;
+therefore, the supplement does not independently regenerate the HMP graph from
+primary abundance data. The graph-construction script documents and executes
+that upstream transformation only when those tables are supplied separately.
 
-The version evaluated in this article is \pkg{grip} 0.2.0, available from CRAN at
+The version evaluated in this article is \CRANpkg{grip} 0.2.0, available from CRAN at
 <https://CRAN.R-project.org/package=grip>. The development repository, issue
 tracker, manuscript source, and artifact-generation scripts are available at
 <https://github.com/pgajer/grip>. The HMP example data and the precomputed
@@ -1007,31 +1114,40 @@ results used here are distributed with the package.
 
 # Discussion
 
-Across the structured, weighted, and HMP examples, \pkg{grip} supports fast
-candidate generation while making layout selection explicit and measurable.
+In the data-to-graph-to-embedding picture introduced at the beginning of the
+article, \CRANpkg{grip} operationalizes the second transformation. Its stable
+interface generates and traces multiscale layouts, while its scoring functions
+allow candidates from \CRANpkg{grip} or other packages to be evaluated on common
+terms. The structured, weighted, and HMP-only workflows illustrate this package
+role without turning the article into a general comparison of embedding
+methods.
 
-The main interface remains `grip()`, with `trace.grip()` for inspecting the
-multiscale solve. Full GKK, sparse LGKK, and MISF-GKK are explicitly
-experimental research interfaces. They make fixed-path geodesic objectives,
-diagnostics, and several refinement strategies available for studying when a
-layout can also represent graph path geometry.
+The graph-geodesic layer extends that workflow beyond conventional layout
+diagnostics. Full geodesic Kamada--Kawai, LGKK, MISF-GKK, metric MDS, and
+edge-KK provide experimental baselines, fixed-path objectives, and refinement
+strategies for investigating how a supplied graph metric is represented after
+embedding. They are a research sandbox within the package, not a completed
+general GMDS method.
 
-There are also clear limits. The preset library is finite, so some real
-graphs will still require manual tuning. Layout-quality metrics are proxies
-for readability, while geodesic-KK scores quantify fidelity only to the
-prepared graph metric and fixed input path family. The experimental
-functions remain scoped to fixed input path families rather than a general
-GMDS formulation, and the package provides no automatic rule for selecting
-among full, landmark, and multiscale strategies. Exact edge-crossing counts
-are expensive on dense 2D graphs, and the current implementation does not
-use GPU acceleration for very large problems.
+The distinction between the two fidelity questions is also a limitation on
+interpretation. A low graph-geodesic loss shows agreement with the supplied
+graph and prepared path family; it does not establish that the graph itself
+faithfully represents the geometry of the original data. That upstream
+question must be assessed during graph construction, for example with the
+companion \CRANpkg{dgraphs} infrastructure. Within \CRANpkg{grip}, all-pairs path
+preparation can become more costly than the multiscale layout, the preset
+library cannot cover every graph family, exact crossing counts are expensive
+on dense 2D graphs, and the current experimental interface provides no
+automatic rule for selecting among full, landmark, edge-only, and multiscale
+strategies.
 
-Future methodological work will examine broader GMDS formulations, automatic
-strategy selection without external geometric truth, and empirical conditions
-under which graph-geodesic fidelity corresponds to scientifically meaningful
-data geometry. The present package supplies a tested layout core and a concrete
-experimental platform for that work without conflating the two levels of
-maturity.
+Future work will connect the two transformations more systematically: choosing
+graphs by explicit data-to-graph losses, comparing graph-to-embedding losses
+over controlled graph families and sizes, and determining when improvements in
+graph-geodesic fidelity preserve scientifically relevant data geometry. The
+current package provides the software infrastructure needed to formulate and
+reproduce those investigations while keeping methodological claims separate
+from the stable package contribution.
 
 # Acknowledgments
 

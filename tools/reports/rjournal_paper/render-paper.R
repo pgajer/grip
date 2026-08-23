@@ -210,7 +210,7 @@ style_package_name_html <- function(path) {
 
   # rjtools maps \pkg{} to a placeholder link in HTML. Replace that
   # representation with the bold package-name convention used by the journal.
-  for (package_name in c("grip", "igraph", "ggraph", "graphlayouts")) {
+  for (package_name in c("grip", "dgraphs", "igraph", "ggraph", "graphlayouts")) {
     html <- gsub(
       sprintf('<a href="#">%s</a>', package_name),
       sprintf('<strong class="pkg-name">%s</strong>', package_name),
@@ -241,6 +241,11 @@ render_one <- function(output_format, ext) {
   )
   if (identical(ext, "pdf")) {
     strip_trailing_whitespace(stable_name("tex"))
+    # rjtools compiles RJwrapper.tex. A direct-LaTeX attempt can leave a
+    # same-basename log containing a fatal \maketitle error even though the
+    # wrapper build succeeded; do not retain that misleading transient log.
+    direct_tex_log <- stable_name("log")
+    if (file.exists(direct_tex_log)) unlink(direct_tex_log)
   } else if (identical(ext, "html")) {
     add_table_aria_labels(stable_out)
     style_package_name_html(stable_out)

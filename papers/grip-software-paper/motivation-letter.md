@@ -28,9 +28,9 @@ hop distance from those based on edge length, and `trace.grip()` exposes the
 coarse-to-fine solve. I am one of the original developers of the GRIP algorithm
 (Gajer & Kobourov, 2002; Gajer, Goodrich & Kobourov, 2004). The package also
 provides presets for common graph families and worked examples on synthetic and
-real-world data. It includes a bundled 1,828-vertex microbial network from the
-Human Microbiome Project that demonstrates the full workflow at a realistic
-scale.
+real-world data. It includes the full, uncoarsened HMP-only Illumina 16S
+microbial network used in the article, with 4,391 vertices and 9,067 edges,
+demonstrating the workflow at a realistic scale.
 
 Third, the package distinguishes readable graph layouts from embeddings that
 preserve a specified graph metric. Its experimental full, landmark, and
@@ -46,7 +46,8 @@ comparison workflow. This release has a deliberately reduced public API of 101
 documented functions; every exported function has an example, and the package
 includes unit tests and workflow vignettes. The performance-critical
 implementation uses Rcpp, while the package follows standard R conventions for
-documentation and testing.
+documentation and testing. The article title intentionally begins with lowercase
+`grip` so that it preserves the exact package name.
 
 I look forward to the reviewers' feedback and am happy to address any
 questions about the package or the article.
