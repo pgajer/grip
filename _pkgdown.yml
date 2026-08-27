@@ -3,6 +3,9 @@ url: https://pgajer.github.io/grip/
 template:
   bootstrap: 5
   light-switch: true
+  includes:
+    in_header: |
+      <link rel="icon" type="image/svg+xml" sizes="any" href="https://pgajer.github.io/grip/favicon.svg">
   bslib:
     primary: "#0054AD"
     border-radius: 0.5rem
@@ -199,6 +202,7 @@ reference:
   - title: Data
     desc: Bundled datasets for examples and vignettes.
     contents:
+      - hmp.gc
       - hmp.u01.gc.coarse
 
   - title: Package
