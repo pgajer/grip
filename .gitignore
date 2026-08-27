@@ -6,6 +6,14 @@ CRAN-SUBMISSION
 *.tar.gz
 *.zip
 *.pdf
+*.gif
+
+# Compiled objects and libraries, regardless of directory
+*.o
+*.so
+*.dylib
+*.dll
+*.a
 
 # Local standalone vignette/article renders
 /vignettes/*.html
@@ -59,11 +67,6 @@ dev/papers/gmds/
 dev/papers/geodesic_mds_paper/build/
 
 # Compiled artifacts
-src/*.o
-src/*.so
-src/*.dylib
-src/*.dll
-src/*.a
 src/symbols.rds
 
 # Legacy archive build artifacts
@@ -87,3 +90,14 @@ Archives/package-root/main
 dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.pdf
 papers/grip-software-paper/grip-software-paper*.html
 papers/grip-software-paper/grip-software-paper_files/
+
+# Generated manuscript sources and build metadata
+papers/grip-software-paper/grip-software-paper.R
+papers/grip-software-paper/grip-software-paper.tex
+papers/grip-software-paper/RJwrapper.tex
+papers/grip-software-paper/build/
+
+# Generated raster assets; SVG sources remain tracked
+man/figures/*.png
+pkgdown/favicon/*.png
+pkgdown/favicon/*.ico
