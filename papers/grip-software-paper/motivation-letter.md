@@ -28,7 +28,7 @@ hop distance from those based on edge length, and `trace.grip()` exposes the
 coarse-to-fine solve. I am one of the original developers of the GRIP algorithm
 (Gajer & Kobourov, 2002; Gajer, Goodrich & Kobourov, 2004). The package also
 provides presets for common graph families and worked examples on synthetic and
-real-world data. It includes the full, uncoarsened HMP-only Illumina 16S
+real-world data. It includes the full, uncoarsened UMB-HMP-only Illumina 16S
 microbial network used in the article, with 4,391 vertices and 9,067 edges,
 demonstrating the workflow at a realistic scale.
 

@@ -1,16 +1,21 @@
 #!/usr/bin/env Rscript
 
-## Build the HMP-only Illumina 16S graph used by the R Journal paper.
+## Build the UMB-HMP-only Illumina 16S graph used by the R Journal paper.
 ##
 ## This script retains only rows explicitly labeled as HMP and Illumina before
 ## feature screening, PCA, and graph construction.
 
-script_path <- if (!is.null(sys.frames()[[1]]$ofile)) {
-  normalizePath(sys.frames()[[1]]$ofile, winslash = "/", mustWork = FALSE)
-} else {
-  normalizePath("data-raw/hmp_gc.R", winslash = "/", mustWork = FALSE)
+args_full <- commandArgs(trailingOnly = FALSE)
+file_arg <- grep("^--file=", args_full, value = TRUE)
+if (!length(file_arg)) {
+  stop("Could not determine the path to this script.")
 }
-repo_root <- normalizePath(
+script_path <- normalizePath(
+  sub("^--file=", "", file_arg[[1L]]),
+  winslash = "/",
+  mustWork = TRUE
+)
+reproducibility_dir <- normalizePath(
   file.path(dirname(script_path), ".."),
   winslash = "/",
   mustWork = FALSE
@@ -18,20 +23,23 @@ repo_root <- normalizePath(
 
 metadata_path <- Sys.getenv(
   "GRIP_HMP_METADATA_TSV",
-  unset = ""
+  unset = file.path(
+    reproducibility_dir, "hmp_gc", "upstream",
+    "hmp_illumina_metadata.tsv.gz"
+  )
 )
 feature_path <- Sys.getenv(
   "GRIP_HMP_FEATURE_MATRIX_TSV",
-  unset = ""
+  unset = file.path(
+    reproducibility_dir, "hmp_gc", "upstream",
+    "hmp_illumina_feature_counts.tsv.gz"
+  )
+)
+output_dir <- Sys.getenv(
+  "GRIP_HMP_OUTPUT_DIR",
+  unset = file.path(reproducibility_dir, "generated", "hmp_gc")
 )
 
-if (!nzchar(metadata_path) || !nzchar(feature_path)) {
-  stop(
-    "Set GRIP_HMP_METADATA_TSV and GRIP_HMP_FEATURE_MATRIX_TSV to the ",
-    "upstream metadata and feature tables. These source tables are ",
-    "not distributed with grip or the paper supplement."
-  )
-}
 for (path in c(metadata_path, feature_path)) {
   if (!file.exists(path)) stop("Missing HMP source file: ", path)
 }
@@ -51,7 +59,7 @@ features <- utils::read.delim(
 )
 
 required_metadata <- c(
-  "canonical_sample_id", "Project", "16S_Platform", "16S_Phase", "CST", "subCST"
+  "canonical_sample_id", "Project", "16S_Platform", "16S_Phase"
 )
 missing_metadata <- setdiff(required_metadata, names(metadata))
 if (length(missing_metadata)) {
@@ -62,7 +70,10 @@ if (!"sample_id" %in% names(features)) {
 }
 
 selected_metadata <- metadata[
-  grepl("^HMP", metadata$Project) & metadata$`16S_Platform` == "Illumina",
+  !is.na(metadata$Project) &
+    !is.na(metadata$`16S_Platform`) &
+    grepl("^HMP", metadata$Project) &
+    metadata$`16S_Platform` == "Illumina",
   ,
   drop = FALSE
 ]
@@ -191,8 +202,8 @@ vertex_data <- data.frame(
   project = selected_metadata$Project,
   platform = selected_metadata$`16S_Platform`,
   phase = selected_metadata$`16S_Phase`,
-  cst = selected_metadata$CST,
-  subcst = selected_metadata$subCST,
+  cst = if ("CST" %in% names(selected_metadata)) selected_metadata$CST else NA_character_,
+  subcst = if ("subCST" %in% names(selected_metadata)) selected_metadata$subCST else NA_character_,
   original_reads = as.numeric(original_reads),
   retained_reads = as.numeric(retained_reads),
   retained_fraction = as.numeric(retained_fraction),
@@ -204,7 +215,7 @@ hmp.gc <- list(
   weight_list = lapply(gc_weight_list, as.numeric),
   vertex_data = vertex_data,
   graph_info = list(
-    source_dataset = "Human Microbiome Project",
+    source_dataset = "Ravel-led UMB-HMP longitudinal vaginal cohort",
     assay = "Illumina 16S rRNA amplicon sequencing",
     source_rows = nrow(metadata),
     hmp_illumina_rows = sum(
@@ -226,21 +237,18 @@ hmp.gc <- list(
   )
 )
 
-extdata_dir <- file.path(repo_root, "inst", "extdata", "hmp_gc")
-data_dir <- file.path(repo_root, "data")
-dir.create(extdata_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(data_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
 write.table(
   edges,
-  gzfile(file.path(extdata_dir, "graph_edges.tsv.gz")),
+  gzfile(file.path(output_dir, "graph_edges.tsv.gz")),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
 )
 write.table(
   vertex_data,
-  gzfile(file.path(extdata_dir, "vertex_metadata.tsv.gz")),
+  gzfile(file.path(output_dir, "vertex_metadata.tsv.gz")),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -255,7 +263,7 @@ feature_manifest <- data.frame(
 )
 write.table(
   feature_manifest,
-  gzfile(file.path(extdata_dir, "feature_manifest.tsv.gz")),
+  gzfile(file.path(output_dir, "feature_manifest.tsv.gz")),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
@@ -281,15 +289,15 @@ graph_summary <- data.frame(
 )
 write.table(
   graph_summary,
-  file.path(extdata_dir, "graph_summary.tsv"),
+  file.path(output_dir, "graph_summary.tsv"),
   sep = "\t",
   row.names = FALSE,
   quote = FALSE
 )
 
-save(hmp.gc, file = file.path(data_dir, "hmp.gc.rda"), compress = "xz")
+saveRDS(hmp.gc, file = file.path(output_dir, "hmp_gc.rds"), compress = "xz")
 
 message(
-  "Saved HMP-only graph with ", length(hmp.gc$adj_list), " vertices and ",
-  hmp.gc$graph_info$edge_count, " edges."
+  "Saved UMB-HMP-only graph with ", length(hmp.gc$adj_list), " vertices and ",
+  hmp.gc$graph_info$edge_count, " edges in ", output_dir, "."
 )

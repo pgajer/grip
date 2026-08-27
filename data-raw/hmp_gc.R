@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-## Build the HMP-only Illumina 16S graph used by the R Journal paper.
+## Build the UMB-HMP-only Illumina 16S graph used by the R Journal paper.
 ##
 ## The source table also contains rows from a related U01 cohort and a small
 ## number of legacy 454 runs. This script retains only rows explicitly labeled
@@ -205,7 +205,7 @@ hmp.gc <- list(
   weight_list = lapply(gc_weight_list, as.numeric),
   vertex_data = vertex_data,
   graph_info = list(
-    source_dataset = "Human Microbiome Project",
+    source_dataset = "Ravel-led UMB-HMP longitudinal vaginal cohort",
     assay = "Illumina 16S rRNA amplicon sequencing",
     source_rows = nrow(metadata),
     hmp_illumina_rows = sum(
@@ -291,6 +291,6 @@ write.table(
 save(hmp.gc, file = file.path(data_dir, "hmp.gc.rda"), compress = "xz")
 
 message(
-  "Saved HMP-only graph with ", length(hmp.gc$adj_list), " vertices and ",
+  "Saved UMB-HMP-only graph with ", length(hmp.gc$adj_list), " vertices and ",
   hmp.gc$graph_info$edge_count, " edges."
 )

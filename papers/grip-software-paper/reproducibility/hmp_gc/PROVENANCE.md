@@ -1,8 +1,16 @@
-# HMP-only graph provenance
+# UMB-HMP-only graph provenance
 
 This directory contains the exact graph and sample-level inputs used for the
-Human Microbiome Project example in the `grip` R Journal paper. The graph was
-rebuilt on 2026-08-22 by `data-raw/hmp_gc.R`.
+University of Maryland Baltimore Human Microbiome Project (UMB-HMP) example in
+the `grip` R Journal paper. UMB-HMP was the Ravel-led longitudinal vaginal
+microbiome demonstration project, not the NIH HMP healthy-reference cohort.
+The parent study enrolled 135 nonpregnant women of reproductive age for daily
+vaginal self-sampling over ten weeks (Ravel et al., 2013, DOI:
+10.1186/2049-2618-1-29). Later work identifies the cohort as UMB-HMP and its
+profiles as V3--V4 16S rRNA data (Lee et al., 2023, DOI:
+10.1371/journal.pcbi.1011295). The graph was rebuilt on 2026-08-22 by
+`data-raw/hmp_gc.R`; the independently runnable supplemental builder is
+`../scripts/build-hmp-only-graph.R`.
 
 ## Cohort boundary
 
@@ -13,7 +21,10 @@ criteria before any feature screening:
 - `16S_Platform` is exactly `Illumina`.
 
 These criteria identify 4,411 eligible samples. Every vertex distributed here
-is therefore an explicitly identified HMP Illumina 16S rRNA amplicon sample.
+is therefore an explicitly identified UMB-HMP Illumina 16S rRNA amplicon
+sample. The cited publications establish the cohort and assay lineage; the
+upstream tables in this supplement define the exact 4,411-profile extraction
+used for the graph.
 
 ## Representation and graph construction
 
@@ -38,13 +49,18 @@ the paper example.
 - `feature_manifest.tsv.gz`: the complete feature screen and retention flag;
 - `graph_summary.tsv`: cohort, graph, and preprocessing counts.
 
-The raw upstream abundance and metadata tables are not redistributed, and no
-public acquisition procedure for those exact tables is currently supplied.
-Consequently, this directory reproduces the paper from the exact final graph
-but does not independently regenerate that graph from primary abundance data.
-When the upstream tables are available separately, their locations must be
-supplied with `GRIP_HMP_METADATA_TSV` and `GRIP_HMP_FEATURE_MATRIX_TSV`;
-`data-raw/hmp_gc.R` then records and executes the complete filtering and graph-
-construction procedure. The distributed edge, vertex, and feature-manifest
-files remain sufficient to inspect the cohort boundary and reconstruct the
-exact final graph used by the paper.
+The `upstream/` subdirectory supplies the minimal UMB-HMP-only feature-count and
+technical metadata tables required by the supplemental builder. These tables
+contain 4,411 eligible samples and 231 input features; they exclude U01
+records, clinical fields, participant identifiers, and host sequence. Their
+manifest, checksums, provenance and licensing information are included in the
+same directory. The historical combined working tables are neither required
+nor distributed.
+
+Running `scripts/build-hmp-only-graph.R` with its default paths reconstructs
+the graph from these minimal tables. Validation against the graph supplied with
+the manuscript confirmed identical vertex identifiers, edge endpoints, edge
+weights, and feature-manifest rows. The rebuilt graph therefore preserves the
+exact graph-defining outputs used in the paper; its `source_rows` summary is
+4,411 rather than the 6,536 rows in the historical combined HMP/U01 working
+table because the archive begins after the explicit UMB-HMP-only cohort extraction.

@@ -1,0 +1,3 @@
+file	description	rows	columns	bytes	sha256
+hmp_illumina_metadata.tsv.gz	UMB-HMP-only Illumina sample identifiers and technical cohort fields	4411	4	26057	d20d77765405e2434b41bc81e69689755443986dc66ad101d41e7f622af13841
+hmp_illumina_feature_counts.tsv.gz	UMB-HMP-only Illumina microbial feature-count matrix	4411	232	364348	5c50c9316f78552d5956bb93902f418b99e274bd18751cd6f040ea30d7c61513

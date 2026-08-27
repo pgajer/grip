@@ -6,7 +6,7 @@ This record describes the `benchmark_results.rds` artifact used by the
 
 ## Reported scaled benchmark
 
-- graph: bundled HMP-only Illumina 16S symmetric-kNN giant component
+- graph: bundled UMB-HMP-only Illumina 16S symmetric-kNN giant component
 - vertices: 4,391
 - edges: 9,067
 - methods: `igraph::layout_with_fr()`, `igraph::layout_with_drl()`,

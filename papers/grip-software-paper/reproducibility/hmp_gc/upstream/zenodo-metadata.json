@@ -1,0 +1,39 @@
+{
+  "title": "UMB-HMP-only Illumina 16S inputs for the grip R Journal paper",
+  "upload_type": "dataset",
+  "description": "Minimal microbial feature counts and technical sample metadata from the Ravel-led University of Maryland Baltimore Human Microbiome Project (UMB-HMP) longitudinal vaginal cohort, required to rebuild the 4,391-vertex graph used in the grip R Journal software paper. UMB-HMP was an HMP demonstration project distinct from the NIH HMP healthy-reference cohort. The archive excludes clinical variables, participant identifiers, host sequence, and all records from the related U01 cohort present in the historical working source.",
+  "creators": [
+    {
+      "name": "Gajer, Pawel"
+    },
+    {
+      "name": "Ravel, Jacques"
+    }
+  ],
+  "keywords": [
+    "University of Maryland Baltimore Human Microbiome Project",
+    "longitudinal vaginal microbiome",
+    "16S rRNA",
+    "microbiome",
+    "graph embedding",
+    "reproducibility",
+    "R"
+  ],
+  "license": "cc-by-4.0",
+  "access_right": "open",
+  "version": "1.0.0",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/pgajer/grip",
+      "relation": "isSupplementTo"
+    },
+    {
+      "identifier": "https://doi.org/10.1186/2049-2618-1-29",
+      "relation": "isDerivedFrom"
+    },
+    {
+      "identifier": "https://doi.org/10.1371/journal.pcbi.1011295",
+      "relation": "isReferencedBy"
+    }
+  ]
+}

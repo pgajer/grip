@@ -1,8 +1,14 @@
-# HMP-only graph provenance
+# UMB-HMP-only graph provenance
 
 This directory contains the exact graph and sample-level inputs used for the
-Human Microbiome Project example in the `grip` R Journal paper. The graph was
-rebuilt on 2026-08-22 by `data-raw/hmp_gc.R`.
+University of Maryland Baltimore Human Microbiome Project (UMB-HMP) example in
+the `grip` R Journal paper. UMB-HMP was the Ravel-led longitudinal vaginal
+microbiome demonstration project, not the NIH HMP healthy-reference cohort.
+The parent study and daily ten-week sampling design are described by Ravel et
+al. (2013, DOI: 10.1186/2049-2618-1-29); later work identifies its V3--V4 16S
+rRNA profiles as UMB-HMP data (Lee et al., 2023, DOI:
+10.1371/journal.pcbi.1011295). The graph was rebuilt on 2026-08-22 by
+`data-raw/hmp_gc.R`.
 
 ## Cohort boundary
 
@@ -16,7 +22,7 @@ that satisfy both of these positive criteria before any feature screening:
 This gives 4,411 eligible samples. It excludes all U01 or project-unlabeled
 rows, all rows without an explicit Illumina label, and six HMP rows labeled as
 454 runs. The excluded cohort's assay is not inferred from missing metadata.
-Every vertex distributed here is therefore an explicitly identified HMP
+Every vertex distributed here is therefore an explicitly identified UMB-HMP
 Illumina 16S rRNA amplicon sample.
 
 ## Representation and graph construction
