@@ -541,16 +541,10 @@ can optionally add MST bridge edges between components with
 `connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
 geometry and should be treated as an explicit construction choice.
 
-The default GRIP layout does not invoke the geodesic-KK research methods.
-
 The `lgkk_polish_rounds` argument and other `lgkk_*` multiscale controls explicitly
 opt a `grip()` or `trace.grip()` call into experimental landmark-geodesic
 refinement when nonzero. These controls retain the core input and output types,
-but their numerical semantics may evolve with the corresponding research
-methods.
-`plot.layout()` is a registered S3 method; `trace.grip()` and `score.layout()`
-are standalone functions whose dot-delimited names predate the current
-snake-case argument convention.
+but their numerical semantics may evolve with the corresponding research methods.
 
 ## From graph layout to graph-geodesic fidelity
 
