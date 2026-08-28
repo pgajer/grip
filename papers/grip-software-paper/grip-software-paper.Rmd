@@ -703,30 +703,6 @@ L_0 = \frac{\sum_p k_p d_p^G d_p^{G,Z}}
            {\sum_p k_p (d_p^G)^2}.
 $$
 
-All examples in this article use profiled scales. `score.gmds()` fits separate
-unweighted scales for its chord, edge, and fixed-path summaries and reports
-target-normalized relative RMSE. The gKK functions fit the weighted scale shown
-above and report the weighted RMS of pairwise relative residuals. Kruskal
-Stress-1 refers only to the configuration-normalized statistic defined above;
-the fixed-path and gKK quantities use different normalizations.
-The profiled diagnostics compare configuration shape after removing an
-arbitrary common scale.
-
-A low geodesic-KK score or fixed-path relative RMSE establishes fidelity only
-to the prepared graph metric and path family. It does not by itself establish
-recovery of an unknown underlying data geometry. In low dimension, exact
-preservation may also be impossible; regularized objectives therefore make an
-explicit trade-off between graph-geodesic fidelity and Euclidean dispersion.
-
-These fixed-path criteria differ from shortest-path MDS approaches. Isomap
-applies classical MDS to shortest-path distance estimates
-[@tenenbaum2000], and its landmark variants reduce the cost by using a subset
-of reference points [@desilva2002]. Stress majorization and PivotMDS likewise
-optimize or approximate chord-distance representations of graph distances
-[@gansner2005; @brandes2007]. The criteria above instead compare each fixed
-input path's length *after embedding* with its graph length. LGKK inherits the
-scalability motivation of landmark MDS, but not its chord-distance objective.
-
 ## Core layout functions and GMDS-facing methods
 
 The package combines an established multiscale layout implementation with
@@ -1480,9 +1456,7 @@ contribution.
 # Acknowledgments
 
 The GRIP algorithm was originally developed in collaboration with Stephen G.
-Kobourov and Michael T. Goodrich. The microbial network data were derived from
-the Ravel-led UMB-HMP longitudinal vaginal microbiome cohort. Research reported
-in this publication was supported by grant number INV-048956 from the Gates
-Foundation. This article was written with \CRANpkg{rmarkdown}
-[@allaire2026rmarkdown], evaluated with \CRANpkg{knitr} [@xie2025knitr], and
-rendered with \CRANpkg{rjtools} [@oharawild2026rjtools].
+Kobourov and Michael T. Goodrich. The bundled microbial-network example was
+derived from the UMB-HMP longitudinal vaginal microbiome cohort
+[@ravel2013daily; @lee2023equilibrium]. Research reported in this publication
+was supported by grant number INV-048956 from the Gates Foundation.
