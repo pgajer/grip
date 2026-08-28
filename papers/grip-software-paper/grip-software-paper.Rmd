@@ -656,7 +656,7 @@ R(Z)=\sum_{i<j}f_r(d_{ij}^Z),
 \quad \lambda>0,
 $$
 
-where $f_r$ is decreasing. Separately, the full geodesic KK (gKK) objective
+\noindent where $f_r$ is decreasing. Separately, the full geodesic KK (gKK) objective
 applies Kamada--Kawai weights to fixed-path discrepancies:
 
 $$
