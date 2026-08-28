@@ -506,12 +506,6 @@ This article evaluates \CRANpkg{grip} 0.2.0. The stable release is available
 from CRAN at <https://CRAN.R-project.org/package=grip>; development versions and
 the issue tracker are available at <https://github.com/pgajer/grip>.
 
-The package first generates or accepts candidate coordinates, then evaluates
-their chord- and path-based fidelity, and can refine selected candidates with
-experimental graph-geodesic methods. The interfaces below distinguish the
-supported multiscale layout functions from those experimental methods and the
-trace, preset, and graph-generation utilities that support their use.
-
 ## Layout engines and interfaces
 
 The package accepts graphs as two-column integer edge matrices, with an
@@ -540,11 +534,6 @@ connected data-derived graph is required, several \CRANpkg{dgraphs} constructors
 can optionally add MST bridge edges between components with
 `connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
 geometry and should be treated as an explicit construction choice.
-
-The `lgkk_polish_rounds` argument and other `lgkk_*` multiscale controls explicitly
-opt a `grip()` or `trace.grip()` call into experimental landmark-geodesic
-refinement when nonzero. These controls retain the core input and output types,
-but their numerical semantics may evolve with the corresponding research methods.
 
 ## From graph layout to graph-geodesic fidelity
 
