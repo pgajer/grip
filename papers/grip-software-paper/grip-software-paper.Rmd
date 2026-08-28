@@ -506,7 +506,7 @@ This article evaluates \CRANpkg{grip} 0.2.0. The stable release is available
 from CRAN at <https://CRAN.R-project.org/package=grip>; development versions and
 the issue tracker are available at <https://github.com/pgajer/grip>.
 
-## Layout engines and interfaces
+## Core layout API and supporting utilities
 
 The package accepts graphs as two-column integer edge matrices, with an
 optional edge-length vector, or as adjacency lists with optional parallel
@@ -534,6 +534,24 @@ connected data-derived graph is required, several \CRANpkg{dgraphs} constructors
 can optionally add MST bridge edges between components with
 `connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
 geometry and should be treated as an explicit construction choice.
+
+`trace.grip()` exposes the per-level states of the coarse-to-fine layout process
+illustrated in Figure \@ref(fig:trace). The package also supplies graph
+generators for regular grids, trees, recursive families such as Sierpinski
+carpets, and weighted geometric surfaces. These generators provide examples,
+regression fixtures, and controlled benchmarks; they are not substitutes for
+data-driven graph construction.
+
+Family-specific presets provide reproducible starting values for several of
+these controlled graph classes. Hop-metric presets cover meshes, carpets,
+trees, and tori, while edge-length presets cover cylinders, spheres, and other
+weighted geometric families. Their purpose is to make packaged examples and
+targeted comparisons reproducible, not to prescribe settings for arbitrary
+real-data graphs.
+
+```{r precomputed-artifacts, include=FALSE}
+benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
+```
 
 ## From graph layout to graph-geodesic fidelity
 
@@ -703,11 +721,12 @@ L_0 = \frac{\sum_p k_p d_p^G d_p^{G,Z}}
            {\sum_p k_p (d_p^G)^2}.
 $$
 
-## Core layout functions and GMDS-facing methods
+## Method families and function entry points
 
 The package combines an established multiscale layout implementation with
 GMDS-facing scoring and refinement methods. These components differ in maturity
-and computational role, as summarized in Table \@ref(tab:family-scope).
+and computational role. Table \@ref(tab:family-scope) maps each family to its
+principal functions.
 
 ```{r family-scope, echo=FALSE}
 family.scope <- data.frame(
@@ -735,65 +754,34 @@ family.scope <- data.frame(
     "Edge scoring and polish.",
     "Dispersion and edge regularization."
   ),
+  `Principal functions` = c(
+    "grip(), trace.grip()",
+    "prepare.geodesic.kk(), score.geodesic.kk(), geodesic.kk()",
+    "prepare.landmark.geodesic.kk(), score.landmark.geodesic.kk(), landmark.geodesic.kk()",
+    "prepare.misf.geodesic.kk(), score.misf.geodesic.kk(), misf.geodesic.kk()",
+    "prepare.edge.kk(), edge.kk()",
+    "repulsive.state(), repulsive.stage(), edge.repulsive.state(), edge.repulsive.stage()"
+  ),
   check.names = FALSE
 )
 
 accessible_kable(
   family.scope,
   row.names = FALSE,
-  align = c("l", "l", "l"),
-  caption = "Maturity and purpose of the main layout and GMDS-facing method families in grip.",
+  align = c("l", "l", "p{0.22\\linewidth}", "p{0.42\\linewidth}"),
+  caption = "Maturity, purpose, and principal functions of the main layout and GMDS-facing method families in grip.",
   alt = paste(
     "Six rows distinguish the core multiscale GRIP implementation from the",
-    "experimental full, landmark, MISF, edge-KK, and repulsive components."
+    "experimental full, landmark, MISF, edge-KK, and repulsive families and",
+    "list the principal functions associated with each family."
   ),
   position = "H"
 )
 ```
 
-The core layout entry points are `grip()` and `trace.grip()`. The full
-geodesic-KK method family separates path preparation, scoring, and optimization.
-Path preparation uses `prepare.geodesic.kk()`. Scoring uses
-`score.geodesic.kk()`, and optimization uses `geodesic.kk()`.
-Corresponding landmark geodesic Kamada--Kawai (LGKK) and
-maximal-independent-set filtration (MISF) families use the same
-prepare--score--optimize pattern. LGKK retains, by default, the 20 nearest
-graph-metric neighbors and eight deterministic farthest-point landmarks per
-vertex. The MISF family adds
-coarsening, a top-level geodesic optimization, coarse-to-fine insertion, anchored
-active-level refinement, and final geodesic polish.
-
-The edge-KK family uses `prepare.edge.kk()` and `edge.kk()` for the
-single-edge relaxation. The repulsive state/stage pair exposes the dispersion
-term, and the edge-repulsive pair combines edge-length fidelity with repulsion.
-These components support objective-function experiments; they are not
-presented as a general regularized-GMDS optimizer.
-
-`grip()` and `trace.grip()` form the supported core layout API. Some GMDS-facing
-objectives, approximations, refinement methods, and opt-in `lgkk_*` controls
-remain experimental and may evolve as the research program develops. Such
-changes are recorded in `NEWS`, and deprecation periods are provided where
-feasible.
-
-## Tracing and supporting graph utilities
-
-`trace.grip()` exposes the per-level states of the coarse-to-fine layout process
-illustrated in Figure \@ref(fig:trace). The package also supplies graph
-generators for regular grids, trees, recursive families such as Sierpinski
-carpets, and weighted geometric surfaces. These generators provide examples,
-regression fixtures, and controlled benchmarks; they are not substitutes for
-data-driven graph construction.
-
-Family-specific presets provide reproducible starting values for several of
-these controlled graph classes. Hop-metric presets cover meshes, carpets,
-trees, and tori, while edge-length presets cover cylinders, spheres, and other
-weighted geometric families. Their purpose is to make packaged examples and
-targeted comparisons reproducible, not to prescribe settings for arbitrary
-real-data graphs.
-
-```{r precomputed-artifacts, include=FALSE}
-benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
-```
+`grip()` and `trace.grip()` form the supported core layout API. The remaining
+families in Table \@ref(tab:family-scope) are experimental GMDS methods and may
+evolve as the research program develops.
 
 # Assessing and refining candidate embeddings
 
