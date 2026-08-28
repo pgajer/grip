@@ -17,15 +17,16 @@ abstract: >
   intrinsic shortest-path geometry. grip is an R package for generating,
   evaluating, comparing, and refining graph embeddings. Its C++ implementation
   of the original GRIP algorithm creates 2D and 3D layouts using hop or
-  edge-length graph metrics and can record intermediate stages of the
-  coarse-to-fine layout process. A common scoring framework evaluates
-  coordinates from grip or other software using conventional layout diagnostics
-  and graph-geodesic losses. These losses support investigation of geodesic
-  multidimensional scaling (GMDS), which seeks Euclidean coordinates whose
-  embedded graph-path lengths agree with distances in the input graph. The
-  package also provides experimental GMDS tools, including metric MDS followed
-  by an edge-restricted Kamada--Kawai (edge-KK) refinement, which optimizes
-  edge-length discrepancies rather than all vertex-pair distances. Within the
+  edge-length graph metrics and optionally records intermediate stages of the
+  coarse-to-fine layout process. A common scoring framework uses conventional
+  layout diagnostics and graph-geodesic losses to evaluate graph embeddings
+  produced by grip or other software. These losses compare embedded graph-path
+  lengths with shortest-path distances in the input graph and support
+  investigation of geodesic multidimensional scaling (GMDS), which seeks
+  embeddings that preserve graph-geodesic geometry. The package also provides
+  experimental GMDS tools, including a refinement workflow that initializes
+  coordinates using metric MDS and then applies edge-restricted
+  Kamada--Kawai (edge-KK) optimization to edge-length discrepancies. Within the
   two-stage transformation from data to graph to embedding, grip provides
   infrastructure for investigating the graph-to-embedding stage.
 preamble: |
@@ -423,18 +424,20 @@ weighted graph geometry, reproducible assessment of coordinates from multiple
 sources, and a GMDS-oriented framework for studying fixed-path losses and
 refinement methods.
 
-This article describes the core layout and trace interfaces, formalizes the
-package's chord- and path-based diagnostics, and demonstrates a common workflow
-for generating, scoring, comparing, and refining candidate embeddings. The
-examples cover controlled graph families, a weighted geometric graph, and a
-microbial network, followed by an interoperability and runtime comparison at
-package scale.
-
-The version evaluated here is \CRANpkg{grip} 0.2.0, available from CRAN at
-<https://CRAN.R-project.org/package=grip>. The development repository and issue
-tracker are available at <https://github.com/pgajer/grip>.
+The remainder of the article is organized as follows. Section 2 introduces the
+layout, scoring, trace, and GMDS-facing interfaces provided by
+\CRANpkg{grip}. Section 3 presents a common workflow for assessing and refining
+candidate embeddings. Section 4 illustrates this workflow on controlled graph
+families, a weighted geometric graph, and a microbiome-derived network.
+Section 5 examines interoperability with other R packages and the computational
+scope of the implemented methods. Section 6 discusses limitations and
+directions for further development.
 
 # Package overview
+
+This article evaluates \CRANpkg{grip} 0.2.0. The stable release is available
+from CRAN at <https://CRAN.R-project.org/package=grip>; development versions and
+the issue tracker are available at <https://github.com/pgajer/grip>.
 
 This section describes the layout interfaces, defines the chord- and path-based
 criteria used by the package, distinguishes the core and experimental method
