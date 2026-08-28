@@ -92,12 +92,12 @@
         </tr>
         <tr data-citation-key="gajer2026dgraphs" data-status="verified">
           <td><code>gajer2026dgraphs</code></td><td class="status">verified</td>
-          <td>Introduction, data-to-graph and graph-to-embedding framing</td>
-          <td>dgraphs constructs data-derived graphs from numerical observations and provides graph diagnostics and related geometric utilities.</td>
-          <td>Pawel Gajer. dgraphs: Data-Derived Graph Construction Utilities. R package version 0.1.0, 2026.</td>
-          <td><a data-source-link href="https://CRAN.R-project.org/package=dgraphs">CRAN package page</a></td>
-          <td>The official CRAN description identifies dgraphs as a package for constructing data-derived graphs from numerical observations and lists graph conversion, pruning, diagnostics, spectral embedding, endpoint detection, and path utilities.</td>
-          <td>Verified against the CRAN 0.1.0 package metadata on 2026-08-22.</td>
+          <td>Introduction, data-to-graph and graph-to-embedding framing; Package overview, disconnected-graph handling</td>
+          <td>dgraphs constructs data-derived graphs from numerical observations, provides graph diagnostics and related geometric utilities, and lets several graph constructors optionally add MST bridge edges between disconnected components.</td>
+          <td>Pawel Gajer. dgraphs: Data-Derived Graph Construction Utilities. R package version 0.2.0, 2026.</td>
+          <td><a data-source-link href="https://CRAN.R-project.org/package=dgraphs">CRAN package page</a>; <a data-source-link href="https://github.com/pgajer/dgraphs/blob/main/R/sknn_graphs.R#L15-L20">sKNN connectivity documentation</a></td>
+          <td>The package description identifies dgraphs as a package for constructing data-derived graphs from numerical observations and lists graph conversion, pruning, diagnostics, spectral embedding, endpoint detection, and path utilities. The source documentation for create.sknn.graph() specifies that `connect.components = TRUE` augments disconnected graphs with MST edges; its default component-MST method adds the minimum set of shortest inter-component bridges.</td>
+          <td>Verified against the local dgraphs 0.2.0 DESCRIPTION and source documentation on 2026-08-28; CRAN metadata was previously checked on 2026-08-22.</td>
         </tr>
         <tr data-citation-key="igraph2026" data-status="verified">
           <td><code>igraph2026</code></td><td class="status">verified</td>

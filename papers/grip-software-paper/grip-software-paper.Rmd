@@ -532,9 +532,14 @@ and diagnostics for inspection or animation.
 
 The most important user-facing parameters are layout dimension, initialization
 placement, the number of multiscale and final refinement rounds, local
-neighborhood size, repulsion strength, and the random seed. The package also
-packs disconnected components by default, so disconnected graphs can still be
-laid out with a single call.
+neighborhood size, repulsion strength, and the random seed. For a disconnected
+input, `grip()` lays out each connected component separately and then places the
+component layouts together in the returned coordinate matrix; it does not add
+edges between components. `trace.grip()` requires a connected graph. When a
+connected data-derived graph is required, several \CRANpkg{dgraphs} constructors
+can optionally add MST bridge edges between components with
+`connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
+geometry and should be treated as an explicit construction choice.
 
 The default GRIP layout does not invoke the geodesic-KK research methods.
 
