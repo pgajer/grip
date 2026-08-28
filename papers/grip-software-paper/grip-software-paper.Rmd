@@ -34,6 +34,8 @@ preamble: |
   \usepackage{xcolor}
   \usepackage{etoolbox}
   \usepackage{float}
+  \usepackage{tikz}
+  \usetikzlibrary{arrows}
   \AtBeginEnvironment{table}{\small}
   \AtBeginEnvironment{thebibliography}{\small}
   \providecommand{\manuscriptversion}{unversioned}
@@ -278,7 +280,7 @@ neighborhood graph, using shortest-path distances in that graph to estimate
 intrinsic distances, and applying classical MDS to the resulting distance
 matrix [@tenenbaum2000].
 
-Let $X=\{x_1,\ldots,x_n\}$ denote the observed data, let
+Let $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ denote the observed data, let
 $G=(V,E,\ell)$ be a weighted graph whose vertices correspond to those
 observations, and write $D_G=(d_{ij}^G)$ for its shortest-path distance matrix.
 Let $D_X=(d_{ij}^X)$ denote the intrinsic pairwise distances in the data
@@ -291,27 +293,93 @@ sampling densities, noise levels, and sample sizes, graph constructors can be
 calibrated for corresponding classes of real data.
 
 An embedding assigns each vertex of $G$ a coordinate
-$z_i\in\mathbb{R}^m$. Let $D_{G,Z}=(d_{ij}^{G,Z})$ contain the lengths, after
-embedding, of selected geodesics from the input graph. The two transformations
-and the roles of the companion packages are
+$z_i\in\mathbb{R}^m$. In the common dimensionality-reduction setting
+illustrated below, $p\gg m$. Let $D_{G,Z}=(d_{ij}^{G,Z})$ contain the lengths,
+after embedding, of selected geodesics from the input graph. The two
+transformations and the roles of the companion packages are
 
-$$
-X
-\xrightarrow[
-  D_X\ \text{versus}\ D_G
-]{
-  \substack{\texttt{dgraphs}\\
-  \text{construction and assessment}}
+```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
+if (knitr::is_latex_output()) {
+  cat(r"(
+\begin{center}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[>=stealth]
+  \node (Rp) at (0,1.20) {$\mathbb{R}^{p}$};
+  \node at (7.4,1.20) {$p\gg m$};
+  \node (Rm) at (14.8,1.20) {$\mathbb{R}^{m}$};
+
+  \node (X) at (0,0) {$X$};
+  \node (G) at (7.4,0) {$G$};
+  \node (Z) at (14.8,0) {$Z$};
+
+  \draw[right hook->] (X) -- (Rp);
+  \draw[right hook->] (Z) -- (Rm);
+
+  \draw[->] (X) -- (G)
+    node[midway, above=0.06cm, align=center, font=\scriptsize, inner sep=0pt]
+      {\texttt{dgraphs}\\[-0.16em] construction and assessment}
+    node[midway, below=0.10cm, font=\scriptsize, inner sep=0pt]
+      {$D_X\ \text{versus}\ D_G$};
+
+  \draw[->] (G) -- (Z)
+    node[midway, above=0.06cm, align=center, font=\scriptsize, inner sep=0pt]
+      {\texttt{grip}\\[-0.16em] layout, scoring, and refinement}
+    node[midway, below=0.10cm, font=\scriptsize, inner sep=0pt]
+      {$D_G\ \text{versus}\ D_{G,Z}$};
+\end{tikzpicture}%
 }
-G
-\xrightarrow[
-  D_G\ \text{versus}\ D_{G,Z}
-]{
-  \substack{\texttt{grip}\\
-  \text{layout, scoring, and refinement}}
+\end{center}
+)"
+  )
+} else {
+  cat(r"{
+<div style="margin: 1.2em auto; max-width: 920px;">
+<svg viewBox="0 0 1200 170" role="img"
+     aria-label="Data-to-graph and graph-to-embedding fidelity diagram"
+     style="display: block; width: 100%; height: auto;">
+  <defs>
+    <marker id="grip-arrowhead" markerWidth="9" markerHeight="7"
+            refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="currentColor"
+            stroke-width="1.2"/>
+    </marker>
+  </defs>
+
+  <g fill="currentColor" stroke="currentColor" stroke-width="1.3"
+     font-family="serif">
+    <path d="M48,111 L579,111" fill="none"
+          marker-end="url(#grip-arrowhead)"/>
+    <path d="M621,111 L1152,111" fill="none"
+          marker-end="url(#grip-arrowhead)"/>
+    <path d="M27,95 C27,102 20,102 20,95 L20,34" fill="none"
+          marker-end="url(#grip-arrowhead)"/>
+    <path d="M1179,95 C1179,102 1172,102 1172,95 L1172,34" fill="none"
+          marker-end="url(#grip-arrowhead)"/>
+
+    <g stroke="none" text-anchor="middle">
+      <text x="20" y="22" font-size="22">ℝ<tspan dy="-7" font-size="14">p</tspan></text>
+      <text x="600" y="22" font-size="22" font-style="italic">p ≫ m</text>
+      <text x="1172" y="22" font-size="22">ℝ<tspan dy="-7" font-size="14">m</tspan></text>
+
+      <text x="20" y="119" font-size="24" font-style="italic">X</text>
+      <text x="600" y="119" font-size="24" font-style="italic">G</text>
+      <text x="1172" y="119" font-size="24" font-style="italic">Z</text>
+
+      <text x="310" y="73" font-size="15" font-family="monospace">dgraphs</text>
+      <text x="310" y="94" font-size="16">construction and assessment</text>
+      <text x="890" y="73" font-size="15" font-family="monospace">grip</text>
+      <text x="890" y="94" font-size="16">layout, scoring, and refinement</text>
+
+      <text x="310" y="140" font-size="17" font-style="italic">D<tspan baseline-shift="sub" font-size="12">X</tspan><tspan baseline-shift="baseline" font-style="normal"> versus </tspan>D<tspan baseline-shift="sub" font-size="12">G</tspan></text>
+      <text x="890" y="140" font-size="17" font-style="italic">D<tspan baseline-shift="sub" font-size="12">G</tspan><tspan baseline-shift="baseline" font-style="normal"> versus </tspan>D<tspan baseline-shift="sub" font-size="12">G,Z</tspan></text>
+    </g>
+  </g>
+</svg>
+</div>
+}"
+  )
 }
-Z\subset\mathbb{R}^m.
-$$
+```
 
 The first comparison asks how well a data-derived graph recovers the intended
 data geometry. The companion \CRANpkg{dgraphs} package supports that
