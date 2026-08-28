@@ -940,6 +940,39 @@ fit <- edge.kk(
 after <- score.gmds(fit$coords, prepared = prepared)
 ```
 
+Figure \@ref(fig:edge-kk-workflow) shows the coordinates produced by this
+example before and after refinement. Because the edge-only diagnostic profiles
+out a common scale, the panels are centered and scaled only for display; the
+figure illustrates the resulting configuration and its edge-length fidelity,
+rather than selecting a unique polygonal shape.
+
+```{r edge-kk-workflow, fig.cap=sprintf("Illustrative output of the edge-KK workflow. Four refinement iterations reduce profiled edge relative RMSE from %.3f to %.5f by equalizing the embedded cycle-edge lengths. The edge-only objective does not select a unique polygonal shape, so this small deterministic example demonstrates the workflow rather than a general performance comparison.", before$edge.rel.rmse, after$edge.rel.rmse), fig.alt="Two panels show the eight-vertex cycle from the executable edge-KK workflow. The initial coordinates form an ellipse, while refinement produces a different eight-vertex cycle with nearly equal embedded edge lengths. Each panel gives the corresponding profiled edge relative RMSE.", fig.width=7.5, fig.height=3.4, fig.pos="H"}
+display.coords <- function(coords) {
+  centered <- sweep(coords, 2, colMeans(coords), "-", check.margin = FALSE)
+  centered / sqrt(mean(rowSums(centered^2)))
+}
+
+workflow.layouts <- list(
+  "Initial coordinates" = display.coords(initial),
+  "After edge-KK refinement" = display.coords(fit$coords)
+)
+workflow.scores <- c(before$edge.rel.rmse, after$edge.rel.rmse)
+workflow.range <- range(do.call(rbind, workflow.layouts))
+workflow.pad <- 0.12 * diff(workflow.range)
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3.1, 1))
+for (i in seq_along(workflow.layouts)) {
+  plot_common_projection(
+    workflow.layouts[[i]], cycle.edges,
+    sprintf("%s\nEdge relative RMSE = %.5f", names(workflow.layouts)[i], workflow.scores[i]),
+    xlim = workflow.range + c(-workflow.pad, workflow.pad),
+    ylim = workflow.range + c(-workflow.pad, workflow.pad),
+    vertex.col = if (i == 1L) "#666666" else "#1F3B73"
+  )
+}
+par(op)
+```
+
 # Worked package workflows
 
 ## Linking the two fidelity stages
