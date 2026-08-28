@@ -316,7 +316,7 @@ if (knitr::is_latex_output()) {
   \draw[right hook->] (Z) -- (Rm);
 
   \draw[->] (X) -- (G)
-    node[midway, above=0.06cm, align=center, font=\scriptsize, inner sep=0pt]
+    node[midway, above=0.05cm, align=center, font=\scriptsize, inner sep=0pt]
       {\texttt{dgraphs}\\[-0.16em] construction and assessment}
     node[midway, below=0.10cm, font=\scriptsize, inner sep=0pt]
       {$D_X\ \text{versus}\ D_G$};
@@ -365,8 +365,8 @@ if (knitr::is_latex_output()) {
       <text x="600" y="119" font-size="24" font-style="italic">G</text>
       <text x="1172" y="119" font-size="24" font-style="italic">Z</text>
 
-      <text x="310" y="73" font-size="15" font-family="monospace">dgraphs</text>
-      <text x="310" y="94" font-size="16">construction and assessment</text>
+      <text x="310" y="74" font-size="15" font-family="monospace">dgraphs</text>
+      <text x="310" y="95" font-size="16">construction and assessment</text>
       <text x="890" y="73" font-size="15" font-family="monospace">grip</text>
       <text x="890" y="94" font-size="16">layout, scoring, and refinement</text>
 
