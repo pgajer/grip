@@ -514,50 +514,21 @@ trace, preset, and graph-generation utilities that support their use.
 
 ## Layout engines and interfaces
 
-The main layout functions are summarized in Table \@ref(tab:api-summary). All
-return an $n \times m$ numeric matrix of coordinates. The core layout and trace
-functions use $m\in\{2,3\}$; `weighted.grip.nd()` and selected GMDS-facing
-methods support any $m\geq 2$.
+The package accepts graphs as two-column integer edge matrices, with an
+optional edge-length vector, or as adjacency lists with optional parallel
+weight lists.
 
-```{r api-summary, echo=FALSE}
-api.summary <- data.frame(
-  Function = c(
-    "grip(): hop",
-    "grip(): edge length",
-    "trace.grip(): hop",
-    "trace.grip(): edge length"
-  ),
-  Purpose = c(
-    "Multiscale layout",
-    "Weighted multiscale layout",
-    "Layout with per-level snapshots",
-    "Weighted layout with snapshots"
-  ),
-  `Graph metric` = c("Hop", "Edge length", "Hop", "Edge length"),
-  check.names = FALSE
-)
-
-accessible_kable(
-  api.summary,
-  row.names = FALSE,
-  align = c("l", "l", "l"),
-  caption = "Core layout interfaces in the grip package.",
-  alt = paste(
-    "Four rows list the grip and trace.grip interfaces for hop and edge-length",
-    "metrics, together with each interface's purpose and graph metric."
-  ),
-  position = "H"
-)
-```
+The supported core layout API consists of two functions. `grip()` returns an
+$n \times m$ numeric coordinate matrix, whereas `trace.grip()` returns the
+final coordinates together with intermediate coarse-to-fine states and
+diagnostics. The core layout and trace functions use $m\in\{2,3\}$;
+`weighted.grip.nd()` and selected GMDS-facing methods support any $m\geq 2$.
 
 The `metric` argument states which graph geometry the layout should use.
 `metric = "hop"`, the default, treats every edge as one step. With
 `metric = "edge_length"`, supplied edge lengths affect the optimization. The
 traced interface uses the same metric choice and records intermediate states
 and diagnostics for inspection or animation.
-
-The package accepts graphs either as two-column integer edge matrices or as
-adjacency lists with optional parallel weight lists.
 
 The most important user-facing parameters are layout dimension, initialization
 placement, the number of multiscale and final refinement rounds, local
