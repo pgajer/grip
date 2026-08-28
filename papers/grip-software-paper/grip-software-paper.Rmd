@@ -682,15 +682,21 @@ $$
 coordinates produced by any embedding method; the full gKK, LGKK, and edge-KK
 interfaces prepare, score, or refine their respective objectives.
 `repulsive.state()`, `repulsive.stage()`, `edge.repulsive.state()`, and
-`edge.repulsive.stage()` expose dispersion and edge-regularized components, but
-the package does not claim to provide a general optimizer for every regularized
-GMDS objective.
+`edge.repulsive.stage()` expose dispersion and edge-regularized components.
 
 An arbitrary common coordinate scale should not determine a comparison of
 configuration shape. For each evaluated pair $p$, the graph distance $d_p^G$,
 embedded path length $d_p^{G,Z}$, and Kamada--Kawai weight
-$k_p=1/(d_p^G)^2$ determine the profiled gKK scale through the weighted
-least-squares solution
+$k_p=1/(d_p^G)^2$ define the profiled gKK scale $L_0$ as the minimizer of the
+weighted squared discrepancy
+
+$$
+L_0
+=\underset{L\geq 0}{\operatorname{argmin}}
+\sum_p k_p\bigl(d_p^{G,Z}-L d_p^G\bigr)^2.
+$$
+
+\noindent Its closed-form value is
 
 $$
 L_0 = \frac{\sum_p k_p d_p^G d_p^{G,Z}}
