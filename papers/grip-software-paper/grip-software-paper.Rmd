@@ -794,9 +794,8 @@ evaluation framework rather than only as a collection of layout engines.
 
 ## General layout diagnostics
 
-Table \@ref(tab:metrics-table) lists the diagnostics used in this article from
-`score.layout()`. `compare.layouts()` applies the same scoring function to
-multiple candidates and summarizes repeated seeded runs.
+Table \@ref(tab:metrics-table) lists the general diagnostics used in this
+article.
 
 ```{r metrics-table, echo=FALSE}
 metrics.table <- data.frame(
@@ -831,6 +830,10 @@ accessible_kable(
   position = "H"
 )
 ```
+
+All metrics in Table \@ref(tab:metrics-table) are returned by `score.layout()`;
+`compare.layouts()` applies the same diagnostics across repeated candidate
+layouts.
 
 All-pairs scoring can be unnecessarily expensive for a general layout
 diagnostic, so sampled stress uses the unique unordered pairs $S$ obtained by
