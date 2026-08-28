@@ -537,9 +537,9 @@ geometry and should be treated as an explicit construction choice.
 
 ## From graph layout to graph-geodesic fidelity
 
-Graph-geodesic scoring asks whether an input route retains its length after
-embedding, so the route must remain fixed while the coordinates change. For
-each evaluated pair $i<j$, the retained input-graph geodesic
+Graph-geodesic scoring asks whether a selected input-graph shortest path retains
+its length after embedding, so that path must remain fixed while the coordinates
+change. For each evaluated pair $i<j$, the retained input-graph geodesic
 $\gamma_{ij}$ realizes $d_{ij}^G$; the collection of retained routes is
 $\Gamma=\{\gamma_{ij}\}$. By default, the geodesic-KK preparation functions
 retain one deterministic route per pair, whereas an alternative mode averages
@@ -561,7 +561,7 @@ Kruskal's Stress-1, shown here in its metric-MDS form
 with ambient chord distances:
 
 $$
-\operatorname{Stress}_1(Z)
+\operatorname{Stress}_1(\Delta, D_Z)
 =
 \sqrt{
   \frac{\sum_{i<j}(d_{ij}^Z-\delta_{ij})^2}
@@ -574,7 +574,7 @@ graph distances with the embedded lengths of the corresponding fixed
 geodesics. At identity scale, its target-normalized fixed-path relative RMSE is
 
 $$
-\operatorname{RelRMSE}^{\mathrm{path}}_{G\to Z,\Gamma}
+\operatorname{RelRMSE}^{\mathrm{path}}(D_G, D_{G,Z}\mid\Gamma)
 =
 \sqrt{
   \frac{\sum_{i<j}(d_{ij}^{G,Z}-d_{ij}^G)^2}
