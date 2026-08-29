@@ -503,8 +503,8 @@ losses and refinement methods for studying graph-geodesic fidelity.
 
 This article evaluates \CRANpkg{grip} 0.2.0 and requires
 \CRANpkg{dgraphs} 0.2.0. Matching source releases are available at
-<https://github.com/pgajer/grip/releases/tag/v0.2.0> and
-<https://github.com/pgajer/dgraphs/releases/tag/v0.2.0> while their CRAN
+<https://github.com/pgajer/grip/tree/v0.2.0> and
+<https://github.com/pgajer/dgraphs/tree/v0.2.0> while their CRAN
 submissions are pending CRAN review; once accepted, the stable releases will be
 available from <https://CRAN.R-project.org/package=grip> and
 <https://CRAN.R-project.org/package=dgraphs>. The companion
