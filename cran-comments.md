@@ -17,14 +17,11 @@ CRAN reported no reverse dependencies for `grip` when checked on 2026-08-21.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 2 notes
+0 errors | 0 warnings | 1 note
 
-The local `R CMD check --as-cran` completed successfully under R-devel. The
-first note reports zero days since the previous CRAN update because version
-0.1.3 was published on 2026-08-21, the day of this development check. This
-0.2.0 release is not intended for immediate same-day submission. The second
-note is environment-only: the locally installed HTML Tidy is too old for
-optional HTML manual validation.
+The local `R CMD check --as-cran` completed successfully under R-devel on
+2026-08-29. The sole note is environment-only: the locally installed HTML Tidy
+is too old for optional HTML manual validation.
 
 The package-check test suite reported 2,193 passes, no failures or warnings,
 and six skips for optional Shiny tests. A direct development test run reported
