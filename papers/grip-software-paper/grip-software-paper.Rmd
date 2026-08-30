@@ -831,21 +831,22 @@ noisy.chord.distance <- sqrt(sum(
   (noisy.circle[noisy.from, ] - noisy.circle[noisy.to, ])^2
 ))
 
-noisy.limits <- c(-1.25, 1.25)
-op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3, 1))
+noisy.x.limits <- c(-1.25, 1.25)
+noisy.y.limits <- c(-1.40, 1.20)
+op <- par(mfrow = c(1, 2), mar = c(1.0, 1.2, 1.8, 1.0))
 plot(
   noisy.circle,
   asp = 1,
-  xlim = noisy.limits,
-  ylim = noisy.limits,
+  xlim = noisy.x.limits,
+  ylim = noisy.y.limits,
   axes = FALSE,
   xlab = "",
   ylab = "",
   pch = 16,
   cex = 0.55,
-  col = "#335C81",
-  main = "Noisy circular observations"
+  col = "#335C81"
 )
+title(main = "Noisy circular observations", line = 0.2)
 symbols(
   0,
   0,
@@ -857,7 +858,7 @@ symbols(
 )
 text(
   0,
-  -1.18,
+  -1.30,
   expression(paste("truncated radial Gaussian; ", sigma, " = 0.045")),
   cex = 0.9
 )
@@ -865,14 +866,14 @@ text(
 plot(
   noisy.circle,
   asp = 1,
-  xlim = noisy.limits,
-  ylim = noisy.limits,
+  xlim = noisy.x.limits,
+  ylim = noisy.y.limits,
   axes = FALSE,
   xlab = "",
   ylab = "",
-  type = "n",
-  main = "Symmetric 6NN graph: path versus chord"
+  type = "n"
 )
+title(main = "Symmetric 6NN graph: path versus chord", line = 0.2)
 segments(
   noisy.circle[noisy.edges[, 1L], 1L],
   noisy.circle[noisy.edges[, 1L], 2L],
@@ -909,7 +910,7 @@ points(
 )
 legend(
   "bottom",
-  inset = 0.01,
+  inset = 0.03,
   legend = c(
     sprintf("fixed graph shortest path = %.2f", noisy.graph.distance),
     sprintf("Euclidean chord = %.2f", noisy.chord.distance)
