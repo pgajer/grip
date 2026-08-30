@@ -4,12 +4,12 @@ author:
   - name: Pawel Gajer
     affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
     address: Baltimore, Maryland, USA
-    orcid: ~
+    orcid: 0000-0002-0974-7798
     email: pgajer@gmail.com
   - name: Jacques Ravel
     affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
     address: Baltimore, Maryland, USA
-    orcid: ~
+    orcid: 0000-0002-0851-2233
     email: jravel@som.umaryland.edu
 abstract: >
   A graph embedding places the vertices of a graph in Euclidean space. The
