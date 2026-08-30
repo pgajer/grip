@@ -758,15 +758,161 @@ assume that the input geometry is chord-like. It asks how nearly $D_G$ admits
 an isometric Euclidean representation in dimension $m$; a large value is an
 informative answer about the cost of flattening that graph metric.
 
-Fixed-path relative RMSE asks instead whether the embedded $1$-skeleton,
-regarded as a metric graph in $\mathbb{R}^m$, retains the lengths of selected
-input paths. It sidesteps the flattenability question rather than answering
-it. The appropriate diagnostic consequently depends on what a downstream use
+This distinction mirrors two uses of isometry. A Riemannian isometric embedding
+$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the metric $g$, and thus
+the lengths of curves and the intrinsic path metric of its image; it need not
+preserve the ambient Euclidean chord between two image points. Chord stress
+asks for the stronger metric-space representation
+$d_M(x,y)=\lVert f(x)-f(y)\rVert_2$. Fixed-path relative RMSE instead evaluates
+the discrete analogue of the intrinsic question: whether the embedded
+$1$-skeleton, regarded as a metric graph in $\mathbb{R}^m$, retains the
+lengths of selected input paths.
+
+Figure \@ref(fig:noisy-circle-path-geometry) gives a data-derived version of
+this distinction. A graph shortest path follows the sampled circular structure,
+whereas the chord connects the same observations through the surrounding
+Euclidean plane. Neither length is defective; they answer different questions.
+The appropriate diagnostic consequently depends on what a downstream use
 consumes. Proximity, neighborhood, clustering, and centroid-distance readings
 in the displayed coordinates consume chords. Trajectory and pseudotime
 analyses instead use graph or lineage paths to order cells and follow changes
 along those paths [@haghverdi2016; @street2018; @wolf2019]. Chord fidelity
 governs the first class of readings; fixed-path fidelity governs the second.
+
+```{r noisy-circle-path-geometry, fig.cap="A data-derived counterpart of intrinsic-path and chord distance. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their native connected symmetric 6NN graph. The white endpoints are joined by one fixed graph shortest path (blue) and by their Euclidean chord (dashed red); the legend gives their lengths. The display illustrates distinct metrics on the same endpoints; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
+set.seed(20260830)
+noisy.n <- 120L
+noisy.theta <- sort(stats::runif(noisy.n, 0, 2 * pi))
+noisy.radial.offset <- pmax(
+  pmin(stats::rnorm(noisy.n, sd = 0.045), 0.126),
+  -0.126
+)
+noisy.circle <- cbind(
+  x = (1 + noisy.radial.offset) * cos(noisy.theta),
+  y = (1 + noisy.radial.offset) * sin(noisy.theta)
+)
+noisy.graph <- dgraphs::create.sknn.graph(
+  noisy.circle,
+  k = 6,
+  neighbor.method = "exact",
+  connect.components = FALSE
+)
+stopifnot(noisy.graph$n_components_before == 1L)
+noisy.edges <- dgraphs::convert.adjacency.to.edge.matrix(
+  noisy.graph$adj_list
+)$edge.matrix
+noisy.from <- which.min(abs(noisy.theta))
+noisy.to <- which.min(abs(noisy.theta - pi))
+noisy.igraph <- dgraphs::as_igraph(noisy.graph)
+noisy.path.vertices <- as.integer(igraph::shortest_paths(
+  noisy.igraph,
+  from = noisy.from,
+  to = noisy.to,
+  weights = igraph::E(noisy.igraph)$weight
+)$vpath[[1L]])
+noisy.path.edges <- cbind(
+  noisy.path.vertices[-length(noisy.path.vertices)],
+  noisy.path.vertices[-1L]
+)
+noisy.graph.distance <- dgraphs::graph.geodesic.distances(noisy.graph)[
+  noisy.from,
+  noisy.to
+]
+noisy.chord.distance <- sqrt(sum(
+  (noisy.circle[noisy.from, ] - noisy.circle[noisy.to, ])^2
+))
+
+noisy.limits <- c(-1.25, 1.25)
+op <- par(mfrow = c(1, 2), mar = c(1.2, 1.2, 3, 1))
+plot(
+  noisy.circle,
+  asp = 1,
+  xlim = noisy.limits,
+  ylim = noisy.limits,
+  axes = FALSE,
+  xlab = "",
+  ylab = "",
+  pch = 16,
+  cex = 0.55,
+  col = "#335C81",
+  main = "Noisy circular observations"
+)
+symbols(
+  0,
+  0,
+  circles = 1,
+  inches = FALSE,
+  add = TRUE,
+  fg = grDevices::adjustcolor("#9AA7B1", alpha.f = 0.75),
+  lwd = 1.2
+)
+text(
+  0,
+  -1.18,
+  expression(paste("truncated radial Gaussian; ", sigma, " = 0.045")),
+  cex = 0.9
+)
+
+plot(
+  noisy.circle,
+  asp = 1,
+  xlim = noisy.limits,
+  ylim = noisy.limits,
+  axes = FALSE,
+  xlab = "",
+  ylab = "",
+  type = "n",
+  main = "Symmetric 6NN graph: path versus chord"
+)
+segments(
+  noisy.circle[noisy.edges[, 1L], 1L],
+  noisy.circle[noisy.edges[, 1L], 2L],
+  noisy.circle[noisy.edges[, 2L], 1L],
+  noisy.circle[noisy.edges[, 2L], 2L],
+  col = grDevices::adjustcolor("#7E8790", alpha.f = 0.36),
+  lwd = 0.7
+)
+segments(
+  noisy.circle[noisy.from, 1L],
+  noisy.circle[noisy.from, 2L],
+  noisy.circle[noisy.to, 1L],
+  noisy.circle[noisy.to, 2L],
+  col = "#C33C54",
+  lwd = 2,
+  lty = 2
+)
+segments(
+  noisy.circle[noisy.path.edges[, 1L], 1L],
+  noisy.circle[noisy.path.edges[, 1L], 2L],
+  noisy.circle[noisy.path.edges[, 2L], 1L],
+  noisy.circle[noisy.path.edges[, 2L], 2L],
+  col = "#1F5A94",
+  lwd = 3.4
+)
+points(noisy.circle, pch = 16, cex = 0.48, col = "#335C81")
+points(
+  noisy.circle[c(noisy.from, noisy.to), , drop = FALSE],
+  pch = 21,
+  cex = 1.35,
+  lwd = 1.1,
+  bg = "#F7F7F7",
+  col = "#1A1A1A"
+)
+legend(
+  "bottom",
+  inset = 0.01,
+  legend = c(
+    sprintf("fixed graph shortest path = %.2f", noisy.graph.distance),
+    sprintf("Euclidean chord = %.2f", noisy.chord.distance)
+  ),
+  col = c("#1F5A94", "#C33C54"),
+  lwd = c(3.4, 2),
+  lty = c(1, 2),
+  bty = "n",
+  cex = 0.85
+)
+par(op)
+```
 
 Neither criterion certifies the other. A fixed-path loss constrains sums of
 edge lengths along retained routes, leaving endpoint separation and extrinsic
