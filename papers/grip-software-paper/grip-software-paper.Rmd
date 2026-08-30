@@ -10,7 +10,7 @@ author:
     affiliation: Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine
     address: Baltimore, Maryland, USA
     orcid: ~
-    email: ~
+    email: jravel@som.umaryland.edu
 abstract: >
   A graph embedding places the vertices of a graph in Euclidean space. The
   question is how faithfully the resulting geometry represents the graph's
