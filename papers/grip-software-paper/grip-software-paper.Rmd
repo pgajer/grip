@@ -15,10 +15,10 @@ abstract: >
   A graph embedding places the vertices of a graph in Euclidean space. However,
   the resulting geometry need not faithfully represent the graph's intrinsic
   shortest-path geometry. grip is an R package for generating,
-  evaluating, comparing, and refining graph embeddings. Its C++ implementation
-  of the original GRIP algorithm creates 2D and 3D layouts using hop or
-  edge-length graph metrics and optionally records intermediate stages of the
-  coarse-to-fine layout process. A common scoring framework uses conventional
+  evaluating, comparing, and refining graph embeddings. Its multiscale layout
+  functions generate 2D and 3D candidate coordinates and can record the
+  intermediate stages of a coarse-to-fine layout. A common scoring framework uses
+  conventional
   layout diagnostics and graph-geodesic losses to evaluate graph embeddings
   produced by grip or other software. These losses compare embedded graph-path
   lengths with shortest-path distances in the input graph and support
