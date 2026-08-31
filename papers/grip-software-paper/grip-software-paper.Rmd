@@ -789,6 +789,7 @@ along those paths [@haghverdi2016; @street2018; @wolf2019]. Chord fidelity
 governs the first class of readings; fixed-path fidelity governs the second.
 
 ```{r noisy-circle-path-geometry, fig.cap="A graph-to-embedding contrast for the identity embedding of a data-derived graph. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their native connected symmetric 6NN graph drawn at the same coordinates, so $z_i=x_i$. The white endpoints are joined by one fixed graph shortest path (blue), whose embedded length exactly equals its input-graph length, and by their Euclidean chord (dashed red); the legend gives their lengths. The display compares two metrics on the same graph and embedding; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, which uses the identity embedding, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path retains its input-graph length and is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
+RNGversion("4.0.0") # Preserve this illustrative realization's RNG stream.
 set.seed(20260830)
 noisy.n <- 120L
 noisy.theta <- sort(stats::runif(noisy.n, 0, 2 * pi))
@@ -1183,7 +1184,7 @@ op <- par(mfrow = c(1, 2), mar = c(1, 1, 3.1, 1))
 for (i in seq_along(workflow.layouts)) {
   plot_common_projection(
     workflow.layouts[[i]], workflow.edges,
-    sprintf("%s\nEdge relative RMSE = %.5f", names(workflow.layouts)[i], workflow.scores[i]),
+    sprintf("%s\nEdge relative RMSE = %.3f", names(workflow.layouts)[i], workflow.scores[i]),
     xlim = workflow.range + c(-workflow.pad, workflow.pad),
     ylim = workflow.range + c(-workflow.pad, workflow.pad),
     vertex.col = if (i == 1L) "#666666" else "#1F3B73"
