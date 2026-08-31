@@ -93,14 +93,75 @@ write_build_info()
 
 output_name <- function(ext) {
   if (timestamped) {
-    sprintf("%s_%s.%s", base_name, timestamp_suffix, ext)
+    file.path(build_dir, sprintf("%s_%s.%s", base_name, timestamp_suffix, ext))
   } else {
-    sprintf("%s.%s", base_name, ext)
+    file.path(build_dir, sprintf("%s.%s", base_name, ext))
   }
 }
 
 stable_name <- function(ext) {
-  sprintf("%s.%s", base_name, ext)
+  file.path(build_dir, sprintf("%s.%s", base_name, ext))
+}
+
+move_generated_directory <- function(source, target) {
+  if (!dir.exists(source)) {
+    return(invisible(FALSE))
+  }
+  dir.create(target, recursive = TRUE, showWarnings = FALSE)
+  entries <- list.files(source, all.files = TRUE, no.. = TRUE, full.names = TRUE)
+  for (entry in entries) {
+    destination <- file.path(target, basename(entry))
+    if (dir.exists(entry)) {
+      if (dir.exists(destination)) {
+        move_generated_directory(entry, destination)
+      } else if (!file.rename(entry, destination)) {
+        if (!file.copy(entry, destination, recursive = TRUE)) {
+          stop("Failed to move generated directory ", entry, " to ", destination)
+        }
+        unlink(entry, recursive = TRUE, force = TRUE)
+      }
+    } else {
+      if (file.exists(destination)) {
+        unlink(destination, force = TRUE)
+      }
+      if (!file.rename(entry, destination)) {
+        if (!file.copy(entry, destination, overwrite = TRUE)) {
+          stop("Failed to move generated file ", entry, " to ", destination)
+        }
+        unlink(entry, force = TRUE)
+      }
+    }
+  }
+  unlink(source, recursive = TRUE, force = TRUE)
+  invisible(TRUE)
+}
+
+move_pdf_products_to_build <- function() {
+  generated_files <- c(
+    sprintf("%s.%s", base_name, c("R", "tex", "pdf", "log")),
+    basename(Sys.glob(file.path(getwd(), "RJwrapper.*")))
+  )
+  for (generated_file in unique(generated_files)) {
+    source <- file.path(getwd(), generated_file)
+    if (!file.exists(source)) {
+      next
+    }
+    destination <- file.path(build_dir, generated_file)
+    if (file.exists(destination)) {
+      unlink(destination, recursive = TRUE, force = TRUE)
+    }
+    if (!file.rename(source, destination)) {
+      if (!file.copy(source, destination, overwrite = TRUE)) {
+        stop("Failed to move generated file ", source, " to ", destination)
+      }
+      unlink(source, recursive = TRUE, force = TRUE)
+    }
+  }
+  move_generated_directory(
+    file.path(getwd(), paste0(base_name, "_files")),
+    file.path(build_dir, paste0(base_name, "_files"))
+  )
+  invisible(TRUE)
 }
 
 add_table_aria_labels <- function(path) {
@@ -180,10 +241,16 @@ render_one <- function(output_format, ext) {
   rmarkdown::render(
     input = input_file,
     output_format = output_format,
+    output_dir = build_dir,
+    intermediates_dir = build_dir,
+    knit_root_dir = getwd(),
     quiet = FALSE,
     clean = FALSE,
     envir = new.env(parent = globalenv())
   )
+  if (identical(ext, "pdf")) {
+    move_pdf_products_to_build()
+  }
   if (identical(ext, "html")) {
     add_table_aria_labels(stable_out)
     style_package_name_html(stable_out)

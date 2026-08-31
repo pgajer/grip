@@ -37,8 +37,17 @@ required_files <- c(
   "_Rpackages.txt",
   "citation_verification.html"
 )
-
-source_paths <- file.path(paper_dir, required_files)
+build_products <- c(
+  "grip-software-paper.R",
+  "grip-software-paper.tex",
+  "grip-software-paper.pdf",
+  "grip-software-paper.html",
+  "RJwrapper.tex"
+)
+source_paths <- file.path(
+  ifelse(required_files %in% build_products, file.path(paper_dir, "build"), paper_dir),
+  required_files
+)
 missing <- required_files[!file.exists(source_paths)]
 if (length(missing)) {
   stop(
@@ -47,13 +56,13 @@ if (length(missing)) {
   )
 }
 
-copied <- file.copy(source_paths, bundle_dir, overwrite = TRUE)
+copied <- file.copy(source_paths, file.path(bundle_dir, required_files), overwrite = TRUE)
 if (!all(copied)) {
   stop("Failed to copy one or more required manuscript files.")
 }
 
-copy_tree <- function(relative_path) {
-  source <- file.path(paper_dir, relative_path)
+copy_tree <- function(relative_path, source_root = paper_dir) {
+  source <- file.path(source_root, relative_path)
   if (!dir.exists(source)) {
     stop("Missing required directory: ", source)
   }
@@ -72,7 +81,7 @@ copy_tree <- function(relative_path) {
 }
 
 copy_tree("reproducibility")
-copy_tree("grip-software-paper_files")
+copy_tree("grip-software-paper_files", source_root = file.path(paper_dir, "build"))
 
 motivation_dir <- file.path(bundle_dir, "motivation-letter")
 dir.create(motivation_dir, recursive = TRUE, showWarnings = FALSE)

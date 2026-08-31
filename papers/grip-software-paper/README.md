@@ -1,8 +1,11 @@
 # GRIP Software Paper
 
 This directory is the canonical home of the GRIP software-package manuscript.
-The source of truth is `grip-software-paper.Rmd`; the `.tex`, PDF, HTML, and
-figure sidecars are generated build products unless explicitly tracked.
+The source of truth is `grip-software-paper.Rmd`. Rendered PDF and HTML
+versions, knitted and LaTeX intermediates, wrapper files, and figure sidecars
+are generated under `build/` unless explicitly tracked. The
+`citation_verification.html` page remains at this level as tracked audit
+evidence rather than a manuscript render.
 
 From the package repository root, render and audit the paper with:
 

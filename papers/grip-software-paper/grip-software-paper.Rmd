@@ -33,11 +33,13 @@ abstract: >
   fidelity.
 preamble: |
   \usepackage{amsmath}
+  \usepackage{graphicx}
   \usepackage{xcolor}
   \usepackage{etoolbox}
   \usepackage{float}
   \usepackage{tikz}
   \usetikzlibrary{arrows}
+  \graphicspath{{build/}{}}
   \AtBeginEnvironment{table}{\small}
   \AtBeginEnvironment{thebibliography}{\small}
   \providecommand{\manuscriptversion}{unversioned}
@@ -46,7 +48,9 @@ preamble: |
   \providecommand{\manuscriptbuilddatetime}{unknown}
   \newif\ifgrippapershowbuildstamp
   \grippapershowbuildstampfalse
-  \InputIfFileExists{build/manuscript_build_info.tex}{}{}
+  \InputIfFileExists{manuscript_build_info.tex}{}{%
+    \InputIfFileExists{build/manuscript_build_info.tex}{}{}%
+  }
   \newcommand{\grippaperbuildstamp}{%
     \par
     \vspace{-0.35em}%
@@ -981,7 +985,11 @@ family.scope <- data.frame(
 accessible_kable(
   family.scope,
   row.names = FALSE,
-  align = c("l", "l", "p{0.22\\linewidth}", "p{0.42\\linewidth}"),
+  align = if (knitr::is_latex_output()) {
+    c("l", "l", "p{0.22\\linewidth}", "p{0.42\\linewidth}")
+  } else {
+    c("l", "l", "l", "l")
+  },
   caption = "Maturity, purpose, and principal functions of the main layout and GMDS-facing method families in grip.",
   alt = paste(
     "Six rows distinguish the core multiscale GRIP implementation from the",

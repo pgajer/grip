@@ -80,7 +80,7 @@ paper-all:
 
 paper-citation-check:
 	python3 tools/reports/check-citation-verification.py \
-		--tex papers/grip-software-paper/grip-software-paper.tex \
+		--tex papers/grip-software-paper/build/grip-software-paper.tex \
 		--bib papers/grip-software-paper/grip-software-paper.bib \
 		--html papers/grip-software-paper/citation_verification.html
 
