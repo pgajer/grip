@@ -12,9 +12,9 @@ author:
     orcid: 0000-0002-0851-2233
     email: jravel@som.umaryland.edu
 abstract: >
-  A graph embedding places the vertices of a graph in Euclidean space. The
-  question is how faithfully the resulting geometry represents the graph's
-  intrinsic shortest-path geometry. grip is an R package for generating,
+  A graph embedding places the vertices of a graph in Euclidean space. However,
+  the resulting geometry need not faithfully represent the graph's intrinsic
+  shortest-path geometry. grip is an R package for generating,
   evaluating, comparing, and refining graph embeddings. Its C++ implementation
   of the original GRIP algorithm creates 2D and 3D layouts using hop or
   edge-length graph metrics and optionally records intermediate stages of the

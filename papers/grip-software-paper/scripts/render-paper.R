@@ -138,7 +138,7 @@ move_generated_directory <- function(source, target) {
 
 move_pdf_products_to_build <- function() {
   generated_files <- c(
-    sprintf("%s.%s", base_name, c("R", "tex", "pdf", "log")),
+    sprintf("%s.%s", base_name, c("R", "tex", "pdf", "log", "knit.md")),
     basename(Sys.glob(file.path(getwd(), "RJwrapper.*")))
   )
   for (generated_file in unique(generated_files)) {
@@ -238,11 +238,12 @@ style_package_name_html <- function(path) {
 
 render_one <- function(output_format, ext) {
   stable_out <- stable_name(ext)
+  render_dir <- if (identical(ext, "pdf")) getwd() else build_dir
   rmarkdown::render(
     input = input_file,
     output_format = output_format,
-    output_dir = build_dir,
-    intermediates_dir = build_dir,
+    output_dir = render_dir,
+    intermediates_dir = render_dir,
     knit_root_dir = getwd(),
     quiet = FALSE,
     clean = FALSE,
