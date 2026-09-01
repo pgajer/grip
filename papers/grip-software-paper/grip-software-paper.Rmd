@@ -287,10 +287,13 @@ examples, the generating model can make $D_X$ known and thereby allow the
 discrepancy between $D_X$ and $D_G$ to be evaluated directly. Examining that
 discrepancy across geometries, sampling densities, noise levels, and sample
 sizes supports calibration of graph constructors for corresponding classes of
-real data.
+real data. The companion \pkg{dgraphs} package provides graph-construction and
+calibration tools for this $X\to G$ question [@gajer2026dgraphs]. Once a
+construction has been calibrated for a class of data---or a set of plausible
+constructions has been retained---it supplies the working graph geometry for a
+second fidelity question.
 
-Once a graph has been chosen as the working representation of the data
-geometry, embedding it raises a second fidelity question. An embedding assigns
+Embedding that graph raises the second fidelity question. An embedding assigns
 each vertex of $G$ a coordinate $z_i\in\mathbb{R}^m$; in the common
 dimensionality-reduction setting illustrated below, $p\gg m$. The matrix
 $D_{G,Z}=(d_{ij}^{G,Z})$ records the lengths, after embedding, of selected
@@ -298,13 +301,11 @@ geodesics from the input graph. Chord-based MDS criteria compare $D_G$ with
 the endpoint chords $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$. Thus, although
 Isomap uses graph geodesics to construct its input targets, this view of
 output fidelity remains Euclidean: it does not measure the embedded length of
-the corresponding input-side geodesic. The companion \pkg{dgraphs} package
-supports construction and calibration for the first $X\to G$ question
-[@gajer2026dgraphs], whereas \pkg{grip} supports layout, scoring, and
-refinement for the second $G\to Z$ question. A low graph-to-embedding loss
+the corresponding input-side geodesic. \pkg{grip} addresses this $G\to Z$
+question through layout, scoring, and refinement. A low graph-to-embedding loss
 cannot recover information already lost during $X\to G$, so the two losses
 remain separate and the interpretation of the second is conditional on the
-first. The two transformations and the roles of the companion packages are
+first. The two fidelity stages are
 
 ```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
 if (knitr::is_latex_output()) {
