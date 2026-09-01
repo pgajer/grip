@@ -20,7 +20,7 @@ abstract: >
   multidimensional scaling (GMDS) compares each selected input path's graph
   length with its length after embedding. grip is an R package that combines
   multiscale graph layout with assessment under both criteria and experimental
-  GMDS refinement tools.
+  GMDS-oriented refinement workflows.
 preamble: |
   \usepackage{amsmath}
   \usepackage{graphicx}
@@ -1124,7 +1124,12 @@ correspondingly higher memory and runtime costs.
 
 For an edge-only refinement, `prepare.edge.kk()` avoids all-pairs path
 construction before `edge.kk()` returns refined coordinates and a diagnostic
-panel. The executable example below follows that prepare--score--refine path.
+panel. When full all-pairs preparation is feasible,
+`edge.kk(init = "metric_mds")` uses metric MDS as an initializer before
+edge-KK repair. `edge.kk(init = "weighted_grip")` instead initializes from
+the weighted-GRIP layout and avoids that all-pairs MDS step, providing an
+alternative for larger weighted graphs. The executable example below follows
+the prepare--score--refine path.
 
 ```{r geodesic-workflow, echo=TRUE, results="hide"}
 workflow.edges <- edges.mesh(4, 4)
