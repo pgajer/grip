@@ -293,12 +293,21 @@ construction has been calibrated for a class of data---or a set of plausible
 constructions has been retained---it supplies the working graph geometry for a
 graph-to-embedding fidelity question addressed by \pkg{grip}.
 
-An embedding assigns each vertex of $G$ a coordinate
-$z_i\in\mathbb{R}^m$; in the common
-dimensionality-reduction setting illustrated below, $p\gg m$. The matrix
-$D_{G,Z}=(d_{ij}^{G,Z})$ records the lengths, after embedding, of selected
-geodesics from the input graph. Chord-based MDS criteria compare $D_G$ with
-the endpoint chords $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$. Thus, although
+An embedding assigns vertex $i$ of $G$ a coordinate $z_i\in\mathbb{R}^m$; in
+the common dimensionality-reduction setting illustrated below, $p\gg m$.
+After embedding, each edge $(u,v)\in E$ has Euclidean length
+$\lVert z_u-z_v\rVert_2$. The embedded length of a selected input-graph
+geodesic $\gamma_{ij}$ is therefore
+
+$$
+d_{ij}^{G,Z}
+=
+\sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2,
+$$
+
+and $D_{G,Z}=(d_{ij}^{G,Z})$ collects these fixed-path lengths. Chord-based
+MDS criteria compare $D_G$ with the endpoint chords
+$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$. Thus, although
 Isomap uses graph geodesics to construct its input targets, this view of
 output fidelity remains Euclidean: it does not measure the embedded length of
 the corresponding input-side geodesic. \pkg{grip} addresses this $G\to Z$
