@@ -291,10 +291,10 @@ real data. The companion \pkg{dgraphs} package provides graph-construction and
 calibration tools for this $X\to G$ question [@gajer2026dgraphs]. Once a
 construction has been calibrated for a class of data---or a set of plausible
 constructions has been retained---it supplies the working graph geometry for a
-second fidelity question.
+graph-to-embedding fidelity question addressed by \pkg{grip}.
 
-Embedding that graph raises the second fidelity question. An embedding assigns
-each vertex of $G$ a coordinate $z_i\in\mathbb{R}^m$; in the common
+An embedding assigns each vertex of $G$ a coordinate
+$z_i\in\mathbb{R}^m$; in the common
 dimensionality-reduction setting illustrated below, $p\gg m$. The matrix
 $D_{G,Z}=(d_{ij}^{G,Z})$ records the lengths, after embedding, of selected
 geodesics from the input graph. Chord-based MDS criteria compare $D_G$ with
