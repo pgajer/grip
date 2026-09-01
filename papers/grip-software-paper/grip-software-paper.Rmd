@@ -315,10 +315,12 @@ and quantify progression, as in trajectory and pseudotime analysis
 embedding, the relevant fidelity question is whether its embedded length
 $d_{ij}^{G,Z}$ preserves its input-graph length $d_{ij}^G$. GMDS formalizes the
 comparison between $D_G$ and $D_{G,Z}$, while \pkg{grip} supports this $G\to Z$
-stage through layout, scoring, and refinement. A low graph-to-embedding loss
-cannot recover information already lost during $X\to G$, so the two losses
-remain separate and the interpretation of the second is conditional on the
-first. The two fidelity stages are
+stage through layout, scoring, and refinement. Its common scoring interface
+evaluates coordinates produced by \pkg{grip} or other software under both
+fidelity criteria and supplements them with conventional layout diagnostics. A
+low graph-to-embedding loss cannot recover information already lost during
+$X\to G$, so the two losses remain separate and the interpretation of the
+second is conditional on the first. The two fidelity stages are
 
 ```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
 if (knitr::is_latex_output()) {
@@ -406,15 +408,6 @@ if (knitr::is_latex_output()) {
 ```
 
 \newpage
-The package supports two complementary views of the graph-to-embedding stage.
-Chord-based MDS criteria compare $D_G$ with Euclidean distances between
-embedded vertices. Geodesic multidimensional scaling (GMDS) instead compares
-$D_G$ with the lengths of corresponding input-graph paths after embedding.
-\pkg{grip} provides a common interface for scoring
-coordinates produced by its own layout functions or by other software under
-both views and supplements them with conventional layout diagnostics. It also
-provides experimental GMDS-facing objectives and refinement methods.
-
 The core layout functions implement the original GRIP algorithm [@gajer2002;
 @gajer2004]. GRIP constructs a hierarchy of maximal independent sets, places
 vertices from coarse to fine resolution, and refines the layout locally at each
