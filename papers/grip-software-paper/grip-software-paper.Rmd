@@ -289,8 +289,9 @@ discrepancy across geometries, sampling densities, noise levels, and sample
 sizes supports calibration of graph constructors for corresponding classes of
 real data.
 
-The graph creates a second fidelity question. An embedding assigns each vertex
-of $G$ a coordinate $z_i\in\mathbb{R}^m$; in the common
+Once a graph has been chosen as the working representation of the data
+geometry, embedding it raises a second fidelity question. An embedding assigns
+each vertex of $G$ a coordinate $z_i\in\mathbb{R}^m$; in the common
 dimensionality-reduction setting illustrated below, $p\gg m$. The matrix
 $D_{G,Z}=(d_{ij}^{G,Z})$ records the lengths, after embedding, of selected
 geodesics from the input graph. Chord-based MDS criteria compare $D_G$ with
@@ -406,12 +407,10 @@ both views and supplements them with conventional layout diagnostics. It also
 provides experimental GMDS-facing objectives and refinement methods.
 
 The core layout functions implement the original GRIP algorithm [@gajer2002;
-@gajer2004] in a C++ core accessed from R through Rcpp [@eddelbuettel2011].
-GRIP constructs a hierarchy of maximal independent sets, places vertices from
-coarse to fine resolution, and refines the layout locally at each level. This
-hierarchy makes it practical to generate and compare multiple 2D and 3D
-candidate layouts for graphs with hundreds to thousands of vertices. The
-original GRIP refinement is computationally localized rather than global:
+@gajer2004]. GRIP constructs a hierarchy of maximal independent sets, places
+vertices from coarse to fine resolution, and refines the layout locally at each
+level. The original GRIP refinement is computationally localized rather than
+global:
 intermediate filtration levels use Kamada--Kawai (KK)-style forces over
 restricted neighborhoods, and the final level uses Fruchterman--Reingold
 refinement [@gajer2002; @kamada1989; @fruchterman1991]. GRIP therefore draws on
@@ -467,19 +466,6 @@ for (i in seq_along(frame.idx)) {
 par(op)
 ```
 
-The original formulation can also construct layouts in $\mathbb{R}^m$ and
-project them to two or three dimensions; Gajer et al. reported that these
-projections were often smoother and more symmetric than layouts computed
-directly in the display dimension [@gajer2004]. The main layout and trace
-interfaces use $m\in\{2,3\}$, whereas `weighted.grip.nd()` and selected
-GMDS-facing functions support $m>3$. Retaining higher-dimensional coordinates
-allows the package diagnostics to be used in searches for low-distortion
-Euclidean representations of $D_G$. Such coordinates can support downstream
-methods defined on Euclidean vectors and, when $m$ is smaller than the original
-feature dimension, provide a graph-mediated form of dimensionality reduction.
-This fidelity remains conditional on the supplied graph and does not establish
-recovery of $D_X$.
-
 GRIP belongs to a broader multilevel graph-drawing tradition. Related methods
 construct coarse graph hierarchies by matching, clustering, or graph-distance
 sampling and then refine layouts from coarse to fine resolution
@@ -521,6 +507,16 @@ $n \times m$ numeric coordinate matrix, whereas `trace.grip()` returns the
 final coordinates together with intermediate coarse-to-fine states and
 diagnostics. The core layout and trace functions use $m\in\{2,3\}$;
 `weighted.grip.nd()` and selected GMDS-facing methods support any $m\geq 2$.
+
+The core implementation is written in C++ and accessed from R through Rcpp
+[@eddelbuettel2011]. Its coarse-to-fine hierarchy supports generation and
+comparison of multiple 2D and 3D candidate layouts for graphs with hundreds to
+thousands of vertices. Retaining coordinates in more than three dimensions can
+support searches for low-distortion Euclidean representations of $D_G$ and
+downstream methods defined on Euclidean vectors. When $m$ is smaller than the
+original feature dimension, such coordinates can also provide a graph-mediated
+form of dimensionality reduction. Their fidelity remains conditional on the
+supplied graph and does not establish recovery of $D_X$.
 
 The `metric` argument states which graph geometry the layout should use.
 `metric = "hop"`, the default, treats every edge as one step. With
