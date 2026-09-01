@@ -411,16 +411,9 @@ if (knitr::is_latex_output()) {
 The core layout functions implement the original hop-distance GRIP algorithm
 [@gajer2002; @gajer2004] and an edge-length-aware extension. In both versions,
 GRIP constructs a hierarchy of maximal independent sets, places vertices from
-coarse to fine resolution, and refines the layout locally at each level. The
-refinement is computationally localized rather than global:
-intermediate filtration levels use Kamada--Kawai (KK)-style forces over
-restricted neighborhoods, and the final level uses Fruchterman--Reingold
-refinement [@gajer2002; @kamada1989; @fruchterman1991]. GRIP therefore draws on
-both KK and Fruchterman--Reingold, but it does not optimize the classical global
-all-pairs KK objective.
-
-Figure \@ref(fig:trace) illustrates the coarse-to-fine construction using four
-states returned by `trace.grip()`.
+coarse to fine resolution, and refines the layout locally at each level. Figure
+\@ref(fig:trace) illustrates this construction through four states returned by
+`trace.grip()`.
 
 ```{r trace, fig.cap="Coarse-to-fine construction in the GRIP algorithm, exposed by trace.grip() for a 6x6 mesh. The panels show the coarsest initialization, an early intermediate state, a late intermediate state, and the final layout.", fig.alt="Four panels showing the GRIP algorithm placing and refining a mesh from a sparse coarse configuration to a regular grid-like final arrangement.", fig.width=10, fig.height=2.8, fig.pos="H"}
 trace.edges <- edges.mesh(6, 6)
@@ -467,6 +460,13 @@ for (i in seq_along(frame.idx)) {
 }
 par(op)
 ```
+
+The refinement is computationally localized rather than global: intermediate
+filtration levels use Kamada--Kawai (KK)-style forces over restricted
+neighborhoods, and the final level uses Fruchterman--Reingold refinement
+[@gajer2002; @kamada1989; @fruchterman1991]. GRIP therefore draws on both KK and
+Fruchterman--Reingold, but it does not optimize the classical global all-pairs
+KK objective.
 
 GRIP belongs to a broader multilevel graph-drawing tradition. Related methods
 construct coarse graph hierarchies by matching, clustering, or graph-distance
