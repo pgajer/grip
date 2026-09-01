@@ -708,6 +708,34 @@ E_{K}^{\mathrm{edge}}(Z)
 \bigl(d_{ij}^{Z}-\ell_{ij}\bigr)^2.
 $$
 
+This edge relaxation has an exact connection to the fixed-path criterion at
+zero loss. Because the stiffnesses $k_{ij}$ are positive,
+$E_K^{\mathrm{edge}}(Z)=0$ implies $d_{ij}^Z=\ell_{ij}$ for every edge. For
+any retained graph path $\gamma=(v_0,\ldots,v_q)$, its embedded and graph
+lengths then satisfy
+
+$$
+d_\gamma^{G,Z}
+=\sum_{r=1}^{q}d_{v_{r-1}v_r}^{Z}
+=\sum_{r=1}^{q}\ell_{v_{r-1}v_r}
+=d_\gamma^G.
+$$
+
+When $\gamma$ is the fixed graph shortest path between its endpoints,
+$d_\gamma^G$ is their graph distance. Every residual in the fixed-path
+relative RMSE is therefore zero for any selected path family $\Gamma$. The
+same implication holds under a common fitted scale $L_0$: zero edge residuals
+$d_e^Z-L_0\ell_e$ imply $d_\gamma^{G,Z}=L_0d_\gamma^G$ for every retained
+path.
+
+Away from zero, the objectives are not equivalent. With edge residual
+$r_e=d_e^Z-L_0\ell_e$, edge-KK sums $k_e r_e^2$, whereas a path contributes
+$(\sum_{e\in\gamma}r_e)^2$. The latter contains cross-products and implicitly
+weights edges by their occurrence in $\Gamma$; errors can accumulate or cancel
+along a path. Thus zero edge loss guarantees zero fixed-path loss, but when
+exact preservation is unattainable, the edge objective is a surrogate and the
+two minimizers need not coincide.
+
 `score.gmds()` evaluates chord, edge, and fixed-path discrepancies for
 coordinates produced by any embedding method; the full gKK, LGKK, and edge-KK
 interfaces prepare, score, or refine their respective objectives.
