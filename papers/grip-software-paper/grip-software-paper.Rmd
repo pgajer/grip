@@ -298,8 +298,13 @@ geodesics from the input graph. Chord-based MDS criteria compare $D_G$ with
 the endpoint chords $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$. Thus, although
 Isomap uses graph geodesics to construct its input targets, this view of
 output fidelity remains Euclidean: it does not measure the embedded length of
-the corresponding input-side geodesic. The two transformations and the roles
-of the companion packages are
+the corresponding input-side geodesic. The companion \pkg{dgraphs} package
+supports construction and calibration for the first $X\to G$ question
+[@gajer2026dgraphs], whereas \pkg{grip} supports layout, scoring, and
+refinement for the second $G\to Z$ question. A low graph-to-embedding loss
+cannot recover information already lost during $X\to G$, so the two losses
+remain separate and the interpretation of the second is conditional on the
+first. The two transformations and the roles of the companion packages are
 
 ```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
 if (knitr::is_latex_output()) {
@@ -385,17 +390,6 @@ if (knitr::is_latex_output()) {
   )
 }
 ```
-
-The first comparison asks how well a data-derived graph recovers the intended
-data geometry. The companion \pkg{dgraphs} package supports that
-data-to-graph question through graph construction and calibration tools
-[@gajer2026dgraphs]. Once a graph construction has been calibrated for a class
-of data---or a set of plausible constructions has been retained---the second
-comparison asks which coordinate representations preserve the resulting graph
-geometry with the least distortion. The \pkg{grip} package addresses this
-graph-to-embedding question. A low graph-to-embedding loss cannot recover
-information already lost during $X\to G$, so the two losses remain separate
-and the interpretation of the second is conditional on the first.
 
 The package supports two complementary views of the graph-to-embedding stage.
 Chord-based MDS criteria compare $D_G$ with Euclidean distances between
