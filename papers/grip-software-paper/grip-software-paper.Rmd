@@ -408,11 +408,11 @@ if (knitr::is_latex_output()) {
 ```
 
 \newpage
-The core layout functions implement the original GRIP algorithm [@gajer2002;
-@gajer2004]. GRIP constructs a hierarchy of maximal independent sets, places
-vertices from coarse to fine resolution, and refines the layout locally at each
-level. The original GRIP refinement is computationally localized rather than
-global:
+The core layout functions implement the original hop-distance GRIP algorithm
+[@gajer2002; @gajer2004] and an edge-length-aware extension. In both versions,
+GRIP constructs a hierarchy of maximal independent sets, places vertices from
+coarse to fine resolution, and refines the layout locally at each level. The
+refinement is computationally localized rather than global:
 intermediate filtration levels use Kamada--Kawai (KK)-style forces over
 restricted neighborhoods, and the final level uses Fruchterman--Reingold
 refinement [@gajer2002; @kamada1989; @fruchterman1991]. GRIP therefore draws on
