@@ -287,8 +287,9 @@ requires choosing how distances in the embedded configuration are measured.
 The companion \CRANpkg{dgraphs} package addresses the $X\to G$ question, while
 \CRANpkg{grip} addresses the $G\to Z$ question.
 
-For real data, $D_X$ is generally unknown, so the $X\to G$ question cannot
-usually be evaluated directly. Controlled synthetic examples allow it to be
+Because $D_X$ is generally unknown for real data, the fidelity of the $X\to G$
+construction cannot usually be evaluated directly. Controlled synthetic
+examples allow it to be
 studied because the generating model can make $D_X$ known and thereby permit
 direct evaluation of the discrepancy between $D_X$ and $D_G$. Examining that
 discrepancy across geometries, sampling densities, noise levels, and sample
