@@ -305,13 +305,13 @@ d_{ij}^{G,Z}
 \sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2,
 $$
 
-and $D_{G,Z}=(d_{ij}^{G,Z})$ collects these fixed-path lengths. Chord-based
-MDS criteria compare $D_G$ with the endpoint chords
-$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$. Thus, although
-Isomap uses graph geodesics to construct its input targets, this view of
-output fidelity remains Euclidean: it does not measure the embedded length of
-the corresponding input-side geodesic. \pkg{grip} addresses this $G\to Z$
-question through layout, scoring, and refinement. A low graph-to-embedding loss
+and $D_{G,Z}=(d_{ij}^{G,Z})$ collects these fixed-path lengths. In Isomap, the
+graph shortest-path distance matrix $D_G$ serves as an estimate of $D_X$.
+Classical MDS then produces coordinates whose endpoint chords
+$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. The
+embedded fixed-path lengths $d_{ij}^{G,Z}$ do not enter this MDS step.
+\pkg{grip} addresses this $G\to Z$ question through layout, scoring, and
+refinement. A low graph-to-embedding loss
 cannot recover information already lost during $X\to G$, so the two losses
 remain separate and the interpretation of the second is conditional on the
 first. The two fidelity stages are
