@@ -308,10 +308,14 @@ $$
 \noindent and $D_{G,Z}=(d_{ij}^{G,Z})$ collects these fixed-path lengths. In Isomap, the
 graph shortest-path distance matrix $D_G$ serves as an estimate of $D_X$.
 Classical MDS then produces coordinates whose endpoint chords
-$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. The
-embedded fixed-path lengths $d_{ij}^{G,Z}$ do not enter this MDS step.
-\pkg{grip} addresses this $G\to Z$ question through layout, scoring, and
-refinement. A low graph-to-embedding loss
+$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. Some
+downstream analyses instead use graph or lineage paths to order observations
+and quantify progression, as in trajectory and pseudotime analysis
+[@haghverdi2016; @street2018; @wolf2019]. When such a path is retained after
+embedding, the relevant fidelity question is whether its embedded length
+$d_{ij}^{G,Z}$ preserves its input-graph length $d_{ij}^G$. GMDS formalizes the
+comparison between $D_G$ and $D_{G,Z}$, while \pkg{grip} supports this $G\to Z$
+stage through layout, scoring, and refinement. A low graph-to-embedding loss
 cannot recover information already lost during $X\to G$, so the two losses
 remain separate and the interpretation of the second is conditional on the
 first. The two fidelity stages are
@@ -401,6 +405,7 @@ if (knitr::is_latex_output()) {
 }
 ```
 
+\newpage
 The package supports two complementary views of the graph-to-embedding stage.
 Chord-based MDS criteria compare $D_G$ with Euclidean distances between
 embedded vertices. Geodesic multidimensional scaling (GMDS) instead compares
