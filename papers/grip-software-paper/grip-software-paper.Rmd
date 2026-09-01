@@ -268,10 +268,11 @@ edge.matrix.from.adj <- function(adj.list) {
 
 Multidimensional scaling (MDS) begins with pairwise dissimilarities
 $\Delta=(\delta_{ij})$ and seeks coordinates
-$Z=\{z_1,\ldots,z_n\}\subset\mathbb{R}^m$ whose Euclidean endpoint distances
-approximate them. Stress-based formulations quantify the discrepancy between
-the target dissimilarities and the configuration distances
-[@kruskal1964multidimensional]. The choice of target distances matters when
+$Z=\{z_1,\ldots,z_n\}\subset\mathbb{R}^m$ whose pairwise Euclidean distances
+$D_Z=(d_{ij}^Z)$, with $d_{ij}^Z=\lVert z_i-z_j\rVert_2$, approximate them.
+Stress-based formulations quantify the discrepancy between the input
+dissimilarities $\Delta$ and the configuration distances $D_Z$
+[@kruskal1964multidimensional]. The choice of input dissimilarities matters when
 $n$ observations $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved,
 branching, or otherwise non-Euclidean structure: ambient straight-line
 distances may then fail to represent the intrinsic relationships that an
@@ -595,7 +596,7 @@ path lengths. The corresponding endpoint chord is
 $d_{ij}^Z=\lVert z_i-z_j\rVert_2$.
 
 Kruskal's Stress-1, shown here in its metric-MDS form
-[@kruskal1964multidimensional], compares target dissimilarities $\delta_{ij}$
+[@kruskal1964multidimensional], compares input dissimilarities $\delta_{ij}$
 with ambient chord distances:
 
 $$
