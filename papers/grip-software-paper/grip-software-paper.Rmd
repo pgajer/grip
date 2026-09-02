@@ -376,14 +376,9 @@ if (knitr::is_latex_output()) {
 
 Answering the $G\to Z$ question requires choosing how distances in the embedded
 configuration are measured. The two criteria considered here compare $D_G$
-with either the Euclidean endpoint distances $D_Z$ or the embedded lengths
-$D_{G,Z}$ of selected input-graph geodesics.
-
-An embedding assigns vertex $i$ of $G$ a coordinate $z_i\in\mathbb{R}^m$; in
-the common dimensionality-reduction setting, $p\gg m$.
-After embedding, each edge $(u,v)\in E$ has Euclidean length
-$\lVert z_u-z_v\rVert_2$. The embedded length of a selected input-graph
-geodesic $\gamma_{ij}$ is therefore
+with either the Euclidean endpoint distances $D_Z$ or
+$D_{G,Z}=(d_{ij}^{G,Z})$, whose entries are the embedded lengths of selected
+input-graph shortest paths:
 
 $$
 d_{ij}^{G,Z}
@@ -391,8 +386,10 @@ d_{ij}^{G,Z}
 \sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2,
 $$
 
-\noindent and $D_{G,Z}=(d_{ij}^{G,Z})$ collects these fixed-path lengths. In Isomap, the
-graph shortest-path distance matrix $D_G$ serves as an estimate of $D_X$.
+\noindent Here $\gamma_{ij}$ is a selected shortest path between vertices $i$
+and $j$ in the input graph $G$. If several shortest paths exist, one is selected
+and held fixed as $Z$ changes. In Isomap, the graph shortest-path distance
+matrix $D_G$ serves as an estimate of $D_X$.
 Classical MDS then produces coordinates whose endpoint chords
 $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. Some
 downstream analyses instead use graph or lineage paths to order observations
