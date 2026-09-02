@@ -44,8 +44,8 @@ The analysis concerns the 2D/3D compiled weighted core in \texttt{grip} 0.2.0
 of equal-radius balls around the selected centers. For insertion, it depends
 on the number of vertices traversed before enough retained neighbors and
 anchors are found. Under bounded degree, bounded filtration-ball overlap,
-suitable coarse-vertex coverage, logarithmic hierarchy depth, and fixed
-tuning parameters, these estimates give a conditional
+suitable coarse-vertex coverage, bounded adjacent level-size ratios,
+logarithmic hierarchy depth, and fixed tuning parameters, these estimates give a conditional
 $\bigO(n\log^2 n)$ expected-time upper bound, including filtration and
 coarsest initialization. The expectation concerns sampled repulsion.
 Geometric contraction of level sizes additionally gives linear peak storage.
@@ -248,10 +248,25 @@ the expected refinement cost is
    R_0M+\sum_{j=0}^{h}R_jN_j(b_j+1)\right).
  \label{eq:refine}
 \end{equation}
-The expectation refers to the usual uniform-draw model for rejection sampling
-of distinct repulsion partners. For a deterministic operation count, record
-the actual number of attempted draws instead. Unbounded exact global repulsion
-or sample sizes increasing with $n$ are outside this formula.
+The expectation uses independent uniform draws from the $N$ active vertices,
+rejecting the vertex itself and previously accepted partners. After $k$
+distinct partners have been accepted, the next draw succeeds with probability
+$(N-1-k)/N$. Obtaining $s$ distinct partners therefore requires
+\begin{equation}
+ \mathbb E[\text{draws}]
+ =\sum_{k=0}^{s-1}\frac{N}{N-1-k}
+ \leq\frac{sN}{N-s}
+ \leq\frac{s(s+2)}{2},\qquad N\geq s+2.
+ \label{eq:repulsion-draws}
+\end{equation}
+The sampled branch has $s<N-1$, so this is uniformly bounded for fixed $s$;
+checking for duplicates in a list of at most $s$ entries also has bounded cost.
+On the exact branch, either $N$ is below the fixed threshold or $N-1\leq s$,
+again giving bounded work per active vertex for fixed parameters. This is an
+ideal independent-uniform model, not an assertion that the finite pseudorandom
+generator produces independent draws. For a deterministic operation count,
+record the actual number of attempted draws instead. Unbounded exact global
+repulsion or sample sizes increasing with $n$ are outside this formula.
 
 Across filtration, initialization, and insertion, the search calls form a set
 $\mathcal Q$. Their realized counts give the principal implementation estimate:
@@ -269,7 +284,6 @@ $\bigO(n+M+U+K)$. If $N_{j+1}\leq\theta N_j$ for a constant $\theta<1$, then
 $U=\bigO(n)$ and $K=\bigO(bn)$: fixed-$b$ cache storage is linear, not
 necessarily $n\log n$.
 
-\clearpage
 \section{A conditional near-linear estimate}\label{sec:conditional}
 
 \subsection{Additional assumptions about coarse-vertex coverage}
@@ -287,9 +301,9 @@ for a constant $c$ independent of $n$ and the level. The two fractions express
 the amount of original-graph material searched per retained neighbor and per
 higher-level anchor. This is an explicit assumption about actual search
 prefixes, motivated by regularly sampled geometries and well-distributed nets;
-it is not a consequence of bounded degree, nor a proved property of every
-weighted GRIP hierarchy. It must include the appended top-level subset and
-large distance ties if they affect stopping.
+it does not follow from bounded degree and doubling, nor is it a proved
+property of every weighted GRIP hierarchy. It must include the appended
+top-level subset and large distance ties if they affect stopping.
 
 Suppose also that adjacent level sizes satisfy $N_j/N_{j+1}\leq\gamma$ for a
 constant $\gamma$. Since $N_j-N_{j+1}$ vertices are inserted at level $j$,
@@ -298,25 +312,81 @@ Equation~\eqref{eq:coverage} gives
  \sum_{v\notin V_h}s_v
  &\leq c' (b+1+a\gamma)n
      \sum_{j=0}^{h-1}\frac{N_j-N_{j+1}}{N_j} \notag\\
- &\leq c'(b+1+a\gamma)nh .
+ &\leq c'(b+1+a\gamma)n\log(n/q).
  \label{eq:coverage-sum}
 \end{align}
-The constant $c'$ absorbs the additive one. Combining this with bounded degree
-in Equation~\eqref{eq:prefix} yields
-$T_N^{\rm search}=\bigO((b+1+a\gamma)nh\log n)$.
+The constant $c'$ absorbs the additive one. The sharper final inequality
+follows from $1-x\leq-\log x$ for $0<x\leq1$:
+\begin{equation}
+ \sum_{j=0}^{h-1}\frac{N_j-N_{j+1}}{N_j}
+ \leq\sum_{j=0}^{h-1}\log\frac{N_j}{N_{j+1}}
+ =\log\frac{n}{q}.
+ \label{eq:telescoping}
+\end{equation}
+Here the logarithm is natural. Combining Equation~\eqref{eq:coverage-sum}
+with bounded degree in Equation~\eqref{eq:prefix} yields
+\begin{equation}
+ T_N^{\rm search}
+ =\bigO\!\left((b+1+a\gamma)n\log(n/q)\log n\right).
+ \label{eq:insertion-sharp}
+\end{equation}
+This insertion-search bound needs no separate assumption on hierarchy depth.
+It does not remove the scale count from filtration or the level-size sums
+from cache and refinement costs.
+
+\subsection{Why packing does not imply coverage}\label{sec:coverage-counterexample}
+
+Consider a path on $n=2m$ vertices $v_1,\ldots,v_{2m}$. Its first $m-1$
+edges have length $1/(4m)$, and its remaining $m$ edges have length one. The
+compressed block $B=\{v_1,\ldots,v_m\}$ has diameter
+$(m-1)/(4m)<1/4$. The median edge length is one, so median normalization
+leaves these lengths unchanged. The maximum degree is two. Cumulative edge
+lengths embed the graph metric isometrically in the real line, giving a
+doubling constant at most four: partition any radius-$r$ ball into four
+intervals of length $r/2$ and center a covering ball at a vertex in each
+nonempty interval.
+
+A genuine first coarse set $V_1$ selected at radius one is separated by more
+than one and consequently contains at most one vertex of $B$. On the
+unit-spaced tail, each center covers at most three vertices, so maximality
+gives $N_1=\Theta(m)=\Theta(n)$. For sufficiently large $m$ and fixed $q$,
+this level is retained rather than replaced by the appended initialization
+subset.
+
+Now use uncapped insertion searches with three required higher-level anchors
+($a=3$) and a fixed cache budget $b$. Each vertex of $B\setminus V_1$ is
+inserted at level zero and has at most one eligible anchor within $B$.
+It must therefore search outside $B$ before anchor completion permits a stop.
+Every block vertex is less than $1/4$ away, whereas every vertex outside the
+block is at least one away. The search thus settles all $m$ block vertices
+before leaving the block, regardless of cache completion or distance ties.
+There are at least $m-1$ such queries, and their combined work is at least
+\begin{equation}
+ \sum_{v\in B\setminus V_1}s_v\geq m(m-1)=\Omega(n^2).
+ \label{eq:coverage-counterexample}
+\end{equation}
+In contrast, the right-hand side of Equation~\eqref{eq:coverage} at level zero
+would be $\bigO(1)$ for fixed $a,b,c$, since $N_0=n$ and $N_1=\Theta(n)$.
+The example therefore violates coverage, not the conditional theorem. Bounded
+degree and doubling control geometric packing but do not ensure that coarse
+vertices are sufficiently frequent in a search prefix. This is an
+ideal-metric lower-bound construction, not a package timing benchmark; a
+positive settlement cap would change the stopping rule.
 
 \subsection{Putting the assumptions together}
 
 For a bounded-degree graph, bounded filtration overlap $\lambda$, coverage
-as in Equation~\eqref{eq:coverage}, and fixed tuning parameters, the search work
-is bounded by
+as in Equation~\eqref{eq:coverage}, bounded adjacent level-size ratios
+$\gamma$, and fixed tuning parameters, the search work is bounded by
 \begin{equation}
- \bigO\!\left(n[\lambda t+(b+1+a\gamma)h+q]\log n\right).
+ \bigO\!\left(n[\lambda t+(b+1+a\gamma)\log(n/q)+q]\log n\right).
  \label{eq:conditional}
 \end{equation}
 If $t,h=\bigO(\log n)$ and the constants do not grow with $n$, the full core is
 $\bigO(n\log^2 n)$ in expectation for the sampled-repulsion part. Filtration
-and uncapped initialization are included. Under geometric contraction of the
+and uncapped initialization are included. The depth assumption still controls
+filtration and the aggregate cache and refinement costs; it is no longer
+needed separately for insertion searches. Under geometric contraction of the
 level sizes, peak space is $\bigO(n)$ for fixed $b$, and refinement with fixed
 round budgets is also $\bigO(n)$ in expectation.
 
@@ -414,6 +484,12 @@ and overlap $\overline\mu_i$ measure whether coarsening offsets increasing
 search radius. Such measurements would test the relevance of the assumptions
 to a given graph family; the conditional analysis alone does not establish
 an observed scaling law.
+
+The accompanying \nolinkurl{check-complexity-arguments.py} independently checks
+the telescoping inequality on finite hierarchies, the expected draw count by
+an exact finite-state recurrence, and compressed-path search prefixes under
+the stated stopping rules. These finite checks supplement the derivations;
+they are not package runtime measurements or a proof of an asymptotic bound.
 
 The source locations below identify the operations analyzed. The inspected
 snapshot, revision \code{cebcc62}, has the same

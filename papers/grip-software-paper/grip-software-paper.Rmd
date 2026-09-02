@@ -1753,14 +1753,16 @@ searches stop when their neighborhood and anchor requirements are met.
 Supplement S1 derives bounds that account for these stopping rules, together
 with the uncapped searches used for coarsest-level initialization. For
 bounded-degree graphs with bounded overlap of filtration search balls, suitable
-coarse-vertex coverage, and logarithmic hierarchy depth, the analysis gives a
+coarse-vertex coverage, bounded adjacent level-size ratios, and logarithmic
+hierarchy depth, the analysis gives a
 conditional $O(n\log^2 n)$ expected-time bound with fixed tuning parameters.
 The expectation concerns sampled repulsion. These conditions are not
 guaranteed for arbitrary weighted graphs, and the bound excludes optional GMDS
 refinement. With fixed neighbor budgets, geometrically decreasing hierarchy
 sizes also yield $O(n)$ peak storage under the same bounded-degree assumption.
-The supplement states the coverage condition explicitly and distinguishes
-these analytical bounds from observed scaling laws.
+The supplement states the coverage condition explicitly and gives a weighted
+path with quadratic insertion work when coverage fails, despite bounded degree
+and doubling. These analytical bounds are distinct from observed scaling laws.
 
 The optional `metric_neighbor_cap` limits settled vertices during
 insertion-neighborhood searches, but not during weighted filtration construction

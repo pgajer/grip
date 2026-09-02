@@ -11,9 +11,32 @@ supplement are unchanged between release tag `v0.2.0` and the pinned commit
 
 The conditional near-linear bound requires bounded degree, bounded overlap
 of filtration search balls, the stated coarse-vertex coverage condition,
-logarithmic depth, and fixed tuning parameters. It is not an unconditional
+bounded adjacent level-size ratios, logarithmic depth, and fixed tuning
+parameters. It is not an unconditional
 guarantee or an empirical scaling result. The derivations do not cover optional
 GMDS refinement.
+
+The insertion-search term is sharpened by a telescoping level-size sum to
+`O((b + 1 + a gamma) n log(n/q) log n)`, without a separate depth factor.
+A compressed-block weighted path shows why bounded degree and doubling do
+not imply the coarse-vertex coverage assumption: uncapped searches for three
+higher-level anchors can require quadratic total insertion work. The
+expected-repulsion calculation explicitly assumes independent uniform draws
+and counts rejection of the vertex itself and duplicate partners.
+
+`check-complexity-arguments.py` provides independent finite checks using only
+the Python standard library. It checks the telescoping inequality on 4,095
+nested size sequences, verifies 36 expected draw counts using exact rational
+finite-state recurrences, and simulates the compressed-path stopping rules
+for three graph sizes and three greedy center orders. It uses integer-scaled
+edge lengths to avoid floating-point ambiguity, includes the extra eligible
+vertex required for cache completion, and requires three higher-level anchors.
+It models the first coarse level and level-zero insertions only, not the full
+package algorithm. These are mathematical checks, not timing benchmarks.
+
+Run `make argument-check` from this directory (or invoke
+`python3 check-complexity-arguments.py` directly). The standard supplement
+build also runs these checks.
 
 From the repository root, run `make paper-supplement`. The PDF and intermediates
 are written to `papers/grip-software-paper/build/supplement/`. To build directly

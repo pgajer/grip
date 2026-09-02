@@ -2,8 +2,11 @@ REPORT := S1-weighted-grip-complexity
 BUILD_DIR ?= ../build/supplement
 CHECKER ?= $(if $(wildcard check-citation-verification.py),check-citation-verification.py,../../../tools/reports/check-citation-verification.py)
 
-.PHONY: all pdf citation-check
-all: pdf citation-check
+.PHONY: all pdf citation-check argument-check
+all: pdf citation-check argument-check
+
+argument-check:
+	python3 check-complexity-arguments.py
 
 pdf:
 	@mkdir -p "$(BUILD_DIR)"
