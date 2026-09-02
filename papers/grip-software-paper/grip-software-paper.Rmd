@@ -288,7 +288,9 @@ plot_common_projection <- function(coords,
                                    xlim,
                                    ylim,
                                    vertex.col = "black",
-                                   cex = 0.55) {
+                                   cex = 0.55,
+                                   edge.col = "gray82",
+                                   edge.lwd = 1) {
   plot(
     coords[, 1], coords[, 2],
     type = "n", asp = 1, axes = FALSE,
@@ -298,7 +300,7 @@ plot_common_projection <- function(coords,
   segments(
     coords[edges[, 1], 1], coords[edges[, 1], 2],
     coords[edges[, 2], 1], coords[edges[, 2], 2],
-    col = "gray82"
+    col = edge.col, lwd = edge.lwd
   )
   points(coords[, 1], coords[, 2], pch = 16, cex = cex, col = vertex.col)
 }
@@ -1486,14 +1488,17 @@ is not. A $5 \times 5$ mesh whose edge lengths are induced by a curved saddle
 surface provides that contrast: its topology is unchanged, but the intended
 metric is no longer the flat-grid metric.
 
-The comparison includes combinatorial and weighted GRIP layouts, the weighted
-layout followed by six experimental LGKK polish rounds, and the weighted
-three-dimensional Kamada--Kawai implementation in \CRANpkg{igraph}. All candidates
-use seed 1 and otherwise retain their package defaults. The graph is fixed
-before the candidates are generated, and `score.geodesic.kk()` evaluates their
-embedded fixed-path lengths against the same weighted graph metric. The example
-therefore illustrates the graph-to-embedding workflow; it does not evaluate
-how well the graph itself represents an underlying data set.
+The comparison includes combinatorial and weighted GRIP, metric MDS, and weighted
+Kamada--Kawai from \CRANpkg{igraph}, together with edge-KK refinement of both the
+metric-MDS and weighted-GRIP configurations. Six LGKK polish rounds provide a
+second refinement of the same weighted-GRIP coordinates. All layouts are
+three-dimensional. Both edge-KK runs use the default density-stiffness
+continuation schedule with at most 50 iterations per stage; stochastic calls
+use seed 1. The graph and one selected shortest path for each of its 300
+unordered vertex pairs are fixed before scoring. `score.gmds()` measures edge
+and fixed-path relative RMSE, while `score.geodesic.kk()` supplies the weighted
+path diagnostics. This comparison concerns graph-to-embedding fidelity, not
+how well the graph represents an underlying data set.
 
 The coordinates and scores used in this comparison are precomputed. The
 supplementary archive provides these results and the script used to generate
@@ -1508,38 +1513,52 @@ weighted.mesh <- list(
   coords_surface = weighted.saddle$target_coords
 )
 
-coords.combinatorial <- weighted.saddle$layouts[["Combinatorial GRIP"]]
 coords.weighted <- weighted.saddle$layouts[["Weighted GRIP"]]
+coords.weighted.edge <- weighted.saddle$layouts[["Weighted GRIP + edge-KK"]]
+coords.mds.edge <- weighted.saddle$layouts[["Metric MDS + edge-KK"]]
 coords.weighted.lgkk <- weighted.saddle$layouts[["Weighted GRIP + LGKK polish"]]
 coords.weighted.kk <- weighted.saddle$layouts[["Weighted KK (igraph)"]]
 
-gkk.cols <- c(
+weighted.score.cols <- c(
+  "edge.rel.rmse",
+  "gmds.stress",
   "gkk.weighted.rel.rmse",
   "gkk.mean.rel.path.error"
 )
 
-weighted.summary <- weighted.saddle$scores[, c("method", gkk.cols)]
+weighted.summary <- weighted.saddle$scores[, c("method", weighted.score.cols)]
+# Keep small, nonzero errors visible rather than rounding them to exact zero.
+weighted.summary[weighted.score.cols] <- lapply(
+  weighted.summary[weighted.score.cols], formatC, format = "g", digits = 3
+)
 
-paper_kable(
+accessible_kable(
   weighted.summary,
+  col.names = c("Method", "Edge Rel", "GMDS Rel", "GKK Rel", "Path Rel"),
+  align = c("l", rep("r", 4)),
   caption = paper_table_caption(
-    "Weighted saddle-surface example scored with geodesic-KK criteria.",
-    "GKK Rel = weighted relative RMSE; Path Rel = mean relative path error."
+    paste("Three-dimensional weighted saddle-surface layouts, scored on the",
+          "same 40 edges and 300 fixed paths with separately profiled scales."),
+    paste("Edge Rel and GMDS Rel = unweighted edge and fixed-path relative RMSE;",
+          "GKK Rel = weighted relative RMSE; Path Rel = mean relative path error",
+          "at the gKK scale.")
   ),
   alt = paste(
-    "Four rows compare combinatorial GRIP, weighted GRIP, weighted GRIP with",
-    "LGKK polish, and weighted igraph Kamada-Kawai using geodesic-KK scores."
+    "Seven rows compare combinatorial and weighted GRIP, metric MDS,",
+    "edge-KK refinement of the latter two, LGKK-polished weighted GRIP,",
+    "and weighted igraph Kamada-Kawai. Both edge-KK refinements reduce",
+    "edge and fixed-path relative RMSE below one billionth."
   ),
   digits = 3
 )
 ```
 
-The scale-normalized columns are comparable across methods whose coordinate
-scales differ. The LGKK-polished candidate is optimized against the same
-fixed-path objective used for scoring, so its low value is an in-sample
-optimization result rather than independent validation. The comparison with
-weighted KK shows how the package can apply that criterion to a layout that
-was not optimized for it.
+Both edge-KK refinements reduce edge and fixed-path relative RMSE below
+$10^{-9}$ in this example. The unrefined metric-MDS and weighted-GRIP rows show
+the change from each initialization; combinatorial GRIP remains as a
+topology-only baseline. These are in-sample optimization results, with different
+iteration budgets for edge-KK and LGKK, not a comparison of computational
+efficiency or independent validation of the graph geometry.
 
 Figure \@ref(fig:weighted-figure) also exposes a limitation of the criterion.
 Preserving the weighted graph paths does not uniquely determine the target's
@@ -1547,14 +1566,17 @@ extrinsic curvature: a comparatively flat realization can have low path loss.
 The panels are similarity-aligned to the target and use one projection and one
 coordinate scale, so this difference is not a viewing-axis artifact.
 
-```{r weighted-figure, fig.cap="Weighted mesh example after similarity alignment to the target and display with a common orthographic projection and scale. Panels show the target geometry, combinatorial GRIP, weighted GRIP, weighted GRIP with LGKK polish, and weighted igraph KK.", fig.alt="Five consistently projected panels compare the target saddle mesh with combinatorial GRIP, weighted GRIP, LGKK-polished weighted GRIP, and weighted igraph Kamada-Kawai. The low-loss polished layout remains visibly flatter than the target.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
+```{r weighted-figure, fig.cap="Three-dimensional weighted mesh layouts after similarity alignment to the target, displayed with a common orthographic projection and scale. The top row shows the target geometry, weighted GRIP, and weighted GRIP followed by edge-KK; the bottom row shows metric MDS followed by edge-KK, weighted GRIP followed by six LGKK polish rounds, and weighted igraph KK. Both weighted-GRIP refinements start from the coordinates shown in the top-center panel. Near-zero edge and fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of the same weighted saddle mesh: target, weighted GRIP, weighted GRIP plus edge-KK, metric MDS plus edge-KK, weighted GRIP plus LGKK, and weighted igraph Kamada-Kawai. Low-loss refinements need not reproduce the target's saddle shape.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
 weighted.layouts.aligned <- list(
   "Target geometry" = weighted.mesh$coords_surface,
-  "Combinatorial GRIP" = align_to_reference(
-    coords.combinatorial, weighted.mesh$coords_surface
-  ),
   "Weighted GRIP" = align_to_reference(
     coords.weighted, weighted.mesh$coords_surface
+  ),
+  "Weighted GRIP + edge-KK" = align_to_reference(
+    coords.weighted.edge, weighted.mesh$coords_surface
+  ),
+  "Metric MDS + edge-KK" = align_to_reference(
+    coords.mds.edge, weighted.mesh$coords_surface
   ),
   "Weighted GRIP + LGKK" = align_to_reference(
     coords.weighted.lgkk, weighted.mesh$coords_surface
@@ -1574,18 +1596,18 @@ xpad <- 0.05 * diff(range(all.projected[, 1]))
 ypad <- 0.05 * diff(range(all.projected[, 2]))
 common.xlim <- range(all.projected[, 1]) + c(-xpad, xpad)
 common.ylim <- range(all.projected[, 2]) + c(-ypad, ypad)
-weighted.colors <- c("#666666", "black", "#1F3B73", "#7A2E2E", "#3A6B35")
+weighted.colors <- c("#666666", "#1F3B73", "#1F3B73", "#684A88", "#7A2E2E", "#3A6B35")
 
-op <- par(mfrow = c(2, 3), mar = c(1, 1, 3, 1))
+op <- par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), cex = 1.1)
 for (i in seq_along(weighted.projected)) {
   plot_common_projection(
     weighted.projected[[i]], weighted.mesh$edges,
     names(weighted.projected)[[i]],
     xlim = common.xlim, ylim = common.ylim,
-    vertex.col = weighted.colors[[i]]
+    vertex.col = weighted.colors[[i]],
+    edge.col = "gray65", edge.lwd = 1.2
   )
 }
-plot.new()
 par(op)
 ```
 

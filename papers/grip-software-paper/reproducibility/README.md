@@ -47,7 +47,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 
 | Manuscript component | Supplied input | Regeneration or validation path |
 |---|---|---|
-| Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, component `weighted_saddle` | `scripts/precompute-vs-alternatives.R` |
+| Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, component `weighted_saddle` | `scripts/weighted-saddle-comparison.R`, also sourced by the full benchmark |
 | UMB-HMP-only graph construction summary | `hmp_gc/` graph files and `hmp_gc/upstream/` input tables | `scripts/build-hmp-only-graph.R` |
 | Repeated HMP runtime and shared-scoring benchmark | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp` | `scripts/precompute-vs-alternatives.R` |
 | Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
@@ -142,6 +142,32 @@ only; scoring and garbage collection are excluded. Every method receives the
 same unweighted HMP topology, and the common score is sampled hop-distance
 stress. Elapsed times remain machine-dependent; `BENCHMARK_PROVENANCE.md`
 records the machine used for the supplied artifact.
+
+To regenerate only the weighted-saddle comparison, retaining the other
+benchmark results and their timing metadata, run:
+
+```sh
+mkdir -p generated
+Rscript scripts/weighted-saddle-comparison.R \
+  precomputed/vs_alternatives/benchmark_results.rds \
+  generated/benchmark_results.rds
+```
+
+The helper adds three-dimensional metric MDS and the two edge-KK workflows,
+reuses the stored weighted-GRIP coordinates for both its refinements, and
+independently checks all four score columns by summing the stored fixed paths.
+Both edge-KK calls use identical package-default settings, including five
+density-continuation stages with at most 50 iterations per stage. The supplied
+artifact retains these settings, refinement traces, fixed paths, and check
+results in its `weighted_saddle` component. Small errors use scientific notation
+in the table so they are not presented as exact zero.
+
+For a clean regeneration without reusing the stored initial layouts, source
+`scripts/weighted-saddle-comparison.R` in R and call
+`weighted_saddle_comparison()`. To recheck an existing component independently,
+call `check_weighted_saddle(results$weighted_saddle)`, where `results` is the
+loaded RDS object. `BENCHMARK_PROVENANCE.md` separates this focused update from
+the original long-running benchmark environment.
 
 ## Fast article build
 

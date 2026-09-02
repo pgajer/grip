@@ -8,7 +8,7 @@
 ## graphlayouts.
 ##
 ## Usage:
-##   Rscript inst/scripts/precompute-vs-alternatives.R
+##   Rscript scripts/precompute-vs-alternatives.R
 ##
 ## Set GRIP_VS_ALTERNATIVES_OUTPUT to choose the output file. In a grip
 ## source checkout the default replaces the bundled package artifact. When
@@ -16,15 +16,16 @@
 ## the current working directory.
 ## ------------------------------------------------------------------
 
-script_path <- if (!is.null(sys.frames()[[1]]$ofile)) {
-  normalizePath(sys.frames()[[1]]$ofile, winslash = "/", mustWork = FALSE)
+script_file_arg <- grep("^--file=", commandArgs(), value = TRUE)
+script_path <- if (length(script_file_arg)) {
+  normalizePath(sub("^--file=", "", script_file_arg[[1L]]), mustWork = TRUE)
+} else if (length(sys.frames()) && !is.null(sys.frames()[[1L]]$ofile)) {
+  normalizePath(sys.frames()[[1L]]$ofile, mustWork = TRUE)
 } else {
-  normalizePath(
-    "inst/scripts/precompute-vs-alternatives.R",
-    winslash = "/",
-    mustWork = FALSE
-  )
+  stop("Cannot locate this script; run it with Rscript.")
 }
+paper_library <- Sys.getenv("GRIP_RJOURNAL_PACKAGE_LIBRARY")
+if (nzchar(paper_library)) .libPaths(c(paper_library, .libPaths()))
 
 source_root <- normalizePath(
   file.path(dirname(script_path), "..", ".."),
@@ -305,58 +306,8 @@ results$carpet <- list(
 ## ---- Benchmark 4: weighted saddle mesh ------------------------------
 cat("  Weighted saddle mesh...\n")
 
-saddle.graph <- mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
-saddle.ig <- graph_from_edgelist(saddle.graph$edges, directed = FALSE)
-E(saddle.ig)$weight <- saddle.graph$edge_weights
-
-saddle.grip.combinatorial <- grip(
-  saddle.graph$edges, n = saddle.graph$n, dim = 3, preset = "mesh", seed = 1
-)
-saddle.grip.weighted <- grip(
-  saddle.graph$edges, n = saddle.graph$n,
-  edge_weights = saddle.graph$edge_weights,
-  dim = 3, preset = "mesh", metric = "edge_length", seed = 1
-)
-saddle.grip.lgkk <- grip(
-  saddle.graph$edges, n = saddle.graph$n,
-  edge_weights = saddle.graph$edge_weights,
-  dim = 3, preset = "mesh", metric = "edge_length",
-  lgkk_polish_rounds = 6L, seed = 1
-)
-set.seed(1)
-saddle.kk.weighted <- as_coord_matrix(layout_with_kk(
-  saddle.ig,
-  weights = saddle.graph$edge_weights,
-  dim = 3
-))
-
-saddle.prepared <- prepare.geodesic.kk(
-  saddle.graph$edges,
-  n = saddle.graph$n,
-  edge_weights = saddle.graph$edge_weights
-)
-saddle.layouts <- list(
-  "Combinatorial GRIP" = saddle.grip.combinatorial,
-  "Weighted GRIP" = saddle.grip.weighted,
-  "Weighted GRIP + LGKK polish" = saddle.grip.lgkk,
-  "Weighted KK (igraph)" = saddle.kk.weighted
-)
-saddle.scores <- do.call(rbind, lapply(names(saddle.layouts), function(method) {
-  cbind(
-    method = method,
-    score.geodesic.kk(saddle.layouts[[method]], prepared = saddle.prepared)
-  )
-}))
-
-results$weighted_saddle <- list(
-  n = saddle.graph$n,
-  m = nrow(saddle.graph$edges),
-  edges = saddle.graph$edges,
-  edge_weights = saddle.graph$edge_weights,
-  target_coords = saddle.graph$coords_surface,
-  scores = saddle.scores,
-  layouts = saddle.layouts
-)
+source(file.path(dirname(script_path), "weighted-saddle-comparison.R"))
+results$weighted_saddle <- weighted_saddle_comparison()
 
 ## ---- Benchmark 5: HMP microbial network ----------------------------
 cat("  HMP microbial network...\n")
