@@ -38,6 +38,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 | Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, component `weighted_saddle` | `scripts/precompute-vs-alternatives.R` |
 | UMB-HMP-only graph construction summary | `hmp_gc/` graph files and `hmp_gc/upstream/` input tables | `scripts/build-hmp-only-graph.R` |
 | Repeated HMP runtime and shared-scoring benchmark | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp` | `scripts/precompute-vs-alternatives.R` |
+| Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
 | Benchmark hardware, software, timing boundary, and repeat policy | `BENCHMARK_PROVENANCE.md` and the RDS `benchmark_metadata` component | Recorded by `scripts/precompute-vs-alternatives.R` |
 | Small-graph figures and tables | Evaluated directly from `grip-software-paper.Rmd` | Render the manuscript; no precomputed supplement input is used |
 
@@ -102,7 +103,41 @@ records the machine used for the supplied artifact.
 
 ## Fast article build
 
-The manuscript reads the supplied file under `precomputed/` so reviewers do
-not need to rerun the heavier benchmark. The scripts document the graph-
-construction boundary and execute the derivation of the benchmark artifact
-from the supplied final HMP graph.
+The manuscript evaluates the smaller examples during rendering. Its
+weighted-saddle comparison, UMB-HMP layout figure, and repeated UMB-HMP runtime
+benchmark instead use the supplied results, allowing the article to be
+rendered without rerunning the longer computations. Those computations can be
+reviewed separately using the inputs, checksums, and scripts above.
+
+The manuscript's hidden `setup` chunk loads the artifact once:
+
+```r
+benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
+```
+
+`read.extdata.rds()` and `find.extdata.file()` are defined in that same chunk.
+In the submission archive, the lookup first uses
+`reproducibility/precomputed/vs_alternatives/benchmark_results.rds`, relative
+to the manuscript. Installed-package and repository copies are fallback
+locations for development builds. Loading the file does not recompute the
+results or validate its checksum; run the `shasum` command above to verify the
+supplied artifact before rendering.
+
+## Manuscript-only helpers
+
+The `setup` chunk also defines helpers for rendering and locating inputs:
+
+- `accessible_kable()` and `paper_kable()` format the manuscript tables;
+- `find.extdata.file()`, `read.extdata.csv()`, and `read.extdata.rds()` locate
+  and read supplied artifacts;
+- `plot_layout_panel()` and `plot_common_projection()` draw figure panels;
+- `align_to_reference()` places the weighted-saddle layouts in a common
+  display frame by translation, rotation or reflection, and uniform scaling;
+- `edge.matrix.from.adj()` converts an adjacency list to an edge matrix for
+  the manuscript examples.
+
+These helpers are part of the manuscript source, not exported `grip`
+functions. In particular, `align_to_reference()` is used for the
+weighted-saddle figure only; it is not a step in the package's layout or
+scoring interfaces. The complete helper definitions are included in both
+`grip-software-paper.Rmd` and its extracted `grip-software-paper.R` companion.

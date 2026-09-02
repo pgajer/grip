@@ -247,6 +247,11 @@ read.extdata.rds <- function(...) {
   readRDS(find.extdata.file(...))
 }
 
+# Load the supplied weighted-saddle and UMB-HMP results without recomputing them.
+# Artifact paths, checksums, regeneration commands, and helper documentation
+# are provided in reproducibility/README.md in the supplementary archive.
+benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
+
 plot_layout_panel <- function(coords,
                               edges,
                               main,
@@ -599,28 +604,6 @@ trees, and tori, while edge-length presets cover cylinders, spheres, and other
 weighted geometric families. Their purpose is to make packaged examples and
 targeted comparisons reproducible, not to prescribe settings for arbitrary
 real-data graphs.
-
-## Reproducibility of long-running benchmarks
-
-All small examples, tables, and figures in this article are evaluated while the
-document is rendered. The weighted saddle comparison and the repeated UMB-HMP
-runtime benchmark are exceptions: recomputing them exceeds the journal's
-ordinary review-time budget. The article reads the exact checked cache below;
-the supplementary archive supplies the cache, its SHA-256 checksum, the
-minimal inputs, and reproducibility/scripts/precompute-vs-alternatives.R for
-a deferred computational review.
-
-```{r precomputed-artifacts, echo=TRUE}
-# Exact cache used by the weighted-saddle and UMB-HMP benchmark tables.
-benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
-```
-
-The setup helpers accessible_kable(), paper_kable(), find.extdata.file(),
-plot_layout_panel(), plot_common_projection(), and align_to_reference() are
-manuscript-only scaffolding. In particular, align_to_reference() is used only
-to place the weighted-saddle panels in a common display frame; it is not a
-\CRANpkg{grip} function and is unnecessary for using or reproducing the
-package layout and scoring interfaces.
 
 ## From graph layout to graph-geodesic fidelity
 
@@ -1479,10 +1462,9 @@ embedded fixed-path lengths against the same weighted graph metric. The example
 therefore illustrates the graph-to-embedding workflow; it does not evaluate
 how well the graph itself represents an underlying data set.
 
-The coordinates and scores used in this comparison are read from a
-precomputed artifact so that the article can be rendered within the journal's
-review-time budget. The supplementary archive provides both the artifact and
-the `precompute-vs-alternatives.R` script used to generate it.
+The coordinates and scores used in this comparison are precomputed. The
+supplementary archive provides these results and the script used to generate
+them.
 
 ```{r weighted-summary}
 weighted.saddle <- benchmark.results$weighted_saddle
@@ -1843,12 +1825,11 @@ strategies. The structured, weighted, and UMB-HMP-only workflows illustrate
 these roles and limits without turning the article into a general comparison of
 embedding methods.
 
-The tables and small-graph figures are evaluated from code in the manuscript.
-The weighted comparison and repeated HMP benchmark use precomputed artifacts
-to keep the article within the journal's review-time budget. The supplementary
-archive supplies those artifacts and their generation scripts, together with
-the minimal UMB-HMP-only inputs, graph builder, manifest, checksums, and provenance
-records needed to reproduce the reported results.
+The smaller examples are evaluated from code in the manuscript. The
+weighted-saddle comparison and UMB-HMP layouts and runtime benchmark use
+precomputed results. The supplementary archive provides these results,
+generation scripts, minimal UMB-HMP-only inputs, checksums, and provenance
+records, with reproduction instructions in its reproducibility README.
 Supplement S1 provides the weighted-core complexity analysis and its LaTeX
 source.
 
