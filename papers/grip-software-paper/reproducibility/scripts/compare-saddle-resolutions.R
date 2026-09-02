@@ -36,6 +36,10 @@ scores <- do.call(rbind, lapply(names(cases), function(name) {
   cbind(mesh = name, cases[[name]]$scores)
 }))
 write.csv(scores, file.path(out_dir, "weighted-saddle-resolution-scores.csv"), row.names = FALSE)
+panel_scores <- do.call(rbind, lapply(names(cases), function(name) {
+  cbind(mesh = name, weighted_saddle_panel_scores(cases[[name]]))
+}))
+write.csv(panel_scores, file.path(out_dir, "weighted-saddle-panel-scores.csv"), row.names = FALSE)
 comparison <- list(cases = cases, display_limits = limits, selected_grid = "10x10")
 saveRDS(comparison,
         file.path(out_dir, "weighted-saddle-resolutions.rds"), compress = "xz")

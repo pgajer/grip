@@ -167,8 +167,30 @@ density-continuation stages with at most 50 iterations per stage. The supplied
 artifact retains these settings, refinement traces, fixed paths, and check
 results within each case. `plot-weighted-saddle.R` is shared by the standalone
 exports and the manuscript figure, with common alignment, projection, limits,
-panel order, and styling. Small errors use scientific notation
-in the table so they are not presented as exact zero.
+panel order, and styling. Each panel, including the target, reports MDS Stress-1
+and fixed-path GMDS relative RMSE. The scores use the raw 3D coordinates and all
+retained vertex pairs, with separately fitted input-distance scales. For chord
+lengths `c` and graph distances `g`, the input scale is
+`a = sum(c * g) / sum(g^2)` and Stress-1 is
+`sqrt(sum((c - a * g)^2) / sum(c^2))`. This is not the cached
+`metric.chord.stress`, which uses `sum((a * g)^2)` as its denominator.
+The path label uses the profiled `score.gmds()` result, matching the table.
+Small nonzero errors use scientific notation; panel values below `1e-12`
+are shown as `< 10^-12` to avoid emphasizing numerical roundoff in the target.
+
+To re-export both figures and their unrounded panel scores from the saved
+coordinates, without rerunning the layouts or benchmarks, run:
+
+```sh
+Rscript scripts/plot-weighted-saddle.R \
+  precomputed/vs_alternatives/benchmark_results.rds generated/saddle-resolutions
+Rscript scripts/check-saddle-panel-scores.R \
+  precomputed/vs_alternatives/benchmark_results.rds
+```
+
+The second command checks the panel metrics against an independent least-squares
+fit and explicit sums along the stored paths, checks agreement with the cached
+scores, and tests invariance to translation, reflection, and uniform scaling.
 
 For a single resolution, source `scripts/weighted-saddle-comparison.R` in R and
 call `weighted_saddle_comparison(grid_size = 10L)` or use `15L`. The default is

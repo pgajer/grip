@@ -439,8 +439,9 @@ $$
 
 \noindent preserves its input-graph length $d_{ij}^G$, where $\gamma_{ij}$ is a
 selected shortest path between vertices $i$ and $j$ in the input graph $G$.
-The selected paths $\Gamma=\{\gamma_{ij}\}$ determine the embedded fixed-path
-distance matrix $D_{G,Z}=(d_{ij}^{G,Z})$. A GMDS objective measures the
+The selected paths $\Gamma=\{\gamma_{ij}\}$, held fixed as $Z$ changes,
+determine the embedded fixed-path distance matrix $D_{G,Z}=(d_{ij}^{G,Z})$.
+A GMDS objective measures the
 discrepancy between $D_G$ and $D_{G,Z}$ and seeks coordinates $Z$ for which the
 selected paths' embedded lengths approximate their input-graph lengths.
 
@@ -580,33 +581,13 @@ geometry and should be treated as an explicit construction choice.
 
 The package also supplies graph generators for regular grids, trees, recursive
 families such as Sierpinski carpets, and weighted geometric surfaces. These
-generators provide examples, regression fixtures, and controlled benchmarks;
-they are not substitutes for data-driven graph construction.
-
+generators provide examples, software regression tests, and controlled benchmarks.
 Family-specific presets provide reproducible starting values for several of
 these controlled graph classes. Hop-metric presets cover meshes, carpets,
 trees, and tori, while edge-length presets cover cylinders, spheres, and other
 weighted geometric families.
 
 ## From graph layout to graph-geodesic fidelity
-
-Graph-geodesic scoring asks whether a selected input-graph shortest path retains
-its length after embedding, so that path must remain fixed while the coordinates
-change. For each evaluated pair $i<j$, the retained input-graph geodesic
-$\gamma_{ij}$ realizes $d_{ij}^G$; the collection of retained routes is
-$\Gamma=\{\gamma_{ij}\}$. By default, the geodesic-KK preparation functions
-retain one deterministic route per pair, whereas an alternative mode averages
-exactly over tied input geodesics. The embedded length of $\gamma_{ij}$ is
-
-$$
-d_{ij}^{G,Z}
-= L_Z(\gamma_{ij})
-= \sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2.
-$$
-
-The matrix $D_{G,Z}=(d_{ij}^{G,Z})$ contains their embedded
-path lengths. The corresponding endpoint chord is
-$d_{ij}^Z=\lVert z_i-z_j\rVert_2$.
 
 \Needspace{6\baselineskip}
 Kruskal's Stress-1, shown here in its metric-MDS form
@@ -640,7 +621,7 @@ three-leaf star (Figure \@ref(fig:star-path-geometry)). Placing two leaves on
 opposite sides of their common center makes their endpoint chord equal the
 two-edge graph distance. A noncollinear drawing can preserve the length of the
 same two-edge route even when its endpoint chord is shorter. The central and
-right panels therefore test different geometric quantities.
+right panels test different geometric quantities.
 
 ```{r star-path-geometry, fig.cap="Endpoint and fixed-path views of a three-leaf star. The blue route between vertices 1 and 2 has graph length two. A collinear placement reproduces that value as an endpoint chord (middle), whereas a branched placement preserves the two-edge route length while its endpoint chord is shorter (right).", fig.alt="Three panels show a three-leaf star, a collinear placement where the chord between two leaves equals the graph distance, and a branched placement where the highlighted two-edge route retains its length but its endpoint chord is shorter.", fig.width=10, fig.height=3.1, fig.pos="H"}
 star.edges <- rbind(c(4L, 1L), c(4L, 2L), c(4L, 3L))
@@ -690,7 +671,7 @@ draw.star.panel(
 )
 draw.star.panel(
   star.branch, "Embedded fixed path", chord = TRUE,
-  annotation = "LZ(gamma12) = 2"
+  annotation = expression(d[12]^{G*","*Z} == 2)
 )
 par(op)
 ```
@@ -1210,6 +1191,8 @@ accessible_kable(
 )
 ```
 
+By default, `prepare.geodesic.kk()` retains one deterministic shortest path
+per pair; its alternative tie mode averages exactly over tied input geodesics.
 `score.gmds()` supplies a common diagnostic panel for any coordinate matrix on
 a prepared graph. With an all-pairs preparation it reports edge fidelity,
 target-normalized fixed-path and chord relative RMSE, and distance-band
@@ -1551,7 +1534,7 @@ extrinsic curvature: a comparatively flat realization can have low path loss.
 The panels are similarity-aligned to the target and use one projection and one
 coordinate scale, so this difference is not a viewing-axis artifact.
 
-```{r weighted-figure, fig.cap="Three-dimensional layouts of a 10 by 10 weighted saddle mesh after similarity alignment to the target, displayed with a common orthographic projection and scale. The top row shows the target saddle, metric MDS, and metric MDS followed by edge-KK; the bottom row shows weighted igraph KK, weighted GRIP, and weighted GRIP followed by edge-KK. In each row, the right-hand layout starts from the coordinates in the middle panel. Low edge and fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of a 100-vertex saddle mesh. The middle and right columns compare metric MDS and weighted GRIP before and after edge-KK. The left column contains the target saddle and weighted igraph Kamada-Kawai. The refined weighted-GRIP layout remains visibly flatter than the target.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
+```{r weighted-figure, fig.cap="Three-dimensional layouts of a 10 by 10 weighted saddle mesh after similarity alignment to the target, displayed with a common orthographic projection and scale. In each row, the right-hand layout starts from the coordinates in the middle panel. The annotations report MDS Stress-1 and fixed-path GMDS relative RMSE from the full 3D coordinates, using all 4,950 vertex pairs, the same retained input paths, and separately fitted least-squares scales. Stress-1 is configuration-normalized; path relative RMSE is input-normalized, so the two magnitudes are not directly interchangeable. Values below $10^{-12}$ are shown as an upper bound. Low fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of a 100-vertex saddle mesh, each annotated with MDS Stress-1 and fixed-path GMDS relative RMSE. The middle and right columns compare metric MDS and weighted GRIP before and after edge-KK. The left column contains the target saddle and weighted igraph Kamada-Kawai. The target has near-zero path loss but nonzero chord stress; the refined weighted-GRIP layout also has near-zero path loss while remaining visibly flatter than the target.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
 source("reproducibility/scripts/plot-weighted-saddle.R")
 plot_weighted_saddle(weighted.saddle, weighted.resolutions$display_limits)
 ```
