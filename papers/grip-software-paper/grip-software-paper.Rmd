@@ -287,6 +287,14 @@ requires choosing how distances in the embedded configuration are measured.
 The companion \CRANpkg{dgraphs} package addresses the $X\to G$ question, while
 \CRANpkg{grip} addresses the $G\to Z$ question.
 
+The local dissimilarities used to construct $G$ need not be Euclidean. For
+relative-abundance data, for example, neighborhood relations and edge lengths
+may be defined using Jensen--Shannon distance (the square root of
+Jensen--Shannon divergence) or another nonnegative, symmetric,
+domain-appropriate dissimilarity [@lin1991; @endres2003]. Once a weighted graph
+has been constructed, the definitions of $D_G$, $D_{G,Z}$, and the $G\to Z$
+fidelity criteria are unchanged.
+
 Because $D_X$ is generally unknown for real data, the fidelity of the $X\to G$
 construction cannot usually be evaluated directly. Controlled synthetic
 examples allow it to be
