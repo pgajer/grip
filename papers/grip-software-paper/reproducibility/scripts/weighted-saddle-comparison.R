@@ -1,11 +1,12 @@
 #!/usr/bin/env Rscript
 # Shared weighted-saddle experiment and independent checks for the paper.
 # Source this file from the full benchmark, or update only its saddle component:
-# Rscript scripts/weighted-saddle-comparison.R INPUT.rds OUTPUT.rds
+# Rscript scripts/weighted-saddle-comparison.R INPUT.rds OUTPUT.rds [GRID_SIZE]
 
 check_weighted_saddle <- function(saddle, tolerance = 1e-10) {
   prepared <- saddle$prepared
-  stopifnot(saddle$n == 25L, saddle$m == 40L,
+  size <- as.integer(round(sqrt(saddle$n)))
+  stopifnot(size >= 2L, saddle$n == size^2, saddle$m == 2L * size * (size - 1L),
             nrow(prepared$pair_matrix) == choose(saddle$n, 2L),
             identical(prepared$tie_mode, "single"))
   edge_lengths <- function(z, edges, epsilon = 0) {
@@ -53,7 +54,7 @@ check_weighted_saddle <- function(saddle, tolerance = 1e-10) {
   do.call(rbind, checks)
 }
 
-weighted_saddle_comparison <- function(saddle = NULL) {
+weighted_saddle_comparison <- function(saddle = NULL, grid_size = 10L) {
   for (package in c("grip", "igraph")) {
     if (!requireNamespace(package, quietly = TRUE)) {
       stop("Install required package: ", package)
@@ -62,7 +63,12 @@ weighted_saddle_comparison <- function(saddle = NULL) {
   if (utils::packageVersion("grip") < "0.2.0") stop("grip >= 0.2.0 is required")
 
   if (is.null(saddle)) {
-    graph <- grip::mesh.surface.graph(5, 5, surface = "saddle", amplitude = 0.8)
+    stopifnot(length(grid_size) == 1L, is.finite(grid_size),
+              grid_size >= 2L, grid_size == as.integer(grid_size))
+    grid_size <- as.integer(grid_size)
+    graph <- grip::mesh.surface.graph(
+      grid_size, grid_size, surface = "saddle", amplitude = 0.8,
+      x_scale = 1, y_scale = 1, connectivity = "orthogonal", normalize = "median")
     ig <- igraph::graph_from_edgelist(graph$edges, directed = FALSE)
     set.seed(1)
     kk <- igraph::layout_with_kk(ig, weights = graph$edge_weights, dim = 3)
@@ -139,10 +145,13 @@ weighted_saddle_comparison <- function(saddle = NULL) {
     package_versions = vapply(c("grip", "igraph"), function(p) {
       as.character(utils::packageVersion(p))
     }, character(1L)),
-    dimension = 3L, seed = 1L, edge_kk_settings = edge_settings,
+    dimension = 3L, grid_size = as.integer(round(sqrt(saddle$n))),
+    amplitude = 0.8, domain = c(-1, 1),
+    seed = 1L, edge_kk_settings = edge_settings,
     lgkk_settings = list(max_iter = 6L, local_nbrs = 20L, landmark_count = 8L),
     previous_lgkk_max_coordinate_difference = old_lgkk_difference,
-    path_policy = "one retained input shortest path for each of 300 unordered pairs",
+    path_policy = sprintf("one retained input shortest path for each of %d unordered pairs",
+                          nrow(prepared$pair_matrix)),
     baseline_policy = "reuse supplied baseline coordinates when an artifact is supplied"
   )
   saddle$validation <- check_weighted_saddle(saddle)
@@ -153,11 +162,28 @@ if (sys.nframe() == 0L) {
   paper_library <- Sys.getenv("GRIP_RJOURNAL_PACKAGE_LIBRARY")
   if (nzchar(paper_library)) .libPaths(c(paper_library, .libPaths()))
   args <- commandArgs(trailingOnly = TRUE)
-  if (length(args) != 2L) stop("Usage: weighted-saddle-comparison.R INPUT.rds OUTPUT.rds")
+  if (!length(args) %in% 2:3) {
+    stop("Usage: weighted-saddle-comparison.R INPUT.rds OUTPUT.rds [GRID_SIZE]")
+  }
   original <- readRDS(args[[1L]])
   updated <- original
-  updated$weighted_saddle <- weighted_saddle_comparison(original$weighted_saddle)
-  untouched <- setdiff(names(original), "weighted_saddle")
+  updated$weighted_saddle <- if (length(args) == 3L) {
+    weighted_saddle_comparison(grid_size = as.numeric(args[[3L]]))
+  } else {
+    weighted_saddle_comparison(original$weighted_saddle)
+  }
+  if (!is.null(updated$weighted_saddle_resolutions)) {
+    script_arg <- grep("^--file=", commandArgs(), value = TRUE)
+    script_dir <- dirname(normalizePath(sub("^--file=", "", script_arg[[1L]])))
+    source(file.path(script_dir, "plot-weighted-saddle.R"))
+    size <- updated$weighted_saddle$comparison_metadata$grid_size
+    label <- paste0(size, "x", size)
+    updated$weighted_saddle_resolutions$cases[[label]] <- updated$weighted_saddle
+    updated$weighted_saddle_resolutions$selected_grid <- label
+    updated$weighted_saddle_resolutions$display_limits <- weighted_saddle_limits(
+      updated$weighted_saddle_resolutions$cases)
+  }
+  untouched <- setdiff(names(original), c("weighted_saddle", "weighted_saddle_resolutions"))
   stopifnot(identical(original[untouched], updated[untouched]))
   saveRDS(updated, args[[2L]], compress = "xz")
   restored <- readRDS(args[[2L]])

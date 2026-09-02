@@ -307,7 +307,14 @@ results$carpet <- list(
 cat("  Weighted saddle mesh...\n")
 
 source(file.path(dirname(script_path), "weighted-saddle-comparison.R"))
-results$weighted_saddle <- weighted_saddle_comparison()
+source(file.path(dirname(script_path), "plot-weighted-saddle.R"))
+saddle.cases <- setNames(lapply(c(10L, 15L), function(size) {
+  weighted_saddle_comparison(grid_size = size)
+}), c("10x10", "15x15"))
+results$weighted_saddle <- saddle.cases[["10x10"]]
+results$weighted_saddle_resolutions <- list(
+  cases = saddle.cases, display_limits = weighted_saddle_limits(saddle.cases),
+  selected_grid = "10x10")
 
 ## ---- Benchmark 5: HMP microbial network ----------------------------
 cat("  HMP microbial network...\n")

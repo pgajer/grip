@@ -3,8 +3,9 @@
 This record describes the `benchmark_results.rds` artifact used by the
 `grip` R Journal software paper. The artifact was originally regenerated on
 2026-08-23 by `inst/scripts/precompute-vs-alternatives.R` from the `grip` 0.2.0
-source tree. Only its weighted-saddle component was extended on 2026-09-02,
-as documented below; all other components, including the UMB-HMP timings and
+source tree. Its weighted-saddle component was extended on 2026-09-02, and a
+paired mesh-resolution component was added, as documented below. All other
+components, including the UMB-HMP timings and
 their original software and hardware metadata, are unchanged.
 
 ## Reported scaled benchmark
@@ -59,15 +60,25 @@ historical comparison is not reported as repeated benchmark evidence.
 
 ## Weighted-saddle comparison update, 2026-09-02
 
-`scripts/weighted-saddle-comparison.R` extends the comparison to seven layouts
-on the same 25-vertex, 40-edge saddle graph. Figure 8 shows six panels: the
-generating geometry plus five layouts; combinatorial GRIP and unrefined metric
-MDS are retained in the score table only. All coordinate matrices have three
-columns.
+`scripts/compare-saddle-resolutions.R` compares seven layouts at each of two
+resolutions of the same saddle surface. The 10 by 10 mesh has 100 vertices,
+180 edges, and 4,950 unordered pairs; the 15 by 15 mesh has 225 vertices,
+420 edges, and 25,200 pairs. All 14 layouts were generated and scored, with no
+failed or excluded cases. The main paper uses the 10 by 10 mesh for readability
+in a six-panel figure. Both complete cases are retained in
+`weighted_saddle_resolutions$cases`; `weighted_saddle` is the selected 10 by 10
+case. Figure 8 now includes unrefined metric MDS; LGKK and combinatorial GRIP
+remain in the table only. All coordinate matrices have three columns.
 
-- Retained baselines: the original combinatorial GRIP, weighted GRIP, and
-  weighted igraph KK coordinates. A fresh call to the shared generator
-  reproduced all seven coordinate matrices exactly on the update environment.
+- Surface: `mesh.surface.graph(size, size, surface = "saddle", amplitude = 0.8)`
+  with the same parameter domain `[-1, 1]^2`, orthogonal connectivity, and
+  median-normalized edge lengths. Resolution changes the sampled graph, not the
+  continuous surface parameters. The even 10-point grid does not sample the
+  central parameter lines exactly; the odd 15-point grid does.
+- Initial layouts: recomputed from scratch for each graph. GRIP uses seed 1 and
+  the mesh preset, with hop and edge-length metrics respectively; igraph KK
+  uses edge weights and seed 1. No baseline coordinates from the former 5 by 5
+  illustration are reused.
 - Metric MDS: `metric.mds(prepared = prepared, dim = 3)` on the fixed weighted
   graph's distance matrix, not on distances between the generating coordinates.
 - Edge-KK: the same settings for the metric-MDS and weighted-GRIP initializers:
@@ -78,28 +89,46 @@ columns.
   `weighted_saddle$refinement_traces`. These are the package defaults; settings
   were not tuned separately for the two initializers.
 - LGKK: six rounds with 20 local neighbors and eight landmarks, starting from
-  the exact retained weighted-GRIP matrix. This reproduces the previous LGKK
-  matrix exactly, with maximum coordinate difference zero.
-- Scoring: one common `prepare.geodesic.kk()` object retains a single shortest
-  path for each of 300 unordered vertex pairs. The object is saved as
-  `weighted_saddle$prepared`. Unweighted edge and fixed-path relative RMSE use
+  exactly the same weighted-GRIP matrix as its edge-KK refinement.
+- Scoring: a common `prepare.geodesic.kk()` object within each resolution retains
+  a single shortest path for every unordered vertex pair. All seven layouts
+  use that same object. The paths necessarily differ between resolutions
+  because the graphs differ. Unweighted edge and fixed-path relative RMSE use
   separate least-squares profiled scales; the two gKK diagnostics use their
   common weighted least-squares scale.
 - Independent checks: direct edge-length and fixed-path summation, followed by
   explicit scale and residual calculations, agree with all four reported
-  diagnostics to a maximum absolute difference of `2.78e-17`. The checks also
+  diagnostics to within `1e-12` at both resolutions (observed maximum differences
+  `2.78e-17` and `5.55e-17`, respectively). The checks also
   verify graph-path lengths and the generating geometry's edge fidelity.
   Results are saved in `weighted_saddle$validation`.
-- Result: weighted-GRIP plus edge-KK has edge/path relative RMSE
-  `4.01e-11` / `2.48e-11`; metric-MDS plus edge-KK has
-  `5.09e-10` / `1.34e-10`. These are numerical residuals, not assertions of
-  mathematically exact zero or recovery of the saddle's extrinsic curvature.
+- Display: one similarity alignment per layout to its generating coordinates,
+  followed by the same orthographic view (azimuth 35, elevation 22). Shared
+  plotting limits are calculated across both resolutions and all six panels,
+  and retained as `weighted_saddle_resolutions$display_limits`. The middle and
+  right columns show each initializer before and after edge-KK.
 - Update environment: R Under development (unstable), 2026-06-24 r90190,
   platform `aarch64-apple-darwin23`, `grip` 0.2.0, `igraph` 2.3.3. The exact
   generation time and versions are retained in the component metadata.
 
-The full generator, `scripts/precompute-vs-alternatives.R`, sources the same
-helper. The focused command in `README.md` updates only this component and
-checks by exact R-object comparison that the other benchmark components remain
-unchanged. This comparison does not measure runtime or match iteration budgets
-between edge-KK and the six-round LGKK illustration.
+The edge-KK results under the same settings are:
+
+| Mesh | Initializer | Edge relative RMSE | Fixed-path relative RMSE |
+|---|---|---:|---:|
+| 10 by 10 | Weighted GRIP | 4.21e-9 | 1.60e-9 |
+| 10 by 10 | Metric MDS | 5.66e-7 | 4.92e-7 |
+| 15 by 15 | Weighted GRIP | 9.57e-6 | 5.43e-6 |
+| 15 by 15 | Metric MDS | 1.67e-5 | 1.44e-5 |
+
+Both resolutions show a reduction from each initializer, but the denser graph
+retains larger residuals under the same maximum iteration budget. These are
+numerical optimization results, not exact-zero claims or recovery of the
+saddle's extrinsic curvature. The former 5 by 5 example's below-1e-9 statement
+has been removed from the manuscript.
+
+The full generator, `scripts/precompute-vs-alternatives.R`, uses the same
+numerical and plotting helpers. The focused command in `README.md` updates only
+the two saddle-related components and checks by exact R-object comparison that
+all other benchmark components remain unchanged. This comparison does not
+measure runtime or match iteration budgets between edge-KK and the six-round
+LGKK illustration.

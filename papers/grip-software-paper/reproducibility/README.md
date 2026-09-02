@@ -47,7 +47,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 
 | Manuscript component | Supplied input | Regeneration or validation path |
 |---|---|---|
-| Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, component `weighted_saddle` | `scripts/weighted-saddle-comparison.R`, also sourced by the full benchmark |
+| Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, components `weighted_saddle` and `weighted_saddle_resolutions` | `scripts/compare-saddle-resolutions.R` and its numerical/plotting helpers, also used by the full benchmark |
 | UMB-HMP-only graph construction summary | `hmp_gc/` graph files and `hmp_gc/upstream/` input tables | `scripts/build-hmp-only-graph.R` |
 | Repeated HMP runtime and shared-scoring benchmark | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp` | `scripts/precompute-vs-alternatives.R` |
 | Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
@@ -143,28 +143,39 @@ same unweighted HMP topology, and the common score is sampled hop-distance
 stress. Elapsed times remain machine-dependent; `BENCHMARK_PROVENANCE.md`
 records the machine used for the supplied artifact.
 
-To regenerate only the weighted-saddle comparison, retaining the other
-benchmark results and their timing metadata, run:
+To regenerate both weighted-saddle resolutions, export all six-panel figures,
+and retain the other benchmark results and their timing metadata, run:
 
 ```sh
 mkdir -p generated
-Rscript scripts/weighted-saddle-comparison.R \
+Rscript scripts/compare-saddle-resolutions.R generated/saddle-resolutions \
   precomputed/vs_alternatives/benchmark_results.rds \
   generated/benchmark_results.rds
 ```
 
-The helper adds three-dimensional metric MDS and the two edge-KK workflows,
-reuses the stored weighted-GRIP coordinates for both its refinements, and
-independently checks all four score columns by summing the stored fixed paths.
+The command generates 10 by 10 and 15 by 15 saddle meshes from scratch, exporting
+a PDF and PNG for each, a combined score CSV, and the complete RDS objects. It
+selects 10 by 10 for the main manuscript and stores both cases and their shared
+plotting limits in `weighted_saddle_resolutions`. To export new comparisons
+without updating a benchmark RDS, omit the final two arguments.
+
+The helper computes three-dimensional metric MDS and both edge-KK workflows,
+reuses each weighted-GRIP matrix for both its refinements, and independently
+checks all four score columns by summing the stored fixed paths.
 Both edge-KK calls use identical package-default settings, including five
 density-continuation stages with at most 50 iterations per stage. The supplied
 artifact retains these settings, refinement traces, fixed paths, and check
-results in its `weighted_saddle` component. Small errors use scientific notation
+results within each case. `plot-weighted-saddle.R` is shared by the standalone
+exports and the manuscript figure, with common alignment, projection, limits,
+panel order, and styling. Small errors use scientific notation
 in the table so they are not presented as exact zero.
 
-For a clean regeneration without reusing the stored initial layouts, source
-`scripts/weighted-saddle-comparison.R` in R and call
-`weighted_saddle_comparison()`. To recheck an existing component independently,
+For a single resolution, source `scripts/weighted-saddle-comparison.R` in R and
+call `weighted_saddle_comparison(grid_size = 10L)` or use `15L`. The default is
+now 10; `5L` reproduces the former illustrative graph. To update only one
+existing case while retaining the others, run
+`Rscript scripts/weighted-saddle-comparison.R INPUT.rds OUTPUT.rds`, with an
+optional final integer grid size to generate a fresh case. To recheck an existing case independently,
 call `check_weighted_saddle(results$weighted_saddle)`, where `results` is the
 loaded RDS object. `BENCHMARK_PROVENANCE.md` separates this focused update from
 the original long-running benchmark environment.
@@ -199,13 +210,12 @@ The `setup` chunk also defines helpers for rendering and locating inputs:
 - `find.extdata.file()`, `read.extdata.csv()`, and `read.extdata.rds()` locate
   and read supplied artifacts;
 - `plot_layout_panel()` and `plot_common_projection()` draw figure panels;
-- `align_to_reference()` places the weighted-saddle layouts in a common
-  display frame by translation, rotation or reflection, and uniform scaling;
 - `edge.matrix.from.adj()` converts an adjacency list to an edge matrix for
   the manuscript examples.
 
 These helpers are part of the manuscript source, not exported `grip`
-functions. In particular, `align_to_reference()` is used for the
-weighted-saddle figure only; it is not a step in the package's layout or
-scoring interfaces. The complete helper definitions are included in both
-`grip-software-paper.Rmd` and its extracted `grip-software-paper.R` companion.
+functions. Their definitions are included in both `grip-software-paper.Rmd`
+and its extracted `grip-software-paper.R` companion. The weighted-saddle figure
+instead sources `scripts/plot-weighted-saddle.R`, also included in this archive.
+Its similarity alignment uses translation, rotation or reflection, and uniform
+scaling solely for display; it is not part of layout generation or scoring.
