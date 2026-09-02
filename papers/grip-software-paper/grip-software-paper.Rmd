@@ -455,8 +455,8 @@ Both criteria can be applied to coordinates produced by any layout method. A
 practical GMDS-oriented workflow initializes the configuration with metric MDS
 and then applies edge-restricted Kamada--Kawai (edge-KK) refinement, using edge
 fidelity as a surrogate for fixed-path loss. For larger graphs, metric MDS can
-become prohibitive because it materializes an all-pairs graph-distance matrix
-before a dense classical-scaling step. Graph dRawing with Intelligent Placement
+become prohibitive because it computes an all-pairs graph-distance matrix and
+then performs dense classical scaling. Graph dRawing with Intelligent Placement
 (GRIP) avoids this dense all-pairs embedding step through multiscale placement
 and localized refinement; for bounded-degree graphs, the original analysis
 gives near-linear time and space up to logarithmic factors after the filtration
