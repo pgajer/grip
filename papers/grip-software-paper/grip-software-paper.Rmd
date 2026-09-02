@@ -399,13 +399,17 @@ discrepancy between $D_G$ and $D_{G,Z}$ and seeks coordinates $Z$ for which the
 selected paths' embedded lengths approximate their input-graph lengths.
 Classical MDS instead compares $D_G$ with the endpoint-distance matrix $D_Z$.
 
-Both criteria can be applied to coordinates produced by any layout method. To
-generate candidate coordinates within \CRANpkg{grip}, the core layout functions
-implement the original hop-distance GRIP algorithm [@gajer2002; @gajer2004] and
-an edge-length-aware extension. In both versions, GRIP constructs a hierarchy
-of maximal independent sets, places vertices from coarse to fine resolution,
-and refines the layout locally at each level. Figure \@ref(fig:trace) illustrates
-this construction through four states returned by `trace.grip()`.
+Both criteria can be applied to coordinates produced by any layout method. A
+practical GMDS-oriented workflow initializes the configuration with metric MDS
+and then applies edge-restricted Kamada--Kawai (edge-KK) refinement, using edge
+fidelity as a surrogate for fixed-path loss. For larger graphs on which metric
+MDS is too costly, weighted GRIP can supply the initial configuration before the
+same edge-KK refinement. The core layout functions implement the original
+hop-distance GRIP algorithm [@gajer2002; @gajer2004] and an edge-length-aware
+extension. In both versions, GRIP constructs a hierarchy of maximal independent
+sets, places vertices from coarse to fine resolution, and refines the layout
+locally at each level. Figure \@ref(fig:trace) illustrates this construction
+through four states returned by `trace.grip()`.
 
 ```{r trace, fig.cap="Coarse-to-fine construction in the GRIP algorithm, exposed by trace.grip() for a 6x6 mesh. The panels show the coarsest initialization, an early intermediate state, a late intermediate state, and the final layout.", fig.alt="Four panels showing the GRIP algorithm placing and refining a mesh from a sparse coarse configuration to a regular grid-like final arrangement.", fig.width=10, fig.height=2.8, fig.pos="H"}
 trace.edges <- edges.mesh(6, 6)
