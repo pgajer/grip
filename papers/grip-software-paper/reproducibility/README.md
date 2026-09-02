@@ -54,7 +54,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 | Benchmark hardware, software, timing boundary, and repeat policy | `BENCHMARK_PROVENANCE.md` and the RDS `benchmark_metadata` component | Recorded by `scripts/precompute-vs-alternatives.R` |
 | Small-graph figures and tables | Evaluated directly from `grip-software-paper.Rmd` | Render the manuscript; no precomputed supplement input is used |
 | Two-edge angle and coincident-endpoint diagram | Analytic three-vertex, unit-edge path | The `path-angle-freedom` chunk checks all three fixed-path distances at 1,001 deterministic angles (including zero), then draws the acute-angle and coincident-endpoint configurations; no random sampling or fitted layout is involved |
-| Higher-dimensional Möbius-strip comparison | Unit-edge grid with a reversed seam, generated from dimensions in the script | The `mobius-dimension` chunk regenerates the 300-vertex pair using `scripts/mobius-dimension-comparison.R`; Supplement S2 uses the same functions for 150, 300, and 1,500 vertices |
+| Higher-dimensional Möbius-strip comparison | Unit-edge grid with a reversed seam, generated from dimensions in the script | The `mobius-data` chunk regenerates the 300-vertex pair using `scripts/mobius-dimension-comparison.R`; `mobius-dimension` draws it and computes its caption's retained-variance percentage from the same coordinates. Supplement S2 uses the same functions for 150, 300, and 1,500 vertices |
 
 The table identifies the manuscript result that consumes each supplied
 artifact. Figure and table numbering may change during editing, so the mapping

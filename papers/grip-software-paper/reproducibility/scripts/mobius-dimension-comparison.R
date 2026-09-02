@@ -81,11 +81,13 @@ mobius_compute <- function(longitudinal, transverse) {
                       mobius_orient(projected, graph$reference)))
 }
 
-mobius_panel <- function(result, method, show_n = TRUE) {
+mobius_panel <- function(result, method, show_n = TRUE, show_variance = TRUE,
+                         plot_limit = 1.5) {
   xy <- grip::project.3d(result$display[[method]], azimuth = 35, elevation = 22)
   graph <- result$graph
-  stopifnot(all(is.finite(xy)), max(abs(xy)) < 1.5)
-  plot(NA, xlim = c(-1.5, 1.5), ylim = c(-1.5, 1.5), asp = 1,
+  stopifnot(all(is.finite(xy)), max(abs(xy)) < plot_limit)
+  plot(NA, xlim = c(-plot_limit, plot_limit),
+       ylim = c(-plot_limit, plot_limit), asp = 1,
        axes = FALSE, xlab = "", ylab = "")
   label <- if (method == 1L) "Direct 3D" else "4D projected to 3D"
   if (show_n) label <- paste0(label, "; n = ", nrow(xy))
@@ -96,15 +98,18 @@ mobius_panel <- function(result, method, show_n = TRUE) {
   edges <- edges[graph$boundary, , drop = FALSE]
   segments(xy[edges[, 1L], 1L], xy[edges[, 1L], 2L],
            xy[edges[, 2L], 1L], xy[edges[, 2L], 2L], col = "#1F5A94", lwd = 1.2)
-  if (method == 2L) mtext(sprintf("PCA retains %.1f%% of 4D variance",
+  if (show_variance && method == 2L) mtext(sprintf("PCA retains %.1f%% of 4D variance",
                                  100 * result$retained.variance),
                           side = 1, line = 0.2, cex = 0.8)
 }
 
 mobius_draw_pair <- function(result) {
-  op <- par(mfrow = c(1, 2), mar = c(1.8, 0.3, 2.2, 0.3))
+  op <- par(mfrow = c(1, 2), mar = c(0.5, 0.3, 2.2, 0.3))
   on.exit(par(op))
-  for (method in 1:2) mobius_panel(result, method, show_n = FALSE)
+  for (method in 1:2) {
+    mobius_panel(result, method, show_n = FALSE, show_variance = FALSE,
+                 plot_limit = 1.4)
+  }
 }
 
 mobius_draw_all <- function(results) {
