@@ -275,9 +275,9 @@ dissimilarities $\Delta$ and the configuration distances $D_Z$
 [@kruskal1964multidimensional]. The choice of input dissimilarities matters when
 $n$ observations $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved,
 branching, or otherwise non-Euclidean structure: ambient straight-line
-distances may then fail to represent the intrinsic relationships that an
-analysis is intended to preserve. Those unobserved intrinsic relationships have
-distance matrix $D_X=(d_{ij}^X)$. Isomap constructs a weighted neighborhood
+distances may then fail to represent the intrinsic distance structure
+underlying $X$. The corresponding unobserved distances form the matrix
+$D_X=(d_{ij}^X)$. Isomap constructs a weighted neighborhood
 graph $G=(V,E,\ell)$ whose vertices correspond to the observations, uses its
 shortest-path distance matrix $D_G=(d_{ij}^G)$ as an estimate of $D_X$, and
 applies classical MDS to $D_G$ [@tenenbaum2000]. This $X\to G\to Z$ sequence
