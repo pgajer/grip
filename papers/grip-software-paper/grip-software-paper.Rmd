@@ -374,11 +374,13 @@ if (knitr::is_latex_output()) {
 }
 ```
 
-Answering the $G\to Z$ question requires choosing how distances in the embedded
-configuration are measured. The two criteria considered here compare $D_G$
-with either the Euclidean endpoint distances $D_Z$ or
-$D_{G,Z}=(d_{ij}^{G,Z})$, whose entries are the embedded lengths of selected
-input-graph shortest paths:
+Classical MDS in the context of graph embedding
+$G\to Z\subset\mathbb{R}^m$ produces coordinates whose endpoint chords
+$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. Some
+downstream analyses use graph or lineage paths to order observations and
+quantify progression, as in trajectory and pseudotime analysis
+[@haghverdi2016; @street2018; @wolf2019]. When such a path is retained after
+embedding, the relevant comparison is whether its embedded length
 
 $$
 d_{ij}^{G,Z}
@@ -386,24 +388,8 @@ d_{ij}^{G,Z}
 \sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2,
 $$
 
-\noindent Here $\gamma_{ij}$ is a selected shortest path between vertices $i$
-and $j$ in the input graph $G$. If several shortest paths exist, one is selected
-and held fixed as $Z$ changes. In Isomap, the graph shortest-path distance
-matrix $D_G$ serves as an estimate of $D_X$.
-Classical MDS then produces coordinates whose endpoint chords
-$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. Some
-downstream analyses instead use graph or lineage paths to order observations
-and quantify progression, as in trajectory and pseudotime analysis
-[@haghverdi2016; @street2018; @wolf2019]. When such a path is retained after
-embedding, the relevant comparison is whether its embedded length
-$d_{ij}^{G,Z}$ preserves its input-graph length $d_{ij}^G$. GMDS formalizes the
-comparison between $D_G$ and $D_{G,Z}$, while \CRANpkg{grip} provides layout,
-scoring, and refinement for this $G\to Z$ stage. Its common scoring interface
-evaluates coordinates produced by \CRANpkg{grip} or other software under both
-fidelity criteria and supplements them with conventional layout diagnostics. A
-low graph-to-embedding loss cannot recover information already lost during
-$X\to G$, so the two losses remain separate and the interpretation of the
-second is conditional on the first.
+\noindent preserves its input-graph length $d_{ij}^G$, where $\gamma_{ij}$ is a
+selected shortest path between vertices $i$ and $j$ in the input graph $G$.
 
 The core layout functions implement the original hop-distance GRIP algorithm
 [@gajer2002; @gajer2004] and an edge-length-aware extension. In both versions,
