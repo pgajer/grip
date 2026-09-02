@@ -282,10 +282,7 @@ graph $G=(V,E,\ell)$ whose vertices correspond to the observations, uses its
 shortest-path distance matrix $D_G=(d_{ij}^G)$ as an estimate of $D_X$, and
 applies classical MDS to $D_G$ [@tenenbaum2000]. This $X\to G\to Z$ sequence
 raises two fidelity questions: how well does $D_G$ approximate $D_X$, and how
-faithfully does the embedding $Z$ represent $D_G$? Answering the second also
-requires choosing how distances in the embedded configuration are measured.
-The fixed-path criterion developed here collects the embedded lengths of
-selected input-graph geodesics in $D_{G,Z}$. The companion
+faithfully does the embedding $Z$ represent $D_G$? The companion
 \CRANpkg{dgraphs} package addresses the $X\to G$ question, while
 \CRANpkg{grip} addresses the $G\to Z$ question. These two stages are
 summarized below.
@@ -377,20 +374,13 @@ if (knitr::is_latex_output()) {
 }
 ```
 
-When $D_X$ is unknown, as it generally is for real data, the fidelity of the
-$X\to G$ construction cannot be evaluated directly. Controlled synthetic
-examples allow it to be
-studied because the generating model can make $D_X$ known and thereby permit
-direct evaluation of the discrepancy between $D_X$ and $D_G$. Examining that
-discrepancy across geometries, sampling densities, noise levels, and sample
-sizes supports calibration of graph constructors for corresponding classes of
-real data. The graph-construction and calibration tools in \CRANpkg{dgraphs}
-support these studies [@gajer2026dgraphs]. Once a construction has been
-calibrated for a class of data---or a set of plausible constructions has been
-retained---it supplies the working graph geometry for the $G\to Z$ analysis.
+Answering the $G\to Z$ question requires choosing how distances in the embedded
+configuration are measured. The two criteria considered here compare $D_G$
+with either the Euclidean endpoint distances $D_Z$ or the embedded lengths
+$D_{G,Z}$ of selected input-graph geodesics.
 
 An embedding assigns vertex $i$ of $G$ a coordinate $z_i\in\mathbb{R}^m$; in
-the common dimensionality-reduction setting illustrated below, $p\gg m$.
+the common dimensionality-reduction setting, $p\gg m$.
 After embedding, each edge $(u,v)\in E$ has Euclidean length
 $\lVert z_u-z_v\rVert_2$. The embedded length of a selected input-graph
 geodesic $\gamma_{ij}$ is therefore
