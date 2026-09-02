@@ -106,7 +106,12 @@ mobius_panel <- function(result, method, show_n = TRUE, show_variance = TRUE,
 mobius_draw_pair <- function(result) {
   op <- par(mfrow = c(1, 2), mar = c(0.5, 0.3, 2.2, 0.3))
   on.exit(par(op))
+  # Move both panels inward without changing their width, scale, or height.
+  # Only the blank inner margins overlap; the drawings and titles stay separate.
+  panel_left <- c(0.07, 0.43)
   for (method in 1:2) {
+    par(fig = c(panel_left[method], panel_left[method] + 0.5, 0, 1),
+        new = method > 1L)
     mobius_panel(result, method, show_n = FALSE, show_variance = FALSE,
                  plot_limit = 1.4)
   }
