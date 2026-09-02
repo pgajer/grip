@@ -54,10 +54,39 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 | Benchmark hardware, software, timing boundary, and repeat policy | `BENCHMARK_PROVENANCE.md` and the RDS `benchmark_metadata` component | Recorded by `scripts/precompute-vs-alternatives.R` |
 | Small-graph figures and tables | Evaluated directly from `grip-software-paper.Rmd` | Render the manuscript; no precomputed supplement input is used |
 | Two-edge angle and coincident-endpoint diagram | Analytic three-vertex, unit-edge path | The `path-angle-freedom` chunk checks all three fixed-path distances at 1,001 deterministic angles (including zero), then draws the acute-angle and coincident-endpoint configurations; no random sampling or fitted layout is involved |
+| Higher-dimensional Möbius-strip comparison | Unit-edge grid with a reversed seam, generated from dimensions in the script | The `mobius-dimension` chunk regenerates the 300-vertex pair using `scripts/mobius-dimension-comparison.R`; Supplement S2 uses the same functions for 150, 300, and 1,500 vertices |
 
 The table identifies the manuscript result that consumes each supplied
 artifact. Figure and table numbering may change during editing, so the mapping
 uses stable section descriptions and RDS component names.
+
+## Higher-dimensional layout illustration (Supplement S2)
+
+From the manuscript directory, regenerate the full six-panel comparison with:
+
+```sh
+Rscript reproducibility/scripts/mobius-dimension-comparison.R build/supplement
+make -C supplement
+```
+
+The script writes a vector PDF, a PNG preview, and an RDS containing the graphs,
+3D and 4D coordinates, PCA projections, display coordinates, explicit settings,
+and generation-session information. The submission archive includes the figure
+PDF and RDS beside `supplement/S2-mobius-comparison.pdf`. The manuscript computes
+its 300-vertex pair directly using the same script; it does not read this RDS.
+
+This is a modern illustration inspired by Gajer et al. (2004), not a replication
+of the historical executable, graphs, or projection procedure. Both dimensions
+use the current `weighted.grip.nd()` backend with unit edge lengths and seed 1;
+the other shared settings and graph construction are explicit in the script.
+PCA retains three components without scaling the four input axes. Display
+normalization and orthogonal alignment occur only afterward; the analytic
+Möbius strip is never supplied as layout initialization. The saved
+`projection.edge.ratio` values compare projected edge lengths with their
+original 4D lengths before display normalization. High retained coordinate
+variance and smoother-looking drawings do not establish preservation of
+individual edges or improved graph-distance fidelity. No seed search or
+multi-seed performance comparison was performed.
 
 ## Software environment and validation
 

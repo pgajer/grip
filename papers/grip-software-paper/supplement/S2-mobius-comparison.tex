@@ -1,0 +1,60 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=22mm]{geometry}
+\usepackage{amsmath,graphicx,float}
+\usepackage[numbers]{natbib}
+\usepackage{xurl}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,allcolors=blue!45!black]{hyperref}
+\graphicspath{{../build/supplement/}{./}}
+\setlength{\emergencystretch}{2em}
+\renewcommand{\thefigure}{S2.\arabic{figure}}
+\renewcommand{\thepage}{S2--\arabic{page}}
+\begin{document}
+\begin{center}
+{\Large Supplement S2: Higher-dimensional M\"obius-strip layouts}\\[4pt]
+Pawel Gajer and Jacques Ravel
+\end{center}
+
+These modern examples illustrate the higher-dimensional layout and projection
+approach of \citet[][Section 3.6 and Figures 5--6]{gajer2004}. They use the
+current \texttt{grip} backend, new graphs, and PCA, not the historical
+implementation or projection.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{mobius-dimension-comparison.pdf}
+\caption{Direct 3D layouts (top) and 4D layouts projected to 3D (bottom) of
+unit-edge M\"obius-strip graphs with 150, 300, and 1,500 vertices. Each pair
+uses the same graph, backend, settings, and seed. Thicker blue edges mark the
+strip boundary. The lower row retains the first three principal components.
+For display, configurations are centered, scaled to unit root-mean-square
+radius, orthogonally aligned to a common reference, and viewed from one
+direction. The projected twists appear somewhat smoother, but neither
+appearance nor retained variance establishes improved graph-distance fidelity.}
+\end{figure}
+
+\paragraph{Construction and shared settings.}
+A rectangular grid with $L$ longitudinal and $W$ transverse vertices is closed
+by joining vertex $(L,j)$ to $(1,W+1-j)$, introducing a half-twist.
+The grids $(L,W)=(30,5),(50,6),(100,15)$ have 270, 550, and 2,900 edges,
+respectively, all assigned length one.
+Both dimensions use \texttt{weighted.grip.nd()} with
+\texttt{rounds = 160}, \texttt{final\_rounds = 256},
+\texttt{num\_init = 24}, \texttt{num\_nbrs = 24}, and \texttt{seed = 1};
+other arguments retain their defaults. Only this seed was used.
+The analytic strip is used solely for display alignment (rotation or
+reflection), never for layout initialization.
+
+\paragraph{Projection and reproduction.}
+PCA centers the 4D coordinates without scaling individual axes. Despite high
+retained variance, projection can substantially shorten individual edges.
+The supplied RDS records projected-to-original 4D edge-length ratios before
+display normalization, coordinates, projection matrices, settings, and the R
+session. The manuscript regenerates its 300-vertex pair using the same functions.
+Reproduction commands are provided in \path{reproducibility/README.md}.
+
+\bibliographystyle{plainnat}
+{\small\bibliography{S2-mobius-comparison}}
+\end{document}

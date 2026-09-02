@@ -86,17 +86,20 @@ copy_tree("grip-software-paper_files", source_root = file.path(paper_dir, "build
 
 supplement_sources <- c(
   file.path(paper_dir, "build", "supplement", "S1-weighted-grip-complexity.pdf"),
+  file.path(paper_dir, "build", "supplement", "S2-mobius-comparison.pdf"),
+  file.path(paper_dir, "build", "supplement", "mobius-dimension-comparison.pdf"),
+  file.path(paper_dir, "build", "supplement", "mobius-dimension-comparison.rds"),
   file.path(repo_root, "tools", "reports", "check-citation-verification.py")
 )
 if (!all(file.exists(supplement_sources))) {
-  stop("Build Supplement S1 before bundling (make paper-supplement).")
+  stop("Build Supplements S1 and S2 before bundling (make paper-supplement).")
 }
 if (!all(file.copy(
   supplement_sources,
   file.path(bundle_dir, "supplement"),
   overwrite = TRUE
 ))) {
-  stop("Failed to copy the supplement PDF or its portable citation checker.")
+  stop("Failed to copy a supplement artifact or its portable citation checker.")
 }
 
 motivation_dir <- file.path(bundle_dir, "motivation-letter")

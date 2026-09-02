@@ -23,12 +23,20 @@ The submission target renders stable PDF and HTML files without the internal
 draft build stamp, verifies citations, and writes a clean, versioned directory
 and ZIP archive under `output/rjournal_paper/submission/`. The archive includes
 the manuscript sources, figure sidecars, motivation letter, package list, and
-the self-contained reproduction materials, and Supplement S1 on weighted-GRIP
-complexity. Supplement S1's canonical source, bibliography, and citation
-evidence live in `supplement/`; its PDF and intermediates are generated under
-`build/supplement/`. The regular paper-rendering targets also build and check
-S1. Its PDF, sources, and portable build instructions are included in the
-submission archive.
+the self-contained reproduction materials, Supplement S1 on weighted-GRIP
+complexity, and Supplement S2 with the full higher-dimensional Möbius-strip
+comparison. Both supplements' canonical LaTeX sources, bibliographies, and
+citation evidence live in `supplement/`; PDFs and intermediates are generated
+under `build/supplement/`. The regular paper-rendering targets also build and
+check both supplements. Their PDFs, sources, and portable build instructions
+are included in the submission archive.
+
+The Möbius comparison uses shared functions in
+`reproducibility/scripts/mobius-dimension-comparison.R`: the manuscript
+regenerates the 300-vertex pair, and S2 shows 150-, 300-, and 1,500-vertex pairs.
+The archive includes the full figure and its coordinate/provenance RDS.
+This is a modern, single-seed illustration, not a replication of the historical
+GRIP experiment or a demonstration of improved graph-distance fidelity.
 
 The complexity bounds in S1 are conditional on its explicit locality and
 hierarchy assumptions. They are not empirical scalability results or a
