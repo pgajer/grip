@@ -377,8 +377,10 @@ if (knitr::is_latex_output()) {
 Classical MDS in the context of graph embedding produces a coordinate map
 $\phi:V\to\mathbb{R}^m$ and hence a configuration
 $Z=\phi(V)\subset\mathbb{R}^m$, whose endpoint chords
-$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$. Some
-downstream analyses use graph or lineage paths to order observations and quantify
+$d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$.
+However, the appropriate embedding criterion depends on which geometric
+quantities must be preserved for the downstream analysis. Some downstream
+analyses use graph or lineage paths to order observations and quantify
 progression, as in trajectory and pseudotime analysis
 [@haghverdi2016; @street2018; @wolf2019]. When such a path is retained after
 embedding, the relevant comparison is whether its embedded length
