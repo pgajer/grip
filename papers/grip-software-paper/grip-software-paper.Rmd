@@ -27,10 +27,11 @@ preamble: |
   \usepackage{xcolor}
   \usepackage{etoolbox}
   \usepackage{float}
+  \usepackage{array,booktabs}
   \usepackage{tikz}
   \usetikzlibrary{arrows}
   \graphicspath{{build/}{}}
-  \AtBeginEnvironment{table}{\small}
+  \AtBeginEnvironment{table}{\small\renewcommand{\arraystretch}{1.12}\setlength{\tabcolsep}{5pt}}
   \AtBeginEnvironment{thebibliography}{\small}
   \providecommand{\manuscriptversion}{unversioned}
   \providecommand{\manuscriptbuildnumber}{NA}
@@ -137,7 +138,10 @@ accessible_kable <- function(x,
                              align = NULL,
                              col.names = NULL,
                              digits = getOption("digits"),
-                             position = "H") {
+                             position = "H",
+                             latex_widths = NULL,
+                             function_columns = integer(),
+                             group_after = integer()) {
   args <- list(
     x = x,
     digits = digits,
@@ -148,22 +152,64 @@ accessible_kable <- function(x,
     position = position
   )
   args <- Filter(Negate(is.null), args)
+  if (knitr::is_latex_output()) {
+    args$format <- "latex"
+    args$booktabs <- TRUE
+    args$vline <- ""
+    args$linesep <- rep("", nrow(x))
+    if (!is.null(latex_widths)) {
+      stopifnot(length(latex_widths) == ncol(x),
+                all(latex_widths > 0), abs(sum(latex_widths) - 1) < 1e-8)
+      # Include intercolumn padding in the width budget; prose is ragged-right.
+      args$align <- sprintf(
+        ">{\\raggedright\\arraybackslash}p{\\dimexpr%.3f\\linewidth-2\\tabcolsep\\relax}",
+        latex_widths
+      )
+      args$linesep[] <- "\\addlinespace[0.35em]"
+    }
+    if (length(group_after)) {
+      stopifnot(all(group_after > 0), all(group_after < nrow(x)))
+      args$linesep[group_after] <- "\\addlinespace[0.45em]"
+    }
+  }
   if (knitr::is_html_output()) {
     args$table.attr <- sprintf(
       'aria-label="%s"',
       html_attribute_escape(alt)
     )
   }
-  do.call(knitr::kable, args)
+  out <- do.call(knitr::kable, args)
+  if (knitr::is_latex_output() && length(function_columns)) {
+    # Format only validated function lists, after kable has escaped the table.
+    # Preserve commas and spellings while placing one function on each line.
+    stopifnot(all(function_columns >= 1L), all(function_columns <= ncol(x)))
+    for (column in function_columns) {
+      prefix <- if (column == 1L) "\n" else " & "
+      suffix <- if (column == ncol(x)) "\\\\" else " & "
+      for (cell in unique(as.character(x[[column]]))) {
+        functions <- strsplit(cell, ", ", fixed = TRUE)[[1L]]
+        stopifnot(all(grepl("^[[:alpha:]][[:alnum:]_.]*\\(\\)$", functions)))
+        escaped <- gsub("_", "\\_", functions, fixed = TRUE)
+        formatted <- paste0("\\texttt{", escaped, "}", collapse = ",\\newline ")
+        out <- gsub(
+          paste0(prefix, gsub("_", "\\_", cell, fixed = TRUE), suffix),
+          paste0(prefix, formatted, suffix), out, fixed = TRUE
+        )
+      }
+    }
+    class(out) <- "knitr_kable"
+    attr(out, "format") <- "latex"
+  }
+  out
 }
 
-paper_kable <- function(x, caption, alt, digits = 3) {
+paper_kable <- function(x, caption, alt, digits = 3, group_after = integer()) {
   col.names <- unname(ifelse(
     names(x) %in% names(paper.table.colnames),
     paper.table.colnames[names(x)],
     names(x)
   ))
-  align <- c("l", rep("r", max(0, ncol(x) - 1L)))
+  align <- ifelse(vapply(x, is.numeric, logical(1)), "r", "l")
   accessible_kable(
     x,
     digits = digits,
@@ -172,7 +218,8 @@ paper_kable <- function(x, caption, alt, digits = 3) {
     align = align,
     caption = caption,
     alt = alt,
-    position = "H"
+    position = "H",
+    group_after = group_after
   )
 }
 
@@ -1003,11 +1050,9 @@ family.scope <- data.frame(
 accessible_kable(
   family.scope,
   row.names = FALSE,
-  align = if (knitr::is_latex_output()) {
-    c("l", "l", "p{0.22\\linewidth}", "p{0.42\\linewidth}")
-  } else {
-    c("l", "l", "l", "l")
-  },
+  align = c("l", "l", "l", "l"),
+  latex_widths = c(0.18, 0.13, 0.23, 0.46),
+  function_columns = 4L,
   caption = "Maturity, purpose, and principal functions of the main layout and GMDS-facing method families in grip.",
   alt = paste(
     "Six rows distinguish the core multiscale GRIP implementation from the",
@@ -1060,6 +1105,7 @@ accessible_kable(
   metrics.table,
   row.names = FALSE,
   align = c("l", "l", "l"),
+  latex_widths = c(0.35, 0.53, 0.12),
   caption = "General layout diagnostics used in the examples.",
   alt = paste(
     "Five rows define sampled stress, edge-length variation, non-edge",
@@ -1139,6 +1185,8 @@ accessible_kable(
   assessment.functions,
   row.names = FALSE,
   align = c("l", "l"),
+  latex_widths = c(0.34, 0.66),
+  function_columns = 2L,
   caption = "Package functions in the candidate generation, assessment, and refinement workflow.",
   alt = paste(
     "Seven rows map multiscale generation, general scoring, all-pairs path",
@@ -1291,6 +1339,7 @@ accessible_kable(
   digits = 3,
   row.names = FALSE,
   align = c("r", "r", "l", "r", "r"),
+  group_after = c(2L, 4L),
   caption = paper_table_caption(
     paste(
       "Separate data-to-graph and graph-to-embedding losses for one",
@@ -1377,6 +1426,7 @@ preset.benchmark <- preset.benchmark[order(preset.benchmark$graph, preset.benchm
 
 paper_kable(
   preset.benchmark,
+  group_after = 2L,
   caption = paper_table_caption(
     "Preset benchmark on two structured graph families, each averaged over ten seeds.",
     "Runs = number of seeds; Sec = mean elapsed seconds; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; PStab = Procrustes stability."
@@ -1580,7 +1630,7 @@ that generates it.
 accessible_kable(
   hmp.data.summary,
   row.names = FALSE,
-  align = c("l", "l"),
+  align = c("l", "r"),
   caption = "Construction summary for the bundled UMB-HMP-only Illumina 16S graph.",
   alt = paste(
     "Five rows report the eligible HMP Illumina sample count, giant-component",
