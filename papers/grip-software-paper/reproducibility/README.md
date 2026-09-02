@@ -188,6 +188,34 @@ Rscript scripts/check-saddle-panel-scores.R \
   precomputed/vs_alternatives/benchmark_results.rds
 ```
 
+### Three-panel criterion illustration (proposed manuscript figure)
+
+The standalone preview for subsection *Which criterion answers which question*
+selects the generating saddle, metric MDS, and weighted GRIP followed by edge-KK
+from the same saved comparison. It highlights one retained input-graph shortest
+path and its endpoint chord in every panel. The path joins opposite ends of the
+grid row closest to, and on the nonnegative side of, `y = 0`; this selection
+does not depend on the candidate scores. Scores still use all 4,950 pairs and
+the original three-dimensional coordinates, not the highlighted path alone or
+the two-dimensional display.
+
+From this directory, generate the preview without recomputing layouts:
+
+```sh
+Rscript scripts/plot-saddle-criteria.R \
+  precomputed/vs_alternatives/benchmark_results.rds ../build/saddle-criteria
+```
+
+The command writes a vector PDF, PNG, proposed caption, retained-path edge list,
+and unrounded scores with the highlighted path and chord lengths. The latter
+lengths are in each layout's original coordinate units; the reported graph
+distance uses median-normalized input edge lengths. They should not be compared
+without accounting for scale. The two all-pairs criteria instead fit their
+scales separately, as in the full comparison. The script checks the retained
+path's endpoints, connectivity, grid row, and input length before plotting.
+This preview is not yet inserted in the manuscript; the complete six-panel
+comparison remains unchanged.
+
 The second command checks the panel metrics against an independent least-squares
 fit and explicit sums along the stored paths, checks agreement with the cached
 scores, and tests invariance to translation, reflection, and uniform scaling.
