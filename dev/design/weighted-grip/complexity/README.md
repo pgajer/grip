@@ -1,5 +1,11 @@
 # Weighted GRIP search-sensitive complexity
 
+This directory retains the original standalone technical note. The maintained
+publication-facing version is now
+`papers/grip-software-paper/supplement/S1-weighted-grip-complexity.tex`
+relative to the repository root; build it with `make paper-supplement`.
+Future manuscript-related revisions should be made there, not in this snapshot.
+
 This user-requested technical note derives workload-sensitive estimates for the
 existing weighted 2D/3D GRIP core. It is a companion derivation, not a change to
 the R Journal manuscript, a package change, or a new benchmark.

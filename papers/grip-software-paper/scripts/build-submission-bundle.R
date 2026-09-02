@@ -81,7 +81,23 @@ copy_tree <- function(relative_path, source_root = paper_dir) {
 }
 
 copy_tree("reproducibility")
+copy_tree("supplement")
 copy_tree("grip-software-paper_files", source_root = file.path(paper_dir, "build"))
+
+supplement_sources <- c(
+  file.path(paper_dir, "build", "supplement", "S1-weighted-grip-complexity.pdf"),
+  file.path(repo_root, "tools", "reports", "check-citation-verification.py")
+)
+if (!all(file.exists(supplement_sources))) {
+  stop("Build Supplement S1 before bundling (make paper-supplement).")
+}
+if (!all(file.copy(
+  supplement_sources,
+  file.path(bundle_dir, "supplement"),
+  overwrite = TRUE
+))) {
+  stop("Failed to copy the supplement PDF or its portable citation checker.")
+}
 
 motivation_dir <- file.path(bundle_dir, "motivation-letter")
 dir.create(motivation_dir, recursive = TRUE, showWarnings = FALSE)

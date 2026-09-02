@@ -410,8 +410,9 @@ and localized refinement; for bounded-degree graphs, the original analysis
 gives near-linear time and space up to logarithmic factors after the filtration
 has been constructed [@gajer2004]. The edge-length-aware implementation can
 therefore provide a practical initial configuration before edge-KK refinement,
-although its weighted shortest-path searches have different worst-case bounds,
-discussed below. The \CRANpkg{grip} package implements the original hop-distance
+although its computational cost depends on the neighborhoods explored by the
+weighted shortest-path searches, as discussed below and in Supplement S1.
+The \CRANpkg{grip} package implements the original hop-distance
 GRIP algorithm [@gajer2002; @gajer2004] and an edge-length-aware extension. In
 both versions, GRIP constructs a hierarchy of maximal independent sets, places
 vertices from coarse to fine resolution, and refines the layout locally at each
@@ -1716,56 +1717,32 @@ considered substantially larger graphs than the examples in this article
 published analysis of the original hop-distance algorithm gives
 $\Theta(nk^2)$ time and $\Theta(nk)$ space after the filtration has been
 constructed, where $k=\log\delta(G)$ for a maximal-independent-set filtration
-and $k=\log n$ for a graph-centers filtration [@gajer2004]. These bounds exclude
-filtration construction. For the original maximal-independent-set procedure,
-its bounded-degree running time is
+and $k=\log n$ for a graph-centers filtration, with $\delta(G)$ the unweighted
+graph diameter [@gajer2004]. These bounds exclude filtration construction.
+The original construction uses partial breadth-first searches whose cost
+depends on the explored neighborhoods; no subquadratic worst-case construction
+bound was established [@gajer2002]. The published bounds do not transfer
+unchanged to the edge-length-aware implementation.
 
-$$
-\Theta\!\left(
-  \sum_{i=0}^{k}\sum_{v\in V_i}
-  \left|\operatorname{BFS}_{2^i}(v)\right|
-\right),
-$$
+The cost of weighted GRIP depends on the portions of the graph explored by its
+shortest-path searches. Filtration searches are radius-limited, while insertion
+searches stop when their neighborhood and anchor requirements are met.
+Supplement S1 derives bounds that account for these stopping rules, together
+with the uncapped searches used for coarsest-level initialization. For
+bounded-degree graphs with bounded overlap of filtration search balls, suitable
+coarse-vertex coverage, and logarithmic hierarchy depth, the analysis gives a
+conditional $O(n\log^2 n)$ expected-time bound with fixed tuning parameters.
+The expectation concerns sampled repulsion. These conditions are not
+guaranteed for arbitrary weighted graphs, and the bound excludes optional GMDS
+refinement. With fixed neighbor budgets, geometrically decreasing hierarchy
+sizes also yield $O(n)$ peak storage under the same bounded-degree assumption.
+The supplement states the coverage condition explicitly and distinguishes
+these analytical bounds from observed scaling laws.
 
-\noindent where $\operatorname{BFS}_{2^i}(v)$ is the partial breadth-first
-search rooted at $v$ and truncated at depth $2^i$. No subquadratic worst-case
-bound was proved for constructing the standard filtration; the partial-search
-implementation was empirically near-linear and filtration construction
-accounted for less than 3% of total runtime in the reported experiments
-[@gajer2002]. Storing the completed filtration requires
-$n+\log\delta(G)$ entries, although its temporary search storage can be larger.
-
-The edge-length-aware implementation does not inherit the
-$\Theta(nk^2)$-time and $\Theta(nk)$-space result. It replaces the relevant BFS
-traversals with radius-limited Dijkstra searches using a binary heap. If
-$B_i(v)$ and $E_i(v)$ denote the vertices and edge incidences examined by the
-search from $v$ at filtration level $i$, weighted filtration construction takes
-
-$$
-O\!\left(
-  \sum_i\sum_{v\in V_i}
-  \bigl(|B_i(v)|+|E_i(v)|\bigr)\log n
-\right).
-$$
-
-\noindent With $O(\log n)$ levels, a conservative worst case is
-$O\!\left(n(n+|E|)\log^2 n\right)$, or $O(n^2\log^2 n)$ for a sparse
-bounded-degree graph.
-After filtration, preparation of the exact weighted neighborhood caches can
-run one early-stopping Dijkstra search per vertex, giving an additional
-$O\!\left(n(n+|E|)\log n\right)$ worst-case time bound. Retaining at most $b$
-neighbors at each of $h$ filtration levels requires $O(nbh+n+|E|)$ space,
-including the graph and reusable shortest-path workspace. With fixed embedding
-dimension, iteration budgets, neighborhood cap $b$, and the default sampled
-repulsion, placement and refinement add $O(nbh+|E|)$ time. The resulting
-conservative bound for the default weighted core is therefore
-$O\!\left(n(n+|E|)\log^2 n\right)$ time and $O(nbh+n+|E|)$ space. Optional
-LGKK refinement and exact global-repulsion settings are outside these bounds.
 The optional `metric_neighbor_cap` limits settled vertices during
 insertion-neighborhood searches, but not during weighted filtration construction
-or the initial full searches. These are implementation bounds rather than
-observed scaling laws; on geometric sparse graphs for which local searches
-terminate early, substantially less work may be required.
+or the initial full searches. Optional LGKK refinement and exact global
+repulsion require separate cost estimates.
 
 Within the R package, all-pairs graph distances, geodesic path preparation,
 repeated scoring, and exact crossing counts can become limiting steps before the
@@ -1822,6 +1799,8 @@ to keep the article within the journal's review-time budget. The supplementary
 archive supplies those artifacts and their generation scripts, together with
 the minimal UMB-HMP-only inputs, graph builder, manifest, checksums, and provenance
 records needed to reproduce the reported results.
+Supplement S1 provides the weighted-core complexity analysis and its LaTeX
+source.
 
 Future work will connect the two transformations more systematically through a
 two-dimensional experimental design: graph constructors and settings along one

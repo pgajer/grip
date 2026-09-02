@@ -1,0 +1,455 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black]{hyperref}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Supplement S1: weighted GRIP complexity}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
+\setlength{\emergencystretch}{2em}
+\setlist{itemsep=3pt,topsep=5pt}
+\newcommand{\bigO}{\mathcal O}
+\newcommand{\ball}{\mathcal B}
+\newcommand{\work}{\mathcal W}
+\newcommand{\code}[1]{\texttt{#1}}
+\renewcommand{\thesection}{S1.\arabic{section}}
+\renewcommand{\theequation}{S1.\arabic{equation}}
+\renewcommand{\thepage}{S1--\arabic{page}}
+\title{Supplement S1\\Search-sensitive complexity of weighted GRIP}
+\author{Pawel Gajer \and Jacques Ravel}
+\date{}
+\begin{document}
+\maketitle
+
+\section{Scope of the result}
+
+Weighted GRIP uses two forms of local shortest-path search. Filtration
+searches stop at a prescribed weighted radius, and insertion searches stop
+after their neighborhood and placement-anchor requirements are met. Charging
+a full-graph traversal to every query therefore gives an upper bound that
+does not reflect these stopping rules. This supplement derives an estimate
+in terms of the search work actually performed.
+
+The analysis concerns the 2D/3D compiled weighted core in \texttt{grip} 0.2.0
+\citep{gripcode2026}. For filtration, the estimate is controlled by the overlap
+of equal-radius balls around the selected centers. For insertion, it depends
+on the number of vertices traversed before enough retained neighbors and
+anchors are found. Under bounded degree, bounded filtration-ball overlap,
+suitable coarse-vertex coverage, logarithmic hierarchy depth, and fixed
+tuning parameters, these estimates give a conditional
+$\bigO(n\log^2 n)$ expected-time upper bound, including filtration and
+coarsest initialization. The expectation concerns sampled repulsion.
+Geometric contraction of level sizes additionally gives linear peak storage.
+
+The search-sensitive accounting follows the implementation. The favorable
+asymptotic bound requires the additional geometric assumptions stated in
+Section~\ref{sec:conditional}; it is not an unconditional guarantee for
+weighted graphs. No new scalability experiment is reported.
+
+\section{Scope and the cost of one search}
+
+The input is a connected, undirected, simple graph $G=(V,E,\ell)$ with $n=|V|$
+vertices, $M=|E|$ edges, and strictly positive edge lengths. Distances below are
+measured after any global edge-length normalization. The analysis starts with
+the normalized adjacency representation supplied to the compiled core; R input
+validation and normalization are outside its scope. Dimension is fixed at two
+or three. The default first-anchor rule and final local Fruchterman--Reingold
+pass are used; optional LGKK, post-layout edge-KK, trace storage, and alternative
+anchor-selection strategies are excluded.
+
+A search $s$ examines $a_s$ adjacency incidences, performs $p_s$ heap pushes and
+pops in total, and reaches a maximum heap size $H_s$. The binary heap includes
+stale entries left by improved tentative distances. Its traversal work is
+bounded by
+\begin{equation}
+ \tau_s=\bigO\!\left(1+a_s+p_s\log(2+H_s)\right).
+ \label{eq:query}
+\end{equation}
+Each successful relaxation causes at most one push, and every pop removes a
+previously pushed item. Consequently $p_s\leq 2(a_s+1)$ and a convenient upper
+bound is $\tau_s=\bigO((1+a_s)\log(2+H_s))$. This counts boundary edges as well
+as internal edges: an edge examined at the search frontier costs work even when
+its other endpoint is never settled. Destroying an unfinished heap is also
+covered by the number of pushes. Visitor work for filling caches is accounted
+for separately below.
+
+\clearpage
+\section{Filtration: radius-limited work and ball overlap}
+
+\subsection{The actual construction searches}
+
+The weighted construction begins with $C_0=V$. At scale $i$, it greedily selects
+centers $C_i\subseteq C_{i-1}$ and removes candidates at distance at most
+$r_i=2^{i-1}r_0$ from each newly selected center; the implementation uses
+$r_0=1$ in normalized units. Its traversal runs in the original graph, not in
+the subgraph induced by the current candidates. Every center therefore incurs
+one search of the ball $\ball(v,r_i)=\{x:d_G(v,x)\leq r_i\}$. The selected centers
+are mutually more than $r_i$ apart in the ideal shortest-path model.
+
+The $t$ nonempty construction scales are kept distinct from the final layout
+hierarchy. The code can discard an overcoarse level and append a fixed-size
+initialization subset; that appended subset is not necessarily separated at
+the next geometric radius. The packing arguments here apply to the genuine
+greedy center sets $C_i$, not to that synthetic last subset.
+
+The graph-volume of a vertex set $A$ is
+$w(A)=\sum_{x\in A}(1+\deg_G(x))$. It counts vertices and the adjacency
+incidences that must be scanned. At level $i$, the total searched volume is
+\begin{equation}
+ W_i=\sum_{v\in C_i} w\bigl(\ball(v,r_i)\bigr).
+ \label{eq:volume}
+\end{equation}
+With $H_i$ the largest heap during those searches, the radius-sensitive bound is
+\begin{equation}
+ T_F=\bigO\!\left(n+\sum_{i=1}^{t} W_i\log(2+H_i)\right).
+ \label{eq:filtration}
+\end{equation}
+It does not replace a small radius-ball with the entire graph. The reusable
+distance and epoch arrays cost $\bigO(n)$ initially, not $\bigO(n)$ per query.
+
+\subsection{Why overlap is the decisive quantity}
+
+A vertex $x$ is reached by
+$\mu_i(x)=|\{v\in C_i:d_G(v,x)\leq r_i\}|$ center searches at scale $i$.
+Reversing the order of summation gives the exact volume identity
+\begin{equation}
+ W_i=\sum_{x\in V}(1+\deg_G(x))\mu_i(x)
+     =(n+2M)\,\overline\mu_i,
+ \label{eq:overlap}
+\end{equation}
+where $\overline\mu_i$ is the degree-weighted mean overlap. Thus
+\begin{equation}
+ \boxed{T_F=\bigO\!\left(n+(n+2M)
+       \sum_{i=1}^{t}\overline\mu_i\log(2+H_i)\right).}
+ \label{eq:overlap-bound}
+\end{equation}
+Even a large ball is affordable when few centers generate overlapping searches.
+Small balls and decreasing center counts should not be analyzed independently.
+
+For a sufficient geometric condition, suppose every graph-metric ball of radius
+$r$ is covered by at most $\lambda$ balls of radius $r/2$, uniformly over the
+relevant scales. This is the doubling condition, with doubling constant
+$\lambda$. The centers counted by $\mu_i(x)$ lie in $\ball(x,r_i)$ and are
+pairwise more than $r_i$ apart. No two can lie in the same radius-$r_i/2$ cover
+ball, by the triangle inequality. Therefore $\mu_i(x)\leq\lambda$, yielding
+$T_F=\bigO(n+\lambda t(n+M)\log(2+M))$. Bounded graph degree alone does not
+imply this bounded-overlap condition.
+
+\clearpage
+\section{Insertion: how far must the search go?}
+
+\subsection{Neighbors at every relevant level, plus anchors}
+
+The final layout hierarchy is $V_0=V\supseteq V_1\supseteq\cdots\supseteq V_h$,
+with level sizes $N_j=|V_j|$. The top set has $q=N_h$ initialization vertices.
+A vertex introduced at level $d(v)$ belongs to every $V_j$ for $j\leq d(v)$.
+The retained-neighbor budget at level $j$ is $b_j=\min(b,N_j-1)$, where
+$b$ is \code{num\_nbrs}. Insertion searches simultaneously fill all these caches
+and locate $a$ anchors from higher levels. Under the default
+\code{any\_higher} rule, eligible anchors are precisely $V_{d(v)+1}$.
+
+The code's stopping condition is slightly stricter than ``the caches contain
+$b_j$ entries.'' A full cache is marked complete only on the next eligible
+vertex encountered. For level $j$, a sufficient stopping distance is therefore
+the distance $\eta_j(v)$ to the $(b_j+1)$st other vertex in $V_j$. If there is no
+such vertex, $\eta_j(v)=\infty$. The distance to the $a$th eligible anchor is
+$\alpha(v)$, also infinite if too few exist. Under the default first-anchor
+rule, a sufficient radius for completion is
+\begin{equation}
+ R_v=\max\!\left\{\alpha(v),\max_{0\leq j\leq d(v)}\eta_j(v)\right\}.
+ \label{eq:stop-radius}
+\end{equation}
+The actual search can stop within the final distance tie, so the whole ball is
+an upper envelope, not a requirement to visit every point at that distance.
+If a completion condition is impossible, the finite graph is exhausted.
+
+Searching for $b$ retained neighbors does \emph{not} imply that only $b$ graph
+vertices are visited. Many nearby vertices may be absent from a coarse level.
+Likewise, finding anchors can require searching farther than filling a local
+cache. Equation~\eqref{eq:stop-radius} includes both constraints.
+
+\subsection{The prefix-sensitive bound}
+
+The settled prefix $P_v$ contains the vertices processed through termination,
+including the root. When a callback or cap terminates the search, its last
+vertex is not expanded. If $s_v=|P_v|$ and the maximum degree is $\Delta$,
+then $a_v\leq\Delta s_v$ and $H_v\leq 1+\Delta s_v$. Hence the insertion-search
+work, excluding cache writes and placement, satisfies
+\begin{equation}
+ T_N^{\rm search}=\bigO\!\left(
+   \sum_{v\notin V_h}(1+\Delta s_v)
+        \log(2+\Delta s_v)\right).
+ \label{eq:prefix}
+\end{equation}
+For nonuniform degrees, use the actual $a_v,p_v,H_v$ in
+Equation~\eqref{eq:query}. A heap can contain endpoints outside $P_v$; the bound
+charges their insertion to scanned frontier edges, rather than assuming the
+heap contains only settled vertices.
+
+\subsection{An explicit approximate search cap}
+
+When \code{metric\_neighbor\_cap} is a positive $C$, insertion stops after at
+most $C$ non-root settlements, even if caches or anchors are incomplete. Thus
+$s_v\leq C+1$ and Equation~\eqref{eq:prefix} becomes
+$\bigO((n-q)(1+\Delta(C+1))\log(2+\Delta(C+1)))$ for traversal work. This is
+an approximation mode. It does not limit filtration searches or the initial
+full searches, and it does not bound scanned edges independently of degree.
+
+\clearpage
+\section{Complete core cost and memory}
+
+\subsection{The full searches that remain}
+
+For each of the $q$ top-level vertices, \code{metric\_me\_init\_v1()} performs
+an uncapped, full-graph traversal, retaining selected neighbors while also
+collecting the maximum distance used to size the initial layout box. Its visitor
+always returns false. These searches contribute
+\begin{equation}
+ T_I^{\rm search}=\bigO\!\left(q(n+M)\log(2+M)\right)
+ \label{eq:initial}
+\end{equation}
+as a general binary-heap upper bound. Their actual cost can be smaller when
+the heap frontier stays small. The default top-level budget is 24 vertices, but a user-chosen
+$q$ that increases with $n$ must remain in the bound.
+
+\subsection{Cache work is amortized, not multiplied by every settlement}
+
+Cache-vector headers number
+$U=\sum_{v\in V}(d(v)+1)=\sum_{j=0}^{h}N_j$. The maximum number of stored
+neighbor entries is
+\begin{equation}
+ K=\sum_{v\in V}\sum_{j=0}^{d(v)}b_j
+   =\sum_{j=0}^{h}N_jb_j\leq bU.
+ \label{eq:cache}
+\end{equation}
+Each iteration of the callback's inner loop either appends one retained entry
+or advances its monotone lowest-unfinished-level index. All callbacks together
+therefore add $\bigO(K+U+\sum_s |P_s|)$ work. There is no need to charge every
+settled vertex an extra factor $h$. The last term is already covered by the
+heap-pop counts in Equation~\eqref{eq:query}.
+
+\subsection{Placement, refinement, and the aggregate bound}
+
+With a fixed first-anchor count and a fixed number of local placement steps,
+$T_{\rm place}=\bigO(n)$. At level $j$, the algorithm performs $R_j$ refinement
+rounds. With fixed repulsion sample size and fixed exact-repulsion threshold,
+the expected refinement cost is
+\begin{equation}
+ \mathbb E T_{\rm ref}=\bigO\!\left(
+   R_0M+\sum_{j=0}^{h}R_jN_j(b_j+1)\right).
+ \label{eq:refine}
+\end{equation}
+The expectation refers to the usual uniform-draw model for rejection sampling
+of distinct repulsion partners. For a deterministic operation count, record
+the actual number of attempted draws instead. Unbounded exact global repulsion
+or sample sizes increasing with $n$ are outside this formula.
+
+Across filtration, initialization, and insertion, the search calls form a set
+$\mathcal Q$. Their realized counts give the principal implementation estimate:
+\begin{equation}
+ \boxed{T_{\rm core}=\bigO\!\left(
+ n+M+\sum_{s\in\mathcal Q}
+ [1+a_s+p_s\log(2+H_s)]+K+U+T_{\rm place}+T_{\rm ref}\right).}
+ \label{eq:total}
+\end{equation}
+The notation $\mathcal Q$ indexes calls, so the same root can occur several
+times. The graph, scratch arrays, cache headers, retained entries, and largest
+live heap require $\bigO(n+M+U+K+\max_s H_s)$ peak space. For a simple graph
+under standard Dijkstra accounting, $H_s=\bigO(M+1)$, reducing this to
+$\bigO(n+M+U+K)$. If $N_{j+1}\leq\theta N_j$ for a constant $\theta<1$, then
+$U=\bigO(n)$ and $K=\bigO(bn)$: fixed-$b$ cache storage is linear, not
+necessarily $n\log n$.
+
+\clearpage
+\section{A conditional near-linear estimate}\label{sec:conditional}
+
+\subsection{Additional assumptions about coarse-vertex coverage}
+
+Bounded overlap controls filtration but does not, by itself, guarantee that
+every insertion query finds enough coarse neighbors nearby. A sufficient
+coverage condition is that a vertex inserted at level $j<h$ settles at most
+\begin{equation}
+ s_v\leq c\!\left[
+   (b+1)\frac{n}{N_j}
+   +a\frac{n}{N_{j+1}}+1\right],
+ \label{eq:coverage}
+\end{equation}
+for a constant $c$ independent of $n$ and the level. The two fractions express
+the amount of original-graph material searched per retained neighbor and per
+higher-level anchor. This is an explicit assumption about actual search
+prefixes, motivated by regularly sampled geometries and well-distributed nets;
+it is not a consequence of bounded degree, nor a proved property of every
+weighted GRIP hierarchy. It must include the appended top-level subset and
+large distance ties if they affect stopping.
+
+Suppose also that adjacent level sizes satisfy $N_j/N_{j+1}\leq\gamma$ for a
+constant $\gamma$. Since $N_j-N_{j+1}$ vertices are inserted at level $j$,
+Equation~\eqref{eq:coverage} gives
+\begin{align}
+ \sum_{v\notin V_h}s_v
+ &\leq c' (b+1+a\gamma)n
+     \sum_{j=0}^{h-1}\frac{N_j-N_{j+1}}{N_j} \notag\\
+ &\leq c'(b+1+a\gamma)nh .
+ \label{eq:coverage-sum}
+\end{align}
+The constant $c'$ absorbs the additive one. Combining this with bounded degree
+in Equation~\eqref{eq:prefix} yields
+$T_N^{\rm search}=\bigO((b+1+a\gamma)nh\log n)$.
+
+\subsection{Putting the assumptions together}
+
+For a bounded-degree graph, bounded filtration overlap $\lambda$, coverage
+as in Equation~\eqref{eq:coverage}, and fixed tuning parameters, the search work
+is bounded by
+\begin{equation}
+ \bigO\!\left(n[\lambda t+(b+1+a\gamma)h+q]\log n\right).
+ \label{eq:conditional}
+\end{equation}
+If $t,h=\bigO(\log n)$ and the constants do not grow with $n$, the full core is
+$\bigO(n\log^2 n)$ in expectation for the sampled-repulsion part. Filtration
+and uncapped initialization are included. Under geometric contraction of the
+level sizes, peak space is $\bigO(n)$ for fixed $b$, and refinement with fixed
+round budgets is also $\bigO(n)$ in expectation.
+
+This estimate explains why radius limits and early stopping can make weighted
+GRIP scalable without an all-pairs distance matrix. It does not assert that
+all weighted graphs satisfy its geometric assumptions, or that the displayed
+upper bound is tight. With smaller actual heaps or search volumes, the bound
+in Equation~\eqref{eq:total} is sharper still.
+
+\paragraph{A one-dimensional example.}
+For a uniformly weighted path with regularly spaced nested nets,
+$|C_i|=\bigO(n/r_i)$ and each radius-ball contains $\bigO(r_i)$ vertices. The
+heap frontier has at most two entries. Filtration therefore costs $\bigO(n)$
+per scale, or $\bigO(n\log n)$ in total, without a heap logarithm. If the
+retained levels have comparable spacing and bounded size ratios, insertion
+searches likewise cost $\bigO(n)$ per scale for fixed $a,b$. The fixed number
+of full initialization traversals costs $\bigO(n)$. The resulting
+$\bigO(n\log n)$ estimate illustrates that radius-limited searches need not
+be constant-size to produce near-linear overall work.
+
+\clearpage
+\section{Qualifications and comparison with the original bound}
+
+\subsection{Weighted scale depth is not automatically logarithmic in \texorpdfstring{$n$}{n}}
+
+For weighted diameter $D_w$, doubling radii suffice after
+$t=\bigO(1+\log_+(D_w/r_0))$ construction scales, where
+$\log_+x=\max(0,\log_2x)$. With arbitrary positive edge lengths, $D_w/r_0$
+need not be polynomial in $n$. Median normalization does not prevent a very
+large edge-length ratio. The present 2D/3D implementation allocates only
+$\lfloor\log_2n\rfloor+2$ level slots and throws an error if the construction
+needs more. Thus successful runs have logarithmic allocated depth; that cap is
+not a theorem that every weighted input will successfully produce such a
+hierarchy. The conditional estimate above assumes successful construction and
+the stated depth bounds.
+
+\subsection{Numerical and optional-mode qualifications}
+
+Equation~\eqref{eq:total} is an operation-count estimate for the calls performed.
+The metric-ball and packing derivations additionally use the ideal positive-
+weight shortest-path model. The C++ code uses absolute and relative comparison
+tolerances of order $10^{-10}$, so exact-radius identities should be understood
+away from numerically unresolved boundary cases. If those cases matter, use
+actual examined sets and multiplicities, or inflate radii and recheck the
+separation-to-radius ratio; do not assume exact separation from floating-point
+comparisons alone.
+
+Distance scratch arrays are tagged by a 32-bit epoch. A wraparound incurs
+an additional $\bigO(n)$ reset per $2^{32}$ traversal calls. A literal
+machine-level count can add $\bigO(n\lfloor|\mathcal Q|/2^{32}\rfloor)$ to
+Equation~\eqref{eq:total}. The usual word-RAM analysis treats the epoch as large
+enough for the run.
+
+The default first-anchor strategy uses a fixed number of anchors. Distance-band
+strategies may retain large tied candidate sets and perform additional subset
+selection. They need their own placement terms. Optional LGKK, later edge-KK,
+exact all-vertex repulsion, and retained trace frames likewise require separate
+costs. These qualifications prevent a bound for the base initializer from being
+misread as a bound for every exported workflow.
+
+\subsection{What follows, and what does not}
+
+The published original GRIP result is $\Theta(nk^2)$ time and $\Theta(nk)$
+space for bounded-degree graphs after filtration construction, with
+$k=\log\delta(G)$ for an MIS filtration, where $\delta(G)$ is the unweighted
+graph diameter \citep{gajer2004}. Its scale-dependent neighbor budgets differ
+from the fixed per-cache cap $b$ in the current implementation; the historical
+space bound therefore need not coincide with Equation~\eqref{eq:cache}.
+The earlier GRIP
+paper already describes filtration cost through the sizes of its partial BFS
+trees, rather than only through a full-graph worst case \citep{gajer2002}.
+The overlap and early-stopping estimates in this supplement extend that way of
+accounting to the weighted implementation; they are derivations in this supplement, not
+claims attributed to those papers.
+
+Without locality assumptions, replacing every search volume by the whole graph
+recovers the loose envelope
+$\bigO(n(t+1)(n+M)\log n)$ for the search work. With $t=\bigO(\log n)$ it becomes
+a $\bigO(n(n+M)\log^2 n)$ estimate. That upper bound is neither a
+prediction of typical runtime nor a lower bound showing that weighted GRIP
+must be quadratic. Conversely, the more favorable conditional result does not
+establish that weighted GRIP is always faster than metric MDS. The defensible
+conclusion is that its cost is governed by explored weighted neighborhoods,
+their overlap across centers, and the density of retained coarse vertices.
+
+\clearpage
+\section{Implementation correspondence}
+
+The operation counts above can be evaluated by recording, for each search,
+its phase, root, filtration level, radius, adjacency scans $a_s$, heap
+operations $p_s$, maximum heap occupancy $H_s$, and stopping reason.
+Insertion-prefix sizes and cache and anchor completion states distinguish
+early termination from full-graph exhaustion. Level-specific volumes $W_i$
+and overlap $\overline\mu_i$ measure whether coarsening offsets increasing
+search radius. Such measurements would test the relevance of the assumptions
+to a given graph family; the conditional analysis alone does not establish
+an observed scaling law.
+
+The source locations below identify the operations analyzed. The inspected
+snapshot, revision \code{cebcc62}, has the same
+\nolinkurl{src/MishWeighted.cpp}, \nolinkurl{src/DrawGraph.cpp},
+\nolinkurl{src/MishSupport.cpp}, \nolinkurl{src/grip_rcpp.cpp}, and
+\nolinkurl{R/grip_layout_weighted.R} files as release \code{v0.2.0}
+\citep{gripcode2026}. The bibliography links the full immutable commit
+identifier; the correspondence is based on source inspection, not timing data.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.40\textwidth}X@{}}
+\toprule
+Source location & Relevant behavior \\
+\midrule
+\nolinkurl{src/MishWeighted.cpp}, lines 28--115
+& Reused epoch arrays, binary heap, cutoff, visitor stop, and optional settlement cap. \\
+\addlinespace
+Same file, lines 190--282
+& One radius query per selected center; uncapped full query for each initialization root. \\
+\addlinespace
+Same file, lines 726--874
+& Cache filling, extra eligible-vertex completion check, anchor selection, and early termination. \\
+\addlinespace
+\nolinkurl{src/DrawGraph.cpp}, lines 187--256
+& Logarithmic allocation, per-level neighbor budgets, and the initialization-root loop. \\
+\addlinespace
+\nolinkurl{src/MishSupport.cpp}, lines 658--749
+& Exact/sampled repulsion switch and rejection sampling of distinct partners. \\
+\addlinespace
+\nolinkurl{src/MishWeighted.cpp}, lines 1063--1369
+& Final edge attraction, cached repulsion, per-level rounds, and once-only insertion. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\bibliographystyle{plainnat}
+\bibliography{S1-weighted-grip-complexity}
+\end{document}

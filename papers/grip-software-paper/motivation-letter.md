@@ -49,6 +49,13 @@ implementation uses Rcpp, while the package follows standard R conventions for
 documentation and testing. The article title intentionally begins with lowercase
 `grip` so that it preserves the exact package name.
 
+Supplement S1 provides a search-sensitive complexity analysis of the weighted
+core, including radius-limited filtration, early-stopping insertion searches,
+and uncapped coarsest initialization. Its near-linear bound is conditional on
+explicit geometric coverage and overlap assumptions, not a claim about every
+weighted graph. We would welcome mathematical review of the derivation and its
+assumptions alongside assessment of the software and computational examples.
+
 I look forward to the reviewers' feedback and am happy to address any
 questions about the package or the article.
 

@@ -11,6 +11,7 @@ From the package repository root, render and audit the paper with:
 
 ```bash
 make paper-all
+make paper-supplement
 make paper-citation-check
 make paper-submission-bundle
 ```
@@ -22,7 +23,17 @@ The submission target renders stable PDF and HTML files without the internal
 draft build stamp, verifies citations, and writes a clean, versioned directory
 and ZIP archive under `output/rjournal_paper/submission/`. The archive includes
 the manuscript sources, figure sidecars, motivation letter, package list, and
-the self-contained reproduction supplement.
+the self-contained reproduction materials, and Supplement S1 on weighted-GRIP
+complexity. Supplement S1's canonical source, bibliography, and citation
+evidence live in `supplement/`; its PDF and intermediates are generated under
+`build/supplement/`. The regular paper-rendering targets also build and check
+S1. Its PDF, sources, and portable build instructions are included in the
+submission archive.
+
+The complexity bounds in S1 are conditional on its explicit locality and
+hierarchy assumptions. They are not empirical scalability results or a
+guarantee for arbitrary weighted graphs. The motivation letter requests
+mathematical review of the analysis; no independent review is claimed here.
 
 The manuscript currently targets grip 0.2.0. Do not submit the archive until
 that exact version is publicly visible on CRAN and the final package and paper
