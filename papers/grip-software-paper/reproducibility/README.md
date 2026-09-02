@@ -8,10 +8,22 @@ examples directly.
 ## Requirements
 
 - R and `grip` 0.2.0 or later;
-- `dgraphs` to rebuild the UMB-HMP graph from the upstream count and metadata
-  tables;
+- `dgraphs` 0.2.0 or later for the manuscript examples and to rebuild the
+  UMB-HMP graph from the upstream count and metadata tables;
 - `igraph` and `graphlayouts` for the cross-package benchmark;
 - the packages listed in the manuscript-level `_Rpackages.txt`.
+
+The article describes `grip` 0.2.0 and uses `dgraphs` 0.2.0 in its examples.
+The corresponding source-release tags resolve to the following commits:
+
+- [`grip` v0.2.0](https://github.com/pgajer/grip/tree/v0.2.0):
+  [`b3b532a51b3cf8be400203270c4a3a217382878e`](https://github.com/pgajer/grip/tree/b3b532a51b3cf8be400203270c4a3a217382878e);
+- [`dgraphs` v0.2.0](https://github.com/pgajer/dgraphs/tree/v0.2.0):
+  [`8733d2a74dc09d57b453b88eff3119610c6440f3`](https://github.com/pgajer/dgraphs/tree/8733d2a74dc09d57b453b88eff3119610c6440f3).
+
+The full commit identifiers pin the source trees independently of the tag
+names. The environment used to generate the precomputed benchmark results is
+recorded separately in `BENCHMARK_PROVENANCE.md` and the RDS metadata.
 
 ## Included artifacts
 

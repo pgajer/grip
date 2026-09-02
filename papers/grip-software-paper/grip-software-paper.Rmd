@@ -542,21 +542,12 @@ losses and refinement methods for studying graph-geodesic fidelity.
 
 # Package overview
 
-This article evaluates \CRANpkg{grip} 0.2.0 and requires
-\CRANpkg{dgraphs} 0.2.0, both available from CRAN. Matching source releases are
-preserved as immutable tags at
-<https://github.com/pgajer/grip/tree/v0.2.0> and
-<https://github.com/pgajer/dgraphs/tree/v0.2.0>. \CRANpkg{dgraphs} constructs
-and calibrates data-derived graphs, whereas \CRANpkg{grip} generates, compares,
-and assesses their coordinate
-representations. Extended worked examples are provided in the package
-vignettes and at <https://pgajer.github.io/grip/>.
+The \CRANpkg{grip} package provides functions for generating, assessing, and
+refining graph embeddings. It accepts graphs as two-column integer edge
+matrices, with an optional edge-length vector, or as adjacency lists with
+optional parallel weight lists.
 
 ## Core layout API and supporting utilities
-
-The package accepts graphs as two-column integer edge matrices, with an
-optional edge-length vector, or as adjacency lists with optional parallel
-weight lists.
 
 The supported core layout API consists of two functions. `grip()` returns an
 $n \times m$ numeric coordinate matrix, whereas `trace.grip()` returns the
@@ -1825,11 +1816,16 @@ strategies. The structured, weighted, and UMB-HMP-only workflows illustrate
 these roles and limits without turning the article into a general comparison of
 embedding methods.
 
+This article describes \CRANpkg{grip} 0.2.0 and uses \CRANpkg{dgraphs} 0.2.0
+in its examples. Extended worked examples are available in the \CRANpkg{grip}
+vignettes and at <https://pgajer.github.io/grip/>.
+
 The smaller examples are evaluated from code in the manuscript. The
 weighted-saddle comparison and UMB-HMP layouts and runtime benchmark use
 precomputed results. The supplementary archive provides these results,
 generation scripts, minimal UMB-HMP-only inputs, checksums, and provenance
-records, with reproduction instructions in its reproducibility README.
+records, with source-release identifiers and reproduction instructions in its
+reproducibility README.
 Supplement S1 provides the weighted-core complexity analysis and its LaTeX
 source.
 
