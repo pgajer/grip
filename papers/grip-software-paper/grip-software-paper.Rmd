@@ -319,13 +319,14 @@ if (knitr::is_latex_output()) {
          inner sep=0pt, text depth=0.22em]
       {\texttt{grip}\\[-0.16em] layout, scoring, and refinement}
     node[midway, below=0.10cm, font=\scriptsize, inner sep=0pt]
-      {$D_G\ \text{versus}\ D_{G,Z}$};
+      {$D_G\ \text{versus}\ D_Z\ \text{or}\ D_{G,Z}$};
 \end{tikzpicture}%
 }
 \end{center}
 )"
   )
 } else {
+  cat("```{=html}\n")
   cat(r"{
 <div style="margin: 1.2em auto; max-width: 920px;">
 <svg viewBox="0 0 1200 170" role="img"
@@ -365,13 +366,14 @@ if (knitr::is_latex_output()) {
       <text x="890" y="94" font-size="16">layout, scoring, and refinement</text>
 
       <text x="310" y="140" font-size="17" font-style="italic">D<tspan baseline-shift="sub" font-size="12">X</tspan><tspan baseline-shift="baseline" font-style="normal"> versus </tspan>D<tspan baseline-shift="sub" font-size="12">G</tspan></text>
-      <text x="890" y="140" font-size="17" font-style="italic">D<tspan baseline-shift="sub" font-size="12">G</tspan><tspan baseline-shift="baseline" font-style="normal"> versus </tspan>D<tspan baseline-shift="sub" font-size="12">G,Z</tspan></text>
+      <text x="890" y="140" font-size="17" font-style="italic">D<tspan baseline-shift="sub" font-size="12">G</tspan><tspan baseline-shift="baseline" font-style="normal"> versus </tspan>D<tspan baseline-shift="sub" font-size="12">Z</tspan><tspan baseline-shift="baseline" font-style="normal"> or </tspan>D<tspan baseline-shift="sub" font-size="12">G,Z</tspan></text>
     </g>
   </g>
 </svg>
 </div>
 }"
   )
+  cat("\n```\n")
 }
 ```
 
