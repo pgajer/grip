@@ -1,4 +1,4 @@
-.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all paper-citation-check paper-submission-bundle repo-hygiene rchk winbuilder-release winbuilder-devel
+.PHONY: clean distclean attrs document build build-verbose build-log check check-clean check-fast check-examples check-dir install readme readme-assets readme-html readme-render paper-pdf paper-html paper-all paper-supplement paper-citation-check paper-submission-bundle repo-hygiene rchk winbuilder-release winbuilder-devel
 
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
@@ -69,22 +69,27 @@ readme: readme-assets readme-render
 readme-html: readme-assets
 	Rscript tools/pkg/render-readme.R --html
 
-paper-pdf:
+paper-pdf: paper-supplement
 	Rscript tools/reports/rjournal_paper/render-paper.R
 
-paper-html:
+paper-html: paper-supplement
 	Rscript tools/reports/rjournal_paper/render-paper.R --html-only --html
 
-paper-all:
+paper-all: paper-supplement
 	Rscript tools/reports/rjournal_paper/render-paper.R --all
+
+paper-supplement:
+	$(MAKE) -C papers/grip-software-paper/supplement
 
 paper-citation-check:
 	python3 tools/reports/check-citation-verification.py \
 		--tex papers/grip-software-paper/build/grip-software-paper.tex \
 		--bib papers/grip-software-paper/grip-software-paper.bib \
-		--html papers/grip-software-paper/citation_verification.html
+		--html papers/grip-software-paper/citation_verification.html \
+		--log papers/grip-software-paper/build/RJwrapper.log
+	$(MAKE) -C papers/grip-software-paper/supplement citation-check
 
-paper-submission-bundle:
+paper-submission-bundle: paper-supplement
 	GRIP_RJOURNAL_SHOW_BUILD_STAMP=false Rscript tools/reports/rjournal_paper/render-paper.R --all --no-timestamp
 	$(MAKE) paper-citation-check
 	Rscript papers/grip-software-paper/scripts/build-submission-bundle.R
