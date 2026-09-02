@@ -1,26 +1,20 @@
-# Weighted GRIP search-sensitive complexity
+# Weighted GRIP complexity: maintained in Supplement S1
 
-This directory retains the original standalone technical note. The maintained
-publication-facing version is now
-`papers/grip-software-paper/supplement/S1-weighted-grip-complexity.tex`
-relative to the repository root; build it with `make paper-supplement`.
-Future manuscript-related revisions should be made there, not in this snapshot.
+The standalone technical note formerly stored here has been superseded by
+[Supplement S1](../../../../papers/grip-software-paper/supplement/README.md).
+The maintained source, bibliography, and citation-verification evidence are:
 
-This user-requested technical note derives workload-sensitive estimates for the
-existing weighted 2D/3D GRIP core. It is a companion derivation, not a change to
-the R Journal manuscript, a package change, or a new benchmark.
+- [LaTeX source](../../../../papers/grip-software-paper/supplement/S1-weighted-grip-complexity.tex)
+- [Bibliography](../../../../papers/grip-software-paper/supplement/S1-weighted-grip-complexity.bib)
+- [Citation verification](../../../../papers/grip-software-paper/supplement/citation_verification.html)
 
-Canonical source: `weighted-grip-complexity.tex`, with its bibliography and
-`citation_verification.html`. Source behavior is pinned to commit `cebcc62`.
-The ball-overlap proof, cache accounting, and conditional coverage estimates
-are derived in the note, not attributed to the original GRIP publications.
+From the repository root, run `make paper-supplement` to build and validate the
+supplements. Generated PDFs and intermediates are written under
+`papers/grip-software-paper/build/supplement/`. Make future revisions in that
+maintained source, not in this directory.
 
-From this directory, run `make`. The PDF and intermediates are generated in
-`output/pdf/weighted-grip-complexity/` relative to the repository root. The build
-refreshes the Eastern-time metadata and runs the citation verification gate.
-For an independent directory, use `make pdf BUILD_DIR=build`; the PDF needs
-LaTeX with latexmk, BibTeX, and the packages listed in the source.
-
-The source bundle includes the citation checker and supports
-`make BUILD_DIR=build CHECKER=check-citation-verification.py` after extraction.
-No private files or benchmark outputs are required to compile the document.
+The superseded standalone source, bibliography, citation audit, and Makefile
+remain recoverable in
+[Git history at c6180ac](https://github.com/pgajer/grip/tree/c6180acc8c44149a3939a30031a03ad69a59058c/dev/design/weighted-grip/complexity).
+They were retired from the current tree to avoid duplicate maintained reports
+and keep this development directory consistent with the source-hygiene policy.
