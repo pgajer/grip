@@ -287,15 +287,6 @@ requires choosing how distances in the embedded configuration are measured.
 The companion \CRANpkg{dgraphs} package addresses the $X\to G$ question, while
 \CRANpkg{grip} addresses the $G\to Z$ question.
 
-The $X\to G$ construction is not restricted to Euclidean data. Given a
-nonnegative, symmetric dissimilarity $\rho$, neighborhoods may be defined using
-$\rho(x_i,x_j)$, with the same values assigned as graph edge lengths. For
-relative-abundance data, for example, $\rho$ may be Jensen--Shannon distance
-(the square root of Jensen--Shannon divergence) or another domain-appropriate
-dissimilarity [@lin1991; @endres2003]. Once the resulting weighted graph has
-been constructed, the definitions of $D_G$, $D_{G,Z}$, and the $G\to Z$
-fidelity criteria are unchanged.
-
 Because $D_X$ is generally unknown for real data, the fidelity of the $X\to G$
 construction cannot usually be evaluated directly. Controlled synthetic
 examples allow it to be
@@ -1746,6 +1737,15 @@ constructors or parameter settings plausible, embedding assessment should be
 repeated over that set rather than conditioned on a single nominal winner. Such
 transfer remains conditional on how well the synthetic family represents the
 topology, sampling process, and noise structure of the application.
+
+The construction of $G$ need not begin with Euclidean distances. Given a
+nonnegative, symmetric dissimilarity $\rho$, neighborhoods may be defined using
+$\rho(x_i,x_j)$, with the same values assigned as graph edge lengths. For
+relative-abundance data, for example, $\rho$ may be Jensen--Shannon distance
+(the square root of Jensen--Shannon divergence) or another domain-appropriate
+dissimilarity [@lin1991; @endres2003]. This choice changes the geometry
+supplied by the $X\to G$ stage, but not the subsequent definitions of $D_G$,
+$D_{G,Z}$, or the $G\to Z$ fidelity criteria.
 
 Within that boundary, \CRANpkg{grip} operationalizes the graph-to-embedding
 stage. Its core layout functions generate and trace multiscale layouts, while
