@@ -402,15 +402,21 @@ Classical MDS instead compares $D_G$ with the endpoint-distance matrix $D_Z$.
 Both criteria can be applied to coordinates produced by any layout method. A
 practical GMDS-oriented workflow initializes the configuration with metric MDS
 and then applies edge-restricted Kamada--Kawai (edge-KK) refinement, using edge
-fidelity as a surrogate for fixed-path loss. For larger graphs on which metric
-MDS is too costly, Graph dRawing with Intelligent Placement (GRIP) provides a
-scalable alternative: its weighted version can supply the initial configuration
-before the same edge-KK refinement. The \CRANpkg{grip} package implements the
-original hop-distance GRIP algorithm [@gajer2002; @gajer2004] and an
-edge-length-aware extension. In both versions, GRIP constructs a hierarchy of
-maximal independent sets, places vertices from coarse to fine resolution, and
-refines the layout locally at each level. Figure \@ref(fig:trace) illustrates
-this construction through four states returned by `trace.grip()`.
+fidelity as a surrogate for fixed-path loss. For larger graphs, metric MDS can
+become prohibitive because it materializes an all-pairs graph-distance matrix
+before a dense classical-scaling step. Graph dRawing with Intelligent Placement
+(GRIP) avoids this dense all-pairs embedding step through multiscale placement
+and localized refinement; for bounded-degree graphs, the original analysis
+gives near-linear time and space up to logarithmic factors after the filtration
+has been constructed [@gajer2004]. The edge-length-aware implementation can
+therefore provide a practical initial configuration before edge-KK refinement,
+although its weighted shortest-path searches have different worst-case bounds,
+discussed below. The \CRANpkg{grip} package implements the original hop-distance
+GRIP algorithm [@gajer2002; @gajer2004] and an edge-length-aware extension. In
+both versions, GRIP constructs a hierarchy of maximal independent sets, places
+vertices from coarse to fine resolution, and refines the layout locally at each
+level. Figure \@ref(fig:trace) illustrates this construction through four states
+returned by `trace.grip()`.
 
 ```{r trace, fig.cap="Coarse-to-fine construction in the GRIP algorithm, exposed by trace.grip() for a 6x6 mesh. The panels show the coarsest initialization, an early intermediate state, a late intermediate state, and the final layout.", fig.alt="Four panels showing the GRIP algorithm placing and refining a mesh from a sparse coarse configuration to a regular grid-like final arrangement.", fig.width=10, fig.height=2.8, fig.pos="H"}
 trace.edges <- edges.mesh(6, 6)
@@ -1706,17 +1712,70 @@ UMB-HMP-only symmetric kNN graph; no graph coarsening is used. This article
 demonstrates the current R implementation at that scale and does not provide a
 larger within-package scalability benchmark. The original GRIP studies
 considered substantially larger graphs than the examples in this article
-[@gajer2002; @gajer2004]. Within the R package, however, all-pairs graph
-distances, geodesic path preparation, repeated scoring, and exact crossing
-counts can become limiting steps before the multiscale layout itself.
-`prepare.edge.kk()` therefore supports edge-only diagnostics and repair without
-constructing an all-pairs path cache.
-By contrast, metric MDS, full geodesic-KK preparation, and complete
-graph-geodesic diagnostic panels require shortest-path information whose time
-and memory costs can dominate the layout computation. Larger quadform and
-data-derived graph studies therefore belong in a separate, systematically
-designed GMDS evaluation rather than as unsupported scaling claims in this
-package article.
+[@gajer2002; @gajer2004]. For a bounded-degree graph with $n$ vertices, the
+published analysis of the original hop-distance algorithm gives
+$\Theta(nk^2)$ time and $\Theta(nk)$ space after the filtration has been
+constructed, where $k=\log\delta(G)$ for a maximal-independent-set filtration
+and $k=\log n$ for a graph-centers filtration [@gajer2004]. These bounds exclude
+filtration construction. For the original maximal-independent-set procedure,
+its bounded-degree running time is
+
+$$
+\Theta\!\left(
+  \sum_{i=0}^{k}\sum_{v\in V_i}
+  \left|\operatorname{BFS}_{2^i}(v)\right|
+\right),
+$$
+
+\noindent where $\operatorname{BFS}_{2^i}(v)$ is the partial breadth-first
+search rooted at $v$ and truncated at depth $2^i$. No subquadratic worst-case
+bound was proved for constructing the standard filtration; the partial-search
+implementation was empirically near-linear and filtration construction
+accounted for less than 3% of total runtime in the reported experiments
+[@gajer2002]. Storing the completed filtration requires
+$n+\log\delta(G)$ entries, although its temporary search storage can be larger.
+
+The edge-length-aware implementation does not inherit the
+$\Theta(nk^2)$-time and $\Theta(nk)$-space result. It replaces the relevant BFS
+traversals with radius-limited Dijkstra searches using a binary heap. If
+$B_i(v)$ and $E_i(v)$ denote the vertices and edge incidences examined by the
+search from $v$ at filtration level $i$, weighted filtration construction takes
+
+$$
+O\!\left(
+  \sum_i\sum_{v\in V_i}
+  \bigl(|B_i(v)|+|E_i(v)|\bigr)\log n
+\right).
+$$
+
+\noindent With $O(\log n)$ levels, a conservative worst case is
+$O\!\left(n(n+|E|)\log^2 n\right)$, or $O(n^2\log^2 n)$ for a sparse
+bounded-degree graph.
+After filtration, preparation of the exact weighted neighborhood caches can
+run one early-stopping Dijkstra search per vertex, giving an additional
+$O\!\left(n(n+|E|)\log n\right)$ worst-case time bound. Retaining at most $b$
+neighbors at each of $h$ filtration levels requires $O(nbh+n+|E|)$ space,
+including the graph and reusable shortest-path workspace. With fixed embedding
+dimension, iteration budgets, neighborhood cap $b$, and the default sampled
+repulsion, placement and refinement add $O(nbh+|E|)$ time. The resulting
+conservative bound for the default weighted core is therefore
+$O\!\left(n(n+|E|)\log^2 n\right)$ time and $O(nbh+n+|E|)$ space. Optional
+LGKK refinement and exact global-repulsion settings are outside these bounds.
+The optional `metric_neighbor_cap` limits settled vertices during
+insertion-neighborhood searches, but not during weighted filtration construction
+or the initial full searches. These are implementation bounds rather than
+observed scaling laws; on geometric sparse graphs for which local searches
+terminate early, substantially less work may be required.
+
+Within the R package, all-pairs graph distances, geodesic path preparation,
+repeated scoring, and exact crossing counts can become limiting steps before the
+multiscale layout itself. `prepare.edge.kk()` therefore supports edge-only
+diagnostics and repair without constructing an all-pairs path cache. Metric MDS,
+full geodesic-KK preparation, and complete graph-geodesic diagnostic panels
+require shortest-path information whose time and memory costs can dominate the
+layout computation. Larger quadform and data-derived graph studies therefore
+belong in a separate, systematically designed GMDS evaluation rather than as
+unsupported scaling claims in this package article.
 
 # Discussion
 
