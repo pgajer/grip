@@ -53,6 +53,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 | Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
 | Benchmark hardware, software, timing boundary, and repeat policy | `BENCHMARK_PROVENANCE.md` and the RDS `benchmark_metadata` component | Recorded by `scripts/precompute-vs-alternatives.R` |
 | Small-graph figures and tables | Evaluated directly from `grip-software-paper.Rmd` | Render the manuscript; no precomputed supplement input is used |
+| Two-edge angle and coincident-endpoint diagram | Analytic three-vertex, unit-edge path | The `path-angle-freedom` chunk checks all three fixed-path distances at 1,001 deterministic angles (including zero), then draws the acute-angle and coincident-endpoint configurations; no random sampling or fitted layout is involved |
 
 The table identifies the manuscript result that consumes each supplied
 artifact. Figure and table numbering may change during editing, so the mapping

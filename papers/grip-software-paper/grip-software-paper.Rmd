@@ -27,6 +27,7 @@ preamble: |
   \usepackage{xcolor}
   \usepackage{etoolbox}
   \usepackage{float}
+  \usepackage{needspace}
   \usepackage{array,booktabs}
   \usepackage{tikz}
   \usetikzlibrary{arrows}
@@ -325,7 +326,7 @@ $D_Z=(d_{ij}^Z)$, with $d_{ij}^Z=\lVert z_i-z_j\rVert_2$, approximate them.
 Stress-based formulations quantify the discrepancy between the input
 dissimilarities $\Delta$ and the configuration distances $D_Z$
 [@kruskal1964multidimensional]. The choice of input dissimilarities matters when
-$n$ observations $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved,
+observations $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved,
 branching, or otherwise non-Euclidean structure: ambient straight-line
 distances may then fail to capture the intrinsic distance structure underlying
 $X$, with distance matrix $D_X=(d_{ij}^X)$. Isomap constructs a weighted
@@ -449,7 +450,6 @@ The selected paths $\Gamma=\{\gamma_{ij}\}$ determine the embedded fixed-path
 distance matrix $D_{G,Z}=(d_{ij}^{G,Z})$. A GMDS objective measures the
 discrepancy between $D_G$ and $D_{G,Z}$ and seeks coordinates $Z$ for which the
 selected paths' embedded lengths approximate their input-graph lengths.
-Classical MDS instead compares $D_G$ with the endpoint-distance matrix $D_Z$.
 
 Both criteria can be applied to coordinates produced by any layout method. A
 practical GMDS-oriented workflow initializes the configuration with metric MDS
@@ -464,9 +464,7 @@ has been constructed [@gajer2004]. The edge-length-aware implementation can
 therefore provide a practical initial configuration before edge-KK refinement,
 although its computational cost depends on the neighborhoods explored by the
 weighted shortest-path searches, as discussed below and in Supplement S1.
-The \CRANpkg{grip} package implements the original hop-distance
-GRIP algorithm [@gajer2002; @gajer2004] and an edge-length-aware extension. In
-both versions, GRIP constructs a hierarchy of maximal independent sets, places
+GRIP constructs a hierarchy of maximal independent sets, places
 vertices from coarse to fine resolution, and refines the layout locally at each
 level. Figure \@ref(fig:trace) illustrates this construction through four states
 returned by `trace.grip()`.
@@ -547,27 +545,22 @@ optional parallel weight lists.
 
 ## Core layout API and supporting utilities
 
-The supported core layout API consists of two functions. `grip()` returns an
-$n \times m$ numeric coordinate matrix, whereas `trace.grip()` returns the
+The core implementation is written in C++ and accessed from R through Rcpp
+[@eddelbuettel2011]. Its supported layout API consists of two functions.
+`grip()` returns an $n \times m$ numeric coordinate matrix, whereas `trace.grip()` returns the
 final coordinates together with intermediate coarse-to-fine states and
 diagnostics. The core layout and trace functions use $m\in\{2,3\}$;
 `weighted.grip.nd()` and selected GMDS-facing methods support any $m\geq 2$.
 
-The core implementation is written in C++ and accessed from R through Rcpp
-[@eddelbuettel2011]. Its coarse-to-fine hierarchy supports generation and
-comparison of multiple 2D and 3D candidate layouts for graphs with hundreds to
-thousands of vertices. Retaining coordinates in more than three dimensions can
-support searches for low-distortion Euclidean representations of $D_G$ and
-downstream methods defined on Euclidean vectors. When $m$ is smaller than the
-original feature dimension, such coordinates can also provide a graph-mediated
-form of dimensionality reduction. Their fidelity remains conditional on the
-supplied graph and does not establish recovery of $D_X$.
+Higher-dimensional layouts can also be useful when the final display is two-
+or three-dimensional. The original GRIP study reported smoother, more symmetric
+drawings obtained by projecting higher-dimensional layouts; its Möbius-strip
+examples compare layouts constructed directly in three dimensions with
+four-dimensional layouts projected to three dimensions [@gajer2004].
 
-The `metric` argument states which graph geometry the layout should use.
+Both core functions use the `metric` argument to specify the graph geometry.
 `metric = "hop"`, the default, treats every edge as one step. With
-`metric = "edge_length"`, supplied edge lengths affect the optimization. The
-traced interface uses the same metric choice and records intermediate states
-and diagnostics for inspection or animation.
+`metric = "edge_length"`, supplied edge lengths affect the optimization.
 
 The most important user-facing parameters are layout dimension, initialization
 placement, the number of multiscale and final refinement rounds, local
@@ -580,19 +573,15 @@ can optionally add MST bridge edges between components with
 `connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
 geometry and should be treated as an explicit construction choice.
 
-`trace.grip()` exposes the per-level states of the coarse-to-fine layout process
-illustrated in Figure \@ref(fig:trace). The package also supplies graph
-generators for regular grids, trees, recursive families such as Sierpinski
-carpets, and weighted geometric surfaces. These generators provide examples,
-regression fixtures, and controlled benchmarks; they are not substitutes for
-data-driven graph construction.
+The package also supplies graph generators for regular grids, trees, recursive
+families such as Sierpinski carpets, and weighted geometric surfaces. These
+generators provide examples, regression fixtures, and controlled benchmarks;
+they are not substitutes for data-driven graph construction.
 
 Family-specific presets provide reproducible starting values for several of
 these controlled graph classes. Hop-metric presets cover meshes, carpets,
 trees, and tori, while edge-length presets cover cylinders, spheres, and other
-weighted geometric families. Their purpose is to make packaged examples and
-targeted comparisons reproducible, not to prescribe settings for arbitrary
-real-data graphs.
+weighted geometric families.
 
 ## From graph layout to graph-geodesic fidelity
 
@@ -610,8 +599,7 @@ d_{ij}^{G,Z}
 = \sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2.
 $$
 
-The paths are fixed by the input graph rather than recomputed as the
-coordinates change. The matrix $D_{G,Z}=(d_{ij}^{G,Z})$ contains their embedded
+The matrix $D_{G,Z}=(d_{ij}^{G,Z})$ contains their embedded
 path lengths. The corresponding endpoint chord is
 $d_{ij}^Z=\lVert z_i-z_j\rVert_2$.
 
@@ -701,8 +689,72 @@ draw.star.panel(
 par(op)
 ```
 
-One family of regularized GMDS objectives addresses this indeterminacy by
-adding a Euclidean dispersion term,
+\Needspace{9\baselineskip}
+
+Preserving path lengths alone leaves freedom to change angles between edges.
+For the three-vertex path $1-2-3$ with unit edge lengths, fixing
+$z_2=(0,0)$ and $z_1=(1,0)$ while moving
+$z_3=(\cos\theta,\sin\theta)$ preserves all input-path lengths for every
+$\theta\in[0,2\pi)$. In particular,
+
+$$
+d_{13}^{G,Z}=1+1=2=d_{13}^G,
+\qquad
+d_{13}^Z=2\left|\sin\frac{\theta}{2}\right|.
+$$
+
+\noindent The unregularized fixed-path loss is therefore zero throughout this
+family, although the endpoints coincide when $\theta=0$
+(Figure \@ref(fig:path-angle-freedom)). The input vertices remain distinct:
+their retained route traverses the overlapping segment out and back.
+
+```{r path-angle-freedom, echo=FALSE, fig.cap="Fixed-path fidelity does not determine endpoint separation. A three-vertex path has two unit-length edges. Rotating one edge about the middle vertex preserves every input-path length, so the unregularized fixed-path GMDS loss is zero for every angle. Left: an acute angle between the two rays from vertex 2. Right: the degenerate configuration at $\\theta=0$, where vertices 1 and 3 coincide and the two edges overlap. The retained path still has length two. Such configurations motivate supplementing path-length fidelity with a term that discourages close Euclidean endpoint positions.", fig.alt="Two panels show the same two-edge path. The left panel has two unit-length blue edges meeting at vertex 2 at an acute angle theta, with a dashed red chord between vertices 1 and 3. The right panel has the endpoints at the same position and the two unit edges on the same segment. Both panels have fixed-path length two and zero unregularized fixed-path loss.", fig.width=10, fig.height=3.0, fig.pos="H"}
+# Deterministic checks of all three pairs, including coincident endpoints.
+path.angle.lengths <- vapply(seq(0, 2 * pi, length.out = 1001L), function(a) {
+  z <- rbind(c(1, 0), c(0, 0), c(cos(a), sin(a)))
+  edge.lengths <- sqrt(rowSums((z[c(1, 2), ] - z[c(2, 3), ])^2))
+  c(edge.lengths, sum(edge.lengths))
+}, numeric(3L))
+stopifnot(max(abs(path.angle.lengths - c(1, 1, 2))) < 1e-12)
+
+draw.path.angle <- function(angle, folded = FALSE) {
+  z <- rbind(c(1, 0), c(0, 0), c(cos(angle), sin(angle)))
+  plot(NA, asp = 1, xlim = c(-0.25, 1.45), ylim = c(-0.42, 1.22),
+       xlab = "", ylab = "", axes = FALSE, xaxs = "i", yaxs = "i")
+  title(if (folded) "Coincident endpoints" else "Variable angle", line = 0.3)
+  segments(z[2, 1], z[2, 2], z[c(1, 3), 1], z[c(1, 3), 2],
+           col = "#1F5A94", lwd = 3)
+  if (!folded) {
+    segments(z[1, 1], z[1, 2], z[3, 1], z[3, 2],
+             col = "#C33C54", lty = 2, lwd = 1.8)
+    arc <- seq(0, angle, length.out = 80L)
+    lines(0.24 * cos(arc), 0.24 * sin(arc), col = "gray30")
+    text(0.38 * cos(angle / 2), 0.38 * sin(angle / 2), expression(theta))
+    text(0.53, -0.13, "1", col = "#1F5A94")
+    text(z[3, 1] / 2 - 0.13, z[3, 2] / 2 + 0.05, "1", col = "#1F5A94")
+    points(z, pch = 21, bg = "white", cex = 1.2, lwd = 1.2)
+    text(z[1, 1] + 0.12, z[1, 2], expression(z[1]))
+    text(z[2, 1] - 0.12, z[2, 2], expression(z[2]))
+    text(z[3, 1], z[3, 2] + 0.13, expression(z[3]))
+  } else {
+    points(z[c(1, 2), ], pch = 21, bg = "white", cex = 1.2, lwd = 1.2)
+    text(-0.12, 0, expression(z[2]))
+    text(1, 0.19, expression(z[1] == z[3]))
+    text(0.5, 0.42, expression(theta == 0))
+    text(0.5, -0.16, "two overlapping unit edges", cex = 0.85)
+  }
+  mtext("Fixed-path length = 2; fixed-path loss = 0", side = 1,
+        line = 0.6, cex = 0.85)
+}
+op <- par(mfrow = c(1, 2), mar = c(2.4, 0.5, 2.0, 0.5))
+draw.path.angle(pi / 3)
+draw.path.angle(0, folded = TRUE)
+par(op)
+```
+
+To distinguish configurations with identical fixed-path loss but different
+endpoint separation, one family of regularized GMDS objectives adds a
+Euclidean dispersion term:
 
 $$
 F_\lambda(Z;G,\Gamma)
@@ -764,11 +816,7 @@ along a path. Thus zero edge loss guarantees zero fixed-path loss, but when
 exact preservation is unattainable, the edge objective is a surrogate and the
 two minimizers need not coincide.
 
-`score.gmds()` evaluates chord, edge, and fixed-path discrepancies for
-coordinates produced by any embedding method; the full gKK, LGKK, and edge-KK
-interfaces prepare, score, or refine their respective objectives.
-`repulsive.state()`, `repulsive.stage()`, `edge.repulsive.state()`, and
-`edge.repulsive.stage()` expose dispersion and edge-regularized components.
+\Needspace{8\baselineskip}
 
 An arbitrary common coordinate scale should not determine a comparison of
 configuration shape. For each evaluated pair $p$, the graph distance $d_p^G$,
@@ -966,21 +1014,15 @@ legend(
 par(op)
 ```
 
-Neither criterion certifies the other. A fixed-path loss constrains sums of
-edge lengths along retained routes, leaving endpoint separation and extrinsic
-shape underdetermined; the star in Figure \@ref(fig:star-path-geometry) is the
-minimal example, and the weighted saddle below makes the limitation visible at
-larger scale. The regularized family $F_\lambda(Z;G,\Gamma)$ acknowledges this
-directly: $R(Z)=\sum_{i<j}f_r(d_{ij}^Z)$ reintroduces endpoint information.
-Accordingly, score.gmds() reports chord and fixed-path diagnostics on the same
+The angle example in Figure \@ref(fig:path-angle-freedom) shows why fixed-path
+fidelity alone is insufficient for chord-based readings. Accordingly, `score.gmds()`
+reports chord and fixed-path diagnostics on the same
 prepared graph without combining them into a single score.
 
 ## Method families and function entry points
 
-The package combines an established multiscale layout implementation with
-GMDS-facing scoring and refinement methods. These components differ in maturity
-and computational role. Table \@ref(tab:family-scope) maps each family to its
-principal functions.
+Table \@ref(tab:family-scope) maps the supported multiscale layout API and the
+experimental GMDS families to their computational roles and principal functions.
 
 ```{r family-scope, echo=FALSE}
 family.scope <- data.frame(
@@ -1035,18 +1077,11 @@ accessible_kable(
 )
 ```
 
-`grip()` and `trace.grip()` form the supported core layout API. The remaining
-families in Table \@ref(tab:family-scope) are experimental GMDS methods and may
-evolve as the research program develops.
-
 # Assessing and refining candidate embeddings
 
-Candidate embeddings require comparable assessment whether they come from
-`grip()`, one of the package's GMDS-facing methods, or another R package. The
-same diagnostics can then compare candidates across random seeds or parameter
-choices and, when appropriate, pass a selected candidate to an experimental
-GMDS-facing refinement method. This separation makes the package useful as an
-evaluation framework rather than only as a collection of layout engines.
+Common diagnostics allow candidate coordinates to be compared across layout
+methods, random seeds, and parameter choices. Selected candidates can then be
+passed to a GMDS-facing refinement method.
 
 ## General layout diagnostics
 
@@ -1179,9 +1214,8 @@ edge-only assessment and repair avoid a dense shortest-path matrix, whereas
 the full path-based diagnostics retain substantially more information and have
 correspondingly higher memory and runtime costs.
 
-For an edge-only refinement, `prepare.edge.kk()` avoids all-pairs path
-construction before `edge.kk()` returns refined coordinates and a diagnostic
-panel. When full all-pairs preparation is feasible,
+The `edge.kk()` function returns refined coordinates and a diagnostic panel.
+When full all-pairs preparation is feasible,
 `edge.kk(init = "metric_mds")` uses metric MDS as an initializer before
 edge-KK repair. `edge.kk(init = "weighted_grip")` instead initializes from
 the weighted-GRIP layout and avoids that all-pairs MDS step, providing an
@@ -1253,8 +1287,7 @@ its intrinsic arc-distance matrix $D_X$ is known. The example draws 60
 unevenly spaced points, constructs symmetric $k$-nearest-neighbor graphs with
 the companion \CRANpkg{dgraphs} package, and compares $D_X$ with each graph
 distance matrix $D_G$. For every graph, \CRANpkg{grip} then compares a weighted
-GRIP layout and metric MDS using the same graph-to-embedding diagnostics. The
-two losses remain separate rather than being combined into a single score.
+GRIP layout and metric MDS using the same graph-to-embedding diagnostics.
 
 ```{r paired-fidelity-example}
 set.seed(271)
@@ -1350,8 +1383,7 @@ article.
 The graph generators and presets support reproducible examples and regression
 tests. Table \@ref(tab:preset-benchmark) illustrates their behavior on two
 controlled structured families, each run across ten seeds. The results are
-generated directly in the paper build; they do not provide a prescription for
-selecting parameters on real-data graphs.
+generated directly in the paper build.
 
 ```{r preset-benchmark}
 mesh.edges <- edges.mesh(12, 12)
@@ -1414,8 +1446,7 @@ paper_kable(
 
 For these two controlled families, the package-supplied preset reduces sampled
 stress and edge-length variation and produces more reproducible layouts across
-seeds. PStab is itself the across-seed dispersion summary used for this
-comparison. The result is family-specific evidence for the supplied defaults, not a
+seeds. The result is family-specific evidence for the supplied defaults, not a
 claim that one parameter profile is preferable for arbitrary graphs. Figure
 \@ref(fig:carpet-figure) shows the corresponding carpet layouts.
 
@@ -1657,13 +1688,7 @@ par(op)
 
 # Interoperability and computational scope
 
-R users can apply the same assessment to coordinates generated by
-\CRANpkg{grip} or by another layout package. The core GRIP layout
-implementation is single-threaded; selected experimental GMDS refinements can
-use up to two compiled-engine threads.
-
-The assessment functions accept coordinate matrices produced outside
-\CRANpkg{grip}. The bundled benchmark applies a common scoring function to
+The bundled benchmark applies a common scoring function to
 Fruchterman--Reingold [@fruchterman1991] and DrL layouts from
 \CRANpkg{igraph} [@igraph2026], stress majorization [@gansner2005] from
 \CRANpkg{graphlayouts}, and a
@@ -1675,10 +1700,8 @@ in the preceding section evaluates edge-length geometry separately.
 
 ## Runtime and shared scoring at package scale
 
-Candidate-generation time and shared layout diagnostics answer different
-questions, so the bundled HMP script reports both for four methods. Each
-two-dimensional layout call is repeated five times with its random-number seed
-reset to 1; Table \@ref(tab:hmp-runtime-benchmark) reports the median elapsed
+Each two-dimensional layout call is repeated five times with its random-number
+seed reset to 1; Table \@ref(tab:hmp-runtime-benchmark) reports the median elapsed
 wall time and interquartile range. Garbage collection is performed before,
 rather than during, each timed call, and layout scoring is excluded from the
 reported time. The common scoring function evaluates the coordinates from the
@@ -1728,6 +1751,9 @@ GiB of memory and CPU `r benchmark.results$benchmark_metadata$cpu`, using
 reference BLAS. The R-relative BLAS path is retained in the provenance record.
 
 ## Computational boundaries
+
+The core GRIP layout implementation is single-threaded; selected experimental
+GMDS refinements can use up to two compiled-engine threads.
 
 The bundled example contains the full 4,391-vertex giant component of the
 UMB-HMP-only symmetric kNN graph; no graph coarsening is used. This article
@@ -1798,23 +1824,10 @@ dissimilarity [@lin1991; @endres2003]. This choice changes the geometry
 supplied by the $X\to G$ stage, but not the subsequent definitions of $D_G$,
 $D_{G,Z}$, or the $G\to Z$ fidelity criteria.
 
-Within that boundary, \CRANpkg{grip} operationalizes the graph-to-embedding
-stage. Its core layout functions generate and trace multiscale layouts, while
-its scoring functions evaluate coordinates from \CRANpkg{grip} or other
-packages on common terms. Full geodesic Kamada--Kawai, LGKK, MISF-GKK, metric
-MDS, and edge-KK provide experimental baselines, fixed-path objectives, and
-refinement strategies for investigating how a supplied graph metric is
-represented after embedding. They are a research sandbox within the package,
-not a completed general GMDS method.
-
-The scope also has computational and methodological limits. All-pairs path
-preparation can become more costly than the multiscale layout, graph-family
-presets are illustrative rather than exhaustive, and exact crossing counts are
-expensive on dense 2D graphs. The current GMDS-facing methods provide no
-automatic rule for selecting among full, landmark, edge-only, and multiscale
-strategies. The structured, weighted, and UMB-HMP-only workflows illustrate
-these roles and limits without turning the article into a general comparison of
-embedding methods.
+The GMDS-facing methods provide tools for investigating a supplied graph
+metric, but no automatic rule for selecting among full, landmark, edge-only,
+and multiscale strategies. The worked examples illustrate their use rather
+than establish a general comparison of embedding methods.
 
 This article describes \CRANpkg{grip} 0.2.0 and uses \CRANpkg{dgraphs} 0.2.0
 in its examples. Extended worked examples are available in the \CRANpkg{grip}
