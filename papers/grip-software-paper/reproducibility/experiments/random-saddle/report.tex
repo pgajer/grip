@@ -1,0 +1,145 @@
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=.75in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,booktabs,graphicx,pdfpages,url,float}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\providecommand{\reportbuilddatetime}{unknown}
+\InputIfFileExists{report-build-info.tex}{}{}
+\input{report-numbers.tex}
+\title{Two-dimensional flattening of randomly sampled saddle graphs}
+\author{\small Source: \path{~/current_projects/grip/papers/grip-software-paper/}\protect\\
+\small\path{reproducibility/experiments/random-saddle/report.tex}}
+\date{Build \reportbuilddatetime}
+\begin{document}
+\maketitle
+
+\section*{Question and main finding}
+Can symmetric nearest-neighbor graphs of randomly sampled saddle observations
+be drawn in two dimensions while preserving their edge and fixed-path lengths?
+This standalone study replaces the special orthogonal grid with independently
+sampled observations. Nothing has been inserted into the manuscript.
+
+The study completed \samplesTotal{} samples and \graphsTotal{} distinct weighted
+graphs. A numerically robust four-vertex obstruction to exact two-dimensional
+edge-length preservation was detected in \obstructionsTotal{} graphs. Nevertheless,
+some two-dimensional candidates attain very small aggregate fixed-path errors.
+These findings are compatible: exact zero loss would preserve every edge, whereas
+a small average path error can coexist with larger local edge errors.
+
+\section*{Sampling and graph construction}
+The observations lie on $z=0.8(x^2-y^2)$ with $(x,y)\in[-1,1]^2$, without noise.
+Sampling is uniform in surface area, not in the parameter square. Rejection
+sampling uses a density proportional to $\sqrt{1+2.56(x^2+y^2)}$ in that square.
+There are 100 independent samples at each of $n=250$ and $n=500$.
+
+The \texttt{dgraphs} symmetric-kNN constructor uses exact Euclidean neighbors in
+the original three-dimensional observations. An edge is retained when either
+endpoint selects the other. No pruning or spanning-tree repair is applied.
+Every integer $k$ is checked from 1 upward until the graph is connected; this
+defines $k_{\rm conn}$. Each sample is then evaluated at $k_{\rm conn}$,
+$k_{\rm conn}+2$, and $2k_{\rm conn}$. Edge lengths are divided by their median.
+Connectedness is the selection rule, not a guarantee of surface-geodesic accuracy.
+
+\section*{Coordinates and error criteria}
+One input shortest path is retained for every unordered vertex pair and kept
+fixed across configurations. All fitted configurations have exactly two
+coordinate columns. The original three-dimensional observations give a known
+zero-edge-loss and zero-path-loss reference.
+
+For observed lengths $y_p$ and input lengths $g_p$, the scale is
+$a=\sum_p y_pg_p/\sum_p g_p^2$, and the relative error is
+\[
+ R(y,g)=\left\{\frac{\sum_p(y_p-a g_p)^2}{\sum_p(a g_p)^2}\right\}^{1/2}.
+\]
+Edge and fixed-path summaries fit separate scales. The path criterion uses
+embedded sums of edge lengths, not new shortest paths in the drawing. MDS
+Stress-1 instead uses endpoint chords and the configuration denominator
+$\sum_p y_p^2$. The plots report these dimensionless statistics as percentages.
+
+\section*{Search budget and geometric obstruction}
+Metric MDS, PCA of the original observations, and two seeded weighted-GRIP
+configurations provide four starts. Each receives five-stage edge-KK refinement,
+with at most 50 iterations per stage. Those four results and unrefined MDS and
+PCA start six direct optimizations of squared profiled path relative RMSE, each
+with at most 200 L-BFGS-B iterations. The lowest-path-error candidate is selected
+from all 14 configurations. PCA uses the observations; this is a search for
+low-distortion realizations, not a graph-only algorithm competition.
+
+The best achieved error is an upper bound on the true optimum, not proof of
+optimality. Independently, each four-vertex clique is checked using the Gram
+matrix of its six squared edge lengths. A third/first eigenvalue ratio above
+$10^{-8}$ is a robust numerical indication that those lengths require three
+dimensions. The strongest witness is saved for every graph. This is not an
+interval-arithmetic certificate. All six edges of each selected witness were
+independently verified to be retained one-edge paths, so the obstruction also
+excludes exact zero all-pairs fixed-path loss.
+
+\section*{Repeated-sample results}
+Table 1 reports the fixed-budget best-path candidate. Brackets give across-sample
+interquartile ranges; they are not confidence intervals. Bootstrap 95\% intervals
+for each median are in the accompanying CSV and figures. Edge errors belong to
+the same selected configurations, with separately fitted scales.
+
+\input{report-summary-table.tex}
+
+At both sample sizes, the median achieved path error increases as the neighborhood
+rule adds more neighbors. At the connectivity threshold the two sample sizes
+have similar median path errors, whereas the denser rules have lower median path
+errors at $n=500$. Edge errors of the selected path candidates are larger at
+$n=500$ for all three rules. Thus increasing the number of observations does not
+uniformly reduce all measures of distortion under this fixed optimization budget.
+
+The neighborhood-rule comparison changes both the graph and its retained path
+family. It is therefore a sensitivity analysis, not a comparison against one
+unchanging metric. The distributions in Figures 1--3 distinguish the three
+criteria and retain the sample-size and neighborhood-rule factors.
+
+\section*{Optimization status and additional budget}
+All attempted sample runs completed; none was excluded. The main study produced
+\edgeFits{} fixed-budget edge-KK fits and \pathFits{} direct path fits.
+Of the latter, \pathConverged{} satisfied the solver's numerical stopping rule,
+\pathLimited{} reached the iteration limit, and \pathOther{} returned another
+status. An iteration-limited result is retained as a finite candidate but is not
+described as converged.
+
+The winning candidate of a median-selected sample in each of the six groups
+received up to 2,000 additional iterations. Table 2 separates this diagnostic
+from the unchanged repeated-study results. A stopping criterion is not a global
+optimality certificate, and these six selected cases do not estimate a new
+population distribution.
+
+\input{report-audit-table.tex}
+
+\section*{Checks, figure selection, and interpretation}
+Analytic gradients passed finite-difference checks. A planar control had zero
+path error and no obstruction; a tetrahedron produced the expected obstruction.
+The sampler was checked against numerical surface-area integration. All
+\graphsTotal{} graphs were checked against independently recomputed shortest-path
+distances and independent R summation of the saved paths. The maximum path-score
+discrepancy in that post-run check was \pathCheckError{}.
+In \nearTieGraphs{} graphs, near-tie handling differed from \texttt{igraph}; the
+maximum scaled relative distance difference was \nearTieRelative{}, within the
+package's $\sqrt{\text{machine epsilon}}$ tolerance. Substituting the stricter
+distances changed the winner's path relative RMSE by at most \strictScoreChange{}.
+One edge-endpoint pair used an indirect near-tied route; it did not belong to any
+selected obstruction witness.
+
+Figure 4 selects one sample per size by proximity to the median fixed-budget
+best path error at $k_{\rm conn}$, breaking ties by replicate number. Selection
+does not use appearance. Its two-dimensional layouts are displayed as aligned,
+tilted planes; the scores use their original coordinates, not the projection.
+
+The experiment establishes graph-level obstructions and achievable errors. It
+does not measure continuous-surface geodesic error, prove recovery of curvature,
+or guarantee that minimally connected graphs adequately represent the surface.
+Most importantly, near-zero aggregate path error should not be interpreted as
+near-zero local metric distortion. Exact zero and merely small loss carry
+different implications here.
+
+\includepdf[pages=-,fitpaper=true]{path-error-distributions.pdf}
+\includepdf[pages=-,fitpaper=true]{edge-error-distributions.pdf}
+\includepdf[pages=-,fitpaper=true]{chord-stress-distributions.pdf}
+\includepdf[pages=-,fitpaper=true]{representative-layouts.pdf}
+\end{document}
