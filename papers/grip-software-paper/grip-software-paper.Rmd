@@ -1464,9 +1464,14 @@ par(op)
 ## Fixed weighted graph: graph-geodesic assessment
 
 An edge-length metric matters when a graph's topology is simple but its geometry
-is not. A $10 \times 10$ mesh whose edge lengths are induced by a curved saddle
-surface provides that contrast: its topology is unchanged, but the intended
-metric is no longer the flat-grid metric.
+is not. Here a regular $10 \times 10$ grid of $(x,y)$ values in $[-1,1]^2$ is
+lifted to the saddle surface $z=0.8(x^2-y^2)$. These generating coordinates form
+the target saddle in Figure \@ref(fig:weighted-figure). The graph joins
+horizontal and vertical grid neighbors, assigning each of its 180 edges the
+Euclidean distance between its 3D endpoints, divided by the median edge length.
+Its topology is unchanged, but the resulting graph metric differs from that
+of the flat grid. Distances in $D_G$ follow these mesh edges; they are not
+continuous-surface geodesic distances.
 
 The comparison includes combinatorial and weighted GRIP, metric MDS, and weighted
 Kamada--Kawai from \CRANpkg{igraph}, together with edge-KK refinement of both the
@@ -1537,13 +1542,23 @@ results should not be interpreted as a size-independent convergence guarantee.
 
 \Needspace{5\baselineskip}
 
-Figure \@ref(fig:weighted-figure) also exposes a limitation of the criterion.
+The target saddle is scored at its generating 3D coordinates, without an MDS
+fit. Its Stress-1 value of 0.138 compares their endpoint chords with $D_G$,
+using all 4,950 pairs and a least-squares fitted common scale. Its fixed-path
+loss is zero after profiling out the edge-normalization scale, because those
+coordinates realize every input edge length up to that scale. The nonzero
+chord stress measures the mismatch between graph paths and endpoint distances
+in this configuration. It is neither the smallest attainable stress over all
+embeddings nor a measure of surface curvature alone: $D_G$ also reflects the
+restriction to horizontal and vertical mesh edges.
+
+Figure \@ref(fig:weighted-figure) also exposes a limitation of fixed-path fidelity.
 Preserving the weighted graph paths does not uniquely determine the target's
 extrinsic curvature: a comparatively flat realization can have low path loss.
 The panels are similarity-aligned to the target and use one projection and one
 coordinate scale, so this difference is not a viewing-axis artifact.
 
-```{r weighted-figure, fig.cap="Three-dimensional layouts of a 10 by 10 weighted saddle mesh after similarity alignment to the target, displayed with a common orthographic projection and scale. In each row, the right-hand layout starts from the coordinates in the middle panel. The annotations report MDS Stress-1 and fixed-path GMDS relative RMSE from the full 3D coordinates, using all 4,950 vertex pairs, the same retained input paths, and separately fitted least-squares scales. Stress-1 is configuration-normalized; path relative RMSE is input-normalized, so the two magnitudes are not directly interchangeable. Values below $10^{-12}$ are shown as an upper bound. Low fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of a 100-vertex saddle mesh, each annotated with MDS Stress-1 and fixed-path GMDS relative RMSE. The middle and right columns compare metric MDS and weighted GRIP before and after edge-KK. The left column contains the target saddle and weighted igraph Kamada-Kawai. The target has near-zero path loss but nonzero chord stress; the refined weighted-GRIP layout also has near-zero path loss while remaining visibly flatter than the target.", fig.width=11.2, fig.height=6.8, fig.pos="H"}
+```{r weighted-figure, fig.cap="Three-dimensional layouts of a 10 by 10 weighted saddle mesh after similarity alignment to the generating coordinates on $z=0.8(x^2-y^2)$, displayed with a common orthographic projection and scale. The target panel shows those generating coordinates, not an MDS fit. In each row, the right-hand layout starts from the coordinates in the middle panel. The annotations report MDS Stress-1 and fixed-path GMDS relative RMSE from the full 3D coordinates, using all 4,950 vertex pairs, the same retained input paths, and separately fitted least-squares scales. Stress-1 is configuration-normalized; path relative RMSE is input-normalized, so the two magnitudes are not directly interchangeable. Values below $10^{-12}$ are shown as an upper bound. Low fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of a 100-vertex saddle mesh, each annotated with MDS Stress-1 and fixed-path GMDS relative RMSE. The middle and right columns compare metric MDS and weighted GRIP before and after edge-KK. The left column contains the generating saddle coordinates and weighted igraph Kamada-Kawai. The target has near-zero path loss but nonzero chord stress; the refined weighted-GRIP layout also has near-zero path loss while remaining visibly flatter than the target.", fig.width=11.2, fig.height=8.6, fig.pos="H"}
 source("reproducibility/scripts/plot-weighted-saddle.R")
 plot_weighted_saddle(weighted.saddle, weighted.resolutions$display_limits)
 ```

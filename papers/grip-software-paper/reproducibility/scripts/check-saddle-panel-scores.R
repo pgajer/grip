@@ -17,6 +17,17 @@ for (name in names(cases)) {
   prepared <- saddle$prepared
   g <- prepared$pair_graph_distance
   pairs <- prepared$pair_matrix
+  # Verify the stated generating surface and median-normalized edge metric.
+  target <- saddle$target_coords
+  stopifnot(max(abs(target[, 3L] - 0.8 *
+                     (target[, 1L]^2 - target[, 2L]^2))) < tolerance,
+            all(abs(target[, 1:2]) <= 1 + tolerance))
+  raw_edge <- sqrt(rowSums((target[saddle$edges[, 1L], , drop = FALSE] -
+                             target[saddle$edges[, 2L], , drop = FALSE])^2))
+  stopifnot(max(abs(raw_edge / median(raw_edge) - saddle$edge_weights)) < tolerance)
+  graph <- igraph::graph_from_edgelist(saddle$edges, directed = FALSE)
+  graph_distance <- igraph::distances(graph, weights = saddle$edge_weights)
+  stopifnot(max(abs(graph_distance[pairs] - g)) < tolerance)
   for (method in names(layouts)) {
     z <- layouts[[method]]
     # Independent distance-matrix lookup and QR least-squares fit.
@@ -43,7 +54,12 @@ for (name in names(cases)) {
     }
   }
   stopifnot(scores$gmds.path.rel.rmse[[1L]] < 1e-12,
-            scores$mds.stress1[[1L]] > 0.1)
+            scores$mds.stress1[[1L]] > 0.1,
+            scores$mds.stress1[scores$method == "Metric MDS"] <
+              scores$mds.stress1[[1L]])
+  if (name == "10x10") stopifnot(round(scores$mds.stress1[[1L]], 3) == 0.138)
+  cat(name, ": generating equation, normalized edges, and graph distances verified;",
+      "target Stress-1 =", format(scores$mds.stress1[[1L]], digits = 12), "\n")
   # A display-style similarity transformation must not alter either score.
   transform <- function(z) sweep(3.7 * z %*% diag(c(-1, 1, 1)),
                                  2L, c(4, -2, 7), "+")

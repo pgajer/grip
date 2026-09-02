@@ -71,7 +71,7 @@ plot_weighted_saddle <- function(saddle, limits = NULL) {
   }
   edges <- saddle$edges
   colors <- c("#666666", "#684A88", "#684A88", "#3A6B35", "#1F3B73", "#1F3B73")
-  old <- par(mfrow = c(2, 3), mar = c(2.7, 1, 2.5, 1), cex = 1.1)
+  old <- par(mfrow = c(2, 3), mar = c(2.7, 0.3, 2.5, 0.3), cex = 1.1)
   on.exit(par(old))
   for (i in seq_along(projected)) {
     z <- projected[[i]]
@@ -100,10 +100,10 @@ if (sys.nframe() == 0L) {
   scores <- lapply(names(comparison$cases), function(name) {
     saddle <- comparison$cases[[name]]
     stem <- file.path(args[[2L]], paste0("weighted-saddle-", name))
-    pdf(paste0(stem, ".pdf"), width = 11.2, height = 6.8, useDingbats = FALSE)
+    pdf(paste0(stem, ".pdf"), width = 11.2, height = 8.6, useDingbats = FALSE)
     plot_weighted_saddle(saddle, comparison$display_limits)
     dev.off()
-    png(paste0(stem, ".png"), width = 11.2, height = 6.8, units = "in", res = 180)
+    png(paste0(stem, ".png"), width = 11.2, height = 8.6, units = "in", res = 180)
     plot_weighted_saddle(saddle, comparison$display_limits)
     dev.off()
     cbind(mesh = name, weighted_saddle_panel_scores(saddle))
