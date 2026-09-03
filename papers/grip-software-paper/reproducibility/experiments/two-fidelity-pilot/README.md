@@ -137,6 +137,27 @@ budget is exhausted is not automatically called convergence. Reference
 precision, source-pair sampling, neighborhood selection, optimization budget,
 and sampling variation are separate sources of uncertainty.
 
+### Paired-dot summary figure
+
+`plot-score-summary.R` creates a separate three-panel summary of fixed-path
+relative RMSE, edge relative RMSE, and MDS Stress-1. Each panel shows all five
+clouds for the original coordinates, metric MDS, and the primary MDS + edge-KK
+result. Subdued lines preserve cloud pairing; open circles and numeric labels
+show medians. No confidence intervals or additional-budget candidates are
+included in this version. The original five figures remain unchanged.
+
+This figure needs only base R and the validated tables retained in Git:
+
+```sh
+pilot_src=papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot
+pilot_out=papers/grip-software-paper/build/two-fidelity-pilot
+Rscript "$pilot_src/plot-score-summary.R" "$pilot_src/pilot-summary" "$pilot_out"
+```
+
+Outputs are `pilot-score-summary.pdf`, `pilot-score-summary.png`, a caption
+text file, and `pilot-score-summary-medians-percent.csv`. These are generated
+in the specified build directory, not inserted into the manuscript.
+
 ## Reproduction
 
 From the repository root, with R packages grip 0.2.0, dgraphs 0.2.0, igraph,
