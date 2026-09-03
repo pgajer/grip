@@ -8,7 +8,9 @@ pilot_align <- function(z, x) {
   sweep(sum(f$d) / sum(zz * zz) * zz %*% f$u %*% t(f$v), 2, colMeans(x), "+")
 }
 
-plot_pilot_calibration_layouts <- function(pilot) {
+plot_pilot_calibration_layouts <- function(pilot, edge_alpha = .03) {
+  stopifnot(length(edge_alpha) == 1L, is.finite(edge_alpha),
+            edge_alpha >= 0, edge_alpha <= 1)
   op <- par(no.readonly = TRUE)
   on.exit({layout(1); par(op)})
   layout(matrix(c(1,1,1,2,2,2,3,3,4,4,5,5), nrow = 2, byrow = TRUE),
@@ -40,11 +42,13 @@ plot_pilot_calibration_layouts <- function(pilot) {
   vc <- colorRampPalette(c("#173D65", "#86AFC4", "#D9B18B", "#8E4921"))(100)[
     pmin(100, pmax(1, 1 + floor((pilot$coords[, 1] + 1) * 49.5)))]
   for (j in 1:3) {
-    par(mar = c(1.3, .1, 2.2, .1))
+    par(mar = c(.3, .1, 2.2, .1))
     a <- z[[j]]; e <- pilot$edges
     plot(a, type = "n", xlim = xr, ylim = yr, asp = 1, axes = FALSE, xlab = "", ylab = "")
-    segments(a[e[,1],1], a[e[,1],2], a[e[,2],1], a[e[,2],2],
-             col = adjustcolor("gray45", alpha.f = .12), lwd = .35)
+    if (edge_alpha > 0) {
+      segments(a[e[,1],1], a[e[,1],2], a[e[,2],1], a[e[,2],2],
+               col = adjustcolor("gray45", alpha.f = edge_alpha), lwd = .35)
+    }
     points(a, pch = 16, cex = .34, col = vc)
     e <- pilot$route
     segments(a[e[,1],1], a[e[,1],2], a[e[,2],1], a[e[,2],2], col = "#1E5C89", lwd = 2.3)
@@ -53,8 +57,6 @@ plot_pilot_calibration_layouts <- function(pilot) {
     points(a[e, ], pch = 21, bg = "white", col = "gray20", cex = .8)
     title(c("C   Original saddle", "D   Metric MDS", "E   MDS + edge-KK")[j],
           font.main = 1, cex.main = 1.08, line = .5)
-    mtext(sprintf("Cloud %d; n = 1,000; k = %d", pilot$representative, pilot$k),
-          side = 1, line = .15, cex = .88)
   }
 }
 
