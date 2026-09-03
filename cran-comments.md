@@ -1,34 +1,43 @@
-## Submission
+## Post-publication validation, 2026-09-03
 
-This is a deliberately breaking 0.2.0 update. It removes 40 long-form
-compatibility aliases deprecated in the 0.1.x series and makes 53 low-level
-graph-family construction helpers internal, reducing the export count from 194
-to 101. The retained graph-family functions continue to return the same
-documented graph bundles. A complete replacement map is available in
-`help("grip-0.2-migration")`.
+This records maintenance validation after publication of grip 0.2.0, not a
+new submission. No upload is planned and the published version tag is unchanged.
 
-CRAN reported no reverse dependencies for `grip` when checked on 2026-08-21.
+Changes remove local DESCRIPTION-file path attributes from benchmark session
+metadata, clarify provenance and thread-control documentation, and consistently
+exclude optional generated images from source builds. Numerical benchmark
+results and the public API are unchanged. NEWS separates these development
+changes from the published 0.2.0 release.
 
-## Test environments
+## Test environment and results
 
-* macOS Tahoe 26.6.1 (Apple Silicon), R-devel 4.7.0
-  (2026-06-24 r90190), Apple clang, C++17
-* GitHub Actions: R-devel, R-release, and R-oldrel-1
+macOS Tahoe 26.6.1 (Apple Silicon), R-devel 4.7.0
+(2026-06-24 r90190), Apple clang, C++17. This is a dated local R-devel snapshot,
+not a claim to have tested the latest R-devel revision.
 
-## R CMD check results
+Two full checks of the same fresh tarball, including a repeat with
+`R_MAKEVARS_USER=/dev/null`, each reported:
 
-0 errors | 0 warnings | 1 note
+0 errors | 1 warning | 1 note
 
-The local `R CMD check --as-cran` completed successfully under R-devel on
-2026-08-29. The sole note is environment-only: the locally installed HTML Tidy
-is too old for optional HTML manual validation.
+* Warning: version 0.2.0 is already published on CRAN. Expected for this
+  retrospective check; this version must not be uploaded again as an update.
+* Note: the local HTML Tidy is too old for HTML manual validation.
 
-The package-check test suite reported 2,193 passes, no failures or warnings,
-and six skips for optional Shiny tests. A direct development test run reported
-2,203 passes with no failures, warnings, or skips.
+Each tarball check reported 2,255 passing test assertions, no failures or
+warnings, and six optional Shiny skips. A direct development test run covered
+the optional tests with no failures, warnings, or skips. Documentation and
+README regeneration produced no unexplained changes.
 
-## Notes
+The corrected optional grip example in the local gflow vignette was executed
+with grip 0.2.0, dgraphs 0.2.0, and ivue 0.1.0 and produced finite 250-by-3
+coordinates and an ivue visualization.
 
-The words flagged by the incoming spell check are intentional: Gajer and
-Kobourov are author surnames, KK is the standard abbreviation for
-Kamada-Kawai, and multiscale is a technical term.
+Tarball SHA-256:
+`51eb82c7d5982858c6e39942ae9b81140b9ceb017cd0d8e59e73320c5f314c3f`.
+
+## Before any future submission
+
+Choose an appropriate new version, rebuild and recheck its exact tarball on
+current release/development platforms, review downstream compatibility, and
+replace this retrospective record with the submission-specific results.

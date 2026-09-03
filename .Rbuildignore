@@ -32,6 +32,8 @@
 ^Meta$
 ^\.claude
 ^AGENTS\.md$
+^man/figures/logo\.png$
+^man/figures/.*\.gif$
 ^\.github
 ^\.\..Rcheck$
 ^.*\.Rcheck$

@@ -3937,6 +3937,12 @@ grip.score.geodesic.mds <- function(coords,
 #' @param n_threads Number of CPU threads used by the flattened compiled
 #'   optimizer. \code{0} picks an automatic value, \code{1} forces serial
 #'   evaluation, and all values are capped at two threads.
+#'   With \code{n_threads = 0}, a positive integer in the environment variable
+#'   \env{GRIP_GMDS_THREADS} takes precedence over hardware-based selection.
+#'   An explicit positive \code{n_threads} overrides the environment variable.
+#'   Set the variable to \code{1} or \code{2}; non-positive or nonnumeric values
+#'   fall back to hardware-based selection, and larger values are capped at two.
+#'   R-engine optimization is serial; the setting applies to the compiled engine.
 #' @param recenter If \code{TRUE}, recenter accepted proposals to zero mean.
 #' @param return_trace If \code{TRUE}, include per-iteration diagnostics and
 #'   accepted frames.

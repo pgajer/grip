@@ -1820,6 +1820,9 @@ grip.geodesic.misf.induced_level_graph <- function(prepared,
 #' @param grad_tol Gradient-norm stopping tolerance.
 #' @param min_step Minimum accepted line-search step.
 #' @param n_threads Number of compiled-engine threads, capped at two.
+#'   Zero selects automatically, consulting \env{GRIP_GMDS_THREADS} before
+#'   hardware concurrency. Set that variable to 1 or 2; explicit positive
+#'   \code{n_threads} overrides it. R-engine optimization remains serial.
 #' @param recenter Whether to recenter accepted proposals to zero mean.
 #' @param return_trace Whether to retain per-iteration traces/frames for the
 #'   best restart.
@@ -3008,6 +3011,9 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
 #'   embedded edge lengths during the refinement and final-polish stages.
 #' @param n_threads Number of compiled-engine threads used by the refinement and
 #'   final-polish stages, capped at two.
+#'   Zero selects automatically, consulting \env{GRIP_GMDS_THREADS} before
+#'   hardware concurrency. Set that variable to 1 or 2; explicit positive
+#'   \code{n_threads} overrides it. R-engine optimization remains serial.
 #' @param return_trace If `TRUE`, include detailed per-stage traces.
 #' @param return_frames If `TRUE`, retain intermediate coordinate frames for the
 #'   multiscale stages.

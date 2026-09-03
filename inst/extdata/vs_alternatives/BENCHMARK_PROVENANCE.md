@@ -30,6 +30,10 @@ they are not universal performance constants.
 
 ## Hardware and software
 
+On 2026-09-03, local DESCRIPTION-file path attributes were removed from the
+saved session metadata. Coordinates, scores, timings, hardware information,
+and software versions were retained unchanged; this was not a benchmark rerun.
+
 - hardware model: Apple Mac16,5
 - processor: Apple M4 Max
 - memory: 64 GiB
@@ -50,6 +54,7 @@ they are not universal performance constants.
 The same RDS file retains layouts and common scores for the Zachary karate
 club graph, a 12 by 12 mesh, a level-4 Sierpinski carpet, and a weighted
 saddle-surface mesh. These retained internal results are not presented as
-additional real-data evidence. The paper uses the weighted saddle results for
-its external weighted comparison. The single-run carpet timing retained for
+additional real-data evidence. The weighted saddle results belong to the
+earlier comparison retained in the package article; the paper's later saddle
+experiments have their own reproduction scripts and data. The single-run carpet timing retained for
 historical comparison is not reported as repeated benchmark evidence.

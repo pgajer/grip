@@ -21,6 +21,6 @@ Phase 1 rule:
 Phase 2 status:
 
 - draft manuscript sources were moved to `dev/papers/gkk_lgkk_paper/manuscript/`
-- handoff and outline notes were moved to `dev/papers/gkk_lgkk_paper/notes/`
+- historical technical notes are in `dev/papers/gkk_lgkk_paper/notes/`
 - figure sources and curated exports were moved to `dev/papers/gkk_lgkk_paper/figures/`
 - the remaining files in this legacy directory are primarily rendered outputs, logs, and other build artifacts

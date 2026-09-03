@@ -27,6 +27,8 @@ script_path <- if (length(script_file_arg)) {
 paper_library <- Sys.getenv("GRIP_RJOURNAL_PACKAGE_LIBRARY")
 if (nzchar(paper_library)) .libPaths(c(paper_library, .libPaths()))
 
+source(file.path(dirname(script_path), "portable-session-info.R"))
+
 source_root <- normalizePath(
   file.path(dirname(script_path), "..", ".."),
   winslash = "/",
@@ -368,7 +370,7 @@ results$hmp <- list(
 )
 
 ## ---- save ----------------------------------------------------------
-results$session_info <- utils::sessionInfo()
+results$session_info <- portable_session_info()
 blas_path <- extSoftVersion()[["BLAS"]]
 if (!is.na(blas_path) && nzchar(blas_path)) {
   r_home <- normalizePath(R.home(), winslash = "/", mustWork = TRUE)

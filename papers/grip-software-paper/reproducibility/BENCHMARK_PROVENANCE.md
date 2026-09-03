@@ -132,3 +132,10 @@ the two saddle-related components and checks by exact R-object comparison that
 all other benchmark components remain unchanged. This comparison does not
 measure runtime or match iteration budgets between edge-KK and the six-round
 LGKK illustration.
+
+## Metadata portability update (2026-09-03)
+
+Local DESCRIPTION-file path attributes were removed from saved benchmark
+session metadata. Every other R-object field, including all numerical results,
+coordinates, timings, and software versions, was retained unchanged. The shared
+`scripts/portable-session-info.R` helper prevents reintroducing those attributes.

@@ -26,6 +26,8 @@ script_path <- if (!is.null(sys.frames()[[1]]$ofile)) {
   )
 }
 
+source(file.path(dirname(script_path), "portable-session-info.R"))
+
 source_root <- normalizePath(
   file.path(dirname(script_path), "..", ".."),
   winslash = "/",
@@ -410,7 +412,7 @@ results$hmp <- list(
 )
 
 ## ---- save ----------------------------------------------------------
-results$session_info <- utils::sessionInfo()
+results$session_info <- portable_session_info()
 blas_path <- extSoftVersion()[["BLAS"]]
 if (!is.na(blas_path) && nzchar(blas_path)) {
   r_home <- normalizePath(R.home(), winslash = "/", mustWork = TRUE)

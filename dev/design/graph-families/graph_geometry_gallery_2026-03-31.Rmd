@@ -7,10 +7,12 @@ output:
     self_contained: true
 ---
 
-This R Markdown document generates an HTML gallery of the synthetic graph geometries added in the long March 31, 2026 Codex thread.
+This source-checkout gallery illustrates the synthetic graph geometries in the
+March 2026 design catalog. It uses development helpers, including functions
+that are internal in grip 0.2.0; it is not a tutorial for the installed public API.
 
 Coverage notes:
-- Every graph-family branch added in the thread is represented at least once.
+- Each graph-family branch in the design catalog is represented at least once.
 - Generic recursive families are shown through representative masks or parameter choices.
 - Most families are shown via their intrinsic `coords_surface` or `coords_param`-derived 3D embeddings.
 - `kary.tree.weighted.graph()` is intrinsically weighted rather than ambient-geometric, so the gallery uses an illustrative 3D branching display whose edge lengths match the intrinsic edge weights.

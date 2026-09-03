@@ -365,8 +365,6 @@ Key design notes:
 
 - infrastructure design:
   - [`geodesic_mds_infrastructure_design_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_infrastructure_design_2026-03-31.md)
-- infrastructure action plan:
-  - [`geodesic_mds_infrastructure_action_plan_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/geodesic_mds_infrastructure_action_plan_2026-03-31.md)
 - cross-family comparison test-suite design:
   - [`gmds_mds_comparison_test_suite_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/gmds_mds_comparison_test_suite_2026-03-31.md)
 
@@ -500,9 +498,8 @@ This is currently the strongest negative result:
 
 ## Performance Study
 
-The performance concern was addressed in the later section of the Phase 1 report and in the related action-plan note:
+The performance concern was addressed in the later section of the Phase 1 report:
 
-- [`gmds_performance_action_plan_2026-03-31.md`](https://github.com/pgajer/grip/blob/main/dev/design/gmds_performance_action_plan_2026-03-31.md)
 - Phase 1 report performance section:
   - [`gmds_mds_comparison_report_2026-03-31.tex`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.tex)
   - [`gmds_mds_comparison_report_2026-03-31.pdf`](https://github.com/pgajer/grip/blob/main/output/geodesic_mds_paper/reports/gmds_mds_comparison_report_2026-03-31/gmds_mds_comparison_report_2026-03-31.pdf)
