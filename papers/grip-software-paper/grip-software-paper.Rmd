@@ -829,8 +829,10 @@ $$
 ## Which criterion answers which question
 
 Chord and fixed-path criteria are not competing approximations to one common
-notion of fidelity. Their difference begins with an asymmetry between the two
-sides of the embedding. Isomap uses $D_G$ because ambient straight-line
+notion of fidelity. Both compare against the input graph distances $D_G$, but
+chord criteria measure Euclidean endpoint distances, whereas fixed-path
+criteria measure lengths along retained graph paths after embedding.
+Isomap uses $D_G$ because ambient straight-line
 distances can misrepresent the intrinsic geometry of the observations. The
 output space $\mathbb{R}^m$, however, is flat and complete by construction, so
 its geodesic between $z_i$ and $z_j$ is the chord
