@@ -1,3 +1,11 @@
+# Development changes after 0.2.0
+
+* Remove local DESCRIPTION-file path attributes from saved benchmark session
+  metadata and prevent their regeneration; numerical results are unchanged.
+* Clarify benchmark provenance and document the GMDS thread environment setting.
+* Exclude optional locally generated logo/animation files consistently from
+  source-package builds.
+
 # grip 0.2.0
 
 * Removes the 40 long-form compatibility aliases deprecated in the 0.1

@@ -1,9 +1,17 @@
-# Historical graph-family API catalog (2026-03-31)
+# Historical Graph-Family Design Catalog
 
-This catalog describes graph-family constructors, weighted-geometry
-wrappers, mask constructors, and benchmark helpers implemented in
-`R/graph_helpers.R`. Export status and signatures are specific to the
-repository revision; consult its `NAMESPACE` and R sources.
+This catalog records the March 2026 graph-family designs implemented in
+[R/graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R).
+The tables include both public constructors and internal helpers. The API-status
+column identifies exports in grip 0.2.0; internal helpers are not callable with
+`grip::` and are not a supported public interface. Signatures below are historical
+design summaries, not current usage documentation. Consult the installed help
+for current arguments, or use the public weighted-graph constructors, whose
+results include coordinates as well as edges and weights.
+
+Scope note:
+- This note focuses on family constructors, weighted-geometry wrappers, mask constructors, and benchmark-oriented helpers.
+- Older topology-only generators that already existed before the thread, such as `edges.mesh()`, `edges.torus()`, `edges.sphere()`, `edges.cylinder()`, and `edges.kary.tree()`, are mentioned only when a new family wraps or extends them.
 
 ## Common conventions
 
@@ -20,10 +28,10 @@ repository revision; consult its `NAMESPACE` and R sources.
 
 ### 1.1 Mesh surface family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `mesh.surface.embedding` | `mesh.surface.embedding(h, w = h, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L3616](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3616) |
-| `mesh.surface.graph` | `mesh.surface.graph(h, w = h, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L3653](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3653) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `mesh.surface.embedding` | `mesh.surface.embedding(h, w = h, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `mesh.surface.graph` | `mesh.surface.graph(h, w = h, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: mesh height and width in grid cells.
@@ -35,11 +43,11 @@ Parameters:
 
 ### 1.1a Irregular rectangle surface family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `irregular.rectangle.param.coords` | `irregular.rectangle.param.coords(h, w = h, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R) |
-| `irregular.rectangle.surface.embedding` | `irregular.rectangle.surface.embedding(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R) |
-| `irregular.rectangle.surface.graph` | `irregular.rectangle.surface.graph(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `irregular.rectangle.param.coords` | `irregular.rectangle.param.coords(h, w = h, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.rectangle.surface.embedding` | `irregular.rectangle.surface.embedding(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.rectangle.surface.graph` | `irregular.rectangle.surface.graph(h, w = h, surface = c("flat", "saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, row_irregularity = 0.20, col_irregularity = 0.20, row_phase = 0.35, col_phase = 0.65, interior_warp = 0.08, shear = 0, min_step_ratio = 0.30, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: rectangle height and width in grid cells; squares are the special case `h = w`.
@@ -52,10 +60,10 @@ Parameters:
 
 ### 1.2 Cylinder surface family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `cylinder.surface.embedding` | `cylinder.surface.embedding(h, w = h, surface = c("barrel", "hourglass", "wavy"), radius = 1, height = 2, amplitude = 0.3, freq_theta = 2, freq_z = 1, twist = 0.25)` | [graph_helpers.R#L3758](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3758) |
-| `cylinder.surface.graph` | `cylinder.surface.graph(h, w = h, surface = c("barrel", "hourglass", "wavy"), radius = 1, height = 2, amplitude = 0.3, freq_theta = 2, freq_z = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L3811](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3811) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `cylinder.surface.embedding` | `cylinder.surface.embedding(h, w = h, surface = c("barrel", "hourglass", "wavy"), radius = 1, height = 2, amplitude = 0.3, freq_theta = 2, freq_z = 1, twist = 0.25)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cylinder.surface.graph` | `cylinder.surface.graph(h, w = h, surface = c("barrel", "hourglass", "wavy"), radius = 1, height = 2, amplitude = 0.3, freq_theta = 2, freq_z = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: counts along the axial and wrapped directions.
@@ -68,10 +76,10 @@ Parameters:
 
 ### 1.3 Torus surface family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `torus.surface.embedding` | `torus.surface.embedding(h, w = h, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25)` | [graph_helpers.R#L3922](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3922) |
-| `torus.surface.graph` | `torus.surface.graph(h, w = h, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L3979](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3979) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `torus.surface.embedding` | `torus.surface.embedding(h, w = h, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `torus.surface.graph` | `torus.surface.graph(h, w = h, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: counts along the major and minor torus cycles.
@@ -84,10 +92,10 @@ Parameters:
 
 ### 1.4 Sphere surface family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `sphere.surface.embedding` | `sphere.surface.embedding(h, w = h, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25)` | [graph_helpers.R#L4849](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4849) |
-| `sphere.surface.graph` | `sphere.surface.graph(h, w = h, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L4936](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4936) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `sphere.surface.embedding` | `sphere.surface.embedding(h, w = h, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `sphere.surface.graph` | `sphere.surface.graph(h, w = h, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: numbers of latitude bands and samples per band in the regular spherical family.
@@ -102,12 +110,12 @@ Parameters:
 
 ### 2.1 Mask constructors
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `mask.cross` | `mask.cross(k = 5, arm_width = 1)` | [graph_helpers.R#L2811](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2811) |
-| `mask.border` | `mask.border(k = 5, thickness = 1)` | [graph_helpers.R#L2827](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2827) |
-| `mask.corner` | `mask.corner(k = 5, width = 2, corner = c("top_left", "top_right", "bottom_left", "bottom_right"))` | [graph_helpers.R#L2842](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2842) |
-| `mask.asymmetric.holes` | `mask.asymmetric.holes(k = 5, hole_size = 1)` | [graph_helpers.R#L2854](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2854) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `mask.cross` | `mask.cross(k = 5, arm_width = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.border` | `mask.border(k = 5, thickness = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.corner` | `mask.corner(k = 5, width = 2, corner = c("top_left", "top_right", "bottom_left", "bottom_right"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.asymmetric.holes` | `mask.asymmetric.holes(k = 5, hole_size = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `k`: side length of the square recursive mask.
@@ -119,11 +127,11 @@ Parameters:
 
 ### 2.2 Generic recursive square-mask graph family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.recursive.mask.grid` | `edges.recursive.mask.grid(mask, level = 2)` | [graph_helpers.R#L7856](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7856) |
-| `recursive.mask.grid.surface.embedding` | `recursive.mask.grid.surface.embedding(mask, level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L7116](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7116) |
-| `recursive.mask.grid.surface.graph` | `recursive.mask.grid.surface.graph(mask, level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L7155](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7155) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.recursive.mask.grid` | `edges.recursive.mask.grid(mask, level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.mask.grid.surface.embedding` | `recursive.mask.grid.surface.embedding(mask, level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.mask.grid.surface.graph` | `recursive.mask.grid.surface.graph(mask, level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `mask`: logical square keep-mask used at each recursion step.
@@ -135,11 +143,11 @@ Parameters:
 
 #### Sierpinski carpet
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.sierpinski.carpet` | `edges.sierpinski.carpet(level = 2)` | [graph_helpers.R#L8033](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L8033) |
-| `sierpinski.carpet.surface.embedding` | `sierpinski.carpet.surface.embedding(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L7240](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7240) |
-| `sierpinski.carpet.surface.graph` | `sierpinski.carpet.surface.graph(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L7261](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7261) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.sierpinski.carpet` | `edges.sierpinski.carpet(level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `sierpinski.carpet.surface.embedding` | `sierpinski.carpet.surface.embedding(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `sierpinski.carpet.surface.graph` | `sierpinski.carpet.surface.graph(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: carpet recursion depth.
@@ -147,11 +155,11 @@ Parameters:
 
 #### Vicsek fractal
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.vicsek` | `edges.vicsek(level = 2)` | [graph_helpers.R#L7942](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7942) |
-| `vicsek.surface.embedding` | `vicsek.surface.embedding(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L7315](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7315) |
-| `vicsek.surface.graph` | `vicsek.surface.graph(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L7336](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7336) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.vicsek` | `edges.vicsek(level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `vicsek.surface.embedding` | `vicsek.surface.embedding(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `vicsek.surface.graph` | `vicsek.surface.graph(level = 2, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: Vicsek recursion depth.
@@ -161,12 +169,12 @@ Parameters:
 
 ### 3.1 Occupancy-mask helpers
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `keep.periodic.holes` | `keep.periodic.holes(h, w = h, hole_period = 4, hole_height = 1, hole_width = hole_height, row_offset = 2, col_offset = 2)` | [graph_helpers.R#L3157](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3157) |
-| `keep.staggered.windows` | `keep.staggered.windows(h, w = h, window_height = 1, window_width = 2, row_period = 4, col_period = 5, row_offset = 2, col_offset = 2)` | [graph_helpers.R#L3177](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3177) |
-| `keep.slit.channels` | `keep.slit.channels(h, w = h, orientation = c("vertical", "horizontal"), slit_period = 5, slit_width = 1, bridge_spacing = 4, bridge_size = 1, offset = 2)` | [graph_helpers.R#L3199](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3199) |
-| `keep.asymmetric.notches` | `keep.asymmetric.notches(h, w = h, notch_depth = 3, notch_width = 2)` | [graph_helpers.R#L3221](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3221) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `keep.periodic.holes` | `keep.periodic.holes(h, w = h, hole_period = 4, hole_height = 1, hole_width = hole_height, row_offset = 2, col_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `keep.staggered.windows` | `keep.staggered.windows(h, w = h, window_height = 1, window_width = 2, row_period = 4, col_period = 5, row_offset = 2, col_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `keep.slit.channels` | `keep.slit.channels(h, w = h, orientation = c("vertical", "horizontal"), slit_period = 5, slit_width = 1, bridge_spacing = 4, bridge_size = 1, offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `keep.asymmetric.notches` | `keep.asymmetric.notches(h, w = h, notch_depth = 3, notch_width = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `h`, `w`: occupancy-grid dimensions.
@@ -178,11 +186,11 @@ Parameters:
 
 ### 3.2 Finite occupied-mesh family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.occupied.mesh` | `edges.occupied.mesh(keep)` | [graph_helpers.R#L3561](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3561) |
-| `occupied.mesh.surface.embedding` | `occupied.mesh.surface.embedding(keep, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L3034](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3034) |
-| `occupied.mesh.surface.graph` | `occupied.mesh.surface.graph(keep, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L3070](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L3070) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.occupied.mesh` | `edges.occupied.mesh(keep)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `occupied.mesh.surface.embedding` | `occupied.mesh.surface.embedding(keep, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `occupied.mesh.surface.graph` | `occupied.mesh.surface.graph(keep, surface = c("saddle", "paraboloid", "ripple"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `keep`: logical occupancy matrix; `TRUE` cells are retained as mesh vertices/cells.
@@ -193,21 +201,21 @@ Parameters:
 
 ### 4.1 Triangle mask constructors
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `mask.triangle.classic` | `mask.triangle.classic()` | [graph_helpers.R#L2947](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2947) |
-| `mask.triangle.bridge` | `mask.triangle.bridge(missing = c("top", "left", "right"))` | [graph_helpers.R#L2953](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2953) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `mask.triangle.classic` | `mask.triangle.classic()` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.triangle.bridge` | `mask.triangle.bridge(missing = c("top", "left", "right"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `missing`: which corner subtriangle is removed in the bridge variant.
 
 ### 4.2 Generic recursive triangle-mask family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.recursive.triangle.mask` | `edges.recursive.triangle.mask(mask = mask.triangle.classic(), level = 2)` | [graph_helpers.R#L7863](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7863) |
-| `recursive.triangle.mask.surface.embedding` | `recursive.triangle.mask.surface.embedding(mask = mask.triangle.classic(), level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L6952](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6952) |
-| `recursive.triangle.mask.surface.graph` | `recursive.triangle.mask.surface.graph(mask = mask.triangle.classic(), level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6996](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6996) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.recursive.triangle.mask` | `edges.recursive.triangle.mask(mask = mask.triangle.classic(), level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.triangle.mask.surface.embedding` | `recursive.triangle.mask.surface.embedding(mask = mask.triangle.classic(), level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.triangle.mask.surface.graph` | `recursive.triangle.mask.surface.graph(mask = mask.triangle.classic(), level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `mask`: length-4 keep-mask for the recursive subtriangles.
@@ -218,11 +226,11 @@ Parameters:
 
 ### 4.3 Named Sierpinski triangle wrapper
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.sierpinski.triangle` | `edges.sierpinski.triangle(level = 2)` | [graph_helpers.R#L8018](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L8018) |
-| `sierpinski.triangle.surface.embedding` | `sierpinski.triangle.surface.embedding(level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R#L6019](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6019) |
-| `sierpinski.triangle.surface.graph` | `sierpinski.triangle.surface.graph(level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6061](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6061) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.sierpinski.triangle` | `edges.sierpinski.triangle(level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `sierpinski.triangle.surface.embedding` | `sierpinski.triangle.surface.embedding(level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `sierpinski.triangle.surface.graph` | `sierpinski.triangle.surface.graph(level = 2, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.75, freq_u = 1, freq_v = 1, x_scale = 1, y_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: recursion depth for the classic Sierpinski triangle.
@@ -232,21 +240,21 @@ Parameters:
 
 ### 5.1 Tetrahedron mask constructors
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `mask.tetrahedron.classic` | `mask.tetrahedron.classic()` | [graph_helpers.R#L2977](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2977) |
-| `mask.tetrahedron.corner.missing` | `mask.tetrahedron.corner.missing(omit = c("apex", "base_left", "base_right", "base_back"))` | [graph_helpers.R#L2983](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2983) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `mask.tetrahedron.classic` | `mask.tetrahedron.classic()` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.tetrahedron.corner.missing` | `mask.tetrahedron.corner.missing(omit = c("apex", "base_left", "base_right", "base_back"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `omit`: which corner subtetrahedron to remove from the retained corner set.
 
 ### 5.2 Generic recursive tetrahedron-mask family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.recursive.tetrahedron.mask` | `edges.recursive.tetrahedron.mask(mask = mask.tetrahedron.classic(), level = 2)` | [graph_helpers.R#L7870](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7870) |
-| `recursive.tetrahedron.mask.surface.embedding` | `recursive.tetrahedron.mask.surface.embedding(mask = mask.tetrahedron.classic(), level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6)` | [graph_helpers.R#L6218](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6218) |
-| `recursive.tetrahedron.mask.surface.graph` | `recursive.tetrahedron.mask.surface.graph(mask = mask.tetrahedron.classic(), level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6241](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6241) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.recursive.tetrahedron.mask` | `edges.recursive.tetrahedron.mask(mask = mask.tetrahedron.classic(), level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.tetrahedron.mask.surface.embedding` | `recursive.tetrahedron.mask.surface.embedding(mask = mask.tetrahedron.classic(), level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.tetrahedron.mask.surface.graph` | `recursive.tetrahedron.mask.surface.graph(mask = mask.tetrahedron.classic(), level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `mask`: length-4 keep-mask over the corner subtetrahedra.
@@ -259,11 +267,11 @@ Parameters:
 
 ### 5.3 Named Sierpinski tetrahedron wrapper
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.sierpinski.tetrahedron` | `edges.sierpinski.tetrahedron(level = 2)` | [graph_helpers.R#L8025](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L8025) |
-| `sierpinski.tetrahedron.surface.embedding` | `sierpinski.tetrahedron.surface.embedding(level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6)` | [graph_helpers.R#L6313](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6313) |
-| `sierpinski.tetrahedron.surface.graph` | `sierpinski.tetrahedron.surface.graph(level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6331](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6331) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.sierpinski.tetrahedron` | `edges.sierpinski.tetrahedron(level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `sierpinski.tetrahedron.surface.embedding` | `sierpinski.tetrahedron.surface.embedding(level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `sierpinski.tetrahedron.surface.graph` | `sierpinski.tetrahedron.surface.graph(level = 2, surface = c("standard", "squashed", "twisted", "wavy"), amplitude = 0.3, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: recursion depth for the classic Sierpinski tetrahedron.
@@ -273,11 +281,11 @@ Parameters:
 
 ### 6.1 Generic recursive cube-mask family
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.recursive.cube.mask` | `edges.recursive.cube.mask(mask, level = 2)` | [graph_helpers.R#L7879](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7879) |
-| `recursive.cube.mask.surface.embedding` | `recursive.cube.mask.surface.embedding(mask, level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R#L6459](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6459) |
-| `recursive.cube.mask.surface.graph` | `recursive.cube.mask.surface.graph(mask, level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6494](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6494) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.recursive.cube.mask` | `edges.recursive.cube.mask(mask, level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.cube.mask.surface.embedding` | `recursive.cube.mask.surface.embedding(mask, level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `recursive.cube.mask.surface.graph` | `recursive.cube.mask.surface.graph(mask, level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `mask`: logical cubic keep-array.
@@ -291,11 +299,11 @@ Parameters:
 
 ### 6.2 Menger sponge wrapper
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.menger.sponge` | `edges.menger.sponge(level = 2)` | [graph_helpers.R#L7950](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7950) |
-| `menger.sponge.surface.embedding` | `menger.sponge.surface.embedding(level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R#L6581](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6581) |
-| `menger.sponge.surface.graph` | `menger.sponge.surface.graph(level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6605](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6605) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.menger.sponge` | `edges.menger.sponge(level = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `menger.sponge.surface.embedding` | `menger.sponge.surface.embedding(level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `menger.sponge.surface.graph` | `menger.sponge.surface.graph(level = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: Menger-sponge recursion depth.
@@ -303,11 +311,11 @@ Parameters:
 
 ### 6.3 Porous cube mask constructors
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `mask.cube.periodic.tunnels` | `mask.cube.periodic.tunnels(side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2)` | [graph_helpers.R#L2891](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2891) |
-| `mask.cube.asymmetric.cavities` | `mask.cube.asymmetric.cavities(side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L))` | [graph_helpers.R#L2905](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2905) |
-| `mask.cube.channel.network` | `mask.cube.channel.network(side = 5, channel_width = 1, branch_offset = 2)` | [graph_helpers.R#L2917](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L2917) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `mask.cube.periodic.tunnels` | `mask.cube.periodic.tunnels(side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.cube.asymmetric.cavities` | `mask.cube.asymmetric.cavities(side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
+| `mask.cube.channel.network` | `mask.cube.channel.network(side = 5, channel_width = 1, branch_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `side`: side length of the cubic mask.
@@ -323,11 +331,11 @@ Parameters:
 
 #### Periodic tunnels
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.cube.periodic.tunnels` | `edges.cube.periodic.tunnels(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2)` | [graph_helpers.R#L7958](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7958) |
-| `cube.periodic.tunnels.surface.embedding` | `cube.periodic.tunnels.surface.embedding(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R#L6683](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6683) |
-| `cube.periodic.tunnels.surface.graph` | `cube.periodic.tunnels.surface.graph(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6716](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6716) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.cube.periodic.tunnels` | `edges.cube.periodic.tunnels(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.periodic.tunnels.surface.embedding` | `cube.periodic.tunnels.surface.embedding(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.periodic.tunnels.surface.graph` | `cube.periodic.tunnels.surface.graph(level = 2, side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: recursion depth.
@@ -336,11 +344,11 @@ Parameters:
 
 #### Asymmetric cavities
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.cube.asymmetric.cavities` | `edges.cube.asymmetric.cavities(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L))` | [graph_helpers.R#L7977](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7977) |
-| `cube.asymmetric.cavities.surface.embedding` | `cube.asymmetric.cavities.surface.embedding(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L), surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R#L6757](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6757) |
-| `cube.asymmetric.cavities.surface.graph` | `cube.asymmetric.cavities.surface.graph(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L), surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6788](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6788) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.cube.asymmetric.cavities` | `edges.cube.asymmetric.cavities(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.asymmetric.cavities.surface.embedding` | `cube.asymmetric.cavities.surface.embedding(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L), surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.asymmetric.cavities.surface.graph` | `cube.asymmetric.cavities.surface.graph(level = 2, side = 5, cavity_size = 2, pocket_size = max(1L, cavity_size - 1L), surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: recursion depth.
@@ -349,11 +357,11 @@ Parameters:
 
 #### Channel network
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.cube.channel.network` | `edges.cube.channel.network(level = 2, side = 5, channel_width = 1, branch_offset = 2)` | [graph_helpers.R#L7994](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7994) |
-| `cube.channel.network.surface.embedding` | `cube.channel.network.surface.embedding(level = 2, side = 5, channel_width = 1, branch_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R#L6827](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6827) |
-| `cube.channel.network.surface.graph` | `cube.channel.network.surface.graph(level = 2, side = 5, channel_width = 1, branch_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L6858](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L6858) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.cube.channel.network` | `edges.cube.channel.network(level = 2, side = 5, channel_width = 1, branch_offset = 2)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.channel.network.surface.embedding` | `cube.channel.network.surface.embedding(level = 2, side = 5, channel_width = 1, branch_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `cube.channel.network.surface.graph` | `cube.channel.network.surface.graph(level = 2, side = 5, channel_width = 1, branch_offset = 2, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq = 2, twist = 0.6, x_scale = 1, y_scale = 1, z_scale = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `level`: recursion depth.
@@ -364,11 +372,11 @@ Parameters:
 
 ### 7.1 Closed triangulated polyhedra
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.triangulated.polyhedron` | `edges.triangulated.polyhedron(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1)` | [graph_helpers.R#L7887](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7887) |
-| `triangulated.polyhedron.surface.embedding` | `triangulated.polyhedron.surface.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, surface = c("standard", "inflated", "twisted", "wavy"), amplitude = 0.25, freq = 2, twist = 0.6)` | [graph_helpers.R#L5278](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5278) |
-| `triangulated.polyhedron.surface.graph` | `triangulated.polyhedron.surface.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, surface = c("standard", "inflated", "twisted", "wavy"), amplitude = 0.25, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5301](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5301) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.triangulated.polyhedron` | `edges.triangulated.polyhedron(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.polyhedron.surface.embedding` | `triangulated.polyhedron.surface.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, surface = c("standard", "inflated", "twisted", "wavy"), amplitude = 0.25, freq = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.polyhedron.surface.graph` | `triangulated.polyhedron.surface.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, surface = c("standard", "inflated", "twisted", "wavy"), amplitude = 0.25, freq = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `base`: starting Platonic surface to subdivide.
@@ -381,11 +389,11 @@ Parameters:
 
 ### 7.2 Triangulated annulus
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.triangulated.annulus` | `edges.triangulated.annulus(resolution = 12, outer_radius = 1, inner_radius = 0.45)` | [graph_helpers.R#L7911](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7911) |
-| `triangulated.annulus.surface.embedding` | `triangulated.annulus.surface.embedding(resolution = 12, outer_radius = 1, inner_radius = 0.45, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R#L5435](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5435) |
-| `triangulated.annulus.surface.graph` | `triangulated.annulus.surface.graph(resolution = 12, outer_radius = 1, inner_radius = 0.45, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5460](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5460) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.triangulated.annulus` | `edges.triangulated.annulus(resolution = 12, outer_radius = 1, inner_radius = 0.45)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.annulus.surface.embedding` | `triangulated.annulus.surface.embedding(resolution = 12, outer_radius = 1, inner_radius = 0.45, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.annulus.surface.graph` | `triangulated.annulus.surface.graph(resolution = 12, outer_radius = 1, inner_radius = 0.45, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `resolution`: sampling density of the clipped triangular lattice.
@@ -397,11 +405,11 @@ Parameters:
 
 ### 7.3 Triangulated pair of pants
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.triangulated.pair.of.pants` | `edges.triangulated.pair.of.pants(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18)` | [graph_helpers.R#L7925](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7925) |
-| `triangulated.pair.of.pants.surface.embedding` | `triangulated.pair.of.pants.surface.embedding(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R#L5567](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5567) |
-| `triangulated.pair.of.pants.surface.graph` | `triangulated.pair.of.pants.surface.graph(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5596](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5596) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.triangulated.pair.of.pants` | `edges.triangulated.pair.of.pants(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.pair.of.pants.surface.embedding` | `triangulated.pair.of.pants.surface.embedding(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `triangulated.pair.of.pants.surface.graph` | `triangulated.pair.of.pants.surface.graph(resolution = 12, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `resolution`: sampling density of the clipped triangular lattice.
@@ -415,11 +423,11 @@ Parameters:
 
 ### 8.1 Irregular annulus
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.annulus` | `edges.irregular.annulus(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R#L7560](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7560) |
-| `irregular.annulus.surface.embedding` | `irregular.annulus.surface.embedding(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R#L5707](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5707) |
-| `irregular.annulus.surface.graph` | `irregular.annulus.surface.graph(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5740](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5740) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.annulus` | `edges.irregular.annulus(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.annulus.surface.embedding` | `irregular.annulus.surface.embedding(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.annulus.surface.graph` | `irregular.annulus.surface.graph(rings = 6, outer_count = 28, outer_radius = 1, inner_radius = 0.45, count_irregularity = 0.2, radial_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `rings`: number of concentric irregular rings.
@@ -432,11 +440,11 @@ Parameters:
 
 ### 8.2 Irregular sphere
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.sphere` | `edges.irregular.sphere(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R#L7634](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7634) |
-| `irregular.sphere.surface.embedding` | `irregular.sphere.surface.embedding(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25)` | [graph_helpers.R#L5041](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5041) |
-| `irregular.sphere.surface.graph` | `irregular.sphere.surface.graph(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5110](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5110) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.sphere` | `edges.irregular.sphere(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.sphere.surface.embedding` | `irregular.sphere.surface.embedding(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.sphere.surface.graph` | `irregular.sphere.surface.graph(bands = 6, equator_count = 28, count_irregularity = 0.2, lat_irregularity = 0.35, phase_twist = 0.35, surface = c("standard", "ellipsoid", "wavy"), radius = 1, amplitude = 0.2, freq_theta = 3, freq_lat = 2, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `bands`: number of irregular latitude bands.
@@ -448,11 +456,11 @@ Parameters:
 
 ### 8.3 Irregular pair of pants
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.pair.of.pants` | `edges.irregular.pair.of.pants(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R#L7582](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7582) |
-| `irregular.pair.of.pants.surface.embedding` | `irregular.pair.of.pants.surface.embedding(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R#L5864](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5864) |
-| `irregular.pair.of.pants.surface.graph` | `irregular.pair.of.pants.surface.graph(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L5901](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L5901) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.pair.of.pants` | `edges.irregular.pair.of.pants(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.pair.of.pants.surface.embedding` | `irregular.pair.of.pants.surface.embedding(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.pair.of.pants.surface.graph` | `irregular.pair.of.pants.surface.graph(slices = 11, outer_count = 28, outer_radius = 1.1, hole_radius = 0.24, hole_offset = 0.38, hole_height = 0.18, count_irregularity = 0.2, vertical_irregularity = 0.35, phase_twist = 0.35, surface = c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude = 0.6, freq_u = 1, freq_v = 1, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `slices`: number of horizontal slice levels.
@@ -465,11 +473,11 @@ Parameters:
 
 ### 8.4 Irregular torus
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.torus` | `edges.irregular.torus(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35)` | [graph_helpers.R#L7467](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7467) |
-| `irregular.torus.surface.embedding` | `irregular.torus.surface.embedding(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25)` | [graph_helpers.R#L4089](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4089) |
-| `irregular.torus.surface.graph` | `irregular.torus.surface.graph(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L4148](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4148) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.torus` | `edges.irregular.torus(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.torus.surface.embedding` | `irregular.torus.surface.embedding(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.torus.surface.graph` | `irregular.torus.surface.graph(major_rings = 8, tube_count = 16, count_irregularity = 0.2, major_irregularity = 0.25, phase_twist = 0.35, surface = c("standard", "pinched", "wavy"), major_radius = 2, minor_radius = 0.75, amplitude = 0.2, freq_major = 2, freq_minor = 1, twist = 0.25, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `major_rings`: number of irregular major-cycle rings.
@@ -481,11 +489,11 @@ Parameters:
 
 ### 8.5 Irregular double torus
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.double.torus` | `edges.irregular.double.torus(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35)` | [graph_helpers.R#L7608](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7608) |
-| `irregular.double.torus.surface.embedding` | `irregular.double.torus.surface.embedding(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.25, freq_x = 2, freq_theta = 2, twist = 0.6)` | [graph_helpers.R#L4331](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4331) |
-| `irregular.double.torus.surface.graph` | `irregular.double.torus.surface.graph(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.25, freq_x = 2, freq_theta = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L4370](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4370) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.double.torus` | `edges.irregular.double.torus(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.double.torus.surface.embedding` | `irregular.double.torus.surface.embedding(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.25, freq_x = 2, freq_theta = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.double.torus.surface.graph` | `irregular.double.torus.surface.graph(slices = 11, tube_count = 14, branch_length = 0.85, branch_offset = 0.72, tube_radius = 0.28, transition_width = 0.42, count_irregularity = 0.2, axial_irregularity = 0.3, phase_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.25, freq_x = 2, freq_theta = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `slices`: number of slice levels in the cyclic genus-2 construction.
@@ -507,11 +515,11 @@ Parameters:
 
 ### 9.1 Irregular ball
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.ball` | `edges.irregular.ball(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35)` | [graph_helpers.R#L7417](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7417) |
-| `irregular.ball.solid.embedding` | `irregular.ball.solid.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6)` | [graph_helpers.R#L4557](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4557) |
-| `irregular.ball.solid.graph` | `irregular.ball.solid.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L4591](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4591) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.ball` | `edges.irregular.ball(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.ball.solid.embedding` | `irregular.ball.solid.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.ball.solid.graph` | `irregular.ball.solid.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `base`: outer shell template used for the layered tetrahedralized solid.
@@ -528,11 +536,11 @@ Parameters:
 
 ### 9.2 Irregular shell
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `edges.irregular.shell` | `edges.irregular.shell(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35)` | [graph_helpers.R#L7438](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7438) |
-| `irregular.shell.solid.embedding` | `irregular.shell.solid.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6)` | [graph_helpers.R#L4683](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4683) |
-| `irregular.shell.solid.graph` | `irregular.shell.solid.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L4719](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L4719) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `edges.irregular.shell` | `edges.irregular.shell(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.shell.solid.embedding` | `irregular.shell.solid.embedding(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6)` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | internal |
+| `irregular.shell.solid.graph` | `irregular.shell.solid.graph(base = c("tetrahedron", "octahedron", "icosahedron"), level = 1, layers = 3, inner_radius = 0.45, outer_radius = 1, radial_irregularity = 0.25, layer_twist = 0.35, surface = c("standard", "bulged", "twisted", "wavy"), amplitude = 0.2, freq_theta = 2, freq_phi = 2, twist = 0.6, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `base`, `level`, `layers`: same meaning as in `edges.irregular.ball`.
@@ -543,9 +551,9 @@ Parameters:
 
 ## 10. Intrinsic weighted trees
 
-| Function | Signature | Implementation |
-|---|---|---|
-| `kary.tree.weighted.graph` | `kary.tree.weighted.graph(k = 2, depth = 2, base_length = 1, depth_rule = c("geometric", "constant", "custom"), depth_decay = 0.85, depth_factors = NULL, branch_rule = c("linear", "uniform", "custom"), branch_spread = 0.3, branch_factors = NULL, normalize = c("median", "mean", "none"))` | [graph_helpers.R#L7758](https://github.com/pgajer/grip/blob/main/R/graph_helpers.R#L7758) |
+| Function | Signature | Implementation | API status (0.2.0) |
+|---|---|---|---|
+| `kary.tree.weighted.graph` | `kary.tree.weighted.graph(k = 2, depth = 2, base_length = 1, depth_rule = c("geometric", "constant", "custom"), depth_decay = 0.85, depth_factors = NULL, branch_rule = c("linear", "uniform", "custom"), branch_spread = 0.3, branch_factors = NULL, normalize = c("median", "mean", "none"))` | [graph_helpers.R](https://github.com/pgajer/grip/blob/v0.2.0/R/graph_helpers.R) | exported |
 
 Parameters:
 - `k`: branching factor.

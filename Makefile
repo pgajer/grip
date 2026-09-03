@@ -96,6 +96,7 @@ paper-submission-bundle: paper-supplement
 
 repo-hygiene:
 	@tools/check-dev-source-only.sh
+	@Rscript tools/check-release-content.R
 
 rchk:
 	@tools/check_rchk.sh

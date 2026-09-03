@@ -189,6 +189,27 @@ test_that("threaded flat optimizer matches the serial flat optimizer", {
   expect_identical(opt.capped$n_threads_used, 2L)
 })
 
+test_that("GMDS thread environment fallback respects explicit settings and cap", {
+  previous <- Sys.getenv("GRIP_GMDS_THREADS", unset = NA_character_)
+  on.exit(if (is.na(previous)) Sys.unsetenv("GRIP_GMDS_THREADS") else
+    Sys.setenv(GRIP_GMDS_THREADS = previous), add = TRUE)
+  prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
+  coords <- cbind(seq_len(4L), c(0, 0.1, -0.1, 0))
+  run <- function(threads) grip:::grip.optimize.geodesic.mds(
+    coords = coords, prepared = prepared, engine = "cpp", max_iter = 1L,
+    n_threads = threads)$n_threads_used
+  Sys.setenv(GRIP_GMDS_THREADS = "1")
+  expect_identical(run(0L), 1L)
+  expect_identical(run(2L), 2L)
+  Sys.setenv(GRIP_GMDS_THREADS = "99")
+  expect_identical(run(0L), 2L)
+  expect_identical(run(1L), 1L)
+  for (value in c("invalid", "0", "-1")) {
+    Sys.setenv(GRIP_GMDS_THREADS = value)
+    expect_true(run(0L) %in% 1:2)
+  }
+})
+
 test_that("anchored scoring and continuation expose the tether contribution", {
   edges <- edges.path(3L)
   coords <- cbind(

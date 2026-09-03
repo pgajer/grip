@@ -1,15 +1,17 @@
 # grip Design Documents
 
-Development-phase design notes, action plans, benchmarks, and prototypes organized by topic.
+Public technical design notes, benchmark specifications, and prototypes,
+organized by topic. Internal execution plans and task handoffs are not repository
+inputs and are maintained separately.
 
 ## Topic directories
 
 - `grip/` — GRIP core, globalrep, cross-family experiments, insertion/refinement
-- `weighted-grip/` — weighted GRIP phase plans (MISF, caches, insertion, refinement)
+- `weighted-grip/` — weighted GRIP technical notes (MISF, caches, insertion, refinement)
 - `lgkk/` — landmark geodesic KK optimizer, bug fixes, test suites
-- `gmds/` — geodesic MDS design, implementation plans, cleanup, pathology analysis
+- `gmds/` — geodesic MDS design, compatibility, and pathology analysis
 - `graph-families/` — synthetic graph family specs, generators, geometry gallery
-- `gripui/` — Shiny app design and MVP implementation plans
+- `gripui/` — Shiny app design specifications
 
 ## Output directories
 
