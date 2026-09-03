@@ -3,6 +3,9 @@
 This five-cloud experiment supplies the manuscript's worked example of both
 stages of `X -> G -> Z`, with detailed methods and checks in Supplement S3.
 It does not replace the separate two-dimensional flattening experiment.
+For a configurable **single-sample** rerun with interactive `ivue` graph and
+point views, see [README-single-saddle.md](README-single-saddle.md) and
+`single-saddle-ivue.R`.
 Generated data, figures, and numeric summaries are in
 `../../../build/two-fidelity-pilot/` relative to this directory. Use a new output
 directory if changing any scientific protocol setting; saved results are reused
