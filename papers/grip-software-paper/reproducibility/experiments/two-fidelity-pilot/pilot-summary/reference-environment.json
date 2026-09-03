@@ -1,0 +1,6 @@
+{
+  "numpy": "2.5.2",
+  "scipy": "1.18.1",
+  "pygeodesic": "0.1.11",
+  "plane_max_absolute_error": 1.3322676295501878e-15
+}
