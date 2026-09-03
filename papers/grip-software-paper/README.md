@@ -24,12 +24,20 @@ draft build stamp, verifies citations, and writes a clean, versioned directory
 and ZIP archive under `output/rjournal_paper/submission/`. The archive includes
 the manuscript sources, figure sidecars, motivation letter, package list, and
 the self-contained reproduction materials, Supplement S1 on weighted-GRIP
-complexity, and Supplement S2 with the full higher-dimensional Möbius-strip
-comparison. Both supplements' canonical LaTeX sources, bibliographies, and
-citation evidence live in `supplement/`; PDFs and intermediates are generated
+complexity, Supplement S2 with the full higher-dimensional Möbius-strip
+comparison, and Supplement S3 with the sampled-saddle protocol and additional
+controlled examples. Canonical supplement sources (LaTeX for S1/S2, Rmd for S3),
+bibliographies, and citation evidence live in `supplement/`; PDFs and intermediates are generated
 under `build/supplement/`. The regular paper-rendering targets also build and
-check both supplements. Their PDFs, sources, and portable build instructions
+check all three supplements. Their PDFs, sources, and portable build instructions
 are included in the submission archive.
+
+The sampled-saddle figures read the compact tracked input
+`reproducibility/precomputed/two-fidelity-saddle.rds`. They do not require the
+large pilot working directory or a rerun of the geodesic calculations. The
+generation and validation scripts are in
+`reproducibility/experiments/two-fidelity-pilot/`. S3 retains the earlier
+executable circle example and full fixed-grid saddle comparison.
 
 The Möbius comparison uses shared functions in
 `reproducibility/scripts/mobius-dimension-comparison.R`: the manuscript

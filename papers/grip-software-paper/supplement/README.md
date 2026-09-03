@@ -50,3 +50,28 @@ portable copy of the citation checker. To rebuild after extraction, run
 The related `reproducibility/` directory contains data, benchmark artifacts,
 and computational reproduction scripts; this supplement is a mathematical
 analysis and does not replace those materials.
+
+## Supplements S2 and S3
+
+S2 provides the higher-dimensional Möbius-strip comparison, with canonical
+source `S2-mobius-comparison.tex` and separate bibliography and citation evidence.
+
+S3 documents the five independent, 1,000-observation sampled-saddle experiments:
+graph calibration, numerical surface-reference checks, primary and additional
+iteration results, identity-embedding controls, and end-to-end errors. It also
+retains the executable variable-density circle example and full fixed-grid
+saddle comparison moved from the main text. Its canonical source is
+`S3-controlled-examples.Rmd`; `render-S3.R` renders it using R, rmarkdown,
+bookdown, grip, dgraphs, igraph, Pandoc, and LaTeX. Python is needed to repeat
+the surface-distance experiment, not to render the supplement.
+
+The regular `make` target renders S3 from the supplied compact RDS and runs its
+citation gate. From the repository root, its narrow build is:
+
+```sh
+Rscript papers/grip-software-paper/supplement/render-S3.R \
+  papers/grip-software-paper/build/supplement
+```
+
+All supplementary PDFs and generated figures remain under `build/`. The
+submission archive includes the source and input files needed to rebuild them.

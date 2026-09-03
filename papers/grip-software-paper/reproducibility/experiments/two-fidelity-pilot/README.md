@@ -1,8 +1,9 @@
 # Two-fidelity saddle pilot
 
-This standalone five-cloud experiment studies both stages of `X -> G -> Z`.
-It does not modify the manuscript or replace the previous two-dimensional
-flattening experiment. Generated data, figures, and numeric summaries are in
+This five-cloud experiment supplies the manuscript's worked example of both
+stages of `X -> G -> Z`, with detailed methods and checks in Supplement S3.
+It does not replace the separate two-dimensional flattening experiment.
+Generated data, figures, and numeric summaries are in
 `../../../build/two-fidelity-pilot/` relative to this directory. Use a new output
 directory if changing any scientific protocol setting; saved results are reused
 by their recorded cloud, grid, source-count, and neighborhood identifiers.
@@ -180,6 +181,8 @@ Rscript "$pilot_src/calibrate.R" "$pilot_out"
 Rscript "$pilot_src/check-results.R" "$pilot_out"
 Rscript "$pilot_src/plot-results.R" "$pilot_out"
 Rscript "$pilot_src/record-results.R" "$pilot_out"
+Rscript "$pilot_src/export-paper-data.R" "$pilot_out" \
+  papers/grip-software-paper/reproducibility/precomputed/two-fidelity-saddle.rds
 ```
 
 Saved R objects retain the actual R/package environment; the Python environment
@@ -188,6 +191,12 @@ exact distance solves, and result-array creation (not later CSV serialization).
 Graph timings measure construction and all-pairs distances. Layout timings
 separate preparation, MDS, edge-KK, and the additional-budget diagnostic.
 Workers run independent reference clouds; worker elapsed time is not CPU time.
+
+The compact publication export preserves representative coordinates and
+graphs together with all scalar results. The manuscript and S3 use the shared
+`reproducibility/scripts/plot-two-fidelity.R` functions and do not depend on
+the large build directory. The original standalone figures remain available;
+publication captions and numbering are supplied by the respective Rmd sources.
 
 The sources below document solver capabilities, not the pilot's mathematical
 derivations or empirical conclusions. BibTeX metadata and claim checks are in

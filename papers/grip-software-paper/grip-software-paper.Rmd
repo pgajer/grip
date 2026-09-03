@@ -864,7 +864,9 @@ neighborhood and clustering analyses, and distances to centroids in the
 embedded coordinates use endpoint chords. Trajectory and pseudotime analyses
 instead use graph or lineage paths to order cells and follow changes along
 those paths [@haghverdi2016; @street2018; @wolf2019]. Chord fidelity governs
-the former; fixed-path fidelity governs the latter.
+the former; fixed-path fidelity governs the latter. The worked example
+\emph{Linking the two fidelity stages} below compares these criteria after
+calibrating graphs against a known saddle surface.
 
 ```{r noisy-circle-path-geometry, fig.cap="A graph-to-embedding contrast for the identity embedding of a data-derived graph. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their connected symmetric 6NN graph drawn at the same coordinates, so $z_i=x_i$. The white endpoints are joined by one fixed graph shortest path (blue), whose embedded length exactly equals its input-graph length, and by their Euclidean chord (dashed red); the legend gives their lengths. The display compares two metrics on the same graph and embedding; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, which uses the identity embedding, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path retains its input-graph length and is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
 RNGversion("4.0.0") # Preserve this illustrative realization's RNG stream.
@@ -1276,102 +1278,73 @@ par(op)
 
 ## Linking the two fidelity stages
 
-A variable-density unit circle makes the two fidelity stages observable because
-its intrinsic arc-distance matrix $D_X$ is known. The example draws 60
-unevenly spaced points, constructs symmetric $k$-nearest-neighbor graphs with
-the companion \CRANpkg{dgraphs} package, and compares $D_X$ with each graph
-distance matrix $D_G$. For every graph, \CRANpkg{grip} then compares a weighted
-GRIP layout and metric MDS using the same graph-to-embedding diagnostics.
+Known surface geometry allows graph construction to be assessed before an
+embedding is evaluated. We drew five independent samples of 1,000 points,
+uniformly by surface area, from the saddle
+$z=0.8(x^2-y^2)$ over $(x,y)\in[-1,1]^2$. For each sample,
+\CRANpkg{dgraphs} constructed symmetric $k$-nearest-neighbor graphs with
+Euclidean edge lengths, adding minimum-spanning-tree edges between components
+when needed. Numerical geodesic distances on the bounded surface patch
+provided a reference for $D_X$.
 
-```{r paired-fidelity-example}
-set.seed(271)
-n.circle <- 60L
-circle.parameter <- sort(stats::runif(n.circle)^1.65)
-circle.angle <- 2 * pi * circle.parameter
-circle.data <- cbind(cos(circle.angle), sin(circle.angle))
-circle.arc <- outer(circle.angle, circle.angle, function(a, b) abs(a - b))
-D.circle <- pmin(circle.arc, 2 * pi - circle.arc)
+The $X\to G$ comparison used 119,744 distinct pairs per sample, obtained from
+128 randomly selected source vertices. Graph and surface distances retained
+their common physical units, without fitting a scale. The initial range
+$k=3,\ldots,20$ gave boundary minima, as did an extension to 40; extending the
+range to 80 gave interior minima at 71, 70, 67, 72, and 73
+(Figure \@ref(fig:saddle-calibration-layouts)).
+Surface-to-graph relative RMSE at these choices ranged from 0.203% to 0.217%.
+Several neighboring values gave similar errors. Selection here uses the known
+generating surface and its numerical reference; it is not a rule for choosing
+$k$ when the underlying geometry is unknown.
 
-paired.rows <- lapply(c(5L, 7L, 9L), function(k) {
-  graph <- dgraphs::create.sknn.graph(
-    circle.data,
-    k = k,
-    neighbor.method = "exact",
-    connect.components = TRUE
-  )
-  stopifnot(graph$n_components_before == 1L, nrow(graph$mst_edge_matrix) == 0L)
-  D.graph <- dgraphs::graph.geodesic.distances(graph)
-  graph.loss <- dgraphs::isometry.rel.rms.error(D.graph, D.circle)
-  prepared <- prepare.graph.geodesic.mds(
-    adj_list = graph$adj_list,
-    weight_list = graph$weight_list
-  )
+On each selected graph, \CRANpkg{grip} generated three-dimensional metric-MDS
+coordinates and refined them with edge-KK. The generating coordinates
+provided a third configuration: because they realize every supplied Euclidean
+edge length, their edge and fixed-path losses are zero. All three
+configurations used the same retained input-graph shortest paths for all
+499,500 unordered vertex pairs. Edge relative RMSE used all graph edges.
+The graph-to-embedding statistics fitted their scales separately, following
+the definitions above.
 
-  layouts <- list(
-    "Weighted GRIP" = grip(
-      adj_list = graph$adj_list,
-      weight_list = graph$weight_list,
-      n = n.circle,
-      dim = 2,
-      metric = "edge_length",
-      seed = 19
-    ),
-    "Metric MDS" = metric.mds(prepared = prepared, dim = 2)$coords
-  )
-
-  do.call(rbind, lapply(names(layouts), function(method) {
-    score <- score.gmds(layouts[[method]], prepared = prepared)
-    data.frame(
-      k = k,
-      `X-G Rel` = graph.loss,
-      Embedding = method,
-      `G-Z Path` = score$gmds.stress,
-      `G-Z Chord` = score$metric.chord.stress,
-      check.names = FALSE
-    )
-  }))
-})
-paired.fidelity <- do.call(rbind, paired.rows)
-
-accessible_kable(
-  paired.fidelity,
-  digits = 3,
-  row.names = FALSE,
-  align = c("r", "r", "l", "r", "r"),
-  group_after = c(2L, 4L),
-  caption = paper_table_caption(
-    paste(
-      "Separate data-to-graph and graph-to-embedding losses for one",
-      "controlled variable-density circle realization. All three graphs",
-      "are connected without adding edges between components."
-    ),
-    paste(
-      "X-G Rel = target-normalized data-to-graph relative RMSE;",
-      "G-Z Path = fixed-path relative RMSE; G-Z Chord = chord relative RMSE."
-    )
-  ),
-  alt = paste(
-    "Six rows report separate data-to-graph and graph-to-embedding losses for",
-    "three symmetric nearest-neighbor graphs, each embedded with weighted GRIP",
-    "and metric MDS."
-  ),
-  position = "H"
-)
+```{r saddle-pilot-data, include=FALSE}
+source("reproducibility/scripts/plot-two-fidelity.R")
+saddle.pilot <- read.extdata.rds("two-fidelity-saddle.rds")
+stopifnot(nrow(saddle.pilot$scores) == 15L,
+          nrow(saddle.pilot$curves) == 390L,
+          saddle.pilot$provenance$sample_size == 1000L,
+          saddle.pilot$provenance$embedding_dimension == 3L)
 ```
 
-This example illustrates the two fidelity assessments, rather than comparing
-the performance of graph constructors or embedding methods. In this realization,
-the $k=5$ graph is connected but fails
-to close the sparsely sampled part of the circle, producing a large
-data-to-graph error. Metric MDS represents that supplied graph with small
-graph-to-embedding loss, but the low value cannot recover the circular relationship
-already lost during graph construction. The $k=7$ and $k=9$ graphs approximate $D_X$ much more
-closely, while the graph-to-embedding columns still distinguish how their
-geometry is represented. The two losses are therefore retained as separate,
-conditional diagnostics rather than added or multiplied. A substantive study
-would repeat this calculation over a prespecified calibration family and
-multiple realizations, as illustrated in the companion \CRANpkg{dgraphs}
-article.
+```{r saddle-calibration-layouts, fig.cap="Graph calibration and representative three-dimensional configurations for five independent saddle samples. A: surface-to-graph relative RMSE over the tested neighborhood sizes. B: enlargement near the minima, with a different vertical scale. Open circles mark within-sample minima. C--E: original coordinates, metric MDS, and metric MDS followed by edge-KK for cloud 5, selected by median minimum surface-to-graph error, not by appearance. The layouts are similarity-aligned to the generating coordinates and shown with one projection and scale; vertex colors retain original x-coordinate identity. Blue marks the same retained graph path, and dashed brown its endpoint chord. Fidelity scores are computed before display alignment and projection.", fig.alt="Two calibration plots show surface-to-graph errors across five samples, followed by three consistently aligned 3D layouts of the median-selected sample: original saddle, metric MDS, and metric MDS refined by edge-KK.", fig.width=10.6, fig.height=7.1, fig.pos="H"}
+plot_pilot_calibration_layouts(saddle.pilot)
+```
+
+Edge-KK reduced edge and fixed-path relative RMSE in all five samples
+(Figure \@ref(fig:saddle-pilot-scores)). Median fixed-path relative RMSE
+decreased from 3.451% to 0.245%, and median edge relative RMSE from 7.133% to
+0.382%. Median MDS Stress-1 increased from 3.459% to 4.715%; chord stress
+increased in every sample. Thus refinement improved preservation of
+graph-path lengths while worsening agreement between graph distances and
+endpoint chords. All five stages of every edge-KK run reached their
+200-iteration limit, so these are achieved losses, not established minima.
+The improvement in path fidelity did not improve agreement with the
+generating coordinates: median normalized Procrustes discrepancy increased
+from 29.2% to 30.7%.
+
+```{r saddle-pilot-scores, fig.cap="Paired graph-to-embedding comparisons across five independent samples of 1,000 observations. Each small dot represents one sample; thin lines join results on the same selected graph. Open circles and numeric labels show medians. All configurations are three-dimensional. Fixed-path and chord scores use all 499,500 unordered pairs, while edge scores use all graph edges. The three statistics have different normalizations, and vertical scales differ. These fixed-budget results include all five samples; no confidence intervals are shown.", fig.alt="Three panels compare original saddle coordinates, metric MDS, and MDS followed by edge-KK across five samples. Edge-KK lowers fixed-path and edge errors in every sample but increases chord stress.", fig.width=10.2, fig.height=3.8, fig.pos="H"}
+plot_pilot_scores(saddle.pilot)
+```
+
+The separation of the two stages also appears at the sparse end of the
+calibration range. At $k=3$, the repaired graphs had surface-to-graph errors
+between 62.2% and 94.7%, although the original coordinates still preserved
+every graph edge and retained path exactly. Connectivity and zero
+graph-to-embedding path loss therefore do not establish surface-distance
+fidelity. Supplement S3 shows this contrast and provides the numerical-reference
+checks, additional-iteration results, and full experimental settings. The
+figures here read supplied coordinates and scores; the supplementary archive
+contains these inputs and scripts for repeating the experiment.
 
 ## Supporting graph families and preset behavior
 
@@ -1461,107 +1434,14 @@ plot_layout_panel(
 par(op)
 ```
 
-## Fixed weighted graph: graph-geodesic assessment
+\medskip
 
-An edge-length metric matters when a graph's topology is simple but its geometry
-is not. Here a regular $10 \times 10$ grid of $(x,y)$ values in $[-1,1]^2$ is
-lifted to the saddle surface $z=0.8(x^2-y^2)$. These generating coordinates form
-the target saddle in Figure \@ref(fig:weighted-figure). The graph joins
-horizontal and vertical grid neighbors, assigning each of its 180 edges the
-Euclidean distance between its 3D endpoints, divided by the median edge length.
-Its topology is unchanged, but the resulting graph metric differs from that
-of the flat grid. Distances in $D_G$ follow these mesh edges; they are not
-continuous-surface geodesic distances.
-
-The comparison includes combinatorial and weighted GRIP, metric MDS, and weighted
-Kamada--Kawai from \CRANpkg{igraph}, together with edge-KK refinement of both the
-metric-MDS and weighted-GRIP configurations. Six LGKK refinement rounds provide a
-second refinement of the same weighted-GRIP coordinates. All layouts are
-three-dimensional. Both edge-KK runs use the default density-stiffness
-continuation schedule with at most 50 iterations per stage; stochastic calls
-use seed 1. The graph and one selected shortest path for each of its 4,950
-unordered vertex pairs are fixed before scoring. `score.gmds()` measures edge
-and fixed-path relative RMSE, while `score.geodesic.kk()` supplies the weighted
-path diagnostics. This comparison concerns graph-to-embedding fidelity, not
-how well the graph represents an underlying data set.
-
-The coordinates and scores used in this comparison are precomputed. The
-supplementary archive provides these results, a $15 \times 15$ comparison under
-the same settings, and the scripts used to generate both.
-
-```{r weighted-summary}
-weighted.saddle <- benchmark.results$weighted_saddle
-weighted.resolutions <- benchmark.results$weighted_saddle_resolutions
-
-weighted.score.cols <- c(
-  "edge.rel.rmse",
-  "gmds.stress",
-  "gkk.weighted.rel.rmse",
-  "gkk.mean.rel.path.error"
-)
-
-weighted.summary <- weighted.saddle$scores[, c("method", weighted.score.cols)]
-# Keep stored method identifiers unchanged; use the shorter label in the table.
-weighted.summary$method <- sub(" + LGKK polish", " + LGKK",
-                               weighted.summary$method, fixed = TRUE)
-# Keep small, nonzero errors visible rather than rounding them to exact zero.
-weighted.summary[weighted.score.cols] <- lapply(
-  weighted.summary[weighted.score.cols], formatC, format = "g", digits = 3
-)
-
-accessible_kable(
-  weighted.summary,
-  col.names = c("Method", "Edge Rel", "GMDS Rel", "GKK Rel", "Path Rel"),
-  align = c("l", rep("r", 4)),
-  caption = paper_table_caption(
-    paste("Three-dimensional weighted saddle-surface layouts, scored on the",
-          "same 180 edges and 4,950 fixed paths with separately profiled scales."),
-    paste("Edge Rel and GMDS Rel = unweighted edge and fixed-path relative RMSE;",
-          "GKK Rel = weighted relative RMSE; Path Rel = mean relative path error",
-          "at the gKK scale.")
-  ),
-  alt = paste(
-    "Seven rows compare combinatorial and weighted GRIP, metric MDS,",
-    "edge-KK refinement of the latter two, LGKK-refined weighted GRIP,",
-    "and weighted igraph Kamada-Kawai. Both edge-KK refinements reduce",
-    "edge and fixed-path relative RMSE below one millionth."
-  ),
-  digits = 3
-)
-```
-
-Both edge-KK refinements reduce edge and fixed-path relative RMSE below
-$10^{-6}$ in this example. The unrefined metric-MDS and weighted-GRIP rows show
-the change from each initialization; combinatorial GRIP remains as a
-topology-only baseline. These are in-sample optimization results, with different
-iteration budgets for edge-KK and LGKK, not a comparison of computational
-efficiency or independent validation of the graph geometry. Under the same
-refinement budget, the $15 \times 15$ comparison also reduces both errors, but
-its residuals remain between $5\times10^{-6}$ and $2\times10^{-5}$; the near-zero
-results should not be interpreted as a size-independent convergence guarantee.
-
-\Needspace{5\baselineskip}
-
-The target saddle is scored at its generating 3D coordinates, without an MDS
-fit. Its Stress-1 value of 0.138 compares their endpoint chords with $D_G$,
-using all 4,950 pairs and a least-squares fitted common scale. Its fixed-path
-loss is zero after profiling out the edge-normalization scale, because those
-coordinates realize every input edge length up to that scale. The nonzero
-chord stress measures the mismatch between graph paths and endpoint distances
-in this configuration. It is neither the smallest attainable stress over all
-embeddings nor a measure of surface curvature alone: $D_G$ also reflects the
-restriction to horizontal and vertical mesh edges.
-
-Figure \@ref(fig:weighted-figure) also exposes a limitation of fixed-path fidelity.
-Preserving the weighted graph paths does not uniquely determine the target's
-extrinsic curvature: a comparatively flat realization can have low path loss.
-The panels are similarity-aligned to the target and use one projection and one
-coordinate scale, so this difference is not a viewing-axis artifact.
-
-```{r weighted-figure, fig.cap="Three-dimensional layouts of a 10 by 10 weighted saddle mesh after similarity alignment to the generating coordinates on $z=0.8(x^2-y^2)$, displayed with a common orthographic projection and scale. The target panel shows those generating coordinates, not an MDS fit. In each row, the right-hand layout starts from the coordinates in the middle panel. The annotations report MDS Stress-1 and fixed-path GMDS relative RMSE from the full 3D coordinates, using all 4,950 vertex pairs, the same retained input paths, and separately fitted least-squares scales. Stress-1 is configuration-normalized; path relative RMSE is input-normalized, so the two magnitudes are not directly interchangeable. Values below $10^{-12}$ are shown as an upper bound. Low fixed-path loss need not recover the target's extrinsic curvature.", fig.alt="Six consistently projected panels show three-dimensional layouts of a 100-vertex saddle mesh, each annotated with MDS Stress-1 and fixed-path GMDS relative RMSE. The middle and right columns compare metric MDS and weighted GRIP before and after edge-KK. The left column contains the generating saddle coordinates and weighted igraph Kamada-Kawai. The target has near-zero path loss but nonzero chord stress; the refined weighted-GRIP layout also has near-zero path loss while remaining visibly flatter than the target.", fig.width=11.2, fig.height=8.6, fig.pos="H"}
-source("reproducibility/scripts/plot-weighted-saddle.R")
-plot_weighted_saddle(weighted.saddle, weighted.resolutions$display_limits)
-```
+The fixed-grid saddle comparison in Supplement S3 provides a complementary
+example with a prescribed graph. It includes weighted-GRIP initialization,
+edge-KK refinement of both weighted-GRIP and metric-MDS coordinates, and LGKK
+refinement. Its horizontal and vertical mesh edges define the graph metric;
+unlike the sampled-surface example above, it does not assess approximation to
+continuous-surface geodesics.
 
 ## Real-data network at package scale
 
@@ -1823,7 +1703,7 @@ in its examples. Extended worked examples are available in the \CRANpkg{grip}
 vignettes and at <https://pgajer.github.io/grip/>.
 
 The smaller examples are evaluated from code in the manuscript. The
-weighted-saddle comparison and UMB-HMP layouts and runtime benchmark use
+sampled-saddle experiment and UMB-HMP layouts and runtime benchmark use
 precomputed results. The supplementary archive provides these results,
 generation scripts, minimal UMB-HMP-only inputs, checksums, and records of data
 sources and processing. Its README gives the exact package source versions and
@@ -1831,6 +1711,9 @@ instructions for reproducing the results.
 Supplement S1 provides the weighted-GRIP computational complexity analysis and its LaTeX
 source. Supplement S2 provides the full Möbius-strip layout comparison; its
 figures are regenerated by the accompanying R script.
+Supplement S3 gives the sampled-saddle protocol, numerical checks and additional
+results, together with the executable circle example and fixed-grid saddle
+comparison.
 
 Future work will connect the two transformations more systematically through a
 two-dimensional experimental design: graph constructors and settings along one

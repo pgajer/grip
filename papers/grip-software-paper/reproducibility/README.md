@@ -27,6 +27,9 @@ recorded separately in `BENCHMARK_PROVENANCE.md` and the RDS metadata.
 
 ## Included artifacts
 
+- `precomputed/two-fidelity-saddle.rds`: compact manuscript and S3 inputs for
+  the sampled-saddle experiment, including representative coordinates, graphs,
+  all calibration curves, and primary/additional-budget scores and checks;
 - `precomputed/vs_alternatives/benchmark_results.rds`: cross-package layouts,
   scores, timings, and generation-session information;
 - `BENCHMARK_PROVENANCE.md`: timing boundary, repeat policy, hardware,
@@ -47,7 +50,9 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 
 | Manuscript component | Supplied input | Regeneration or validation path |
 |---|---|---|
-| Fixed weighted graph comparison | `precomputed/vs_alternatives/benchmark_results.rds`, components `weighted_saddle` and `weighted_saddle_resolutions` | `scripts/compare-saddle-resolutions.R` and its numerical/plotting helpers, also used by the full benchmark |
+| Sampled-saddle calibration, layouts, and paired-score figures | `precomputed/two-fidelity-saddle.rds` | `scripts/plot-two-fidelity.R` renders; `experiments/two-fidelity-pilot/` regenerates and validates the experiment |
+| Fixed weighted graph comparison (Supplement S3) | `precomputed/vs_alternatives/benchmark_results.rds`, components `weighted_saddle` and `weighted_saddle_resolutions` | `scripts/compare-saddle-resolutions.R` and its numerical/plotting helpers, also used by the full benchmark |
+| Executable variable-density circle example (Supplement S3) | Generated directly by `supplement/S3-controlled-examples.Rmd` | Render S3; no precomputed input is used for this example |
 | UMB-HMP-only graph construction summary | `hmp_gc/` graph files and `hmp_gc/upstream/` input tables | `scripts/build-hmp-only-graph.R` |
 | Repeated HMP runtime and shared-scoring benchmark | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp` | `scripts/precompute-vs-alternatives.R` |
 | Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
@@ -59,6 +64,31 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 The table identifies the manuscript result that consumes each supplied
 artifact. Figure and table numbering may change during editing, so the mapping
 uses stable section descriptions and RDS component names.
+
+## Sampled-saddle experiment (main text and Supplement S3)
+
+The manuscript renders both sampled-saddle figures from the compact RDS using
+`scripts/plot-two-fidelity.R`. S3 reads the same results and evaluates the
+smaller circle example directly. Neither render repeats the five-cloud fits
+or requires Python or the multi-gigabyte pilot working directory.
+
+`experiments/two-fidelity-pilot/README.md` documents full regeneration, including
+surface-area sampling, exact symmetric-neighbor search, MST repair, the
+adaptive k range, numerical surface-reference checks, fixed-path scoring,
+refinement budgets, and environment records. After that sequence, export the
+publication input from the manuscript directory with:
+
+```sh
+Rscript reproducibility/experiments/two-fidelity-pilot/export-paper-data.R \
+  build/two-fidelity-pilot reproducibility/precomputed/two-fidelity-saddle.rds
+```
+
+The export is checked against the validated scores. The representative sample
+is selected by median minimum surface-to-graph loss, not appearance. Full
+per-sample results distinguish numerical reference error, source-pair sampling,
+graph selection, and finite-budget optimization. Five samples illustrate
+behavior; they do not establish precise population estimates or a general
+method ranking.
 
 ## Higher-dimensional layout illustration (Supplement S2)
 
@@ -155,7 +185,7 @@ Rscript scripts/compare-saddle-resolutions.R generated/saddle-resolutions \
 
 The command generates 10 by 10 and 15 by 15 saddle meshes from scratch, exporting
 a PDF and PNG for each, a combined score CSV, and the complete RDS objects. It
-selects 10 by 10 for the main manuscript and stores both cases and their shared
+selects 10 by 10 for Supplement S3 and stores both cases and their shared
 plotting limits in `weighted_saddle_resolutions`. To export new comparisons
 without updating a benchmark RDS, omit the final two arguments.
 
@@ -166,7 +196,7 @@ Both edge-KK calls use identical package-default settings, including five
 density-continuation stages with at most 50 iterations per stage. The supplied
 artifact retains these settings, refinement traces, fixed paths, and check
 results within each case. `plot-weighted-saddle.R` is shared by the standalone
-exports and the manuscript figure, with common alignment, projection, limits,
+exports and the Supplement S3 figure, with common alignment, projection, limits,
 panel order, and styling. Each panel, including the target, reports MDS Stress-1
 and fixed-path GMDS relative RMSE. The scores use the raw 3D coordinates and all
 retained vertex pairs, with separately fitted input-distance scales. For chord
@@ -214,7 +244,7 @@ without accounting for scale. The two all-pairs criteria instead fit their
 scales separately, as in the full comparison. The script checks the retained
 path's endpoints, connectivity, grid row, and input length before plotting.
 This preview is not yet inserted in the manuscript; the complete six-panel
-comparison remains unchanged.
+comparison is retained in Supplement S3.
 
 The second command checks the panel metrics against an independent least-squares
 fit and explicit sums along the stored paths, checks agreement with the cached

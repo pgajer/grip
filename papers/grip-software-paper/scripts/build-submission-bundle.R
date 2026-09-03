@@ -66,16 +66,16 @@ copy_tree <- function(relative_path, source_root = paper_dir) {
   if (!dir.exists(source)) {
     stop("Missing required directory: ", source)
   }
-  target_parent <- file.path(bundle_dir, dirname(relative_path))
-  dir.create(target_parent, recursive = TRUE, showWarnings = FALSE)
-  ok <- file.copy(
-    source,
-    target_parent,
-    recursive = TRUE,
-    copy.mode = TRUE,
-    copy.date = TRUE
-  )
-  if (!isTRUE(ok)) {
+  # Copy reproducibility sources and inputs, not locally generated Python caches.
+  files <- list.files(source, recursive = TRUE, all.files = TRUE, no.. = TRUE)
+  files <- files[!grepl("(^|/)(__pycache__|\\.DS_Store)(/|$)|\\.py[co]$", files)]
+  targets <- file.path(bundle_dir, relative_path, files)
+  for (directory in unique(dirname(targets))) {
+    dir.create(directory, recursive = TRUE, showWarnings = FALSE)
+  }
+  ok <- file.copy(file.path(source, files), targets, overwrite = TRUE,
+                  copy.mode = TRUE, copy.date = TRUE)
+  if (!all(ok)) {
     stop("Failed to copy required directory: ", relative_path)
   }
 }
@@ -87,12 +87,13 @@ copy_tree("grip-software-paper_files", source_root = file.path(paper_dir, "build
 supplement_sources <- c(
   file.path(paper_dir, "build", "supplement", "S1-weighted-grip-complexity.pdf"),
   file.path(paper_dir, "build", "supplement", "S2-mobius-comparison.pdf"),
+  file.path(paper_dir, "build", "supplement", "S3-controlled-examples.pdf"),
   file.path(paper_dir, "build", "supplement", "mobius-dimension-comparison.pdf"),
   file.path(paper_dir, "build", "supplement", "mobius-dimension-comparison.rds"),
   file.path(repo_root, "tools", "reports", "check-citation-verification.py")
 )
 if (!all(file.exists(supplement_sources))) {
-  stop("Build Supplements S1 and S2 before bundling (make paper-supplement).")
+  stop("Build Supplements S1--S3 before bundling (make paper-supplement).")
 }
 if (!all(file.copy(
   supplement_sources,
