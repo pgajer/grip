@@ -1351,15 +1351,17 @@ par(op)
 
 # Interoperability and computational scope
 
-The comparison applies the same scoring function to
-Fruchterman--Reingold [@fruchterman1991] and DrL layouts from
-\CRANpkg{igraph} [@igraph2026], stress majorization [@gansner2005] from
-\CRANpkg{graphlayouts}, and a
-default hop-metric GRIP layout on the same UMB-HMP-only graph. All four methods are
-run without edge weights, and `score.layout()` uses hop distance. This isolates
-topology-oriented layout and avoids treating PCA distances as attraction
-strengths in packages whose weight conventions differ. The weighted workflow
-in the preceding section evaluates edge-length geometry separately.
+`score.layout()` can assess coordinates produced by any layout method, provided
+that its rows correspond to the graph vertices. We demonstrate this
+interoperability by applying the same scoring function to four two-dimensional
+layouts of the UMB-HMP graph: Fruchterman--Reingold [@fruchterman1991] and DrL
+from \CRANpkg{igraph} [@igraph2026], stress majorization [@gansner2005] from
+\CRANpkg{graphlayouts}, and default hop-metric GRIP. All four layouts use only
+the unweighted graph topology, and `score.layout()` evaluates them using hop
+distance. This common protocol permits direct comparison of runtime and
+diagnostics without assuming that edge weights have the same numerical meaning
+across packages. The weighted workflow in the preceding section evaluates
+edge-length geometry separately.
 
 ## Runtime and shared scoring at package scale
 
