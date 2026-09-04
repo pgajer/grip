@@ -1,43 +1,73 @@
 #!/usr/bin/env Rscript
-# Fast checks; --integration additionally runs all five stages on 80 points.
-file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
-source(file.path(dirname(normalizePath(file)), "single-saddle-ivue.R"))
-for (args in list(list(n=7), list(n=20, ks=20), list(reference.sources=1),
-                 list(reference.grids=c(81,41)), list(edge.alpha=2), list(max.iter=0))) {
-  stopifnot(inherits(try(do.call(single.saddle.config,args),silent=TRUE),"try-error"))
-}
-stopifnot(identical(single.saddle.config(n=20)$ks,3:19))
-dir <- tempfile("single-saddle-check-"); dir.create(dir)
-cfg <- single.saddle.config(out=dir)
-set.seed(19); prior <- .Random.seed; kind <- RNGkind()
-cloud <- sample.single.saddle(cfg)
-stopifnot(identical(prior,.Random.seed), identical(kind,RNGkind()),
-  nrow(cloud$coords)==1000L, length(cloud$sources)==128L,
-  max(abs(cloud$coords[,3]-.8*(cloud$coords[,1]^2-cloud$coords[,2]^2)))==0)
-paper <- readRDS(file.path(.single.saddle.source,"../../precomputed/two-fidelity-saddle.rds"))
-stopifnot(paper$representative==5, identical(cloud$coords,paper$coords))
-for (n in c(8L,37L,100L)) for (s in c(2L,n)) {
-  D <- abs(outer(seq_len(n),seq_len(n),"-"))
-  pairs <- .ss.reference.pairs(list(sources=seq_len(s),D=D[seq_len(s),,drop=FALSE]))
-  stopifnot(nrow(pairs$pairs)==s*(n-1)-choose(s,2), !anyDuplicated(as.data.frame(pairs$pairs)),
-    all(pairs$pairs[,1]<pairs$pairs[,2]), identical(as.numeric(D[pairs$pairs]),as.numeric(pairs$d)))
-}
-stopifnot(.ss.profile(3*(1:10),1:10)==0)
-cat("Input validation, RNG preservation, exact published-cloud reproduction, and pair bookkeeping passed.\n")
+# Check the teaching script without complicating its four-step interface.
+file <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
+here <- dirname(normalizePath(file))
+code <- parse(file.path(here, "single-saddle-ivue.R"))
 
-if ("--integration" %in% commandArgs(TRUE)) {
-  result <- run.single.saddle(single.saddle.config(n=80, ks=c(1,3,6,10,20),
-    reference.sources=8,reference.grids=c(11,21),fine.grid=31,fine.sources=4,
-    max.iter=8,audit.iter=12,fit.ks=c(3,20),out=tempfile("single-saddle-integration-")),open=FALSE)
-  stopifnot(result$calibration$boundary, result$calibration$curve$bridges[1]>0,
-    length(result$fits)==2L, length(result$views$widgets)>6L)
-  for (fit in result$fits) stopifnot(fit$pairs==choose(80,2),
-    fit$scores$path_rel[1]<1e-7,fit$scores$edge_rel[1]<1e-12,
-    max(fit$scores$package_score_difference)<1e-10)
-  scene <- attr(result$views$widgets[["k-020-mds-edge-kk-graph"]],"ivue")$scene
-  lines <- Filter(function(o) identical(o$type,"lines"),scene$objects)
-  # rgl stores material alpha at 8-bit precision.
-  stopifnot(any(vapply(lines,function(o) length(o$material$alpha)==1L &&
-    abs(o$material$alpha-.03)<=1/255,logical(1))))
-  cat("All five stages and explicit edge opacity passed; artifacts: ",result$config$out,"\n",sep="")
+# Override only top-level settings in memory; never rewrite the script.
+run.example <- function(settings, sample.only = FALSE) {
+  env <- new.env(parent = globalenv())
+  widgets <- list()
+  for (expr in code) {
+    assigned <- if (is.call(expr) && identical(expr[[1]], as.name("<-"))) {
+      as.character(expr[[2]])
+    } else ""
+    if (sample.only && identical(assigned, "colors")) break
+    if (assigned %in% names(settings)) expr[[3]] <- settings[[assigned]]
+    value <- eval(expr, env)
+    if (inherits(value, "htmlwidget")) widgets[[length(widgets) + 1L]] <- value
+  }
+  list(objects = env, widgets = widgets)
 }
+
+# The same seed reproduces the actual published sample, not just its equation.
+RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+cloud <- run.example(list(seed = 2211005), sample.only = TRUE)$objects$X
+paper <- readRDS(file.path(here, "../../precomputed/two-fidelity-saddle.rds"))
+stopifnot(paper$representative == 5, isTRUE(all.equal(cloud, paper$coords,
+                                                  tolerance = 1e-14)))
+cat("Published cloud-5 sampling reproduced.\n")
+
+# Evaluate every plotting call without opening a browser or native window.
+options(rgl.useNULL = TRUE)
+result <- run.example(list(n = 80, max.iter = 10))
+e <- result$objects
+stopifnot(identical(names(e$graphs), as.character(3:20)),
+          identical(names(e$mds), names(e$graphs)),
+          identical(names(e$mds.edge.kk), names(e$graphs)),
+          length(result$widgets) == 7L,
+          max(abs(e$X[, 3] - e$C * (e$X[, 1]^2 - e$X[, 2]^2))) == 0)
+for (w in result$widgets) {
+  stopifnot(nrow(attr(w, "ivue")$X) == e$n)
+}
+for (key in names(e$graphs)) {
+  g <- e$graphs[[key]]
+  ig <- igraph::graph_from_edgelist(g$edge_matrix, directed = FALSE)
+  input.lengths <- sqrt(rowSums((e$X[g$edge_matrix[, 1], ] -
+                                  e$X[g$edge_matrix[, 2], ])^2))
+  stopifnot(igraph::vcount(ig) == e$n, igraph::is_connected(ig),
+            g$n_mst_edges_added == g$n_components_before - 1L,
+            max(abs(input.lengths - g$edge_weight)) < 1e-12)
+  for (z in list(e$mds[[key]], e$mds.edge.kk[[key]])) {
+    stopifnot(identical(dim(z), c(80L, 3L)), all(is.finite(z)))
+  }
+}
+cat("All 18 graphs, MDS/edge-KK fits, and seven ivue calls passed on n=80.\n")
+
+# Verify that removing full-path preparation preserves the fitting problem.
+for (key in c("3", "10", "20")) {
+  g <- e$graphs[[key]]
+  p <- grip::prepare.geodesic.kk(g$edge_matrix, n = e$n,
+                               edge_weights = g$edge_weight, tie_mode = "single")
+  full.mds <- grip::metric.mds(prepared = p, dim = 3, diagnostics = FALSE)$coords
+  stopifnot(max(abs(as.vector(dist(full.mds)) -
+                    as.vector(dist(e$mds[[key]])))) < 1e-8)
+  full.kk <- grip::edge.kk(
+    coords = e$mds[[key]], prepared = p, dim = 3, max_iter = e$max.iter,
+    stiffness_method = "density", density_mix_schedule = c(0, .25, .5, .75, 1),
+    scale_mode = "profiled", edge_length_epsilon = 0,
+    diagnostics = FALSE, return_trace = FALSE, seed = e$seed
+  )$coords
+  stopifnot(max(abs(full.kk - e$mds.edge.kk[[key]])) < 1e-8)
+}
+cat("Lightweight fits agree with full-path preparation at k=3,10,20.\n")
