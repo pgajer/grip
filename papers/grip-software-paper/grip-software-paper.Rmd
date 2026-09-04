@@ -859,28 +859,7 @@ with the sum of the Euclidean lengths of its edges after embedding. It asks
 whether these retained paths preserve their lengths, not whether the chords
 joining their endpoints have those lengths.
 
-Figure \@ref(fig:noisy-circle-path-geometry) illustrates an embedding that
-preserves graph-path lengths exactly even though endpoint chords can be
-shorter than the corresponding graph distances. The displayed observations
-themselves give the identity embedding $z_i=x_i$ into $\mathbb{R}^2$. In that
-embedding, the highlighted graph shortest path has exactly its input-graph
-length. More generally, because
-the graph uses Euclidean edge lengths from these coordinates,
-$D_{G,Z}=D_G$ and fixed-path relative RMSE is zero for this identity embedding.
-The chord between the highlighted endpoints, shown in the legend, is still
-shorter than their graph distance. Thus the two criteria already disagree on
-one fixed graph and one embedding; neither length is defective, because they
-answer different questions.
-The appropriate diagnostic depends on the analysis. Proximity measures,
-neighborhood and clustering analyses, and distances to centroids in the
-embedded coordinates use endpoint chords. Trajectory and pseudotime analyses
-instead use graph or lineage paths to order cells and follow changes along
-those paths [@haghverdi2016; @street2018; @wolf2019]. Chord fidelity governs
-the former; fixed-path fidelity governs the latter. The worked example
-\emph{Linking the two fidelity stages} below compares these criteria after
-calibrating graphs against a known saddle surface.
-
-```{r noisy-circle-path-geometry, fig.cap="A graph-to-embedding contrast for the identity embedding of a data-derived graph. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their connected symmetric 6NN graph drawn at the same coordinates, so $z_i=x_i$. The white endpoints are joined by one fixed graph shortest path (blue), whose embedded length exactly equals its input-graph length, and by their Euclidean chord (dashed red); the legend gives their lengths. The display compares two metrics on the same graph and embedding; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, which uses the identity embedding, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path retains its input-graph length and is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
+```{r noisy-circle-path-geometry, fig.cap="An embedding can preserve graph-path lengths exactly while the Euclidean chords between their endpoints remain shorter. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their connected symmetric 6NN graph drawn at the same coordinates, so $z_i=x_i$. The white endpoints are joined by one fixed graph shortest path (blue), whose embedded length exactly equals its input-graph length, and by their Euclidean chord (dashed red); the legend gives their lengths. The display compares two metrics on the same graph and embedding; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, which uses the identity embedding, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path retains its input-graph length and is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
 RNGversion("4.0.0") # Preserve this illustrative realization's RNG stream.
 set.seed(20260830)
 noisy.n <- 120L
@@ -1016,6 +995,27 @@ legend(
 )
 par(op)
 ```
+
+Figure \@ref(fig:noisy-circle-path-geometry) illustrates an embedding that
+preserves graph-path lengths exactly even though endpoint chords can be
+shorter than the corresponding graph distances. The displayed observations
+themselves give the identity embedding $z_i=x_i$ into $\mathbb{R}^2$. In that
+embedding, the highlighted graph shortest path has exactly its input-graph
+length. More generally, because
+the graph uses Euclidean edge lengths from these coordinates,
+$D_{G,Z}=D_G$ and fixed-path relative RMSE is zero for this identity embedding.
+The chord between the highlighted endpoints, shown in the legend, is still
+shorter than their graph distance. Thus the two criteria already disagree on
+one fixed graph and one embedding; neither length is defective, because they
+answer different questions.
+The appropriate diagnostic depends on the analysis. Proximity measures,
+neighborhood and clustering analyses, and distances to centroids in the
+embedded coordinates use endpoint chords. Trajectory and pseudotime analyses
+instead use graph or lineage paths to order cells and follow changes along
+those paths [@haghverdi2016; @street2018; @wolf2019]. Chord fidelity governs
+the former; fixed-path fidelity governs the latter. The worked example
+\emph{Linking the two fidelity stages} below compares these criteria after
+calibrating graphs against a known saddle surface.
 
 The angle example in Figure \@ref(fig:path-angle-freedom) shows why fixed-path
 fidelity alone is insufficient for analyses based on endpoint chords. Accordingly, `score.gmds()`
