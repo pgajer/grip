@@ -7,7 +7,7 @@ examples directly.
 
 ## Requirements
 
-### Single-graph example for Figure 6E
+### Single-graph example in subsection 3.2
 
 Subsection 3.2 uses `scripts/panel-e-workflow.R` to reproduce the representative
 metric-MDS + edge-KK configuration (cloud 5, n = 1,000, k = 73). From the
@@ -32,8 +32,10 @@ set `fit <- list(coords = example$candidates[["MDS + edge-KK"]])`, and run the
 view block. `scripts/panel-e-display.R` implements display-only similarity
 alignment, the saved parameter-plane triangulation, original-x colors, and the
 common bounds of panels C--E. It does not change graph lengths or scores.
-The ivue view uses the same mesh, retained path, endpoint chord, and camera as
-Figure S4.1C; the paper's static panel is a cropped capture of that scene.
+The ivue view uses the same mesh and camera as Figure S4.1C but omits its
+retained-path and endpoint-chord overlays, leaving the fitted configuration
+unobscured. The paper's static workflow figure is a cropped capture of that
+scene; the worked-example comparison and Figure S4.1C retain the overlays.
 Optional HTML export is `htmlwidgets::saveWidget(panel.e, "panel-e.html")`.
 
 Fitting and scoring require grip; visualization additionally requires ivue and

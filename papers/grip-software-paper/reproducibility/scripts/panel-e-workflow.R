@@ -28,13 +28,10 @@ display <- panel.e.display(example, fit$coords)
 mesh <- ivue::layer3D.mesh(display$triangles,
   col = "gray75", alpha = .23, edge.col = "gray45",
   edge.alpha = .23, edge.width = .65)
-route <- ivue::layer3D.edges(example$route, col = "#1E5C89", width = 4)
-chord <- ivue::layer3D.edges(matrix(example$ends, 1, 2),
-  col = "#B26026", width = 3)
 panel.e <- ivue::plot3D.plain(display$coords, col = display$colors,
   point.type = "sphere", sphere.radius = .009,
   axes = FALSE, aspect = "equal",
-  layers = list(mesh, route, chord, display$bounds),
+  layers = list(mesh, display$bounds),
   camera = ivue::camera.zup(elevation = 20, turn = -135, zoom = .7),
   width = 720L, height = 640L)
 panel.e

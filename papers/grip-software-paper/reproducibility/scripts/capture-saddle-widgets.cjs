@@ -13,11 +13,12 @@ const fs=require('fs');
   const output=path.join(root,'reproducibility/figures/saddle');
   fs.mkdirSync(output,{recursive:true});
   const checkOnly=process.argv.includes('--check-only');
-  for(const name of checkOnly ? [] : ['mesh1','mesh2','mesh3','overlay','displacement']) {
+  for(const name of checkOnly ? [] : ['mesh1','mesh2','mesh3','overlay','displacement','panel_e_workflow']) {
     await page.goto('file://'+path.join(root,'build/saddle-widgets',name+'.html'));
     await page.waitForFunction(()=>document.querySelector('canvas')?.width>0);
     await page.waitForTimeout(2500);
-    await page.screenshot({path:path.join(output,name+'.png'),
+    const outputName=name==='panel_e_workflow' ? 'panel-e-workflow' : name;
+    await page.screenshot({path:path.join(output,outputName+'.png'),
       clip:{x:100,y:125,width:520,height:390}});
   }
   await page.goto('file://'+path.join(root,'supplement/S4-interactive-saddle.html'));
@@ -52,7 +53,7 @@ const fs=require('fs');
     if(before.equals(after)) throw new Error('Scene '+i+' did not respond to rotation');
   }
   if(errors.length) throw new Error(errors.join('\n'));
-  console.log((checkOnly ? 'Checked existing HTML' : 'Captured five views')+
+  console.log((checkOnly ? 'Checked existing HTML' : 'Captured six views')+
     '; '+labels+' panel labels verified; all '+labels+' offline scenes respond to rotation, no JavaScript errors.');
   await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

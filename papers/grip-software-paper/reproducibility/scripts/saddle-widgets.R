@@ -29,6 +29,8 @@ saddle_widgets <- function(pilot, reference) {
     views[[paste0("mesh",j)]] <- draw(Z[[j]],list(mesh,route,chord))
     views[[paste0("reference",j)]] <- draw(Z[[j]],list(analytic))
   }
+  # Unannotated output of the subsection 3.2 workflow.
+  views$panel_e_workflow <- draw(Z[[3]],list(mesh))
   joined <- rbind(Z[[2]],Z[[3]]); n <- nrow(X)
   overlay_layers <- list(
     ivue::layer3D.mesh(triangles,col="#286EAB",alpha=.20,edges=FALSE),

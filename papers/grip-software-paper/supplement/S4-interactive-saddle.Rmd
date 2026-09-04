@@ -26,7 +26,7 @@ h2,h3 {scroll-margin-top:20px}
 </style>
 
 Cloud 5 of the five-cloud pilot: **1,000 observations, k = 73**.
-These are the saved configurations used in Figure 6, not new fits.
+These are the saved configurations used in Figure 7, not new fits.
 Drag a scene to rotate it; use the scroll wheel to zoom. All scenes start with
 the same orthographic camera and bounding box. Reload to restore the initial views.
 
@@ -39,7 +39,7 @@ the same orthographic camera and bounding box. Reload to restore the initial vie
 ## Figure S4.1. Triangulated configurations {#fig-s4-1}
 
 Panels [A](#fig-s4-1a), [B](#fig-s4-1b), and [C](#fig-s4-1c) correspond to
-main-text Figure 6C, D, and E, respectively.
+main-text Figure 7C, D, and E, respectively.
 
 The Delaunay triangles are constructed once in the original (x,y) parameter
 plane and carried to each configuration with vertex correspondence unchanged.

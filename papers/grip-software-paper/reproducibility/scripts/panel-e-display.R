@@ -1,4 +1,4 @@
-# Display-only preparation for Figure 6E and the subsection 3.2 example.
+# Display-only preparation for the saddle figures and subsection 3.2 example.
 # Scoring must use the unaligned coordinates, not this returned configuration.
 panel.e.display <- function(pilot, coords) {
   reference <- readRDS("reproducibility/precomputed/saddle-reference-diagnostics.rds")

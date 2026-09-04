@@ -1184,15 +1184,20 @@ In the saved run, fixed-path relative RMSE decreased from
 The article uses the supplied results during routine rendering; running the
 displayed fitting and scoring code recomputes this single-graph example.
 
-The \pkg{ivue} call below creates the interactive view corresponding to panel E
-(Supplementary Figure S4.1C). The supplied helper `panel.e.display()` applies
-the panel's similarity alignment, colors, and common display bounds.
+The \pkg{ivue} call below creates an interactive view of the refined
+configuration. The supplied helper `panel.e.display()` applies its similarity
+alignment, colors, and common display bounds.
 The Delaunay triangles are fixed in the original parameter plane and carried
 to the embedded coordinates; they are a visualization mesh, not the selected
-skNN graph. The blue path and brown endpoint chord illustrate the two distance
-measurements. Alignment is for display only, after scoring.
+skNN graph. Alignment is for display only, after scoring. Figure
+\@ref(fig:panel-e-workflow-output) shows a static rendering of this output;
+Supplementary Figure S4.1C adds the retained-path and endpoint-chord overlays.
 
 ```{r panel-e-view, echo=TRUE, eval=FALSE}
+```
+
+```{r panel-e-workflow-output, echo=FALSE, fig.cap="Representative three-dimensional configuration produced by the metric-MDS + edge-KK workflow (n = 1,000; k = 73). Colors encode the original x coordinate, from blue to brown. The fixed Delaunay triangulation of the original parameter coordinates is carried to the embedding to show its surface structure; it is a visualization mesh, not the skNN graph. Coordinates are similarity-aligned to the generating observations for display, after scoring. No retained path or endpoint chord is superimposed; the annotated comparison appears in the worked example below.", fig.alt="Large three-dimensional view of the metric-MDS plus edge-KK saddle configuration with colored points and a translucent triangular mesh.", out.width="100%", fig.align="center", fig.pos="H"}
+knitr::include_graphics("reproducibility/figures/saddle/panel-e-workflow.png")
 ```
 
 # Worked examples
