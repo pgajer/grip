@@ -14,6 +14,9 @@ saddle_widgets <- function(pilot, reference) {
     pmin(100,pmax(1,1+floor((X[,1]+1)*49.5)))]
   mesh <- ivue::layer3D.mesh(triangles,col="gray75",alpha=.23,
     edge.col="gray45",edge.alpha=.23,edge.width=.65)
+  axes <- ivue::layer3D.axes(origin=c(0,0,0),padding=.08,
+    labels=c("x","y","z"),col="black",width=1.4,
+    head.length=.028,head.angle=pi/10,cex=.95,label.offset=.025)
   grid <- seq(-1,1,length.out=81)
   analytic <- ivue::layer3D.surface(grid,grid,outer(grid,grid,function(x,y).8*(x*x-y*y)),
     col="lightblue",alpha=.25,edges=FALSE)
@@ -30,7 +33,7 @@ saddle_widgets <- function(pilot, reference) {
     views[[paste0("reference",j)]] <- draw(Z[[j]],list(analytic))
   }
   # Unannotated output of the subsection 3.2 workflow.
-  views$panel_e_workflow <- draw(Z[[3]],list(mesh))
+  views$panel_e_workflow <- draw(Z[[3]],list(mesh,axes))
   joined <- rbind(Z[[2]],Z[[3]]); n <- nrow(X)
   overlay_layers <- list(
     ivue::layer3D.mesh(triangles,col="#286EAB",alpha=.20,edges=FALSE),

@@ -28,10 +28,15 @@ display <- panel.e.display(example, fit$coords)
 mesh <- ivue::layer3D.mesh(display$triangles,
   col = "gray75", alpha = .23, edge.col = "gray45",
   edge.alpha = .23, edge.width = .65)
+axes <- ivue::layer3D.axes(
+  origin = c(0, 0, 0), padding = .08,
+  labels = c("x", "y", "z"), col = "black", width = 1.4,
+  head.length = .028, head.angle = pi / 10,
+  cex = .95, label.offset = .025)
 panel.e <- ivue::plot3D.plain(display$coords, col = display$colors,
   point.type = "sphere", sphere.radius = .009,
   axes = FALSE, aspect = "equal",
-  layers = list(mesh, display$bounds),
+  layers = list(mesh, axes, display$bounds),
   camera = ivue::camera.zup(elevation = 20, turn = -135, zoom = .7),
   width = 720L, height = 640L)
 panel.e
