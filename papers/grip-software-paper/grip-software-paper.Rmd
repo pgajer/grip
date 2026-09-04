@@ -1274,24 +1274,6 @@ contains these inputs and scripts for repeating the experiment.
 ```{r hmp-data, include=FALSE}
 data(hmp.gc)
 hmp.edges <- edge.matrix.from.adj(hmp.gc$adj_list)
-hmp.info <- hmp.gc$graph_info
-hmp.data.summary <- data.frame(
-  Quantity = c(
-    "Explicitly labeled HMP Illumina samples",
-    "Samples in the giant component",
-    "Graph edges",
-    "Retained taxonomic features",
-    "Symmetric kNN parameter"
-  ),
-  Value = c(
-    format(hmp.info$hmp_illumina_rows, big.mark = ","),
-    format(hmp.info$original_vertices, big.mark = ","),
-    format(nrow(hmp.edges), big.mark = ","),
-    format(hmp.info$retained_features, big.mark = ","),
-    hmp.info$selected_k
-  ),
-  check.names = FALSE
-)
 ```
 
 The package includes a graph derived from the Ravel-led University of Maryland
@@ -1307,13 +1289,13 @@ preprocessing, eligible samples must have a `Project` value beginning with
 establish the cohort and assay lineage; the supplementary input tables record
 the exact 4,411 profiles used to construct the graph.
 
-Taxonomic features detected in at least 1% of the retained HMP samples are
-converted to relative abundance, followed by a ten-component PCA. A symmetric
-$k=3$ nearest-neighbor graph is constructed in that representation: an
+The 169 taxonomic features detected in at least 1% of the retained HMP samples
+are converted to relative abundance, followed by a ten-component PCA. A
+symmetric $k=3$ nearest-neighbor graph is constructed in that representation: an
 undirected edge is present when either endpoint occurs among the other's three
 nearest neighbors. Edge weights are Euclidean distances in the PCA
 representation. The largest connected component contains 4,391 of the 4,411
-eligible samples and is used without coarsening.
+eligible samples and 9,067 edges and is used without coarsening.
 
 The supplementary archive contains the minimal UMB-HMP-only feature-count and
 technical metadata tables, the graph-construction script, a list of included
@@ -1322,20 +1304,7 @@ and processing needed to reconstruct this graph. It also
 contains the precomputed repeated-layout benchmark used below and the script
 that generates it.
 
-```{r hmp-data-table}
-accessible_kable(
-  hmp.data.summary,
-  row.names = FALSE,
-  align = c("l", "r"),
-  caption = "Construction summary for the UMB-HMP-only Illumina 16S graph provided with the package.",
-  alt = paste(
-    "Five rows report the eligible HMP Illumina sample count, giant-component",
-    "sample and edge counts, retained feature count, and symmetric kNN k."
-  ),
-  position = "H"
-)
-```
-
+\Needspace{8\baselineskip}
 Figure \@ref(fig:hmp-layouts) compares two topology-only layouts of the same
 graph. Vertices are colored by their supplied community-state-type (CST) labels
 only to make the displayed graph easier to inspect; the layouts were computed
