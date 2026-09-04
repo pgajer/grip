@@ -844,20 +844,39 @@ assume that the input geometry is chord-like. It asks how nearly $D_G$ admits
 an isometric Euclidean representation in dimension $m$; a large value is an
 informative answer about the cost of flattening that graph metric.
 
-Preserving lengths along an embedded object does not require those lengths to
-equal straight-line distances through the surrounding space. In differential
-geometry, a Riemannian isometric embedding
-$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the length of every curve on $M$.
-It therefore preserves intrinsic distances $d_M(x,y)$, defined as the infimum
-of lengths of curves joining $x$ and $y$ on $M$, when distances in the image
-are also measured along curves confined to $f(M)$. The Euclidean chord can
-leave $f(M)$ and be shorter [@saucan2012]. Exact chord preservation would
-additionally require $d_M(x,y)=\lVert f(x)-f(y)\rVert_2$ for every pair;
-preserving curve lengths alone does not ensure this equality. For a graph,
-fixed-path relative RMSE compares each selected input path's original length
-with the sum of the Euclidean lengths of its edges after embedding. It asks
-whether these retained paths preserve their lengths, not whether the chords
-joining their endpoints have those lengths.
+In differential geometry, a Riemannian isometric embedding
+$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the length of every piecewise
+smooth curve $\gamma:[0,1]\rightarrow M$:
+
+$$
+L_g(\gamma)=L_{\mathrm{Euc}}(f\circ\gamma).
+$$
+
+\noindent Here the left-hand side measures length using the Riemannian metric
+$g$, while the right-hand side measures Euclidean arc length along the image
+curve. This equality does not require the curve's length to equal the
+straight-line distance between its endpoints [@saucan2012]. In contrast, zero
+MDS Stress-1 for intrinsic input distances $d_M(x,y)$, measured along $M$,
+requires $d_M(x,y)=\lVert f(x)-f(y)\rVert_2$ for every evaluated pair.
+
+For graph-distance inputs $D_G$, exact chord preservation for all vertex pairs
+also preserves the embedded length of every retained graph shortest path.
+Indeed, every edge $(u,v)$ on a shortest path $\gamma_{ij}$ is itself a
+shortest path between its endpoints, so $d_{uv}^G=\ell_{uv}$. Consequently,
+
+$$
+d_{ij}^{G,Z}
+=\sum_{(u,v)\in\gamma_{ij}}\lVert z_u-z_v\rVert_2
+=\sum_{(u,v)\in\gamma_{ij}}d_{uv}^G
+=\sum_{(u,v)\in\gamma_{ij}}\ell_{uv}
+=d_{ij}^G.
+$$
+
+\noindent The converse does not hold: a path can retain its length while
+bending so that its endpoint chord becomes shorter. Figure
+\@ref(fig:path-angle-freedom) illustrates this freedom for a two-edge path,
+and Figure \@ref(fig:noisy-circle-path-geometry) shows it in a data-derived
+graph.
 
 ```{r noisy-circle-path-geometry, fig.cap="An embedding can preserve graph-path lengths exactly while the Euclidean chords between their endpoints remain shorter. Left: 120 observations sampled around a unit circle with truncated Gaussian radial offsets. Right: their connected symmetric 6NN graph drawn at the same coordinates, so $z_i=x_i$. The white endpoints are joined by one fixed graph shortest path (blue), whose embedded length exactly equals its input-graph length, and by their Euclidean chord (dashed red); the legend gives their lengths. The display compares two metrics on the same graph and embedding; it does not establish that a chosen neighborhood graph recovers latent geometry.", fig.alt="Two panels show a noisy circular point cloud and its symmetric six-nearest-neighbor graph. In the graph panel, which uses the identity embedding, two highlighted endpoints are joined by a thick blue graph shortest path around the circle and a dashed red Euclidean chord across the center. The graph path retains its input-graph length and is longer than the chord.", fig.width=10, fig.height=4.9, fig.pos="H"}
 RNGversion("4.0.0") # Preserve this illustrative realization's RNG stream.
