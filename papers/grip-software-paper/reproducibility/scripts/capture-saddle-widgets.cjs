@@ -12,7 +12,8 @@ const fs=require('fs');
   await page.route(/^https?:/,r=>r.abort()); // All assets must work offline.
   const output=path.join(root,'reproducibility/figures/saddle');
   fs.mkdirSync(output,{recursive:true});
-  for(const name of ['mesh1','mesh2','mesh3','overlay','displacement']) {
+  const checkOnly=process.argv.includes('--check-only');
+  for(const name of checkOnly ? [] : ['mesh1','mesh2','mesh3','overlay','displacement']) {
     await page.goto('file://'+path.join(root,'build/saddle-widgets',name+'.html'));
     await page.waitForFunction(()=>document.querySelector('canvas')?.width>0);
     await page.waitForTimeout(2500);
@@ -21,6 +22,20 @@ const fs=require('fs');
   }
   await page.goto('file://'+path.join(root,'supplement/S4-interactive-saddle.html'));
   await page.waitForFunction(()=>document.querySelectorAll('canvas').length===8);
+  const labels=await page.evaluate(()=>{
+    const expected=['1a','1b','1c','2a','2b','2c','3a','3b'];
+    for(const suffix of expected) {
+      const id='fig-s4-'+suffix;
+      const matches=document.querySelectorAll('#'+id);
+      const heading=matches[0]?.querySelector('h3') || matches[0];
+      const label='Figure S4.'+suffix[0]+suffix[1].toUpperCase()+'.';
+      if(matches.length!==1 || !heading?.textContent.startsWith(label))
+        throw new Error('Missing or incorrect panel label: '+id);
+    }
+    for(const link of document.querySelectorAll('a[href^="#fig-s4-"]'))
+      if(!document.getElementById(link.hash.slice(1))) throw new Error('Broken figure anchor');
+    return expected.length;
+  });
   await page.waitForTimeout(2000);
   // Exercise every scene offline, including below-the-fold views.
   for(let i=0;i<8;i++) {
@@ -37,6 +52,7 @@ const fs=require('fs');
     if(before.equals(after)) throw new Error('Scene '+i+' did not respond to rotation');
   }
   if(errors.length) throw new Error(errors.join('\n'));
-  console.log('Captured five views; all eight offline scenes respond to rotation, no JavaScript errors.');
+  console.log((checkOnly ? 'Checked existing HTML' : 'Captured five views')+
+    '; '+labels+' panel labels verified; all eight offline scenes respond to rotation, no JavaScript errors.');
   await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

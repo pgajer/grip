@@ -22,6 +22,7 @@ for(nm in names(views)) htmlwidgets::saveWidget(views[[nm]],
 <style>
 body {font:17px/1.5 system-ui,sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;color:#25313b}
 h1,h2 {line-height:1.2} .rglWebGL {max-width:100%} a {color:#2166ac}
+h2,h3 {scroll-margin-top:20px}
 </style>
 
 Cloud 5 of the five-cloud pilot: **1,000 observations, k = 73**.
@@ -29,10 +30,16 @@ These are the saved configurations used in Figure 7, not new fits.
 Drag a scene to rotate it; use the scroll wheel to zoom. All scenes start with
 the same orthographic camera and bounding box. Reload to restore the initial views.
 
-[Triangulated views](#triangulated-views) · [Reference overlays](#reference-overlays) ·
-[Refinement comparison](#refinement-comparison)
+[Figure S4.1: triangulated views](#fig-s4-1) ·
+[Figure S4.2: reference overlays](#fig-s4-2) ·
+[Figure S4.3: refinement comparison](#fig-s4-3)
 
-## Triangulated views
+<span id="triangulated-views"></span>
+
+## Figure S4.1. Triangulated configurations {#fig-s4-1}
+
+Panels [A](#fig-s4-1a), [B](#fig-s4-1b), and [C](#fig-s4-1c) correspond to
+main-text Figure 7C, D, and E, respectively.
 
 The Delaunay triangles are constructed once in the original (x,y) parameter
 plane and carried to each configuration with vertex correspondence unchanged.
@@ -42,51 +49,66 @@ route and brown lines its endpoint chord. Each configuration is independently
 similarity-aligned to the observations (translation, rotation/reflection, and
 one uniform scale); this display alignment does not change the graph scores.
 
-### Original saddle
+### Figure S4.1A. Triangulated original saddle {#fig-s4-1a}
 ```{r}
 views$mesh1
 ```
-### metric-MDS
+### Figure S4.1B. Triangulated metric-MDS configuration {#fig-s4-1b}
 ```{r}
 views$mesh2
 ```
-### metric-MDS + edge-KK
+### Figure S4.1C. Triangulated metric-MDS + edge-KK configuration {#fig-s4-1c}
 ```{r}
 views$mesh3
 ```
 
-## Reference overlays
+<span id="reference-overlays"></span>
+
+## Figure S4.2. Generating-surface overlays {#fig-s4-2}
+
+Panels [A](#fig-s4-2a), [B](#fig-s4-2b), and [C](#fig-s4-2c) show the original
+observations, metric-MDS, and metric-MDS + edge-KK against the same reference.
 
 The translucent blue reference is z = 0.8(x² − y²), over [−1,1]².
 It remains fixed while the observed or embedded points change. Surface scoring
 instead uses the matched sampled convex hull, as explained in Supplement S3;
 these full-square display overlays do not define the numerical score.
 
-### Original observations and reference
+### Figure S4.2A. Original observations and generating surface {#fig-s4-2a}
 ```{r}
 views$reference1
 ```
-### metric-MDS and reference
+### Figure S4.2B. metric-MDS and generating surface {#fig-s4-2b}
 ```{r}
 views$reference2
 ```
-### metric-MDS + edge-KK and reference
+### Figure S4.2C. metric-MDS + edge-KK and generating surface {#fig-s4-2c}
 ```{r}
 views$reference3
 ```
 
-## Refinement comparison
+<span id="refinement-comparison"></span>
+
+## Figure S4.3. Refinement comparison {#fig-s4-3}
+
+Panel [A](#fig-s4-3a) overlays the two meshes; panel [B](#fig-s4-3b) shows
+corresponding-vertex displacements. These are interactive versions of the
+two views in Figure S3.3.
 
 Blue: metric-MDS. Orange: metric-MDS + edge-KK. Both use the same triangles and
 are independently similarity-aligned to the reference observations. Overlapping
 meshes can obscure differences; resemblance alone does not establish tangential
 movement or recovery of the generating surface.
 
+### Figure S4.3A. metric-MDS and metric-MDS + edge-KK mesh overlay {#fig-s4-3a}
+
 ```{r}
 views$overlay
 ```
 
-The next view joins corresponding vertices for a systematic subset of 50 of
+### Figure S4.3B. Corresponding-vertex displacements {#fig-s4-3b}
+
+This view joins corresponding vertices for a systematic subset of 50 of
 the 1,000 observations. Segments show displacement between the two aligned
 configurations, not optimizer trajectories or surface-normal displacements.
 

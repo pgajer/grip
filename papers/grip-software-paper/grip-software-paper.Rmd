@@ -1326,6 +1326,10 @@ stopifnot(nrow(saddle.pilot$scores) == 15L,
 plot_pilot_calibration_layouts(saddle.pilot)
 ```
 
+Interactive versions of Figure \@ref(fig:saddle-calibration-layouts)C--E are
+provided in Supplementary Figure S4.1A--C. Generating-surface overlays appear
+in Figure S4.2A--C, and the refinement comparison in Figure S4.3A--B.
+
 Edge-KK reduced edge and fixed-path relative RMSE in all five samples
 (Figure \@ref(fig:saddle-pilot-scores)). Median fixed-path relative RMSE
 decreased from 3.451% to 0.245%, and median edge relative RMSE from 7.133% to
@@ -1733,7 +1737,8 @@ Supplement S3 gives the sampled-saddle protocol, numerical checks and additional
 results, together with the executable circle example and fixed-grid saddle
 comparison.
 Supplement S4 provides self-contained interactive saddle views, including
-fixed-triangulation and generating-surface overlays.
+fixed-triangulation views (Figure S4.1), generating-surface overlays
+(Figure S4.2), and the refinement comparison (Figure S4.3).
 
 Future work will connect the two transformations more systematically through a
 two-dimensional experimental design: graph constructors and settings along one

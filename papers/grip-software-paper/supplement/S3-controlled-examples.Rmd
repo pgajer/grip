@@ -352,7 +352,7 @@ RMS by a median `r sprintf("%.2f",100*median(sampling.change))`% and at most
 `r sprintf("%.2f",100*max(sampling.change))`% across the evaluated configurations
 and alignments. This checks integration variability, not reference-mesh bias.
 
-```{r refinement-overlay,fig.width=9,fig.height=3.5,fig.cap="Two views of the same refinement comparison for cloud 5. Left: triangulated metric-MDS (blue) and metric-MDS + edge-KK (orange), independently similarity-aligned to the original observations. Right: segments joining 50 systematically selected corresponding vertices. These are displacements between final aligned configurations, not optimization trajectories or a decomposition into tangential and normal movement. Interactive versions are provided in Supplement S4."}
+```{r refinement-overlay,fig.width=9,fig.height=3.5,fig.cap="Two views of the same refinement comparison for cloud 5. Left: triangulated metric-MDS (blue) and metric-MDS + edge-KK (orange), independently similarity-aligned to the original observations. Right: segments joining 50 systematically selected corresponding vertices. These are displacements between final aligned configurations, not optimization trajectories or a decomposition into tangential and normal movement. Interactive versions are provided in Supplementary Figure S4.3A--B."}
 par(mfrow=c(1,2),mar=rep(0,4))
 for(nm in c("overlay","displacement")) {
   im <- png::readPNG(paste0("reproducibility/figures/saddle/",nm,".png"))
