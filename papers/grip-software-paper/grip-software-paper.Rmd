@@ -1185,7 +1185,7 @@ The article uses the supplied results during routine rendering; running the
 displayed fitting and scoring code recomputes this single-graph example.
 
 The \pkg{ivue} call below creates the interactive view corresponding to panel E
-(Supplementary Figure S4.1C). The supplied helper `panel_e_display()` applies
+(Supplementary Figure S4.1C). The supplied helper `panel.e.display()` applies
 the panel's similarity alignment, colors, and common display bounds.
 The Delaunay triangles are fixed in the original parameter plane and carried
 to the embedded coordinates; they are a visualization mesh, not the selected

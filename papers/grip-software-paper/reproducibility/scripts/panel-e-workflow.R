@@ -24,7 +24,7 @@ after <- grip::score.gmds(fit$coords, prepared = prepared,
   scale_mode = "profiled", edge_length_epsilon = 0)
 
 ## ---- panel-e-view ----
-display <- panel_e_display(example, fit$coords)
+display <- panel.e.display(example, fit$coords)
 mesh <- ivue::layer3D.mesh(display$triangles,
   col = "gray75", alpha = .23, edge.col = "gray45",
   edge.alpha = .23, edge.width = .65)

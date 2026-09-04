@@ -1,6 +1,6 @@
 # Display-only preparation for Figure 6E and the subsection 3.2 example.
 # Scoring must use the unaligned coordinates, not this returned configuration.
-panel_e_display <- function(pilot, coords) {
+panel.e.display <- function(pilot, coords) {
   reference <- readRDS("reproducibility/precomputed/saddle-reference-diagnostics.rds")
   cloud <- reference$clouds[[as.character(pilot$representative)]]
   X <- pilot$coords
