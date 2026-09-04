@@ -441,7 +441,7 @@ gives near-linear time and space up to logarithmic factors after the filtration
 has been constructed [@gajer2004]. The edge-length-aware implementation can
 therefore provide a practical initial configuration before edge-KK refinement,
 although its computational cost depends on the neighborhoods explored by the
-weighted shortest-path searches, as discussed below and in Supplement S1.
+weighted shortest-path searches, as analyzed in Supplement S1.
 GRIP constructs a hierarchy of maximal independent sets, places
 vertices from coarse to fine resolution, and refines the layout locally at each
 level. Figure \@ref(fig:trace) illustrates this construction through four states
@@ -528,7 +528,8 @@ The multiscale algorithms are implemented in C++ and called from R through Rcpp
 `grip()` returns an $n \times m$ numeric coordinate matrix, whereas
 `trace.grip()` returns the final coordinates together with intermediate
 coarse-to-fine layouts and diagnostics. Both functions use $m\in\{2,3\}$;
-`weighted.grip.nd()` and selected GMDS methods support any $m\geq 2$.
+`weighted.grip.nd()` and selected GMDS methods support any $m\geq 2$. The
+multiscale layout computation is serial.
 
 Higher-dimensional layouts can also be useful when the final display is two-
 or three-dimensional. The original GRIP study reported improved smoothness and
@@ -553,16 +554,37 @@ Both functions use the `metric` argument to specify the graph geometry.
 `metric = "hop"`, the default, treats every edge as one step. With
 `metric = "edge_length"`, supplied edge lengths affect the optimization.
 
+For a bounded-degree graph with $n$ vertices, the published analysis of the
+original hop-distance algorithm gives $\Theta(nk^2)$ time and $\Theta(nk)$
+space after construction of the filtration, where $k=\log\delta(G)$ for a
+maximal-independent-set filtration and $k=\log n$ for a graph-centers
+filtration, with $\delta(G)$ the unweighted graph diameter [@gajer2004]. The
+filtration uses partial breadth-first searches whose cost depends on the
+neighborhoods explored; no subquadratic worst-case construction bound was
+established [@gajer2002].
+
+The edge-length-aware implementation instead uses weighted shortest-path
+searches. Under the bounded-degree, geometric-coverage, and hierarchy
+conditions stated in Supplement S1, its radius limits and early stopping yield
+a conditional $O(n\log^2 n)$ expected-time bound with fixed tuning parameters
+and $O(n)$ peak memory. The expectation concerns sampled repulsion, and the
+bounds exclude optional GMDS refinement. These conditions need not hold for an
+arbitrary weighted graph; Supplement S1 gives the complete assumptions and a
+counterexample when coverage fails.
+
 The main layout settings are dimension, initialization
 placement, the number of multiscale and final refinement rounds, local
-neighborhood size, repulsion strength, and the random seed. For a disconnected
-input, `grip()` lays out each connected component separately and then places the
-component layouts together in the returned coordinate matrix; it does not add
-edges between components. `trace.grip()` requires a connected graph. When a
-connected data-derived graph is required, several \CRANpkg{dgraphs} constructors
-can optionally add MST bridge edges between components with
-`connect.components = TRUE` [@gajer2026dgraphs]. Those bridges change the graph
-geometry and should be treated as an explicit construction choice.
+neighborhood size, repulsion strength, and the random seed. For edge-length
+layouts, `metric_neighbor_cap` limits insertion-neighborhood searches but does
+not limit filtration construction or the initial full searches. For a
+disconnected input, `grip()` lays out each connected component separately and
+then places the component layouts together in the returned coordinate matrix;
+it does not add edges between components. `trace.grip()` requires a connected
+graph. When a connected data-derived graph is required, several
+\CRANpkg{dgraphs} constructors can optionally add MST bridge edges between
+components with `connect.components = TRUE` [@gajer2026dgraphs]. Those bridges
+change the graph geometry and should be treated as an explicit construction
+choice.
 
 The package also supplies graph generators for regular grids, trees, recursive
 families such as Sierpinski carpets, and weighted geometric surfaces. These
@@ -1131,6 +1153,8 @@ the full path-based diagnostics retain substantially more information and have
 correspondingly higher memory and runtime costs.
 
 The `edge.kk()` function returns refined coordinates and diagnostic measures.
+Its compiled optimizer accepts `n_threads` and uses at most two threads; its R
+optimizer is serial.
 When full all-pairs preparation is feasible,
 `edge.kk(init = "metric_mds")` uses metric-MDS as an initializer before
 edge-KK refinement. `edge.kk(init = "weighted_grip")` instead initializes from
@@ -1363,8 +1387,6 @@ diagnostics without assuming that edge weights have the same numerical meaning
 across packages. The weighted workflow in the preceding section evaluates
 edge-length geometry separately.
 
-## Runtime and shared scoring at package scale
-
 Each two-dimensional layout call is repeated five times with its random-number
 seed reset to 1; Table \@ref(tab:hmp-runtime-benchmark) reports the median elapsed
 time and interquartile range. R's `gc()` function is called before each timed run
@@ -1408,66 +1430,13 @@ The timing column measures candidate generation, while the adjacent columns
 show the same diagnostic measures for every candidate. The
 methods optimize different objectives, so the table is read as a runtime and
 diagnostic profile rather than a single ranking.
-The run was performed on `r benchmark.results$benchmark_metadata$hardware_model` with
+Timings were recorded on `r benchmark.results$benchmark_metadata$hardware_model` with
 `r format(as.numeric(benchmark.results$benchmark_metadata$memory_bytes) / 2^30, digits = 3)`
 GiB of memory and CPU `r benchmark.results$benchmark_metadata$cpu`, using
-`r benchmark.results$benchmark_metadata$r_version`,
-`r benchmark.results$benchmark_metadata$platform`, and R's reference Basic Linear
-Algebra Subprograms (BLAS) library. The supplementary computing-environment
-record gives the BLAS library's location relative to R's installation directory.
-
-## Computational boundaries
-
-The multiscale GRIP implementation uses a single thread of execution; selected
-experimental GMDS refinements can use up to two threads for parallel computation.
-
-The example uses the full 4,391-vertex giant component of the
-UMB-HMP-only symmetric kNN graph; no graph coarsening is used. This article
-demonstrates the current R implementation at that scale and does not provide a
-benchmark of the package on larger graphs. The original GRIP studies
-considered substantially larger graphs than the examples in this article
-[@gajer2002; @gajer2004]. For a bounded-degree graph with $n$ vertices, the
-published analysis of the original hop-distance algorithm gives
-$\Theta(nk^2)$ time and $\Theta(nk)$ space after the filtration has been
-constructed, where $k=\log\delta(G)$ for a maximal-independent-set filtration
-and $k=\log n$ for a graph-centers filtration, with $\delta(G)$ the unweighted
-graph diameter [@gajer2004]. These bounds exclude filtration construction.
-The original construction uses partial breadth-first searches whose cost
-depends on the explored neighborhoods; no subquadratic worst-case construction
-bound was established [@gajer2002]. The published bounds do not transfer
-unchanged to the edge-length-aware implementation.
-
-The cost of weighted GRIP depends on the portions of the graph explored by its
-shortest-path searches. Filtration searches are radius-limited, while insertion
-searches stop when their neighborhood and anchor requirements are met.
-Supplement S1 derives bounds that account for these stopping rules, together
-with the searches without early stopping used for coarsest-level initialization. For
-bounded-degree graphs with bounded overlap of filtration search balls, suitable
-coarse-vertex coverage, bounded adjacent level-size ratios, and logarithmic
-hierarchy depth, the analysis gives a
-conditional $O(n\log^2 n)$ expected-time bound with fixed tuning parameters.
-The expectation concerns sampled repulsion. These conditions are not
-guaranteed for arbitrary weighted graphs, and the bound excludes optional GMDS
-refinement. With fixed limits on retained neighbors, geometrically decreasing
-hierarchy sizes also yield $O(n)$ peak memory use under the same bounded-degree assumption.
-The supplement states the coverage condition explicitly and gives a weighted
-path with quadratic insertion work when coverage fails, despite bounded degree
-and doubling. These analytical bounds are distinct from observed scaling laws.
-
-The optional `metric_neighbor_cap` limits the number of vertices whose shortest
-distances are finalized during
-insertion-neighborhood searches, but not during weighted filtration construction
-or the initial full searches. Optional LGKK refinement and exact global
-repulsion require separate cost estimates.
-
-Within the R package, all-pairs graph distances, geodesic path preparation,
-repeated scoring, and exact crossing counts can become limiting steps before the
-multiscale layout itself. `prepare.edge.kk()` therefore supports edge-only
-diagnostics and refinement without storing shortest paths for all vertex pairs. metric-MDS,
-full geodesic-KK preparation, and complete graph-geodesic diagnostic panels
-require shortest-path information whose time and memory costs can dominate the
-layout computation. Assessing these costs on larger graphs requires a separate,
-systematically designed study of GMDS methods.
+`r benchmark.results$benchmark_metadata$r_version` and R's reference Basic
+Linear Algebra Subprograms (BLAS) library.
+These measurements describe the full 4,391-vertex component at one graph size;
+they are not an empirical scaling study.
 
 # Discussion
 
