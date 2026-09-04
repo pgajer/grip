@@ -863,11 +863,6 @@ curve [@saucan2012]. Fixed-path GMDS makes the corresponding comparison for
 selected graph paths, measuring their embedded lengths by summing the
 Euclidean lengths of their constituent edges.
 
-Preserving a curve's length does not require that length to equal the
-straight-line distance between its endpoints. In contrast, zero
-MDS Stress-1 for intrinsic input distances $d_M(x,y)$, measured along $M$,
-requires $d_M(x,y)=\lVert f(x)-f(y)\rVert_2$ for every evaluated pair.
-
 \Needspace{9\baselineskip}
 
 For graph-distance inputs $D_G$, exact chord preservation for all vertex pairs
