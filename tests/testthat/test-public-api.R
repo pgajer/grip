@@ -85,9 +85,11 @@ test_that("the public API matches the 0.2 contract", {
     "sampled.rectangle.surface.graph",
     "sampled.rectangle.surface.graphs",
     "score.geodesic.kk",
+    "score.coordinates",
     "score.gmds",
     "score.landmark.geodesic.kk",
     "score.layout",
+    "score.surface",
     "score.misf.geodesic.kk",
     "sierpinski.carpet.surface.graph",
     "sierpinski.tetrahedron.surface.graph",
@@ -103,7 +105,7 @@ test_that("the public API matches the 0.2 contract", {
     "weighted.grip.nd"
   ))
 
-  expect_length(expected, 101L)
+  expect_length(expected, 103L)
   expect_identical(sort(getNamespaceExports("grip")), expected)
 })
 

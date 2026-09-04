@@ -85,3 +85,18 @@ ivue::plot3D.graph(list(adj.list = g$adj_list, weight.list = g$weight_list),
                   vertices = seq_len(n), values = X[, "x"], scale = colors,
                   edge.col = "gray80", edge.width = 1)
 ivue::plot3D.cont(mds.edge.kk[[as.character(k)]], values = X[, "x"], scale = colors)
+
+# 5. Graph fidelity and reference-saddle recovery --------------------------
+# Run from the grip repository root after fitting the layouts above.
+# Requires the development grip version with score.coordinates/score.surface.
+source("papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/score-saddle-reference.R")
+reference.results <- score.saddle.reference(
+  X, graphs, mds, mds.edge.kk, C,
+  sample_sizes = c(2000L, 8000L)
+)
+# Full results retain both alignments, both sampling resolutions, and all k.
+reference.scores <- reference.results$scores
+subset(reference.scores, k == 10 & sample_size == 8000,
+       select = c(method, alignment, path_rel, edge_rel, stress1,
+                  coordinate_rmse, coordinate_relative_rmse, alignment_scale,
+                  surface_rms, surface_mc_se))
