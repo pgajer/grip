@@ -3,6 +3,7 @@ root <- "papers/grip-software-paper"
 files <- c("reproducibility/precomputed/saddle-reference-diagnostics.rds",
  "reproducibility/precomputed/saddle-reference-diagnostics.csv",
  "reproducibility/precomputed/single-saddle-reference.csv",
+ "reproducibility/precomputed/hmp_gmds/hmp_gmds_layout.rds",
  paste0("reproducibility/figures/saddle/",c("mesh1","mesh2","mesh3","overlay","displacement"),".png"),
  "reproducibility/figures/saddle/panel-e-workflow.png",
  "supplement/S4-interactive-saddle.html")

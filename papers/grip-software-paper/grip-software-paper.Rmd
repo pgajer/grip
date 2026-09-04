@@ -1293,48 +1293,40 @@ checks, additional-iteration results, and full experimental settings. The
 figures here read supplied coordinates and scores; the supplementary archive
 contains these inputs and scripts for repeating the experiment.
 
-## Real-data network at package scale
+## Application to a real microbiome network
 
 ```{r hmp-data, include=FALSE}
 data(hmp.gc)
 hmp.edges <- edge.matrix.from.adj(hmp.gc$adj_list)
+hmp.gmds <- read.extdata.rds("hmp_gmds", "hmp_gmds_layout.rds")
 ```
 
-The package includes a graph derived from the Ravel-led University of Maryland
-Baltimore Human Microbiome Project (UMB-HMP), a longitudinal study in which
-135 nonpregnant women of reproductive age were enrolled and asked to
-self-collect vaginal swabs daily for ten weeks [@ravel2013daily]. This HMP
-demonstration-project cohort is distinct from the NIH HMP healthy-reference
-cohort. Later work identifies the longitudinal data as UMB-HMP and describes
-the available profiles as V3--V4 16S rRNA data [@lee2023equilibrium]. The
-processed data tables used here contain later Illumina profiles: before
-preprocessing, eligible samples must have a `Project` value beginning with
-`HMP` and a `16S_Platform` value equal to `Illumina`. Thus, the cited studies
-establish the cohort and assay lineage; the supplementary input tables record
-the exact 4,411 profiles used to construct the graph.
+The controlled saddle example assesses graph construction against a known
+surface before evaluating an embedding. This example instead illustrates the
+$G\to Z$ workflow on a real biological graph, for which the underlying data
+geometry $D_X$ is unknown. The package includes a graph derived from the
+University of Maryland Human Microbiome Project (UMB-HMP), a longitudinal study
+of 135 nonpregnant women of reproductive age who self-collected vaginal swabs
+daily for ten weeks [@ravel2013daily].
 
-The 169 taxonomic features detected in at least 1% of the retained HMP samples
-are converted to relative abundance, followed by a ten-component PCA. A
-symmetric $k=3$ nearest-neighbor graph is constructed in that representation: an
-undirected edge is present when either endpoint occurs among the other's three
-nearest neighbors. Edge weights are Euclidean distances in the PCA
-representation. The largest connected component contains 4,391 of the 4,411
-eligible samples and 9,067 edges and is used without coarsening.
-
-The supplementary archive contains the minimal UMB-HMP-only feature-count and
-technical metadata tables, the graph-construction script, a list of included
-features, checksums for verifying file integrity, and records of the data sources
-and processing needed to reconstruct this graph. It also
-contains the precomputed repeated-layout benchmark used below and the script
-that generates it.
+The graph is constructed from 4,411 Illumina 16S rRNA profiles. The 169
+taxonomic features detected in at least 1% of samples are converted to relative
+abundances and represented by ten principal components. A symmetric $k=3$
+nearest-neighbor graph assigns Euclidean distances in this representation as
+edge lengths. Its largest connected component contains 4,391 vertices and
+9,067 edges.
 
 \Needspace{8\baselineskip}
-Figure \@ref(fig:hmp-layouts) compares two topology-only layouts of the same
-graph. Vertices are colored by their supplied community-state-type (CST) labels
-only to make the displayed graph easier to inspect; the layouts were computed
-without those labels.
+Figure \@ref(fig:hmp-layouts) applies the GMDS-oriented sequence introduced
+above: metric-MDS embeds the weighted graph shortest-path distances, and
+edge-KK then refines the configuration using the supplied edge lengths. The
+profiled edge relative RMSE decreases from
+`r sprintf("%.1f", 100 * hmp.gmds$metric_mds_diagnostics$edge.rel.rmse)`% to
+`r sprintf("%.1f", 100 * hmp.gmds$edge_kk_diagnostics$edge.rel.rmse)`%.
+Community-state-type (CST) labels are used only to color the vertices and were
+not supplied to either layout method.
 
-```{r hmp-layouts, fig.cap="Topology-only layouts of the UMB-HMP graph provided with the package, colored by supplied community-state-type labels. The left panel shows default hop-metric GRIP and the right panel stress majorization. Each coordinate matrix is centered and scaled independently for display; CST labels are not layout inputs.", fig.alt="Two panels show the 4,391-vertex UMB-HMP graph with vertices colored by seven community-state-type labels. The left panel is a default hop-metric GRIP layout and the right panel is a stress-majorization layout. Both show the same color legend and graph topology.", fig.width=10, fig.height=4.5, fig.pos="H"}
+```{r hmp-layouts, fig.cap="Weighted layouts of the 4,391-vertex UMB-HMP graph provided with the package. Metric-MDS (left) embeds graph shortest-path distances; edge-KK (right) refines that configuration using the supplied edge lengths. Vertices are colored by community-state type only for interpretation; these labels are not layout inputs. Each configuration is centered and scaled independently for display.", fig.alt="Two panels show the same 4,391-vertex UMB-HMP graph with vertices colored by seven community-state-type labels. The left panel is metric-MDS and the right panel is the resulting metric-MDS plus edge-KK layout.", fig.width=10, fig.height=4.5, fig.pos="H"}
 hmp.cst <- as.character(hmp.gc$vertex_data$cst)
 hmp.cst.levels <- c("I", "II", "III", "IV-A", "IV-B", "IV-C", "V")
 hmp.cst.colors <- c(
@@ -1343,8 +1335,8 @@ hmp.cst.colors <- c(
   "V" = "#A6761D"
 )
 hmp.layouts <- list(
-  "Default GRIP (hop)" = benchmark.results$hmp$layouts[["grip default (hop)"]],
-  "Stress majorization" = benchmark.results$hmp$layouts[["Stress (graphlayouts)"]]
+  "metric-MDS" = hmp.gmds$metric_mds,
+  "metric-MDS + edge-KK" = hmp.gmds$metric_mds_edge_kk
 )
 hmp.display <- lapply(hmp.layouts, function(coords) {
   centered <- sweep(coords, 2, colMeans(coords), "-", check.margin = FALSE)

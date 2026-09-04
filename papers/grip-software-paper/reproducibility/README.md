@@ -132,6 +132,9 @@ The SHA-256 of the published `grip_0.2.0.tar.gz` archive is
   all calibration curves, and primary/additional-budget scores and checks;
 - `precomputed/vs_alternatives/benchmark_results.rds`: cross-package layouts,
   scores, timings, and generation-session information;
+- `precomputed/hmp_gmds/hmp_gmds_layout.rds`: weighted metric-MDS and
+  metric-MDS + edge-KK coordinates for the real-data figure, with edge
+  diagnostics and elapsed times;
 - `BENCHMARK_PROVENANCE.md`: timing boundary, repeat policy, hardware,
   software versions, and the benchmark medians reported in the paper;
 - `hmp_gc/`: the exact UMB-HMP-only Illumina 16S edge list, vertex metadata,
@@ -155,7 +158,7 @@ demonstration project, not the NIH HMP healthy-reference cohort.
 | Executable variable-density circle example (Supplement S3) | Generated directly by `supplement/S3-controlled-examples.Rmd` | Render S3; no precomputed input is used for this example |
 | UMB-HMP-only graph construction summary | `hmp_gc/` graph files and `hmp_gc/upstream/` input tables | `scripts/build-hmp-only-graph.R` |
 | Repeated HMP runtime and shared-scoring benchmark | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp` | `scripts/precompute-vs-alternatives.R` |
-| Two-panel UMB-HMP layout figure | `precomputed/vs_alternatives/benchmark_results.rds`, component `hmp$layouts`, and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-vs-alternatives.R` supplies coordinates; the manuscript plots them with the supplied CST labels |
+| Two-panel UMB-HMP weighted-layout figure | `precomputed/hmp_gmds/hmp_gmds_layout.rds` and `hmp.gc$vertex_data$cst` from the package data | `scripts/precompute-hmp-gmds-layout.R` supplies metric-MDS and metric-MDS + edge-KK coordinates; the manuscript plots them with the supplied CST labels |
 | Benchmark hardware, software, timing boundary, and repeat policy | `BENCHMARK_PROVENANCE.md` and the RDS `benchmark_metadata` component | Recorded by `scripts/precompute-vs-alternatives.R` |
 | Small-graph figures and tables | Evaluated directly from `grip-software-paper.Rmd` | Render the manuscript; no precomputed supplement input is used |
 | Two-edge angle and coincident-endpoint diagram | Analytic three-vertex, unit-edge path | The `path-angle-freedom` chunk checks all three fixed-path distances at 1,001 deterministic angles (including zero), then draws the acute-angle and coincident-endpoint configurations; no random sampling or fitted layout is involved |
@@ -256,6 +259,17 @@ minimal inputs reproduces the exact vertex identifiers, edge endpoints, edge
 weights, and feature manifest used in the paper. Paths can still be overridden
 with `GRIP_HMP_METADATA_TSV`, `GRIP_HMP_FEATURE_MATRIX_TSV`, and
 `GRIP_HMP_OUTPUT_DIR`.
+
+The weighted metric-MDS and metric-MDS + edge-KK coordinates used in the
+real-data figure can be regenerated from the packaged graph with:
+
+```sh
+Rscript scripts/precompute-hmp-gmds-layout.R
+```
+
+This calculation materializes the all-pairs weighted graph-distance matrix and
+performs dense classical scaling. It is supplied as a precomputed artifact
+rather than run while rendering the manuscript.
 
 ## Cross-package benchmark
 
@@ -363,8 +377,8 @@ the original long-running benchmark environment.
 ## Fast article build
 
 The manuscript evaluates the smaller examples during rendering. Its
-weighted-saddle comparison, UMB-HMP layout figure, and repeated UMB-HMP runtime
-benchmark instead use the supplied results, allowing the article to be
+weighted-saddle comparison, UMB-HMP weighted-layout figure, and repeated
+UMB-HMP runtime benchmark instead use the supplied results, allowing the article to be
 rendered without rerunning the longer computations. Those computations can be
 reviewed separately using the inputs, checksums, and scripts above.
 

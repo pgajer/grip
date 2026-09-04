@@ -2,6 +2,7 @@ md5	file
 c9fd3c96e48a4fd1b93f12c3e58ae49f	reproducibility/precomputed/saddle-reference-diagnostics.rds
 45b9001c8764b3859a29864df562d614	reproducibility/precomputed/saddle-reference-diagnostics.csv
 6b881926febb98b4dcba847482c90952	reproducibility/precomputed/single-saddle-reference.csv
+d9f9008ee505e4752daeb506e9b9585c	reproducibility/precomputed/hmp_gmds/hmp_gmds_layout.rds
 c0bd765a10ec6b8d0df5ffae83ed0ce2	reproducibility/figures/saddle/mesh1.png
 e17946dd6df14aed3c7ca9a29bc31b5d	reproducibility/figures/saddle/mesh2.png
 7fb0d7618c9603699a15c7e0178768f8	reproducibility/figures/saddle/mesh3.png
