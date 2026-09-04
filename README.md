@@ -101,10 +101,17 @@ options.
 
 ## Gallery
 
-`trace.grip()` records the multiscale refinement process from coarse
-placement through the final layout. Local Sierpinski carpet and triangle
-animations can be generated with `make readme-assets`; generated
-animations are intentionally kept outside Git history.
+These animations show the multiscale refinement recorded by
+`trace.grip()`. Starting from a coarse placement, GRIP introduces
+vertices and refines their positions through the final layout.
+
+### Sierpinski Carpet (Level 4)
+
+<img src="https://pgajer.github.io/grip/reference/figures/readme-sierpinski-carpet-level-4-trace.gif" alt="Animated multiscale layout of a level-4 Sierpinski carpet" width="600" />
+
+### Sierpinski Triangle (Level 6)
+
+<img src="https://pgajer.github.io/grip/reference/figures/readme-sierpinski-triangle-level-6-trace.gif" alt="Animated multiscale layout of a level-6 Sierpinski triangle" width="600" />
 
 ## More examples
 

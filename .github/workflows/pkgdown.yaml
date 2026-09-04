@@ -31,8 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies for rgl
-        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev
+      - name: Install system dependencies for rgl and GIF rendering
+        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libmagick++-dev
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -43,12 +43,22 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::pkgdown
+          extra-packages: |
+            any::pkgdown
+            any::pkgload
+            any::magick
           needs: website
 
       - name: Build pkgdown site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = TRUE)
         shell: Rscript {0}
+
+      # Publish generated GIFs with Pages; the README embeds these stable URLs.
+      - name: Generate and stage gallery animations
+        run: |
+          make readme-assets
+          mkdir -p docs/reference/figures
+          cp man/figures/readme-sierpinski-*-trace.gif docs/reference/figures/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

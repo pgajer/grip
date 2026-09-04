@@ -2,12 +2,12 @@
 
 dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
 
-if (requireNamespace("devtools", quietly = TRUE)) {
-  devtools::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)
+if (requireNamespace("pkgload", quietly = TRUE)) {
+  pkgload::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)
 } else if (requireNamespace("grip", quietly = TRUE)) {
   library(grip)
 } else {
-  stop("Install 'devtools' or the 'grip' package to generate README assets.")
+  stop("Install 'pkgload' or the 'grip' package to generate README assets.")
 }
 
 if (!requireNamespace("magick", quietly = TRUE)) {
