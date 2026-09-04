@@ -831,33 +831,43 @@ $$
 
 ## Which criterion answers which question
 
-Chord and fixed-path criteria are not competing approximations to one common
-notion of fidelity. Both compare against the input graph distances $D_G$, but
-chord criteria measure Euclidean endpoint distances, whereas fixed-path
-criteria measure lengths along retained graph paths after embedding.
-Isomap uses $D_G$ because ambient straight-line
-distances can misrepresent the intrinsic geometry of the observations. The
-output space $\mathbb{R}^m$, however, is flat and complete by construction, so
-its geodesic between $z_i$ and $z_j$ is the chord
-$d_{ij}^Z=\lVert z_i-z_j\rVert_2$. Chord-based stress therefore does not
-assume that the input geometry is chord-like. It asks how nearly $D_G$ admits
-an isometric Euclidean representation in dimension $m$; a large value is an
-informative answer about the cost of flattening that graph metric.
-
-In differential geometry, a Riemannian isometric embedding
-$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the length of every piecewise
-smooth curve $\gamma:[0,1]\rightarrow M$:
+Chord-based MDS and fixed-path GMDS assess different aspects of
+graph-to-embedding fidelity. Both compare against the input graph distances
+$D_G$, but chord criteria measure Euclidean endpoint distances, whereas
+fixed-path criteria measure lengths along retained graph paths after
+embedding. The corresponding loss functions considered here are
 
 $$
-L_g(\gamma)=L_{\mathrm{Euc}}(f\circ\gamma).
+\operatorname{Stress}_1(D_G,D_Z)
+\qquad\text{and}\qquad
+\operatorname{RelRMSE}^{\mathrm{path}}(D_G,D_{G,Z}\mid\Gamma).
 $$
 
-\noindent Here the left-hand side measures length using the Riemannian metric
+\noindent When used as optimization objectives, these losses are minimized
+over the coordinates $Z$, with the input graph $G$ and path family $\Gamma$
+held fixed.
+
+Fixed-path GMDS provides a discrete counterpart to curve-length preservation
+in Riemannian geometry. A smooth embedding
+$f:(M,g)\rightarrow\mathbb{R}^m$ is Riemannian isometric when every piecewise
+smooth curve $\gamma:[0,1]\rightarrow M$ satisfies
+
+$$
+L_g(\gamma)=L_{\mathrm{Euc}}(f\circ\gamma),
+$$
+
+\noindent where the left-hand side measures length using the Riemannian metric
 $g$, while the right-hand side measures Euclidean arc length along the image
-curve. This equality does not require the curve's length to equal the
-straight-line distance between its endpoints [@saucan2012]. In contrast, zero
+curve [@saucan2012]. Fixed-path GMDS makes the corresponding comparison for
+selected graph paths, measuring their embedded lengths by summing the
+Euclidean lengths of their constituent edges.
+
+Preserving a curve's length does not require that length to equal the
+straight-line distance between its endpoints. In contrast, zero
 MDS Stress-1 for intrinsic input distances $d_M(x,y)$, measured along $M$,
 requires $d_M(x,y)=\lVert f(x)-f(y)\rVert_2$ for every evaluated pair.
+
+\Needspace{9\baselineskip}
 
 For graph-distance inputs $D_G$, exact chord preservation for all vertex pairs
 also preserves the embedded length of every retained graph shortest path.
