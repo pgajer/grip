@@ -1204,10 +1204,12 @@ knitr::include_graphics("reproducibility/figures/saddle/panel-e-workflow.png")
 
 ## Linking the two fidelity stages
 
-Known surface geometry allows graph construction to be assessed before an
-embedding is evaluated. We drew five independent samples of 1,000 points,
-uniformly by surface area, from the saddle
-$z=0.8(x^2-y^2)$ over $(x,y)\in[-1,1]^2$. For each sample,
+As noted in the Introduction, candidate $X\to G$ constructions can be
+evaluated on synthetic examples whose known intrinsic geometry represents
+features relevant to the data class under study. We illustrate this calibration
+strategy with the bounded saddle surface $z=0.8(x^2-y^2)$ over
+$(x,y)\in[-1,1]^2$. From this surface, we drew five independent samples of
+1,000 points, uniformly by surface area. For each sample,
 \CRANpkg{dgraphs} constructed symmetric $k$-nearest-neighbor graphs with
 Euclidean edge lengths, adding minimum-spanning-tree edges between components
 when needed. Numerical geodesic distances on the bounded surface patch
