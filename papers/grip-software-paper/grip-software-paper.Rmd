@@ -1440,63 +1440,58 @@ they are not an empirical scaling study.
 
 # Discussion
 
-A low graph-geodesic loss establishes agreement with the supplied graph and
-selected input paths; it does not establish that the graph faithfully represents
-the geometry of the original data. That data-to-graph fidelity question belongs to
-graph construction, for example through the tools in the companion
-\CRANpkg{dgraphs} package. When a synthetic calibration family leaves several graph
-constructors or parameter settings plausible, embedding assessment should be
-repeated over that set rather than conditioned on a single nominal winner. Such
-transfer remains conditional on how well the synthetic family represents the
-topology, sampling process, and noise structure of the application.
+The central premise of this article is that a data-derived graph embedding has
+two linked but distinct fidelity problems. The $X\to G$ stage asks whether
+graph shortest-path distances represent the geometry of the data, whereas the
+$G\to Z$ stage asks whether the coordinates preserve the relevant features of
+the supplied graph geometry. The saddle experiment makes this separation
+concrete: graph construction was calibrated against known surface geodesic distances
+before the coordinates were assessed. Good $G\to Z$ agreement cannot recover
+geometry already lost during $X\to G$.
 
-The construction of $G$ need not begin with Euclidean distances. Given a
+At the $G\to Z$ stage, fidelity depends on which geometric quantities matter
+for the analysis. In the saddle experiment, edge-KK refinement reduced edge
+and fixed-path errors but increased MDS Stress-1. This tradeoff is expected:
+edge-KK targets edge-length residuals, and although zero edge loss guarantees
+zero fixed-path loss, away from zero the edge and path objectives can have
+different minimizers and neither directly minimizes chord stress. Coordinate
+agreement and surface agreement also need not change together. These measures
+are therefore complementary descriptions of an embedding rather than
+interchangeable measures of quality. The criterion used to select a
+configuration should reflect the distances used in the downstream analysis.
+
+Uncertainty in graph construction remains part of the interpretation. When a
+synthetic calibration family leaves several graph constructors or parameter
+settings plausible, the $G\to Z$ assessment should be repeated across that set
+rather than conditioned on a single nominal choice. Its relevance to real data
+also depends on how well the calibration family represents the topology,
+sampling process, and noise structure of the application.
+
+The $X\to G$ construction need not begin with Euclidean distances. Given a
 nonnegative, symmetric dissimilarity $\rho$, neighborhoods may be defined using
 $\rho(x_i,x_j)$, with the same values assigned as graph edge lengths. For
 relative-abundance data, for example, $\rho$ may be Jensen--Shannon distance
 (the square root of Jensen--Shannon divergence) or another domain-appropriate
 dissimilarity [@lin1991; @endres2003]. This choice changes the geometry
-supplied by the $X\to G$ stage, but not the subsequent definitions of $D_G$,
+supplied by the first stage, but not the subsequent definitions of $D_G$,
 $D_{G,Z}$, or the $G\to Z$ fidelity criteria.
 
-The GMDS methods provide tools for investigating a supplied graph
-metric, but no automatic rule for selecting among full, landmark, edge-only,
-and multiscale strategies. The worked examples illustrate their use rather
-than establish a general comparison of embedding methods.
+Computational scale introduces a separate choice among full, landmark,
+edge-only, and multiscale strategies. When all-pairs distances are feasible,
+metric-MDS followed by edge-KK provides a practical GMDS-oriented sequence; for
+larger graphs, weighted GRIP can supply the initial coordinates without the
+dense classical-scaling step. The package does not select automatically among
+these strategies. Moreover, the five sampled saddle point clouds and the single
+UMB-HMP graph do not establish a general ranking or empirical scaling law for
+embedding methods.
 
-This article describes \CRANpkg{grip} 0.2.0 and uses \CRANpkg{dgraphs} 0.2.0
-in its examples. Extended worked examples are available in the \CRANpkg{grip}
-vignettes and at <https://pgajer.github.io/grip/>.
-The additional saddle-reference diagnostics use development commit
-\texttt{b72f61d} of \pkg{grip}; the triangulated visualizations use
-\pkg{ivue} commit \texttt{872f9d4}. These additions evaluate the saved
-0.2.0 configurations without refitting them.
-
-The smaller examples are evaluated from code in the manuscript. The
-sampled-saddle experiment and UMB-HMP layouts and runtime benchmark use
-precomputed results. The supplementary archive provides these results,
-generation scripts, minimal UMB-HMP-only inputs, checksums, and records of data
-sources and processing. Its README gives the exact package source versions and
-instructions for reproducing the results.
-Supplement S1 provides the weighted-GRIP computational complexity analysis and its LaTeX
-source. Supplement S2 provides the full Möbius-strip layout comparison; its
-figures are regenerated by the accompanying R script.
-Supplement S3 gives the sampled-saddle protocol, numerical checks and additional
-results, together with the executable circle example and fixed-grid saddle
-comparison.
-Supplement S4 provides self-contained interactive saddle views, including
-fixed-triangulation views (Figure S4.1), generating-surface overlays
-(Figure S4.2), and the refinement comparison (Figure S4.3).
-
-Future work will connect the two transformations more systematically through a
-two-dimensional experimental design: graph constructors and settings along one
-axis, and embedding objectives and algorithms along the other. Evaluating this
-design over controlled calibration families and multiple realizations can show
-which conclusions are stable to uncertainty in the graph rather than merely
-optimal for one selected construction. The current package provides the
-layout, scoring, and refinement functions needed to carry out and reproduce those investigations
-while keeping methodological claims separate from the established package
-contribution.
+A broader evaluation should cross graph constructors and their settings with
+embedding objectives and algorithms, using multiple realizations from several
+controlled data families. Such a design can reveal which conclusions are
+stable to uncertainty in the graph rather than optimal for one selected
+construction. \CRANpkg{grip} provides the layout, scoring, and refinement
+functions needed for these comparisons while keeping the two fidelity stages
+explicit.
 
 # Acknowledgments
 

@@ -1,7 +1,24 @@
-# Supplement S1: Search-sensitive complexity of weighted GRIP
+# Supplementary materials
 
 Supplement to *grip: Multiscale Graph Layout and Geodesic Embedding Tools in R*,
 by Pawel Gajer and Jacques Ravel.
+
+## Software versions and provenance
+
+The article describes [grip 0.2.0](https://CRAN.R-project.org/package=grip)
+and uses [dgraphs 0.2.0](https://CRAN.R-project.org/package=dgraphs) in its
+examples. Extended worked examples are available in the
+[grip vignettes](https://pgajer.github.io/grip/).
+
+The sampled-saddle configurations were fitted with grip 0.2.0. Additional
+reference diagnostics evaluated those saved coordinates with grip development
+commit [`b72f61d`](https://github.com/pgajer/grip/tree/b72f61d9b5f20a822d3e87dacc1b45de025aabc7)
+without refitting them. The triangulated interactive visualizations use ivue
+commit [`872f9d4`](https://github.com/pgajer/ivue/tree/872f9d45827c7617005e7938f429a56d58b3e8b7).
+The `reproducibility/README.md` file gives the full dependency record,
+checksums, and commands for repeating the computational results.
+
+## Supplement S1: Search-sensitive complexity of weighted GRIP
 
 The canonical source is `S1-weighted-grip-complexity.tex`, accompanied by its
 bibliography and citation-verification evidence. It analyzes the weighted
@@ -79,3 +96,12 @@ Rscript papers/grip-software-paper/supplement/render-S3.R \
 
 All supplementary PDFs and generated figures remain under `build/`. The
 submission archive includes the source and input files needed to rebuild them.
+
+## Supplement S4
+
+`S4-interactive-saddle.html` provides self-contained interactive views of the
+sampled-saddle configurations. Figure S4.1 carries a fixed triangulation from
+the original parameter coordinates to the fitted layouts, Figure S4.2 overlays
+the generating saddle surface, and Figure S4.3 compares metric-MDS with its
+edge-KK refinement. The source is `S4-interactive-saddle.Rmd`; the reusable
+widget builder is `../reproducibility/scripts/saddle-widgets.R`.
