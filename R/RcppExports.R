@@ -105,3 +105,7 @@ grip_optimize_kernel_gram_gkk_layout_cpp <- function(edges, edge_weights, edge_s
     .Call(`_grip_grip_optimize_kernel_gram_gkk_layout_cpp`, edges, edge_weights, edge_stiffness, star_center, star_v1, star_v2, star_w1, star_w2, star_cos, star_weight, coords, max_iter, scale_mode, scale, lambda_edge, lambda_gram, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, distance_floor, recenter, return_trace)
 }
 
+grip_surface_distances_cpp <- function(points, vertices, triangles) {
+    .Call(`_grip_grip_surface_distances_cpp`, points, vertices, triangles)
+}
+

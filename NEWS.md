@@ -1,5 +1,9 @@
 # Development changes after 0.2.0
 
+* Add score.coordinates() with explicit rigid, similarity, and unaligned
+  coordinate errors, and score.surface() for reproducible area-weighted
+  symmetric surface RMS distance. These reference-based diagnostics do not
+  change existing graph-fidelity scores or historical Procrustes conventions.
 * Remove local DESCRIPTION-file path attributes from saved benchmark session
   metadata and prevent their regeneration; numerical results are unchanged.
 * Clarify benchmark provenance and document the GMDS thread environment setting.

@@ -737,6 +737,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_surface_distances_cpp
+Rcpp::NumericVector grip_surface_distances_cpp(Rcpp::NumericMatrix points, Rcpp::NumericMatrix vertices, Rcpp::IntegerMatrix triangles);
+RcppExport SEXP _grip_grip_surface_distances_cpp(SEXP pointsSEXP, SEXP verticesSEXP, SEXP trianglesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type points(pointsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type triangles(trianglesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_surface_distances_cpp(points, vertices, triangles));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_optimize_edge_isometric_layout_cpp", (DL_FUNC) &_grip_grip_optimize_edge_isometric_layout_cpp, 17},
@@ -765,6 +778,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
+    {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
     {NULL, NULL, 0}
 };
 
