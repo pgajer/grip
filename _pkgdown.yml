@@ -76,6 +76,8 @@ reference:
     desc: Score and compare layouts across seeds and parameter settings.
     contents:
       - score.layout
+      - score.coordinates
+      - score.surface
       - geometry.diagnostics
       - compare.layouts
       - params.from.summary
