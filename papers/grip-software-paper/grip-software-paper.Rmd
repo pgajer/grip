@@ -72,6 +72,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+knitr::read_chunk("reproducibility/scripts/edge-kk-workflow.R")
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -1066,14 +1067,6 @@ family.scope <- data.frame(
     "Edge KK",
     "Repulsive terms"
   ),
-  Status = c(
-    "Standard",
-    "Exp.",
-    "Exp.",
-    "Exp.",
-    "Exp.",
-    "Exp."
-  ),
   Purpose = c(
     "Layouts and intermediate stages.",
     "All-pairs scoring and refinement.",
@@ -1096,10 +1089,10 @@ family.scope <- data.frame(
 accessible_kable(
   family.scope,
   row.names = FALSE,
-  align = c("l", "l", "l", "l"),
-  latex_widths = c(0.18, 0.13, 0.23, 0.46),
-  function_columns = 4L,
-  caption = "Status, purpose, and principal functions of the multiscale layout and GMDS methods in grip. Exp. = experimental.",
+  align = c("l", "l", "l"),
+  latex_widths = c(0.18, 0.28, 0.54),
+  function_columns = 3L,
+  caption = "Method families, purposes, and principal functions in grip. Multiscale GRIP provides the standard layout methods; the remaining families belong to the experimental GMDS functionality.",
   alt = paste(
     "Six rows distinguish the standard multiscale GRIP methods from the",
     "experimental full, landmark, MISF, edge-KK, and repulsive families and",
@@ -1117,47 +1110,8 @@ refined using a GMDS-oriented method.
 
 ## General layout diagnostics
 
-Table \@ref(tab:metrics-table) lists the general diagnostics used in this
-article.
-
-```{r metrics-table, echo=FALSE}
-metrics.table <- data.frame(
-  Metric = c(
-    "Sampled stress",
-    "Edge-length CV",
-    "Sampled non-edge separation",
-    "Edge crossings",
-    "Procrustes stability"
-  ),
-  Meaning = c(
-    "Chord agreement with graph distances",
-    "Variation among embedded edges",
-    "Spacing of sampled non-neighbors",
-    "2D segment intersections",
-    "Across-seed reproducibility"
-  ),
-  Better = c("Lower", "Lower", "Higher", "Lower", "Lower"),
-  check.names = FALSE
-)
-
-accessible_kable(
-  metrics.table,
-  row.names = FALSE,
-  align = c("l", "l", "l"),
-  latex_widths = c(0.35, 0.53, 0.12),
-  caption = "General layout diagnostics used in the examples.",
-  alt = paste(
-    "Five rows define sampled stress, edge-length variation, non-edge",
-    "separation, edge crossings, and Procrustes stability, and indicate",
-    "whether lower or higher values are preferred."
-  ),
-  position = "H"
-)
-```
-
-All metrics in Table \@ref(tab:metrics-table) are returned by `score.layout()`;
-`compare.layouts()` applies the same diagnostics across repeated candidate
-layouts.
+`score.layout()` provides general layout diagnostics, while `compare.layouts()`
+applies these diagnostics across repeated candidate layouts.
 
 All-pairs scoring can be unnecessarily expensive for a general layout
 diagnostic, so sampled stress uses the unique unordered pairs $S$ obtained by
@@ -1260,60 +1214,12 @@ scores the initial coordinates, and refines them.
 \Needspace{24\baselineskip}
 
 ```{r geodesic-workflow, echo=TRUE, results="hide"}
-workflow.edges <- edges.mesh(4, 4)
-workflow.grid <- as.matrix(expand.grid(
-  x = seq(-1, 1, length.out = 4),
-  y = seq(-1, 1, length.out = 4)
-))
-initial <- cbind(
-  1.45 * workflow.grid[, 1] + 0.22 * workflow.grid[, 2]^2,
-  0.55 * workflow.grid[, 2] + 0.10 * workflow.grid[, 1]
-)
-
-prepared <- prepare.edge.kk(workflow.edges, n = 16)
-before <- score.gmds(initial, prepared = prepared)
-fit <- edge.kk(
-  coords = initial,
-  prepared = prepared,
-  density_mix_schedule = 1,
-  max_iter = 8,
-  return_trace = FALSE
-)
-after <- score.gmds(fit$coords, prepared = prepared)
 ```
 
-Figure \@ref(fig:edge-kk-workflow) shows the coordinates produced by this
-example before and after refinement. Because the edge-only diagnostic profiles
-out a common scale, the panels are centered and scaled only for display; the
-figure illustrates the resulting configuration and its edge-length fidelity,
-rather than selecting a unique polygonal shape.
-
-```{r edge-kk-workflow, fig.cap=sprintf("Illustrative output of the edge-KK workflow. Eight refinement iterations reduce profiled edge relative RMSE from %.3f to %.3f by equalizing the embedded mesh-edge lengths. The edge-only objective does not select a unique shape, so this deterministic example demonstrates the workflow rather than a general performance comparison.", before$edge.rel.rmse, after$edge.rel.rmse), fig.alt="Two panels show the 16-vertex 4-by-4 mesh from the executable edge-KK workflow. The initial coordinates form a compressed, curved grid, while refinement produces a more regular grid with nearly equal embedded edge lengths. Each panel gives the corresponding profiled edge relative RMSE.", fig.width=7.5, fig.height=3.4, fig.pos="H"}
-display.coords <- function(coords) {
-  centered <- sweep(coords, 2, colMeans(coords), "-", check.margin = FALSE)
-  centered / sqrt(mean(rowSums(centered^2)))
-}
-
-workflow.layouts <- list(
-  "Initial mesh coordinates" = display.coords(initial),
-  "After edge-KK refinement" = display.coords(fit$coords)
-)
-workflow.scores <- c(before$edge.rel.rmse, after$edge.rel.rmse)
-workflow.range <- range(do.call(rbind, workflow.layouts))
-workflow.pad <- 0.12 * diff(workflow.range)
-
-op <- par(mfrow = c(1, 2), mar = c(1, 1, 3.1, 1))
-for (i in seq_along(workflow.layouts)) {
-  plot_common_projection(
-    workflow.layouts[[i]], workflow.edges,
-    sprintf("%s\nEdge relative RMSE = %.3f", names(workflow.layouts)[i], workflow.scores[i]),
-    xlim = workflow.range + c(-workflow.pad, workflow.pad),
-    ylim = workflow.range + c(-workflow.pad, workflow.pad),
-    vertex.col = if (i == 1L) "#666666" else "#1F3B73"
-  )
-}
-par(op)
-```
+Eight refinement iterations reduce the profiled edge relative RMSE from
+`r sprintf("%.3f", before$edge.rel.rmse)` to
+`r sprintf("%.3f", after$edge.rel.rmse)`.
+Supplement S3 shows the corresponding configurations.
 
 # Worked examples
 

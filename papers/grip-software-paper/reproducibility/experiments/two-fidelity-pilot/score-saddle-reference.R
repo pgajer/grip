@@ -1,5 +1,5 @@
 # Reference scoring for an existing single cloud and its fitted layouts.
-# Does not refit layouts or change the Figure 7 scoring convention.
+# Does not refit layouts or change the sampled-saddle experiment's scoring convention.
 saddle.reference.mesh <- function(X, triangles, C, subdivisions = 2L) {
   uv <- X[, 1:2, drop = FALSE]
   for (level in seq_len(subdivisions)) {

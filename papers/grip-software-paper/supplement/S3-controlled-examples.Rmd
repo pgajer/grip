@@ -24,6 +24,8 @@ header-includes:
 ---
 
 ```{r setup-s3, include=FALSE}
+# Load at knit time, when knit_root_dir is the manuscript directory.
+do.call(knitr::read_chunk, list("reproducibility/scripts/edge-kk-workflow.R"))
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE,
   fig.align="center", out.width="100%", fig.pos="H",
   fig.path="build/supplement/S3_files/figure-latex/")
@@ -52,7 +54,7 @@ accessible_kable <- function(x, caption, alt=NULL, row.names=FALSE, align=NULL,
 # Sampled-saddle protocol and numerical checks
 
 This supplement documents the five-sample experiment in the manuscript and
-retains two smaller controlled examples. The sampled-saddle study is a
+retains three smaller controlled examples. The sampled-saddle study is a
 fixed-budget illustration of the two fidelity stages. It does not establish
 a general ranking of graph constructors or embedding methods.
 
@@ -594,5 +596,21 @@ source("reproducibility/scripts/plot-weighted-saddle.R")
 plot_weighted_saddle(weighted.saddle, weighted.resolutions$display_limits)
 ```
 
+
+\clearpage
+
+# Minimal edge-KK refinement example
+
+The manuscript's executable edge-KK example starts from a distorted
+$4\times4$ mesh and applies eight refinement iterations. The code and figure
+below use the shared script `reproducibility/scripts/edge-kk-workflow.R`.
+The panels are centered and scaled only for display, consistently with the
+profiled edge diagnostic; scoring uses the original coordinates.
+
+```{r geodesic-workflow, echo=TRUE, results="hide"}
+```
+
+```{r edge-kk-workflow, fig.cap=sprintf("Illustrative output of the edge-KK workflow. Eight refinement iterations reduce profiled edge relative RMSE from %.3f to %.3f by equalizing the embedded mesh-edge lengths. The edge-only objective does not select a unique shape, so this deterministic example demonstrates the workflow rather than a general performance comparison.", before$edge.rel.rmse, after$edge.rel.rmse), fig.alt="Two panels show the 16-vertex 4-by-4 mesh before and after edge-KK refinement. The initial coordinates form a compressed, curved grid; refinement produces a more regular grid with nearly equal embedded edge lengths. Each panel reports profiled edge relative RMSE.", fig.width=7.5, fig.height=3.4, fig.pos="H"}
+```
 
 # References {-}

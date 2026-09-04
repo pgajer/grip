@@ -49,7 +49,7 @@ If grip and dgraphs are in a separate R library, add that directory with
 `.libPaths()` before starting. The script does not install packages or change
 the library search path.
 
-## Relationship to Figure 7
+## Relationship to the sampled-saddle experiment
 
 The surface, area-uniform sampling rule, graph construction, and primary 3D
 fitting settings follow the paper. The default seed is 1, giving a new sample.
@@ -64,7 +64,7 @@ error, compute fidelity scores, or run the additional refinement audit. In
 particular, `3:20` is an exploratory range, not the calibrated optimum: the
 paper extended the search to `3:80` and displayed k = 73 for cloud 5.
 
-The full Figure 7 workflow remains unchanged:
+The full sampled-saddle workflow remains unchanged:
 
 - `sample-clouds.R`, `surface-reference.py`, `graph-sweep.R`, `calibrate.R`,
   and `fit-layouts.R` generate the samples, references, graphs, and layouts.

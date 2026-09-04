@@ -59,8 +59,10 @@ source `S2-mobius-comparison.tex` and separate bibliography and citation evidenc
 S3 documents the five independent, 1,000-observation sampled-saddle experiments:
 graph calibration, numerical surface-reference checks, primary and additional
 iteration results, identity-embedding controls, and end-to-end errors. It also
-retains the executable variable-density circle example and full fixed-grid
-saddle comparison moved from the main text. Its canonical source is
+retains the executable variable-density circle example, full fixed-grid
+saddle comparison, and edge-KK mesh illustration moved from the main text.
+The mesh example uses `../reproducibility/scripts/edge-kk-workflow.R`, shared
+with the manuscript's executable code example. Its canonical document source is
 `S3-controlled-examples.Rmd`; `render-S3.R` renders it using R, rmarkdown,
 bookdown, grip, dgraphs, igraph, Pandoc, and LaTeX. Python is needed to repeat
 the surface-distance experiment, not to render the supplement.

@@ -11,7 +11,7 @@ An optional second argument changes the sample size (default 500). The run uses
 one area-uniform saddle sample with seed 1, C = 0.8, and parameter domain
 [-1, 1]^2. It fits metric MDS and metric MDS followed by edge-KK for symmetric
 kNN graphs with k = 3,...,20 and component-MST repair. This is a new single-cloud
-comparison, not a recomputation of the five-cloud Figure 7 experiment.
+comparison, not a recomputation of the five-cloud sampled-saddle experiment.
 
 The output directory contains the fitted coordinates, a CSV of all scores,
 the reference mesh, a sampling/discretization check at k = 10, an environment
@@ -22,7 +22,7 @@ The runner does not install grip or modify the manuscript.
 ## Scoring conventions
 
 * Graph scores are evaluated before coordinate alignment. The path and edge
-  relative RMSE values use independently profiled scales, as in Figure 7.
+  relative RMSE values use independently profiled scales, as in the sampled-saddle experiment.
   All vertex pairs are used, with one retained deterministic input shortest
   path per pair and no edge-length stabilizer. MDS Stress-1 uses the
   configuration-distance normalization, not the graph-target normalization.

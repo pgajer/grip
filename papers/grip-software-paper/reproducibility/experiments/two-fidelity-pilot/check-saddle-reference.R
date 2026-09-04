@@ -10,7 +10,7 @@ stopifnot(nrow(d)==18L*3L*2L*2L, !anyNA(d), all(d$zero_area_faces==0),
           all(d$coordinate_rmse>=0),all(d$surface_rms>=0))
 base <- subset(d,method=="Original saddle")
 stopifnot(max(base$coordinate_rmse)<1e-12,max(base$path_rel)<1e-7,max(base$edge_rel)<1e-12)
-# Independently reproduce Figure 7's similarity Procrustes formula.
+# Independently reproduce the sampled-saddle experiment's similarity Procrustes formula.
 old.procrustes <- function(z,x) {
   z <- sweep(z,2,colMeans(z),"-"); xx <- sweep(x,2,colMeans(x),"-")
   f <- svd(crossprod(z,xx))

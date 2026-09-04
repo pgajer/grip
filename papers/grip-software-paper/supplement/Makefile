@@ -2,6 +2,7 @@ REPORT := S1-weighted-grip-complexity
 MOBIUS_REPORT := S2-mobius-comparison
 MOBIUS_SCRIPT := ../reproducibility/scripts/mobius-dimension-comparison.R
 CONTROLLED_REPORT := S3-controlled-examples
+EDGE_WORKFLOW_SCRIPT := ../reproducibility/scripts/edge-kk-workflow.R
 BUILD_DIR ?= ../build/supplement
 CHECKER ?= $(if $(wildcard check-citation-verification.py),check-citation-verification.py,../../../tools/reports/check-citation-verification.py)
 
@@ -10,6 +11,8 @@ all: pdf citation-check argument-check
 
 argument-check:
 	python3 check-complexity-arguments.py
+
+$(BUILD_DIR)/$(CONTROLLED_REPORT).pdf: $(EDGE_WORKFLOW_SCRIPT)
 
 $(BUILD_DIR)/mobius-dimension-comparison.pdf: $(MOBIUS_SCRIPT)
 	@mkdir -p "$(BUILD_DIR)"
