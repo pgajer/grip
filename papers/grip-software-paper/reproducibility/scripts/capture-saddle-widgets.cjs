@@ -21,9 +21,9 @@ const fs=require('fs');
       clip:{x:100,y:125,width:520,height:390}});
   }
   await page.goto('file://'+path.join(root,'supplement/S4-interactive-saddle.html'));
-  await page.waitForFunction(()=>document.querySelectorAll('canvas').length===8);
+  await page.waitForFunction(()=>document.querySelectorAll('canvas').length===9);
   const labels=await page.evaluate(()=>{
-    const expected=['1a','1b','1c','2a','2b','2c','3a','3b'];
+    const expected=['1a','1b','1c','2a','2b','2c','3a','3b','3c'];
     for(const suffix of expected) {
       const id='fig-s4-'+suffix;
       const matches=document.querySelectorAll('#'+id);
@@ -38,7 +38,7 @@ const fs=require('fs');
   });
   await page.waitForTimeout(2000);
   // Exercise every scene offline, including below-the-fold views.
-  for(let i=0;i<8;i++) {
+  for(let i=0;i<labels;i++) {
     const canvas=page.locator('canvas').nth(i);
     await canvas.scrollIntoViewIfNeeded();
     await page.waitForTimeout(150);
@@ -53,6 +53,6 @@ const fs=require('fs');
   }
   if(errors.length) throw new Error(errors.join('\n'));
   console.log((checkOnly ? 'Checked existing HTML' : 'Captured five views')+
-    '; '+labels+' panel labels verified; all eight offline scenes respond to rotation, no JavaScript errors.');
+    '; '+labels+' panel labels verified; all '+labels+' offline scenes respond to rotation, no JavaScript errors.');
   await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

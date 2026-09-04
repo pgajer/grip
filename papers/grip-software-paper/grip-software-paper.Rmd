@@ -1328,7 +1328,8 @@ plot_pilot_calibration_layouts(saddle.pilot)
 
 Interactive versions of Figure \@ref(fig:saddle-calibration-layouts)C--E are
 provided in Supplementary Figure S4.1A--C. Generating-surface overlays appear
-in Figure S4.2A--C, and the refinement comparison in Figure S4.3A--B.
+in Figure S4.2A--C. Figure S4.3A--C compares the fitted configurations with
+each other and with the generating saddle.
 
 Edge-KK reduced edge and fixed-path relative RMSE in all five samples
 (Figure \@ref(fig:saddle-pilot-scores)). Median fixed-path relative RMSE

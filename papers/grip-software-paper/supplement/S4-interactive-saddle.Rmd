@@ -93,7 +93,8 @@ views$reference3
 
 Panel [A](#fig-s4-3a) overlays the two meshes; panel [B](#fig-s4-3b) shows
 corresponding-vertex displacements. These are interactive versions of the
-two views in Figure S3.3.
+two views in Figure S3.3. Panel [C](#fig-s4-3c) adds the generating saddle
+to the two-mesh comparison in panel A.
 
 Blue: metric-MDS. Orange: metric-MDS + edge-KK. Both use the same triangles and
 are independently similarity-aligned to the reference observations. Overlapping
@@ -114,6 +115,20 @@ configurations, not optimizer trajectories or surface-normal displacements.
 
 ```{r}
 views$displacement
+```
+
+### Figure S4.3C. Both fitted configurations and the generating saddle {#fig-s4-3c}
+
+The light-gray translucent surface is the analytic saddle
+z = 0.8(x² − y²), over [−1,1]², not another fitted mesh. The blue metric-MDS
+and orange metric-MDS + edge-KK configurations retain the independent
+similarity alignments, triangulation, colors, and initial camera of panel A.
+Only the fixed reference surface has been added. As in Figure S4.2, its
+full-square display footprint differs from the matched convex-hull footprint
+used for surface scoring.
+
+```{r}
+views$overlay_reference
 ```
 
 ## Reproducibility
