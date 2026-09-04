@@ -29,7 +29,8 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE,
   fig.path="build/supplement/S3_files/figure-latex/")
 stopifnot(requireNamespace("grip", quietly=TRUE),
           requireNamespace("dgraphs", quietly=TRUE),
-          requireNamespace("igraph", quietly=TRUE))
+          requireNamespace("igraph", quietly=TRUE),
+          requireNamespace("png", quietly=TRUE))
 library(grip)
 source("reproducibility/scripts/plot-two-fidelity.R")
 pilot <- readRDS("reproducibility/precomputed/two-fidelity-saddle.rds")
@@ -288,6 +289,103 @@ pygeodesic 0.1.11. The layout computation used grip 0.2.0, dgraphs 0.2.0,
 igraph 2.3.3, Rcpp 1.1.2, and R development version 4.7.0
 (2026-06-24 r90190). The environment records identify the particular runs;
 regeneration in another numerical environment can differ slightly.
+
+\clearpage
+
+# Reference-coordinate and surface agreement
+
+The following diagnostics evaluate the saved five-cloud configurations; they
+do not refit them. For aligned coordinates $\widetilde Z$, coordinate RMSE is
+$[n^{-1}\sum_i\|\widetilde z_i-x_i\|^2]^{1/2}$. Dividing by
+$[n^{-1}\sum_i\|x_i-\bar x\|^2]^{1/2}$ gives the relative coordinate error.
+Rigid alignment fits translation and rotation/reflection without rescaling;
+similarity alignment also fits one common scale. The latter reproduces the
+normalized Procrustes discrepancy already reported for this experiment.
+
+To compare surfaces without imposing point correspondence, the Delaunay
+triangulation of the original $(x,y)$ coordinates is carried unchanged to
+each aligned configuration, forming a piecewise-planar surface $S_Z$.
+Subdividing each original triangle twice and lifting its vertices to the
+analytic saddle gives a reference $S_X$ over the same convex-hull footprint.
+The symmetric surface RMS distance is
+$$
+\left[\frac12\left\{
+\frac{1}{|S_Z|}\int_{S_Z}d(u,S_X)^2\,dA(u)+
+\frac{1}{|S_X|}\int_{S_X}d(v,S_Z)^2\,dA(v)
+\right\}\right]^{1/2},
+$$
+where $d(u,S)$ is the shortest Euclidean distance to the triangular surface
+and $|S|$ its area. Each integral is estimated with 8,000 independent
+area-uniform points, using exact point-to-triangle distances. Seeds are
+`1901 + replicate`. This is not a geodesic loss or enclosed volume. It
+depends on the surface mesh and its footprint, and does not certify the
+absence of folds or self-intersections.
+
+```{r reference-summary}
+reference <- readRDS("reproducibility/precomputed/saddle-reference-diagnostics.rds")
+rs <- subset(reference$scores,sample_size==8000)
+summary <- aggregate(cbind(coordinate_relative_rmse,surface_rms)~method+alignment,rs,median)
+summary$coordinate_relative_rmse <- 100*summary$coordinate_relative_rmse
+summary$method <- c("metric-MDS + edge-KK","metric-MDS","Original saddle")[
+  match(summary$method,c("MDS + edge-KK","Metric MDS","Original saddle"))]
+s3_kable(summary,booktabs=TRUE,digits=3,row.names=FALSE,
+ col.names=c("Configuration","Alignment","Coordinate error (%)","Surface RMS"),
+ caption="Median reference discrepancies across the five original clouds. Coordinate error is normalized by reference RMS radius; surface RMS is in coordinate units.")
+```
+
+Refinement improves the surface-distance summary while worsening
+corresponding-coordinate agreement. These measurements distinguish proximity
+of surfaces from recovery of individual observations. The original-coordinate
+surface score is nonzero because a finite triangulation replaces curved patches
+by planar faces; this baseline must not be attributed to embedding error.
+Long boundary triangles can contribute appreciably even for dense point clouds.
+
+```{r reference-sampling,include=FALSE}
+low <- subset(reference$scores,sample_size==2000)
+key <- function(d) paste(d$replicate,d$method,d$alignment)
+low <- low[match(key(rs),key(low)),]
+sampling.change <- abs(rs$surface_rms-low$surface_rms)/rs$surface_rms
+```
+
+Increasing the sample count from 2,000 to 8,000 per direction changes surface
+RMS by a median `r sprintf("%.2f",100*median(sampling.change))`% and at most
+`r sprintf("%.2f",100*max(sampling.change))`% across the evaluated configurations
+and alignments. This checks integration variability, not reference-mesh bias.
+
+```{r refinement-overlay,fig.width=9,fig.height=3.5,fig.cap="Two views of the same refinement comparison for cloud 5. Left: triangulated metric-MDS (blue) and metric-MDS + edge-KK (orange), independently similarity-aligned to the original observations. Right: segments joining 50 systematically selected corresponding vertices. These are displacements between final aligned configurations, not optimization trajectories or a decomposition into tangential and normal movement. Interactive versions are provided in Supplement S4."}
+par(mfrow=c(1,2),mar=rep(0,4))
+for(nm in c("overlay","displacement")) {
+  im <- png::readPNG(paste0("reproducibility/figures/saddle/",nm,".png"))
+  plot.new(); plot.window(xlim=c(0,4),ylim=c(0,3),asp=1,xaxs="i",yaxs="i")
+  rasterImage(im,0,0,4,3)
+}
+```
+
+## Separate neighborhood-size illustration
+
+A separate cloud of 500 area-uniform observations (seed 1, the same saddle and
+parameter domain) illustrates how these diagnostics vary over $k=3,\ldots,20$.
+Each graph is fitted in three dimensions with metric-MDS and then five edge-KK
+continuation stages with a maximum of 200 iterations each. This is not a sixth
+pilot replicate: its sample size and neighborhood range differ. The curves describe within-cloud
+sensitivity, not uncertainty across independent samples.
+
+```{r single-reference,include=FALSE}
+source("reproducibility/experiments/two-fidelity-pilot/plot-saddle-reference.R")
+single <- read.csv("reproducibility/precomputed/single-saddle-reference.csv")
+single.figure <- "build/supplement/single-saddle-reference.png"
+plot.saddle.reference(single,single.figure,columns=2L)
+```
+```{r single-reference-figure,fig.cap="Reference recovery and graph fidelity in a separate 500-observation cloud. The same original parameter-plane triangulation is used for all configurations. Rigid and similarity alignments distinguish size-sensitive errors from shape comparisons; the nonzero original-surface baseline reflects triangulation. Neighborhood sizes are not independent replicates."}
+knitr::include_graphics(normalizePath(single.figure),rel_path=FALSE)
+```
+
+The new scoring code uses grip development commit `b72f61d`, including
+`score.coordinates()` and `score.surface()`; the saved pilot fits remain those
+from grip 0.2.0. Supplement S4 uses ivue commit `872f9d4`. The scripts
+`export-reference-diagnostics.R` and `run-saddle-reference.R` reproduce the
+five-cloud extension and separate 500-point illustration, respectively.
+Their CSV inputs and compact coordinates accompany the archive.
 
 \clearpage
 

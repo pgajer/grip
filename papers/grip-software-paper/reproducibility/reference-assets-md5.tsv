@@ -1,0 +1,10 @@
+md5	file
+c9fd3c96e48a4fd1b93f12c3e58ae49f	reproducibility/precomputed/saddle-reference-diagnostics.rds
+45b9001c8764b3859a29864df562d614	reproducibility/precomputed/saddle-reference-diagnostics.csv
+6b881926febb98b4dcba847482c90952	reproducibility/precomputed/single-saddle-reference.csv
+c0bd765a10ec6b8d0df5ffae83ed0ce2	reproducibility/figures/saddle/mesh1.png
+e17946dd6df14aed3c7ca9a29bc31b5d	reproducibility/figures/saddle/mesh2.png
+7fb0d7618c9603699a15c7e0178768f8	reproducibility/figures/saddle/mesh3.png
+0b5258a6eaed46beec08b0492f1497f1	reproducibility/figures/saddle/overlay.png
+f8e15fe7e921f7d3b27396cf5583bda6	reproducibility/figures/saddle/displacement.png
+67c4d96193c3d1bd68fcdaf09a8aa283	supplement/S4-interactive-saddle.html

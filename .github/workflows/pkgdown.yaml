@@ -47,6 +47,7 @@ jobs:
             any::pkgdown
             any::pkgload
             any::magick
+            any::png
           needs: website
 
       - name: Build pkgdown site
@@ -59,6 +60,9 @@ jobs:
           make readme-assets
           mkdir -p docs/reference/figures
           cp man/figures/readme-sierpinski-*-trace.gif docs/reference/figures/
+          cp man/figures/readme-saddle-reference.png docs/reference/figures/
+          mkdir -p docs/supplements
+          cp papers/grip-software-paper/supplement/S4-interactive-saddle.html docs/supplements/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

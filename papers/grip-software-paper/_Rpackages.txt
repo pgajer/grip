@@ -4,3 +4,5 @@ graphlayouts
 knitr
 rmarkdown
 rjtools
+png
+dgraphs

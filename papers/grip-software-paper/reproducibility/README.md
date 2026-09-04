@@ -7,6 +7,60 @@ examples directly.
 
 ## Requirements
 
+### Additional reference diagnostics and interactive views
+
+The original five-cloud fits remain grip 0.2.0 results. New coordinate and
+surface scores evaluate those saved configurations with grip commit `b72f61d`.
+The compact `precomputed/saddle-reference-diagnostics.rds` contains all five
+clouds and coordinates, fixed triangles, scores for rigid and similarity
+alignment, source-fit checksums, and software identifiers. Its companion CSV
+contains all scalar scores. `precomputed/single-saddle-reference.csv` is the
+separate n=500, k=3:20 illustration, not part of the five-cloud pilot.
+
+From the repository root, regenerate these additions with:
+
+```sh
+Rscript papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/export-reference-diagnostics.R
+Rscript papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/check-reference-diagnostics.R
+IVUE_SOURCE=/path/to/ivue Rscript papers/grip-software-paper/supplement/render-S4.R
+node papers/grip-software-paper/reproducibility/scripts/capture-saddle-widgets.cjs
+Rscript papers/grip-software-paper/reproducibility/scripts/reference-manifest.R
+make paper-all
+make readme
+```
+
+The exporter reads existing `build/two-fidelity-pilot/fit-*.rds` files; use the
+pilot protocol below to recreate them. It also reads the separately generated
+500-point scores from `run-saddle-reference.R`. Ordinary document rendering
+uses the supplied compact inputs and screenshots and does not rerun fitting,
+reference scoring, or a browser. S4 rebuilding requires ivue commit `872f9d4`,
+rgl, htmlwidgets, geometry, and rmarkdown; `IVUE_SOURCE` optionally selects a
+source checkout. The screenshot script requires Playwright and Chromium;
+`PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` optionally specify their locations.
+It uses an identical crop for every view and verifies offline JavaScript startup.
+The exporter optionally accepts the fit directory and the separate single-cloud
+output directory as its first and second arguments. `reference-assets-md5.tsv`
+records the distributed reference-score and visualization assets.
+
+The additional APIs are defined in
+[grip's pinned reference-scoring source](https://github.com/pgajer/grip/blob/b72f61d9b5f20a822d3e87dacc1b45de025aabc7/R/reference_scores.R).
+The renderer uses the
+[pinned ivue source](https://github.com/pgajer/ivue/tree/872f9d45827c7617005e7938f429a56d58b3e8b7).
+
+`supplement/S4-interactive-saddle.html` is a deliberately distributed,
+self-contained HTML supplement, generated from its Rmd source. The Pages
+workflow copies it to `supplements/` without requiring ivue on the site builder.
+The README image is regenerated from the same reviewed screenshots.
+
+Reference diagnostics use 2,000 and 8,000 samples per direction, with two
+reference-mesh subdivisions; scores retain Monte Carlo standard errors.
+These measure integration variability, not reference triangulation bias or
+between-cloud uncertainty. Fixed connectivity is a display/scoring mesh, not
+the calibrated skNN graph. All original graph-score values and saved method
+keys remain unchanged. See S3 for formulas and baseline interpretation.
+
+### Original experiment requirements
+
 - R and `grip` 0.2.0 or later;
 - `dgraphs` 0.2.0 or later for the manuscript examples and to rebuild the
   UMB-HMP graph from the upstream count and metadata tables;

@@ -15,7 +15,7 @@ $(BUILD_DIR)/mobius-dimension-comparison.pdf: $(MOBIUS_SCRIPT)
 	@mkdir -p "$(BUILD_DIR)"
 	Rscript "$(MOBIUS_SCRIPT)" "$(BUILD_DIR)"
 
-$(BUILD_DIR)/$(CONTROLLED_REPORT).pdf: $(CONTROLLED_REPORT).Rmd $(CONTROLLED_REPORT).bib render-S3.R ../reproducibility/precomputed/two-fidelity-saddle.rds ../reproducibility/scripts/plot-two-fidelity.R ../reproducibility/precomputed/vs_alternatives/benchmark_results.rds ../reproducibility/scripts/plot-weighted-saddle.R
+$(BUILD_DIR)/$(CONTROLLED_REPORT).pdf: $(CONTROLLED_REPORT).Rmd $(CONTROLLED_REPORT).bib render-S3.R ../reproducibility/precomputed/two-fidelity-saddle.rds ../reproducibility/scripts/plot-two-fidelity.R ../reproducibility/precomputed/vs_alternatives/benchmark_results.rds ../reproducibility/scripts/plot-weighted-saddle.R ../reproducibility/precomputed/saddle-reference-diagnostics.rds ../reproducibility/precomputed/single-saddle-reference.csv ../reproducibility/experiments/two-fidelity-pilot/plot-saddle-reference.R $(wildcard ../reproducibility/figures/saddle/*.png)
 	Rscript render-S3.R "$(BUILD_DIR)"
 
 pdf: $(BUILD_DIR)/mobius-dimension-comparison.pdf $(BUILD_DIR)/$(CONTROLLED_REPORT).pdf

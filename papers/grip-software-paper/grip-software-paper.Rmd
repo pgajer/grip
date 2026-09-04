@@ -95,6 +95,9 @@ if (!requireNamespace("dgraphs", quietly = TRUE) ||
 if (!requireNamespace("igraph", quietly = TRUE)) {
   stop("This article requires igraph to render graph-path examples.")
 }
+if (!requireNamespace("png", quietly = TRUE)) {
+  stop("This article requires png to include the supplied triangulated saddle views.")
+}
 suppressPackageStartupMessages(library(grip))
 
 paper.table.colnames <- c(
@@ -446,9 +449,9 @@ discrepancy between $D_G$ and $D_{G,Z}$ and seeks coordinates $Z$ for which the
 selected paths' embedded lengths approximate their input-graph lengths.
 
 Both criteria can be applied to coordinates produced by any layout method. A
-practical GMDS-oriented workflow initializes the configuration with metric MDS
+practical GMDS-oriented workflow initializes the configuration with metric-MDS
 and then applies edge-restricted Kamada--Kawai (edge-KK) refinement, using edge
-fidelity as a surrogate for fixed-path loss. For larger graphs, metric MDS can
+fidelity as a surrogate for fixed-path loss. For larger graphs, metric-MDS can
 become prohibitive because it computes an all-pairs graph-distance matrix and
 then performs dense classical scaling. Graph dRawing with Intelligent Placement
 (GRIP) avoids this dense all-pairs embedding step through multiscale placement
@@ -1212,7 +1215,7 @@ correspondingly higher memory and runtime costs.
 
 The `edge.kk()` function returns refined coordinates and diagnostic measures.
 When full all-pairs preparation is feasible,
-`edge.kk(init = "metric_mds")` uses metric MDS as an initializer before
+`edge.kk(init = "metric_mds")` uses metric-MDS as an initializer before
 edge-KK refinement. `edge.kk(init = "weighted_grip")` instead initializes from
 the weighted-GRIP layout and avoids that all-pairs MDS step, providing an
 alternative for larger weighted graphs. The R example below prepares the graph,
@@ -1312,13 +1315,14 @@ the definitions above.
 ```{r saddle-pilot-data, include=FALSE}
 source("reproducibility/scripts/plot-two-fidelity.R")
 saddle.pilot <- read.extdata.rds("two-fidelity-saddle.rds")
+saddle.reference <- read.extdata.rds("saddle-reference-diagnostics.rds")
 stopifnot(nrow(saddle.pilot$scores) == 15L,
           nrow(saddle.pilot$curves) == 390L,
           saddle.pilot$provenance$sample_size == 1000L,
           saddle.pilot$provenance$embedding_dimension == 3L)
 ```
 
-```{r saddle-calibration-layouts, fig.cap="Graph calibration and representative three-dimensional configurations for five independent saddle samples. A: surface-to-graph relative RMSE over the tested neighborhood sizes. B: enlargement near the minima, with a different vertical scale. Open circles mark within-sample minima. C--E: original coordinates, metric MDS, and metric MDS followed by edge-KK for cloud 5 (n = 1,000; k = 73), selected by median minimum surface-to-graph error, not by appearance. The layouts are similarity-aligned to the generating coordinates and shown with one projection and scale; vertex colors retain original x-coordinate identity. Faint gray lines show graph edges. Blue marks the same retained graph path, and dashed brown its endpoint chord. Fidelity scores are computed before display alignment and projection.", fig.alt="Two calibration plots show surface-to-graph errors across five samples, followed by three consistently aligned 3D layouts of the median-selected sample: original saddle, metric MDS, and metric MDS refined by edge-KK.", fig.width=10.6, fig.height=7.1, fig.pos="H"}
+```{r saddle-calibration-layouts, fig.cap="Graph calibration and representative three-dimensional configurations for five independent saddle samples. A: surface-to-graph relative RMSE over the tested neighborhood sizes. B: enlargement near the minima, with a different vertical scale. Open circles mark within-sample minima. C--E: original coordinates, metric-MDS, and metric-MDS + edge-KK for cloud 5 (n = 1,000; k = 73), selected by median minimum surface-to-graph error, not by appearance. The layouts are similarity-aligned to the generating coordinates, with a common camera and scale. Colors encode original x, from blue to brown. The same Delaunay triangulation of the original parameter coordinates is carried to each layout; this visualization mesh is not the skNN graph. Blue marks a retained graph path and brown its endpoint chord. Graph fidelity scores precede display alignment. Supplement S4 provides interactive views.", fig.alt="Calibration curves and three aligned, triangulated 3D configurations of the same saddle sample.", fig.width=10.6, fig.height=7.1, fig.pos="H"}
 plot_pilot_calibration_layouts(saddle.pilot)
 ```
 
@@ -1332,10 +1336,18 @@ endpoint chords. All five stages of every edge-KK run reached their
 200-iteration limit, so these are achieved losses, not established minima.
 The improvement in path fidelity did not improve agreement with the
 generating coordinates: median normalized Procrustes discrepancy increased
-from 29.2% to 30.7%.
+from 29.2% to 30.7%. Surface agreement gives a different comparison. After
+the same similarity alignment, median symmetric surface RMS distance decreased
+from 0.240 to 0.215 coordinate units. Coordinate error compares corresponding
+observations, whereas surface distance compares locations on the two surfaces
+without requiring vertex correspondence. The latter uses the fixed parameter-plane
+triangulation and a refined reference over the same sampled footprint; the
+original-coordinate mesh itself has a nonzero median discrepancy of 0.021
+because it approximates the curved saddle by planar triangles. Supplement S3
+defines these additional diagnostics and reports rigid-alignment results.
 
-```{r saddle-pilot-scores, fig.cap="Paired graph-to-embedding comparisons across five independent samples of 1,000 observations. Each small dot represents one sample; thin lines join results on the same selected graph. Open circles and numeric labels show medians. All configurations are three-dimensional. Fixed-path and chord scores use all 499,500 unordered pairs, while edge scores use all graph edges. The three statistics have different normalizations, and vertical scales differ. These fixed-budget results include all five samples; no confidence intervals are shown.", fig.alt="Three panels compare original saddle coordinates, metric MDS, and MDS followed by edge-KK across five samples. Edge-KK lowers fixed-path and edge errors in every sample but increases chord stress.", fig.width=10.2, fig.height=3.8, fig.pos="H"}
-plot_pilot_scores(saddle.pilot)
+```{r saddle-pilot-scores, fig.cap="Graph fidelity and reference agreement across five independent clouds of 1,000 observations. Small dots represent clouds; thin lines join results on the same selected graph. Open circles and labels show medians. A--C use all graph pairs or edges with separately profiled scales. D reports coordinate RMSE divided by the reference RMS radius after similarity alignment. E reports symmetric surface RMS distance after that alignment, estimated with 8,000 area-uniform samples per direction; its original-coordinate baseline includes triangulation error. Units and vertical scales differ. All five clouds are shown without population confidence intervals.", fig.alt="Five paired-score panels distinguish graph-path fidelity, chord fidelity, corresponding-coordinate agreement, and symmetric surface distance.", fig.width=10.2, fig.height=7.1, fig.pos="H"}
+plot_pilot_scores(saddle.pilot, reference=saddle.reference)
 ```
 
 The separation of the two stages also appears at the sparse end of the
@@ -1668,7 +1680,7 @@ repulsion require separate cost estimates.
 Within the R package, all-pairs graph distances, geodesic path preparation,
 repeated scoring, and exact crossing counts can become limiting steps before the
 multiscale layout itself. `prepare.edge.kk()` therefore supports edge-only
-diagnostics and refinement without storing shortest paths for all vertex pairs. Metric MDS,
+diagnostics and refinement without storing shortest paths for all vertex pairs. metric-MDS,
 full geodesic-KK preparation, and complete graph-geodesic diagnostic panels
 require shortest-path information whose time and memory costs can dominate the
 layout computation. Assessing these costs on larger graphs requires a separate,
@@ -1703,6 +1715,10 @@ than establish a general comparison of embedding methods.
 This article describes \CRANpkg{grip} 0.2.0 and uses \CRANpkg{dgraphs} 0.2.0
 in its examples. Extended worked examples are available in the \CRANpkg{grip}
 vignettes and at <https://pgajer.github.io/grip/>.
+The additional saddle-reference diagnostics use development commit
+\texttt{b72f61d} of \pkg{grip}; the triangulated visualizations use
+\pkg{ivue} commit \texttt{872f9d4}. These additions evaluate the saved
+0.2.0 configurations without refitting them.
 
 The smaller examples are evaluated from code in the manuscript. The
 sampled-saddle experiment and UMB-HMP layouts and runtime benchmark use
@@ -1716,6 +1732,8 @@ figures are regenerated by the accompanying R script.
 Supplement S3 gives the sampled-saddle protocol, numerical checks and additional
 results, together with the executable circle example and fixed-grid saddle
 comparison.
+Supplement S4 provides self-contained interactive saddle views, including
+fixed-triangulation and generating-surface overlays.
 
 Future work will connect the two transformations more systematically through a
 two-dimensional experimental design: graph constructors and settings along one

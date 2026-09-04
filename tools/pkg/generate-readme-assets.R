@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
+source("papers/grip-software-paper/reproducibility/scripts/saddle-preview.R")
 
 if (requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)

@@ -1,0 +1,102 @@
+---
+title: "Supplement S4: Interactive saddle configurations"
+author: "Pawel Gajer and Jacques Ravel"
+output:
+  html_document:
+    self_contained: true
+    theme: null
+    mathjax: null
+---
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
+source("reproducibility/scripts/saddle-widgets.R")
+pilot <- readRDS("reproducibility/precomputed/two-fidelity-saddle.rds")
+reference <- readRDS("reproducibility/precomputed/saddle-reference-diagnostics.rds")
+views <- saddle_widgets(pilot,reference)
+dir.create("build/saddle-widgets",recursive=TRUE,showWarnings=FALSE)
+for(nm in names(views)) htmlwidgets::saveWidget(views[[nm]],
+  paste0("build/saddle-widgets/",nm,".html"),selfcontained=TRUE)
+```
+
+<style>
+body {font:17px/1.5 system-ui,sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;color:#25313b}
+h1,h2 {line-height:1.2} .rglWebGL {max-width:100%} a {color:#2166ac}
+</style>
+
+Cloud 5 of the five-cloud pilot: **1,000 observations, k = 73**.
+These are the saved configurations used in Figure 7, not new fits.
+Drag a scene to rotate it; use the scroll wheel to zoom. All scenes start with
+the same orthographic camera and bounding box. Reload to restore the initial views.
+
+[Triangulated views](#triangulated-views) · [Reference overlays](#reference-overlays) ·
+[Refinement comparison](#refinement-comparison)
+
+## Triangulated views
+
+The Delaunay triangles are constructed once in the original (x,y) parameter
+plane and carried to each configuration with vertex correspondence unchanged.
+They are a visualization mesh, **not the calibrated skNN graph**. Colors encode
+original x, from blue (−1) to brown (+1). Blue lines mark the same retained graph
+route and brown lines its endpoint chord. Each configuration is independently
+similarity-aligned to the observations (translation, rotation/reflection, and
+one uniform scale); this display alignment does not change the graph scores.
+
+### Original saddle
+```{r}
+views$mesh1
+```
+### metric-MDS
+```{r}
+views$mesh2
+```
+### metric-MDS + edge-KK
+```{r}
+views$mesh3
+```
+
+## Reference overlays
+
+The translucent blue reference is z = 0.8(x² − y²), over [−1,1]².
+It remains fixed while the observed or embedded points change. Surface scoring
+instead uses the matched sampled convex hull, as explained in Supplement S3;
+these full-square display overlays do not define the numerical score.
+
+### Original observations and reference
+```{r}
+views$reference1
+```
+### metric-MDS and reference
+```{r}
+views$reference2
+```
+### metric-MDS + edge-KK and reference
+```{r}
+views$reference3
+```
+
+## Refinement comparison
+
+Blue: metric-MDS. Orange: metric-MDS + edge-KK. Both use the same triangles and
+are independently similarity-aligned to the reference observations. Overlapping
+meshes can obscure differences; resemblance alone does not establish tangential
+movement or recovery of the generating surface.
+
+```{r}
+views$overlay
+```
+
+The next view joins corresponding vertices for a systematic subset of 50 of
+the 1,000 observations. Segments show displacement between the two aligned
+configurations, not optimizer trajectories or surface-normal displacements.
+
+```{r}
+views$displacement
+```
+
+## Reproducibility
+
+Fits: grip 0.2.0. Additional reference diagnostics: grip development commit
+`b72f61d`. Visualization: ivue commit `872f9d4`. Data, source scripts, and the
+reference-score definitions accompany Supplements S3 and S4. This self-contained
+HTML needs a WebGL-capable browser but no network connection.

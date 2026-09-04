@@ -77,7 +77,7 @@ plot_weighted_saddle <- function(saddle, limits = NULL) {
     z <- projected[[i]]
     plot(z[, 1L], z[, 2L], type = "n", asp = 1, axes = FALSE,
          xlab = "", ylab = "", xlim = limits$x, ylim = limits$y,
-         main = names(projected)[[i]])
+         main = sub("Metric MDS","metric-MDS",names(projected)[[i]],fixed=TRUE))
     segments(z[edges[, 1L], 1L], z[edges[, 1L], 2L],
              z[edges[, 2L], 1L], z[edges[, 2L], 2L], col = "gray65", lwd = 1.2)
     points(z[, 1L], z[, 2L], pch = 16, cex = 0.35, col = colors[[i]])

@@ -8,7 +8,8 @@ pilot_align <- function(z, x) {
   sweep(sum(f$d) / sum(zz * zz) * zz %*% f$u %*% t(f$v), 2, colMeans(x), "+")
 }
 
-plot_pilot_calibration_layouts <- function(pilot, edge_alpha = .03) {
+plot_pilot_calibration_layouts <- function(pilot, edge_alpha = .03,
+                                         mesh_dir = "reproducibility/figures/saddle") {
   stopifnot(length(edge_alpha) == 1L, is.finite(edge_alpha),
             edge_alpha >= 0, edge_alpha <= 1)
   op <- par(no.readonly = TRUE)
@@ -43,6 +44,14 @@ plot_pilot_calibration_layouts <- function(pilot, edge_alpha = .03) {
     pmin(100, pmax(1, 1 + floor((pilot$coords[, 1] + 1) * 49.5)))]
   for (j in 1:3) {
     par(mar = c(.3, .1, 2.2, .1))
+    if (!is.null(mesh_dir)) {
+      picture <- png::readPNG(file.path(mesh_dir,paste0("mesh",j,".png")))
+      plot.new(); plot.window(xlim=c(0,4),ylim=c(0,3),asp=1,xaxs="i",yaxs="i")
+      rasterImage(picture,0,0,4,3)
+      title(c("C   Original saddle","D   metric-MDS","E   metric-MDS + edge-KK")[j],
+            font.main=1,cex.main=1.08,line=.5)
+      next
+    }
     a <- z[[j]]; e <- pilot$edges
     plot(a, type = "n", xlim = xr, ylim = yr, asp = 1, axes = FALSE, xlab = "", ylab = "")
     if (edge_alpha > 0) {
@@ -60,29 +69,33 @@ plot_pilot_calibration_layouts <- function(pilot, edge_alpha = .03) {
   }
 }
 
-plot_pilot_scores <- function(pilot, audit = FALSE) {
+plot_pilot_scores <- function(pilot, audit = FALSE, reference = NULL) {
   op <- par(no.readonly = TRUE); on.exit(par(op))
   methods <- c("Original saddle", "Metric MDS", "MDS + edge-KK")
   metrics <- c("path_rel", "edge_rel", "stress1")
+  if(!is.null(reference)) metrics <- c(metrics,"coordinate_relative_rmse","surface_rms")
   colors <- c("#737373", "#286EAB", "#B66027")
   offsets <- seq(-.16, .16, length.out = 5)
-  par(mfrow = c(1,3), mar = c(4.2,4.2,2.1,.7), oma = c(0,0,0,0),
+  par(mfrow = if(is.null(reference)) c(1,3) else c(2,3), mar = c(4.2,4.2,2.1,.7), oma = c(0,0,0,0),
       cex = 1, mgp = c(2.6,.7,0), las = 1, tcl = -.25)
   for (m in seq_along(metrics)) {
     metric <- metrics[m]
     y <- vapply(methods, function(method) {
-      d <- pilot$scores[pilot$scores$method == method, ]
-      100 * d[[metric]][match(1:5, d$replicate)]
+      d <- if(m<=3) pilot$scores[pilot$scores$method == method, ] else
+        subset(reference$scores,alignment=="similarity" & sample_size==8000)
+      if(m>3) d <- d[d$method==method,]
+      (if(m==5) 1 else 100) * d[[metric]][match(1:5, d$replicate)]
     }, numeric(5))
     ymax <- max(y); medians <- apply(y, 2, median)
     plot(NA, xlim = c(.65, 3.35), ylim = c(-.045 * ymax, 1.14 * ymax),
          xaxs = "i", yaxs = "i", xaxt = "n", yaxt = "n", bty = "n",
-         xlab = "", ylab = if (m < 3) "Relative RMSE (%)" else "Stress-1 (%)")
+         xlab = "", ylab = c("Relative RMSE (%)","Relative RMSE (%)","Stress-1 (%)",
+                              "Reference-radius RMSE (%)","Coordinate units")[m])
     ticks <- pretty(c(0, ymax), n = 4); ticks <- ticks[ticks >= 0 & ticks <= 1.1 * ymax]
     abline(h = ticks, col = "#E9E9E9", lwd = .7)
     axis(2, at = ticks, col = "#555555", lwd = .75)
-    axis(1, at = 1:3, labels = c("Original\ncoordinates", "Metric\nMDS", "Metric MDS\n+ edge-KK"),
-         tick = FALSE, line = .35, cex.axis = .94)
+    axis(1, at = 1:3, labels = c("Original\ncoordinates", "metric-MDS", "metric-MDS\n+ edge-KK"),
+         tick = FALSE, line = .35, cex.axis = .78, gap.axis = -1)
     box(bty = "l", col = "#555555", lwd = .75)
     for (r in 1:5) lines(1:3 + offsets[r], y[r, ], col = "#C2C2C2", lwd = .8)
     for (j in 1:3) {
@@ -90,12 +103,22 @@ plot_pilot_scores <- function(pilot, audit = FALSE) {
       points(j, medians[j], pch = 1, cex = 1.6, lwd = 1.65, col = colors[j])
       text(j, max(y[,j]) + .064 * ymax, sprintf("%.3f", medians[j]), col = colors[j], cex = .85)
     }
-    if (audit) {
+    if (audit && m<=3) {
       a <- 100 * pilot$audit[[metric]][match(1:5, pilot$audit$replicate)]
       points(3.24 + offsets * .25, a, pch = 4, col = "#555555", cex = .8)
     }
-    title(c("A   Fixed-path RMSE", "B   Edge RMSE", "C   MDS Stress-1")[m],
+    title(c("A   Fixed-path RMSE", "B   Edge RMSE", "C   MDS Stress-1",
+            "D   Coordinate agreement","E   Symmetric surface distance")[m],
           font.main = 1, cex.main = 1.03, line = .8)
+  }
+  if(!is.null(reference)) {
+    par(mar=c(1,1,2,1))
+    plot.new()
+    text(.05,.8,"Five independent clouds",adj=0,cex=1)
+    text(.05,.65,"Dots: individual clouds\nLines: paired observations\nOpen circles and labels:\nmedians",
+         adj=c(0,1),cex=.9)
+    text(.05,.3,"D-E: similarity alignment\nE: 8,000 area-uniform samples\nper direction",
+         adj=c(0,1),cex=.9)
   }
 }
 
