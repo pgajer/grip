@@ -61,8 +61,8 @@ graph calibration, numerical surface-reference checks, primary and additional
 iteration results, identity-embedding controls, and end-to-end errors. It also
 retains the executable variable-density circle example, full fixed-grid
 saddle comparison, and edge-KK mesh illustration moved from the main text.
-The mesh example uses `../reproducibility/scripts/edge-kk-workflow.R`, shared
-with the manuscript's executable code example. Its canonical document source is
+The mesh example uses `../reproducibility/scripts/edge-kk-workflow.R`;
+the manuscript instead shows the sampled-saddle workflow. S3's canonical source is
 `S3-controlled-examples.Rmd`. S3 also contains the reference table of method
 families and principal functions, including their standard or experimental
 status. `render-S3.R` renders it using R, rmarkdown,

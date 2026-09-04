@@ -7,6 +7,42 @@ examples directly.
 
 ## Requirements
 
+### Single-graph example for Figure 6E
+
+Subsection 3.2 uses `scripts/panel-e-workflow.R` to reproduce the representative
+metric-MDS + edge-KK configuration (cloud 5, n = 1,000, k = 73). From the
+manuscript directory, or the root of the extracted submission, run:
+
+```r
+source("reproducibility/scripts/panel-e-workflow.R")
+```
+
+This prepares all 499,500 vertex pairs, fits metric-MDS, runs the original five
+200-iteration edge-KK stages, scores the unaligned coordinates, and creates the
+interactive `panel.e` widget. It neither repeats the graph-calibration sweep
+nor overwrites the supplied fits or figure assets. Allow roughly two minutes
+on a machine comparable to the original pilot host; runtime is machine-dependent.
+The package versions used for the original fits and visualizations are recorded
+below. The graph, seed, stage schedule, profiled scales, and zero edge-length
+epsilon match `experiments/two-fidelity-pilot/fit-layouts.R`.
+
+Normal article builds print this code but use the supplied scores and figure
+assets. To redraw the saved configuration without fitting, run the input block,
+set `fit <- list(coords = example$candidates[["MDS + edge-KK"]])`, and run the
+view block. `scripts/panel-e-display.R` implements display-only similarity
+alignment, the saved parameter-plane triangulation, original-x colors, and the
+common bounds of panels C--E. It does not change graph lengths or scores.
+The ivue view uses the same mesh, retained path, endpoint chord, and camera as
+Figure S4.1C; the paper's static panel is a cropped capture of that scene.
+Optional HTML export is `htmlwidgets::saveWidget(panel.e, "panel-e.html")`.
+
+Fitting and scoring require grip; visualization additionally requires ivue and
+rgl, with htmlwidgets for export. The view uses the saved Delaunay triangles,
+so geometry is required to regenerate those triangles, not to load them.
+CRAN availability of the required ivue functionality remains a manuscript
+submission prerequisite unless an editorial exception is obtained; a pinned
+development source is not represented here as a CRAN release.
+
 ### Additional reference diagnostics and interactive views
 
 The original five-cloud fits remain grip 0.2.0 results. New coordinate and

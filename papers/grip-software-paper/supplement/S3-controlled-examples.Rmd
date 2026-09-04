@@ -601,9 +601,9 @@ plot_weighted_saddle(weighted.saddle, weighted.resolutions$display_limits)
 
 # Minimal edge-KK refinement example
 
-The manuscript's executable edge-KK example starts from a distorted
+This minimal edge-KK example starts from a distorted
 $4\times4$ mesh and applies eight refinement iterations. The code and figure
-below use the shared script `reproducibility/scripts/edge-kk-workflow.R`.
+below use `reproducibility/scripts/edge-kk-workflow.R`.
 The panels are centered and scaled only for display, consistently with the
 profiled edge diagnostic; scoring uses the original coordinates.
 

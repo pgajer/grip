@@ -72,7 +72,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::read_chunk("reproducibility/scripts/edge-kk-workflow.R")
+knitr::read_chunk("reproducibility/scripts/panel-e-workflow.R")
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -1148,18 +1148,51 @@ When full all-pairs preparation is feasible,
 `edge.kk(init = "metric_mds")` uses metric-MDS as an initializer before
 edge-KK refinement. `edge.kk(init = "weighted_grip")` instead initializes from
 the weighted-GRIP layout and avoids that all-pairs MDS step, providing an
-alternative for larger weighted graphs. The R example below prepares the graph,
-scores the initial coordinates, and refines them.
+alternative for larger weighted graphs.
 
-\Needspace{24\baselineskip}
+The following example reproduces the metric-MDS and edge-KK configuration in
+Figure \@ref(fig:saddle-calibration-layouts)E. It starts from the supplied
+1,000-observation saddle sample and its selected graph ($k=73$); the worked
+example below describes their construction and selection. Paths are prepared
+once and retained for scoring both configurations. Refinement uses five
+stages, each allowing 200 iterations.
 
-```{r geodesic-workflow, echo=TRUE, results="hide"}
+```{r panel-e-input, echo=TRUE}
 ```
 
-Eight refinement iterations reduce the profiled edge relative RMSE from
-`r sprintf("%.3f", before$edge.rel.rmse)` to
-`r sprintf("%.3f", after$edge.rel.rmse)`.
-Supplement S3 shows the corresponding configurations.
+```{r panel-e-fit, echo=TRUE, eval=FALSE}
+```
+
+```{r panel-e-saved-scores, include=FALSE}
+example.scores <- subset(example$scores, replicate == example$representative)
+example.before <- subset(example.scores, method == "Metric MDS")
+example.after <- subset(example.scores, method == "MDS + edge-KK")
+stopifnot(nrow(example.before) == 1L, nrow(example.after) == 1L)
+```
+
+In the saved run, fixed-path relative RMSE decreased from
+`r sprintf("%.3f", 100 * example.before$path_rel)`\% to
+`r sprintf("%.3f", 100 * example.after$path_rel)`\%, and edge relative RMSE from
+`r sprintf("%.3f", 100 * example.before$edge_rel)`\% to
+`r sprintf("%.3f", 100 * example.after$edge_rel)`\%.
+The article uses the supplied results during routine rendering; running the
+displayed fitting and scoring code recomputes this single-graph example.
+
+The \pkg{ivue} call below creates the interactive view corresponding to panel E
+(Supplementary Figure S4.1C). The supplied helper `panel_e_display()` applies
+the panel's similarity alignment, colors, and common display bounds.
+The Delaunay triangles are fixed in the original parameter plane and carried
+to the embedded coordinates; they are a visualization mesh, not the selected
+skNN graph. The blue path and brown endpoint chord illustrate the two distance
+measurements. Alignment is for display only, after scoring.
+
+```{r panel-e-view, echo=TRUE, eval=FALSE}
+```
+
+The complete runnable example is
+`reproducibility/scripts/panel-e-workflow.R`; the visualization requires
+\pkg{ivue} and \CRANpkg{rgl}. Supplement S3 retains a smaller mesh example
+that illustrates edge-KK without the visualization dependencies.
 
 # Worked examples
 

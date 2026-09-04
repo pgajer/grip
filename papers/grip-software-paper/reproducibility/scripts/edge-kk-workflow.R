@@ -1,6 +1,6 @@
-# Shared executable example for the manuscript and Supplement S3.
+# Minimal executable example retained in Supplement S3.
 # Run with library(grip); source("edge-kk-workflow.R"), or load the named
-# chunks with knitr::read_chunk() when rendering either document.
+# chunks with knitr::read_chunk() when rendering the supplement.
 
 ## ---- geodesic-workflow ----
 workflow.edges <- edges.mesh(4, 4)

@@ -6,3 +6,7 @@ rmarkdown
 rjtools
 png
 dgraphs
+ivue
+rgl
+geometry
+htmlwidgets
