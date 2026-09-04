@@ -1050,15 +1050,18 @@ refined using a GMDS-oriented method.
 
 ## General layout diagnostics
 
-`score.layout()` provides general layout diagnostics, while `compare.layouts()`
-applies these diagnostics across repeated candidate layouts.
+`score.layout()` evaluates coordinates produced by `grip()` or another layout
+method. It accepts graphs as edge matrices or adjacency lists and returns a
+one-row data frame of diagnostics.
 
-All-pairs scoring can be unnecessarily expensive for a general layout
-diagnostic, so sampled stress uses the unique unordered pairs $S$ obtained by
-uniform sampling. For a sampled pair $p\in S$, $d_p^G$ is its graph distance
-and $d_p^Z$ its Euclidean layout distance. The function fits the scale
-$a_S=\sum_{p\in S}d_p^Zd_p^G/\sum_{p\in S}(d_p^G)^2$ and reports the
-scale-invariant discrepancy
+To assess distance fidelity without evaluating every vertex pair, the function
+forms a set $S$ of unique unordered vertex pairs from random pair draws. The argument
+`sample.size.stress` controls the number of draws. Setting `stress.seed` makes
+the sample reproducible. For each pair $p=(i,j)\in S$, $d_p^G$ is its graph
+shortest-path distance and $d_p^Z$ its Euclidean endpoint distance. After
+fitting the common scale
+$a_S=\sum_{p\in S}d_p^Zd_p^G/\sum_{p\in S}(d_p^G)^2$, the function reports the
+scale-invariant discrepancy as `sampled.stress`:
 
 $$
 \operatorname{Stress}_S =
@@ -1066,22 +1069,25 @@ $$
                  {\sum_{p\in S}(d_p^Z)^2}}.
 $$
 
-The examples use 2,000 sampled pairs unless stated otherwise. Edge-length CV is
-the standard deviation divided by the mean of embedded edge lengths. Sampled
-non-edge separation is the minimum distance among up to 5,000 sampled
-non-edges divided by the median embedded edge length. Edge crossings count
-strict intersections between nonincident segments in 2D; `"auto"` computes
-them for at most 1,000 edges, `"always"` overrides that threshold, and
-`"never"` skips the calculation. Procrustes stability is the mean vertex RMSE
-over all unordered pairs of seeded layouts (45 pairs for ten seeds), after
-centering each layout, scaling it to unit maximum radius, and applying the
-optimal orthogonal rotation or reflection. The paper reports the component
-diagnostics rather than a composite rank because their relative importance
-depends on the analysis.
-Because sampled non-edge separation depends on graph size, the number of
-sampled non-edges, and the sampled pairs, it should be compared only for the
-same graph under the same sampling protocol; it is not a graph-independent
-quality scale.
+Complementary diagnostics describe visual properties of the configuration.
+
+`edge.length.cv` is the standard deviation of embedded edge lengths divided by
+their mean. It measures their uniformity, not agreement with supplied edge
+lengths.
+
+`sampled.nonedge.sep.ratio` is the minimum embedded separation among sampled
+non-edge pairs divided by the median embedded edge length. The argument
+`sample.size.nonedge` controls the pair sample. Setting `nonedge.seed` makes it
+reproducible. For two-dimensional layouts, the argument `edge.crossings`
+controls intersection counting between nonincident edges. Supplying `clusters`
+additionally produces `cluster.separation`.
+
+`compare.layouts()` generates layouts from the specifications in `candidates`
+or `search`. It repeats each candidate over `seeds` and passes each layout to
+`score.layout()`. Its `runs` data frame contains the diagnostics from
+individual layouts, while `summary` contains their across-run summaries and
+Procrustes stability. Setting `return.layouts = TRUE` also returns the
+coordinate matrices.
 
 ## Graph-geodesic diagnostics and refinement
 
