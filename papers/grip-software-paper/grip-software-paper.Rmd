@@ -257,26 +257,6 @@ read.extdata.rds <- function(...) {
 # are provided in reproducibility/README.md in the supplementary archive.
 benchmark.results <- read.extdata.rds("vs_alternatives", "benchmark_results.rds")
 
-plot_layout_panel <- function(coords,
-                              edges,
-                              main,
-                              projection = NULL,
-                              vertex.col = "black",
-                              edge.col = "gray82",
-                              cex = 0.5,
-                              ...) {
-  plot.layout(
-    coords, edges,
-    projection = projection,
-    vertex.col = vertex.col,
-    edge.col = edge.col,
-    pch = 16,
-    cex = cex,
-    main = main,
-    ...
-  )
-}
-
 plot_common_projection <- function(coords,
                                    edges,
                                    main,
@@ -592,7 +572,8 @@ Family-specific presets provide reproducible starting values for several of
 these controlled graph classes. Hop-metric presets cover meshes, carpets,
 trees, and tori, while edge-length presets cover cylinders, spheres, and other
 weighted geometric families.
-Supplement S3 lists the method families and their principal functions.
+Supplement S3 reports a controlled comparison of these presets and lists the
+method families and their principal functions.
 
 ## From graph layout to graph-geodesic fidelity
 
@@ -1287,103 +1268,6 @@ fidelity. Supplement S3 shows this contrast and provides the numerical-reference
 checks, additional-iteration results, and full experimental settings. The
 figures here read supplied coordinates and scores; the supplementary archive
 contains these inputs and scripts for repeating the experiment.
-
-## Supporting graph families and preset behavior
-
-The graph generators and presets support reproducible examples and tests for
-unintended changes in results. Table \@ref(tab:preset-benchmark) illustrates
-their behavior on two controlled structured families, each run across ten
-seeds. The results are calculated by the R code accompanying the article.
-
-```{r preset-benchmark}
-mesh.edges <- edges.mesh(12, 12)
-mesh.compare <- compare.layouts(
-  edges = mesh.edges,
-  n = 144,
-  dim = 2,
-  candidates = c("default", "mesh"),
-  seeds = 1:10,
-  edge.crossings = "always"
-)
-
-carpet.edges <- edges.sierpinski.carpet(3)
-carpet.n <- max(carpet.edges)
-carpet.compare <- compare.layouts(
-  edges = carpet.edges,
-  n = carpet.n,
-  dim = 2,
-  candidates = c("default", "carpet"),
-  seeds = 1:10,
-  edge.crossings = "never"
-)
-
-summary.cols <- c(
-  "candidate", "n.runs", "elapsed.sec.mean", "sampled.stress.mean",
-  "edge.length.cv.mean", "stability.procrustes.mean"
-)
-
-preset.benchmark <- rbind(
-  transform(mesh.compare$summary[, summary.cols], graph = "12x12 mesh"),
-  transform(carpet.compare$summary[, summary.cols], graph = "Carpet level 3")
-)
-
-preset.benchmark <- preset.benchmark[, c(
-  "graph", "candidate", "n.runs", "elapsed.sec.mean",
-  "sampled.stress.mean", "edge.length.cv.mean",
-  "stability.procrustes.mean"
-)]
-preset.benchmark$candidate <- factor(
-  preset.benchmark$candidate,
-  levels = c("default", "mesh", "carpet")
-)
-preset.benchmark <- preset.benchmark[order(preset.benchmark$graph, preset.benchmark$candidate), ]
-
-paper_kable(
-  preset.benchmark,
-  group_after = 2L,
-  caption = paper_table_caption(
-    "Preset benchmark on two structured graph families, each averaged over ten seeds.",
-    "Runs = number of seeds; Sec = mean elapsed seconds; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; PStab = Procrustes stability."
-  ),
-  alt = paste(
-    "Four rows compare default and family-specific presets on a mesh and",
-    "Sierpinski carpet using runtime, stress, edge variation, and stability",
-    "metrics."
-  ),
-  digits = 3
-)
-```
-
-For these two controlled families, the package-supplied preset reduces sampled
-stress and edge-length variation and produces more reproducible layouts across
-seeds. The result is family-specific evidence for the supplied defaults, not a
-claim that one choice of settings is preferable for arbitrary graphs. Figure
-\@ref(fig:carpet-figure) shows the corresponding carpet layouts.
-
-```{r carpet-figure, fig.cap="Level-3 Sierpinski carpet laid out with the default settings (left) and the carpet preset (right). The preset yields the lower-stress and more stable solution reported in the preceding benchmark table.", fig.alt="Two panels showing a Sierpinski carpet graph. The default layout is more distorted, while the preset layout better preserves the recursive holes.", fig.width=10, fig.height=4, fig.pos="H"}
-carpet.default.coords <- grip(carpet.edges, n = carpet.n, dim = 2, seed = 12)
-carpet.preset.coords <- grip(carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 12)
-
-op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
-plot_layout_panel(
-  carpet.default.coords, carpet.edges, "Default", cex = 0.3,
-  axes = FALSE, xlab = "", ylab = ""
-)
-plot_layout_panel(
-  carpet.preset.coords, carpet.edges, "Carpet preset", cex = 0.3,
-  axes = FALSE, xlab = "", ylab = ""
-)
-par(op)
-```
-
-\medskip
-
-The fixed-grid saddle comparison in Supplement S3 provides a complementary
-example with a prescribed graph. It includes weighted-GRIP initialization,
-edge-KK refinement of both weighted-GRIP and metric-MDS coordinates, and LGKK
-refinement. Its horizontal and vertical mesh edges define the graph metric;
-unlike the sampled-surface example above, it does not assess approximation to
-continuous-surface geodesics.
 
 ## Real-data network at package scale
 

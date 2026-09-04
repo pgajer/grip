@@ -54,7 +54,7 @@ accessible_kable <- function(x, caption, alt=NULL, row.names=FALSE, align=NULL,
 # Sampled-saddle protocol and numerical checks
 
 This supplement documents the five-sample experiment in the manuscript and
-retains three smaller controlled examples. The sampled-saddle study is a
+retains additional controlled examples. The sampled-saddle study is a
 fixed-budget illustration of the two fidelity stages. It does not establish
 a general ranking of graph constructors or embedding methods.
 
@@ -611,6 +611,106 @@ profiled edge diagnostic; scoring uses the original coordinates.
 ```
 
 ```{r edge-kk-workflow, fig.cap=sprintf("Illustrative output of the edge-KK workflow. Eight refinement iterations reduce profiled edge relative RMSE from %.3f to %.3f by equalizing the embedded mesh-edge lengths. The edge-only objective does not select a unique shape, so this deterministic example demonstrates the workflow rather than a general performance comparison.", before$edge.rel.rmse, after$edge.rel.rmse), fig.alt="Two panels show the 16-vertex 4-by-4 mesh before and after edge-KK refinement. The initial coordinates form a compressed, curved grid; refinement produces a more regular grid with nearly equal embedded edge lengths. Each panel reports profiled edge relative RMSE.", fig.width=7.5, fig.height=3.4, fig.pos="H"}
+```
+
+\clearpage
+
+# Family-specific presets
+
+The graph generators and presets support reproducible examples and tests for
+unintended changes in results. Table \@ref(tab:preset-benchmark) compares the
+default settings with family-specific presets on two controlled graph families,
+each run across ten seeds.
+
+```{r preset-benchmark}
+mesh.edges <- edges.mesh(12, 12)
+mesh.compare <- compare.layouts(
+  edges = mesh.edges,
+  n = 144,
+  dim = 2,
+  candidates = c("default", "mesh"),
+  seeds = 1:10,
+  edge.crossings = "always"
+)
+
+carpet.edges <- edges.sierpinski.carpet(3)
+carpet.n <- max(carpet.edges)
+carpet.compare <- compare.layouts(
+  edges = carpet.edges,
+  n = carpet.n,
+  dim = 2,
+  candidates = c("default", "carpet"),
+  seeds = 1:10,
+  edge.crossings = "never"
+)
+
+summary.cols <- c(
+  "candidate", "n.runs", "elapsed.sec.mean", "sampled.stress.mean",
+  "edge.length.cv.mean", "stability.procrustes.mean"
+)
+
+preset.benchmark <- rbind(
+  transform(mesh.compare$summary[, summary.cols], graph = "12x12 mesh"),
+  transform(
+    carpet.compare$summary[, summary.cols],
+    graph = "Sierpinski carpet, level 3"
+  )
+)
+
+preset.benchmark <- preset.benchmark[, c(
+  "graph", "candidate", "n.runs", "elapsed.sec.mean",
+  "sampled.stress.mean", "edge.length.cv.mean",
+  "stability.procrustes.mean"
+)]
+preset.benchmark$candidate <- factor(
+  preset.benchmark$candidate,
+  levels = c("default", "mesh", "carpet")
+)
+preset.benchmark <- preset.benchmark[
+  order(preset.benchmark$graph, preset.benchmark$candidate),
+]
+
+accessible_kable(
+  preset.benchmark,
+  col.names = c("Graph", "Cand", "Runs", "Sec", "Stress", "EdgeCV", "PStab"),
+  align = c("l", "l", rep("r", 5)),
+  caption = paper_table_caption(
+    "Preset benchmark on two structured graph families, each averaged over ten seeds.",
+    "Runs = number of seeds; Sec = mean elapsed seconds; Stress = sampled stress; EdgeCV = edge-length coefficient of variation; PStab = Procrustes stability."
+  ),
+  alt = paste(
+    "Four rows compare default and family-specific presets on a mesh and",
+    "Sierpinski carpet using runtime, stress, edge variation, and stability",
+    "metrics."
+  ),
+  digits = 3
+)
+```
+
+For these controlled families, the package-supplied presets reduce sampled
+stress and edge-length variation and produce more reproducible layouts across
+seeds. This is family-specific evidence for the supplied defaults, not a claim
+that these settings are preferable for arbitrary data-derived graphs. Figure
+\@ref(fig:carpet-figure) shows the corresponding carpet layouts.
+
+```{r carpet-figure, fig.cap="Level-3 Sierpinski carpet laid out with the default settings (left) and the carpet preset (right). The preset yields the lower-stress and more stable solution reported in the preceding benchmark table.", fig.alt="Two panels showing a Sierpinski carpet graph. The default layout is more distorted, while the preset layout better preserves the recursive holes.", fig.width=10, fig.height=4, fig.pos="H"}
+carpet.default.coords <- grip(carpet.edges, n = carpet.n, dim = 2, seed = 12)
+carpet.preset.coords <- grip(
+  carpet.edges, n = carpet.n, dim = 2, preset = "carpet", seed = 12
+)
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+plot.layout(
+  carpet.default.coords, carpet.edges,
+  vertex.col = "black", edge.col = "gray82", pch = 16, cex = 0.3,
+  main = "Default", axes = FALSE, xlab = "", ylab = ""
+)
+plot.layout(
+  carpet.preset.coords, carpet.edges,
+  vertex.col = "black", edge.col = "gray82", pch = 16, cex = 0.3,
+  main = "Carpet preset", axes = FALSE, xlab = "", ylab = ""
+)
+par(op)
 ```
 
 \clearpage
