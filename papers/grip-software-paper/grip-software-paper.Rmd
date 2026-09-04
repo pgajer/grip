@@ -844,20 +844,27 @@ assume that the input geometry is chord-like. It asks how nearly $D_G$ admits
 an isometric Euclidean representation in dimension $m$; a large value is an
 informative answer about the cost of flattening that graph metric.
 
-This distinction mirrors two uses of isometry. A Riemannian isometric embedding
-$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the metric $g$, and thus
-the lengths of curves and the intrinsic path metric of its image; it need not
-preserve the ambient Euclidean chord between two image points. Chord stress
-asks for the stronger metric-space representation
-$d_M(x,y)=\lVert f(x)-f(y)\rVert_2$. Fixed-path relative RMSE instead evaluates
-the discrete analogue of the intrinsic question: whether the embedded
-$1$-skeleton, regarded as a metric graph in $\mathbb{R}^m$, retains the
-lengths of selected input paths.
+Preserving lengths along an embedded object does not require those lengths to
+equal straight-line distances through the surrounding space. In differential
+geometry, a Riemannian isometric embedding
+$f:(M,g)\rightarrow\mathbb{R}^m$ preserves the length of every curve on $M$.
+It therefore preserves intrinsic distances $d_M(x,y)$, defined as the infimum
+of lengths of curves joining $x$ and $y$ on $M$, when distances in the image
+are also measured along curves confined to $f(M)$. The Euclidean chord can
+leave $f(M)$ and be shorter [@saucan2012]. Exact chord preservation would
+additionally require $d_M(x,y)=\lVert f(x)-f(y)\rVert_2$ for every pair;
+preserving curve lengths alone does not ensure this equality. For a graph,
+fixed-path relative RMSE compares each selected input path's original length
+with the sum of the Euclidean lengths of its edges after embedding. It asks
+whether these retained paths preserve their lengths, not whether the chords
+joining their endpoints have those lengths.
 
-Figure \@ref(fig:noisy-circle-path-geometry) gives a data-derived version of
-this distinction. The displayed observations themselves give the identity
-embedding $z_i=x_i$ into $\mathbb{R}^2$. In that embedding, the highlighted
-graph shortest path has exactly its input-graph length. More generally, because
+Figure \@ref(fig:noisy-circle-path-geometry) illustrates an embedding that
+preserves graph-path lengths exactly even though endpoint chords can be
+shorter than the corresponding graph distances. The displayed observations
+themselves give the identity embedding $z_i=x_i$ into $\mathbb{R}^2$. In that
+embedding, the highlighted graph shortest path has exactly its input-graph
+length. More generally, because
 the graph uses Euclidean edge lengths from these coordinates,
 $D_{G,Z}=D_G$ and fixed-path relative RMSE is zero for this identity embedding.
 The chord between the highlighted endpoints, shown in the legend, is still

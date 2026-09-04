@@ -128,6 +128,16 @@ write_build_info <- function() {
 
 write_build_info()
 
+bibliography_file <- paste0(base_name, ".bib")
+bibliography_source <- file.path(paper_dir, bibliography_file)
+bibliography_build_copy <- file.path(build_dir, bibliography_file)
+if (!file.exists(bibliography_source)) {
+  stop("Missing bibliography: ", bibliography_source)
+}
+if (!file.copy(bibliography_source, bibliography_build_copy, overwrite = TRUE)) {
+  stop("Failed to synchronize bibliography with the build directory.")
+}
+
 output_name <- function(ext) {
   if (timestamped) {
     file.path(build_dir, sprintf("%s_%s.%s", base_name, timestamp_suffix, ext))
