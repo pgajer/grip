@@ -1195,11 +1195,6 @@ measurements. Alignment is for display only, after scoring.
 ```{r panel-e-view, echo=TRUE, eval=FALSE}
 ```
 
-The complete runnable example is
-`reproducibility/scripts/panel-e-workflow.R`; the visualization requires
-\pkg{ivue} and \CRANpkg{rgl}. Supplement S3 retains a smaller mesh example
-that illustrates edge-KK without the visualization dependencies.
-
 # Worked examples
 
 ## Linking the two fidelity stages
