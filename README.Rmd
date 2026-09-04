@@ -113,6 +113,21 @@ positions through the final layout.
 
 ## More examples
 
+### Graph fidelity and reference-surface agreement
+
+The sampled-saddle example compares the original observations, metric-MDS,
+and metric-MDS + edge-KK using the same parameter-plane triangulation.
+Graph-path fidelity, corresponding-coordinate agreement, and surface proximity
+measure different aspects of the result.
+
+[![Three aligned saddle configurations with a common triangulation](https://pgajer.github.io/grip/reference/figures/readme-saddle-reference.png)](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html)
+
+[Rotate the configurations and compare surface overlays](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html).
+The self-contained [offline HTML](papers/grip-software-paper/supplement/S4-interactive-saddle.html)
+is also included with the manuscript. Fits use grip 0.2.0; additional reference
+diagnostics use development commit `b72f61d`, and visualization uses ivue
+commit `872f9d4`.
+
 **Edge-list input (2D, circle placement)**
 ```r
 edges <- edges.cycle(18)
