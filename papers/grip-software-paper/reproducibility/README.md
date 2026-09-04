@@ -17,13 +17,21 @@ The article describes `grip` 0.2.0 and uses `dgraphs` 0.2.0 in its examples.
 The corresponding source-release tags resolve to the following commits:
 
 - [`grip` v0.2.0](https://github.com/pgajer/grip/tree/v0.2.0):
-  [`b3b532a51b3cf8be400203270c4a3a217382878e`](https://github.com/pgajer/grip/tree/b3b532a51b3cf8be400203270c4a3a217382878e);
+  [`520902ad3f1b2aeabd287a379f5c08729c7b2c5d`](https://github.com/pgajer/grip/tree/520902ad3f1b2aeabd287a379f5c08729c7b2c5d);
 - [`dgraphs` v0.2.0](https://github.com/pgajer/dgraphs/tree/v0.2.0):
   [`8733d2a74dc09d57b453b88eff3119610c6440f3`](https://github.com/pgajer/dgraphs/tree/8733d2a74dc09d57b453b88eff3119610c6440f3).
 
 The full commit identifiers pin the source trees independently of the tag
 names. The environment used to generate the precomputed benchmark results is
 recorded separately in `BENCHMARK_PROVENANCE.md` and the RDS metadata.
+
+The `grip` commit identifier above reflects the September 3, 2026 repository
+history cleanup, which removed internal working records outside the R package.
+The cleanup did not change the package files in the release snapshot or the
+published CRAN archive; see the
+[source-history notice](https://github.com/pgajer/grip/blob/main/dev/release/source-history.md).
+The SHA-256 of the published `grip_0.2.0.tar.gz` archive is
+`5fbaecee890cd1f402e6776c661f5934325d37ac93a7d39120b54cf7acaf31a8`.
 
 ## Included artifacts
 
