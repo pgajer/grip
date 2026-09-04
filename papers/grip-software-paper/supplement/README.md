@@ -63,7 +63,9 @@ retains the executable variable-density circle example, full fixed-grid
 saddle comparison, and edge-KK mesh illustration moved from the main text.
 The mesh example uses `../reproducibility/scripts/edge-kk-workflow.R`, shared
 with the manuscript's executable code example. Its canonical document source is
-`S3-controlled-examples.Rmd`; `render-S3.R` renders it using R, rmarkdown,
+`S3-controlled-examples.Rmd`. S3 also contains the reference table of method
+families and principal functions, including their standard or experimental
+status. `render-S3.R` renders it using R, rmarkdown,
 bookdown, grip, dgraphs, igraph, Pandoc, and LaTeX. Python is needed to repeat
 the surface-distance experiment, not to render the supplement.
 

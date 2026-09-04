@@ -592,6 +592,7 @@ Family-specific presets provide reproducible starting values for several of
 these controlled graph classes. Hop-metric presets cover meshes, carpets,
 trees, and tori, while edge-length presets cover cylinders, spheres, and other
 weighted geometric families.
+Supplement S3 lists the method families and their principal functions.
 
 ## From graph layout to graph-geodesic fidelity
 
@@ -1040,56 +1041,6 @@ methods [@haghverdi2016; @street2018; @wolf2019], fixed-path fidelity provides
 the relevant assessment. The worked example \emph{Linking the two fidelity
 stages} below compares these criteria after calibrating graphs against a known
 saddle surface.
-
-## Method families and corresponding functions
-
-Table \@ref(tab:family-scope) summarizes the multiscale layout methods and
-experimental GMDS methods, their purposes, and the corresponding functions.
-
-```{r family-scope, echo=FALSE}
-family.scope <- data.frame(
-  Family = c(
-    "Multiscale GRIP",
-    "Full gKK",
-    "LGKK",
-    "MISF gKK",
-    "Edge KK",
-    "Repulsive terms"
-  ),
-  Purpose = c(
-    "Layouts and intermediate stages.",
-    "All-pairs scoring and refinement.",
-    "Landmark scoring and refinement.",
-    "Multiscale scoring and refinement.",
-    "Edge scoring and refinement.",
-    "Dispersion and edge regularization."
-  ),
-  `Principal functions` = c(
-    "grip(), trace.grip()",
-    "prepare.geodesic.kk(), score.geodesic.kk(), geodesic.kk()",
-    "prepare.landmark.geodesic.kk(), score.landmark.geodesic.kk(), landmark.geodesic.kk()",
-    "prepare.misf.geodesic.kk(), score.misf.geodesic.kk(), misf.geodesic.kk()",
-    "prepare.edge.kk(), edge.kk()",
-    "repulsive.state(), repulsive.stage(), edge.repulsive.state(), edge.repulsive.stage()"
-  ),
-  check.names = FALSE
-)
-
-accessible_kable(
-  family.scope,
-  row.names = FALSE,
-  align = c("l", "l", "l"),
-  latex_widths = c(0.18, 0.28, 0.54),
-  function_columns = 3L,
-  caption = "Method families, purposes, and principal functions in grip. Multiscale GRIP provides the standard layout methods; the remaining families belong to the experimental GMDS functionality.",
-  alt = paste(
-    "Six rows distinguish the standard multiscale GRIP methods from the",
-    "experimental full, landmark, MISF, edge-KK, and repulsive families and",
-    "list the principal functions associated with each family."
-  ),
-  position = "H"
-)
-```
 
 # Assessing and refining candidate embeddings
 

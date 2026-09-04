@@ -13,7 +13,7 @@ papersize: a4
 geometry: margin=22mm
 bibliography: S3-controlled-examples.bib
 header-includes:
-  - \usepackage{amsmath,booktabs,float,needspace}
+  - \usepackage{amsmath,array,booktabs,float,needspace}
   - \usepackage{xurl}
   - \providecommand{\CRANpkg}[1]{\textbf{#1}}
   - \providecommand{\pkg}[1]{\textbf{#1}}
@@ -611,6 +611,63 @@ profiled edge diagnostic; scoring uses the original coordinates.
 ```
 
 ```{r edge-kk-workflow, fig.cap=sprintf("Illustrative output of the edge-KK workflow. Eight refinement iterations reduce profiled edge relative RMSE from %.3f to %.3f by equalizing the embedded mesh-edge lengths. The edge-only objective does not select a unique shape, so this deterministic example demonstrates the workflow rather than a general performance comparison.", before$edge.rel.rmse, after$edge.rel.rmse), fig.alt="Two panels show the 16-vertex 4-by-4 mesh before and after edge-KK refinement. The initial coordinates form a compressed, curved grid; refinement produces a more regular grid with nearly equal embedded edge lengths. Each panel reports profiled edge relative RMSE.", fig.width=7.5, fig.height=3.4, fig.pos="H"}
+```
+
+\clearpage
+
+# Method families and principal functions
+
+Table \@ref(tab:family-scope) lists the multiscale layout and GMDS method
+families, their purposes, and their principal functions.
+
+```{r family-scope, results="asis"}
+family.scope <- data.frame(
+  Family = c(
+    "Multiscale GRIP",
+    "Full gKK",
+    "LGKK",
+    "MISF gKK",
+    "Edge KK",
+    "Repulsive terms"
+  ),
+  Purpose = c(
+    "Layouts and intermediate stages.",
+    "All-pairs scoring and refinement.",
+    "Landmark scoring and refinement.",
+    "Multiscale scoring and refinement.",
+    "Edge scoring and refinement.",
+    "Dispersion and edge regularization."
+  ),
+  `Principal functions` = c(
+    "grip(), trace.grip()",
+    "prepare.geodesic.kk(), score.geodesic.kk(), geodesic.kk()",
+    "prepare.landmark.geodesic.kk(), score.landmark.geodesic.kk(), landmark.geodesic.kk()",
+    "prepare.misf.geodesic.kk(), score.misf.geodesic.kk(), misf.geodesic.kk()",
+    "prepare.edge.kk(), edge.kk()",
+    "repulsive.state(), repulsive.stage(), edge.repulsive.state(), edge.repulsive.stage()"
+  ),
+  check.names = FALSE
+)
+family.scope[["Principal functions"]] <- vapply(
+  strsplit(family.scope[["Principal functions"]], ", ", fixed = TRUE),
+  function(x) paste(paste0("\\texttt{", x, "}"), collapse = "\\newline "),
+  character(1)
+)
+family.table <- knitr::kable(
+  family.scope, format = "latex", booktabs = TRUE, escape = FALSE,
+  row.names = FALSE, align = c("l", "l", "l"), position = "H",
+  caption = "Method families, purposes, and principal functions in grip. Multiscale GRIP provides the standard layout methods; the remaining families belong to the experimental GMDS functionality."
+)
+# Fixed-width columns keep each function name intact and wrap the prose.
+stopifnot(grepl("\\begin{tabular}[t]{lll}", family.table, fixed = TRUE))
+cat(sub(
+  "\\begin{tabular}[t]{lll}",
+  paste0("\\begin{tabular}[t]{@{}",
+    ">{\\raggedright\\arraybackslash}p{0.17\\linewidth}",
+    ">{\\raggedright\\arraybackslash}p{0.27\\linewidth}",
+    ">{\\raggedright\\arraybackslash}p{0.50\\linewidth}@{}}"),
+  family.table, fixed = TRUE
+))
 ```
 
 # References {-}
