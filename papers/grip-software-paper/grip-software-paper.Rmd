@@ -1091,11 +1091,11 @@ coordinate matrices.
 
 ## Graph-geodesic diagnostics and refinement
 
-The general diagnostics above assess layout quality and endpoint-chord
-agreement. When the quantity of interest is the length of graph paths after
-embedding, the package instead fixes an input graph and evaluates its
-graph-geodesic metric. Table \@ref(tab:assessment-functions) places the
-principal functions in a generate--assess--refine workflow.
+The package's principal functions can be combined in a
+generate--assess--refine workflow: candidate coordinates are constructed,
+evaluated using general and graph-geodesic diagnostics, and optionally refined.
+Table \@ref(tab:assessment-functions) identifies the functions used at each
+stage.
 
 ```{r assessment-functions, echo=FALSE}
 assessment.functions <- data.frame(
