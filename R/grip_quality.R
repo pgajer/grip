@@ -1096,6 +1096,15 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
     stop(sprintf("%s() currently requires a connected graph", caller))
   }
 
+  # Route selection retains the existing near-tie parent convention. MDS needs
+  # symmetric shortest-distance targets, independently of those retained routes.
+  strict.matrix <- if (is.null(weight.list)) dist.matrix else {
+    do.call(rbind, lapply(seq_len(validated$n), function(source) {
+      grip.dijkstra.distances(adj.list, weight.list, source)
+    }))
+  }
+  strict.matrix <- (strict.matrix + t(strict.matrix)) / 2
+
   list(
     n = validated$n,
     edges = edges,
@@ -1105,6 +1114,7 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
     trees = trees,
     parents = lapply(trees, `[[`, "parent"),
     distance_matrix = dist.matrix,
+    mds_distance_matrix = strict.matrix,
     graph_diameter = max(dist.matrix)
   )
 }
@@ -1825,7 +1835,7 @@ prepare.landmark.geodesic.kk <- function(edges = NULL,
     path_vertices = cache$path_vertices,
     path_edges = cache$path_edges,
     graph_diameter = base$graph_diameter,
-    distance_matrix = base$distance_matrix,
+    distance_matrix = base$mds_distance_matrix,
     pair_mode = "landmark_sparse"
   )
   class(out) <- c("grip_lgkk_prepared", "grip_geodesic_kk_prepared")
@@ -1912,7 +1922,7 @@ prepare.geodesic.kk <- function(edges = NULL,
     flat_edge_v = flat.cache$flat_edge_v,
     flat_edge_coeff = flat.cache$flat_edge_coeff,
     graph_diameter = base$graph_diameter,
-    distance_matrix = base$distance_matrix,
+    distance_matrix = base$mds_distance_matrix,
     pair_mode = "all_pairs",
     tie_mode = tie_mode
   )
@@ -3588,6 +3598,12 @@ prepare.edge.kk <- function(edges = NULL,
 #'   each tied shortest-path family by the exact uniform average over all
 #'   shortest paths between the pair.
 #'
+#' @details The all-pairs `distance_matrix` contains symmetric strict graph
+#'   distances. Retained-route lengths in `pair_graph_distance` follow the
+#'   deterministic near-tie path convention and can differ slightly from these
+#'   targets. Route selection and path diagnostics are not changed by this
+#'   distinction.
+#'
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
 #' @export
@@ -3640,7 +3656,7 @@ prepare.graph.geodesic.mds <- function(edges = NULL,
     flat_edge_v = flat.cache$flat_edge_v,
     flat_edge_coeff = flat.cache$flat_edge_coeff,
     graph_diameter = base$graph_diameter,
-    distance_matrix = base$distance_matrix,
+    distance_matrix = base$mds_distance_matrix,
     pair_mode = "all_pairs",
     graph_build_mode = "graph_input",
     tie_mode = tie_mode

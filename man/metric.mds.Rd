@@ -103,6 +103,10 @@ failing starts cause an error. Iteration limits are not convergence or global
 optimality certificates. Collinear or planar starts may remain in their
 initial span; use multiple starts to investigate this sensitivity.
 
+Newly prepared graph objects supply symmetric strict shortest distances,
+separately from retained-route lengths used in path diagnostics. Rebuild
+older cached preparations if their near-tie distance matrix is asymmetric.
+
 Targets must be finite, symmetric, and nonnegative, with zero diagonal and
 at least one positive distance. Missing and infinite distances are rejected.
 Supplied starts may have coincident points but must not be wholly collapsed.

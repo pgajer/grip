@@ -48,6 +48,12 @@ The graph can be supplied either as an edge list plus parallel weights or as
 an adjacency-list representation. The returned object stores the all-pairs
 graph distances, the chosen shortest-path family, and the flattened edge-path
 cache reused by the GMDS scorer and optimizer.
+
+The all-pairs `distance_matrix` contains symmetric strict graph
+  distances. Retained-route lengths in `pair_graph_distance` follow the
+  deterministic near-tie path convention and can differ slightly from these
+  targets. Route selection and path diagnostics are not changed by this
+  distinction.
 }
 \examples{
 cycle_edges <- edges.cycle(6)
