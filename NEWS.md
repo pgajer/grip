@@ -1,3 +1,11 @@
+# grip 0.2.0.9001
+
+* Supply strict symmetric shortest-distance matrices in path-prepared graph
+  objects, separately from the existing retained near-tie routes and their
+  lengths. This fixes metric-MDS rejection of valid undirected near-tie graphs
+  without changing retained-path scoring or weakening input validation.
+  Rebuild older cached preparations to obtain the corrected distance matrix.
+
 # grip 0.2.0.9000
 
 * **Behavioral API change:** move the former `metric.mds()` classical-scaling

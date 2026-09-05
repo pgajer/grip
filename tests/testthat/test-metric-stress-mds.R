@@ -156,3 +156,25 @@ test_that("a missing optional backend gives an actionable error", {
   testthat::local_mocked_bindings(grip.mds.has.smacof = function() FALSE)
   expect_error(metric.mds(edges = edges.cycle(6), n = 6), "optional 'smacof'")
 })
+
+test_that("near-tie routes and strict MDS targets remain separate", {
+  skip_if_not_installed("smacof", "2.1-7")
+  e <- rbind(c(1L, 2L), c(1L, 3L), c(2L, 3L))
+  w <- c(1, 2 + 1e-8, 1)
+  p <- prepare.graph.geodesic.mds(e, n = 3L, edge_weights = w)
+  expect_identical(p$distance_matrix, t(p$distance_matrix))
+  expect_equal(unname(p$distance_matrix), matrix(c(0,1,2,1,0,1,2,1,0), 3), tolerance = 1e-14)
+  # The established near-tie convention chooses the direct 1--3 edge.
+  i <- which(p$pair_matrix[,1] == 1L & p$pair_matrix[,2] == 3L)
+  expect_equal(p$pair_graph_distance[i], 2 + 1e-8, tolerance = 1e-14)
+  expect_equal(unname(p$path_edges[[i]]), matrix(c(1L,3L), ncol=2L))
+  m <- metric.mds(prepared = p, dim = 2L, diagnostics = FALSE)
+  strict <- metric.mds(edges = e, n = 3L, edge_weights = w,
+                       dim = 2L, diagnostics = FALSE)
+  expect_equal(as.matrix(dist(m$coords)), as.matrix(dist(strict$coords)), tolerance=1e-10)
+  expect_lt(m$metadata$raw_stress, 1e-12)
+  expect_identical(p$pair_graph_distance[i], 2 + 1e-8)
+  q <- p
+  q$distance_matrix[1,2] <- 1.1
+  expect_error(metric.mds(prepared=q, diagnostics=FALSE), "finite, symmetric")
+})
