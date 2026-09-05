@@ -1,0 +1,6 @@
+"start","initialization","initial_raw_stress","raw_stress","normalized_stress","iterations","converged","termination","backend_stress","warnings","error","replicate","k"
+1,"supplied",754.661683192115,751.662017892727,0.000773088188013907,2000,FALSE,"iteration_limit",0.0278044634548822,"Iteration limit reached! You may want to increase the itmax argument!","",1,71
+1,"supplied",704.081245003946,703.539383295795,0.00073669418614284,826,TRUE,"stress_tolerance",0.0271421109374865,"","",2,70
+1,"supplied",837.392127649656,837.055263305177,0.000820535573615114,1102,TRUE,"stress_tolerance",0.0286449921210525,"","",3,67
+1,"supplied",771.469073931287,770.211599170216,0.000797263314332762,2000,FALSE,"iteration_limit",0.0282358515779638,"Iteration limit reached! You may want to increase the itmax argument!","",4,72
+1,"supplied",770.175860848876,768.781863414886,0.000784278487732464,2000,FALSE,"iteration_limit",0.0280049725536811,"Iteration limit reached! You may want to increase the itmax argument!","",5,73
