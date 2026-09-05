@@ -316,9 +316,16 @@ to approximate $D_X$. Classical MDS is then applied to $D_G$ to obtain a
 low-dimensional embedding $Z$ [@tenenbaum2000]. This $X\to G\to Z$
 construction involves two distinct questions of fidelity: how well does $D_G$
 approximate the intrinsic distances $D_X$, and how faithfully does the embedding
-$Z$ preserve the graph distances $D_G$? The companion \CRANpkg{dgraphs} package
-addresses the $X\to G$ stage, whereas \CRANpkg{grip} addresses the $G\to Z$
-stage. These two stages are summarized below.
+$Z$ preserve the graph distances $D_G$?
+
+Data-derived graphs can also provide neighborhoods for regression or
+classification of an observed response [@belkin2006; @kim2016]. In these
+settings, graph construction can be assessed by predictive performance rather
+than geometric fidelity alone. Once a graph has been chosen, its embedding may
+serve as a visualization or provide distances for subsequent calculations. The
+companion \CRANpkg{dgraphs} package addresses the $X\to G$ stage, whereas
+\CRANpkg{grip} addresses the $G\to Z$ stage. The diagram below summarizes the
+two stages and their geometric fidelity questions.
 
 ```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
 if (knitr::is_latex_output()) {
@@ -406,14 +413,6 @@ if (knitr::is_latex_output()) {
   cat("\n```\n")
 }
 ```
-
-Beyond approximating intrinsic distances, data-derived graphs can provide
-neighborhoods for regression or classification of an observed response
-[@belkin2006; @kim2016]. In these settings, graph construction can be assessed
-by predictive performance rather than geometric fidelity alone. Once a graph
-has been chosen, its embedding may serve as a visualization or provide distances
-for subsequent calculations. If an analysis uses the original graph and its
-weights, changing only the displayed coordinates does not alter its results.
 
 When distances measured in an embedding replace input graph distances, the
 relevant assessment depends on how those embedded distances are measured.
