@@ -407,16 +407,26 @@ if (knitr::is_latex_output()) {
 }
 ```
 
+Beyond approximating intrinsic distances, data-derived graphs can provide
+neighborhoods for regression or classification of an observed response
+[@belkin2006; @kim2016]. In these settings, graph construction can be assessed
+by predictive performance rather than geometric fidelity alone. Once a graph
+has been chosen, its embedding may serve as a visualization or provide distances
+for subsequent calculations. If an analysis uses the original graph and its
+weights, changing only the displayed coordinates does not alter its results.
+
+When distances measured in an embedding replace input graph distances, the
+relevant assessment depends on how those embedded distances are measured.
 Classical MDS in the context of graph embedding produces a coordinate map
 $\phi:V\to\mathbb{R}^m$ and hence a configuration
 $Z=\phi(V)\subset\mathbb{R}^m$, whose endpoint chords
 $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$ approximate the entries $d_{ij}^G$.
-However, the appropriate embedding criterion depends on which geometric
-quantities must be preserved for the downstream analysis. Some downstream
-analyses use graph or lineage paths to order observations and quantify
-progression, as in trajectory and pseudotime analysis
-[@haghverdi2016; @street2018; @wolf2019]. When such a path is retained after
-embedding, the relevant comparison is whether its embedded length
+Chord fidelity assesses this endpoint-distance approximation. Fixed-path
+fidelity instead concerns calculations or interpretations based on lengths
+along retained graph paths. Graph and lineage paths are used to order
+observations and study progression in trajectory and pseudotime analysis
+[@haghverdi2016; @street2018; @wolf2019]. If a selected input path's length is
+measured after embedding, the relevant comparison is whether its embedded length
 
 $$
 d_{ij}^{G,Z}
