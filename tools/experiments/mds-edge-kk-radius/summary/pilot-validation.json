@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "graphs": 72,
+  "candidates": 972,
+  "mds_starts": 216,
+  "repaired_graphs": 12,
+  "max_route_strict_discrepancy": 4.45997185849478e-08,
+  "max_package_score_difference": 8.437694987151191e-15,
+  "max_independent_path_difference": 8.881784197001249e-16,
+  "min_profiled_edge_scale": 1.94013568374895e-05,
+  "fixed_scale_range": [
+    0.99555080054225,
+    1.017561558565
+  ],
+  "mds_iteration_limit": 0
+}
