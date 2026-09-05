@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Citation Verification</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --border: #d8dde6;
+      --text: #1d2733;
+      --muted: #5f6b7a;
+      --verified: #dff3e5;
+      --blocked: #ffe3e0;
+      --pending: #fff4cc;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 860px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      background: #fff;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      vertical-align: top;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #eef1f5;
+      font-weight: 650;
+    }
+
+    tr[data-status="verified"] td.status {
+      background: var(--verified);
+    }
+
+    tr[data-status="metadata-only"] td.status,
+    tr[data-status="needs-human-review"] td.status {
+      background: var(--pending);
+    }
+
+    tr[data-status="unsupported"] td.status,
+    tr[data-status="wrong-source"] td.status {
+      background: var(--blocked);
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body><main>
+<h1>Citation verification: saddle geodesic MDS</h1><p>Built 2026-09-05 10:34:38 EDT</p>
+<p>Scope: both external citations in README.md. The curvature, geodesic equations,
+disk convexity, tree bound, and MDS limit calculations are supplied derivations.</p>
+<table aria-label="Citation verification table"><thead><tr>
+<th>Key</th><th>Status</th><th>Manuscript context</th><th>Supported claim</th>
+<th>BibTeX metadata</th><th>Source</th><th>Evidence</th><th>Verifier notes</th>
+</tr></thead><tbody>
+        <tr data-citation-key="mair2022" data-status="verified">
+          <td><code>mair2022</code></td>
+          <td class="status">verified</td>
+          <td>README.md, Objectives and interpretation</td>
+          <td>The weighted stress formulation and the use of multiple starting configurations are described by Mair, Groenen, and de Leeuw (2022), Section 2, Equation (1), and Section 3.1.</td>
+          <td>Patrick Mair, Patrick J. F. Groenen, Jan de Leeuw. More on Multidimensional Scaling and Unfolding in R: smacof Version 2. Journal of Statistical Software 102(10), 1–47, 2022. DOI: 10.18637/jss.v102.i10.</td>
+          <td><a data-source-link href="https://www.jstatsoft.org/index.php/jss/article/view/v102i10/4301">Full source PDF</a>; <a href="https://doi.org/10.18637/jss.v102.i10">publisher metadata</a></td>
+          <td>Pages 2–3, Equation (1): weighted squared residuals between disparities and configuration distances, default weights one. Page 6, Section 3.1: local minima, classical starting configurations, and trying multiple random starts.</td>
+          <td>Codex read the full-source passages and publisher metadata on 2026-09-05. The experiment fixes target distances; it does not implement the paper's disparity transformations. The saddle limit and inertia calculation are separate derivations in the README.</td>
+        </tr>
+<tr data-citation-key="gorodski2022" data-status="verified">
+<td><code>gorodski2022</code></td><td class="status">verified</td>
+<td>README.md, Why the computed geodesic is the shortest path</td>
+<td>A complete simply connected manifold of nonpositive sectional curvature has a unique minimizing geodesic between every pair.</td>
+<td>Claudio Gorodski. An introduction to Riemannian geometry. Preliminary version 3, June 27, 2022. Author's notes hosted at Universidade de São Paulo.</td>
+<td><a data-source-link href="https://www.ime.usp.br/~gorodski/teaching/mat5771-2024/master02-21-2024.pdf">Full author source PDF</a></td>
+<td>Printed pp. 124–125 (PDF pp. 129–130): Theorem 6.5.2 states the Hadamard–Cartan covering result and its simply connected consequence; Corollary 6.5.3 gives uniqueness; the paragraph preceding Lemma 6.5.4 states that this geodesic is minimizing. The title page supplies the author, version, and date.</td>
+<td>Codex read these full-source passages on 2026-09-05. The URL path contains 2024, but the title page dates this version to 2022. Completeness, simple connectivity, curvature, and disk convexity for the particular saddle are established separately in README.md.</td>
+</tr>
+</tbody></table></main></body></html>
