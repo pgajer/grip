@@ -1,11 +1,14 @@
 # Smooth-geodesic MDS of an expanding saddle
 
-The 3D saddle embeddings do **not** approach a plane or a line in this experiment.
-They approach configurations with four narrow arms spanning three dimensions.
-This holds for both classical MDS and minimization of raw distance stress, and
-for both uniform base-disk and uniform surface-area sampling. The intrinsic
-large-radius limit is a four-arm tree. A rank argument below proves the
-nonplanarity of the classical MDS limit; the raw-stress result is numerical.
+Across the tested radii, the selected 3D raw-stress fits develop four narrow
+arms and show no approach to a plane or line. Both sampling measures show this
+behavior. For classical MDS, a nonplanar limit is proved under the rank
+condition below. The raw-stress computations support this behavior but do not
+prove convergence or exclude every planar global minimizer.
+
+The central distinction is between **intrinsic dimension and Euclidean span**:
+the limiting saddle metric is a one-dimensional four-arm tree, while its
+classical Euclidean approximation spans three dimensions.
 
 ## Experiment and results
 
@@ -102,7 +105,7 @@ with some other radius normalization.
 The whole saddle is complete (its metric dominates the Euclidean base metric),
 simply connected, and negatively curved. Hadamard–Cartan gives a unique
 minimizing geodesic between every pair [gorodski2022, Theorem 6.5.2, Corollary
-6.5.3 and the paragraph preceding Lemma 6.5.4].
+6.5.3 and the proof of Lemma 6.5.4, printed p. 125].
 
 Writing `v=ẋ`, `w=ẏ`, and `ρ²=x²+y²`, its affine geodesic equations are
 
@@ -129,12 +132,21 @@ the conserved metric speed. Failed solves are retried with finer continuation;
 unresolved pairs stop the run.
 
 Validation uses independent SciPy DOP853 integration and `solve_bvp` collocation
-for 60 pairs at five radii. Maximum relative length disagreement was `7.87e−9`;
+for 60 comparisons (12 endpoint pairs at five radii). The maximum relative
+length disagreement **within that validation sample** was `7.87e−9`;
 maximum independent endpoint discrepancy divided by disk radius was `8.11e−7`.
+This is not an all-pairs accuracy bound. A targeted follow-up check of 48 pairs
+from the actual `r=64` matrices, including short distances, found larger
+discrepancies. Refinement of the most discrepant pair gave approximately
+`8.48e−8` relative disagreement: the saved surface-area distance between
+zero-based indices 58 and 107 is `60.15202505808`, versus a refined value of
+`60.15201995534`. These remain small compared with the MDS fitting errors.
+The energy-drift diagnostic refers to the independent DOP853 trajectory.
 Exact straight rulings and axis-meridian integrals also pass. Every full matrix
 passes ambient chord lower bounds, lifted-straight-path upper bounds, the tree
 bounds below, and all triangle inequalities, allowing `1e−7` times RMS distance
-for rounding. These are numerical accuracy checks, not interval certificates.
+as a numerical tolerance. These checks are not interval certificates.
+The follow-up checks are reproducible in `../mds-audit-diagnostics/`.
 
 ## The limiting metric is a four-arm tree
 
@@ -217,6 +229,12 @@ holds for generic samples covering all four arms with enough distinct points;
 it is checked for both limiting samples used here. Missing arms or special
 degenerate samples require separate analysis.
 
+A simple sufficient condition is that every arm contains a nonroot point and
+one arm contains two distinct positive lengths. A sampled root also suffices
+if all four arms are represented. Indeed, `JFv=0` means that `Fv` is constant:
+either sufficient condition forces this constant to be zero and then forces
+all four components of `v` to vanish.
+
 Since `B(r)/r⁴ → B_T`, all three positive eigenvalues used by classical 3D MDS
 remain positive in the limit. Its coordinates divided by `r²`, up to rigid
 motion, therefore retain three nonzero singular values. **They cannot collapse
@@ -244,6 +262,15 @@ evidence of nonplanarity for raw stress in these samples, not a universal global
 optimization theorem. The tree is not a Euclidean distance matrix under the
 rank condition above, so its exact stress cannot be zero in any Euclidean
 dimension.
+
+At `r=64`, the six original saddle 3D starts have relative stress spreads of
+about `1.5e−12` and `4.3e−12` for disk and area sampling. Furthermore, the saved
+2D fits have negative curvature in an added third-coordinate direction:
+the smallest transverse Hessian eigenvalues of mean pair stress are about
+`−0.0034782` and `−0.0036110`. Explicit small perturbations decrease stress.
+This rules out those particular planar fits as 3D local minima, not every
+possible planar configuration. These checks also reside in
+`../mds-audit-diagnostics/`.
 
 ## Reproduction
 

@@ -54,6 +54,10 @@ def table(name, columns, rows, caption, label):
 
 
 def make_tables():
+    def sci(value, digits=5):
+        mantissa, exponent = f'{float(value):.{digits}e}'.split('e')
+        return '$' + mantissa + r'\times10^{' + str(int(exponent)) + '}$'
+
     for surface, bundle in [('paraboloid', 'paraboloid-mmds-geodesic'), ('saddle', 'saddle-mmds-geodesic')]:
         data = [a for a in read_csv(bundle) if a['sampling'] == 'disk' and a['method'] == 'stress_3d']
         rows = [[f"{float(a['radius']):g}", f"{float(a['relative_distance_rmse']):.6f}",
@@ -93,6 +97,31 @@ def make_tables():
           'Ambient chord-distance comparison: raw-stress MDS in two dimensions with uniform base-disk '
           'sampling. The last column is $s_1^2/\\sum_a s_a^2$ for centered fitted coordinates. '
           'These are not geodesic results.', 'tab:ambient')
+    data = read_csv('mds-audit-diagnostics', 'population_spectrum.csv')
+    rows = []
+    for a in data:
+        if a['quadrature_nodes'] != '256':
+            continue
+        measure = 'Base disk' if a['sampling'] == 'disk' else 'Surface area'
+        rows.append([measure, f"{float(a['leading_kernel_eigenvalue']):.6f}"] +
+                    [sci(a[key], 3) for key in ['second_kernel_eigenvalue', 'radial_sector_max',
+                                                'even_sector_max', 'remaining_odd_sector_max']])
+    table('population_sectors', ['Measure', '$\\lambda_1(\\mathcal L)$', '$\\lambda_2(\\mathcal L)$',
+                                  '$m=0$', 'Even $m$', 'Odd $m\\ge3$'], rows,
+          'Numerical population mode-selection checks with 256 quadrature nodes. The first two '
+          'numeric columns are eigenvalues of the logarithmic-mean operator; the remaining columns '
+          'are the largest competing eigenvalues in the indicated angular sectors after the '
+          'constant and height projections. Each nonzero angular radial eigenfunction has a sine/cosine pair.',
+          'tab:population-sectors')
+    data = read_csv('mds-audit-diagnostics', 'optimizer_spread.csv')
+    rows = [[a['surface'].capitalize(), 'Base disk' if a['sampling'] == 'disk' else 'Surface area',
+             f"{float(a['worst_over_best']):.6f}", sci(a['relative_spread'], 3)]
+            for a in data if float(a['radius']) == 64]
+    table('optimizer_spread', ['Surface', 'Measure', '$S_{\\max}/S_{\\min}$', 'Relative spread'], rows,
+          'Spread of the six original 3D raw-stress starts at $r=64$. Relative spread is '
+          '$(S_{\\max}-S_{\\min})/S_{\\min}$. A displayed ratio of 1.000000 for the saddle '
+          'is rounding to six decimals; the final column preserves the small observed differences.',
+          'tab:optimizer-spread')
 
 
 class Evidence(HTMLParser):
@@ -153,12 +182,13 @@ def main():
         return
     for name in ['paraboloid-mmds-radius', 'saddle-mmds-radius']:
         run([sys.executable, 'verify.py'], cwd=EXPERIMENTS / name)
+    run([sys.executable, 'experiment.py', '--verify'], cwd=EXPERIMENTS / 'mds-audit-diagnostics')
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / 'figures').mkdir(exist_ok=True)
     (OUT / 'tables').mkdir(exist_ok=True)
     (OUT / 'data').mkdir(exist_ok=True)
     inputs = {}
-    for name in ['report.tex', 'references.bib', 'citation_verification.html']:
+    for name in ['report.tex', 'references.bib', 'citation_verification.html', 'AUDIT_RESPONSE.md']:
         shutil.copy2(ROOT / name, OUT / name)
     for file in ROOT.iterdir():
         if file.is_file():
@@ -168,7 +198,7 @@ def main():
             path = REPO / 'output' / bundle / (name + '.pdf')
             shutil.copy2(path, OUT / 'figures' / path.name)
             inputs[str(path.relative_to(REPO))] = sha(path)
-    for bundle in list(FIGURES) + ['paraboloid-mmds-antipodal']:
+    for bundle in list(FIGURES) + ['paraboloid-mmds-antipodal', 'mds-audit-diagnostics']:
         for path in (REPO / 'output' / bundle).glob('*.csv'):
             inputs[str(path.relative_to(REPO))] = sha(path)
             target = OUT / 'data' / bundle
@@ -189,7 +219,7 @@ def main():
         raise
     (OUT / 'build_stdout.log').write_text(result.stdout)
     verify_report()
-    deliverables = ['report.pdf', 'report.tex', 'references.bib', 'report.bbl', 'build_info.tex', 'citation_verification.html']
+    deliverables = ['report.pdf', 'report.tex', 'references.bib', 'report.bbl', 'build_info.tex', 'citation_verification.html', 'AUDIT_RESPONSE.md']
     deliverables += [str(path.relative_to(OUT)) for folder in ['figures', 'tables'] for path in sorted((OUT / folder).iterdir())]
     deliverables += [str(path.relative_to(OUT)) for path in sorted((OUT / 'data').rglob('*.csv'))]
     (OUT / 'README.txt').write_text('Combined geodesic MDS report\n\nOpen report.pdf. This source bundle compiles with latexmk -pdf report.tex.\nThe build timestamp records the originating build. Figure plates use their native page sizes.\nCanonical source: tools/reports/geodesic-mds/ in the grip repository.\nNumerical inputs and their checksums are recorded in manifest.json; complete CSV tables are in data/.\n')

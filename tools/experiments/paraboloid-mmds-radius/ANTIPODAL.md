@@ -137,8 +137,9 @@ is uniform. Fourier expansion of the squared angular distance gives
 
 $$\alpha^2=\pi^2/3+4\sum_{m\ge1}(-1)^m\cos(m\alpha)/m^2.$$
 
-The two leading transverse modes are the angular sine/cosine modes with
-`m=1`. Their radial component solves the integral eigenproblem
+For the two measures examined, quadrature identifies the leading transverse
+modes as the angular sine/cosine modes with `m=1`; their dominance is a
+numerical finding. Their radial component solves the integral eigenproblem
 
 $$\lambda f(q)=\int_0^1\ell(q,p)f(p)\,dp,\qquad
 \int_0^1f(p)^2\,dp=1.$$
@@ -155,6 +156,16 @@ angular, and higher odd angular eigenvalues are approximately 0.0000194,
 0.002891, and 0.056818. Thus no competing mode is close to displacing the
 retained pair. These are numerical operator checks, not rigorous quadrature
 error bounds.
+
+The projection off `1` and `q` removes the radial logarithmic term because
+`(q−p)(log q−log p) = q log q + p log p − q log p − p log q`: every term has
+a factor annihilated by the projection on at least one side. Writing `L` for
+the logarithmic-mean integral operator, the remaining radial sector is
+`−π² H L H/6`, and nonzero angular sector `m` is `(-1)^(m+1) L/m²`.
+Within `m=1`, the second eigenvalue of `L` is approximately `0.0002059105`
+for disk sampling and `0.0000948416` for area sampling at 256 nodes, also far
+below the retained leading eigenvalues. These additional diagnostics are
+reproduced by `../mds-audit-diagnostics/`.
 
 For uniform surface-area sampling on expanding disks, the limiting density
 of `q` is `(3/2)sqrt(q)`. Replacing `dp` by this weighted measure in the

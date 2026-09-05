@@ -3,7 +3,10 @@
 `report.tex` is the canonical comprehensive LaTeX document for the investigation.
 It covers both smooth-geodesic experiments, all asymptotic arguments and
 antipodal estimates, the ambient-distance comparison, numerical validation,
-and the explanation of axis scaling. It includes all 15 distinct figures.
+and the explanation of axis scaling. It includes all 15 distinct figures,
+with the direct surface comparison in the main text and 14 supporting plates.
+The [audit response](AUDIT_RESPONSE.md) maps the September 5 review comments to
+the revisions and additional numerical evidence.
 
 From the repository root:
 
@@ -28,13 +31,18 @@ Outputs are under `output/pdf/geodesic-mds/`:
 - `manifest.json`: checksums for consumed source/data/figure inputs and the
   deliverables, with an automatically generated Eastern build timestamp.
 
-The figure atlas uses the plots' native sizes on larger pages so dense panel
+The figure plates use the plots' native sizes on larger pages so dense panel
 labels do not become unreadable when fitted into a normal text column. The
 axis-scaling illustration is regenerated as a vector plot with clearer ticks;
 the other 14 figures are the existing vector exports without alteration.
 `build.py` generates tables from the recorded CSVs and audits all citation
 keys, caption counts, resolved cross-references, overfull boxes, and checksums.
 The final PDF is also inspected visually after rendering.
+
+The revised report consumes the separate `mds-audit-diagnostics` bundle for
+extended geodesic checks, optimizer spread, planar instability, and population
+sector eigenvalues. Run its `make run` target once before building this revision;
+subsequent report builds only verify and consume its saved outputs.
 
 The report distinguishes proved finite-sample statements, numerical local
 fits, and population eigenoperator estimates. It does not claim a universal
