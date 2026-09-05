@@ -13,14 +13,15 @@ author:
     email: jravel@som.umaryland.edu
 abstract: >
   A graph embedding places the vertices of a graph in Euclidean space. However,
-  the resulting geometry need not faithfully represent the graph's intrinsic
-  shortest-path geometry. Standard MDS-style criteria compare graph
-  shortest-path distances with Euclidean chords between embedded vertices. When
-  an analysis depends on lengths along graph shortest paths, graph-geodesic
-  multidimensional scaling (GMDS) compares each selected input path's graph
-  length with its length after embedding. grip is an R package that combines
-  multiscale graph layout with assessment under both criteria and experimental
-  GMDS-oriented refinement workflows.
+  the resulting geometry may not faithfully preserve distances measured along
+  shortest paths in the graph. When applied to graph distances, multidimensional
+  scaling (MDS) assesses how closely straight-line distances between embedded
+  vertices approximate graph shortest-path distances. Graph-geodesic
+  multidimensional scaling (GMDS) instead assesses whether selected shortest
+  paths retain their lengths after embedding, measuring each embedded path by
+  summing the Euclidean lengths of its edges. grip is an R package for generating
+  graph layouts, assessing them under both criteria, and refining them through
+  experimental GMDS-oriented workflows.
 preamble: |
   \usepackage{amsmath}
   \usepackage{graphicx}
@@ -296,26 +297,28 @@ edge.matrix.from.adj <- function(adj.list) {
 
 # Introduction
 
-Multidimensional scaling (MDS) begins with pairwise dissimilarities
-$\Delta=(\delta_{ij})$ and seeks coordinates
-$Z=\{z_1,\ldots,z_n\}\subset\mathbb{R}^m$ whose pairwise Euclidean distances
-$D_Z=(d_{ij}^Z)$, with $d_{ij}^Z=\lVert z_i-z_j\rVert_2$, approximate them.
-Stress-based formulations quantify the discrepancy between the input
-dissimilarities $\Delta$ and the configuration distances $D_Z$
-[@kruskal1964multidimensional]. The choice of input dissimilarities matters when
-observations $X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved,
-branching, or otherwise non-Euclidean structure: ambient straight-line
-distances may then fail to capture the intrinsic distance structure
-$D_X=(d_{ij}^X)$ underlying $X$. Isomap constructs a weighted
-neighborhood
-graph $G=(V,E,\ell)$ whose vertices correspond to the observations, uses its
-shortest-path distance matrix $D_G=(d_{ij}^G)$ as an estimate of $D_X$, and
-applies classical MDS to $D_G$ [@tenenbaum2000]. This $X\to G\to Z$ sequence
-raises two fidelity questions: how well does $D_G$ approximate $D_X$, and how
-faithfully does the embedding $Z$ represent $D_G$? The companion
-\CRANpkg{dgraphs} package addresses the $X\to G$ question, while
-\CRANpkg{grip} addresses the $G\to Z$ question. These two stages are
-summarized below.
+Multidimensional scaling (MDS) seeks a low-dimensional Euclidean representation
+of a set of objects in which the distances between points approximate the input
+dissimilarities between the corresponding objects. Given a dissimilarity matrix
+$\Delta=(\delta_{ij})$, MDS seeks coordinates
+$Z=\{z_1,\ldots,z_n\}\subset\mathbb{R}^m$ such that the pairwise Euclidean
+distances $D_Z=(d_{ij}^Z)$, with $d_{ij}^Z=\lVert z_i-z_j\rVert_2$,
+approximate the corresponding entries of $\Delta$
+[@kruskal1964multidimensional]. The choice of dissimilarities supplied to MDS
+becomes particularly important when the observations
+$X=\{x_1,\ldots,x_n\}\subset\mathbb{R}^p$ lie on a curved, branching, or
+otherwise non-Euclidean structure. In such settings, straight-line distances in
+the ambient space may poorly represent the intrinsic distance structure
+$D_X=(d_{ij}^X)$ of the data. Isomap addresses this problem by constructing a
+weighted neighborhood graph $G=(V,E,\ell)$, whose vertices correspond to the
+observations, and using the graph shortest-path distance matrix $D_G=(d_{ij}^G)$
+to approximate $D_X$. Classical MDS is then applied to $D_G$ to obtain a
+low-dimensional embedding $Z$ [@tenenbaum2000]. This $X\to G\to Z$
+construction involves two distinct questions of fidelity: how well does $D_G$
+approximate the intrinsic distances $D_X$, and how faithfully does the embedding
+$Z$ preserve the graph distances $D_G$? The companion \CRANpkg{dgraphs} package
+addresses the $X\to G$ stage, whereas \CRANpkg{grip} addresses the $G\to Z$
+stage. These two stages are summarized below.
 
 ```{r two-stage-fidelity-diagram, echo=FALSE, results="asis"}
 if (knitr::is_latex_output()) {
