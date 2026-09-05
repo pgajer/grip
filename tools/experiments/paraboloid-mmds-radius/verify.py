@@ -32,7 +32,7 @@ class Citations(HTMLParser):
 
 
 def main():
-    used = set(re.findall(r"<!-- cite:([\w-]+) -->", (ROOT/"README.md").read_text()))
+    used = set(re.findall(r"<!-- cite:([\w-]+) -->", '\n'.join((ROOT/p).read_text() for p in ['README.md','GEODESIC.md'])))
     bib = set(re.findall(r"@\w+\{([\w-]+),", (ROOT/"references.bib").read_text()))
     evidence = Citations()
     evidence.feed((ROOT/"citation_verification.html").read_text())
@@ -49,7 +49,19 @@ def main():
     assert sum(a["selected"] == "True" for a in runs) == 20
     assert manifest["checks"]["selected_runs_success"]
     assert manifest["checks"]["max_3d_relative_recovery"] < 1e-9
-    print("Verified: two supported citations, artifact hashes, 100 metric rows, 120 starts, 20 selected fits.")
+    out = ROOT.parents[2]/"output/paraboloid-mmds-geodesic"
+    manifest = json.loads((out/"manifest.json").read_text())
+    for filename,checksum in manifest['source_hashes'].items():
+        assert hashlib.sha256((ROOT/filename).read_bytes()).hexdigest() == checksum, filename
+    for filename, checksum in manifest["files"].items():
+        assert hashlib.sha256((out/filename).read_bytes()).hexdigest() == checksum, filename
+    metrics = list(csv.DictReader((out/"metrics.csv").open()))
+    runs = list(csv.DictReader((out/"optimizer_runs.csv").open()))
+    assert len(metrics) == 120 and len(runs) == 240
+    assert sum(a['selected']=='True' for a in runs) == 40
+    assert manifest['checks']['selected_runs_success']
+    assert manifest['checks']['max_ode_endpoint_error_over_radius'] < 1e-7
+    print("Verified: three supported citations, both artifact bundles, 50 geodesic validation pairs, and 60 selected fits.")
 
 
 if __name__ == "__main__":

@@ -84,9 +84,9 @@
 </head>
 <body>
   <main>
-    <h1>Citation Verification</h1><p>Built 2026-09-05 08:19:32 EDT</p>
+    <h1>Citation Verification</h1><p>Built 2026-09-05 09:05:35 EDT</p>
     <p>
-      Scope: the two citations in README.md for the paraboloid-radius experiment. One row covers each citation key.
+      Scope: the three citations in README.md and GEODESIC.md for the paraboloid-radius experiments. One row covers each citation key.
       Release status requires every row to be <code>verified</code> and to link
       to the supporting source.
     </p>
@@ -124,6 +124,16 @@
           <td><a data-source-link href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cmdscale.html">Official R documentation</a></td>
           <td>Description identifies classical multidimensional scaling and principal coordinates analysis. Details state the representation is determined up to location, rotation and reflection, and is returned in principal-component axes.</td>
           <td>Codex read Description and Details on 2026-09-05. Version 4.6.0 appears in the page footer; 2026 records the documentation access year. Local wrapper behavior was independently checked in R/gmds_layout_interface.R and R/gmds_mds_compare.R.</td>
+        </tr>
+        <tr data-citation-key="wheeler2016" data-status="verified">
+          <td><code>wheeler2016</code></td>
+          <td class="status">verified</td>
+          <td>GEODESIC.md, Direct smooth-geodesic distances</td>
+          <td>The geodesic equation and an elementary angular primitive for this paraboloid are given by Wheeler (2016), pp. 5–6, Eqs. (9.3)–(9.4). The same source gives Gaussian curvature 4/(1+4rho²)² in Eq. (9.2).</td>
+          <td>Nicholas Wheeler. Geodesics on Surfaces of Revolution: General Theory Applied to Paraboloid &amp; Hexenhut. February 2016. Author's notes hosted at Reed College.</td>
+          <td><a data-source-link href="https://www.reed.edu/physics/faculty/wheeler/documents/Miscellaneous%20Math/Differential%20Geometry/DINI%20SURFACES/Surface%20of%20Revolution%20Geodesics/Geodesic%20Text.pdf">Full source PDF</a></td>
+          <td>Page 1 identifies author, title and date. Page 5 gives the metric and K=4/(1+4u)² with u=rho², the angular ODE (9.3), and primitive (9.4). Page 6 gives its normalized form and joins the inward and outward branches at the turning point.</td>
+          <td>Codex read the full-source passages on 2026-09-05. The implementation uses an algebraically equivalent angular primitive. Its length primitive, shortest-path branch proof, validation, and MDS asymptotics are derived independently in GEODESIC.md and are not attributed to the source. Wheeler explicitly discusses winding geodesics; no claim that all such geodesics are shortest is made here.</td>
         </tr>
       </tbody>
     </table>

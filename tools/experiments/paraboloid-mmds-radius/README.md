@@ -1,4 +1,10 @@
-# MDS on expanding paraboloid disks
+# Euclidean-distance comparison on expanding paraboloid disks
+
+**Corrected scope:** the requested dissimilarities are geodesic distances along
+the smooth manifold. The main experiment and answer are now in
+[GEODESIC.md](GEODESIC.md), with `make geodesic` as the reproduction target.
+This file retains the ambient-Euclidean comparison. Its exact-reconstruction
+statements do not apply to the requested geodesic distances.
 
 For Euclidean input dissimilarities, a 3D MDS solution recovers the original
 paraboloid exactly. Increasing its radius does not flatten this reconstruction.
