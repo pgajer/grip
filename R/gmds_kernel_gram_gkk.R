@@ -353,8 +353,9 @@ grip.kernel.gram.score <- function(coords,
 #' with an antipodal kernel controlled by `angle.power`.
 #'
 #' @inheritParams edge.kk
-#' @param init Starting layout used when `coords` is omitted. `"metric_mds"`
-#'   uses ordinary metric MDS from an all-pairs prepared object and `"random"`
+#' @param init Starting layout used when `coords` is omitted. `"classical_mds"`
+#'   uses classical scaling (the default), `"metric_mds"` uses stress MDS
+#'   through smacof, both from an all-pairs prepared object; `"random"`
 #'   uses centered Gaussian coordinates.
 #' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
 #'   frames.
@@ -386,7 +387,7 @@ kernel.gram.gkk <- function(coords = NULL,
                                                  X = NULL,
                                                  star = NULL,
                                                  dim = 2L,
-                                                 init = c("metric_mds", "random"),
+                                                 init = c("classical_mds", "metric_mds", "random"),
                                                  angle.power = 4,
                                                  reliability = c("length.balance", "none"),
                                                  min.angle.weight = 0,
@@ -569,6 +570,7 @@ kernel.gram.gkk <- function(coords = NULL,
       diagnostics = diag,
       metadata = list(
         engine = "cpp_gradient_descent_armijo",
+        initialization = if (is.null(coords)) init else "supplied",
         star = star,
         angle.power = star$angle.power,
         reliability = star$reliability,
@@ -723,6 +725,7 @@ kernel.gram.gkk <- function(coords = NULL,
     diagnostics = diag,
     metadata = list(
       engine = "r_gradient_descent_armijo",
+      initialization = if (is.null(coords)) init else "supplied",
       star = star,
       angle.power = star$angle.power,
       reliability = star$reliability,

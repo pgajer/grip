@@ -87,16 +87,16 @@ test_that("flat path-length diagnostics handle tie-averaged path coefficients", 
   expect_equal(fast, fallback, tolerance = 1e-12)
 })
 
-test_that("metric MDS baseline returns common GMDS layout result", {
+test_that("classical MDS baseline returns common GMDS layout result", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
     edge_weights = rep(1, 4L)
   )
-  layout <- metric.mds(prepared = prepared, dim = 2L)
+  layout <- classical.mds(prepared = prepared, dim = 2L)
 
   expect_s3_class(layout, "grip_gmds_layout")
-  expect_equal(layout$method, "metric_mds")
+  expect_equal(layout$method, "classical_mds")
   expect_equal(dim(layout$coords), c(5L, 2L))
   expect_true(all(is.finite(layout$coords)))
   expect_true(is.data.frame(layout$diagnostics))
@@ -106,11 +106,11 @@ test_that("metric MDS baseline returns common GMDS layout result", {
   expect_true("positive_eigen_fraction" %in% names(layout$metadata))
 })
 
-test_that("metric MDS skips full path cache for cold no-diagnostic calls", {
+test_that("classical MDS skips full path cache for cold no-diagnostic calls", {
   edges <- edges.mesh(6L, 6L)
   prepared <- prepare.graph.geodesic.mds(edges = edges, n = 36L)
-  full <- metric.mds(prepared = prepared, dim = 2L, diagnostics = FALSE)
-  fast <- metric.mds(edges = edges, n = 36L, dim = 2L, diagnostics = FALSE)
+  full <- classical.mds(prepared = prepared, dim = 2L, diagnostics = FALSE)
+  fast <- classical.mds(edges = edges, n = 36L, dim = 2L, diagnostics = FALSE)
 
   expect_s3_class(fast, "grip_gmds_layout")
   expect_s3_class(fast$prepared, "grip_metric_mds_prepared")
@@ -120,9 +120,9 @@ test_that("metric MDS skips full path cache for cold no-diagnostic calls", {
   expect_null(fast$diagnostics)
 })
 
-test_that("metric MDS keeps full path cache when diagnostics are requested", {
+test_that("classical MDS keeps full path cache when diagnostics are requested", {
   edges <- edges.mesh(4L, 4L)
-  layout <- metric.mds(edges = edges, n = 16L, dim = 2L, diagnostics = TRUE)
+  layout <- classical.mds(edges = edges, n = 16L, dim = 2L, diagnostics = TRUE)
 
   expect_s3_class(layout$prepared, "grip_gmds_prepared")
   expect_false(inherits(layout$prepared, "grip_metric_mds_prepared"))

@@ -282,12 +282,22 @@ NULL
 #' mesh <- mesh.surface.graph(4, 5, surface = "saddle")
 NULL
 
-#' @name metric.mds
-#' @rdname metric.mds
+#' @name classical.mds
+#' @rdname classical.mds
 #' @examples
 #' cycle_edges <- edges.cycle(6)
 #' prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)
-#' fit <- metric.mds(prepared = prepared, dim = 2)
+#' fit <- classical.mds(prepared = prepared, dim = 2)
+NULL
+
+#' @name metric.mds
+#' @rdname metric.mds
+#' @examples
+#' if (requireNamespace("smacof", quietly = TRUE)) {
+#'   prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
+#'   fit <- metric.mds(prepared = prepared, dim = 2)
+#'   fit$metadata$raw_stress
+#' }
 NULL
 
 #' @name misf.geodesic.kk

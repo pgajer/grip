@@ -1,4 +1,4 @@
-test_that("the public API matches the 0.2 contract", {
+test_that("the public API matches the documented development contract", {
   expected <- sort(c(
     "build.misf",
     "build.weighted.misf",
@@ -63,6 +63,7 @@ test_that("the public API matches the 0.2 contract", {
     "mask.triangle.classic",
     "menger.sponge.surface.graph",
     "mesh.surface.graph",
+    "classical.mds",
     "metric.mds",
     "misf.geodesic.kk",
     "occupied.mesh.surface.graph",
@@ -105,7 +106,7 @@ test_that("the public API matches the 0.2 contract", {
     "weighted.grip.nd"
   ))
 
-  expect_length(expected, 103L)
+  expect_length(expected, 104L)
   expect_identical(sort(getNamespaceExports("grip")), expected)
 })
 

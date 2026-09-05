@@ -101,6 +101,7 @@ reference:
     desc: Score, initialize, and polish weighted layouts with GMDS-oriented objectives.
     contents:
       - score.gmds
+      - classical.mds
       - metric.mds
       - prepare.graph.geodesic.mds
       - edge.length.density.stiffness
@@ -211,3 +212,4 @@ reference:
     contents:
       - grip-package
       - grip-0.2-migration
+      - grip-mds-migration

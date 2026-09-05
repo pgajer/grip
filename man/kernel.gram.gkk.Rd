@@ -15,7 +15,7 @@ kernel.gram.gkk(
   X = NULL,
   star = NULL,
   dim = 2L,
-  init = c("metric_mds", "random"),
+  init = c("classical_mds", "metric_mds", "random"),
   angle.power = 4,
   reliability = c("length.balance", "none"),
   min.angle.weight = 0,
@@ -72,8 +72,9 @@ is omitted.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted. `"metric_mds"`
-uses ordinary metric MDS from an all-pairs prepared object and `"random"`
+\item{init}{Starting layout used when `coords` is omitted. `"classical_mds"`
+uses classical scaling (the default), `"metric_mds"` uses stress MDS
+through smacof, both from an all-pairs prepared object; `"random"`
 uses centered Gaussian coordinates.}
 
 \item{angle.power, reliability, min.angle.weight}{Passed to
