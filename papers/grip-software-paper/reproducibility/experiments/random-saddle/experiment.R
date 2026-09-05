@@ -128,7 +128,7 @@ run_graph <- function(x,k,seed) {
   input_paths <- vapply(p$path_edges,function(e) sum(edge_lengths(x/scale,e)),numeric(1))
   stopifnot(max(abs(input_paths-cache$distances))<1e-8)
   certificate <- clique_obstruction(x,cache$edges,cache$weights)
-  initials <- list("Metric MDS"=grip::metric.mds(prepared=p,dim=2,diagnostics=FALSE)$coords,
+  initials <- list("Metric MDS"=grip::classical.mds(prepared=p,dim=2,diagnostics=FALSE)$coords,
     "PCA"=prcomp(x,center=TRUE,scale.=FALSE)$x[,1:2,drop=FALSE])
   for(i in 1:2) initials[[paste("Weighted GRIP",i)]] <- grip::grip(
     cache$edges,n=n,edge_weights=cache$weights,dim=2,metric="edge_length",seed=seed+i)

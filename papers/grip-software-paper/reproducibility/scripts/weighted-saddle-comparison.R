@@ -88,7 +88,7 @@ weighted_saddle_comparison <- function(saddle = NULL, grid_size = 10L) {
   prepared <- grip::prepare.geodesic.kk(
     saddle$edges, n = saddle$n, edge_weights = saddle$edge_weights)
   weighted <- saddle$layouts[["Weighted GRIP"]]
-  mds <- grip::metric.mds(prepared = prepared, dim = 3L)
+  mds <- grip::classical.mds(prepared = prepared, dim = 3L)
 
   # Set the same defaults explicitly for both edge-KK initializers. Do not tune
   # the schedule or iteration budget separately after inspecting the results.

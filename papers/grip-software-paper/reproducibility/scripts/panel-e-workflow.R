@@ -11,7 +11,7 @@ source("reproducibility/scripts/panel-e-display.R")
 prepared <- grip::prepare.geodesic.kk(
   example$edges, n = nrow(example$coords),
   edge_weights = example$weights, tie_mode = "single")
-mds <- grip::metric.mds(prepared = prepared, dim = 3, diagnostics = FALSE)
+mds <- grip::classical.mds(prepared = prepared, dim = 3, diagnostics = FALSE)
 fit <- grip::edge.kk(
   coords = mds$coords, prepared = prepared, dim = 3,
   max_iter = 200L, stiffness_method = "density",

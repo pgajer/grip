@@ -1,4 +1,17 @@
-# Development changes after 0.2.0
+# grip 0.2.0.9000
+
+* **Behavioral API change:** move the former `metric.mds()` classical-scaling
+  implementation to `classical.mds()`. `metric.mds()` now minimizes unweighted
+  raw distance stress with the optional `smacof` package (ratio SMACOF), restores
+  input units, supports multiple starts, and records objective and termination
+  diagnostics. `add` and `eig` remain exclusive to `classical.mds()`.
+* Add explicit `classical_mds` and `metric_mds` initializers to edge-KK and
+  kernel Gram-gKK. Defaults remain classical to preserve their previous
+  numerical behavior. Explicit `metric_mds` now requests stress optimization.
+* Migrate existing classical experiment calls without changing saved numerical
+  results. Historical cache fields named `metric_mds` contain classical results;
+  new comparisons must record the algorithm/objective/version and use new cache
+  identities. See `help("grip-mds-migration")`.
 
 * Add score.coordinates() with explicit rigid, similarity, and unaligned
   coordinate errors, and score.surface() for reproducible area-weighted

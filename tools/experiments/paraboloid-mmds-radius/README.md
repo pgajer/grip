@@ -43,9 +43,11 @@ The [R documentation](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/c
 identifies `cmdscale` as classical MDS and explains its principal-component axes
 and rigid-motion ambiguity. <!-- cite:rcmdscale -->
 
-In this repository, `R/gmds_layout_interface.R` defines `metric.mds()` using
+In grip 0.2.0, `R/gmds_layout_interface.R` defined `metric.mds()` using
 `grip.classical.mds.embedding()` from `R/gmds_mds_compare.R`, which calls
-`stats::cmdscale()` on graph shortest-path distances. The present experiment
+`stats::cmdscale()` on graph shortest-path distances. From 0.2.0.9000 this
+algorithm is named `classical.mds()`; `metric.mds()` instead wraps ratio SMACOF.
+The present experiment
 reimplements the classical spectral calculation on Euclidean distances and
 also fits raw stress. It does not call that graph-specific wrapper or change
 package behavior.

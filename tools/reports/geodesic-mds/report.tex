@@ -199,8 +199,9 @@ often called strain, generally differs from raw distance stress.
 
 The official R documentation identifies \texttt{cmdscale} as classical MDS
 and describes the principal-component axes and rigid-motion ambiguity
-\citep{rcmdscale}. The repository's \texttt{grip::metric.mds()} calls that
-classical calculation on its prepared graph-distance matrix. The present
+\citep{rcmdscale}. In grip 0.2.0, \texttt{metric.mds()} called that classical
+calculation on its prepared graph-distance matrix. From 0.2.0.9000 it is named
+\texttt{classical.mds()}, while \texttt{metric.mds()} wraps ratio SMACOF. The present
 experiments use the corresponding spectral calculation directly on smooth
 geodesic matrices, and separately fit raw stress. They do not use graph
 shortest paths as a substitute for smooth geodesics.

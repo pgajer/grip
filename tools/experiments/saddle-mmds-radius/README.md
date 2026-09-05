@@ -76,8 +76,10 @@ in the normalized objective. Multiple starts do not certify a global minimum.
 
 Classical MDS instead truncates the positive eigenpart of
 `B = −½ J Δ² J`, where the square is entrywise and `J` centers observations.
-The local `grip::metric.mds()` wrapper calls classical `cmdscale`, so both
-interpretations of “metric MDS” are included. MDS and diagnostic functions are
+In grip through version 0.2.0, `metric.mds()` called classical `cmdscale`;
+from 0.2.0.9000 that implementation is named `classical.mds()`. This experiment
+includes both classical scaling and raw-stress minimization independently
+of the package wrapper. MDS and diagnostic functions are
 shared with `../paraboloid-mmds-radius/experiment.py`.
 
 The same absolute error contributes the same raw stress at any target distance.

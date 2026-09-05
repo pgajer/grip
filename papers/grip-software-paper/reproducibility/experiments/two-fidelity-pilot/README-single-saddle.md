@@ -36,7 +36,7 @@ R session. To display a widget after sourcing, run a plotting call as above
 
 ## Dependencies
 
-Use `grip >= 0.2.0`, `dgraphs >= 0.2.0`, and the current `ivue` API. No Python
+Use `grip >= 0.2.0.9000`, `dgraphs >= 0.2.0`, and the current `ivue` API. No Python
 reference solver or separately compiled path-checking code is needed.
 If exploring with the local ivue checkout instead of an installed package,
 load it before running the script:

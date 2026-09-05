@@ -53,8 +53,8 @@ grip.metric.mds.distance.prepared <- function(edges = NULL,
     grip.graph.distances(adj.list, weight.list, source)
   }))
   finite.mask <- row(dist.matrix) != col(dist.matrix)
-  if (any(!is.finite(dist.matrix[finite.mask]))) {
-    stop("metric.mds() currently requires a connected graph")
+  if (any(!is.finite(dist.matrix[finite.mask]) | dist.matrix[finite.mask] < 0)) {
+    stop("MDS currently requires a connected graph")
   }
 
   prepared <- list(
@@ -443,9 +443,9 @@ print.grip_gmds_layout <- function(x, ...) {
   invisible(x)
 }
 
-#' Metric-MDS baseline layout for GMDS experiments
+#' Classical-MDS baseline layout for GMDS experiments
 #'
-#' `metric.mds()` computes the current metric-MDS baseline using
+#' `classical.mds()` computes the classical-MDS baseline using
 #' `stats::cmdscale()` on the graph shortest-path distance matrix and returns a
 #' common `"grip_gmds_layout"` result.
 #'
@@ -453,18 +453,18 @@ print.grip_gmds_layout <- function(x, ...) {
 #' @param prepared Optional all-pairs prepared object returned by
 #'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
 #'   Edge-only objects from [prepare.edge.kk()] are intentionally rejected
-#'   because metric MDS requires a graph distance matrix.
+#'   because classical MDS requires a graph distance matrix.
 #' @param dim Target embedding dimension. Values greater than 3 are supported
 #'   for GMDS and edge-KK workflows.
 #' @param add,eig Passed to `stats::cmdscale()`.
 #' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel. If
-#'   `FALSE` and raw graph inputs are supplied, `metric.mds()` uses a
+#'   `FALSE` and raw graph inputs are supplied, `classical.mds()` uses a
 #'   distance-matrix-only preparation path and does not build the full
 #'   all-pairs path cache.
 #'
 #' @return A `"grip_gmds_layout"` object.
 #' @export
-metric.mds <- function(prepared = NULL,
+classical.mds <- function(prepared = NULL,
                                    edges = NULL,
                                    n = NULL,
                                    adj_list = NULL,
@@ -517,12 +517,14 @@ metric.mds <- function(prepared = NULL,
   }
   gmds.result(
     coords = fit$coords,
-    method = "metric_mds",
+    method = "classical_mds",
     prepared = prepared,
     trace = NULL,
     diagnostics = diag,
     metadata = list(
       engine = "cmdscale",
+      grip_version = as.character(getNamespaceVersion("grip")),
+      objective = "classical_strain",
       eig = fit$eig,
       additive_constant = fit$additive_constant,
       gof = fit$gof,
@@ -844,7 +846,7 @@ grip.edge.isometric.evaluate.state <- function(coords,
 
 grip.edge.isometric.initial.coords <- function(prepared,
                                                coords = NULL,
-                                               init = c("metric_mds", "weighted_grip", "random"),
+                                               init = c("classical_mds", "metric_mds", "weighted_grip", "random"),
                                                dim = 2L,
                                                seed = 1L,
                                                weighted.grip.args = list()) {
@@ -869,19 +871,18 @@ grip.edge.isometric.initial.coords <- function(prepared,
       (is.null(weighted.grip.arg.names) || any(!nzchar(weighted.grip.arg.names)))) {
     stop("weighted.grip.args must be a named list")
   }
-  if (identical(init, "metric_mds")) {
+  if (init %in% c("classical_mds", "metric_mds")) {
     if (is.null(prepared$distance_matrix)) {
       stop(
-        "init = \"metric_mds\" requires an all-pairs prepared object; ",
+        "MDS initialization requires an all-pairs prepared object; ",
         "pass coords, use init = \"weighted_grip\" or \"random\", ",
         "or prepare with prepare.graph.geodesic.mds()"
       )
     }
-    return(metric.mds(
-      prepared = prepared,
-      dim = dim,
-      diagnostics = FALSE
-    )$coords)
+    mds.fun <- if (identical(init, "classical_mds")) classical.mds else metric.mds
+    args <- list(prepared = prepared, dim = dim, diagnostics = FALSE)
+    if (identical(init, "metric_mds")) args$seed <- seed
+    return(do.call(mds.fun, args)$coords)
   }
   if (identical(init, "weighted_grip")) {
     if (!(dim %in% c(2L, 3L))) {
@@ -935,16 +936,18 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' For scalable repair from an existing layout, pass `coords` or an edge-only
 #' object from [prepare.edge.kk()]. When raw graph inputs are supplied,
 #' `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
-#' `init != "metric_mds"`. Use `init = "weighted_grip"` for a scalable
+#' `init` is `"weighted_grip"` or `"random"`. Use `init = "weighted_grip"` for a scalable
 #' weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
-#' and `init = "metric_mds"`, use an all-pairs prepared object from
+#' and either MDS initializer is requested, use an all-pairs prepared object from
 #' [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
 #'
 #' @inheritParams score.gmds
 #' @param coords Optional starting coordinates. If omitted, `init` is used.
 #' @param dim Target embedding dimension.
-#' @param init Starting layout used when `coords` is omitted. `"metric_mds"`
-#'   uses ordinary metric MDS from an all-pairs prepared object,
+#' @param init Starting layout used when `coords` is omitted. `"classical_mds"`
+#'   (the default) uses [classical.mds()]. `"metric_mds"` uses stress-minimizing
+#'   [metric.mds()] and requires the optional smacof package. Both require an
+#'   all-pairs prepared object.
 #'   `"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
 #'   graph edges first, and
 #'   `"random"` uses centered Gaussian coordinates.
@@ -983,7 +986,7 @@ edge.kk <- function(coords = NULL,
                     weight_list = NULL,
                     edge_weights = NULL,
                     dim = 2L,
-                    init = c("metric_mds", "weighted_grip", "random"),
+                    init = c("classical_mds", "metric_mds", "weighted_grip", "random"),
                     weighted.grip.args = list(),
                     stiffness_method = c("density", "uniform", "distance_power"),
                     stiffness_transform = c("identity", "sqrt", "log"),
@@ -1015,7 +1018,7 @@ edge.kk <- function(coords = NULL,
   engine <- match.arg(engine)
   prepared <- if (!is.null(prepared)) {
     grip.validate.geodesic.mds.prepared(prepared, coords = coords)
-  } else if (!is.null(coords) || !identical(init, "metric_mds")) {
+  } else if (!is.null(coords) || !(init %in% c("classical_mds", "metric_mds"))) {
     prepare.edge.kk(
       edges = edges,
       n = if (is.null(n) && !is.null(coords)) nrow(coords) else n,
@@ -1183,6 +1186,7 @@ edge.kk <- function(coords = NULL,
       diagnostics = diag,
       metadata = list(
         engine = "cpp_gradient_descent_armijo",
+        initialization = if (is.null(coords)) init else "supplied",
         stiffness_method = stiffness_method,
         stiffness_transform = stiffness_transform,
         density_mix_schedule = density_mix_schedule,
@@ -1352,6 +1356,7 @@ edge.kk <- function(coords = NULL,
     diagnostics = diag,
     metadata = list(
       engine = "r_gradient_descent_armijo",
+      initialization = if (is.null(coords)) init else "supplied",
       stiffness_method = stiffness_method,
       stiffness_transform = stiffness_transform,
       density_mix_schedule = density_mix_schedule,

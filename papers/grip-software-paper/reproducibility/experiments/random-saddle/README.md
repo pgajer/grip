@@ -25,7 +25,7 @@ independent, surface-area-uniform samples. No existing paper benchmark is change
   path is retained for every unordered pair by `grip::prepare.geodesic.kk()`.
   That same family is used for every candidate for a given graph.
 - All fitted candidates have **two coordinate columns**. Initializations are
-  metric MDS (`grip::metric.mds()`, classical scaling of graph distances), PCA of
+  metric MDS (`grip::classical.mds()`, classical scaling of graph distances), PCA of
   the original 3D observations, and two seeded weighted-GRIP configurations.
   PCA is an informed initialization that uses the supplied observations, not a
   graph-only method. Its inclusion helps search for a low-distortion realization;
@@ -94,7 +94,7 @@ resumed only when their protocol matches.
 
 ## Reproduction
 
-From the manuscript directory, with `grip` and `dgraphs` 0.2.0, `igraph`, and
+From the manuscript directory, with `grip >= 0.2.0.9000`, `dgraphs` 0.2.0, `igraph`, and
 `Rcpp` installed:
 
 ```sh

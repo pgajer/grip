@@ -28,7 +28,7 @@ if(file.exists(cache)) {
   graphs <- setNames(lapply(ks,function(k) dgraphs::create.sknn.graph(X,k=k,
     neighbor.method="exact",edge.weight="distance",connect.components=TRUE,
     connect.method="component.mst",prune.method="none",prune.edges=FALSE)),as.character(ks))
-  mds <- lapply(graphs,function(g) grip::metric.mds(edges=g$edge_matrix,
+  mds <- lapply(graphs,function(g) grip::classical.mds(edges=g$edge_matrix,
     edge_weights=g$edge_weight,n=n,dim=3,diagnostics=FALSE)$coords)
   mds.edge.kk <- setNames(lapply(ks,function(k) {
     message("Fitting k = ",k)

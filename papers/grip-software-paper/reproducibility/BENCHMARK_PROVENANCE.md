@@ -79,7 +79,8 @@ remain in the table only. All coordinate matrices have three columns.
   the mesh preset, with hop and edge-length metrics respectively; igraph KK
   uses edge weights and seed 1. No baseline coordinates from the former 5 by 5
   illustration are reused.
-- Metric MDS: `metric.mds(prepared = prepared, dim = 3)` on the fixed weighted
+- Classical MDS (historically labeled Metric MDS):
+  `classical.mds(prepared = prepared, dim = 3)` on the fixed weighted
   graph's distance matrix, not on distances between the generating coordinates.
 - Edge-KK: the same settings for the metric-MDS and weighted-GRIP initializers:
   density stiffness with identity transform, continuation mix values

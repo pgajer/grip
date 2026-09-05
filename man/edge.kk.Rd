@@ -13,7 +13,7 @@ edge.kk(
   weight_list = NULL,
   edge_weights = NULL,
   dim = 2L,
-  init = c("metric_mds", "weighted_grip", "random"),
+  init = c("classical_mds", "metric_mds", "weighted_grip", "random"),
   weighted.grip.args = list(),
   stiffness_method = c("density", "uniform", "distance_power"),
   stiffness_transform = c("identity", "sqrt", "log"),
@@ -60,8 +60,10 @@ diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted. `"metric_mds"`
-uses ordinary metric MDS from an all-pairs prepared object,
+\item{init}{Starting layout used when `coords` is omitted. `"classical_mds"`
+(the default) uses [classical.mds()]. `"metric_mds"` uses stress-minimizing
+[metric.mds()] and requires the optional smacof package. Both require an
+all-pairs prepared object.
 `"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
 graph edges first, and
 `"random"` uses centered Gaussian coordinates.}
@@ -126,9 +128,9 @@ toward uniform stiffnesses.
 For scalable repair from an existing layout, pass `coords` or an edge-only
 object from [prepare.edge.kk()]. When raw graph inputs are supplied,
 `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
-`init != "metric_mds"`. Use `init = "weighted_grip"` for a scalable
+`init` is `"weighted_grip"` or `"random"`. Use `init = "weighted_grip"` for a scalable
 weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
-and `init = "metric_mds"`, use an all-pairs prepared object from
+and either MDS initializer is requested, use an all-pairs prepared object from
 [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
 }
 \examples{

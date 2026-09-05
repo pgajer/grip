@@ -1,6 +1,6 @@
 # Run this script section by section in R. All coordinates stay in 3D.
-# Requires grip >= 0.2.0, dgraphs >= 0.2.0, and the current ivue API.
-stopifnot(packageVersion("grip") >= "0.2.0",
+# Requires grip >= 0.2.0.9000, dgraphs >= 0.2.0, and the current ivue API.
+stopifnot(packageVersion("grip") >= "0.2.0.9000",
           packageVersion("dgraphs") >= "0.2.0")
 
 # Settings ---------------------------------------------------------------
@@ -51,7 +51,7 @@ ivue::plot3D.graph(list(adj.list = g$adj_list, weight.list = g$weight_list),
 # diagnostics = FALSE avoids storing all fixed paths: this script needs
 # coordinates, not the reference-distance calibration or fidelity audit.
 mds <- lapply(graphs, function(g) {
-  grip::metric.mds(edges = g$edge_matrix, edge_weights = g$edge_weight,
+  grip::classical.mds(edges = g$edge_matrix, edge_weights = g$edge_weight,
                    n = n, dim = 3, diagnostics = FALSE)$coords
 })
 

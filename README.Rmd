@@ -48,7 +48,12 @@ plot.layout(coords, edges, pch = 16, cex = 0.6, main = "8x8 mesh")
 - A unified `grip()` interface for hop-metric and edge-length-metric layouts.
 - Opt-in multiscale weighted layout in dimensions greater than 3 via
   `weighted.grip.nd()`, with higher-dimensional metric-MDS and edge-KK
-  workflows available through `metric.mds()` and `edge.kk()`.
+  workflows available through `classical.mds()`, `metric.mds()`, and `edge.kk()`.
+  `classical.mds()` uses classical scaling; `metric.mds()` minimizes raw distance
+  stress through the optional **smacof** package. In versions through 0.2.0,
+  `metric.mds()` performed classical scaling: use `classical.mds()` to preserve
+  that behavior. Edge-KK defaults to `init = "classical_mds"`; explicit
+  `init = "metric_mds"` now requests stress minimization.
 - Layout comparison and quality scoring across seeds and parameter settings
   (`compare.layouts()`, `score.layout()`).
 - Multiscale trace diagnostics for both metrics via `trace.grip()`.

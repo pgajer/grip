@@ -136,7 +136,7 @@ interpreting that integer as a uniquely established population optimum.
 On the selected graph, all three configurations have three coordinate columns:
 
 1. Original saddle observations (known edge/path-fidelity control).
-2. `grip::metric.mds(dim=3)`, classical scaling of graph distances.
+2. `grip::classical.mds(dim=3)`, classical scaling of graph distances.
 3. That same MDS result followed by `grip::edge.kk(dim=3)`.
 
 The primary refinement uses the package's density-based stiffness continuation
@@ -433,7 +433,7 @@ paired.rows <- lapply(c(5L, 7L, 9L), function(k) {
       metric = "edge_length",
       seed = 19
     ),
-    "Metric MDS" = metric.mds(prepared = prepared, dim = 2)$coords
+    "Metric MDS" = classical.mds(prepared = prepared, dim = 2)$coords
   )
 
   do.call(rbind, lapply(names(layouts), function(method) {

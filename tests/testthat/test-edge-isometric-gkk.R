@@ -291,7 +291,7 @@ test_that("edge-only preparation rejects duplicate undirected edges", {
   )
 })
 
-test_that("edge-only preparation does not support metric-MDS initialization", {
+test_that("edge-only preparation does not support classical-MDS initialization", {
   prepared <- prepare.edge.kk(
     edges = edges.path(4L),
     n = 4L,
@@ -299,17 +299,17 @@ test_that("edge-only preparation does not support metric-MDS initialization", {
   )
 
   expect_error(
-    metric.mds(prepared = prepared),
-    "metric MDS requires an all-pairs prepared object"
+    classical.mds(prepared = prepared),
+    "classical MDS requires an all-pairs prepared object"
   )
   expect_error(
     edge.kk(
       prepared = prepared,
       dim = 2L,
-      init = "metric_mds",
+      init = "classical_mds",
       max_iter = 1L
     ),
-    "init = \"metric_mds\" requires an all-pairs prepared object"
+    "MDS initialization requires an all-pairs prepared object"
   )
 })
 
@@ -581,14 +581,14 @@ test_that("C++ edge-KK optimizer supports fixed and user scale modes", {
   expect_equal(unique(user$trace$edge.scale), 2)
 })
 
-test_that("metric-MDS initialization supports higher-dimensional edge-KK layouts", {
+test_that("classical-MDS initialization supports higher-dimensional edge-KK layouts", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(6L),
     n = 6L,
     edge_weights = c(1, 1.5, 0.75, 1.25, 1)
   )
   init <- suppressWarnings(
-    metric.mds(
+    classical.mds(
       prepared = prepared,
       dim = 4L,
       diagnostics = TRUE
@@ -598,7 +598,7 @@ test_that("metric-MDS initialization supports higher-dimensional edge-KK layouts
     edge.kk(
       prepared = prepared,
       dim = 4L,
-      init = "metric_mds",
+      init = "classical_mds",
       stiffness_method = "uniform",
       density_mix_schedule = 1,
       scale_mode = "identity",

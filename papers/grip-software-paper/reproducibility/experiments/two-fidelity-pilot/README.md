@@ -87,7 +87,7 @@ interpreting that integer as a uniquely established population optimum.
 On the selected graph, all three configurations have three coordinate columns:
 
 1. Original saddle observations (known edge/path-fidelity control).
-2. `grip::metric.mds(dim=3)`, classical scaling of graph distances.
+2. `grip::classical.mds(dim=3)`, classical scaling of graph distances.
 3. That same MDS result followed by `grip::edge.kk(dim=3)`.
 
 The primary refinement uses the package's density-based stiffness continuation
@@ -164,7 +164,7 @@ in the specified build directory, not inserted into the manuscript.
 
 ## Reproduction
 
-From the repository root, with R packages grip 0.2.0, dgraphs 0.2.0, igraph,
+From the repository root, with R packages grip >= 0.2.0.9000, dgraphs 0.2.0, igraph,
 and Rcpp installed, run the following. `GRIP_RJOURNAL_PACKAGE_LIBRARY` may point
 to an isolated R library. Python dependencies are pinned in `requirements.txt`.
 

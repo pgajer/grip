@@ -61,7 +61,7 @@ The canonical replacements are listed below.
 - `grip.layout.weighted.nd()` -> [weighted.grip.nd()]
 - `grip.plot()` -> [plot.layout()]
 - `grip.project.3d()` -> [project.3d()]
-- `grip.metric.mds.layout()` -> [metric.mds()]
+- `grip.metric.mds.layout()` -> [classical.mds()] (classical scaling)
 - `grip.optimize.kernel.gram.gkk.layout()` -> [kernel.gram.gkk()]
 - `grip.score.gmds.layout()` -> [score.gmds()]
 - `grip.gmds.layout.result()` -> `gmds.result()` (now internal)

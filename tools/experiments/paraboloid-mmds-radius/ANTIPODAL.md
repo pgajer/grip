@@ -83,7 +83,8 @@ of the numerical optimizer used in the earlier experiment.
 
 ## Classical MDS: finite-sample limiting matrix
 
-Classical MDS is the algorithm used by the repository's `metric.mds()`.
+Classical MDS is the algorithm used by `classical.mds()` (named `metric.mds()`
+in grip through version 0.2.0).
 For `q_i,q_j>0`, let `alpha_ij` be the smaller angular separation and define
 the logarithmic mean
 

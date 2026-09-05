@@ -1169,7 +1169,7 @@ The `edge.kk()` function returns refined coordinates and diagnostic measures.
 Its compiled optimizer accepts `n_threads` and uses at most two threads; its R
 optimizer is serial.
 When full all-pairs preparation is feasible,
-`edge.kk(init = "metric_mds")` uses metric-MDS as an initializer before
+`edge.kk(init = "classical_mds")` uses classical MDS as an initializer before
 edge-KK refinement. `edge.kk(init = "weighted_grip")` instead initializes from
 the weighted-GRIP layout and avoids that all-pairs MDS step, providing an
 alternative for larger weighted graphs.

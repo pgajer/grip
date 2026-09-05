@@ -59,7 +59,7 @@ for (key in c("3", "10", "20")) {
   g <- e$graphs[[key]]
   p <- grip::prepare.geodesic.kk(g$edge_matrix, n = e$n,
                                edge_weights = g$edge_weight, tie_mode = "single")
-  full.mds <- grip::metric.mds(prepared = p, dim = 3, diagnostics = FALSE)$coords
+  full.mds <- grip::classical.mds(prepared = p, dim = 3, diagnostics = FALSE)$coords
   stopifnot(max(abs(as.vector(dist(full.mds)) -
                     as.vector(dist(e$mds[[key]])))) < 1e-8)
   full.kk <- grip::edge.kk(

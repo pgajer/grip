@@ -5,10 +5,10 @@
 ## needed only during metric MDS and is deliberately omitted from the result.
 
 if (!requireNamespace("grip", quietly = TRUE)) {
-  stop("Install grip >= 0.2.0 before running this script.")
+  stop("Install grip >= 0.2.0.9000 before running this script.")
 }
-if (utils::packageVersion("grip") < "0.2.0") {
-  stop("grip >= 0.2.0 is required.")
+if (utils::packageVersion("grip") < "0.2.0.9000") {
+  stop("grip >= 0.2.0.9000 is required.")
 }
 
 file.arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
@@ -28,7 +28,7 @@ n <- length(hmp.gc$adj_list)
 
 message("Computing weighted metric-MDS coordinates for ", n, " vertices...")
 metric.time <- system.time({
-  metric.fit <- grip::metric.mds(
+  metric.fit <- grip::classical.mds(
     adj_list = hmp.gc$adj_list,
     weight_list = hmp.gc$weight_list,
     n = n,

@@ -30,7 +30,7 @@ for(r in reps) {
   ref_index<-match(key(cal$reference$pairs),key(p$pair_matrix));stopifnot(!anyNA(ref_index))
   dx<-cal$reference$d
   tick<-proc.time()[[3]]
-  mds<-grip::metric.mds(prepared=p,dim=3,diagnostics=FALSE)
+  mds<-grip::classical.mds(prepared=p,dim=3,diagnostics=FALSE)
   mds_seconds<-proc.time()[[3]]-tick
   tick<-proc.time()[[3]]
   kk<-grip::edge.kk(coords=mds$coords,prepared=p,dim=3,max_iter=200L,
