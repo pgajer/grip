@@ -417,23 +417,24 @@ if (knitr::is_latex_output()) {
 At the $G\to Z$ stage in the diagram, we can measure distances directly between
 embedded vertices or along the graph paths that connect them. When an analysis
 uses these embedded distances in place of input graph distances, its fidelity
-assessment should match the measurement it uses. Classical MDS assigns each
+assessment should match the measurement it uses. MDS assigns each
 vertex a point in Euclidean space, giving the coordinate map
 $\phi:V\to\mathbb{R}^m$ and configuration $Z=\phi(V)\subset\mathbb{R}^m$.
 It places the points so that their straight-line distances, also called
 endpoint chords, $d_{ij}^{Z}=\lVert z_i-z_j\rVert_2$, approximate the graph
 distances $d_{ij}^G$. Chord fidelity measures how closely these distances agree.
 
-Other analyses follow graph or lineage paths to order observations and study
-progression, as in trajectory and pseudotime analysis
-[@haghverdi2016; @street2018; @wolf2019]. If an analysis uses or interprets the
-length of a path after embedding, fixed-path fidelity assesses whether the path
-retains its input-graph length. To make this comparison, we select a shortest
-path $\gamma_{ij}$ between vertices $i$ and $j$ in the input graph and keep its
-sequence of edges fixed as the coordinates change. We measure the embedded
-length of this path by adding the Euclidean distances between the endpoints of
-its edges:
-
+Following a path through the graph measures a different quantity from the
+straight-line distance between its endpoints. Graph and lineage paths are used,
+for example, to order observations and study progression in trajectory and
+pseudotime analysis [@haghverdi2016; @street2018; @wolf2019]. When an analysis
+uses or interprets a path's length after embedding, fixed-path fidelity measures
+how closely that length matches its original graph length. For each pair of
+vertices $i$ and $j$ being compared, we select a
+shortest path $\gamma_{ij}$ in the input graph. We retain the same sequence of
+edges as the coordinates change. Along each edge $(u,v)$, we measure the
+straight-line distance $\lVert z_u-z_v\rVert_2$ between its embedded endpoints.
+Adding these edge lengths gives the embedded path length:
 $$
 d_{ij}^{G,Z}
 =
@@ -441,11 +442,11 @@ d_{ij}^{G,Z}
 $$
 
 \noindent We compare this sum with the path's original graph length
-$d_{ij}^G$. The collection of selected paths is $\Gamma=\{\gamma_{ij}\}$,
-and the matrix $D_{G,Z}=(d_{ij}^{G,Z})$ records their embedded lengths. A GMDS
-objective measures the discrepancy between these lengths and the corresponding
-input graph distances in $D_G$, and seeks coordinates $Z$ that reduce this
-discrepancy.
+$d_{ij}^G$. The retained paths form the collection $\Gamma=\{\gamma_{ij}\}$,
+and their embedded lengths form the matrix $D_{G,Z}=(d_{ij}^{G,Z})$. A GMDS
+objective compares these embedded lengths with the original graph distances in
+$D_G$. Minimizing this objective seeks coordinates $Z$ that reduce the
+discrepancy for the fixed collection of paths.
 
 Both criteria can be applied to coordinates produced by any layout method. A
 practical GMDS-oriented workflow initializes the configuration with metric-MDS
