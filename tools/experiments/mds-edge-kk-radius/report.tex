@@ -1,0 +1,213 @@
+\documentclass[11pt,letterpaper,landscape]{article}
+\usepackage[margin=.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,booktabs,graphicx,natbib,xurl,hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+\setlength{\parindent}{0pt}\setlength{\parskip}{.5em}
+\providecommand{\reportbuilddatetime}{unknown}
+\input{report-build-info.tex}
+\title{Geodesic MDS followed by edge-KK\\Radius, neighborhood, sampling, and scale sensitivity}
+\author{\small Source: \path{~/current_projects/grip/tools/experiments/mds-edge-kk-radius/report.tex}}
+\date{Build \reportbuilddatetime}
+\makeatletter
+\renewcommand{\maketitle}{\begin{center}{\Large\@title\par}\vspace{.5em}{\@author\par}\vspace{.3em}{\@date\par}\end{center}}
+\makeatother
+\newcommand{\figpage}[3]{\clearpage\section*{#2}\begin{center}\includegraphics[width=.98\textwidth,height=.70\textheight,keepaspectratio]{../figures/#1.pdf}\end{center}\small #3\normalsize}
+\begin{document}
+\maketitle
+\section*{Question and findings}
+Does refining an MDS embedding with local edge constraints restore the original
+paraboloid or saddle? How does that answer depend on the neighborhood size,
+the distance used to build the graph, and the optimizer's scale policy?
+We examine $(x,y,x^2+y^2)$ and $(x,y,x^2-y^2)$ on disks of increasing radius.
+Smooth-surface geodesics define one graph regime; ambient Euclidean chords
+define the other. All fitted configurations have three coordinates.
+
+\input{report-findings.tex}
+
+These are paired finite-sample experiments. Increasing radius at fixed sample
+size does not maintain a resolved surface mesh. Neither a thin plot nor a small
+edge objective establishes a limiting dimension or recovery theorem.
+
+\clearpage
+\section*{Experimental design}
+We use radii $r=1,2,4,8,16,32,64$, neighborhood sizes
+$k=4,8,16,32,64,128,239$, and three independent samples of $n=240$ points.
+The random seeds are 20260905--20260907. Within a sample, the radial quantiles
+and angles are coupled across radii and surfaces. The first sample reuses the
+audited original numerical geodesics. A nested $n=480$ sample at $r=64$ adds
+240 independent points, retaining the original indices, and uses
+$k=8,16,64,128,479$. Thus $8$ and $64$ test fixed $k$; $16$ and $128$ match
+the original $k/n$ at $8$ and $64$. Complete graphs are explanatory controls.
+This single nested size comparison does not estimate a large-$n$ limit.
+
+Both sampling measures are included. For uniform $U\in(0,1)$ and independent
+uniform angle, base-disk sampling uses $\rho=r\sqrt U$. Surface-area sampling
+uses
+\[
+ \rho=\frac12\left(\{1+U[(1+4r^2)^{3/2}-1]\}^{2/3}-1\right)^{1/2}.
+\]
+Both graph surfaces have area element $\sqrt{1+4\rho^2}\,\rho\,d\rho\,d\theta$,
+which gives this inverse radial distribution by integration.
+
+An undirected edge is included if either endpoint selects the other among its
+$k$ nearest neighbors; ties are broken by vertex index. In the geodesic regime,
+both ranking and edge targets use the smooth-geodesic matrix $\Delta$. In the
+ambient regime, both use original-coordinate chords. Disconnected unions are
+explicitly augmented by a minimum spanning tree under the same distances.
+No vertices are removed. Connectivity, augmentation, degree, edge lengths,
+and parameter-plane radial/angular separations are recorded.
+
+Classical MDS and stress MDS use strict graph shortest distances $D_G$.
+A third initializer in the geodesic regime is classical scaling of full
+$\Delta$, held fixed across $k$. Stress MDS uses the grip adapter to
+\texttt{smacof::mds(type="ratio")}: stress majorization with ratio disparities
+and internal normalization \citep{mair2022}. The adapter restores the
+raw-stress-optimal coordinate scale. Each graph has one classical and two
+Gaussian starts, at most 1,000 iterations per start and tolerance $10^{-8}$.
+Gaussian draws are matched across $k$; the adapter optimally rescales each
+start against its own target matrix. The least achieved raw stress selects
+the fit; global optimality is not claimed.
+
+\clearpage
+\section*{The pilot changed the scale controls}
+Every target and initializer is first divided by the RMS full smooth-geodesic
+distance. The declared edge-KK workflow uses density-to-uniform stiffness
+$(0,.25,.5,.75,1)$ with 200 steps per stage and a profiled target scale.
+A uniform-only run has the same total allowance of 1,000 steps. The original
+72-graph pilot exposed severe contraction in some geodesic fits. We retained
+those outputs and repeated the pilot with additional fixed-target-scale runs,
+using both schedules. Those controls were then applied throughout the study.
+The package defaults were not changed.
+
+Write $\ell_e>0$ for edge targets, $d_e(Z)=\|z_i-z_j\|$ for embedded edge
+lengths, and $\kappa_e\geq0$ for the current stiffness (nonnegative, with a positive weighted target norm). The implemented objective is
+\[
+ E(Z,a)=\frac12\sum_e\kappa_e[d_e(Z)-a\ell_e]^2,
+ \qquad a(Z)=\frac{\sum_e\kappa_e d_e(Z)\ell_e}{\sum_e\kappa_e\ell_e^2}.
+\]
+Since $d_e(cZ)=c\,d_e(Z)$, for $c>0$ we have $a(cZ)=c\,a(Z)$ and
+\[
+ \boxed{E(cZ,a(cZ))=c^2E(Z,a(Z)).}
+\]
+Thus uniform contraction reduces any positive profiled loss without changing
+shape or relative edge errors. A vanishing absolute objective or gradient is
+not a certificate of shape convergence. This statement follows directly from
+the implemented loss and is independently checked on saved pilot fits.
+It does not invalidate relative scores computed at a common calibrated scale.
+A scale-invariant alternative would divide the minimized numerator by
+$\sum_e\kappa_e d_e^2$, giving
+\[
+ Q(Z)=1-\frac{(\sum_e\kappa_e d_e\ell_e)^2}
+ {(\sum_e\kappa_e d_e^2)(\sum_e\kappa_e\ell_e^2)}.
+\]
+When $\sum_e\kappa_e d_e^2>0$, this also equals raw edge stress minimized
+over a coordinate multiplier, divided by the weighted target norm squared.
+The identity follows by minimizing a scalar quadratic. It explains why fixing
+target scale is a valid control; it does not make unnormalized profiled loss
+scale invariant or equate the finite-budget trajectories.
+
+Fixed-scale controls use $a=1$, so contraction cannot remove a positive target.
+For a complete graph with uniform stiffness, $2E(Z,1)$ equals all-pair raw
+distance stress when the same targets are used. Tiny numerical violations of
+triangle inequalities in smooth inputs can distinguish direct targets from
+strict graph distances; these discrepancies are measured separately.
+For complete ambient graphs, the original coordinates exactly realize the targets.
+
+For shape displays and end-to-end path scoring, let
+$b=\sum_e d_e\ell_e/\sum_e\ell_e^2$. We divide fitted coordinates or path
+lengths by this edge-derived $b$, then restore physical units. No smooth-reference
+scale is fitted. Saved coordinates also retain the optimizer's returned scale.
+Plots use equal spatial units and at most one additional uniform $r^2$ divisor.
+
+\clearpage
+\section*{What the diagnostics mean}
+For observed length vector $y$ and positive target vector $t$, define
+$a=y^\top t/(t^\top t)$. Edge and fixed-path relative errors are
+$\|y-at\|/\|at\|$, each with its own diagnostic scale. Every graph uses all
+unordered vertex pairs and the same retained routes for every candidate.
+The graph constructor's near-tie route convention can produce slightly longer
+routes than strict $D_G$; MDS receives symmetric strict distances and route
+scoring uses the retained route lengths. These roles are not interchanged.
+
+Chord raw stress is $\sum_{i<j}(d_{ij}-D_{G,ij})^2$ at returned physical scale.
+Profiled chord Stress-1 is $\|d-aD_G\|/\|d\|$. These are different statistics;
+raw stress after a contracting profiled refinement is not its optimized criterion.
+Graph/reference error is $\|D_G-\Delta\|/\|\Delta\|$ in physical units.
+End-to-end path/reference error is $\|L_Z/b-\Delta\|/\|\Delta\|$, where
+$L_Z$ sums embedded edge lengths along retained routes. Small graph-to-layout
+error cannot substitute for graph-to-surface validation.
+
+Coordinate error is relative Frobenius error after similarity alignment to
+known generating coordinates with known point correspondence. It is not a
+closest-surface distance or a test of topology. Let
+$s_1\geq s_2\geq s_3$ be singular values of the centered coordinates.
+A line limit requires $s_2/s_1\to0$; a nondegenerate plane requires
+$s_3/s_2\to0$ while $s_2/s_1$ stays nonzero. Both ratios are needed.
+We report finite-radius ratios and all three dimensional singular values.
+
+A useful deterministic bound explains one implication of edge agreement.
+If every retained edge satisfies $|d_e/(b\ell_e)-1|\leq\epsilon$, then every
+retained path $\gamma$ satisfies
+\[
+ \left|\frac{L_Z(\gamma)}b-L_G(\gamma)\right|
+ \leq\sum_{e\in\gamma}|d_e/b-\ell_e|
+ \leq\epsilon\sum_{e\in\gamma}\ell_e
+ =\epsilon L_G(\gamma).
+\]
+This is a graph-to-layout statement. Small mean edge stress does not establish
+its maximum-relative-error hypothesis, and the bound does not identify a unique
+surface realization. A one-dimensional intrinsic metric can also require a
+higher-dimensional Euclidean approximation: intrinsic dimension and Euclidean
+span answer different questions. For example, four leaves at distance $t>0$
+from the center of a metric star have all interleaf distances $2t$. Their
+classical Gram matrix is $2t^2J$, where $J=I-\mathbf1\mathbf1^\top/4$ has rank
+three. Thus even this four-point subset of an intrinsically one-dimensional
+tree requires three Euclidean coordinates for exact distance realization. The existing direct-geodesic MDS line/tree
+analyses therefore do not automatically determine edge-KK's limit.
+
+\clearpage
+\section*{Numerical reliability and optimizer sensitivity}
+\input{report-validation.tex}
+
+At $r=64$, replicate 1, $k=8,32,128,239$, additional fits start from tiny
+three-dimensional perturbations, independent random coordinates, and original
+coordinates. Perturbations have entrywise RMS $10^{-4}$ in normalized units.
+Separate continuations add 2,000 uniform-stiffness steps to each selected
+classical- and stress-initialized edge-KK result. Both scale policies are
+included. Random and original-coordinate configurations are shared across the
+classical and stress branch comparisons; their duplicate table rows are not
+independent replications. These exploratory controls do not replace primary fits.
+A planar start can have zero transverse gradient for a differentiable
+distance-based objective; a perturbation check addresses particular fits,
+not every planar global minimizer.
+
+\input{report-optimizer.tex}
+
+\clearpage
+\section*{Neighborhood, sampling, and sample size}
+\input{report-sensitivity.tex}
+
+\clearpage
+\section*{Implications for the grip software article}
+\input{report-implications.tex}
+
+The full radius, $k$, sampling, and size study belongs in a supplement or a
+separate research report. A concise main-text comparison should distinguish
+classical scaling, stress MDS, and edge-only refinement; explain the graph
+regime; and avoid equating path fidelity with generating-surface recovery.
+The scale issue needs explicit treatment before using loss or stopping values
+as evidence for the profiled workflow. This report records an experiment and
+its controls; integration into the main manuscript is a later phase.
+
+\input{report-figures.tex}
+\clearpage
+\section*{Reproducibility and references}
+The accompanying protocol, R/Python sources, compact distance matrices,
+coordinates, full stratified tables, input/source hashes, and validation
+records form the reproducibility bundle. Data-generation and fitting caches
+are separate from the compact artifacts used to render this report.
+No build or validation step requires private agent notes.
+\bibliographystyle{plainnat}
+\bibliography{../references}
+\end{document}

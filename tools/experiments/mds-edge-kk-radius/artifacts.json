@@ -1,0 +1,1504 @@
+{
+  "created": "2026-09-05T16:36:45.433061-04:00",
+  "git_head_at_build": "6f6faff41aa90a3496f913070338d0d0c7a01796",
+  "git_tree_clean_at_build": false,
+  "python": "3.9.6",
+  "numpy": "1.24.4",
+  "scipy": "1.9.1",
+  "pandas": "2.0.3",
+  "matplotlib": "3.7.5",
+  "numba": "0.57.1",
+  "R": "R Under development (unstable) (2026-06-24 r90190) ; grip 0.2.0.9001 ; smacof 2.1.7 ; igraph 2.3.3",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 20,
+      "sha256": "c7cd0fc55d4b88bc4ed87b1cdc33670d9046174ab762188a0f2ce10290bb56e0"
+    },
+    {
+      "path": "Makefile",
+      "bytes": 1111,
+      "sha256": "cecdc81824ebf963a41d5654db72e6e517b2d4daef1b5ebbd5a04ca727414b30"
+    },
+    {
+      "path": "PILOT.md",
+      "bytes": 2308,
+      "sha256": "03d374b94163197e31e398c0a743e9127a66403e4340f4d09439961f2113479d"
+    },
+    {
+      "path": "PROTOCOL-v1.md",
+      "bytes": 5881,
+      "sha256": "99fafd1a0315420e9470972d286cd14dd0db6294cacba6b3e1592b49825f110d"
+    },
+    {
+      "path": "PROTOCOL.md",
+      "bytes": 7822,
+      "sha256": "d82d3bcffe93ef1046383d526604db7b4278d71df8f6112c8182d0d855a220a5"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7973,
+      "sha256": "bb50cc82ba494ce4b43fa6d0cf2020f2f49eeaf7ad8880bae407fdf206be9d17"
+    },
+    {
+      "path": "build-report.py",
+      "bytes": 17502,
+      "sha256": "45c8939e3ea78aaf3175157650facdba9ba8c6eb62f61f940111e03cfceed9e4"
+    },
+    {
+      "path": "check-artifacts.py",
+      "bytes": 384,
+      "sha256": "a8cb14831fc2a79a9d8dd6d1f3f234c066323110739ba0ebf2fb0966ffdaf91f"
+    },
+    {
+      "path": "check-citations.py",
+      "bytes": 1340,
+      "sha256": "e62e6eb0c72cedade93686fdc9a245850cce0c84c0f416d0bc3b17a4728744cc"
+    },
+    {
+      "path": "citation_verification.html",
+      "bytes": 1823,
+      "sha256": "96ff1e4f5da21b9d36a4c1a41ad0168c27de3f4aaed31904a6ba0c151f7aeca0"
+    },
+    {
+      "path": "collect.R",
+      "bytes": 2759,
+      "sha256": "ac815bbc58bcc11e07f4723c62597ab7ebc8b4f4fd69aebe4b6701778585721f"
+    },
+    {
+      "path": "comparisons.py",
+      "bytes": 2305,
+      "sha256": "772dd28200b46cde680fbd87ed69b9565f45b4a2e5911c57eafa73507aaaee3c"
+    },
+    {
+      "path": "diagnostics.R",
+      "bytes": 2200,
+      "sha256": "87e18fffcdbc11c87361194e99c7ead7d3f4e8fe2688e1f3707b9cf088bfd388"
+    },
+    {
+      "path": "figures/graph-reference.pdf",
+      "bytes": 29422,
+      "sha256": "4d1bf2324f78f9148f3db439e1d303d95257a10fddbdc7ae6641b4c99a225646"
+    },
+    {
+      "path": "figures/graph-reference.png",
+      "bytes": 246129,
+      "sha256": "a117c6594c5d4f241a524557ada4f69e1a6d41e05e345a342b4eeeab9c9f9597"
+    },
+    {
+      "path": "figures/initializer-control-path_reference.pdf",
+      "bytes": 27144,
+      "sha256": "114a2610e1d294f915a3ed6826b7b8238a7cb5e910e89f91c86144d2199c1e96"
+    },
+    {
+      "path": "figures/initializer-control-path_reference.png",
+      "bytes": 233195,
+      "sha256": "43373a67ef8ee690a4d97809d8557cfc1d72b177ccccb480d3464837b6ea2bff"
+    },
+    {
+      "path": "figures/initializer-control-procrustes.pdf",
+      "bytes": 27039,
+      "sha256": "254f3ecbd74fe4776f8a716657295f5bb4c5c81ce69784019e8e6184d1bdc4c2"
+    },
+    {
+      "path": "figures/initializer-control-procrustes.png",
+      "bytes": 214117,
+      "sha256": "07f35e6bcc97037dec8dc1e3cfce275ad3c49c1a073ef3f44feac668e64af0a9"
+    },
+    {
+      "path": "figures/optimizer-controls.pdf",
+      "bytes": 39027,
+      "sha256": "922d7b50797fd0663470d3e01785f0b0529d2519fbf02f1e3dd691da446c2e7e"
+    },
+    {
+      "path": "figures/optimizer-controls.png",
+      "bytes": 222615,
+      "sha256": "7ebfde577e040e2f88d9738e932a5da06cd3a786d4c89532d46eb75de406e027"
+    },
+    {
+      "path": "figures/paired-refinement.pdf",
+      "bytes": 135356,
+      "sha256": "8cf884ccef110606fc5c6aa4045bacdbc090153e515d48d3dab3e81ac06c6dea"
+    },
+    {
+      "path": "figures/paired-refinement.png",
+      "bytes": 388346,
+      "sha256": "66a998ff8d14f581177c5d7044c1daa4d94d3509b3a14d927c97573376ef09f9"
+    },
+    {
+      "path": "figures/paraboloid-ambient-path_reference.pdf",
+      "bytes": 30174,
+      "sha256": "c94889ab0a9792bb8c28d920531e19bd9b9f942ee9f4434a7e90052db5b0b090"
+    },
+    {
+      "path": "figures/paraboloid-ambient-path_reference.png",
+      "bytes": 106136,
+      "sha256": "ebdad1b5da53f8407b7890292e10d15184eed1bfabc4ebcab6dfca6b5dd87512"
+    },
+    {
+      "path": "figures/paraboloid-ambient-procrustes.pdf",
+      "bytes": 29853,
+      "sha256": "d55fc920380f6d594967c11f305dd8bbfb439234b50ecf6fbcc30e78b9c8d841"
+    },
+    {
+      "path": "figures/paraboloid-ambient-procrustes.png",
+      "bytes": 103905,
+      "sha256": "7e3c355bff5c2c6502cd90d0f17e7fbc5160e5b88e61a7c8fca6764805c78c35"
+    },
+    {
+      "path": "figures/paraboloid-ambient-sigma2_sigma1.pdf",
+      "bytes": 29271,
+      "sha256": "a39f15c6315be40390b11968d823746d618d3e0b6a7a7c12280fa8daf00b13ef"
+    },
+    {
+      "path": "figures/paraboloid-ambient-sigma2_sigma1.png",
+      "bytes": 96219,
+      "sha256": "c4b9357acb49e8faebadfec3f8799ca4e1809de9bb3131c589ad34ec4ad5e3b6"
+    },
+    {
+      "path": "figures/paraboloid-ambient-sigma3_sigma2.pdf",
+      "bytes": 29290,
+      "sha256": "aab572f6645de43e052adbd20cbfb8234abb496f720b8da2a99b19eda014f592"
+    },
+    {
+      "path": "figures/paraboloid-ambient-sigma3_sigma2.png",
+      "bytes": 96324,
+      "sha256": "d63039b3c24b8ce4107f7981d52a6843e35f65ab1ee8d6add9d82b8a41011cb8"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-path_reference.pdf",
+      "bytes": 30135,
+      "sha256": "a79405a05e02b78506aacdf2e12d520d573e5fc6a947f8d65778029394f9c4c2"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-path_reference.png",
+      "bytes": 107537,
+      "sha256": "f988e53879feed240705b48f6d1fbb6607015db32681a58e455a3d6081c229a3"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-procrustes.pdf",
+      "bytes": 29926,
+      "sha256": "9e2adcc220632ce4177400f78f5c7eac07a2b1cc3d1a51fd36d93e681f234fba"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-procrustes.png",
+      "bytes": 105128,
+      "sha256": "93bc7e500ad0813cdd9577c96b18a4e9c38a5773465b7c42f9c28d488de8a6e4"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-sigma2_sigma1.pdf",
+      "bytes": 29271,
+      "sha256": "0b9362cbdd07c4fb28f8da8166580c8177e90d2582e2b69c56e040d7c3be04f9"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-sigma2_sigma1.png",
+      "bytes": 97206,
+      "sha256": "8def9b5e5d5d2a94ceeae7ad99f9c595ff6cb444e56aec2dc8ba50cf6d2490d8"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-sigma3_sigma2.pdf",
+      "bytes": 29293,
+      "sha256": "140a1edc4febad91f9df663286de157acb581bf65eba1a161d2f408b620f89a9"
+    },
+    {
+      "path": "figures/paraboloid-geodesic-sigma3_sigma2.png",
+      "bytes": 97505,
+      "sha256": "cc7ac6f0cdffb17c9d22dfe2375392cef65fc5d33f143209ca7414d163bb7c05"
+    },
+    {
+      "path": "figures/replication.pdf",
+      "bytes": 39976,
+      "sha256": "06cd35f79d51fafa4b9246743627d46c042d73504eca625e24ddb1ae4b61e725"
+    },
+    {
+      "path": "figures/replication.png",
+      "bytes": 233603,
+      "sha256": "0ed5dde2a8e50997d7e504cc29849fd2a26058c17f9dabe0ad3012b02c9bc7f5"
+    },
+    {
+      "path": "figures/saddle-ambient-path_reference.pdf",
+      "bytes": 29718,
+      "sha256": "f4c08f43193399bfed7259326cba4c984b475479246cb18c2005a84c70453e00"
+    },
+    {
+      "path": "figures/saddle-ambient-path_reference.png",
+      "bytes": 105717,
+      "sha256": "5e349785fddd973766e2e9f9a2d170aca27dba3dc47c4a24bab4b83a4d9341b3"
+    },
+    {
+      "path": "figures/saddle-ambient-procrustes.pdf",
+      "bytes": 29638,
+      "sha256": "a1777f4957e5ba5b64d81978839421049afa306ea6e75a39b479297118b05d46"
+    },
+    {
+      "path": "figures/saddle-ambient-procrustes.png",
+      "bytes": 103709,
+      "sha256": "ec29b9b90822f7c5e40fb867c2f6cf08a4c79451f62eb88341c9526eab03e8e8"
+    },
+    {
+      "path": "figures/saddle-ambient-sigma2_sigma1.pdf",
+      "bytes": 28953,
+      "sha256": "775a1c634b6fe66ac9b2b4971a31e9191271e54c9a89a75f3f720e3c40bd5555"
+    },
+    {
+      "path": "figures/saddle-ambient-sigma2_sigma1.png",
+      "bytes": 95976,
+      "sha256": "a34a095c8076a957f3ed1ec58fb5760a1bebfee318a9975ea5dd10191e327dbe"
+    },
+    {
+      "path": "figures/saddle-ambient-sigma3_sigma2.pdf",
+      "bytes": 28892,
+      "sha256": "27a6e13b5ccd44aa89fb17d2ee6d4fd2dd38e5411b8e7f073fdbf9ae6e8f2237"
+    },
+    {
+      "path": "figures/saddle-ambient-sigma3_sigma2.png",
+      "bytes": 96075,
+      "sha256": "7d3ec89e1a2dccf8ed260ff7a68ed62490be56b98c204844ec13842e3508636a"
+    },
+    {
+      "path": "figures/saddle-geodesic-path_reference.pdf",
+      "bytes": 29836,
+      "sha256": "745aa7040e512a552e0254010a91cd4ec429586c056f1dd5c11dd363bfd4f062"
+    },
+    {
+      "path": "figures/saddle-geodesic-path_reference.png",
+      "bytes": 107147,
+      "sha256": "67e7dd444b21ca262a54b1909c7c87d92a5f956eca9bc06892427834848dd84d"
+    },
+    {
+      "path": "figures/saddle-geodesic-procrustes.pdf",
+      "bytes": 28617,
+      "sha256": "b64e60dd97d03af8bbcac50101b809bc31bc9b1c65f6de6da74110e43d532f4d"
+    },
+    {
+      "path": "figures/saddle-geodesic-procrustes.png",
+      "bytes": 103811,
+      "sha256": "61dcfa00435c7fe17ba49617a588c00ba7b6f7a1ce2b8599d32e5c971fb03253"
+    },
+    {
+      "path": "figures/saddle-geodesic-sigma2_sigma1.pdf",
+      "bytes": 28442,
+      "sha256": "27869c8f5e4bdae244a9d5562200ed499ac5cda7c13f7dafe5b0d1d1d201c580"
+    },
+    {
+      "path": "figures/saddle-geodesic-sigma2_sigma1.png",
+      "bytes": 97190,
+      "sha256": "249080db8c079bc91c0df1865d6b83916aa2c8e0c63100e9fd82e271cd09fe95"
+    },
+    {
+      "path": "figures/saddle-geodesic-sigma3_sigma2.pdf",
+      "bytes": 28610,
+      "sha256": "6177777cc9f2d63ed2bcb51d15e07ce8dbe7a08499ccf70873c2c2ec08781344"
+    },
+    {
+      "path": "figures/saddle-geodesic-sigma3_sigma2.png",
+      "bytes": 97365,
+      "sha256": "bbc9412c12361f99999a2283fe35a730df3d7be84e14e715f08b6164f711ad0e"
+    },
+    {
+      "path": "figures/size-path_reference.pdf",
+      "bytes": 32993,
+      "sha256": "3599dee409c779a6a765aabedfd05b0eaf1cf0ecb3605905c84537388a21a1e8"
+    },
+    {
+      "path": "figures/size-path_reference.png",
+      "bytes": 292595,
+      "sha256": "2f6eb38dcaee69040a7f9f12985bffbe7ecf8422cab26ad1730339dc9ef6f9cb"
+    },
+    {
+      "path": "figures/size-sigma3_sigma2.pdf",
+      "bytes": 30537,
+      "sha256": "fe4f526adc355aa95a2ee82aef8c46c4b7665b0bdfc4be78012aa96b00bc3a59"
+    },
+    {
+      "path": "figures/size-sigma3_sigma2.png",
+      "bytes": 182724,
+      "sha256": "58da6e00b265677b5f4a1aa80a9e5795bd5a3dd2e159ffba7aaa6a98bdd26a6d"
+    },
+    {
+      "path": "figures/spatial-paraboloid-ambient-k239.pdf",
+      "bytes": 162278,
+      "sha256": "5d03c7296baad48e2f70eead7699b25646e3db702450d1fff283f4348d03f04b"
+    },
+    {
+      "path": "figures/spatial-paraboloid-ambient-k239.png",
+      "bytes": 277550,
+      "sha256": "11cd9b6cac8836b1a68d6ab1d81ce3ba32a8cec7ff2748ef1b7ca7c5a92cf280"
+    },
+    {
+      "path": "figures/spatial-paraboloid-ambient-k32.pdf",
+      "bytes": 161649,
+      "sha256": "ccf7c0cc1145c60d67f17d5c7d17d8a5f3e0ef3046dc20ded3f1884d5025ef37"
+    },
+    {
+      "path": "figures/spatial-paraboloid-ambient-k32.png",
+      "bytes": 279173,
+      "sha256": "89867ad66039d5a3060664bc425625bb9a233154b42baf7dabb0aa43397d989c"
+    },
+    {
+      "path": "figures/spatial-paraboloid-geodesic-k239.pdf",
+      "bytes": 161801,
+      "sha256": "80a9abd504613c2e3ac9f7af6fdabfdfe64298c6f5bc93656cf129c84b22b4ca"
+    },
+    {
+      "path": "figures/spatial-paraboloid-geodesic-k239.png",
+      "bytes": 269269,
+      "sha256": "57822777e51bca6425e634e8b995724233634466724eaa605837b7a30157c925"
+    },
+    {
+      "path": "figures/spatial-paraboloid-geodesic-k32.pdf",
+      "bytes": 161770,
+      "sha256": "c1f17cb10f59e9544d0b6c36c05dc922cf79195be500fec56f6457b971977790"
+    },
+    {
+      "path": "figures/spatial-paraboloid-geodesic-k32.png",
+      "bytes": 281583,
+      "sha256": "f9e26e4dbaa21dddae81fe7508bb11229d43e7e2bbf30531a622b39d7216a13d"
+    },
+    {
+      "path": "figures/spatial-saddle-ambient-k239.pdf",
+      "bytes": 75209,
+      "sha256": "f1c989473a9caa44b0ddf4c68e81578cf0594a7904cce5ad809315a82a2ed84e"
+    },
+    {
+      "path": "figures/spatial-saddle-ambient-k239.png",
+      "bytes": 286501,
+      "sha256": "cfbea526274bdfa6753b784594b8dd639cdcc6cbf1e0a509e83e3e885166b8e5"
+    },
+    {
+      "path": "figures/spatial-saddle-ambient-k32.pdf",
+      "bytes": 89156,
+      "sha256": "8a78160336cb221166720f1902862df1015ebbcd2eaf0b5baa674464b25b3e14"
+    },
+    {
+      "path": "figures/spatial-saddle-ambient-k32.png",
+      "bytes": 264666,
+      "sha256": "501001b2229a084da31818f6bb29f6e0726e720c9e3360e26069fb3d6185e64c"
+    },
+    {
+      "path": "figures/spatial-saddle-geodesic-k239.pdf",
+      "bytes": 89933,
+      "sha256": "0793aed670863f465f92957982c1b605f3e53307dc2adf380ffcdc74d28e0a6d"
+    },
+    {
+      "path": "figures/spatial-saddle-geodesic-k239.png",
+      "bytes": 268708,
+      "sha256": "872010a5922f03efd8f29647a35d483c4fbec8a4d40694767e5d7fc7d17cff77"
+    },
+    {
+      "path": "figures/spatial-saddle-geodesic-k32.pdf",
+      "bytes": 89857,
+      "sha256": "8f90e963c38ac271ca5beb5acf1ffa36a57035899967ff716e5635de7be6b355"
+    },
+    {
+      "path": "figures/spatial-saddle-geodesic-k32.png",
+      "bytes": 269774,
+      "sha256": "61aff4af56c870b168c3d13287cde5054659dce84667f638178754ed9d196986"
+    },
+    {
+      "path": "figures/stiffness-controls.pdf",
+      "bytes": 68485,
+      "sha256": "75d68912857dae400222f38a0bf79e5d6e601c40cd8d978b7633e6391614dfef"
+    },
+    {
+      "path": "figures/stiffness-controls.png",
+      "bytes": 152499,
+      "sha256": "3c58705209a0932ed55f197050df82428125b250b54f87e39c285827fb6cd975"
+    },
+    {
+      "path": "finalize.py",
+      "bytes": 1159,
+      "sha256": "776161583212d3e019f68667d6477692e7a57a828c7e756e102dc54c05287df2"
+    },
+    {
+      "path": "finish-inputs.py",
+      "bytes": 1578,
+      "sha256": "ba02c566f3f22e4f9c82f9366629b695bc1e49eb6e8e0675df4c6903f1d4d3fc"
+    },
+    {
+      "path": "freeze-artifacts.py",
+      "bytes": 1435,
+      "sha256": "56e90a152fb9fd49ab410e87d9cce58d0b1a46f34c54d236d3e867e5e34c9cf9"
+    },
+    {
+      "path": "inputs.py",
+      "bytes": 4487,
+      "sha256": "6ffb5c4551064fcc8674b6f7f325011d233ff25cd278172d3e0b3734ac215535"
+    },
+    {
+      "path": "path-lengths.cpp",
+      "bytes": 637,
+      "sha256": "97765783d3e306b582a84dbe90da471e8b50c97939ce535fc1fdde87a380e15a"
+    },
+    {
+      "path": "pdf-qa.py",
+      "bytes": 1001,
+      "sha256": "5a8b488f2780062d0f0d62ca1cd565ffc18f7e4977a4b5752df4cc4bdfc3489c"
+    },
+    {
+      "path": "plot.py",
+      "bytes": 13895,
+      "sha256": "73711225b1fc3fc5ca65fca70514c8c3680f279fe6d91dd448d2728767370140"
+    },
+    {
+      "path": "prepare-inputs.py",
+      "bytes": 1020,
+      "sha256": "41a8800c7cc031b9ed1cfcc7b21dc2a98cf25b667c4abb792a1048404c558364"
+    },
+    {
+      "path": "profiled-pilot-v1.R",
+      "bytes": 8938,
+      "sha256": "59658dabeef90cf608b4a7cb6f03449fb0efa2e2a7025787d7955bcbd18ae06d"
+    },
+    {
+      "path": "progress.py",
+      "bytes": 953,
+      "sha256": "498a3962909d41cf856e79e7e53e763fac2e009f71c11a035186f92339137699"
+    },
+    {
+      "path": "references.bib",
+      "bytes": 389,
+      "sha256": "5d9d81de4242d66811ddfdf5fa0ffa17323fc5d2c34a9ee6692c3a3bbcd9099d"
+    },
+    {
+      "path": "report.pdf",
+      "bytes": 2081991,
+      "sha256": "ffe676477ca9eb35575173deea46e75c70247e4795e2dba1765d77d71e6b757f"
+    },
+    {
+      "path": "report.tex",
+      "bytes": 11745,
+      "sha256": "a0f1df443d5067a319dd70bb0ddb52f5350ed41eafbfe3b0e88e45fe8a52a5d4"
+    },
+    {
+      "path": "restore-inputs.py",
+      "bytes": 536,
+      "sha256": "0f5cbd02b594ca6f819652587d6b7d0c4620d5b7b50f773db674e16a43c02f88"
+    },
+    {
+      "path": "run-grid.py",
+      "bytes": 1578,
+      "sha256": "b6b4fea17b7a704178e4895672825231082dce9d8a224a7f399bddb0bf611fd5"
+    },
+    {
+      "path": "run.R",
+      "bytes": 9352,
+      "sha256": "3fc0bed8f25e7bf7aa091a09d2837236ea540ca6924796093ab1ac9144f7076c"
+    },
+    {
+      "path": "scale-audit.R",
+      "bytes": 1123,
+      "sha256": "ed710913dc62b751940ec9d810250afc4ba6503aeb65a4ab18c62beaa36c5275"
+    },
+    {
+      "path": "summary/RESULTS.md",
+      "bytes": 4176,
+      "sha256": "067bc9b7b27199f03a2fc6606885a6d62f2e9629d30b31472917d64d3b6c5927"
+    },
+    {
+      "path": "summary/coordinate-validation.csv",
+      "bytes": 65,
+      "sha256": "04a869d57cfd554d7eeccbe32127dd7154206876bee4ae15d4da10584dab78f7"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r1.rds",
+      "bytes": 1050237,
+      "sha256": "6850389cbf0342a23e5030bb54fab6463348169cd5141309b70cae99df2ccf18"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r16.rds",
+      "bytes": 1054768,
+      "sha256": "dc13d53009c9ddfb65da2e7fdb352faedb94466429e58db43e8fddb0c300338e"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r2.rds",
+      "bytes": 1054989,
+      "sha256": "24e0e702c21bdcb77b2a7ccab835a1545414d8aad3f5176b3ec503d5b66f6ba0"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r32.rds",
+      "bytes": 1052223,
+      "sha256": "ed0aeac408084638defe52870845c0fb03c7b8df1a54ffea2359602b420d04d4"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r4.rds",
+      "bytes": 1061804,
+      "sha256": "721ab87d15477466aa0f97ac096c291ad111609675446e0bf5f706056db1f9e0"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r64.rds",
+      "bytes": 1702967,
+      "sha256": "0e68740a947697beb85268e72679f60c286ac6500a2d6cb536df9bef198d94d1"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n240-r8.rds",
+      "bytes": 1058581,
+      "sha256": "bc20ca7b3bf596135e35b8a1721ced258cd7fc62c123f59898f62abb0f5db94f"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep1-n480-r64.rds",
+      "bytes": 1459959,
+      "sha256": "94b090cb82cc28573ccf80e6542f732f0494e733931510fd1e51cc5fe1f223aa"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r1.rds",
+      "bytes": 1051064,
+      "sha256": "7d8493511fa801094f703544e9d8c98c2832ba086cf04f1840507d53945718e5"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r16.rds",
+      "bytes": 1053154,
+      "sha256": "895f9f3eb59085052558b4cb026c2e41f153c38f2db3c09217e8d92301586cdb"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r2.rds",
+      "bytes": 1054915,
+      "sha256": "49958efc78026e8c7d23733bac6175d079565885d78d9c9cac6c40e98ad29d4a"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r32.rds",
+      "bytes": 1051282,
+      "sha256": "49862f6d2a763f603cf563450beda96c52576454b4eaa97e651e8875145ab64c"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r4.rds",
+      "bytes": 1060739,
+      "sha256": "e1c75182229a1f4ce6b099eb987fbe5b356cbb18efeee1ea57be6f9063958e40"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r64.rds",
+      "bytes": 1051849,
+      "sha256": "94517122574924dcd1b7da887a6eec7078650cd65ea8dab2ed85767bf4c756c7"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep2-n240-r8.rds",
+      "bytes": 1058286,
+      "sha256": "3515e8c59c840420fe00a7776277d91460f26f782b1f7779a650278f44073c5d"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r1.rds",
+      "bytes": 1050947,
+      "sha256": "bae1832d4c1aa7146758a946db0b86f909e292c05889d982d27122f6f2d375dd"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r16.rds",
+      "bytes": 1055192,
+      "sha256": "4496339d449323ee45dd1ce10deb8bda76670ccb6c140196ca8fe4c0b40d93e7"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r2.rds",
+      "bytes": 1054126,
+      "sha256": "f58a87f51343041209b2acc1ddae5f8d6e0210d409f65f928a5f77ae0dfa50c1"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r32.rds",
+      "bytes": 1051621,
+      "sha256": "d9c9d08e86a52a71eef70875f5efe2940a5e661c064bfcd6cff05fe4dfd66cf1"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r4.rds",
+      "bytes": 1061476,
+      "sha256": "0062e5610e188f6d5aeddc8d20b02c2187c094d49a3e52d4ac4cd5c9fc2a81e6"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r64.rds",
+      "bytes": 1050980,
+      "sha256": "6c123494f174345091e691d0d34c1dd8cf7f0c890c48504818bc3f0aaf3a4ca1"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-disk-rep3-n240-r8.rds",
+      "bytes": 1058340,
+      "sha256": "785765f3ba4b5be87300e217e3491f9a88193cf6fa694860c9f40e0a407ab7e9"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r1.rds",
+      "bytes": 1051307,
+      "sha256": "4a73d017ef1f7bffc6d48903943307364916622b85dd739df7b6e92fb28ac7bb"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r16.rds",
+      "bytes": 1053547,
+      "sha256": "d5132a5ee87d80e2f902292756e9dcf7313b03991266832d914ddb70e9db0e39"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r2.rds",
+      "bytes": 1054482,
+      "sha256": "2223cdee665541c7d094f2e9234f1e82b15f3dd2e6d54b49073a9006f2667a03"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r32.rds",
+      "bytes": 1051401,
+      "sha256": "28550763164da6f8cbb7bb22bb6515f5785903ae768821d526d9f0aa6833998f"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r4.rds",
+      "bytes": 1062963,
+      "sha256": "cd0ce884e9fca10b5507d22914243acb8d886a630534bd79bbb160d3777eb3b9"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r64.rds",
+      "bytes": 1702794,
+      "sha256": "986c1e5b7576b1e8bc7e7eaf9f6d696b14ac87f46823b5a441d57afd22c808e2"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n240-r8.rds",
+      "bytes": 1057998,
+      "sha256": "b040bc5799397dba7847c595cedf595ce7755409178ca2ae8358517786a3541e"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep1-n480-r64.rds",
+      "bytes": 1460357,
+      "sha256": "64d2d09cd222c321f6e9a1353fadad15ff1d3c8a99f899f1a1d7ea7b90963931"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r1.rds",
+      "bytes": 1051414,
+      "sha256": "69f9edfc8f887b545ca05687d9f58bba972ae4792fd03c916a65e9bc5629aa75"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r16.rds",
+      "bytes": 1053560,
+      "sha256": "98e8ae53c7bbc83a76a141b59adc3680d3fd0a15bc6f51f74437f270ebc560e6"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r2.rds",
+      "bytes": 1054698,
+      "sha256": "99cb9e5aa261226e1d843fef2f88301c2053235687ec9d2f0171b759308706b7"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r32.rds",
+      "bytes": 1050080,
+      "sha256": "b2e9c7e73bb80df2c24eb336d558327b85529d7472dee467c497be848a60c1c8"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r4.rds",
+      "bytes": 1062409,
+      "sha256": "90752d5925c18b9540021207178651334e3bf98f306723ebabcad0b7f71a13fa"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r64.rds",
+      "bytes": 1050364,
+      "sha256": "c73107f9b6b39a4ceaf8d3d656d74d538261625aed549a566fa23acec72fbcab"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep2-n240-r8.rds",
+      "bytes": 1057705,
+      "sha256": "cb0c54756cb87e346c302f005a86e7f443210311faa01aea18cdfc4ada1ce57f"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r1.rds",
+      "bytes": 1050304,
+      "sha256": "ac0439eaa2fc0055697c0a32374fef5628b6429b6e38fe85864c421a9cd40bbe"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r16.rds",
+      "bytes": 1053864,
+      "sha256": "b829fd02a65cdbdd8d985eb38ae240828832cef61e8f66661071ad830b33958d"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r2.rds",
+      "bytes": 1054945,
+      "sha256": "6b4f697d4472cea37224a861b5a5063bdd0bbff6662642440fa18064559262e1"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r32.rds",
+      "bytes": 1051019,
+      "sha256": "43b44db60c361c88e18098ba90e9d81efc5dfd1be689abb60349711c41498b75"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r4.rds",
+      "bytes": 1063188,
+      "sha256": "d3ee1ce7b972fe45ee421da4d8ce47e20eb366dc273d57a7e41e28a82e46ba06"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r64.rds",
+      "bytes": 1050334,
+      "sha256": "242c5b1fe02420a55844caccc0f2abc9baed41cc7570d35c7487c54281388cf2"
+    },
+    {
+      "path": "summary/coordinates/paraboloid-surface_area-rep3-n240-r8.rds",
+      "bytes": 1057697,
+      "sha256": "9739e5dc30281bdd5513fff9b89da48ca2dcc1e120cba5d3e6a7fda0db7695f6"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r1.rds",
+      "bytes": 1052851,
+      "sha256": "526140a40c08d50247e6ff666dd516cefe2437c7825ad4e276dc8eca66cbd8ad"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r16.rds",
+      "bytes": 1061748,
+      "sha256": "6302c34f5c17f6be1f12f276970cb7a3473a076025891a4a4ff2a03ab619c2ed"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r2.rds",
+      "bytes": 1060905,
+      "sha256": "3203336f89a8666dc1ba54c2bb2dd0827f02e1c1e4817aca91176787d51cee70"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r32.rds",
+      "bytes": 1058795,
+      "sha256": "b2003417e1a4260bf5cc148af37bc582f4a34064f7687a687b927adf37b24d3f"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r4.rds",
+      "bytes": 1066956,
+      "sha256": "e3995f6648db965b410b3184d72b14d568aa4d94aed33d92a22503db6fdf6012"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r64.rds",
+      "bytes": 1712292,
+      "sha256": "52cfd8df055d84a7155a53cd700ea283e0aac381488cb5c174b1e8e654f6f8fd"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n240-r8.rds",
+      "bytes": 1064701,
+      "sha256": "9435d7c8d4e4789f066ba6dabc11d0940117e23da1ac90c04027d333319b8aa4"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep1-n480-r64.rds",
+      "bytes": 1472458,
+      "sha256": "1b2f455aa5c87ef12ffc225ea4d1efe24318381928a8ca6281d99b7a5c7a5d8e"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r1.rds",
+      "bytes": 1053209,
+      "sha256": "62f0c6971461b41abb69df0ca698e11fdb35f3d0ef692c0544bcc68d31de2e75"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r16.rds",
+      "bytes": 1059928,
+      "sha256": "d85342880b95c966a8e06aaea8b4211808b63f307837ebdf802be84e086969ec"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r2.rds",
+      "bytes": 1060645,
+      "sha256": "7897880ee8a676f91bf6163dd5166f69bc9d47c8577621f20b0651f1fbb75942"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r32.rds",
+      "bytes": 1057295,
+      "sha256": "28775d3c0c48b9c04c1cfa8e5ff03f9bed4f57dcd7227f93860dca297eada1a3"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r4.rds",
+      "bytes": 1066988,
+      "sha256": "6dab5bce334458c24e9a543fa87632cac6c364bb891ebb40459cc4f4fdba8236"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r64.rds",
+      "bytes": 1056718,
+      "sha256": "2bba3bac69d37c8f8b8276df8ee76efa0afcf54d61822bffc56bf2efc8d528d0"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep2-n240-r8.rds",
+      "bytes": 1064113,
+      "sha256": "782fce05661fe0d79ac4e187696da6d2eed43389db1381372e484bc9b5908a20"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r1.rds",
+      "bytes": 1053561,
+      "sha256": "a52c37261c6d309e658e9a10cf0756198add24107819cfe8320017059f69cf53"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r16.rds",
+      "bytes": 1061270,
+      "sha256": "71ac437a3780c9028d4b5aae6b9352473413f361318adfa87961c0623b8ebe7d"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r2.rds",
+      "bytes": 1061936,
+      "sha256": "c7122949f7f468ecffd196bcb0bd63f3ada8d2873228888a4b00a251248fa798"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r32.rds",
+      "bytes": 1058373,
+      "sha256": "1da27252b72f1af0411c5bcac9e29bd5afa4812d3545935c8931ca90511847e7"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r4.rds",
+      "bytes": 1066473,
+      "sha256": "4556592fee82b68184da8df9905af33285cd7cda0be661c92d31b52bc3e5afd8"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r64.rds",
+      "bytes": 1056563,
+      "sha256": "2c2e029e335e2c08a130e347749cf0e04271918a984c043066a79d33ba7617f3"
+    },
+    {
+      "path": "summary/coordinates/saddle-disk-rep3-n240-r8.rds",
+      "bytes": 1064810,
+      "sha256": "10cd87b67c11d38ac0db37f4e429df135195ae186d0e5faf6bcdab0fe9baddbc"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r1.rds",
+      "bytes": 1054005,
+      "sha256": "214ab016633ac98b93e3baa192514d6774d406b641ae71ca4546387a629bca3b"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r16.rds",
+      "bytes": 1059850,
+      "sha256": "0dcdd18584dd673720d384c071d470d12692a79dc882a0c3cf6c6c29d1506fa0"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r2.rds",
+      "bytes": 1062646,
+      "sha256": "2511a25a97e8365b9714db6c5d9a54f59a123eee250494c87e78aeab1f9e2a5a"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r32.rds",
+      "bytes": 1057910,
+      "sha256": "a760ed3c525455dbdc554bb696ac24ef8d3f5ad0880632f03627ea4e80a2eabe"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r4.rds",
+      "bytes": 1066432,
+      "sha256": "b9592b4c537bdbd0db79191370c6b8df9771c54f1ca5bcc0120c855711ce0400"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r64.rds",
+      "bytes": 1710565,
+      "sha256": "fcbe659cb3ea1b897fd46007536cf3e38b2cf93fb4b561a05ae5294ac951c66f"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n240-r8.rds",
+      "bytes": 1062626,
+      "sha256": "282c6c5cc3a5929034c640dbde9b96c341544c0a093add55bff5ef3093784de9"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep1-n480-r64.rds",
+      "bytes": 1471309,
+      "sha256": "7e44d93bce618d5637a507661fd41310e5287ab29313e856d0d9a905f512aba7"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r1.rds",
+      "bytes": 1053293,
+      "sha256": "b74dc73af8141efcf8e2b10d45ef18a118c4e61dae0275c877264e92e35f3e65"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r16.rds",
+      "bytes": 1058358,
+      "sha256": "b94c4da4b06d2a7afaaf11df77c474ea7fd99c59b591c3f0e169791c03522484"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r2.rds",
+      "bytes": 1059899,
+      "sha256": "98a87c0a428d01aedca7ff752c8eebd60541cc29b4dee9c56aefbdd22188d1b7"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r32.rds",
+      "bytes": 1057561,
+      "sha256": "fae5103a756f14a9bf89800e5f04142af878d170bf938d08d2123f92f2c908b0"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r4.rds",
+      "bytes": 1066240,
+      "sha256": "ce784a75ae0f0880b29ca2b4fc341bfe94d80a1c7d77ec5e03571af718f945fb"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r64.rds",
+      "bytes": 1056091,
+      "sha256": "f1e30efb2094503a73ecaf5c63fc34fb8e17f6169cd98ee3c593ab0582b0146f"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep2-n240-r8.rds",
+      "bytes": 1062246,
+      "sha256": "0c1eeca675ccc76821f6c9d3b8ae2f9bfe9162e2d5bf5ebdc63b1e346c369986"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r1.rds",
+      "bytes": 1054081,
+      "sha256": "9374f527e87ed276e703eb3927c1ed0a9d0b887ff052e83f952d3d3ea89812b3"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r16.rds",
+      "bytes": 1058715,
+      "sha256": "3736edcb1dfa0aa7bfc7000082793465025a14891781d06b5088736e6d392042"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r2.rds",
+      "bytes": 1061854,
+      "sha256": "5ec5c62e85084165cf0a634f1d2014fd88da1b5316b52644c03ed9b6a07b9fbe"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r32.rds",
+      "bytes": 1056788,
+      "sha256": "e0f5081c52e1356111ef70914d827f67bdddbb3412fdb0a2288a3cb86094fce2"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r4.rds",
+      "bytes": 1065255,
+      "sha256": "c1bb5d1e512b094ab0576bbd3ce86778d8f610692a2f20acc447bdbdfbb69bc5"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r64.rds",
+      "bytes": 1056437,
+      "sha256": "00be10723238d6f574255dd186706341318a4ea10beb50144701acd65c1f966f"
+    },
+    {
+      "path": "summary/coordinates/saddle-surface_area-rep3-n240-r8.rds",
+      "bytes": 1061737,
+      "sha256": "bb83e7753e9c968a9b0e7b03fd606905fdbd142c6c3183c8b563ab17475a1581"
+    },
+    {
+      "path": "summary/fitting-provenance.rds",
+      "bytes": 28502,
+      "sha256": "34cc6a9ecb7503fe0c6f7c988fc1f592ede1de66ba73489a1e1d83d34fd78d49"
+    },
+    {
+      "path": "summary/geodesic-validation.csv",
+      "bytes": 39515,
+      "sha256": "2bd49c95662576c33b05dfde888ed3f75dfb723032c597547b6add931d184725"
+    },
+    {
+      "path": "summary/graphs.csv",
+      "bytes": 327956,
+      "sha256": "5db1b5d6bc0284e5e71f934e86bbbd4fc7d7ba845635d65216ee08418b3e6097"
+    },
+    {
+      "path": "summary/initial-pilot-scale-audit.csv",
+      "bytes": 43911,
+      "sha256": "5f0c472fa0883b502cb566a01a78e166796adb79acd1e2376a1b691929030247"
+    },
+    {
+      "path": "summary/initializer-comparison.csv",
+      "bytes": 1662,
+      "sha256": "9ac10c9562d3f40e6c1cd854c4cabce7ef17eea38eb3f17c7f0279d49c3aba13"
+    },
+    {
+      "path": "summary/input-validation.csv",
+      "bytes": 28490,
+      "sha256": "5481f98a09cd8b039c7be31a4848d472c21bc530998cd95e1405c63340b41f48"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r1.npz",
+      "bytes": 431444,
+      "sha256": "d9d8df17d6fe96d3c52fa28597f3ec0efef4e84dbd057a848d72a22364ddf716"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r16.npz",
+      "bytes": 429405,
+      "sha256": "00d96b975ff4a67b50aa91919f04d14f887513b365aa14a1150df51f541e4d2f"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r2.npz",
+      "bytes": 434450,
+      "sha256": "5cb70cbcfd79685185d8582ad2871e2d15686331a97a0b07189cf9e6820d549c"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r32.npz",
+      "bytes": 429814,
+      "sha256": "e691803b12fdb69de2ff4500fd4660bc1f8637f45d58439e49c1407e7fac89de"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r4.npz",
+      "bytes": 431164,
+      "sha256": "9eff894086f628240f5a7e21ff0054e12bac596a99d27f35db664d85b841ec8e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r64.npz",
+      "bytes": 429944,
+      "sha256": "112ef6e50725bede5926c37e8baa6a8e8ab0c0396422ce2f92a9398915ca03bc"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n240-r8.npz",
+      "bytes": 429222,
+      "sha256": "c3a04e6a52e60fee096651cd64cda2f9dd9a0e078c437c5a2018d7ca4f392edb"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep1-n480-r64.npz",
+      "bytes": 1747198,
+      "sha256": "aeec99b3bcc7e3eb9c97be373555a0e79c6ddc5dc6c96cf1b99618e3ce93f37c"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r1.npz",
+      "bytes": 431615,
+      "sha256": "29551db8744ae17d657953c54786bcefae4cdc09684328fa60fed296669547bb"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r16.npz",
+      "bytes": 429418,
+      "sha256": "7662f6736ef273bddcfcede2af525e9d1213fbee0aaa7b8fec01a6bbb59da85e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r2.npz",
+      "bytes": 434426,
+      "sha256": "cd6a949b7aa104354a895b814a302210ebfab89c1fc8751955bd67a57042ef13"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r32.npz",
+      "bytes": 429804,
+      "sha256": "a9b64ff107d27a379139402c3910a18b3b3fdf62dca96aebe3e5d78a78563626"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r4.npz",
+      "bytes": 431129,
+      "sha256": "bf1d6e3369a6c19be63b91a8a9326c706f153589d7bc8fca040429a57fc9aa70"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r64.npz",
+      "bytes": 429925,
+      "sha256": "9a5ac088228f84b3078af923592064966534a090d5164a31dfb7eaaecbbb0429"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep2-n240-r8.npz",
+      "bytes": 429315,
+      "sha256": "357ede494809fb418be5876bd40580b6cd0e0e79dcaf516d824c71741200498e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r1.npz",
+      "bytes": 431391,
+      "sha256": "f6db5b2dfb8c6ec8dffce4fa20798c8cf5787070b33e390f209037db33aea559"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r16.npz",
+      "bytes": 429552,
+      "sha256": "96d200b3c65f6833659c1d8bfbf4a3cba541df60828833695b8a60a543fab733"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r2.npz",
+      "bytes": 434472,
+      "sha256": "b704159d08177b3ad12b235a9a62d493381a58db1a592595db0873ed452cf374"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r32.npz",
+      "bytes": 429921,
+      "sha256": "6566f55277f2887416420d015e25752983e7fd11c2c41bc0e2c5faa3e202643e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r4.npz",
+      "bytes": 431183,
+      "sha256": "e786a4e5c7aedfd76246fb3833732c113989e0d288bd0ecb827b7d48c79f27ff"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r64.npz",
+      "bytes": 429806,
+      "sha256": "7dd51090e6a7b1875804f463992f8d96c9b43378a6b6d50e5fa0e9c099496f45"
+    },
+    {
+      "path": "summary/inputs/paraboloid-disk-rep3-n240-r8.npz",
+      "bytes": 429355,
+      "sha256": "9af3fb179d16b8dcdbb146690715437464a65229dcb062be92c42393cf7a1388"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r1.npz",
+      "bytes": 431922,
+      "sha256": "7ad75ceee5b36e01d4324ba3081ffc007b4e80abd5b48c02aea709bfcbd9806f"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r16.npz",
+      "bytes": 429235,
+      "sha256": "726d7c557d1d73f46ba4cb531e47d9787673eac2a4a1d451b748fac1cdd1d9fa"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r2.npz",
+      "bytes": 434130,
+      "sha256": "91471d5ff259b5645ff31d4d45d4478936790dee65864a419a9f06bf8fa7c264"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r32.npz",
+      "bytes": 429532,
+      "sha256": "1b3c577c00d767da54b79440a05eb64e79fc42878fad1ca27b68be84cd9d16a3"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r4.npz",
+      "bytes": 430676,
+      "sha256": "5059923d9fef0928e28fc41be88ca369c7ef7c3bf371f401aac3db6cf7de8a52"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r64.npz",
+      "bytes": 429631,
+      "sha256": "175a22a0d971ce27b79592a2d1eef622fe3724b0fefcb421f509eee1250eb666"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n240-r8.npz",
+      "bytes": 428889,
+      "sha256": "fc465a0ef33400991372ccd7489f473a782d0e320dd3c5d9658c516be5fc82d6"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep1-n480-r64.npz",
+      "bytes": 1745609,
+      "sha256": "32aacc571f3b564d18c800c59283bfff1c2652f379304bcbe18c18bd22475a5e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r1.npz",
+      "bytes": 432108,
+      "sha256": "786b051d35b4eeaafdf500ccbfcd90efd64565b68e33824e993ccbb556ba52f3"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r16.npz",
+      "bytes": 429185,
+      "sha256": "3c9fe456f513eb86acf4f9deb11a32d506518ef2389e22edf90f3e43598aaa1c"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r2.npz",
+      "bytes": 434094,
+      "sha256": "6e5753b16da65a3c98edaeb773c2c0c8fb911d75313e3f977e5078f9d83183c2"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r32.npz",
+      "bytes": 429559,
+      "sha256": "267721a52f19565bc1585ce0489403fa1abe6b376072e211fbf0630ce3fcbc3c"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r4.npz",
+      "bytes": 430742,
+      "sha256": "906ba8d16dc9d160968e7e8c5c10abd86e4f0ef4e28bead290171aef593d2e24"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r64.npz",
+      "bytes": 429526,
+      "sha256": "58aefd53b9a97b1b5cc899cb510722f227f2feccb14b938e8359057cdae6a105"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep2-n240-r8.npz",
+      "bytes": 428810,
+      "sha256": "45f79ffcdc1808142cb43b6c605b807868776f497281b41a276b970883f115d8"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r1.npz",
+      "bytes": 431848,
+      "sha256": "bb6e8ca0d4cd2a6d1fd3b0481616c66225c24eb1f1525d6262e1092f0d2015f8"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r16.npz",
+      "bytes": 429223,
+      "sha256": "af4e92a9a3aff9524bf1cc2ea4d6555203788bd67d650d20c7f4489e26fb05ff"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r2.npz",
+      "bytes": 434014,
+      "sha256": "915831be5e1df1b14b102b09156c870030b8701e3afb95089307f82d7a88b97e"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r32.npz",
+      "bytes": 429628,
+      "sha256": "29e741962596824f87c54d4ec9dceec7687af2abaa72215987f8d68d0ee7c7e4"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r4.npz",
+      "bytes": 430709,
+      "sha256": "c69ea3c98626c4baca80f8e6bb0d299648657768b91ec2870fbcb232c9e829a0"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r64.npz",
+      "bytes": 429638,
+      "sha256": "ff1189c3e9571084984eddb8504317404d646eca3272b94b3479a258bad106bc"
+    },
+    {
+      "path": "summary/inputs/paraboloid-surface_area-rep3-n240-r8.npz",
+      "bytes": 428954,
+      "sha256": "a1602e6520a12b6f9608a6517ce68cd128c2a16ee917150491a31f51ce9a5970"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r1.npz",
+      "bytes": 431427,
+      "sha256": "f89133fc6887abe3fd7269809160070b7a32ebcbfc2914b0bed4655a15e1b0f8"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r16.npz",
+      "bytes": 430221,
+      "sha256": "fe60058b07844639832fba2606d6b8dc3b98b395c3bf39e8edc0d92dab346ac8"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r2.npz",
+      "bytes": 434962,
+      "sha256": "612d2c3edea59ee6c8b8b4f790fc0123afc636678b9396f8daaac612b50bbe46"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r32.npz",
+      "bytes": 430470,
+      "sha256": "9c408eba3cc5c08c1b6aeca851059256af3d4b5c805934965bcc41d0de676ae5"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r4.npz",
+      "bytes": 431847,
+      "sha256": "e1ef14c9e41327b227ef862c432750ad988e383b1b79bb90e8be82572ad1d91a"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r64.npz",
+      "bytes": 430390,
+      "sha256": "cbb33fa054387c69dea60ffc9a51de23a6de465767f2e0a883ec497edc4fa2c8"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n240-r8.npz",
+      "bytes": 429855,
+      "sha256": "4516d88e84af3284a9ee7fe41f23c085072b92507f0c1d7833a865a436fa3bdb"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep1-n480-r64.npz",
+      "bytes": 1750057,
+      "sha256": "d46840da11952d470499f386f7cd0cb1c8b31b02a3e773a14e0a2a60c1a00e8e"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r1.npz",
+      "bytes": 431375,
+      "sha256": "38cb9378fba1d2c2e17cc3cc3954741ca56bbad3cf4d67817edae2bc3f4105d5"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r16.npz",
+      "bytes": 430189,
+      "sha256": "6d5473475459300f7c100fc80c6003972c22d4eb6c5f16ee515c6863728b8501"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r2.npz",
+      "bytes": 434934,
+      "sha256": "a38dd35e76e07595cbd1d0fd74827aa53a06c4f51c859e52a1c8421c21bd3e87"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r32.npz",
+      "bytes": 430408,
+      "sha256": "0df5a18b0c2a07591933af9cfc6203433c2fad7b8fced6ba4a1ff060ba8fde4f"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r4.npz",
+      "bytes": 431900,
+      "sha256": "7b8a8be2bcb199d9005902be67eedda55627488f48559678afa52fab4437d537"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r64.npz",
+      "bytes": 430506,
+      "sha256": "b9f10d6fe3e319a5a948baa9faf0277890f5d22629e66aafd3f5491fdfdd79ed"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep2-n240-r8.npz",
+      "bytes": 429908,
+      "sha256": "07f123d2ff37439113f3d0f1911463f1f68dfba4f47ea54bb79997cdfaac7129"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r1.npz",
+      "bytes": 431620,
+      "sha256": "f1b06621113c10bd159519aa552352c0cdbf6c6085c79e69704b2f102d5877d2"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r16.npz",
+      "bytes": 430204,
+      "sha256": "f79ea9912803439126ad0f35a9d98f2c625d952ff9c232b231e8cce2b05fd4db"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r2.npz",
+      "bytes": 435105,
+      "sha256": "75598d2ffcccc035f422c84c71ecd8e2aaebb0522579a724ec131bd64ceaead3"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r32.npz",
+      "bytes": 430373,
+      "sha256": "00941db48b15f3483ebd9a283c3e795bcdeb9ad0661ccab2cdb0b0727d0c3c43"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r4.npz",
+      "bytes": 431981,
+      "sha256": "9e8311a557893b01f1f51b666432f16e03ac9963e5ff40c626a3583d401a9e9d"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r64.npz",
+      "bytes": 430506,
+      "sha256": "a753dfcdca4a9af1848f8fea69b1fb57fc9cd5183cec850f24007df391153601"
+    },
+    {
+      "path": "summary/inputs/saddle-disk-rep3-n240-r8.npz",
+      "bytes": 430047,
+      "sha256": "9c908be9b5e50d5bbe3ce75556df4dfbf754f517c9634aac9d6fb8dc08494167"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r1.npz",
+      "bytes": 431797,
+      "sha256": "9ba1dd8d5047f274f6751faad6d55c054a3a2562c31828db70b7291098cc1b3e"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r16.npz",
+      "bytes": 430162,
+      "sha256": "3619406cf1a8b26b68140f33c0dcc2931373e187fdb32829adbc69cf07cb620e"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r2.npz",
+      "bytes": 434296,
+      "sha256": "01c7c8e1d6c9ccd78afaba3cad218a1ef85e8d45355ccac4a068f7f72d333cd0"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r32.npz",
+      "bytes": 430299,
+      "sha256": "ca42f3653f77a571ca0d3fc60149023f1a1f1c28e338e9c1fd934d741f3944b6"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r4.npz",
+      "bytes": 431332,
+      "sha256": "1152317f92051450e182d091c3be7ea19666c562703446f24e0e65e4a1b4bd03"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r64.npz",
+      "bytes": 430383,
+      "sha256": "66de8e227ea35786797c9c0bce87e05b6ef76fff1621fbb3d4f5bc4cbfaece1e"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n240-r8.npz",
+      "bytes": 429753,
+      "sha256": "389e8974e7b5a9bcced3ec2bb3dae62d2f11bda8aaadf496e1a82b5b9f5908f2"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep1-n480-r64.npz",
+      "bytes": 1749358,
+      "sha256": "f22feada9f8f5fd0364569b80a284358f9ba43bbb2088664f10f0c65596cd9ce"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r1.npz",
+      "bytes": 431620,
+      "sha256": "5a444d74ebc20fd9c56f90adbfbdc54234ddb8a105e243346eb76c4a9207f6b9"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r16.npz",
+      "bytes": 430279,
+      "sha256": "9604a57d6bd3c12e5bc2f6222386b538d774a76d3fdf21bc342c8cd3dc53851c"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r2.npz",
+      "bytes": 434333,
+      "sha256": "ea3815c4f3b819fc766d3c7b6e88f8d53ebbc9175887d154ef74e1a5fc5f7b20"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r32.npz",
+      "bytes": 430425,
+      "sha256": "6adab04a99281b9897bfa11fbfe40c628d1d509c836c2c265673a21158819c12"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r4.npz",
+      "bytes": 431399,
+      "sha256": "189f5d52139ddb6473e161e054c43ebe1ffc9e74fee637159d40ef2df445a59c"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r64.npz",
+      "bytes": 430409,
+      "sha256": "8ac11fb3a49fdb5a945fffeace1d4f48aa3d2e6083ecf79dc06f4663b75721ee"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep2-n240-r8.npz",
+      "bytes": 429686,
+      "sha256": "39602e6de64489df1939060da239ba29709906897efd34a5051e94bd046c7f9f"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r1.npz",
+      "bytes": 432151,
+      "sha256": "6ee5960027c8bb16f82b1978ef8278bfdee98b4bbb1afa480032e97184059ffe"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r16.npz",
+      "bytes": 430207,
+      "sha256": "713c05b761263dfef34986eb27d5685c680b9792839096bf65b4e33418a51b67"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r2.npz",
+      "bytes": 434480,
+      "sha256": "f9159fa34cb2e68a155765b21e1a3fb9c6d1837f24ebdbaabfdbb6ccc1675899"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r32.npz",
+      "bytes": 430328,
+      "sha256": "314c61eac5b82353d51ce37e1951d301868285fd7630dc96b1bc2f97082ed649"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r4.npz",
+      "bytes": 431555,
+      "sha256": "e9718bfe4c722843cb865747b3cc4596865948bf6ed4a396b73683c986225e21"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r64.npz",
+      "bytes": 430468,
+      "sha256": "d72db4b1b471abe91f93f9f469513df2d83038b0d78d6d2ed01b46c4f4849e38"
+    },
+    {
+      "path": "summary/inputs/saddle-surface_area-rep3-n240-r8.npz",
+      "bytes": 429852,
+      "sha256": "85d937833087b216eff54727ff7e816a5bd240c23a092463a45c0445642a9b6d"
+    },
+    {
+      "path": "summary/locality.csv",
+      "bytes": 320040,
+      "sha256": "97b0935a2dc1668ecbfb23405a93458e3bc51051485d32864e811de941e4f782"
+    },
+    {
+      "path": "summary/objective-validation.csv",
+      "bytes": 20727,
+      "sha256": "d943b138ebab62e3b800d2a0472a00768a384bdc7abb1eeac4c18221df722a04"
+    },
+    {
+      "path": "summary/optimizer-sensitivity.csv",
+      "bytes": 229153,
+      "sha256": "f1d76d83b071a3beeae652e91d2e204532c8cb81a93f5437c5e106d1f67a273d"
+    },
+    {
+      "path": "summary/optimizer-status.csv",
+      "bytes": 6430230,
+      "sha256": "c4fb568b98cb08d8a6e9c04eb48d11ae9c2940a8f882f6449f755a242effb940"
+    },
+    {
+      "path": "summary/pilot-objective-validation.csv",
+      "bytes": 2217,
+      "sha256": "7c9b9eb6c9cd04e2c7aa89674b43c04abf5649f96a68b9a89c24843c8e40af2c"
+    },
+    {
+      "path": "summary/pilot-validation.json",
+      "bytes": 431,
+      "sha256": "7bb34046d496697ffc227da8eba73729841e1a974d5523b1872ea6eae24c9e21"
+    },
+    {
+      "path": "summary/render-validation.json",
+      "bytes": 754,
+      "sha256": "39494f39878ca6a9dfe9c52fb53bd6608f89d2513282e90708640e68378277ce"
+    },
+    {
+      "path": "summary/scale-by-radius.csv",
+      "bytes": 73292,
+      "sha256": "018d46cad8cb363e6eba730ba58595350a1067a7d240133b1618b81a30a7353b"
+    },
+    {
+      "path": "summary/scores.csv",
+      "bytes": 7276531,
+      "sha256": "c75b407b7107304c6a615d54113d47e1039cb17efdb4d31455db737fea29513f"
+    },
+    {
+      "path": "summary/size-comparison.csv",
+      "bytes": 66249,
+      "sha256": "ecb0212f4a0f45f4783ab21cc7db2afb9d180351b0cae25a9acc6300d0a82f0f"
+    },
+    {
+      "path": "summary/snapshot-coordinates.csv",
+      "bytes": 5761282,
+      "sha256": "aabd4306d8856727fef47e9332ab371efad1f484c6d2ed448bdb86f368fc7846"
+    },
+    {
+      "path": "summary/starts.csv",
+      "bytes": 780190,
+      "sha256": "5c5d7eec1289b0349a42f8141a43445dd7f01f10360b4547973d8880f5b0a074"
+    },
+    {
+      "path": "summary/timings.csv",
+      "bytes": 108648,
+      "sha256": "a2d4ad5f98f57948fa94649b2abffef4377502acf23dda44841d269192abf323"
+    },
+    {
+      "path": "summary/validation.json",
+      "bytes": 536,
+      "sha256": "c52b1b800c2e177d84de57a03a30bd4efe8da807403ea8e8e40d4429dd2dbd85"
+    },
+    {
+      "path": "validate-geodesics.py",
+      "bytes": 3417,
+      "sha256": "cf8c6b21393ce0c1263a0bf0d9b58726415eeb192f6e6b2e1aa9a8d0fb764fad"
+    },
+    {
+      "path": "verify-coordinates.R",
+      "bytes": 3251,
+      "sha256": "a6eaba31f4aa1ca56b28d7cd4f60a2d697b7ad5362c4b43fb612819be7ed854b"
+    },
+    {
+      "path": "verify-objective.R",
+      "bytes": 1600,
+      "sha256": "6efc34a8dc0ad86490bf520db50bc4d715b487376dcb2e368ecbc6f0e20cc22f"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 3783,
+      "sha256": "292ebb4055358fa4677e2f13b4899193db37cc20295932c1af58ba0f4ede38a6"
+    }
+  ]
+}

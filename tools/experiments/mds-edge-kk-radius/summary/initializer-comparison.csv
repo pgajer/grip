@@ -1,0 +1,17 @@
+surface,sampling,regime,policy,comparisons,stress_lower_path,classical_lower_path,ties,median_path_difference,median_coordinate_difference
+paraboloid,disk,ambient,primary,147,74,39,34,-1.0842970580219101e-08,6.799658851670411e-15
+paraboloid,disk,ambient,fixed_primary,147,67,45,35,-2.1987854131249e-12,6.26280103896327e-15
+paraboloid,disk,geodesic,primary,147,80,56,11,-2.9097455649974846e-07,-2.5336170000542224e-08
+paraboloid,disk,geodesic,fixed_primary,147,63,30,54,-5.7612994236455606e-12,-1.9012569296705806e-14
+paraboloid,surface_area,ambient,primary,147,63,44,40,5.385701430822004e-15,7.64808380689989e-15
+paraboloid,surface_area,ambient,fixed_primary,147,62,44,41,-6.217984190466102e-12,6.6983933500586105e-15
+paraboloid,surface_area,geodesic,primary,147,82,61,4,-4.5898934160001903e-07,-1.6891765849957885e-07
+paraboloid,surface_area,geodesic,fixed_primary,147,54,38,55,0.0,3.885780586188048e-16
+saddle,disk,ambient,primary,147,73,39,35,-8.094569173192051e-09,5.05356355685146e-15
+saddle,disk,ambient,fixed_primary,147,80,34,33,-8.814007105609924e-08,2.732274932897002e-15
+saddle,disk,geodesic,primary,147,78,69,0,-1.5904064030979048e-06,1.3758220166026902e-05
+saddle,disk,geodesic,fixed_primary,147,88,36,23,-5.4063674647004956e-06,-6.487608050775862e-07
+saddle,surface_area,ambient,primary,147,80,30,37,-1.0698224918277603e-07,-5.865349700607093e-11
+saddle,surface_area,ambient,fixed_primary,147,83,27,37,-2.2971301785230128e-07,-1.8419467606681993e-11
+saddle,surface_area,geodesic,primary,147,80,66,1,-3.832406840899999e-06,2.9701178413943374e-05
+saddle,surface_area,geodesic,fixed_primary,147,93,24,30,-1.2530799509200344e-05,1.9350077096191853e-12

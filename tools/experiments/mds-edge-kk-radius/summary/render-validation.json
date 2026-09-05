@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "reviewed_at": "2026-09-05T16:36:44.597554-04:00",
+  "pdf": "report.pdf",
+  "pdf_sha256": "ffe676477ca9eb35575173deea46e75c70247e4795e2dba1765d77d71e6b757f",
+  "pages": 41,
+  "figures": 33,
+  "review": "All pages inspected through rendered contact sheets, with individual-page checks of dense figures and final revised captions.",
+  "checks": [
+    "No clipped or overlapping text or figures observed.",
+    "No LaTeX warnings or overfull boxes in the final build log.",
+    "Spatial plots retain equal physical axis units and common panel limits.",
+    "Independent logarithmic panel ranges are identified in the relevant captions.",
+    "Sampled geodesic discrepancies are distinguished from all-pairs accuracy bounds."
+  ]
+}

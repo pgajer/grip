@@ -23,7 +23,8 @@ def main():
   assert a.rep==1
   extra=np.random.default_rng(20261905);q=np.r_[q,extra.uniform(size=240)];theta=np.r_[theta,extra.uniform(0,2*np.pi,240)]
  assert len(q)==a.n
- old=np.load(REPO/f'output/{a.surface}-mmds-geodesic/embeddings.npz')
+ old_path=REPO/f'output/{a.surface}-mmds-geodesic/embeddings.npz'
+ old=np.load(old_path) if old_path.exists() else None
  solver=HERE.parent/('saddle-mmds-radius/smooth_geodesic.py' if a.surface=='saddle' else 'paraboloid-mmds-radius/geodesic.py')
  solver_hash=hashlib.sha256(solver.read_bytes()).hexdigest()
  previous=None;warm=None
@@ -38,7 +39,7 @@ def main():
    cached=np.load(file);assert str(cached['solver_hash'])==solver_hash and np.array_equal(cached['u'],u)
    d=cached['d'];velocity=cached['velocity'];diag=json.loads(str(cached['diagnostics']))
   else:
-   if a.rep==1 and a.n==240:
+   if a.rep==1 and a.n==240 and old is not None and (a.surface=='paraboloid' or (REPO/f'output/saddle-mmds-geodesic/distance_cache/{a.sampling}_r{r:g}_n240.npz').exists()):
     d=old[f'{a.sampling}_r{r:g}_geodesic'];assert np.allclose(old[f'{a.sampling}_r{r:g}_truth'],truth,rtol=1e-14,atol=1e-14)
     if a.surface=='saddle':
      c=np.load(REPO/f'output/saddle-mmds-geodesic/distance_cache/{a.sampling}_r{r:g}_n240.npz');assert str(c['solver_hash'])==solver_hash
