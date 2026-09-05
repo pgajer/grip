@@ -1,5 +1,8 @@
 # MDS from smooth-paraboloid geodesic distances
 
+For the boundary-antipodal pair, see [ANTIPODAL.md](ANTIPODAL.md). It resolves
+the order-`r` separation that disappears in the order-`r²` line limit below.
+
 Using geodesic distances changes the finite-radius result: 3D MDS does not
 recover the original paraboloid exactly. In this experiment, both classical
 and raw-stress MDS produce approximately paraboloidal shapes that are shallower

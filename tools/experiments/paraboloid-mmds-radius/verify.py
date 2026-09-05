@@ -32,7 +32,7 @@ class Citations(HTMLParser):
 
 
 def main():
-    used = set(re.findall(r"<!-- cite:([\w-]+) -->", '\n'.join((ROOT/p).read_text() for p in ['README.md','GEODESIC.md'])))
+    used = set(re.findall(r"<!-- cite:([\w-]+) -->", '\n'.join((ROOT/p).read_text() for p in ['README.md','GEODESIC.md','ANTIPODAL.md'])))
     bib = set(re.findall(r"@\w+\{([\w-]+),", (ROOT/"references.bib").read_text()))
     evidence = Citations()
     evidence.feed((ROOT/"citation_verification.html").read_text())
@@ -61,7 +61,17 @@ def main():
     assert sum(a['selected']=='True' for a in runs) == 40
     assert manifest['checks']['selected_runs_success']
     assert manifest['checks']['max_ode_endpoint_error_over_radius'] < 1e-7
-    print("Verified: three supported citations, both artifact bundles, 50 geodesic validation pairs, and 60 selected fits.")
+    out = ROOT.parents[2]/'output/paraboloid-mmds-antipodal'
+    manifest = json.loads((out/'manifest.json').read_text())
+    for filename,checksum in manifest['sources'].items():
+        assert hashlib.sha256((ROOT/filename).read_bytes()).hexdigest() == checksum, filename
+    for filename,checksum in manifest['files'].items():
+        assert hashlib.sha256((out/filename).read_bytes()).hexdigest() == checksum, filename
+    finite = list(csv.DictReader((out/'fixed_sample.csv').open()))
+    population = list(csv.DictReader((out/'population_quadrature.csv').open()))
+    assert len(finite)==5 and len(population)==8
+    assert float(finite[-1]['classical_limit_error'])<1e-6
+    print("Verified: three supported citations, all three artifact bundles, geodesic checks, MDS fits, and antipodal asymptotics.")
 
 
 if __name__ == "__main__":
