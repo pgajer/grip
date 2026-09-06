@@ -98,5 +98,6 @@ assert l02 > l03+l32
 checks['fixed_route_triangle_counterexample'] = dict(long_route=float(l02),two_direct_edges=float(l03+l32))
 
 result=dict(status='passed',scope='Algebraic diagnostics and explicit counterexamples; analytic proofs require separate reading.',checks=checks)
-(P/'evidence/mathematics-checks.json').write_text(json.dumps(result,indent=2)+'\n')
+(P/'build/validation').mkdir(parents=True, exist_ok=True)
+(P/'build/validation/mathematics-checks.json').write_text(json.dumps(result,indent=2)+'\n')
 print(f'All {len(checks)} algebra/counterexample checks passed.')

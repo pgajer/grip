@@ -106,7 +106,11 @@ figure generation and numerical checks.
         'files': {name: {'sha256': digest(out/name), 'bytes': (out/name).stat().st_size}
                   for name in ['geodesic_mds.pdf', 'typesetting-source.zip', 'evidence-reproduction.zip']},
         'typesetting_inputs': len(typesetting),
-        'reproduction_inputs': len(reproduction)
+        'reproduction_inputs': len(reproduction),
+        'build_inputs': built,
+        'python_environment': {'executable': __import__('sys').executable,
+            'numpy': __import__('numpy').__version__, 'pandas': __import__('pandas').__version__,
+            'matplotlib': __import__('matplotlib').__version__}
     }
     (out/'artifact-manifest.json').write_text(json.dumps(provenance, indent=2)+'\n')
     (out/'README.md').write_text('''# Graph-geodesic methods paper: author-review package
@@ -120,12 +124,13 @@ initializer and radius studies, with their experimental designs kept separate.
 - `evidence-reproduction.zip`: active source, figure builders, validation
   scripts, citation-support HTML, frozen numerical exports and provenance.
   Requires Python with NumPy, pandas and Matplotlib, zsh, and latexmk. Extract,
-  run `make verify`, then `make pdf`. Set LATEXMK if needed.
+  run `make verify`, then `make pdf`. To regenerate figures explicitly, run
+  `make figures` first. Set PYTHON and LATEXMK if needed.
 - `artifact-manifest.json`: paper commit, branch, input counts and SHA-256 hashes.
   Each source archive also has `bundle-files.json` with per-input hashes.
 
-The reproduction archive regenerates the figures and checks selected claims
-from saved evidence. It does not rerun the original MDS/geodesic/edge-KK fits.
+The reproduction archive supplies explicit figure regeneration and checks selected
+claims from saved evidence. Ordinary PDF builds use the frozen figure assets. It does not rerun the original MDS/geodesic/edge-KK fits.
 Their pinned source paths and commits are in the evidence provenance records.
 The original study documents are preserved as source records; their relative
 links refer to the source study trees and are not a complete mirror here.

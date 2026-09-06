@@ -34,8 +34,8 @@ Do not describe it as submission-ready.
 From this directory:
 
 ```sh
-make pdf
 make verify
+make pdf
 ```
 
 Figure generation requires Python with NumPy, pandas and Matplotlib. The PDF
@@ -96,3 +96,16 @@ and current commit. `build/` is disposable; it never contains unique manuscripts
 From the grip root use `make gmds-paper-pdf`, `make gmds-paper-verify`, or
 `make gmds-paper-review-bundle`. These targets use frozen evidence without
 requiring the old geodesicMDS checkout or private working files.
+
+## Frozen assets and regeneration
+
+`make pdf` typesets the committed figure/table assets. `make verify` independently
+checks frozen exports and writes transient diagnostic results only to
+`build/validation/`. It does not rewrite scientific evidence.
+
+Use `make figures` explicitly to regenerate figures, tables and component exports
+from frozen coordinates and scores. Review and commit those generated changes
+before making a review bundle. Different NumPy/BLAS/Matplotlib environments may
+change insignificant roundoff and image metadata; byte identity across arbitrary
+environments is not asserted. All numerical comparisons use stated tolerances.
+Set `PYTHON=/path/to/python3` to choose the environment.

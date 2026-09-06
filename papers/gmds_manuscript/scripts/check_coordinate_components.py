@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Reconstruct component errors after ONE similarity fit, and local rigidity ranks."""
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -63,9 +64,24 @@ for case, group in data.groupby("case"):
         rigidity.append(dict(case=case, edges=len(edges), rank=rank, tolerance=tolerance,
             smallest_nongauge_singular_value=s[3*n-7], largest_gauge_singular_value=s[3*n-6]))
 result = pd.DataFrame(records)
-result.to_csv(E/"component-errors.csv", index=False, float_format="%.12g")
-result[result.method.eq("stress_fixed_primary")].groupby(["surface", "regime"])[
-    ["coordinate_error", "horizontal_error", "vertical_error", "height_only_error"]].median().to_csv(
-    E/"component-medians.csv", float_format="%.12g")
-pd.DataFrame(rigidity).to_csv(E/"rigidity.csv", index=False, float_format="%.12g")
+medians = result[result.method.eq("stress_fixed_primary")].groupby(["surface", "regime"])[
+    ["coordinate_error", "horizontal_error", "vertical_error", "height_only_error"]].median().reset_index()
+frames = {"component-errors.csv": result, "component-medians.csv": medians,
+          "rigidity.csv": pd.DataFrame(rigidity)}
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--refresh', action='store_true', help='Explicitly replace the frozen diagnostic exports')
+args = parser.parse_args()
+for name, actual in frames.items():
+    saved = pd.read_csv(E/name)
+    assert list(actual.columns) == list(saved.columns) and actual.shape == saved.shape, name
+    for col in actual:
+        if pd.api.types.is_numeric_dtype(actual[col]):
+            # Export rounding and BLAS roundoff differ across environments; rank and
+            # scientific errors are checked, without requiring identical zero residuals.
+            assert np.allclose(actual[col], saved[col], rtol=1e-9, atol=1e-10), (name, col)
+        else:
+            assert actual[col].equals(saved[col]), (name, col)
+    out = E if args.refresh else P/'build/validation/coordinate-components'
+    out.mkdir(parents=True, exist_ok=True)
+    actual.to_csv(out/name, index=False, float_format="%.12g")
 print("Verified 24 globally aligned coordinate diagnostics and three rank-714 ambient saddle frameworks.")
