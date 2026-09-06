@@ -1,0 +1,41 @@
+[
+  {
+    "directory": "methods-paper-audit-revision-2026-09-06",
+    "files": {
+      "evidence-reproduction.zip": "bb1b870931ed07fed007f59caae66bd05db859695e3a7fab8adae75271987e06",
+      "geodesic_mds.pdf": "836d09e59a442d1fa9b0f94572e12bf4a89cc2a29c8988ed60d343bd49f72e35",
+      "typesetting-source.zip": "1f09d402929ec72f3a7614f0de79529c9d38f708b6efddf4e4402006857eb679"
+    }
+  },
+  {
+    "directory": "methods-paper-graph-motivation-2026-09-06",
+    "files": {
+      "evidence-reproduction.zip": "4090e58b4203aeb4db746790a543ad11f4614d9843e16459f432c72d8d6a55c2",
+      "geodesic_mds.pdf": "e805afa8680c7aba204610f913ca8f61cd7077b0bfc304cf8f58c3b6f4037b1c",
+      "typesetting-source.zip": "e7b8df055cea01e5c26f9fb71ba3942807e85bdb2bcf65b2b92b2fc7419369a1"
+    }
+  },
+  {
+    "directory": "methods-paper-narrative-2026-09-06",
+    "files": {
+      "evidence-reproduction.zip": "0a7345865173c7aee7f0881d39383f36d92779792a5aa8d6f86b61dd07a45011",
+      "geodesic_mds.pdf": "06a7b21f04299a2da1ad6404dc84e93b84df07852535c28f30a423c3a03bf316",
+      "typesetting-source.zip": "5a57b939948083163320de86a4b4c62fa1a0b05095410796debd1ff8cb9762ea"
+    }
+  },
+  {
+    "directory": "methods-paper-review-2026-09-06",
+    "files": {
+      "evidence-reproduction.zip": "703b99d5be18cce4d8ad8e20c334cd4429e0d4bc5c5caaff4928b78b330fbb09",
+      "geodesic_mds.pdf": "207c495f6213f3dc91f2f53b22150a665f9b9706a42d9bccb1a24ea1bf85aaef",
+      "typesetting-source.zip": "d1ccc10b7c46e35d40ef123e7cab6b1f305f9718716fde29de014addca34f44e"
+    }
+  },
+  {
+    "directory": "methods-paper-style-revision-2026-09-06",
+    "files": {
+      "geodesic_mds.pdf": "7ca2b5a61410e7a3667b63befd409a051ab02044b62f9b03f748ff2c5f187361",
+      "typesetting-source.zip": "c9e9bea2288dabd070cfab7ab0483c61535ec9a1da7b8218639c8b1d85508125"
+    }
+  }
+]

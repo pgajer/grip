@@ -1,0 +1,229 @@
+schema:
+  purpose: "Source manifest for H005 conductance/kernel graph-Laplacian literature review."
+  access_date: "2026-05-15"
+  canonical_reading_copy_values:
+    - true
+    - false
+  required_fields:
+    - id
+    - tier
+    - citation_key
+    - title
+    - authors
+    - year
+    - original_url
+    - doi
+    - arxiv_id
+    - local_path
+    - access_date
+    - canonical_reading_copy
+    - sha256
+    - pages
+    - notes
+  evidence_labels:
+    - explicit
+    - derived
+    - contextual
+    - uncertain
+  figure_policy: >
+    Internal paper-review memos may include copied paper figures only when the
+    figure materially helps explain the paper's method, theory, experiment, or
+    conductance/kernel choice. Every copied figure must be labeled as reproduced
+    from the reviewed paper, with citation, figure number, page or section
+    reference, and a short explanation of why it is included. Reviewers are
+    encouraged to create original explanatory figures from equations or concepts
+    on toy examples when that better serves a mathematically capable
+    non-specialist reader.
+
+papers:
+  - id: "P01"
+    tier: "Tier 1"
+    citation_key: "zelnikmanor2004selftuning"
+    title: "Self-Tuning Spectral Clustering"
+    authors: "Zelnik-Manor, Lihi; Perona, Pietro"
+    year: 2004
+    original_url: "https://papers.neurips.cc/paper/2619-self-tuning-spectral-clustering.pdf"
+    doi: null
+    arxiv_id: null
+    local_path: "sources/pdf/P01_zelnik_manor_perona_self_tuning_spectral_clustering.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "6c301a6b8bb3d514d051107d437704c30f15ff3732f76e149b1930690e899b59"
+    pages: 8
+    focus: "local-scale Gaussian kernel and self-tuned spectral clustering"
+    notes: "NeurIPS PDF cached as the canonical reading copy."
+
+  - id: "P02"
+    tier: "Tier 1"
+    citation_key: "belkin2001laplacian"
+    title: "Laplacian Eigenmaps and Spectral Techniques for Embedding and Clustering"
+    authors: "Belkin, Mikhail; Niyogi, Partha"
+    year: 2001
+    original_url: "https://papers.nips.cc/paper_files/paper/2001/file/f106b7f99d2cb30c3db1c3cc0fde9ccb-Paper.pdf"
+    doi: null
+    arxiv_id: null
+    local_path: "sources/pdf/P02_belkin_niyogi_laplacian_eigenmaps.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "aba984615a8fdb028aaea6f7b1716d4252838b42538457d03678a5ce8c1132a0"
+    pages: 7
+    focus: "heat-kernel weights, Laplacian eigenmaps, embedding and clustering"
+    notes: "NeurIPS PDF cached as the canonical reading copy."
+
+  - id: "P03"
+    tier: "Tier 1"
+    citation_key: "coifman2006diffusion"
+    title: "Diffusion Maps"
+    authors: "Coifman, Ronald R.; Lafon, Stephane"
+    year: 2006
+    original_url: "https://internetanalysisseminar.wustl.edu/~victor/classes/pmf/Lafon06.pdf"
+    doi: "10.1016/j.acha.2006.04.006"
+    arxiv_id: null
+    local_path: "sources/pdf/P03_coifman_lafon_diffusion_maps.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "1a2872909fa227183c93078b822f2746627d6898f9cef6393f22dcd24c9726f7"
+    pages: 26
+    focus: "diffusion operators, Markov normalization, density normalization, diffusion geometry"
+    notes: "Open PDF cached; DOI appears in PDF metadata."
+
+  - id: "P04"
+    tier: "Tier 1"
+    citation_key: "berry2016variable"
+    title: "Variable Bandwidth Diffusion Kernels"
+    authors: "Berry, Tyrus; Harlim, John"
+    year: 2016
+    original_url: "https://arxiv.org/pdf/1406.5064"
+    doi: "10.1016/j.acha.2015.01.001"
+    arxiv_id: "1406.5064"
+    local_path: "sources/pdf/P04_berry_harlim_variable_bandwidth_diffusion_kernels.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "f214717097b310b88371926c3ccb7258307ae7483a70f6f4e921921b9bc7b21d"
+    pages: 26
+    focus: "variable bandwidth kernels, density correction, continuum limits"
+    notes: "arXiv PDF cached as canonical reading copy for review."
+
+  - id: "P05"
+    tier: "Tier 1"
+    citation_key: "zhu2003semisupervised"
+    title: "Semi-Supervised Learning Using Gaussian Fields and Harmonic Functions"
+    authors: "Zhu, Xiaojin; Ghahramani, Zoubin; Lafferty, John"
+    year: 2003
+    original_url: "https://cdn.aaai.org/ICML/2003/ICML03-118.pdf"
+    doi: null
+    arxiv_id: null
+    local_path: "sources/pdf/P05_zhu_ghahramani_lafferty_gaussian_fields_harmonic_functions.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "fe5394f834acb2afe704c4d95f16ea0ec176de12870b9d411289fd7cbad4b201"
+    pages: 8
+    focus: "graph weights, harmonic functions, semi-supervised graph regression"
+    notes: "Original CMU aladdin host did not resolve; AAAI/ICML PDF cached."
+
+  - id: "P06"
+    tier: "Tier 1"
+    citation_key: "belkin2006manifold"
+    title: "Manifold Regularization: A Geometric Framework for Learning from Labeled and Unlabeled Examples"
+    authors: "Belkin, Mikhail; Niyogi, Partha; Sindhwani, Vikas"
+    year: 2006
+    original_url: "https://www.jmlr.org/papers/volume7/belkin06a/belkin06a.pdf"
+    doi: null
+    arxiv_id: null
+    local_path: "sources/pdf/P06_belkin_niyogi_sindhwani_manifold_regularization.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "f83f892575a6596aa587e3eddce1b7600f58e2eb9cad4e11ef141d3e8092efc6"
+    pages: 36
+    focus: "graph Laplacian regularization, graph weights in semi-supervised learning"
+    notes: "JMLR PDF cached as canonical reading copy."
+
+  - id: "P07"
+    tier: "Tier 1"
+    citation_key: "shuman2013emerging"
+    title: "The Emerging Field of Signal Processing on Graphs"
+    authors: "Shuman, David I.; Narang, Sunil K.; Frossard, Pascal; Ortega, Antonio; Vandergheynst, Pierre"
+    year: 2013
+    original_url: "https://arxiv.org/pdf/1211.0053"
+    doi: "10.1109/MSP.2012.2235192"
+    arxiv_id: "1211.0053"
+    local_path: "sources/pdf/P07_shuman_et_al_emerging_field_gsp.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "8700aa3efea85f5024a39588c842e7445a5db04396105e63294e2de2ef8361f5"
+    pages: 14
+    focus: "graph Fourier basis, graph filters, low-pass smoothing"
+    notes: "arXiv PDF cached as canonical reading copy."
+
+  - id: "P08"
+    tier: "Tier 1"
+    citation_key: "hein2007graph"
+    title: "Graph Laplacians and their Convergence on Random Neighborhood Graphs"
+    authors: "Hein, Matthias; Audibert, Jean-Yves; von Luxburg, Ulrike"
+    year: 2007
+    original_url: "https://www.jmlr.org/papers/volume8/hein07a/hein07a.pdf"
+    doi: null
+    arxiv_id: null
+    local_path: "sources/pdf/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "f053f7ec4e4abfc9efc37077c39efd1371e5a47836cd7805b55fec6cc87f6bd2"
+    pages: 44
+    focus: "random neighborhood graph Laplacian convergence, bandwidth and normalization theory"
+    notes: "JMLR PDF cached as canonical reading copy."
+
+  - id: "P09"
+    tier: "Tier 1"
+    citation_key: "belkin2008towards"
+    title: "Towards a Theoretical Foundation for Laplacian-Based Manifold Methods"
+    authors: "Belkin, Mikhail; Niyogi, Partha"
+    year: 2008
+    original_url: "https://misha.belkin-wang.org/papers/TT_JCSS_08.pdf"
+    doi: "10.1016/j.jcss.2007.08.006"
+    arxiv_id: null
+    local_path: "sources/pdf/P09_belkin_niyogi_theoretical_foundation_laplacian_manifold_methods.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "b9e24cc13c6ae9ae7077c415c8ae0e6bbb3b0c6761cc2ae3ed5fd983d571a650"
+    pages: 29
+    focus: "theoretical foundation for Laplacian-based manifold methods"
+    notes: "Author-hosted PDF cached as canonical reading copy."
+
+  - id: "P10"
+    tier: "Tier 1"
+    citation_key: "cheng2022knn"
+    title: "Convergence of Graph Laplacian with kNN Self-tuned Kernels"
+    authors: "Cheng, Xiuyuan; Wu, Hau-Tieng"
+    year: 2022
+    original_url: "https://arxiv.org/pdf/2011.01479"
+    doi: "10.1093/imaiai/iaab019"
+    arxiv_id: "2011.01479"
+    local_path: "sources/pdf/P10_cheng_wu_knn_self_tuned_kernels.pdf"
+    access_date: "2026-05-15"
+    canonical_reading_copy: true
+    sha256: "f55453f5abfd2df65a7727c5acce4aa1a4f35658890402107a0fa32fdd341a5c"
+    pages: 60
+    focus: "kNN self-tuned kernels, adaptive bandwidth, graph Laplacian convergence"
+    notes: "arXiv PDF cached as canonical reading copy."
+
+tier2_candidates:
+  - id: "T01"
+    title: "Consistency of Spectral Clustering"
+    authors: "von Luxburg, Ulrike; Belkin, Mikhail; Bousquet, Olivier"
+    reason: "spectral convergence and clustering consistency background"
+  - id: "T02"
+    title: "From graph to manifold Laplacian: The convergence rate"
+    authors: "Singer, Amit"
+    reason: "point-cloud Laplace-Beltrami convergence rates"
+  - id: "T03"
+    title: "Kernels and Regularization on Graphs"
+    authors: "Smola, Alexander J.; Kondor, Risi"
+    reason: "graph kernels and regularization perspective"
+  - id: "T04"
+    title: "Wavelets on Graphs via Spectral Graph Theory"
+    authors: "Hammond, David K.; Vandergheynst, Pierre; Gribonval, Remi"
+    reason: "spectral graph filters and scale interpretation"
+  - id: "T05"
+    title: "Spectral Graph Theory"
+    authors: "Chung, Fan R. K."
+    reason: "standard conductance/Laplacian reference for definitions"

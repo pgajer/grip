@@ -1,0 +1,757 @@
+metadata:
+  title: "SIMODS Figure/Table Readiness Registry"
+  version: 1
+  updated: "2026-05-15"
+  description: >
+    Source registry for candidate and needed figures, tables, interactives, and
+    planned visual assets for the SIMODS manuscript. Generated HTML should be
+    rebuilt with scripts/build_figure_table_readiness_board.py.
+
+schema:
+  allowed_kinds: ["figure", "table", "interactive", "planned"]
+  allowed_statuses:
+    - "ready"
+    - "usable_with_edits"
+    - "needs_redraw"
+    - "needs_distillation"
+    - "needed"
+    - "supplement_only"
+    - "background_only"
+    - "deprecated"
+  allowed_main_or_supplement:
+    - "main"
+    - "supplement"
+    - "background"
+    - "internal"
+
+records:
+  - id: F001
+    title: "Geodesic MDS workflow"
+    kind: "figure"
+    status: "needs_redraw"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R001", "R002"]
+    supported_claim_ids: ["C004", "C011"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_mds_workflow.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py"
+    build_command: "python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py"
+    readiness_note: "Good GMDS-internal schematic, but the SIMODS paper needs the data-graph layer added upstream."
+    action_needed: "Redraw as part of an integrated data-to-graph-to-GMDS pipeline figure or keep as a GMDS subpanel."
+    owner_role: "Report Agent / Figure Curator"
+    caveats:
+      - "Current figure was designed for the narrower GMDS manuscript."
+
+  - id: F002
+    title: "Geodesic stress definition schematic"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R001", "R002"]
+    supported_claim_ids: ["C004", "C005"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_stress_definition.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py"
+    build_command: "python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py"
+    readiness_note: "Strong explanatory figure for fixed graph paths and embedded path lengths."
+    action_needed: "Retitle and align notation with final SIMODS symbols."
+    owner_role: "Methods/Theory Agent / Figure Curator"
+    caveats:
+      - "Must avoid duplicating the edge-isometry proposition figure if one is created."
+
+  - id: F003
+    title: "Star bias motivation example"
+    kind: "figure"
+    status: "background_only"
+    manuscript_section: "Related Work"
+    main_or_supplement: "background"
+    source_resource_ids: ["R001"]
+    supported_claim_ids: ["C004"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_star_bias.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py"
+    build_command: "python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py"
+    readiness_note: "Useful motivation for output-side path fidelity but probably too narrow for the main SIMODS arc."
+    action_needed: "Use only if the introduction needs a compact GMDS motivation example."
+    owner_role: "Report Agent"
+    caveats:
+      - "May distract from the data-geodesic reconstruction story."
+
+  - id: F004
+    title: "Neighborhood k regimes"
+    kind: "figure"
+    status: "background_only"
+    manuscript_section: "Related Work"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R001", "R007"]
+    supported_claim_ids: ["C003"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_k_regimes.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py"
+    build_command: "python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py"
+    readiness_note: "Explains graph scale qualitatively."
+    action_needed: "Use as supplement/background unless a compact graph-scale panel is needed."
+    owner_role: "Report Agent"
+    caveats:
+      - "Not tied to the current quadform benchmark evidence."
+
+  - id: F005
+    title: "edge-KK objective and gradient parity"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R004"]
+    supported_claim_ids: ["C012"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/objective_gradient_parity.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex"
+    build_command: null
+    readiness_note: "Directly supports the edge-KK/quadratic-barrier equivalence claim."
+    action_needed: "Distill or redraw as a cleaner proposition-support figure if used in main text."
+    owner_role: "Methods/Theory Agent / Figure Curator"
+    caveats:
+      - "Notation must be synchronized with the manuscript."
+
+  - id: F006
+    title: "Per-edge term parity"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R004"]
+    supported_claim_ids: ["C012"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/per_edge_term_parity.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex"
+    build_command: null
+    readiness_note: "Useful as supplemental validation for the equivalence."
+    action_needed: "Keep as supplemental evidence unless a detailed equivalence appendix is written."
+    owner_role: "Methods/Theory Agent"
+    caveats:
+      - "Too fine-grained for the main narrative."
+
+  - id: F007
+    title: "Graph construction rules on nonuniform circle"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R007"]
+    supported_claim_ids: ["C003"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/construction_rules_nonuniform_circle.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Strong existing visual for graph support families."
+    action_needed: "Simplify labels and align graph-family set with final main-text scope."
+    owner_role: "Report Agent / Figure Curator"
+    caveats:
+      - "Circle example is pedagogical, not the main surface benchmark."
+
+  - id: F008
+    title: "Component-MST repair diagram"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R007"]
+    supported_claim_ids: ["C003"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/component_mst_repair_diagram.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Clear repair concept diagram, useful if connectivity repair is explained."
+    action_needed: "Use in methods or supplement after deciding how much repair detail belongs in main text."
+    owner_role: "Report Agent"
+    caveats:
+      - "Component repair is supporting machinery, not a headline result."
+
+  - id: F009
+    title: "Local geodesic pruning diagram"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R007", "R011"]
+    supported_claim_ids: ["C008"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/local_geodesic_pruning_diagram.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Good conceptual pruning schematic."
+    action_needed: "Keep supplemental unless pruning is elevated in the manuscript."
+    owner_role: "Report Agent"
+    caveats:
+      - "Pruning currently appears secondary."
+
+  - id: F010
+    title: "Quadratic graph surface examples"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R007", "R009", "R010"]
+    supported_claim_ids: ["C006", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/quadform_surface_examples.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Useful visual introduction to the controlled surface benchmark family."
+    action_needed: "Update captions and pair with benchmark performance panels."
+    owner_role: "Report Agent / Figure Curator"
+    caveats:
+      - "May need recoloring/resizing for SIAM-style multi-panel layout."
+
+  - id: F011
+    title: "2D surface-target family performance"
+    kind: "figure"
+    status: "needs_distillation"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R009"]
+    supported_claim_ids: ["C006", "C007", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_method_performance.png"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/surface_method_performance.png"
+    build_command: null
+    readiness_note: "Likely one of the highest-value main-text result panels."
+    action_needed: "Distill to a manuscript-ready figure with exact metric definitions and selected families."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "Needs exact provenance table and final family selection."
+
+  - id: F012
+    title: "cKNN parameter dependence"
+    kind: "figure"
+    status: "needs_distillation"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R009"]
+    supported_claim_ids: ["C006"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_cknn_parameters.png"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/cknn_error_by_parameters.png"
+    build_command: null
+    readiness_note: "Supports cKNN parameter-selection discussion."
+    action_needed: "Merge with adaptive-radius parameter panel or move to supplement."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "May be too detailed for main text unless compressed."
+
+  - id: F013
+    title: "Curvature-tier family performance"
+    kind: "figure"
+    status: "needs_distillation"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R010"]
+    supported_claim_ids: ["C006", "C007"]
+    rendered_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark/runs/full/report/figures/family_performance_by_curvature.png"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark"
+    build_command: null
+    readiness_note: "Best current curvature-dependence candidate."
+    action_needed: "Extract final family-level conclusions and decide whether it is main or supplement."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "Must distinguish oracle and non-oracle settings."
+
+  - id: F014
+    title: "Residual-regime diagnostic schematic"
+    kind: "figure"
+    status: "usable_with_edits"
+    manuscript_section: "Diagnostics"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R008"]
+    supported_claim_ids: ["C003", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/residual_regime_schematic.pdf"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex"
+    build_command: null
+    readiness_note: "Clear diagnostic vocabulary figure for local/mid/long residual regimes."
+    action_needed: "Align terminology with final graph-reconstruction diagnostic set."
+    owner_role: "Methods/Theory Agent / Figure Curator"
+    caveats:
+      - "Avoid overlap with GMDS diagnostic definitions."
+
+  - id: F015
+    title: "Path-level diagnostic schematic"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Diagnostics"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R008"]
+    supported_claim_ids: ["C003", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/path_level_schematic.pdf"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex"
+    build_command: null
+    readiness_note: "Useful technical diagnostic schematic."
+    action_needed: "Use as supplement if path-level residual diagnostics are described."
+    owner_role: "Methods/Theory Agent"
+    caveats:
+      - "May be too detailed for the main paper."
+
+  - id: F016
+    title: "Graph diagnostics benchmark summary"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Diagnostics"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R008"]
+    supported_claim_ids: ["C006", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/benchmark_summary.pdf"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex"
+    build_command: null
+    readiness_note: "Summarizes available diagnostic benchmarks."
+    action_needed: "Use as supporting supplement or redraw as part of a final benchmark dashboard figure."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Diagnostic report predates final manuscript figure selection."
+
+  - id: F017
+    title: "Quadform initialization sensitivity summary"
+    kind: "figure"
+    status: "needs_distillation"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R014"]
+    supported_claim_ids: ["C011", "C013"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_sensitivity_summary.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/quadform-curvature-initialization-sensitivity/implementation_plan.md"
+    build_command: null
+    readiness_note: "Strong candidate for comparing weighted GRIP and metric-MDS initializations."
+    action_needed: "Locate exact result tables/scripts and make a manuscript-ready multi-panel figure."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "Current registry already flags need for provenance check."
+
+  - id: F018
+    title: "Quadform initialization timing/runtime"
+    kind: "figure"
+    status: "needs_distillation"
+    manuscript_section: "Scaling Experiments"
+    main_or_supplement: "main"
+    source_resource_ids: ["R014"]
+    supported_claim_ids: ["C013"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_runtime.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_summary.csv"
+    build_command: null
+    readiness_note: "Candidate timing evidence for the scalable initialization claim."
+    action_needed: "Repackage with hardware/context notes and final algorithm labels."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "Needs exact run provenance before final numerical use."
+
+  - id: F019
+    title: "MISF-GMDS irregular-stage trace"
+    kind: "figure"
+    status: "background_only"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R001", "R002"]
+    supported_claim_ids: ["C011"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_misf_stages_irregular_rectangle_15x15.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R"
+    build_command: "Rscript /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R"
+    readiness_note: "Useful history for MISF-GMDS but not central to current edge-KK story."
+    action_needed: "Keep as background/supplement unless MISF-GMDS is revived in main text."
+    owner_role: "Report Agent"
+    caveats:
+      - "Large stage trace may be visually busy."
+
+  - id: F020
+    title: "Current implementation summary"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Reproducibility / Software"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R001", "R002", "R019"]
+    supported_claim_ids: ["C019"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_current_implementation_summary.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py"
+    build_command: "python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py"
+    readiness_note: "Existing software-oriented diagram."
+    action_needed: "Update or replace with cross-package SIMODS ownership map."
+    owner_role: "Report Agent / Provenance-Librarian"
+    caveats:
+      - "Current diagram may not reflect latest package split."
+
+  - id: F021
+    title: "3D Delaunay reference convergence"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R028"]
+    supported_claim_ids: ["C010"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_reference_convergence.png"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html"
+    build_command: null
+    readiness_note: "Supports 3D reference readiness."
+    action_needed: "Use in supplement if 3D reference methodology is included."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Not a final 3D benchmark result."
+
+  - id: F022
+    title: "3D Delaunay stress reference convergence"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R012"]
+    supported_claim_ids: ["C010"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_stress_reference_convergence.png"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html"
+    build_command: null
+    readiness_note: "Supports Delaunay reference stress-test discussion."
+    action_needed: "Keep supplement unless 3D oracle work becomes central."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Boundary/high-anisotropy interpretation requires care."
+
+  - id: F023
+    title: "Density-aware oracle sensitivity"
+    kind: "figure"
+    status: "background_only"
+    manuscript_section: "Discussion"
+    main_or_supplement: "background"
+    source_resource_ids: ["R025"]
+    supported_claim_ids: ["C018"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/density_oracle_sensitivity.png"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md"
+    build_command: null
+    readiness_note: "Background for density-aware targets, not current main target."
+    action_needed: "Do not use unless the manuscript adds a density-aware or real-data case study."
+    owner_role: "Report Agent"
+    caveats:
+      - "Different target than current surface-geodesic benchmark lane."
+
+  - id: F024
+    title: "Repulsive unfolding spread-edge tradeoff"
+    kind: "figure"
+    status: "background_only"
+    manuscript_section: "Discussion"
+    main_or_supplement: "background"
+    source_resource_ids: ["R033"]
+    supported_claim_ids: ["C014"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/figures/spread_edge_tradeoff.png"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.tex"
+    build_command: null
+    readiness_note: "Useful background for why repulsive unfolding is not the current headline method."
+    action_needed: "Use only in discussion/future work."
+    owner_role: "Report Agent"
+    caveats:
+      - "Exploratory method lane."
+
+  - id: F025
+    title: "Kernel Gram-gKK median surface stress"
+    kind: "figure"
+    status: "deprecated"
+    manuscript_section: "Discussion"
+    main_or_supplement: "background"
+    source_resource_ids: ["R031"]
+    supported_claim_ids: ["C014"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/figures/median_surface_stress_by_method.png"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.tex"
+    build_command: null
+    readiness_note: "Negative/secondary evidence against making Gram-gKK central."
+    action_needed: "Archive unless requested for method-ablation supplement."
+    owner_role: "Report Agent"
+    caveats:
+      - "Resource is classified archive/deprecated."
+
+  - id: F026
+    title: "Data graph construction failure modes"
+    kind: "figure"
+    status: "supplement_only"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R007"]
+    supported_claim_ids: ["C003"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/failure_mode_examples.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Useful supplement visual for graph construction pathologies."
+    action_needed: "Use only if failure modes are discussed explicitly."
+    owner_role: "Report Agent"
+    caveats:
+      - "May broaden manuscript scope."
+
+  - id: T001
+    title: "2D surface family medians"
+    kind: "table"
+    status: "needs_distillation"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R009"]
+    supported_claim_ids: ["C006", "C007", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_family_medians.tex"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark"
+    build_command: null
+    readiness_note: "Most direct table candidate for headline graph-family ordering."
+    action_needed: "Distill into a compact main-text table or merge into the main benchmark figure."
+    owner_role: "Experiment Engineer / Report Agent"
+    caveats:
+      - "Needs exact metric definitions in caption."
+
+  - id: T002
+    title: "2D surface best settings by size"
+    kind: "table"
+    status: "needs_distillation"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R009"]
+    supported_claim_ids: ["C006", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_best_by_size.tex"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark"
+    build_command: null
+    readiness_note: "Useful for parameter-region reporting."
+    action_needed: "Shorten to selected families and final benchmark metrics."
+    owner_role: "Experiment Engineer / Report Agent"
+    caveats:
+      - "May be too dense for main text."
+
+  - id: T003
+    title: "Pruning method summary"
+    kind: "table"
+    status: "supplement_only"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R011", "R027"]
+    supported_claim_ids: ["C008"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/pruning_method_summary.tex"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark/index.html"
+    build_command: null
+    readiness_note: "Supplement table for pruning as sparsification."
+    action_needed: "Use if pruning is mentioned; avoid main-text overload."
+    owner_role: "Report Agent"
+    caveats:
+      - "Uses a benchmark family outside the main quadform surface-target lane."
+
+  - id: T004
+    title: "Graph diagnostic benchmark summary table"
+    kind: "table"
+    status: "supplement_only"
+    manuscript_section: "Diagnostics"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R008"]
+    supported_claim_ids: ["C006", "C009"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/quadform-benchmarks/geodesic-isometry-diagnostics-report/build/benchmark_summary_table.tex"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex"
+    build_command: null
+    readiness_note: "Supports diagnostic report summary."
+    action_needed: "Use only if the diagnostics section needs a compact supplement table."
+    owner_role: "Methods/Theory Agent"
+    caveats:
+      - "Table is tied to the diagnostics report rather than final benchmark package."
+
+  - id: T005
+    title: "3D Delaunay reference summary"
+    kind: "table"
+    status: "supplement_only"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R028"]
+    supported_claim_ids: ["C010"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/delaunay_reference_summary.tex"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html"
+    build_command: null
+    readiness_note: "Reference-oracle readiness summary."
+    action_needed: "Use in supplement if 3D reference construction is described."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Not a main result unless 3D benchmark scope expands."
+
+  - id: T006
+    title: "3D factor-4 sentinel summary"
+    kind: "table"
+    status: "supplement_only"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R013"]
+    supported_claim_ids: ["C010"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/factor4_sentinel_summary.tex"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md"
+    build_command: null
+    readiness_note: "Supports the provisional factor-4 reference edge-filter recommendation."
+    action_needed: "Use as provenance rather than main prose."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Reference-oracle engineering detail."
+
+  - id: T007
+    title: "3D smoke benchmark family medians"
+    kind: "table"
+    status: "supplement_only"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R006", "R029"]
+    supported_claim_ids: ["C010"]
+    rendered_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/smoke3d_family_medians.tex"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark/report/quadform_3d_smoke_benchmark_report.html"
+    build_command: null
+    readiness_note: "Small 3D smoke benchmark summary."
+    action_needed: "Keep supplement/background unless a full 3D benchmark is approved."
+    owner_role: "Experiment Engineer"
+    caveats:
+      - "Smoke run only."
+
+  - id: T008
+    title: "GMDS full Phase 1/2 harness median performance"
+    kind: "table"
+    status: "needs_distillation"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R002", "R030"]
+    supported_claim_ids: ["C011", "C013"]
+    rendered_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/full-phase12/gmds_edge_isometry_harness_report.html"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness"
+    build_command: null
+    readiness_note: "Central table candidate for edge-gKK versus metric MDS and all-pairs geodesic-KK."
+    action_needed: "Extract a compact manuscript table or convert to figure from metrics.csv."
+    owner_role: "Experiment Engineer / Report Agent"
+    caveats:
+      - "Rendered path is an HTML report; the specific table is embedded in the report."
+
+  - id: T009
+    title: "Implementation layer inventory"
+    kind: "table"
+    status: "usable_with_edits"
+    manuscript_section: "Reproducibility / Software"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R001", "R002", "R019"]
+    supported_claim_ids: ["C019"]
+    rendered_path: null
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/geodesic_mds.tex"
+    build_command: null
+    readiness_note: "Existing manuscript/source table can seed a cross-package software table."
+    action_needed: "Update against current gflow/grip/geodesicMDS/geodesic_data_geometry/gmdsui ownership."
+    owner_role: "Provenance-Librarian / Report Agent"
+    caveats:
+      - "No separate rendered table file exists."
+
+  - id: T010
+    title: "Graph construction taxonomy table"
+    kind: "table"
+    status: "usable_with_edits"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    main_or_supplement: "main"
+    source_resource_ids: ["R007", "R023"]
+    supported_claim_ids: ["C003"]
+    rendered_path: null
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    build_command: null
+    readiness_note: "Source report has taxonomy-style tabular content suitable for a concise methods table."
+    action_needed: "Extract and update to final graph-family set."
+    owner_role: "Report Agent"
+    caveats:
+      - "No separate rendered table file exists."
+
+  - id: I001
+    title: "MISF-GMDS multiscale embeddings dashboard"
+    kind: "interactive"
+    status: "supplement_only"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R038"]
+    supported_claim_ids: ["C011"]
+    rendered_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive/misf_gmds_multiscale_embeddings_2026-04-02.html"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive"
+    build_command: null
+    readiness_note: "Useful interactive supplement candidate for multiscale behavior."
+    action_needed: "Decide whether interactive assets belong in supplement or remain internal."
+    owner_role: "Report Agent / Provenance-Librarian"
+    caveats:
+      - "Generation manifest needs stronger provenance before formal supplement use."
+
+  - id: P001
+    title: "Data-to-graph-to-GMDS pipeline schematic"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Introduction"
+    main_or_supplement: "main"
+    source_resource_ids: ["R016", "R017", "R021", "R022"]
+    supported_claim_ids: ["C001", "C002", "C003", "C004"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "No integrated SIMODS pipeline schematic exists yet."
+    action_needed: "Draw a clean manuscript-ready schematic: data -> weighted graph -> graph geodesic metric -> GMDS embedding."
+    owner_role: "Report Agent / Figure Curator"
+    caveats:
+      - "This should probably be Figure 1."
+
+  - id: P002
+    title: "Edge-isometry proposition schematic"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Geodesic MDS"
+    main_or_supplement: "main"
+    source_resource_ids: ["R003", "R004", "R030"]
+    supported_claim_ids: ["C005", "C012"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "No single clean figure yet shows why preserving edges preserves graph path lengths."
+    action_needed: "Create a compact proposition figure or proof schematic."
+    owner_role: "Methods/Theory Agent / Figure Curator"
+    caveats:
+      - "May be better as a text proposition if figure budget is tight."
+
+  - id: P003
+    title: "Final oracle benchmark summary figure"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Oracle Benchmarks"
+    main_or_supplement: "main"
+    source_resource_ids: ["R006", "R009", "R010", "R022"]
+    supported_claim_ids: ["C006", "C007", "C009"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "Existing plots are useful but not yet a final main-text result figure."
+    action_needed: "Distill surface examples, family performance, and parameter sensitivity into one or two final figures."
+    owner_role: "Experiment Engineer / Figure Curator"
+    caveats:
+      - "Depends on final main-text versus supplement allocation."
+
+  - id: P004
+    title: "Non-oracle graph-selection schematic and result table"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Non-Oracle Graph Parameter Selection"
+    main_or_supplement: "main"
+    source_resource_ids: ["R016", "R022", "R039"]
+    supported_claim_ids: ["C015", "C016", "C017"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "The method-family inventory now exists, but no result figure/table exists for the largest missing bridge from oracle benchmarks to real data."
+    action_needed: "Use R039 to design a method-family table now; after approved experiments, create the selector-vs-oracle recovery table."
+    owner_role: "Experiment Engineer / Methods-Theory Agent"
+    caveats:
+      - "Requires approved follow-up work; do not invent results."
+
+  - id: P005
+    title: "Real-data case study figure"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Experiments"
+    main_or_supplement: "main"
+    source_resource_ids: ["R016", "R017", "R022"]
+    supported_claim_ids: ["C018"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "No real-data case-study figure exists because the dataset is not selected."
+    action_needed: "Select dataset, define preprocessing and graph selection, then produce a compact data-to-layout case figure."
+    owner_role: "Orchestrator / Experiment Engineer"
+    caveats:
+      - "Blocked on real-data case study choice."
+
+  - id: P006
+    title: "Cross-package software ownership map"
+    kind: "planned"
+    status: "needed"
+    manuscript_section: "Reproducibility / Software"
+    main_or_supplement: "supplement"
+    source_resource_ids: ["R019", "R020", "R037"]
+    supported_claim_ids: ["C019"]
+    rendered_path: null
+    source_path: null
+    build_command: null
+    readiness_note: "Existing inventories are useful but no final cross-package ownership graphic exists."
+    action_needed: "Create a concise software ownership table or diagram."
+    owner_role: "Provenance-Librarian / Report Agent"
+    caveats:
+      - "Should be checked against current package APIs before release."

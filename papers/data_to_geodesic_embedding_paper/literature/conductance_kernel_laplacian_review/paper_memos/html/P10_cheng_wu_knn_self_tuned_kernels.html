@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: kNN Self-Tuned Graph Laplacian Convergence</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: kNN Self-Tuned Graph Laplacian
+Convergence</h1>
+</header>
+<p>Paper: Cheng, Xiuyuan; Wu, Hau-Tieng. “Convergence of Graph Laplacian
+with kNN Self-tuned Kernels.” arXiv:2011.01479v2 [math.ST], 2021.
+Reviewer: Reviewer-P10 Auditor: Auditor-P10 Status: revised after audit
+Date: 2026-05-15 Source manifest ID: P10 Canonical reading copy:
+<code>literature/conductance_kernel_laplacian_review/sources/pdf/P10_cheng_wu_knn_self_tuned_kernels.pdf</code></p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<p>A mathematically capable reader should be comfortable with:</p>
+<ul>
+<li>Weighted graphs, affinity matrices, degree matrices, unnormalized
+graph Laplacians <span class="math inline">\(D - W\)</span>, and
+random-walk graph Laplacians <span class="math inline">\(I -
+D^{-1}W\)</span>.</li>
+<li>Kernel graph construction from point clouds, especially Gaussian or
+radial kernels of the form <span class="math inline">\(k0(\Vert
+x_{i}-x_{j}\Vert ^2/\epsilon)\)</span>.</li>
+<li>k-nearest-neighbor distances and their use as local scale or density
+estimators.</li>
+<li>Riemannian manifolds embedded in Euclidean space, including volume
+measure, gradients, the Laplace-Beltrami operator, and weighted
+Laplacians.</li>
+<li>Diffusion maps and density normalization: how kernel normalization
+changes the continuum drift term.</li>
+<li>Dirichlet forms such as <span class="math inline">\(\int p |\nabla
+f|^2 dV\)</span> and graph analogues such as <span
+class="math inline">\(f^T(D-W)f\)</span>.</li>
+<li>High-probability finite-sample error bounds, bias-variance
+tradeoffs, and joint limits where <span class="math inline">\(N \to
+infinity\)</span>, <span class="math inline">\(\epsilon \to 0\)</span>,
+and <span class="math inline">\(k \to infinity\)</span>.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>The paper studies a practical graph-building trick that is common in
+spectral clustering: instead of using one global kernel bandwidth for
+all points, each data point receives a local bandwidth equal to a kNN
+distance. Sparse regions get larger local bandwidths, dense regions get
+smaller local bandwidths, and edge weights are computed using the
+product of the two endpoint scales.</p>
+<p>The hard question is not whether this works heuristically, but what
+differential operator the resulting graph Laplacian approximates as the
+sample size grows. Fixed-bandwidth graph Laplacian convergence was
+already well studied. For kNN self-tuned bandwidths, the scale function
+is random, nonsmooth, and has derivatives that do not converge to the
+derivatives of the population scale. Cheng and Wu’s contribution is to
+prove convergence anyway, with rates, by first proving uniform relative
+<code>C0</code> consistency of the kNN bandwidth estimate and then
+conditioning graph-Laplacian analysis on that event.</p>
+<p>The most important practical message is that local bandwidths reduce
+variance problems in low-density regions. For fixed-bandwidth kernels,
+pointwise variance terms worsen where the sampling density
+<code>p(x)</code> is small. For the kNN self-tuned kernels in this
+paper, the corresponding variance factor is favorable in low-density
+regions because the bandwidth expands there.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>The paper begins from the standard kernelized affinity</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i} - x_{j}\Vert ^2 / \epsilon)
+\end{aligned}
+\]</span></p>
+<p>in equation (1), PDF p. 1. Given <code>W</code>, the standard graph
+Laplacians are <span class="math inline">\(D - W\)</span> and <span
+class="math inline">\(I - D^{-1}W\)</span>, with <span
+class="math inline">\(D_{ii} = sum_{j} W_{ij}\)</span> (Section 1, PDF
+pp. 1-2). The authors recall that, for samples from a smooth density
+<code>p</code> on a smooth compact <code>d</code>-dimensional manifold
+<code>M</code>, graph Laplacians can converge to intrinsic manifold
+operators such as the Laplace-Beltrami operator <span
+class="math inline">\(\Delta_{M}\)</span> or the weighted Laplacian</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta_{p} &amp;= \Delta_{M} + (grad_{M} p / p) dot grad_{M}
+\end{aligned}
+\]</span></p>
+<p>from equation (2), PDF p. 2.</p>
+<p>The specific gap is self-tuned bandwidth theory. Zelnik-Manor and
+Perona’s self-tuned spectral clustering used</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i} - x_{j}\Vert ^2 / (R_{i} R_{j}))
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(R_{i}\)</span> is a kNN distance;
+this is equation (3), PDF p. 2. Cheng and Wu state that convergence
+results for this type of graph Laplacian were incomplete, especially
+when the bandwidth function is estimated from data rather than assumed
+known (Section 1, PDF pp. 2-3; Section 1.2, PDF pp. 5-6).</p>
+<h3 id="main-method">Main Method</h3>
+<p>The paper introduces a one-parameter family of self-tuned
+affinities:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij}^(\alpha) &amp;= \\
+k0(\Vert x_{i} - x_{j}\Vert ^2 / (\epsilon
+rho_{hat}(x_{i})rho_{hat}(x_{j}))) \\
+/ (rho_{hat}(x_{i})^\alpha rho_{hat}(x_{j})^\alpha).
+\end{aligned}
+\]</span></p>
+<p>This is equation (4), PDF p. 2. The local bandwidth function <span
+class="math inline">\(rho_{hat}\)</span> is estimated from a stand-alone
+sample <code>Y</code>, while the graph itself is built on sample
+<code>X</code>. This split reduces dependence in the proof and gives a
+clean two-step analysis (Section 1.1, PDF p. 5).</p>
+<p>The theoretical pipeline is:</p>
+<ol type="1">
+<li>Estimate the kNN bandwidth function <span
+class="math inline">\(rho_{hat}\)</span> and prove uniform relative
+convergence to <span class="math inline">\(rho_{bar} =
+p^{-1/d}\)</span>. This is Section 2, with the main result in Theorem
+2.3, PDF p. 8.</li>
+<li>Condition on the good event that <span class="math inline">\(sup_{M}
+|rho_{hat}-rho_{bar}|/rho_{bar} &lt; epsilon_{\rho}\)</span>.</li>
+<li>Prove convergence of the kernelized Dirichlet form, graph Dirichlet
+form, and graph Laplacian operators. These are Proposition 3.2 and
+Theorems 3.3, 3.5, 3.6, and 3.7, PDF pp. 10-14.</li>
+<li>Compare with fixed-bandwidth, density-normalized kernels in Theorems
+3.4 and 3.8, PDF pp. 12 and 14.</li>
+</ol>
+<p>Algorithm 1, PDF pp. 4-5, gives the practical construction using the
+raw kNN distances <span class="math inline">\(R_hat_i\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i} - x_{j}\Vert ^2 / (sigma_{0}^2 R_hat_i
+R_hat_j)) \\
+/ (R_hat_i^\alpha R_hat_j^\alpha).
+\end{aligned}
+\]</span></p>
+<p>The algorithm computes either <span
+class="math inline">\(L_{un}\)</span> through <span
+class="math inline">\(eig(D-W)\)</span> or the modified random-walk
+operator through the generalized eigenproblem <span
+class="math inline">\(eig-gen(D-W, D D_{Rhat}^2)\)</span>.</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p>[explicit] Fixed-bandwidth baseline: equation (1), PDF p. 1,</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i} - x_{j}\Vert ^2 / \epsilon).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Original self-tuned affinity: equation (3), PDF p. 2,</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i} - x_{j}\Vert ^2 / (R_hat_i R_hat_j)).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Cheng-Wu self-tuned family: equation (4), PDF p. 2,</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij}^(\alpha) &amp;= \\
+k0(\Vert x_{i} - x_{j}\Vert ^2 / (\epsilon
+rho_{hat}(x_{i})rho_{hat}(x_{j}))) \\
+/ (rho_{hat}(x_{i})^\alpha rho_{hat}(x_{j})^\alpha).
+\end{aligned}
+\]</span></p>
+<p>[explicit] kNN bandwidth estimator: equation (6), PDF p. 7,</p>
+<p><span class="math display">\[
+\begin{aligned}
+rho_{hat}(x) &amp;= R_{hat}(x) \, ( (1/m0[h]) \, (k/N_{y}) )^{-1/d}, \\
+R_{hat}(x) &amp;= inf{ r &gt; 0 : sum_{j=1}^{N_{y}} 1_{\Vert
+y_{j}-x\Vert &lt;r} \ge  k }.
+\end{aligned}
+\]</span></p>
+<p>Here <span class="math inline">\(R_{hat}(x)\)</span> is the distance
+from <code>x</code> to its k-th nearest neighbor in <code>Y</code>, and
+<span class="math inline">\(m0[h] = int_{R}^d h(|u|^2) du\)</span>; for
+<span class="math inline">\(h=1_[0,1)\)</span>, <code>m0[h]</code> is
+the unit <code>d</code>-ball volume (Section 2.1, PDF p. 7).</p>
+<p>[explicit] Population bandwidth:</p>
+<p><span class="math display">\[
+\begin{aligned}
+rho_{bar} &amp;= p^{-1/d}.
+\end{aligned}
+\]</span></p>
+<p>This appears in the Abstract, Table 1 on PDF p. 3, Section 2, and
+Theorem 2.3.</p>
+<p>[explicit] Limiting operator for a smooth positive bandwidth <span
+class="math inline">\(\rho\)</span>: equation (9), PDF p. 9,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\rho}^(\alpha) &amp;= \\
+\Delta + 2 (\nabla p / p) dot \nabla \\
++ (d - 2 \alpha + 2) (\nabla \rho / \rho) dot \nabla.
+\end{aligned}
+\]</span></p>
+<p>[explicit] Limiting operator after substituting <span
+class="math inline">\(rho_{bar} = p^{-1/d}\)</span>: equation (10), PDF
+p. 9,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L^(\alpha) &amp;= \\
+\Delta + (1 + 2(\alpha-1)/d) (\nabla p / p) dot \nabla.
+\end{aligned}
+\]</span></p>
+<p>[explicit] Graph Dirichlet form: equation (11), PDF p. 10,</p>
+<p><span class="math display">\[
+\begin{aligned}
+E_{N}(f,f) &amp;= \\
+(2/(\epsilon m2 N^2)) \epsilon^{-d/2} f^T(D-W)f \\
+&amp;= (1/(\epsilon m2 N^2)) sum_{i,j} \epsilon^{-d/2} W_{ij}
+(f_{i}-f_{j})^2.
+\end{aligned}
+\]</span></p>
+<p>[explicit] Kernelized Dirichlet-form kernel: equations (12)-(13), PDF
+p. 10,</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{hat}(x,y) &amp;= \\
+\epsilon^{-d/2} k0(\Vert x-y\Vert ^2 / (\epsilon
+rho_{hat}(x)rho_{hat}(y))) \\
+/ (rho_{hat}(x)^\alpha rho_{hat}(y)^\alpha), \\
+E^(\alpha)(f,f) &amp;= \\
+(1/(\epsilon m2)) int_{M} int_{M} \\
+(f(x)-f(y))^2 K_{hat}(x,y) p(x)p(y) dV(x)dV(y).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Self-tuned unnormalized graph Laplacian operator: equation
+(17), PDF p. 12,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{un}^(\alpha) f(x) &amp;= \\
+(2 \epsilon^{-d/2-1}/(m2 rho_{hat}(x)^\alpha)) \\
+(1/N) sum_{j} k0(\Vert x-x_{j}\Vert ^2/(\epsilon
+rho_{hat}(x)rho_{hat}(x_{j}))) \\
+(f(x_{j})-f(x))/rho_{hat}(x_{j})^\alpha.
+\end{aligned}
+\]</span></p>
+<p>[explicit] Modified random-walk graph Laplacian operator: equation
+(18), PDF p. 13,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{rw0}^(\alpha) f(x) &amp;= \\
+(2/(\epsilon m2 rho_{hat}(x)^2)) \\
+[ sum_{j} k0(\ldots) f(x_{j})/rho_{hat}(x_{j})^\alpha \\
+/ sum_{j} k0(\ldots)/rho_{hat}(x_{j})^\alpha \\
+- f(x) ].
+\end{aligned}
+\]</span></p>
+<p>The paper notes that this differs from the usual random-walk matrix
+by multiplying another diagonal matrix <span
+class="math inline">\(D_rho_hat^{-2}\)</span> up to constants and sign
+(Section 3.4, PDF p. 13).</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p>The paper contains both theory-supporting synthetic experiments and
+an MNIST embedding demonstration.</p>
+<ul>
+<li>Figure 1, PDF p. 15, compares kNN estimation of <span
+class="math inline">\(rho_{bar}=p^{-1/d}\)</span> to fixed-bandwidth KDE
+estimation of <code>p</code> on a circle. The top row shows <span
+class="math inline">\(rho_{hat}\)</span> and its relative error across
+<span class="math inline">\(k_{y}\)</span>; the bottom row shows KDE
+<span class="math inline">\(p_{hat}\)</span> and relative error across
+<span class="math inline">\(\epsilon\)</span>. The figure supports
+Theorem 2.3 and Remark 2.2: kNN <span
+class="math inline">\(rho_{hat}\)</span> has more spatially uniform
+relative error, while KDE relative error worsens where <code>p</code> is
+small.</li>
+</ul>
+<figure class="paper-figure" id="P10_F01">
+<img src="../../paper_figures/P10_F01_F02_page15.png" alt="P10 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 1, PDF p. 15 (cropped from
+canonical reading copy), internal review only. kNN rho estimate versus
+fixed-bandwidth KDE.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 2, PDF p. 15, defines the 1D synthetic manifold in <span
+class="math inline">\(\mathbb{R}^{4}\)</span>, its nonuniform density
+<code>p</code>, the test function <code>f</code>, and the target <span
+class="math inline">\(\Delta_{p} f\)</span>. This supplies the testbed
+for Figures 3-6.</li>
+</ul>
+<figure class="paper-figure" id="P10_F02">
+<img src="../../paper_figures/P10_F01_F02_page15.png" alt="P10 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 2, PDF p. 15 (cropped from
+canonical reading copy), internal review only. 1D synthetic manifold and
+target operator.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 3, PDF p. 16, plots relative errors for the Dirichlet form
+and pointwise <span class="math inline">\(L_{N} f\)</span> errors versus
+<span class="math inline">\(\epsilon\)</span>, with <span
+class="math inline">\(N_{y}=4000\)</span> and <span
+class="math inline">\(k_{y}=32,256\)</span>. It shows pointwise <span
+class="math inline">\(L_{N} f\)</span> errors growing at small <span
+class="math inline">\(\epsilon\)</span> as variance dominates, while the
+Dirichlet form is less sensitive. This visually matches Theorems 3.3 and
+3.5.</li>
+</ul>
+<figure class="paper-figure" id="P10_F03">
+<img src="../../paper_figures/P10_F03_page16.png" alt="P10 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 3, PDF p. 16 (cropped from
+canonical reading copy), internal review only. Dirichlet and pointwise
+errors versus epsilon.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 4, PDF p. 17, shows single-realization <span
+class="math inline">\(L_{N} f\)</span> estimates using estimated <span
+class="math inline">\(rho_{hat}\)</span> and population <span
+class="math inline">\(rho_{bar}\)</span> for two <span
+class="math inline">\(k_{y}\)</span> values and two <span
+class="math inline">\(\epsilon\)</span> values. It makes the
+bias-variance tradeoff concrete: smaller <span
+class="math inline">\(\epsilon\)</span> oscillates more; larger <span
+class="math inline">\(\epsilon\)</span> biases more; larger <span
+class="math inline">\(k_{y}\)</span> smooths <span
+class="math inline">\(rho_{hat}\)</span> but can bias low-density
+regions.</li>
+</ul>
+<figure class="paper-figure" id="P10_F04">
+<img src="../../paper_figures/P10_F04_F05_page17.png" alt="P10 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 4, PDF p. 17 (cropped from
+canonical reading copy), internal review only. Single-realization
+estimates with rho_hat and rho_bar.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 5, PDF p. 17, repeats the visualization using <span
+class="math inline">\(rho_hat_X\)</span> estimated from the graph sample
+<code>X</code> itself rather than stand-alone <code>Y</code>. This
+addresses the practical self-tuned setup even though the main theory
+uses a stand-alone <code>Y</code>.</li>
+</ul>
+<figure class="paper-figure" id="P10_F05">
+<img src="../../paper_figures/P10_F04_F05_page17.png" alt="P10 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 5, PDF p. 17 (cropped from
+canonical reading copy), internal review only. Self-estimated rho_hat_X
+setup.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 6, PDF p. 18, compares Dirichlet-form and <span
+class="math inline">\(Err_{infty}\)</span> errors using <span
+class="math inline">\(rho_{bar}\)</span>, <span
+class="math inline">\(rho_hat_X\)</span>, and <span
+class="math inline">\(rho_hat_Y\)</span> over multiple <span
+class="math inline">\(N_{y},k_{y}\)</span> choices. Section 4.3
+concludes that a large stand-alone <code>Y</code> can reduce
+bandwidth-estimation error and oscillation, but splitting a limited
+dataset may worsen performance by reducing the graph sample size.</li>
+</ul>
+<figure class="paper-figure" id="P10_F06">
+<img src="../../paper_figures/P10_F06_F07_page18.png" alt="P10 Figure 6 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 6, PDF p. 18 (cropped from
+canonical reading copy), internal review only. rho_bar, rho_hat_X, and
+rho_hat_Y error comparisons.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 7, PDF p. 18, shows recovery of Laplace-Beltrami
+eigenfunctions on <span class="math inline">\(S^1\)</span>. The paper
+tests <span class="math inline">\(\alpha=1-d/2\)</span> and a mixed
+<span class="math inline">\(rho_{hat},p_{hat}\)</span> normalization
+from equation (21). The random-walk variants look better visually than
+unnormalized variants in this example; the authors defer fuller
+random-walk self-tuned study.</li>
+</ul>
+<figure class="paper-figure" id="P10_F07">
+<img src="../../paper_figures/P10_F06_F07_page18.png" alt="P10 Figure 7 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 7, PDF p. 18 (cropped from
+canonical reading copy), internal review only. S1 eigenfunction
+recovery.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 8, PDF p. 19, compares 3D eigenvector embeddings of 1000
+MNIST images under fixed-bandwidth diffusion-map normalization and two
+self-tuned kernels from equation (22). Self-tuned kernels remain
+informative across a range of <span
+class="math inline">\(sigma_{0}\)</span>.</li>
+</ul>
+<figure class="paper-figure" id="P10_F08">
+<img src="../../paper_figures/P10_F08_F09_page19.png" alt="P10 Figure 8 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 8, PDF p. 19 (cropped from
+canonical reading copy), internal review only. MNIST self-tuned
+embedding stability.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 9, PDF p. 19, identifies outliers in the fixed-bandwidth
+embedding as samples with large <span
+class="math inline">\(R_hat_i\)</span>, supporting the claim that fixed
+bandwidth is unstable for low-density points.</li>
+</ul>
+<figure class="paper-figure" id="P10_F09">
+<img src="../../paper_figures/P10_F08_F09_page19.png" alt="P10 Figure 9 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 9, PDF p. 19 (cropped from
+canonical reading copy), internal review only. Fixed-bandwidth outliers
+and large local scale.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 10, PDF p. 20, illustrates the hyperplane/polygon partition
+used to prove Lemma 2.1: on each polygon, the kNN point is fixed and
+<span class="math inline">\(R_{hat}(x)=\Vert x-y_{p}\Vert\)</span>.</li>
+</ul>
+<figure class="paper-figure" id="P10_F10">
+<img src="../../paper_figures/P10_F10_page20.png" alt="P10 Figure 10 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 10, PDF p. 21 (cropped from
+canonical reading copy), internal review only. Piecewise smooth kNN
+radius proof geometry.
+</figcaption>
+</figure>
+<ul>
+<li>Figure 11, PDF p. 21, illustrates the proof of Proposition 2.2 by
+plotting empirical <span class="math inline">\(mu_{hat}(x,r)\)</span>,
+population <code>mu(x,r)</code>, and the local approximation <span
+class="math inline">\(m0[h]p(x)r^d\)</span>, with <span
+class="math inline">\(R_{hat}\)</span>, <span
+class="math inline">\(R_{bar}\)</span>, and bracketing radii <span
+class="math inline">\(R_-/R_+\)</span>.</li>
+</ul>
+<figure class="paper-figure" id="P10_F11">
+<img src="../../paper_figures/P10_F11_page21.png" alt="P10 Figure 11 cropped figure panel">
+<figcaption>
+Reproduced from Cheng and Wu (2022), Figure 11, PDF p. 21 (cropped from
+canonical reading copy), internal review only. Bracketing radii in proof
+of Proposition 2.2.
+</figcaption>
+</figure>
+<p>Table 1, PDF p. 3, is a useful notation table. Table 2, PDF p. 6, is
+a roadmap linking bandwidth estimation to the convergence theorems for
+Dirichlet forms, pointwise operators, and weak forms.</p>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>[explicit] Under Assumption 2.1, <code>M</code> is a smooth compact
+boundaryless <code>d</code>-manifold embedded in <span
+class="math inline">\(\mathbb{R}^{D}\)</span>, and <code>p</code> is
+smooth and bounded above and below (PDF p. 7). Under Assumption 3.1,
+<code>k0</code> is nonnegative, sufficiently smooth, and exponentially
+decaying through four derivatives (PDF p. 9).</p>
+<p>[explicit] Lemma 2.1, PDF p. 7, proves that <span
+class="math inline">\(\widehat R\)</span> is globally Lipschitz with
+Lipschitz constant at most 1 and is <span
+class="math inline">\(C^\infty\)</span> off a finite union of
+hyperplanes.</p>
+<p>[explicit] Proposition 2.2, PDF pp. 7-8, gives a fixed-point relative
+error:</p>
+<p><span class="math display">\[
+\begin{aligned}
+|rho_{hat}(x)-rho_{bar}(x)|/rho_{bar}(x) \\
+&amp;= O^[p]((k/N)^(2/d)) + O(\sqrt(\log N/k))
+\end{aligned}
+\]</span></p>
+<p>up to constants stated in the theorem. The theorem’s displayed bound
+is</p>
+<p><span class="math display">\[
+\begin{gathered}
+O^[p]((k/N)^(2/d)) + \sqrt(3 s \log N)/(d \sqrt(k)).
+\end{gathered}
+\]</span></p>
+<p>[explicit] Theorem 2.3, PDF p. 8, upgrades this to uniform
+high-probability relative error:</p>
+<p><span class="math display">\[
+\begin{aligned}
+sup_{x} |rho_{hat}(x)-rho_{bar}(x)|/rho_{bar}(x) \\
+&amp;= O^[p]((k/N)^(2/d)) + \sqrt(39 \log N)/(d \sqrt(k))
+\end{aligned}
+\]</span></p>
+<p>with probability at least <span class="math inline">\(1 -
+N^{-10}\)</span> for large <code>N</code>.</p>
+<p>[explicit] Remark 2.1, PDF p. 8, balances the bias <span
+class="math inline">\((k/N)^(2/d)\)</span> and variance <span
+class="math inline">\(\sqrt(\log N/k)\)</span> terms, giving <span
+class="math inline">\(k ~ N^(1/(1+d/4))\)</span> up to logs and <span
+class="math inline">\(epsilon_{\rho} ~ N^(-1/(2+d/2))\)</span>.</p>
+<p>[explicit] Remark 2.2, PDF p. 8, contrasts kNN <span
+class="math inline">\(rho_{hat}\)</span> with fixed-bandwidth KDE. KDE
+relative error has a variance factor proportional to <span
+class="math inline">\(p(x)^(-1/2)\)</span>, while kNN <span
+class="math inline">\(rho_{hat}\)</span> has a uniform variance term
+independent of <code>p(x)</code>.</p>
+<p>[explicit] Section 2.3, PDF pp. 8-9, proves a major technical
+warning: although <span class="math inline">\(rho_{hat}\)</span> is
+<code>C0</code> consistent, its derivative diverges. At
+differentiability points, <span class="math inline">\(|grad_{bar}
+R_{hat}(x)|=1\)</span>, so</p>
+<p><span class="math display">\[
+\begin{aligned}
+|grad_{bar} rho_{hat}(x)| &amp;= ((1/m0[h]) k/N_{y})^(-1/d),
+\end{aligned}
+\]</span></p>
+<p>which diverges like <span
+class="math inline">\((k/N_{y})^(-1/d)\)</span> when <span
+class="math inline">\(k/N_{y} \to 0\)</span>. Thus <span
+class="math inline">\(\nabla rho_{hat}\)</span> is not pointwise
+consistent for <span class="math inline">\(\nabla
+rho_{bar}\)</span>.</p>
+<p>[explicit] Proposition 3.2, PDF p. 10, proves kernelized
+Dirichlet-form convergence:</p>
+<p><span class="math display">\[
+\begin{aligned}
+E^(\alpha)(f,f) &amp;= \\
+E_{p_{\alpha}}(f,f)(1 + O^[\alpha](epsilon_{\rho})) + O^[f,p](\epsilon),
+\\
+p_{\alpha} &amp;= p^(1 + 2(\alpha-1)/d).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Theorem 3.3, PDF p. 11, proves graph Dirichlet-form
+convergence under <span class="math inline">\(\epsilon=o(1)\)</span>,
+<span class="math inline">\(\epsilon^(d/2) N = Omega(\log N)\)</span>,
+and <span class="math inline">\(epsilon_{\rho}=o(1)\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+E_{N}(f,f) &amp;= \\
+E_{p_{\alpha}}(f,f)(1 + O^[\alpha](epsilon_{\rho})) \\
++ O^[f,p](\epsilon) \\
++ O^[1]( \sqrt( (\log N)/(N \epsilon^(d/2)) \\
+int_{M} |\nabla f|^4 p^(1+4(\alpha-1)/d) ) ).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Section 3.3, PDF p. 11, records the important special
+cases: <span class="math inline">\(\alpha=1\)</span> gives <span
+class="math inline">\(p_{\alpha}=p\)</span> and recovers <span
+class="math inline">\(\Delta_{p}\)</span>; <span
+class="math inline">\(\alpha=0\)</span> gives <span
+class="math inline">\(p_{0}=p^(1-2/d)\)</span> and corresponds to the
+original self-tuned graph’s modified density; <span
+class="math inline">\(\alpha=1-d/2\)</span> gives constant <span
+class="math inline">\(p_{\alpha}\)</span> and recovers <span
+class="math inline">\(\Delta_{M}\)</span>.</p>
+<p>[explicit] Theorem 3.5, PDF p. 13, gives pointwise convergence for
+the modified random-walk operator under <span
+class="math inline">\(\epsilon=o(1)\)</span>, <span
+class="math inline">\(\epsilon^(d/2+1)N=Omega(\log N)\)</span>, and
+<span class="math inline">\(epsilon_{\rho}=o(\epsilon)\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{rw0}^(\alpha) f(x) &amp;= \\
+L^(\alpha) f(x) \\
++ O^[f,p](\epsilon, epsilon_{\rho}/\epsilon) \\
++ O^[1](\Vert \nabla f\Vert _infty p(x)^(1/d) \\
+\sqrt(\log N/(N \epsilon^(d/2+1)))).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Theorem 3.6, PDF p. 14, gives the analogous pointwise
+result for the unnormalized operator:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{un}^(\alpha) f(x) &amp;= \\
+p(x)^(2(\alpha-1)/d) L^(\alpha) f(x) \\
++ O^[f,p](\epsilon, epsilon_{\rho}/\epsilon) \\
++ O^[1](\Vert \nabla f\Vert _infty p(x)^((2alpha-1)/d) \\
+\sqrt(\log N/(N \epsilon^(d/2+1)))).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Theorem 3.7, PDF p. 14, gives weak convergence for <span
+class="math inline">\(L_{un}^(\alpha)\)</span> with error <span
+class="math inline">\(O(\epsilon, epsilon_{\rho})\)</span> plus a
+variance term of order <span class="math inline">\(\sqrt(\log N/(N
+\epsilon))\)</span>. It removes the <span
+class="math inline">\(epsilon_{\rho}/\epsilon\)</span> term but applies
+only in weak form and only to the unnormalized operator.</p>
+<p>[explicit] Theorem 3.8, PDF p. 14, gives the fixed-bandwidth
+random-walk comparison. Its variance factor is <span
+class="math inline">\(p(x)^(-1/2)\)</span>, whereas Theorem 3.5 has the
+self-tuned factor <span class="math inline">\(p(x)^(1/d)\)</span>. The
+authors explicitly interpret this as the theoretical advantage of
+self-tuned bandwidths in low-density regions (end of Section 3.4, PDF
+p. 14).</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>[explicit] The main theory assumes compact, smooth, boundaryless
+manifolds and smooth density bounded away from zero and infinity
+(Assumption 2.1, PDF p. 7). This is strong relative to many real
+datasets with boundaries, singularities, mixed dimensions, or
+outliers.</p>
+<p>[explicit] The graph-theory proof uses a stand-alone <code>Y</code>
+sample to estimate <span class="math inline">\(rho_{hat}\)</span>; using
+<code>X</code> itself is discussed and tested, but not the main theorem
+setting (Section 1.1, PDF p. 5; Section 4.3, PDF pp. 17-18).</p>
+<p>[explicit] The pointwise convergence theorem requires <span
+class="math inline">\(epsilon_{\rho}=o(\epsilon)\)</span>, while
+Dirichlet-form convergence only requires <span
+class="math inline">\(epsilon_{\rho}=o(1)\)</span> (Theorems 3.3 and
+3.5, PDF pp. 11 and 13). This is a real distinction for practical
+operator estimation.</p>
+<p>[explicit] Section 2.3, PDF pp. 8-9, shows that the kNN bandwidth’s
+derivatives do not converge. The paper therefore cannot simply apply
+smooth variable-bandwidth theory to the random kNN scale.</p>
+<p>[explicit] The authors defer fuller study of the random-walk graph
+Laplacian with self-tuned kernel after the Laplace-Beltrami
+eigenfunction experiment (Section 4.4, PDF p. 18).</p>
+<p>[contextual] The paper proves operator and Dirichlet-form
+convergence, not spectral convergence of eigenvectors/eigenvalues with
+rates. It uses eigenvector experiments, but the main theorem set is not
+a spectral convergence theorem.</p>
+<p>[contextual] The paper is about kernel weights on sample clouds, not
+graph conductance in the electrical-network sense. For our review, the
+affinity can be interpreted as a conductance-like edge weight, but that
+is our synthesis rather than the paper’s terminology.</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>This paper is a direct theoretical bridge between the practical
+self-tuning kernel of Zelnik-Manor and Perona and the variable-bandwidth
+diffusion-kernel theory represented by Berry-Harlim-style smooth
+bandwidth analysis. Its key methodological move is to handle the actual
+kNN-estimated scale rather than assuming a smooth density-derived
+bandwidth is already available.</p>
+<p>For adaptive graph construction, the paper clarifies three issues
+that are easy to conflate:</p>
+<ul>
+<li>kNN local scale estimation gives <span
+class="math inline">\(rho_{hat} \to p^{-1/d}\)</span> in relative
+<code>C0</code> error, with better low-density variance behavior than
+fixed-bandwidth KDE.</li>
+<li>The normalization exponent <span
+class="math inline">\(\alpha\)</span> determines which weighted
+Laplacian the graph approximates.</li>
+<li>The kNN scale is nonsmooth, so pointwise graph-Laplacian convergence
+is harder and has stricter rate requirements than Dirichlet-form
+convergence.</li>
+</ul>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p>[explicit] Standard fixed-bandwidth kernel, equation (1), PDF
+p. 1:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i}-x_{j}\Vert ^2 / \epsilon).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Original self-tuned kernel, equation (3), PDF p. 2:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= k0(\Vert x_{i}-x_{j}\Vert ^2 / (R_hat_i R_hat_j)).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Cheng-Wu self-tuned family, equation (4), PDF p. 2:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij}^(\alpha) &amp;= \\
+k0(\Vert x_{i}-x_{j}\Vert ^2 / (\epsilon
+rho_{hat}(x_{i})rho_{hat}(x_{j}))) \\
+/ (rho_{hat}(x_{i})^\alpha rho_{hat}(x_{j})^\alpha).
+\end{aligned}
+\]</span></p>
+<p>[explicit] Algorithm 1 implementation kernel, equation (5), PDF
+p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= \\
+k0(\Vert x_{i}-x_{j}\Vert ^2 / (sigma_{0}^2 R_hat_i R_hat_j)) \\
+/ (R_hat_i^\alpha R_hat_j^\alpha).
+\end{aligned}
+\]</span></p>
+<p>The paper explains that <span class="math inline">\(sigma_{0} R_hat_i
+= \sqrt(\epsilon) rho_{hat}(x_{i})\)</span> and</p>
+<p><span class="math display">\[
+\begin{aligned}
+\epsilon &amp;= sigma_{0}^2 \, ((1/m0[h]) \, (k/N_{y}))^(2/d).
+\end{aligned}
+\]</span></p>
+<p>Thus the practical algorithm does not need to know <code>d</code>,
+even though the theory uses the normalized <span
+class="math inline">\(rho_{hat}\)</span> (Section 1.1, PDF p. 5).</p>
+<p>[explicit] Mixed normalization for Laplace-Beltrami recovery without
+knowing <code>d</code>, equation (21), PDF p. 18:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= \\
+k0(\Vert x_{i}-x_{j}\Vert ^2 / (\epsilon
+rho_{hat}(x_{i})rho_{hat}(x_{j}))) \\
+/ ((rho_{hat} p_{hat}^(1/2))(x_{i}) (rho_{hat} p_{hat}^(1/2))(x_{j})) \\
+&amp;= W_{ij}^(1) / (p_{hat}(x_{i})^(1/2) p_{hat}(x_{j})^(1/2)).
+\end{aligned}
+\]</span></p>
+<p>[explicit] MNIST self-tuned kernels, equation (22), PDF p. 19:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij}^(1) &amp;= \\
+k0(\Vert x_{i}-x_{j}\Vert ^2 / (sigma_{0}^2 R_hat_i R_hat_j)) \\
+/ (sigma_{0}^2 R_hat_i R_hat_j), \\
+W_{ij}^0 &amp;= \\
+k0(\Vert x_{i}-x_{j}\Vert ^2 / (sigma_{0}^2 R_hat_i R_hat_j)) \\
+/ (sigma_{0}^2 R_hat_i R_hat_j \sqrt(mu_hat_i mu_hat_j)).
+\end{aligned}
+\]</span></p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p>[explicit] Basic graph Laplacians are <span
+class="math inline">\(D-W\)</span> and <span
+class="math inline">\(I-D^{-1}W\)</span>, with <span
+class="math inline">\(D_{ii}=sum_{j} W_{ij}\)</span> (Section 1, PDF
+p. 1).</p>
+<p>[explicit] The practical algorithm computes eigenpairs using either
+<span class="math inline">\(eig(D-W)\)</span> for <span
+class="math inline">\(L_{un}\)</span> or <span
+class="math inline">\(eig-gen(D-W, D D_{Rhat}^2)\)</span> for the
+modified random-walk operator (Algorithm 1, PDF p. 5).</p>
+<p>[explicit] The normalized graph Dirichlet form is equation (11), PDF
+p. 10:</p>
+<p><span class="math display">\[
+\begin{aligned}
+E_{N}(f,f) &amp;= \\
+(1/(\epsilon m2 N^2)) sum_{i,j} \\
+\epsilon^{-d/2} W_{ij} (f_{i}-f_{j})^2.
+\end{aligned}
+\]</span></p>
+<p>[explicit] The limiting operator family is equation (10), PDF
+p. 9:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L^(\alpha) &amp;= \\
+\Delta + (1 + 2(\alpha-1)/d) (\nabla p/p) dot \nabla.
+\end{aligned}
+\]</span></p>
+<p>[explicit] The associated weighted density for the Dirichlet form
+is</p>
+<p><span class="math display">\[
+\begin{aligned}
+p_{\alpha} &amp;= p^(1 + 2(\alpha-1)/d).
+\end{aligned}
+\]</span></p>
+<p>This is stated in Proposition 3.2 and Theorem 3.3, PDF pp. 10-11.</p>
+<h3 id="task">Task</h3>
+<p>[explicit] The paper’s tasks are graph-based geometric data analysis,
+unsupervised learning, spectral clustering, dimension-reduced embedding,
+and diffusion/operator approximation. These applications are named in
+Section 1, PDF pp. 1-2.</p>
+<p>[explicit] The numerical tasks are kNN bandwidth estimation (Section
+4.1), Dirichlet-form and <span class="math inline">\(L_{N} f\)</span>
+estimation (Section 4.2), stand-alone <code>Y</code> comparison (Section
+4.3), Laplace-Beltrami eigenfunction recovery (Section 4.4), and MNIST
+eigenvector embedding (Section 4.5).</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p>[explicit] The paper motivates self-tuning because global bandwidth
+choice is challenging in high-dimensional or uneven-density data, and
+graph-Laplacian performance can be sensitive to that choice (Section 1,
+PDF p. 2).</p>
+<p>[explicit] The authors state that existing convergence results for
+self-tuned kernels were incomplete when the bandwidth function is
+estimated from data (Section 1, PDF p. 2; Section 1.2, PDF pp. 5-6).</p>
+<p>[explicit] The paper aims to show convergence of graph Laplacian
+operators and graph Dirichlet forms with rates for kNN self-tuned
+kernels (Abstract and Section 1, PDF pp. 1, 3-4).</p>
+<p>[explicit] A major motivation is low-density robustness: self-tuned
+bandwidths enlarge in sparse regions, reducing variance relative to
+fixed bandwidths. This is stated in the Abstract, discussed after
+Theorem 3.8 on PDF p. 14, and demonstrated in Figures 1 and 8-9.</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p>[derived] The stand-alone <code>Y</code> sample is partly a proof
+device and partly a practical memory/computation option: if more samples
+are available than can be used to build the graph, using the extra
+samples for bandwidth estimation may improve <span
+class="math inline">\(rho_{hat}\)</span> without enlarging
+<code>W</code>. This inference follows from Section 1.1, PDF p. 5, and
+Section 4.3, PDF pp. 17-18.</p>
+<p>[derived] The <span class="math inline">\(\alpha\)</span> parameter
+is a conductance-normalization knob. Increasing or decreasing <span
+class="math inline">\(\alpha\)</span> does not just rescale weights; it
+changes the continuum density in the Dirichlet form from <code>p</code>
+to <span class="math inline">\(p_{\alpha}=p^(1+2(\alpha-1)/d)\)</span>.
+This follows from Proposition 3.2 and Theorem 3.3, PDF pp. 10-11.</p>
+<p>[derived] The paper suggests that evaluating a local-scale graph
+smoother requires checking both the edge-length scale and the operator
+normalization. A graph can be locally adaptive but still converge to a
+density-biased operator if <span class="math inline">\(\alpha\)</span>
+is not chosen for the intended limit.</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p>[explicit] For <span class="math inline">\(\alpha=1\)</span>, <span
+class="math inline">\(L^(\alpha)=\Delta_{p}\)</span>, so the graph
+approximates the weighted Laplacian associated with the sampling measure
+<code>p dV</code> (Abstract; Section 3.3, PDF p. 11).</p>
+<p>[explicit] For <span class="math inline">\(\alpha=1-d/2\)</span>,
+<span class="math inline">\(p_{\alpha}\)</span> is constant and the
+Dirichlet form corresponds to the Laplace-Beltrami operator <span
+class="math inline">\(\Delta_{M}\)</span> (Section 3.3, PDF p. 11;
+Section 4.4, PDF p. 18).</p>
+<p>[explicit] For <span class="math inline">\(\alpha=0\)</span>, the
+original self-tuned graph approximates a weighted Laplacian with
+modified density <span class="math inline">\(p^(1-2/d)\)</span> (Section
+3.3, PDF p. 11).</p>
+<p>[explicit] Figure 7, PDF p. 18, shows that the first four nontrivial
+graph eigenvectors approximate sine/cosine Laplace-Beltrami
+eigenfunctions on <span class="math inline">\(S^1\)</span>, with
+random-walk variants visually better in that example.</p>
+<p>[explicit] The modified random-walk pointwise variance term in
+Theorem 3.5 has factor <span class="math inline">\(p(x)^(1/d)\)</span>,
+while the fixed-bandwidth comparison in Theorem 3.8 has <span
+class="math inline">\(p(x)^(-1/2)\)</span> (PDF p. 14). This means the
+self-tuned operator should be less noisy in sparse regions.</p>
+<p>[derived] For smoothing, the Dirichlet-form result is more directly
+relevant to energy penalties such as <span class="math inline">\(f^T L
+f\)</span>; it has an <span
+class="math inline">\(O(epsilon_{\rho})\)</span> bandwidth-estimation
+contribution rather than the stricter <span
+class="math inline">\(O(epsilon_{\rho}/\epsilon)\)</span> pointwise
+operator contribution. This follows from Theorems 3.3 and 3.5.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p>[explicit] The local scale is the kNN radius <span
+class="math inline">\(R_hat_i\)</span>, and the edge scale is the
+geometric product <span class="math inline">\(R_hat_i R_hat_j\)</span>
+or normalized version <span
+class="math inline">\(rho_{hat}(x_{i})rho_{hat}(x_{j})\)</span>
+(equations (3)-(6), PDF pp. 2, 5, 7).</p>
+<p>[explicit] The population local scale is <span
+class="math inline">\(rho_{bar}=p^{-1/d}\)</span> (Abstract; Table 1,
+PDF p. 3; Theorem 2.3, PDF p. 8). Thus denser regions have smaller
+bandwidths and sparser regions have larger bandwidths.</p>
+<p>[explicit] The paper connects directly to original self-tuning
+spectral clustering and nearest-neighbor density estimation in Section
+1.2, PDF pp. 5-6.</p>
+<p>[contextual] Relative to smooth variable-bandwidth papers, this paper
+handles the empirically common kNN scale. It is not merely a special
+case of smooth variable bandwidth, because Section 2.3 shows derivative
+inconsistency.</p>
+<p>[derived] For a conductance comparator, equation (4) can be read as a
+local-scale conductance rule: edge weight is a decreasing function of
+squared distance divided by local endpoint scales, with an additional
+endpoint amplitude normalization. The distance denominator and the <span
+class="math inline">\(\alpha\)</span> normalization should be treated as
+separate design choices.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p>[explicit] The paper does not claim that kNN <span
+class="math inline">\(rho_{hat}\)</span> is <code>C1</code> consistent.
+It proves the opposite in Section 2.3, PDF pp. 8-9.</p>
+<p>[explicit] The main theory does not require knowing <code>d</code> in
+Algorithm 1, but the theoretical statement and normalization of <span
+class="math inline">\(rho_{hat}\)</span> use <code>d</code> (Section
+1.1, PDF p. 5; equation (6), PDF p. 7).</p>
+<p>[explicit] The main proofs do not analyze the fully dependent case
+where the same finite sample <code>X</code> is both graph sample and
+bandwidth-estimation sample, although Section 4.3 studies it
+empirically.</p>
+<p>[contextual] The paper does not claim that all self-tuned kernels
+recover <span class="math inline">\(\Delta_{M}\)</span> or <span
+class="math inline">\(\Delta_{p}\)</span>. The limit depends on <span
+class="math inline">\(\alpha\)</span>, and recovering <span
+class="math inline">\(\Delta_{M}\)</span> requires <span
+class="math inline">\(\alpha=1-d/2\)</span> or the mixed normalization
+in equation (21).</p>
+<p>[contextual] The paper does not develop SIMODS/gflow,
+Mapper/Riemannian complexes, overlap-density smoothing, or electrical
+network conductance models.</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p>[contextual] Current <code>gflow</code> overlap-density smoothing
+should remain distinct from Cheng-Wu self-tuned graph kernels. The
+current <code>fit.rdgraph.regression()</code> semantics are based on
+overlap-density/Riemannian-complex graph structure, not on Euclidean
+point-cloud kNN radii or the self-tuned kernel in equation (4).</p>
+<p>[derived] P10 is highly relevant for planned
+length/kernel-conductance comparators. It gives a principled candidate
+edge-weight family:</p>
+<p><span class="math display">\[
+\begin{gathered}
+conductance_{ij} ~ \\
+k0(length_{ij}^2 / (\epsilon local_scale_i local_scale_j)) \\
+/ (local_scale_i^\alpha local_scale_j^\alpha),
+\end{gathered}
+\]</span></p>
+<p>where the population interpretation of <span
+class="math inline">\(local_{scale}\)</span> is density-adaptive length.
+In a SIMODS comparator, <span
+class="math inline">\(local_scale_i\)</span> could be defined from kNN
+distances, local cell density, or graph-neighborhood lengths, but that
+would be a new comparator, not a reinterpretation of the current
+overlap-density smoother.</p>
+<p>[derived] The paper’s separation between Dirichlet-form convergence
+and pointwise operator convergence is useful for SIMODS. If the planned
+comparator is used as a smoothing penalty, the Dirichlet-form theory is
+the closer analogy. If it is used as a pointwise Laplacian operator, the
+stricter pointwise conditions and <span
+class="math inline">\(epsilon_{\rho}/\epsilon\)</span> term become more
+relevant.</p>
+<p>[derived] The density-effect result suggests a testable SIMODS
+hypothesis: fixed global length kernels may over-penalize or disconnect
+sparse regions, while local-scale kernels may stabilize smoothing across
+nonuniform sampling. This should be tested as a comparator against the
+existing overlap-density smoother rather than blended into its current
+semantics.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–11 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures.</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<p>No original explanatory figure was created for P10. A useful
+synthesis figure, if desired later, would compare fixed bandwidth, kNN
+local scale, and <span class="math inline">\(\alpha\)</span> endpoint
+normalization as three separate knobs in a conductance/kernel
+comparator.</p>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The paper studies graph Laplacian convergence for kNN self-tuned
+kernels with estimated bandwidths.</td>
+<td>explicit</td>
+<td>Abstract, PDF p. 1; Section 1, PDF pp. 2-4</td>
+<td>Central paper claim.</td>
+</tr>
+<tr>
+<td>Standard fixed-bandwidth affinity is <span
+class="math inline">\(W_{ij}=k0(\Vert x_{i}-x_{j}\Vert
+^2/\epsilon)\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (1), PDF p. 1</td>
+<td>Baseline kernel.</td>
+</tr>
+<tr>
+<td>Original self-tuned affinity uses kNN distances in the denominator
+product <span class="math inline">\(R_hat_i R_hat_j\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (3), PDF p. 2</td>
+<td>Cites Zelnik-Manor and Perona.</td>
+</tr>
+<tr>
+<td>Cheng-Wu’s family divides by <span
+class="math inline">\(rho_hat_i^\alpha rho_hat_j^\alpha\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (4), PDF p. 2</td>
+<td><span class="math inline">\(\alpha\)</span> selects limiting
+operator.</td>
+</tr>
+<tr>
+<td>The practical algorithm uses raw kNN distances <span
+class="math inline">\(R_hat_i\)</span> and parameter <span
+class="math inline">\(sigma_{0}\)</span>.</td>
+<td>explicit</td>
+<td>Algorithm 1 and Eq. (5), PDF pp. 4-5</td>
+<td>Does not require knowing <code>d</code>.</td>
+</tr>
+<tr>
+<td>The kNN bandwidth estimator is normalized from the k-th neighbor
+distance and targets <span
+class="math inline">\(rho_{bar}=p^{-1/d}\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (6), PDF p. 7; Theorem 2.3, PDF p. 8</td>
+<td>Theoretical normalization uses <code>d</code>.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(R_{hat}\)</span> is Lipschitz and
+piecewise smooth off hyperplanes.</td>
+<td>explicit</td>
+<td>Lemma 2.1, PDF p. 7; Fig. 10, PDF p. 20</td>
+<td>Used for uniform convergence proof.</td>
+</tr>
+<tr>
+<td>Uniform relative error of <span
+class="math inline">\(rho_{hat}\)</span> is bounded by bias <span
+class="math inline">\((k/N)^(2/d)\)</span> plus variance <span
+class="math inline">\(\sqrt(\log N/k)\)</span>.</td>
+<td>explicit</td>
+<td>Theorem 2.3, PDF p. 8</td>
+<td>High-probability <code>C0</code> result.</td>
+</tr>
+<tr>
+<td>Optimal kNN scaling is <span class="math inline">\(k ~
+N^(1/(1+d/4))\)</span> up to logs.</td>
+<td>explicit</td>
+<td>Remark 2.1, PDF p. 8</td>
+<td>Balances bias and variance.</td>
+</tr>
+<tr>
+<td>kNN <span class="math inline">\(rho_{hat}\)</span> has better
+low-density relative variance behavior than fixed-bandwidth KDE.</td>
+<td>explicit</td>
+<td>Remark 2.2, PDF p. 8; Fig. 1, PDF p. 15</td>
+<td>KDE relative variance includes <span
+class="math inline">\(p(x)^(-1/2)\)</span>.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(rho_{hat}\)</span> is not
+<code>C1</code> consistent; its derivative diverges.</td>
+<td>explicit</td>
+<td>Section 2.3, PDF pp. 8-9</td>
+<td>Key technical obstacle.</td>
+</tr>
+<tr>
+<td>The limiting random-walk operator is <span
+class="math inline">\(L^(\alpha)=\Delta+(1+2(\alpha-1)/d) \nabla p/p dot
+\nabla\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (10), PDF p. 9</td>
+<td>After substituting <span
+class="math inline">\(rho_{bar}=p^{-1/d}\)</span>.</td>
+</tr>
+<tr>
+<td>The graph Dirichlet form converges to the differential Dirichlet
+form for <span
+class="math inline">\(p_{\alpha}=p^(1+2(\alpha-1)/d)\)</span>.</td>
+<td>explicit</td>
+<td>Proposition 3.2 and Theorem 3.3, PDF pp. 10-11</td>
+<td>Relevant to smoothing penalties.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\alpha=1\)</span> recovers <span
+class="math inline">\(\Delta_{p}\)</span>; <span
+class="math inline">\(\alpha=1-d/2\)</span> recovers <span
+class="math inline">\(\Delta_{M}\)</span>; <span
+class="math inline">\(\alpha=0\)</span> gives modified density <span
+class="math inline">\(p^(1-2/d)\)</span>.</td>
+<td>explicit</td>
+<td>Section 3.3, PDF p. 11</td>
+<td>Important normalization map.</td>
+</tr>
+<tr>
+<td>Pointwise convergence requires <span
+class="math inline">\(epsilon_{\rho}=o(\epsilon)\)</span>.</td>
+<td>explicit</td>
+<td>Theorem 3.5, PDF p. 13; Theorem 3.6, PDF p. 14</td>
+<td>Stricter than Dirichlet-form convergence.</td>
+</tr>
+<tr>
+<td>Weak convergence of <span class="math inline">\(L_{un}\)</span>
+removes the <span class="math inline">\(epsilon_{\rho}/\epsilon\)</span>
+term.</td>
+<td>explicit</td>
+<td>Theorem 3.7, PDF p. 14</td>
+<td>Only weak form and unnormalized operator.</td>
+</tr>
+<tr>
+<td>Fixed-bandwidth pointwise variance worsens in low-density regions;
+self-tuned variance improves there.</td>
+<td>explicit</td>
+<td>Theorem 3.8 and following paragraph, PDF p. 14</td>
+<td>Fixed factor <span class="math inline">\(p^(-1/2)\)</span> versus
+self-tuned <span class="math inline">\(p^(1/d)\)</span> in Theorem
+3.5.</td>
+</tr>
+<tr>
+<td>Stand-alone <code>Y</code> can improve bandwidth estimation when
+many extra samples are available, but splitting limited data may
+hurt.</td>
+<td>explicit</td>
+<td>Section 4.3, PDF pp. 17-18; Figs. 5-6</td>
+<td>Practical caveat.</td>
+</tr>
+<tr>
+<td>MNIST fixed-bandwidth embeddings show outliers with large kNN
+distances; self-tuned kernels are more stable.</td>
+<td>explicit</td>
+<td>Section 4.5, PDF pp. 19-20; Figs. 8-9</td>
+<td>Empirical support for low-density robustness.</td>
+</tr>
+<tr>
+<td>P10’s affinity can serve as a planned SIMODS
+length/kernel-conductance comparator.</td>
+<td>derived</td>
+<td>Eq. (4), PDF p. 2; SIMODS review context</td>
+<td>Comparator only; not current <code>gflow</code> overlap-density
+semantics.</td>
+</tr>
+<tr>
+<td>Current <code>fit.rdgraph.regression()</code> overlap-density
+smoothing is distinct from this paper’s kNN self-tuned point-cloud
+kernel.</td>
+<td>contextual</td>
+<td>SIMODS/gflow review context; P10 methods throughout</td>
+<td>Important scope boundary for H005.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ol type="1">
+<li>Should the synthesis treat P10 primarily as “kNN self-tuned kernel
+theory” or as a direct sequel to the P04 smooth variable-bandwidth
+diffusion-kernel memo?</li>
+<li>For SIMODS, should the proposed comparator use the raw Algorithm 1
+form with <span class="math inline">\(R_hat_i\)</span> and <span
+class="math inline">\(sigma_{0}\)</span>, or the theory-normalized <span
+class="math inline">\(rho_{hat}\)</span> form with explicit dependence
+on estimated intrinsic dimension?</li>
+<li>Should the final review emphasize Dirichlet-form convergence as the
+closer analogue to smoothing penalties, while marking pointwise operator
+convergence as a stricter and separate use case?</li>
+<li>If a length/kernel-conductance comparator is implemented, should
+<span class="math inline">\(\alpha=1\)</span> be the default because it
+recovers <span class="math inline">\(\Delta_{p}\)</span>, or should the
+comparator expose <span class="math inline">\(\alpha\)</span> explicitly
+because <span class="math inline">\(\alpha\)</span> controls density
+bias?</li>
+<li>Should the MNIST outlier result in Figures 8-9 be cited as empirical
+evidence for low-density stabilization, or kept secondary because it is
+an embedding demonstration rather than a controlled convergence
+experiment?</li>
+</ol>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P10 requested that the final synthesis distinguish kNN
+bandwidth estimation from graph support. P10 studies kNN/self-tuned
+scales and graph Laplacian convergence; do not imply that bandwidth
+estimation and support construction are the same design choice.</p></li>
+<li><p>SIMODS/gflow clarification for synthesis: current
+<code>fit.rdgraph.regression()</code> uses
+overlap-density/Riemannian-complex conductance. P10 supports planned kNN
+self-tuned kernel-conductance comparators, not the existing gflow
+operator semantics.</p></li>
+<li><p>Add an operator-normalization caveat for special <span
+class="math inline">\(\alpha\)</span> choices. The meaning of <span
+class="math inline">\(\alpha=1\)</span> or other values depends on the
+paper’s operator and normalization, so avoid transferring a default
+between P03/P04/P10 without restating the construction.</p></li>
+<li><p>Treat the MNIST/outlier result as secondary empirical evidence,
+not as a convergence proof.</p></li>
+<li><p>2026-05-15: Initial Reviewer-P10 memo drafted from the 60-page
+canonical PDF. Full text, theorem statements, proof figures, and
+experimental figures/tables were reviewed.</p></li>
+</ul>
+</body>
+</html>

@@ -55,10 +55,21 @@ def archive(destination, root, files, extra):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=P/'build/review-bundle')
+    parser.add_argument('--output', type=Path, help='New immutable review-package directory')
     args = parser.parse_args()
-    out = args.output.resolve()
-    out.mkdir(parents=True, exist_ok=True)
+    commit = git('rev-parse', 'HEAD')
+    dirty = git('status', '--porcelain', '--untracked-files=normal', '.', ':!review-bundles')
+    if not commit or dirty:
+        raise ValueError('Commit the active paper inputs before packaging (review-bundles excluded).')
+    built = json.loads((P/'build/build-inputs.json').read_text())
+    if built['commit'] != commit:
+        raise ValueError('Rebuild the PDF at the current source commit before packaging.')
+    for relative, expected in built['sha256'].items():
+        if digest(P/relative) != expected:
+            raise ValueError(f'Input or PDF changed since build: {relative}')
+    name = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d_%H%M%S') + '-' + commit[:7]
+    out = (args.output or P/'review-bundles'/name).resolve()
+    out.mkdir(parents=True, exist_ok=False)
     core = ['geodesic_mds.tex', 'geodesic_mds.bib',
             'build/manuscript_build_info.tex']
     core += [f'figures/focused/{name}.pdf' for name in FIGURES]
@@ -89,7 +100,7 @@ figure generation and numerical checks.
         'created_eastern': datetime.now(ZoneInfo('America/New_York')).isoformat(),
         'paper_commit': git('rev-parse', 'HEAD'),
         'paper_branch': git('branch', '--show-current'),
-        'tracked_paper_changes': git('status', '--porcelain', '--untracked-files=no', '.'),
+        'tracked_paper_changes': git('status', '--porcelain', '--untracked-files=no', '.', ':!review-bundles'),
         'status': 'author_review_draft_not_approved_for_submission',
         'scope': 'Frozen-evidence verification and manuscript/figure regeneration; no full experiment refit.',
         'files': {name: {'sha256': digest(out/name), 'bytes': (out/name).stat().st_size}
@@ -122,12 +133,13 @@ links refer to the source study trees and are not a complete mirror here.
 This is an author-review draft. Internal checks are complete; independent
 scientific review informed this revision; approval by both authors, disclosure review, overlap review
 with the software article, and submission/category/license choices remain.
-No submission or merge into the original working checkout has been performed.
+The canonical source is grip/papers/gmds_manuscript. No submission has been performed.
 
 Distribute this directory as one matched set. Its PDF, source archives and
 manifest describe the same revision; older dated review folders are historical
 artifacts and must not be substituted for any member of this set.
 ''')
+    print(str(out))
     print(json.dumps(provenance, indent=2))
 
 

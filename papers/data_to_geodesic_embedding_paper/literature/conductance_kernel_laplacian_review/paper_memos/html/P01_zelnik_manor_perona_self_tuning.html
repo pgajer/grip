@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Self-Tuning Spectral Clustering</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Self-Tuning Spectral Clustering</h1>
+</header>
+<p>Paper: Zelnik-Manor, Lihi and Pietro Perona. “Self-Tuning Spectral
+Clustering.” NeurIPS, 2004. Reviewer: Reviewer-P01 Auditor: Auditor-P01
+Status: revised after audit Date: 2026-05-15 Source manifest ID: P01
+Canonical reading copy:
+<code>sources/pdf/P01_zelnik_manor_perona_self_tuning_spectral_clustering.pdf</code></p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<ul>
+<li>[contextual] Basic graph terminology: weighted affinity matrix,
+degree matrix, normalized graph adjacency/Laplacian conventions, and the
+meaning of an edge weight as an affinity or conductance-like
+coupling.</li>
+<li>[contextual] Gaussian/RBF kernels: a distance <span
+class="math inline">\(d(s_i,s_j)\)</span> is converted to a similarity
+by <span class="math inline">\(\exp(-d^2/\sigma^2)\)</span>, and the
+bandwidth <span class="math inline">\(\sigma\)</span> determines which
+distances count as “near.”</li>
+<li>[contextual] Spectral clustering: build a graph on data points,
+compute leading eigenvectors of a normalized affinity operator, embed
+each data point as a row of the eigenvector matrix, and cluster those
+rows.</li>
+<li>[contextual] The Ng-Jordan-Weiss (NJW) algorithm: the paper
+explicitly builds on the normalized affinity matrix <span
+class="math inline">\(L=D^{-1/2}AD^{-1/2}\)</span>, row-normalized
+eigenvector coordinates, and a final <span
+class="math inline">\(k\)</span>-means step (Section 1.1, pp. 1-2).</li>
+<li>[contextual] Eigenvalue multiplicity and block diagonal matrices: if
+a graph has disconnected cluster blocks, leading eigenvectors can be
+supported on individual blocks, but repeated eigenvalues allow arbitrary
+rotations of the eigenspace.</li>
+<li>[contextual] Nearest-neighbor distances: the local scale <span
+class="math inline">\(\sigma_i\)</span> is chosen as a distance from
+point <span class="math inline">\(s_i\)</span> to its <span
+class="math inline">\(K\)</span>th neighbor (Eq. (2), p. 3).</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>[contextual] The paper asks how to make spectral clustering less
+hand-tuned. Standard spectral clustering needs a single Gaussian scale
+<span class="math inline">\(\sigma\)</span>: if <span
+class="math inline">\(\sigma\)</span> is too small, many points look
+disconnected; if it is too large, separate structures blur together. A
+single global <span class="math inline">\(\sigma\)</span> is especially
+fragile when one cluster is dense and another is sparse.</p>
+<p>[explicit] Zelnik-Manor and Perona’s main kernel idea is to give
+every point its own scale <span class="math inline">\(\sigma_i\)</span>,
+estimated from its local neighborhood, and to use the product <span
+class="math inline">\(\sigma_i\sigma_j\)</span> in the Gaussian affinity
+between points <span class="math inline">\(i\)</span> and <span
+class="math inline">\(j\)</span> (Section 2, Eq. (1), p. 3). A point in
+a tight region gets a small scale; a point in a sparse region gets a
+large scale. The product makes the edge weight depend on both endpoints’
+local sampling density.</p>
+<p>[explicit] The second idea is to estimate the number of clusters by
+rotating leading eigenvectors until their rows align as much as possible
+with coordinate axes (Section 3.2, Eq. (3), p. 5), then select the
+largest cluster number with minimal alignment cost (Section 4, step 7,
+p. 6). This is meant to replace both manual choice of the number of
+groups and the random final <span class="math inline">\(k\)</span>-means
+stage.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>[explicit] The paper identifies four open issues in spectral
+clustering: choosing an appropriate analysis scale, handling multi-scale
+data, clustering in irregular background clutter, and automatically
+finding the number of groups (Abstract, p. 1; Introduction, p. 1).</p>
+<p>[explicit] The authors position their work as an extension of NJW
+spectral clustering, not as a new continuum graph-Laplacian convergence
+theory. Section 1.1 reviews NJW’s affinity construction, normalized
+affinity operator, leading eigenvectors, row normalization, and <span
+class="math inline">\(k\)</span>-means clustering (pp. 1-2).</p>
+<p>[explicit] Figure 1 (p. 2) demonstrates the failure mode that
+motivates local scaling: different synthetic point sets need different
+optimal global <span class="math inline">\(\sigma\)</span>, and even the
+best global <span class="math inline">\(\sigma\)</span> can fail on
+multi-scale data.</p>
+<h3 id="main-method">Main Method</h3>
+<p>[explicit] The method modifies NJW by replacing the global Gaussian
+affinity matrix <span class="math inline">\(A\)</span> with a locally
+scaled affinity matrix <span class="math inline">\(\hat A\)</span>
+(Section 2, Eq. (1), p. 3; Section 4, steps 1-3, p. 6).</p>
+<p>[explicit] The local scale for point <span
+class="math inline">\(s_i\)</span> is <span
+class="math inline">\(\sigma_i=d(s_i,s_K)\)</span>, where <span
+class="math inline">\(s_K\)</span> is the <span
+class="math inline">\(K\)</span>th neighbor of <span
+class="math inline">\(s_i\)</span> (Eq. (2), p. 3). The experiments use
+<span class="math inline">\(K=7\)</span> (p. 3).</p>
+<p>[explicit] After building <span class="math inline">\(L=D^{-1/2}\hat
+A D^{-1/2}\)</span>, the algorithm computes the top <span
+class="math inline">\(C\)</span> eigenvectors for a chosen maximum
+possible group number <span class="math inline">\(C\)</span>,
+incrementally rotates them, grades candidate group numbers by alignment
+cost, selects <span class="math inline">\(C_{\text{best}}\)</span>, and
+assigns labels by non-maximum suppression on <span
+class="math inline">\(Z=XR\)</span> (Section 4, steps 4-9, p. 6).</p>
+<p>[derived] In graph-conductance language, <span
+class="math inline">\(\hat A_{ij}\)</span> can be read as the edge
+conductance or edge weight used by the normalized graph operator, but
+the paper itself uses “affinity” rather than “conductance” and does not
+develop an electrical-network interpretation.</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<ul>
+<li>[explicit] Standard NJW global Gaussian affinity, Section 1.1 step
+1, pp. 1-2: <span class="math display">\[
+A_{ij}=\exp\left(-\frac{d^2(s_i,s_j)}{\sigma^2}\right),\quad i\ne
+j,\qquad A_{ii}=0.
+\]</span></li>
+<li>[explicit] Degree and normalized affinity, Section 1.1 step 2, p. 2:
+<span class="math display">\[
+D_{ii}=\sum_{j=1}^n A_{ij},\qquad L=D^{-1/2}AD^{-1/2}.
+\]</span></li>
+<li>[explicit] Eigenvector matrix and NJW row normalization, Section 1.1
+steps 4-5, p. 2: <span class="math display">\[
+X=[x_1,\ldots,x_C]\in\mathbb R^{n\times C},\qquad
+Y_{ij}=X_{ij}\bigg/\left(\sum_j X_{ij}^2\right)^{1/2}.
+\]</span></li>
+<li>[explicit] Local “seen by endpoint” distances, Section 2, p. 3:
+<span class="math display">\[
+\frac{d(s_i,s_j)}{\sigma_i},\qquad \frac{d(s_j,s_i)}{\sigma_j}.
+\]</span> The authors generalize the earlier squared distance to <span
+class="math display">\[
+\frac{d(s_i,s_j)d(s_j,s_i)}{\sigma_i\sigma_j}
+=\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}.
+\]</span></li>
+<li>[explicit] Self-tuned local-scale Gaussian affinity, Section 2, Eq.
+(1), p. 3: <span class="math display">\[
+\hat A_{ij}=\exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right).
+\]</span></li>
+<li>[explicit] Local scale, Section 2, Eq. (2), p. 3: <span
+class="math display">\[
+\sigma_i=d(s_i,s_K),
+\]</span> where <span class="math inline">\(s_K\)</span> is the <span
+class="math inline">\(K\)</span>th neighbor of <span
+class="math inline">\(s_i\)</span>.</li>
+<li>[explicit] Locally scaled normalized affinity, Section 4 step 3,
+p. 6: <span class="math display">\[
+D_{ii}=\sum_{j=1}^n \hat A_{ij},\qquad L=D^{-1/2}\hat A D^{-1/2}.
+\]</span></li>
+<li>[explicit] Eigenvector rotation setup, Section 3.2, p. 5: <span
+class="math display">\[
+Z=XR,\qquad M_i=\max_j Z_{ij}.
+\]</span></li>
+<li>[explicit] Alignment cost, Section 3.2, Eq. (3), p. 5: <span
+class="math display">\[
+J=\sum_{i=1}^n\sum_{j=1}^C\frac{Z_{ij}^2}{M_i^2}.
+\]</span></li>
+<li>[explicit] Final non-maximum assignment, Section 4 step 8, p. 6:
+<span class="math display">\[
+s_i\mapsto c\quad\text{iff}\quad \max_j(Z_{ij}^2)=Z_{ic}^2.
+\]</span></li>
+<li>[explicit] Appendix A parameterizes <span
+class="math inline">\(R\)</span> using Givens rotations and updates
+angles by <span class="math display">\[
+\Theta_{k+1}=\Theta_k-\alpha\nabla J|_{\Theta=\Theta_k}
+\]</span> (Appendix A, p. 8). The appendix also defines <span
+class="math inline">\(A^{(k)}_{ij}=\partial
+Z_{ij}/\partial\theta_k\)</span> and sketches a local convergence
+condition for the step size <span class="math inline">\(\alpha\)</span>
+(p. 8).</li>
+</ul>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<ul>
+<li>[explicit] Figure 1 (p. 2) shows standard NJW clustering without
+local scaling. The top row demonstrates that different point sets
+require different global <span class="math inline">\(\sigma\)</span>
+values; the bottom row applies different <span
+class="math inline">\(\sigma\)</span> values to the same nested-ring
+point set, showing strong sensitivity to bandwidth.</li>
+</ul>
+<figure class="paper-figure" id="P01_F01">
+<img src="../../paper_figures/P01_F01_page02.png" alt="P01 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 1, PDF p. 2
+(cropped from canonical reading copy), internal review only.
+Global-bandwidth sensitivity.
+</figcaption>
+</figure>
+<ul>
+<li>[explicit] Figure 2 (p. 3) is the most important conductance/kernel
+figure. Panel (a) shows a tight cluster inside a sparse background
+cluster. Panel (b) visualizes global-scale affinities; cross-cluster
+affinities can be larger than affinities within the sparse background.
+Panel (c) visualizes local scaling; cross-cluster affinities become
+weaker than within-cluster affinities.</li>
+</ul>
+<figure class="paper-figure" id="P01_F02">
+<img src="../../paper_figures/P01_F02_page03.png" alt="P01 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 2, PDF p. 3
+(cropped from canonical reading copy), internal review only. Local-scale
+affinity effect.
+</figcaption>
+</figure>
+<ul>
+<li>[explicit] Figure 3 (p. 4) shows synthetic clustering results using
+the Section 4 algorithm; the caption says the number of groups was found
+automatically.</li>
+</ul>
+<figure class="paper-figure" id="P01_F03">
+<img src="../../paper_figures/P01_F03_F04_page04.png" alt="P01 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 3, PDF p. 4
+(cropped from canonical reading copy), internal review only. Synthetic
+clustering results.
+</figcaption>
+</figure>
+<ul>
+<li>[explicit] Figure 4 (p. 4) plots the first ten eigenvalues of <span
+class="math inline">\(L\)</span> for the top-row datasets in Figure 3.
+It supports the authors’ argument that eigenvalue-gap heuristics are
+unreliable because the eigenvalue patterns differ across datasets.</li>
+</ul>
+<figure class="paper-figure" id="P01_F04">
+<img src="../../paper_figures/P01_F03_F04_page04.png" alt="P01 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 4, PDF p. 4
+(cropped from canonical reading copy), internal review only.
+Eigenvalue-gap limitation.
+</figcaption>
+</figure>
+<ul>
+<li>[explicit] Figure 5 (p. 6) plots alignment cost from Eq. (3) for
+varying group numbers for the top-row datasets in Figure 3. The red
+circle marks the selected number of groups, with near-ties up to 0.01%
+treated as the same value.</li>
+</ul>
+<figure class="paper-figure" id="P01_F05">
+<img src="../../paper_figures/P01_F05_page06.png" alt="P01 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 5, PDF p. 6
+(cropped from canonical reading copy), internal review only.
+Alignment-cost ambiguity and group-number estimation.
+</figcaption>
+</figure>
+<ul>
+<li>[explicit] Figure 6 (p. 7) shows automatic intensity-based image
+segmentation results using the proposed algorithm. The text states that
+similar quality could be obtained without local scaling only by manually
+setting both <span class="math inline">\(\sigma\)</span> and the number
+of groups differently for different images (Section 4, pp. 6-7).</li>
+</ul>
+<figure class="paper-figure" id="P01_F06">
+<img src="../../paper_figures/P01_F06_page07.png" alt="P01 Figure 6 cropped figure panel">
+<figcaption>
+Reproduced from Zelnik-Manor and Perona (2004), Figure 6, PDF p. 7
+(cropped from canonical reading copy), internal review only. Image
+segmentation example.
+</figcaption>
+</figure>
+<ul>
+<li>[uncertain] Figure 5’s plotted costs are near zero, while Eq. (3) as
+printed has a per-row ideal contribution of 1 when a row has exactly one
+nonzero entry. The paper does not clearly state whether the plotted
+alignment score is shifted, normalized, or otherwise rescaled.</li>
+</ul>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>[explicit] In the ideal case where <span
+class="math inline">\(L\)</span> is strictly block diagonal with blocks
+<span class="math inline">\(L^{(c)}\)</span>, the eigenvalues and
+eigenvectors of <span class="math inline">\(L\)</span> are unions of the
+eigenvalues and padded eigenvectors of the blocks (Section 3.2, pp. 4-5,
+citing [6,5]).</p>
+<p>[explicit] The authors state that the eigenvalue 1 is a repeated
+eigenvalue with multiplicity equal to the number of groups <span
+class="math inline">\(C\)</span> in the ideal clustered case (Section
+3.1, p. 4; Section 3.2, p. 5).</p>
+<p>[explicit] Because the top eigenspace can be arbitrarily rotated when
+eigenvalues are repeated, the authors seek a rotation <span
+class="math inline">\(R\)</span> such that rows of <span
+class="math inline">\(XR\)</span> have a single nonzero entry (Section
+3.2, p. 5).</p>
+<p>[explicit] Appendix A claims convergence of the Givens-rotation
+gradient descent under a small-enough step size <span
+class="math inline">\(\alpha\)</span>, but the authors state they cannot
+give the full proof because of space and refer to Goyal and Vetterli [2]
+(Appendix A, p. 8).</p>
+<p>[derived] The local-scale kernel is a heuristic adaptive-bandwidth
+graph construction, not a proven asymptotically unbiased
+Laplace-Beltrami estimator in this paper.</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>[explicit] The local scale estimate <span
+class="math inline">\(\sigma_i=d(s_i,s_K)\)</span> is presented as a
+simple choice; the authors explicitly say it might be improved by using
+more informative local statistics (Discussion, p. 7).</p>
+<p>[explicit] The alignment cost in Eq. (3) is described as “reasonable,
+but by no means the only possibility”; the authors mention row entropy
+as an alternative (Discussion, p. 7).</p>
+<p>[explicit] The paper reports that automatic group-number estimation
+fails on one synthetic example in Figure 3, predicting 2 clusters
+instead of 3 for the right-most dataset in the bottom row (Section 3.2,
+p. 5).</p>
+<p>[explicit] The high-dimensional experiments are not included because
+of space, even though the authors say <span
+class="math inline">\(K=7\)</span> worked for them (Section 2,
+p. 3).</p>
+<p>[derived] The method still requires selecting a maximum possible
+group number <span class="math inline">\(C\)</span> before computing
+eigenvectors and evaluating candidate group numbers (Section 4 step 4,
+p. 6).</p>
+<p>[uncertain] The paper’s statement that <span
+class="math inline">\(K\)</span> is independent of scale and a function
+of data dimension is plausible as a heuristic, but the paper gives no
+recipe for choosing <span class="math inline">\(K\)</span> from
+dimension beyond the experimental choice <span
+class="math inline">\(K=7\)</span> (Section 2, p. 3).</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>[contextual] This paper is an early and widely cited source for the
+self-tuning or local-scaling Gaussian kernel <span
+class="math inline">\(\exp[-d^2(s_i,s_j)/(\sigma_i\sigma_j)]\)</span>.
+In later graph-learning language, it is a prototype for
+adaptive-bandwidth affinity graphs.</p>
+<p>[explicit] Methodologically, the paper’s stated contribution is
+automation: local scale rather than global scale, data-estimated scale,
+and eigenvector rotation for sparse cluster indicators (Discussion,
+p. 7).</p>
+<p>[derived] For a conductance/kernel review, P01 matters because it
+gives a simple symmetric edge-weight rule that increases effective
+affinity in sparse regions and decreases cross-scale leakage near dense
+structures, without changing the later normalized graph operator.</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<ol type="1">
+<li><p>[explicit] Global Gaussian affinity used in NJW baseline, Section
+1.1 step 1, pp. 1-2: <span class="math display">\[
+A_{ij}=\exp\left(-\frac{d^2(s_i,s_j)}{\sigma^2}\right),\quad i\ne
+j,\qquad A_{ii}=0.
+\]</span> This is the baseline edge weight that depends on one global
+bandwidth.</p></li>
+<li><p>[explicit] Endpoint-scaled distance product, Section 2, p. 3:
+<span class="math display">\[
+\frac{d(s_i,s_j)d(s_j,s_i)}{\sigma_i\sigma_j}
+=\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}.
+\]</span> This is the derivation step that makes the local-bandwidth
+kernel symmetric in <span class="math inline">\(i,j\)</span>.</p></li>
+<li><p>[explicit] Self-tuned local-scale Gaussian affinity, Section 2,
+Eq. (1), p. 3: <span class="math display">\[
+\hat A_{ij}=\exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right).
+\]</span> This is the paper’s central conductance/kernel
+formula.</p></li>
+<li><p>[explicit] Local scale estimate, Section 2, Eq. (2), p. 3: <span
+class="math display">\[
+\sigma_i=d(s_i,s_K),
+\]</span> where <span class="math inline">\(s_K\)</span> is the <span
+class="math inline">\(K\)</span>th neighbor of <span
+class="math inline">\(s_i\)</span>. The experiments use <span
+class="math inline">\(K=7\)</span>.</p></li>
+<li><p>[explicit] Diagonal convention for local affinity, Section 4 step
+2, p. 6: <span class="math display">\[
+\hat A_{ii}=0.
+\]</span></p></li>
+<li><p>[derived] If interpreting graph weights as conductances for a
+graph smoother, the edge conductance would be <span
+class="math inline">\(c_{ij}=\hat A_{ij}\)</span> for <span
+class="math inline">\(i\ne j\)</span>, with <span
+class="math inline">\(c_{ii}=0\)</span>. The paper itself does not use
+this conductance notation.</p></li>
+</ol>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p>[explicit] The paper uses the symmetric normalized affinity <span
+class="math display">\[
+L=D^{-1/2}AD^{-1/2}
+\]</span> for the baseline NJW algorithm (Section 1.1 step 2, p. 2), and
+<span class="math display">\[
+L=D^{-1/2}\hat A D^{-1/2}
+\]</span> for the proposed local-scale algorithm (Section 4 step 3,
+p. 6).</p>
+<p>[derived] This <span class="math inline">\(L\)</span> is equivalent
+to a normalized adjacency/similarity operator. The paper calls it a
+normalized affinity matrix rather than a graph Laplacian. A
+Laplacian-style operator could be formed as <span
+class="math inline">\(I-L\)</span>, but that is not the operator the
+authors explicitly analyze or compute.</p>
+<h3 id="task">Task</h3>
+<p>[explicit] The task is spectral clustering of point sets and
+intensity-based image segmentation (Abstract, p. 1; Figures 1-6,
+pp. 2-7).</p>
+<p>[explicit] The algorithm also estimates the number of groups
+automatically and eliminates the random <span
+class="math inline">\(k\)</span>-means stage in clean cases by using
+eigenvector rotation and non-maximum suppression (Section 4, p. 6).</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<ul>
+<li>[explicit] Automate spectral clustering parameters: scale selection
+and number of groups (Abstract, p. 1; Discussion, p. 7).</li>
+<li>[explicit] Handle multi-scale data where no single global <span
+class="math inline">\(\sigma\)</span> works well (Section 2, pp. 2-3;
+Figures 1-3, pp. 2-4).</li>
+<li>[explicit] Reduce sensitivity to irregular background clutter
+(Abstract, p. 1; Figure 2, p. 3).</li>
+<li>[explicit] Avoid repeated runs over many global <span
+class="math inline">\(\sigma\)</span> values, which increases
+computation and still requires a manually chosen search range (Section
+2, p. 2).</li>
+<li>[explicit] Avoid random <span class="math inline">\(k\)</span>-means
+initialization after spectral embedding when the rotated eigenvectors
+are already axis-aligned (Section 4, p. 6).</li>
+</ul>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p>[derived] The local-scale Gaussian is motivated by density
+equalization: distances in dense regions are judged against small local
+neighborhoods, and distances in sparse regions are judged against larger
+local neighborhoods. This makes sparse within-cluster edges less
+unfairly weak.</p>
+<p>[derived] The product <span
+class="math inline">\(\sigma_i\sigma_j\)</span> avoids an asymmetric
+affinity that would arise if only the source point’s local scale were
+used.</p>
+<p>[derived] The method can be read as a finite-sample graph
+construction heuristic: improve the edge-weight matrix before applying
+the same normalized spectral machinery.</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p>[explicit] In ideal separated clusters, leading eigenvectors
+correspond to blocks/clusters, up to rotations in repeated eigenspaces
+(Section 3.2, pp. 4-5).</p>
+<p>[explicit] The authors argue that eigenvalue magnitudes and gaps are
+unreliable for finding <span class="math inline">\(C\)</span>, because
+block eigenvalues depend on individual cluster structures (Section 3.1,
+p. 4; Figure 4, p. 4).</p>
+<p>[derived] Local scaling changes the graph spectrum by changing
+affinities: cross-scale edges that might connect dense and sparse
+structures are weakened relative to sparse within-cluster edges, making
+the leading eigenspace more block-like.</p>
+<p>[derived] For smoothing or diffusion, replacing <span
+class="math inline">\(A\)</span> by <span class="math inline">\(\hat
+A\)</span> would make diffusion locally adaptive: sparse regions can
+remain internally connected without forcing a global bandwidth so large
+that dense structures merge.</p>
+<p>[uncertain] The paper does not analyze continuum limits, diffusion
+time, stationary distributions, or smoothing bias/variance under the
+local-scale kernel.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p>[explicit] P01 defines an adaptive scale per data point and inserts
+that scale into the Gaussian denominator as <span
+class="math inline">\(\sigma_i\sigma_j\)</span> (Section 2, Eq. (1),
+p. 3).</p>
+<p>[explicit] The authors estimate <span
+class="math inline">\(\sigma_i\)</span> from the <span
+class="math inline">\(K\)</span>th neighbor distance (Section 2, Eq.
+(2), p. 3).</p>
+<p>[derived] This is a nearest-neighbor adaptive-bandwidth kernel. It
+adapts to sampling density while preserving a symmetric affinity
+matrix.</p>
+<p>[derived] Compared with a fixed heat kernel, P01’s kernel behaves as
+if the bandwidth is larger in sparse regions and smaller in dense
+regions.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<ul>
+<li>[explicit] It does not claim that <span
+class="math inline">\(\sigma_i=d(s_i,s_K)\)</span> is the only or
+optimal local scale; the discussion explicitly says better estimates may
+be possible (p. 7).</li>
+<li>[explicit] It does not claim the Eq. (3) alignment cost is unique;
+the authors mention entropy of rows as another possibility (p. 7).</li>
+<li>[explicit] It does not provide the omitted high-dimensional
+experimental details (Section 2, p. 3).</li>
+<li>[derived] It does not derive a graph-Laplacian continuum limit, a
+variable-bandwidth diffusion limit, or a consistency theorem for
+regression/smoothing.</li>
+<li>[derived] It does not frame <span class="math inline">\(\hat
+A_{ij}\)</span> as physical conductance; that translation is ours for
+comparing graph-weight choices.</li>
+</ul>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p>[contextual] Current <code>fit.rdgraph.regression()</code> semantics
+should remain distinct from P01. The current method is an
+overlap-density/Riemannian-complex smoother, not a self-tuned Gaussian
+kernel over point distances.</p>
+<p>[derived] P01 is relevant as a planned length/kernel-conductance
+comparator: one could define graph edge conductance by <span
+class="math display">\[
+c_{ij}=\exp\left(-\frac{\ell_{ij}^2}{\sigma_i\sigma_j}\right)
+\]</span> when a meaningful length <span
+class="math inline">\(\ell_{ij}\)</span> or distance <span
+class="math inline">\(d(s_i,s_j)\)</span> exists, with <span
+class="math inline">\(\sigma_i\)</span> estimated from local neighbor
+lengths. This would be a new comparator, not a reinterpretation of the
+existing overlap-density smoother.</p>
+<p>[derived] P01 suggests a practical design question for SIMODS/gflow:
+if graph edges have heterogeneous local sampling density, fixed global
+length scales may under-connect sparse regions or over-connect dense
+regions. A self-tuned comparator could test whether local bandwidths
+improve robustness.</p>
+<p>[uncertain] The paper gives no direct guidance on
+simplicial/Riemannian-complex overlap density, regression targets, or
+graph signal smoothing objectives, so any transfer to gflow should be
+treated as an implementation-level comparator inspired by the kernel,
+not as a supported claim from P01.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–6 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures.</p>
+<p>[explicit] Figure 2 (p. 3) remains the strongest candidate because it
+visually explains the local-scaling conductance mechanism. Figure 1
+(p. 2) is the next most useful candidate because it documents
+global-<span class="math inline">\(\sigma\)</span> sensitivity.</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<ul>
+<li><code>../figures/P01_self_tuned_kernel_toy.png</code>
+<ul>
+<li>[derived] Original internal toy diagram illustrating Eq. (1) against
+the global Gaussian baseline from Section 1.1.</li>
+<li>It shows the same point cloud under a global-width Gaussian and the
+self-tuned <span class="math inline">\(\sigma_i\sigma_j\)</span>
+Gaussian; edge thickness represents affinity/conductance-like
+weight.</li>
+<li>Internal review only; not reproduced from the paper.</li>
+</ul></li>
+</ul>
+<figure>
+<img src="../../figures/P01_self_tuned_kernel_toy.png"
+alt="Original internal explanatory figure: P01 self-tuned kernel toy" />
+<figcaption aria-hidden="true">Original internal explanatory figure: P01
+self-tuned kernel toy</figcaption>
+</figure>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard spectral clustering uses <span
+class="math inline">\(A_{ij}=\exp[-d^2(s_i,s_j)/\sigma^2]\)</span>,
+<span class="math inline">\(A_{ii}=0\)</span>.</td>
+<td>explicit</td>
+<td>Section 1.1 step 1, pp. 1-2</td>
+<td>Baseline NJW formula reviewed by the paper.</td>
+</tr>
+<tr>
+<td>The normalized affinity operator is <span
+class="math inline">\(L=D^{-1/2}AD^{-1/2}\)</span>.</td>
+<td>explicit</td>
+<td>Section 1.1 step 2, p. 2</td>
+<td>Reused with <span class="math inline">\(\hat A\)</span> in Section
+4.</td>
+</tr>
+<tr>
+<td>Global <span class="math inline">\(\sigma\)</span> is highly
+sensitive and can fail on multi-scale data.</td>
+<td>explicit</td>
+<td>Section 2, p. 2; Figure 1, p. 2</td>
+<td>Authors show different optimal <span
+class="math inline">\(\sigma\)</span> values and failures.</td>
+</tr>
+<tr>
+<td>The self-tuned affinity is <span class="math inline">\(\hat
+A_{ij}=\exp[-d^2(s_i,s_j)/(\sigma_i\sigma_j)]\)</span>.</td>
+<td>explicit</td>
+<td>Section 2, Eq. (1), p. 3</td>
+<td>Central kernel/conductance formula.</td>
+</tr>
+<tr>
+<td>The local scale is <span
+class="math inline">\(\sigma_i=d(s_i,s_K)\)</span>.</td>
+<td>explicit</td>
+<td>Section 2, Eq. (2), p. 3</td>
+<td><span class="math inline">\(K=7\)</span> used in experiments.</td>
+</tr>
+<tr>
+<td>Local scaling lowers cross-cluster affinities relative to
+within-cluster affinities in the nested tight/sparse example.</td>
+<td>explicit</td>
+<td>Figure 2 caption and text, p. 3</td>
+<td>The figure is the clearest visual evidence.</td>
+</tr>
+<tr>
+<td>The algorithm computes <span class="math inline">\(L=D^{-1/2}\hat A
+D^{-1/2}\)</span>.</td>
+<td>explicit</td>
+<td>Section 4 step 3, p. 6</td>
+<td>Proposed algorithm.</td>
+</tr>
+<tr>
+<td>The top eigenspace can be arbitrarily rotated under repeated
+eigenvalues.</td>
+<td>explicit</td>
+<td>Section 3.2, p. 5</td>
+<td>Motivates rotation alignment.</td>
+</tr>
+<tr>
+<td>The alignment cost is <span class="math inline">\(J=\sum_i\sum_j
+Z_{ij}^2/M_i^2\)</span>.</td>
+<td>explicit</td>
+<td>Section 3.2, Eq. (3), p. 5</td>
+<td>Possible plotting-scale ambiguity in Figure 5.</td>
+</tr>
+<tr>
+<td>A point is assigned by <span
+class="math inline">\(\max_j(Z_{ij}^2)=Z_{ic}^2\)</span>.</td>
+<td>explicit</td>
+<td>Section 4 step 8, p. 6</td>
+<td>Non-maximum suppression replaces <span
+class="math inline">\(k\)</span>-means in clean cases.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(c_{ij}=\hat A_{ij}\)</span> is a
+conductance interpretation suitable for graph-smoother comparisons.</td>
+<td>derived</td>
+<td>Derived from Eq. (1), p. 3</td>
+<td>The authors call it affinity, not conductance.</td>
+</tr>
+<tr>
+<td>P01 does not analyze continuum graph-Laplacian convergence.</td>
+<td>derived</td>
+<td>Whole paper; especially Sections 2-5, pp. 2-7</td>
+<td>No convergence theorem for the local-scale kernel is provided.</td>
+</tr>
+<tr>
+<td>Current <code>fit.rdgraph.regression()</code> overlap-density
+smoothing is separate from P01-style local-kernel conductance.</td>
+<td>contextual</td>
+<td>H005 execution plan; P01 Eq. (1)</td>
+<td>Keep current implementation semantics distinct from planned
+comparators.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ol type="1">
+<li>Eq. (3) as printed has ideal rows contributing at least 1 to <span
+class="math inline">\(J\)</span>, but Figure 5 plots costs near 0.
+Should the review note that the plotted cost appears shifted or
+normalized, or should this be treated as an implementation detail
+outside the memo?</li>
+<li>For SIMODS/gflow comparison, should P01 be grouped with
+“adaptive/self-tuned Gaussian kernels” only, or also cross-indexed under
+“nearest-neighbor local bandwidth selection”?</li>
+<li>Should a final report include a reproduced copy of Figure 2 from the
+paper, or is the original toy figure sufficient for internal
+explanation?</li>
+<li>If implementing a comparator, should <span
+class="math inline">\(\sigma_i\)</span> be estimated from all
+point-cloud neighbors as in P01, or from graph-neighbor edge lengths
+only?</li>
+</ol>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P01 requested that the Eq. (3)/Figure 5 ambiguity be
+moved out of open questions. The main figure discussion now treats it as
+an <code>uncertain</code> source issue: Eq. (3), as printed, has an
+ideal per-row contribution of 1, while Figure 5 plots near-zero costs.
+The final synthesis should not infer a precise shifted or normalized
+score unless it is independently confirmed.</p></li>
+<li><p>Auditor-P01 requested a sharper cKNN distinction. P01 uses
+nearest-neighbor distances to set local bandwidths <span
+class="math inline">\(\sigma_i=d(s_i,s_K)\)</span>, but it does not
+define cKNN/adaptive graph support. Any connection to adaptive-radius or
+cKNN graph construction is contextual synthesis, not an explicit claim
+of Zelnik-Manor and Perona.</p></li>
+<li><p>2026-05-15: Initial Reviewer-P01 memo drafted from the canonical
+eight-page PDF, including figure review and original internal toy
+figure.</p></li>
+</ul>
+</body>
+</html>

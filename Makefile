@@ -106,3 +106,12 @@ winbuilder-release: build
 
 winbuilder-devel: build
 	Rscript tools/pkg/check-win-builder.R devel
+
+# Focused graph-geodesic methods manuscript (separate from the R Journal paper).
+.PHONY: gmds-paper-pdf gmds-paper-verify gmds-paper-review-bundle
+gmds-paper-pdf:
+	$(MAKE) -C papers/gmds_manuscript pdf
+gmds-paper-verify:
+	$(MAKE) -C papers/gmds_manuscript verify
+gmds-paper-review-bundle:
+	$(MAKE) -C papers/gmds_manuscript review-bundle

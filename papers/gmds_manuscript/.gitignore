@@ -1,2 +1,8 @@
 build/
 __pycache__/
+
+# Intentional publication assets and immutable review packages.
+!figures/**/*.pdf
+!archive/*.pdf
+!review-bundles/**/*.pdf
+!review-bundles/**/*.zip

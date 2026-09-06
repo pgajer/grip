@@ -1,0 +1,666 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  citecolor=blue!50!black
+}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Rpath}[1]{\path{#1}}
+\newcommand{\dd}{\,\mathrm{d}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\reportbuilddatetime}{2026-05-15 01:56:59 EDT}
+
+\title{gflow Graph Low-Pass GCV Operator Used by \code{fit.rdgraph.regression()} and \code{refit.rdgraph.regression()}}
+\author{SIMODS manuscript provenance note}
+\date{Built \reportbuilddatetime}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Manuscript Role}
+
+This note describes the graph low-pass smoothing operator implemented in
+\code{gflow} by \code{fit.rdgraph.regression()} and reused by
+\code{refit.rdgraph.regression()}. In the SIMODS non-oracle graph-selection
+benchmark, this operator is intended to serve as one candidate selector: for
+each candidate graph, fit a graph-spectral smoother, record its generalized
+cross-validation (GCV) score, and compare candidate graphs by aggregating those
+scores over selected feature signals.
+
+Operationally, the benchmark should construct the graph/operator with
+\code{fit.rdgraph.regression()}. When the same fitted graph geometry and
+spectral filter are to be applied to many response or feature columns, the
+benchmark should call \code{refit.rdgraph.regression()} on the fitted object.
+The refit path reuses the cached graph geometry, eigenvectors, eigenvalues, and
+filter family. Depending on \code{per.column.gcv}, it either reuses the
+original smoothing parameter and filtered eigenvalues stored in the fitted model
+or selects a feature-specific smoothing parameter in the cached eigenbasis.
+Either way, it avoids rebuilding the Riemannian graph geometry for every
+feature.
+
+\paragraph{Current implementation convention confirmed from source.}
+For the current \code{fit.rdgraph.regression()} low-pass operator path with a
+precomputed graph supplied through \code{adj.list} and \code{weight.list},
+\code{weight.list} is interpreted as a positive edge-length list used for local
+neighborhood ordering and truncation, not as an affinity or conductance list.
+The implementation does \emph{not} directly use
+\[
+  a_{ij} = \frac{1}{\ell_{ij}+\epsilon}
+\]
+as the smoothing edge weight. Instead, the supplied edge lengths
+\(\ell_{ij}\) are used to order local graph neighborhoods. The smoothing
+operator is then built from neighborhood-intersection densities computed by the
+Riemannian-complex initialization; the conductance used in the
+mass-symmetrized spectral Laplacian is
+\[
+  c_e = \frac{1}{\max(\rho_1(e),10^{-10})},
+\]
+where \(\rho_1(e)\) is the edge mass/density computed from neighborhood
+intersections. This is the key convention for the manuscript and benchmark.
+
+\section{Graph Input and Weight Semantics}
+
+Let \(G=(V,E)\) be an undirected connected graph on \(n=|V|\) vertices. In the
+R API, a precomputed graph is supplied through:
+\begin{itemize}[leftmargin=1.5em]
+  \item \code{adj.list}: a length-\(n\) list whose \(i\)th entry gives the
+  1-based neighbors of vertex \(i\);
+  \item \code{weight.list}: a length-\(n\) list parallel to \code{adj.list}
+  whose entries are positive edge lengths \(\ell_{ij}\).
+\end{itemize}
+
+The R wrapper validates that \code{adj.list} and \code{weight.list} are supplied
+together, have matching lengths, contain no self-loops or duplicate neighbors,
+are undirected, and have reciprocal edge weights agreeing within tolerance. It
+then converts the adjacency list to 0-based indices for C++ while passing the
+numeric weights through as doubles.
+
+The supported R-level precomputed-graph API currently requires
+\code{use.counting.measure = TRUE}. The wrapper explicitly stops if a
+precomputed \code{adj.list}/\code{weight.list} is supplied with
+\code{use.counting.measure = FALSE}. Therefore, in the benchmark usage
+envisioned here, \(\ell_{ij}\) does not define a distance-based vertex reference
+measure; it defines edge lengths used to sort local neighborhoods.
+
+\subsection{From Edge Lengths to Local Neighborhoods}
+
+In the precomputed-graph C++ path, each row \(i\) is converted into a sorted
+list of pairs \((\ell_{ij},j)\), with a self-entry \((0,i)\) inserted. The
+implementation keeps the first \(\min(k_{\mathrm{cpp}}, \deg(i)+1)\) entries
+as the local neighborhood \(\widehat N_k(i)\). Because the R wrapper passes
+\code{k + 1L} into C++ to account for the self neighbor convention, a user-level
+\code{k=K} corresponds to self plus up to \(K\) shortest graph-neighbors when
+the supplied degree is at least \(K\).
+
+Thus edge lengths enter the operator through neighborhood ordering and
+truncation:
+\[
+  \widehat N_K(i)
+  =
+  \{i\}\cup
+  \text{the up to \(K\) adjacent vertices with smallest } \ell_{ij}.
+\]
+The graph's full edge registry still contains all supplied undirected edges;
+the local neighborhoods are used to compute density and intersection masses.
+
+\subsection{Recent GCV Graph-Selection Regime}
+
+In the current supported precomputed-graph path, and in the recommended SIMODS
+graph-selection benchmark regime, calls to \code{fit.rdgraph.regression()} use
+the default counting-measure regime:
+\begin{itemize}[leftmargin=1.5em]
+  \item \code{use.counting.measure = TRUE};
+  \item \code{response.penalty.exp = 0};
+  \item \code{density.alpha = 1.5};
+  \item \code{density.epsilon = 1e-10}.
+\end{itemize}
+The first and fourth values are especially easy to misread. In this precomputed
+graph path, \code{density.epsilon} is not an \(\ell_{ij}\)-to-conductance
+regularizer. It belongs to the optional distance-reference branch
+\((\epsilon+d_k)^{-\alpha}\), which is not used when
+\code{use.counting.measure = TRUE}. The setting
+\code{response.penalty.exp = 0} disables response-coherence modulation, so the
+operator is the initialization-derived graph smoother rather than an
+iteratively response-adapted smoother.
+
+Some historical or pre-run scripts experimented with
+\code{use.counting.measure = FALSE}. Current \code{gflow} rejects that setting
+for precomputed \code{adj.list}/\code{weight.list} graphs, so those historical
+calls should not be used as canonical method descriptions for the current
+precomputed-graph operator.
+
+In this default counting-measure regime, for a graph edge \(e=(i,j)\):
+\begin{enumerate}[leftmargin=1.5em]
+  \item The local neighborhoods \(\widehat N_k(i)\) and \(\widehat N_k(j)\)
+  are built from graph neighbors sorted by the supplied positive edge lengths,
+  with the vertex itself included as a zero-distance self entry.
+  \item Each vertex has reference mass one, up to the global normalization
+  convention for the reference measure.
+  \item The raw edge mass is essentially the local-neighborhood overlap,
+  \[
+    \rho_{1,\mathrm{raw}}(i,j)
+      =
+      \left|\widehat N_k(i)\cap \widehat N_k(j)\right|.
+  \]
+  More generally, the code computes
+  \[
+    \rho_{1,\mathrm{raw}}(i,j)
+      =
+      \sum_{v\in \widehat N_k(i)\cap \widehat N_k(j)} \mu(v),
+  \]
+  and \(\mu(v)=1\) in the counting-measure case.
+  \item The implementation then globally normalizes edge masses to the number
+  of undirected edges, applies density floors/clamps for numerical stability,
+  and stores the resulting symmetric edge density as \(\rho_1(e)\).
+  \item The conductance used by the mass-symmetrized spectral operator is the
+  inverse of this normalized/floored edge mass:
+  \[
+    c_e^\rho
+      =
+      \frac{1}{\max(\rho_1(e),10^{-10})}.
+  \]
+\end{enumerate}
+This description should be read as specific to the default
+counting-measure/precomputed-graph regime. Other parameter settings can change
+the reference measure or density construction, and response modulation can
+change edge masses during fitting.
+
+\section{Operator Construction}
+
+\subsection{Reference Measure and Densities}
+
+For the supported precomputed-graph path, the reference measure is the counting
+measure:
+\[
+  \mu(i) = 1
+\]
+up to the implementation's normalization convention. The C++ implementation
+also contains a distance-based reference-measure branch,
+\[
+  \mu(i) \propto (\epsilon + d_k(i))^{-\alpha},
+\]
+with optional clamping and dynamic-range control, but this branch is not
+available through the R precomputed-graph API because the wrapper requires
+\code{use.counting.measure = TRUE} when \code{adj.list}/\code{weight.list} are
+provided.
+
+The initial vertex and edge densities are computed from local neighborhoods
+and local-neighborhood intersections:
+\[
+  \rho_0(i)
+    =
+    \sum_{v\in \widehat N_K(i)} \mu(v),
+  \qquad
+  \rho_{1,\mathrm{raw}}([i,j])
+    =
+    \sum_{v\in \widehat N_K(i)\cap \widehat N_K(j)} \mu(v).
+\]
+The code normalizes vertex densities to sum to the number of vertices and edge
+densities to sum to the number of undirected edges, applies floors/clamps for
+numerical stability, and stores the resulting \(\rho_1\) edge densities
+symmetrically for both endpoints.
+
+\subsection{Mass Matrices}
+
+The vertex mass matrix is diagonal:
+\[
+  M_0 = \diag(m_1,\ldots,m_n),
+  \qquad
+  m_i = \max(\rho_0(i),10^{-8}).
+\]
+
+The edge mass matrix \(M_1\) is populated from edge densities. In the
+diagonal-only case, which is the default whenever triangle construction is not
+active, the diagonal entry for edge \(e=[i,j]\) is
+\[
+  M_1(e,e) = \max(\rho_1(e),10^{-15}).
+\]
+When triangle cofaces are built, the implementation may also add off-diagonal
+entries to \(M_1\) using triple neighborhood intersections:
+\[
+  M_1(e_{ij},e_{is})
+    =
+    \sum_{v\in
+      \widehat N_K(i)\cap \widehat N_K(j)\cap \widehat N_K(s)}
+      \rho_0(v),
+\]
+for edge pairs incident in a triangle. If triangle cofaces are absent, too
+large, or inconsistent, the code falls back to a diagonal edge mass
+approximation.
+
+\subsection{Boundary Operator and Hodge Laplacian}
+
+Let \(B_1\in\mathbb{R}^{n\times |E|}\) be the oriented vertex-edge incidence
+matrix. For an edge \(e=(i,j)\) with \(i<j\),
+\[
+  B_1(i,e)=-1,\qquad B_1(j,e)=+1.
+\]
+The general Hodge 0-Laplacian assembled by \code{laplacian\_bundle\_t} has the
+up-term
+\[
+  L_0 = B_1 M_1^{-1} B_1^\top M_0,
+\]
+with the inverse metric applied by helper routines. This object is retained in
+the implementation as \code{L[0]}.
+
+\subsection{Actual Spectral Operator Used for Smoothing}
+
+The spectral decomposition used for smoothing preferentially uses a
+mass-symmetrized vertex Laplacian \(\widetilde L_0\), named
+\code{L0\_mass\_sym} in the implementation:
+\[
+  \widetilde L_0
+    =
+    M_0^{-1/2}\, L_{\mathrm{div}}\, M_0^{-1/2},
+  \qquad
+  L_{\mathrm{div}} = B_1 C B_1^\top.
+\]
+Here \(C=\diag(c_e)\) is the diagonal conductance matrix and
+\[
+  c_e = \frac{1}{\max(\rho_1(e),10^{-10})}.
+\]
+The code comments describe this as the DEC convention \(c_e=1/m_1(e)\), so a
+larger edge mass implies weaker penalization of variation across that edge. If
+\code{L0\_mass\_sym} is unavailable, the eigensolver falls back to \code{L[0]},
+but the normal path is the mass-symmetrized operator.
+
+This distinction matters for manuscript wording. A simple graph-Laplacian
+intuition is acceptable if stated as an intuition:
+shorter supplied edge lengths affect which vertices enter the local
+neighborhood intersections, which in turn affect edge masses and conductances.
+The implementation is not a simple direct weighted Laplacian with
+\(w_{ij}=1/(\ell_{ij}+\epsilon)\).
+
+\section{Methodological Caveat and Recommended Comparison}
+
+The current \code{fit.rdgraph.regression()} operator should therefore be
+described as an overlap-density/Riemannian-complex smoother. It is not the most
+standard metric-length graph smoother. For the SIMODS geodesic-data-geometry
+manuscript, this distinction matters because the non-oracle graph-selection
+objective is meant to assess graph metric geometry. A more standard graph-signal
+alternative would construct conductance directly from the supplied edge length,
+for example
+\[
+  c_e^{\mathrm{len}}
+    =
+    \frac{1}{\ell_e+\epsilon}.
+\]
+That length-based conductance rule should be benchmarked as an alternative
+smoother, not presented as the current behavior of
+\code{fit.rdgraph.regression()}.
+
+For future non-oracle graph-parameter selection experiments, we recommend a
+controlled comparison between the current overlap-density conductance
+\[
+  c_e^\rho
+    =
+    \frac{1}{\max(\rho_1(e),10^{-10})}
+\]
+and a direct length-based conductance
+\[
+  c_e^{\mathrm{len}}
+    =
+    \frac{1}{\ell_e+\epsilon}.
+\]
+The key benchmark question is whether these two smoothers select graph
+parameters that agree with oracle geodesic-isometry performance on synthetic
+quad benchmarks. This comparison would separate two scientific questions that
+are currently entangled: whether a candidate graph has good local overlap
+geometry under the Riemannian-complex construction, and whether its metric edge
+lengths support good graph-signal smoothing.
+
+\section{Spectral Low-Pass Filter}
+
+Let \((\lambda_j,v_j)\), \(j=1,\ldots,m\), be the cached eigenpairs of the
+operator used for smoothing, normally \(\widetilde L_0\). Let
+\[
+  V = [v_1,\ldots,v_m],
+  \qquad
+  \Lambda=\diag(\lambda_1,\ldots,\lambda_m).
+\]
+For a fully observed response \(y\in\mathbb{R}^n\), the smoother evaluates
+\[
+  y_{\mathrm{spec}} = V^\top y,
+  \qquad
+  \hat y_\eta
+  =
+  V\, h_\eta(\Lambda)\, V^\top y,
+\]
+where \(h_\eta(\Lambda)\) is diagonal with entries \(h_\eta(\lambda_j)\).
+
+The supported filter families are:
+\[
+\begin{array}{ll}
+\texttt{heat\_kernel}:&
+  h_\eta(\lambda)=\exp(-\eta\lambda),
+\\[0.35em]
+\texttt{tikhonov}:&
+  h_\eta(\lambda)=\dfrac{1}{1+\eta\lambda},
+\\[0.75em]
+\texttt{cubic\_spline}:&
+  h_\eta(\lambda)=\dfrac{1}{1+\eta\lambda^2},
+\\[0.75em]
+\texttt{gaussian}:&
+  h_\eta(\lambda)=\exp(-\eta\lambda^2),
+\\[0.35em]
+\texttt{exponential}:&
+  h_\eta(\lambda)=\exp(-\eta\sqrt{\max(\lambda,0)}),
+\\[0.35em]
+\texttt{butterworth}:&
+  h_\eta(\lambda)=\dfrac{1}{1+(\lambda/\eta)^4}.
+\end{array}
+\]
+The R wrapper default is \code{filter.type = "heat\_kernel"}.
+
+\section{GCV Criterion and Eta Grid}
+
+\subsection{GCV in \code{fit.rdgraph.regression()}}
+
+For a fully labeled response, \code{fit.rdgraph.regression()} evaluates 40
+candidate \(\eta\) values and selects the one minimizing
+\[
+  \operatorname{GCV}(\eta)
+  =
+  \frac{\|y-\hat y_\eta\|_2^2}
+       {(n-\tr(S_\eta))^2},
+  \qquad
+  \tr(S_\eta)=\sum_{j=1}^m h_\eta(\lambda_j).
+\]
+The implementation floors the denominator at \(10^{-10}\) in absolute value.
+For each candidate, it computes filter weights, applies them in the spectral
+domain, reconstructs \(\hat y_\eta\), computes the GCV score, and retains the
+best candidate.
+
+The C++ eta grid in \code{fit.rdgraph.regression()} is logarithmic with
+\(\eta_{\min}=10^{-10}\). Its \(\eta_{\max}\) depends on the filter family and
+the largest retained eigenvalue \(\lambda_{\max}\):
+\[
+  \eta_{\max}
+  =
+  \begin{cases}
+  -\log(10^{-10})/\lambda_{\max},&
+    \text{heat kernel, Gaussian, exponential},\\
+  10^{10},&
+    \text{Tikhonov, cubic spline, Butterworth},\\
+  1,&
+    \text{fallback}.
+  \end{cases}
+\]
+The grid is generated by exponential spacing between these bounds.
+
+The fitter records the GCV result after the initial smoothing and after each
+geometric refinement iteration. The returned fitted values are selected from
+the iteration whose recorded GCV score is minimal. At the end, the fitter also
+stores the filter weights \(h_{\eta^\star}(\lambda_j)\) for the selected
+iteration.
+
+\subsection{Semi-Supervised GCV}
+
+When \code{y.vertices} is supplied to \code{fit.rdgraph.regression()}, the C++
+smoother uses a masked spectral Tikhonov system rather than the direct
+\(Vh_\eta(\Lambda)V^\top y\) formula. Let \(P\) be the diagonal mask for
+labeled vertices \(L\), and let
+\[
+  A = V^\top P V,\qquad b=V^\top P y.
+\]
+For each \(\eta\), it solves
+\[
+  (A+\eta\Lambda)a=b,
+  \qquad
+  \hat y_\eta = Va,
+\]
+and uses the labeled-set GCV criterion
+\[
+  \operatorname{GCV}_L(\eta)
+  =
+  \frac{\|P(y-\hat y_\eta)\|_2^2}
+       {(n_{\mathrm{eff}}-\mathrm{df}(\eta))^2},
+  \qquad
+  n_{\mathrm{eff}}=|L|,
+\]
+with
+\[
+  \mathrm{df}(\eta)
+    =
+    \tr\{(A+\eta\Lambda)^{-1}A\}.
+\]
+
+\section{Refit and Application to Multiple Features}
+
+\code{refit.rdgraph.regression()} expects a fitted object of class
+\code{knn.riem.fit}. It extracts:
+\[
+  V,\quad
+  \lambda_1,\ldots,\lambda_m,\quad
+  h_{\eta^\star}(\lambda_1),\ldots,h_{\eta^\star}(\lambda_m),\quad
+  \eta^\star.
+\]
+
+With the default \code{per.column.gcv = FALSE} and no \code{y.vertices}, refit
+applies the cached linear smoother to each column of a new response matrix
+\(Y\):
+\[
+  \widehat Y
+  =
+  V\,\diag(h_{\eta^\star}(\lambda_1),\ldots,h_{\eta^\star}(\lambda_m))\,V^\top Y.
+\]
+The R implementation computes \(V^\top Y\), multiplies each spectral row by the
+cached filter weight, and maps back by \(V\). For large matrices, it can do this
+in column blocks.
+
+If \code{per.column.gcv = TRUE}, refit does not reuse the original
+\(\eta^\star\). Instead, it reuses the cached eigenbasis and eigenvalues, builds
+an R-side eta grid, computes filter weights for each candidate, and selects an
+independent \(\eta_j^\star\) for each response column by GCV. The R-side grid
+uses finite positive eigenvalues, with
+\[
+  \eta_{\mathrm{lo}}=1/\max(\lambda_j),
+  \qquad
+  \eta_{\mathrm{hi}}=1/\min(\lambda_j),
+\]
+and logarithmic spacing; it falls back to a linear grid from \(10^{-3}\) to 1
+if the eigenvalue range is unusable. Per-column GCV is disabled when
+\code{y.vertices} is supplied.
+
+If \code{y.vertices} is supplied to refit, the default fixed-\(\eta\) path
+solves
+\[
+  (V_L^\top V_L+\eta^\star\Lambda)a=V_L^\top y_L,
+  \qquad
+  \hat y=Va,
+\]
+for each column or column block. This is a semi-supervised fixed-\(\eta\)
+application, not a per-column GCV refit.
+
+\section{Implications for Non-Oracle Graph Selection}
+
+For graph selection, the recommended implementation-facing protocol is:
+\begin{enumerate}[leftmargin=1.5em]
+  \item For each candidate graph \(G_r\), pass \code{adj.list} and
+  \code{weight.list} to \code{fit.rdgraph.regression()} with a proxy response or
+  selected feature signal.
+  \item Ensure \code{weight.list} contains positive symmetric edge lengths,
+  not affinities or pre-inverted conductances.
+  \item Extract the fitted model's GCV summary from \code{fit\$gcv}; the fitted
+  values correspond to the iteration with minimum GCV.
+  \item Apply \code{refit.rdgraph.regression()} to a matrix of selected feature
+  signals. Use \code{per.column.gcv = TRUE} if the graph is to be scored by
+  feature-specific smoothness parameters; otherwise use the cached original
+  filter for all columns.
+  \item Aggregate the graph score over selected features, for example by the
+  mean or median of per-column GCV scores when \code{per.column.gcv = TRUE}.
+\end{enumerate}
+
+Manuscript-facing claims should describe this as a graph-spectral low-pass GCV
+criterion based on the \code{gflow} Riemannian graph smoother. The manuscript
+should not claim that edge lengths are directly transformed into affinities
+\(1/(\ell+\epsilon)\). That formula is at best an intuition for inverse
+edge-mass conductance after the neighborhood-intersection construction, not the
+implemented edge-length conversion.
+
+If the manuscript or benchmark wants a metric-length graph-smoothing selector,
+that should be implemented and documented as a distinct comparator using a
+conductance such as \(c_e^{\mathrm{len}}=1/(\ell_e+\epsilon)\). The current
+\code{fit.rdgraph.regression()} selector should remain labeled as the
+overlap-density/Riemannian-complex GCV smoother.
+
+\section{Unresolved Ambiguities and Developer-Confirmation Items}
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Spectral operator versus full \(M_1\).} The generic Hodge
+  operator \(L[0]\) uses the metric machinery, while the spectral smoother
+  normally decomposes \code{L0\_mass\_sym}, built from diagonal conductances
+  \(c_e=1/\rho_1(e)\). If off-diagonal \(M_1\) entries are enabled through
+  triangle construction, those entries affect the generic \(L[0]\) but do not
+  appear to enter \code{L0\_mass\_sym} except through the diagonal conductance
+  vector. This appears intentional from the source comments, but should be
+  treated as an implementation detail unless the gflow developer confirms it.
+  \item \textbf{Benchmark scoring convention.} The exact aggregation rule over
+  feature columns, and whether to use fixed-\(\eta\) refit or per-column GCV,
+  is a benchmark-design decision, not fixed by the package.
+  \item \textbf{Response-coherence modulation.} The fitter can iteratively
+  update edge masses based on the response. For graph-selection benchmarks
+  seeking a graph-only criterion, the experiment design should decide whether
+  to keep \code{response.penalty.exp = 0} so the graph geometry remains fixed
+  after initialization.
+\end{itemize}
+
+\section{Source Traceability}
+
+\small
+\begin{longtable}{p{0.25\linewidth}p{0.22\linewidth}p{0.31\linewidth}p{0.14\linewidth}}
+\toprule
+Mathematical or operational object & Code object & Source path and line region & Notes \\
+\midrule
+\endfirsthead
+\toprule
+Mathematical or operational object & Code object & Source path and line region & Notes \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+R precomputed graph API & \code{adj.list}, \code{weight.list} arguments &
+\Rpath{/Users/pgajer/current_projects/gflow/R/riem_dcx_regression.R}, lines 30--36, 849--950 &
+\code{weight.list} documented as edge-length list; validates positivity, symmetry, and reciprocal agreement. \\
+
+Default GCV graph-selection regime & function defaults &
+\Rpath{/Users/pgajer/current_projects/gflow/R/riem_dcx_regression.R}, lines 654--681 &
+Defaults include \code{response.penalty.exp = 0}, \code{use.counting.measure = TRUE}, \code{density.alpha = 1.5}, and \code{density.epsilon = 1e-10}. \\
+
+Precomputed graph requires counting measure & R wrapper guard &
+\Rpath{/Users/pgajer/current_projects/gflow/R/riem_dcx_regression.R}, lines 855--866 &
+Supported R path stops if \code{use.counting.measure = FALSE}. \\
+
+R-to-C++ call & \code{.Call(S\_fit\_rdgraph\_regression, ...)} &
+\Rpath{/Users/pgajer/current_projects/gflow/R/riem_dcx_regression.R}, lines 1384--1425 &
+Passes 0-based adjacency and numeric weights to C++. \\
+
+Registered C entry point & \code{S\_fit\_rdgraph\_regression} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/init.c}, lines 329--332 &
+Registers 42-argument C routine. \\
+
+Precomputed graph extraction & \code{precomputed\_adj\_list}, \code{precomputed\_weight\_list} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression_r.cpp}, lines 1429--1482 &
+Copies weights but does not invert them. \\
+
+Graph initialization dispatch & \code{fit\_rdgraph\_regression()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 5924--6013 &
+Calls \code{initialize\_from\_graph()} when precomputed graph is supplied. \\
+
+Edge length use in neighborhoods & \code{initialize\_from\_graph()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_initialization.cpp}, lines 209--262, 515--558 &
+Sorts by supplied lengths and builds pseudo-kNN neighborhoods. \\
+
+Reference measure & \code{initialize\_reference\_measure()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_initialization.cpp}, lines 1490--1665 &
+Counting measure is uniform; optional distance branch uses \((\epsilon+d_k)^{-\alpha}\). \\
+
+Vertex and edge densities & \code{compute\_initial\_densities()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 400--640 &
+Defines \(\rho_0\) and \(\rho_1\) via neighborhood and intersection masses. \\
+
+Mass matrices & \code{initialize\_metric\_from\_density()}, \code{compute\_edge\_mass\_matrix()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 820--1068 &
+Builds \(M_0\), \(M_1\), diagonal floors, and optional triple-intersection off-diagonals. \\
+
+Boundary operator & \code{build\_boundary\_operator\_from\_edges()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 1070--1126 &
+Builds oriented incidence matrix \(B_1\). \\
+
+Conductance convention & \code{assemble\_operators()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx.cpp}, lines 289--307 &
+Sets \(c_e=1/\max(\rho_1(e),10^{-10})\). \\
+
+Mass-symmetrized Laplacian & \code{build\_L0\_mass\_sym\_if\_needed()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/laplacian_bundle.cpp}, lines 15--188 &
+Builds \(M_0^{-1/2}B_1CB_1^\top M_0^{-1/2}\). \\
+
+Generic Hodge assembly & \code{laplacian\_bundle\_t::assemble\_all()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/laplacian_bundle.cpp}, lines 190--245 &
+Documents \(B_{p+1}M_{p+1}^{-1}B_{p+1}^\top M_p\) and lower-dimensional term. \\
+
+Spectral decomposition target & \code{compute\_spectral\_decomposition()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 1679--1698 &
+Uses \code{L0\_mass\_sym} if available, otherwise \code{L[0]}. \\
+
+Filter formulas & \code{apply\_filter\_function()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 3990--4028 &
+Defines heat, Tikhonov, cubic spline, Gaussian, exponential, and Butterworth filters. \\
+
+Fit-time GCV and eta grid & \code{compute\_gcv\_score()}, \code{generate\_eta\_grid()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 4050--4115 &
+Defines RSS over \((n-\tr S)^2\) and C++ eta grid. \\
+
+Fit-time smoother & \code{smooth\_response\_via\_spectral\_filter()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 4123--4338 &
+Computes eigenbasis projection, filter weights, GCV, and best \(\eta\). \\
+
+Semi-supervised smoother & \code{smooth\_response\_via\_spectral\_filter\_semiy()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression.cpp}, lines 4360--4568 &
+Uses masked Tikhonov system and labeled-set GCV. \\
+
+Cached spectral component & \code{create\_spectral\_component()} &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression_r.cpp}, lines 500--640 &
+Exports eigenvalues, filtered eigenvalues, eigenvectors, optimal eta, and filter type. \\
+
+Fit result selected by GCV & result assembly &
+\Rpath{/Users/pgajer/current_projects/gflow/src/riem_dcx_regression_r.cpp}, lines 2023--2060, 2266--2270 &
+Selects fitted values from minimum-GCV iteration and returns spectral cache. \\
+
+Fixed-\(\eta\) refit & \code{refit.rdgraph.regression()} &
+\Rpath{/Users/pgajer/current_projects/gflow/R/refit_rdgraph_regression.R}, lines 111--115, 618--676 &
+Applies cached \(V\), eigenvalues, \(\eta^\star\), and filter weights to new columns. \\
+
+Per-column GCV refit & \code{compute.filter.weights.matrix()}, \code{select.eta.gcv.single()} &
+\Rpath{/Users/pgajer/current_projects/gflow/R/refit_rdgraph_regression.R}, lines 270--306, 789--905 &
+Reuses eigenbasis but selects per-column \(\eta\) with R-side GCV. \\
+
+R-side eta grid for refit & \code{generate.eta.grid()} &
+\Rpath{/Users/pgajer/current_projects/gflow/R/compat_helpers.R}, lines 86--104 &
+Uses \(1/\lambda_{\max}\) to \(1/\lambda_{\min}\) log grid for per-column refit. \\
+
+High-level data smoother & \code{data.smoother()} &
+\Rpath{/Users/pgajer/current_projects/gflow/R/data_smoother.R}, lines 1--25, 400--486 &
+Selects graph scale by fit-time GCV, then calls refit on the full matrix. \\
+
+\end{longtable}
+\normalsize
+
+\end{document}

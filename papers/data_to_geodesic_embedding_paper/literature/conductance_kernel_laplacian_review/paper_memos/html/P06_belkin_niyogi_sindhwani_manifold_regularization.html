@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Manifold Regularization</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Manifold Regularization</h1>
+</header>
+<p>Paper: Belkin, Niyogi, and Sindhwani, “Manifold Regularization: A
+Geometric Framework for Learning from Labeled and Unlabeled Examples,”
+JMLR 7:2399-2434, 2006. Reviewer: Reviewer-P06 Auditor: Auditor-P06
+Status: revised after audit Date: 2026-05-15 Source manifest ID: P06
+Canonical reading copy:
+<code>sources/pdf/P06_belkin_niyogi_sindhwani_manifold_regularization.pdf</code>;
+SHA-256
+<code>f83f892575a6596aa587e3eddce1b7600f58e2eb9cad4e11ef141d3e8092efc6</code>;
+36 pages; JMLR PDF from
+<code>https://www.jmlr.org/papers/volume7/belkin06a/belkin06a.pdf</code>.</p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<ul>
+<li><span class="math inline">\(explicit\)</span> Reproducing kernel
+Hilbert spaces (RKHS), Mercer kernels, Gram matrices, the classical
+representer theorem, RLS/ridge regression, and SVM hinge-loss duality.
+The paper reviews these enough to orient the reader in Sections 2, 3.1,
+4.1, and 4.3, but it assumes comfort with Hilbert-space projections and
+kernel expansions.</li>
+<li><span class="math inline">\(explicit\)</span> Graph Laplacians and
+graph Dirichlet energies. The empirical intrinsic penalty is written
+with an adjacency matrix <code>W</code>, degree matrix <code>D</code>,
+and graph Laplacian <span class="math inline">\(L = D - W\)</span> in
+Equation (4), p. 2405 (PDF p. 7).</li>
+<li><span class="math inline">\(explicit\)</span> Basic manifold
+learning and Riemannian geometry: compact submanifolds,
+intrinsic/geodesic geometry, the manifold gradient <span
+class="math inline">\(nabla_{M} f\)</span>, Laplace-Beltrami operators,
+heat kernels, and Sobolev regularity. These enter Sections 2.2, 3.3, and
+6.1.</li>
+<li><span class="math inline">\(explicit\)</span> Semi-supervised
+learning vocabulary: labeled examples <span
+class="math inline">\((x_{i}, y_{i})\)</span>, unlabeled examples <span
+class="math inline">\(x_{j}\)</span>, transductive versus
+inductive/semi-supervised prediction, and why unlabeled marginal
+structure can help only if the conditional distribution varies smoothly
+along the marginal geometry. See Section 2, p. 2403 (PDF p. 5).</li>
+<li><code>contextual</code> Spectral methods and low-pass graph
+smoothing intuition help a great deal: the intrinsic term suppresses
+rapid variation across high-weight graph edges, so it biases solutions
+toward low graph-frequency functions.</li>
+<li><code>contextual</code> For the experiments, the reader benefits
+from knowing precision-recall break-even point (PRBEP), USPS digit
+classification, Isolet spoken-letter data, WebKB text classification,
+kNN graphs, cosine similarity/distance in text, and RBF/polynomial
+kernels.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>This paper asks how a learner should use unlabeled points when labels
+are scarce. The authors’ answer is: unlabeled data estimate the geometry
+of the input distribution, and a good prediction function should change
+slowly along that geometry. The key example is Figure 1, p. 2402 (PDF
+p. 4): with only one positive and one negative label, a linear separator
+looks natural; after seeing many unlabeled points arranged in rings, a
+circular boundary looks simpler in the data geometry. The paper
+formalizes this by adding a graph/manifold smoothness penalty to the
+usual RKHS regularized risk.</p>
+<p>There are two notions of smoothness. “Extrinsic” smoothness is the
+ordinary RKHS norm in the ambient input space and is controlled by <span
+class="math inline">\(gamma_{A}\)</span>. “Intrinsic” smoothness is
+smoothness along the support of the marginal distribution, often a
+manifold or its sampled graph, and is controlled by <span
+class="math inline">\(gamma_{I}\)</span>. The resulting algorithms,
+LapRLS and LapSVM, keep the kernel-method ability to predict at new
+points while using a graph Laplacian over labeled plus unlabeled points
+to impose geometric smoothness.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p><span class="math inline">\(explicit\)</span> The paper proposes
+“data-dependent regularization that exploits the geometry of the
+probability distribution” and focuses mainly on semi-supervised
+learning; see Section 1, p. 2399-2400 (PDF pp. 1-2). Its motivating
+assumption is stated in Section 2: if two points are close in the
+intrinsic geometry of the marginal distribution <span
+class="math inline">\(P_{X}\)</span>, then <code>P(y|x)</code> should be
+similar; equivalently, the conditional distribution varies smoothly
+along geodesics in that intrinsic geometry, p. 2403 (PDF p. 5).</p>
+<p><span class="math inline">\(explicit\)</span> The paper positions
+itself as a unification of three traditions: spectral graph theory,
+manifold learning, and RKHS regularization; see the numbered overview in
+Section 1, pp. 2400-2401 (PDF pp. 2-3). Its central methodological
+contribution is not a new graph construction alone, but a regularized
+risk framework in which graph/manifold smoothness appears as an extra
+penalty while an ambient RKHS supplies out-of-sample extension.</p>
+<p><span class="math inline">\(explicit\)</span> The authors distinguish
+their framework from purely graph-based transductive methods, arguing
+that RKHS representer theorems give a natural function on the ambient
+input space for novel examples; see Section 1, item 4, p. 2401 (PDF
+p. 3), and Section 4.5, pp. 2419-2420 (PDF pp. 21-22).</p>
+<h3 id="main-method">Main Method</h3>
+<p><span class="math inline">\(explicit\)</span> Standard regularization
+minimizes</p>
+<p><span class="math display">\[
+\begin{aligned}
+f\, &amp;= argmin_{f in H_{K}} (1/l) sum_{i=1}^l V(x_{i}, y_{i}, f) +
+gamma \Vert f\Vert _K^2,
+\end{aligned}
+\]</span></p>
+<p>with solution <span class="math inline">\(f\,(x) = sum_{i=1}^l
+alpha_{i} K(x_{i}, x)\)</span> by the classical representer theorem; see
+Equation (1), p. 2403 (PDF p. 5).</p>
+<p><span class="math inline">\(explicit\)</span> Manifold regularization
+adds an intrinsic penalty:</p>
+<p><span class="math display">\[
+\begin{aligned}
+f\, &amp;= argmin_{f in H_{K}} (1/l) sum_{i} V(x_{i}, y_{i}, f) \\
++ gamma_{A} \Vert f\Vert _K^2 + gamma_{I} \Vert f\Vert _I^2.
+\end{aligned}
+\]</span></p>
+<p>Here <span class="math inline">\(gamma_{A}\)</span> controls ambient
+RKHS complexity and <span class="math inline">\(gamma_{I}\)</span>
+controls intrinsic complexity with respect to <span
+class="math inline">\(P_{X}\)</span>; see Equation (2), p. 2404 (PDF
+p. 6).</p>
+<p><span class="math inline">\(explicit\)</span> In the manifold case, a
+natural intrinsic penalty is</p>
+<p><span class="math display">\[
+\begin{gathered}
+int_{x in M} \Vert nabla_{M} f\Vert ^2 dP_{X}(x),
+\end{gathered}
+\]</span></p>
+<p>where <span class="math inline">\(M = supp(P_{X})\)</span> and <span
+class="math inline">\(nabla_{M}\)</span> is the manifold gradient; see
+Section 2.2, p. 2404 (PDF p. 6). The empirical approximation uses a
+graph Laplacian over the <span class="math inline">\(l + u\)</span>
+labeled and unlabeled points; see Equation (4), p. 2405 (PDF p. 7).</p>
+<p><span class="math inline">\(explicit\)</span> The paper derives two
+main algorithm families: Laplacian Regularized Least Squares (LapRLS),
+Section 4.2, pp. 2414-2415 (PDF pp. 16-17), and Laplacian Support Vector
+Machines (LapSVM), Section 4.4, pp. 2416-2418 (PDF pp. 18-20).</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p><span class="math inline">\(explicit\)</span> Known marginal
+representer theorem: if <span class="math inline">\(\Vert f\Vert
+_I\)</span> is sufficiently smooth with respect to the RKHS norm, the
+solution has the form</p>
+<p><span class="math display">\[
+\begin{aligned}
+f\,(x) &amp;= sum_{i=1}^l alpha_{i} K(x_{i}, x) \\
++ int_{M} \alpha(z) K(x, z) dP_{X}(z).
+\end{aligned}
+\]</span></p>
+<p>This is Theorem 1 / Equation (3), p. 2404 (PDF p. 6), with a more
+precise operator version in Theorem 7 / Equation (7), p. 2410 (PDF
+p. 12).</p>
+<p><span class="math inline">\(explicit\)</span> Empirical graph
+objective:</p>
+<p><span class="math display">\[
+\begin{aligned}
+f\, &amp;= argmin_{f in H_{K}} (1/l) sum_{i=1}^l V(x_{i}, y_{i}, f) \\
++ gamma_{A} \Vert f\Vert _K^2 \\
++ gamma_{I}/(u+l)^2 sum_{i,j&amp;=1}^{l+u} (f(x_{i})-f(x_{j}))^2 W_{ij}
+\\
+&amp;= \argmin \ldots + gamma_{I}/(u+l)^2 f^T L f.
+\end{aligned}
+\]</span></p>
+<p>See Equation (4), p. 2405 (PDF p. 7). The normalizing coefficient
+<span class="math inline">\((u+l)^-2\)</span> is described there as the
+natural empirical scale factor and may be replaced by <span
+class="math inline">\(sum_{i,j} W_{ij}\)</span> on sparse graphs.</p>
+<p><span class="math inline">\(explicit\)</span> Empirical representer
+theorem: the minimizer of Equation (4) admits</p>
+<p><span class="math display">\[
+\begin{aligned}
+f\,(x) &amp;= sum_{i=1}^{l+u} alpha_{i} K(x_{i}, x),
+\end{aligned}
+\]</span></p>
+<p>over both labeled and unlabeled points; see Theorem 2 / Equation (5),
+p. 2405 (PDF p. 7), with proof in Section 3.4, pp. 2412-2413 (PDF
+pp. 14-15).</p>
+<p><span class="math inline">\(explicit\)</span> LapRLS
+finite-dimensional solution:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\alpha\, &amp;= (J K + gamma_{A} l I + gamma_{I} l/(u+l)^2 L K)^-1 Y.
+\end{aligned}
+\]</span></p>
+<p>Here <code>K</code> is the <span class="math inline">\((l+u) x
+(l+u)\)</span> Gram matrix, <span class="math inline">\(Y =
+[y_{1},\ldots,y_{l},0,\ldots,0]\)</span>, and <code>J</code> is diagonal
+with ones for labeled entries and zeros for unlabeled entries; see
+Section 4.2 and Equation (8), p. 2414 (PDF p. 16).</p>
+<p><span class="math inline">\(explicit\)</span> LapSVM uses an SVM dual
+with a modified quadratic form</p>
+<p><span class="math display">\[
+\begin{aligned}
+Q &amp;= Y J K (2 gamma_{A} I + 2 gamma_{I}/(l+u)^2 L K)^-1 J^T Y,
+\end{aligned}
+\]</span></p>
+<p>and obtains expansion coefficients by</p>
+<p><span class="math display">\[
+\begin{aligned}
+\alpha &amp;= (2 gamma_{A} I + 2 gamma_{I}/(l+u)^2 L K)^-1 J^T Y
+\beta\,.
+\end{aligned}
+\]</span></p>
+<p>See Equations (10)-(12), pp. 2417-2418 (PDF pp. 19-20).</p>
+<p><span class="math inline">\(explicit\)</span> Algorithm summary:
+Table 1, p. 2418 (PDF p. 20), instructs the user to construct an
+adjacency graph, choose edge weights, choose an ambient kernel
+<code>K</code>, compute <span class="math inline">\(L = D - W\)</span>,
+choose <span class="math inline">\(gamma_{A}\)</span> and <span
+class="math inline">\(gamma_{I}\)</span>, solve LapRLS or LapSVM, and
+output <span class="math inline">\(f\,(x) = sum_{i} alpha_{i}\, K(x_{i},
+x)\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> Unsupervised
+regularized spectral clustering / data representation is sketched by
+minimizing <span class="math inline">\(gamma \Vert f\Vert _K^2 +
+sum_{i~j} (f(x_{i})-f(x_{j}))^2\)</span> under centering and
+normalization constraints; see Equation (13), p. 2428 (PDF p. 30).
+Substitution yields generalized eigenproblem</p>
+<p><span class="math display">\[
+\begin{aligned}
+P (gamma K + K L K) P v &amp;= \lambda P K^2 P v,
+\end{aligned}
+\]</span></p>
+<p>Equation (14), p. 2428 (PDF p. 30).</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p><span class="math inline">\(explicit\)</span> Figure 1, p. 2402 (PDF
+p. 4), is a conceptual two-panel example: unlabeled points change the
+visually natural decision boundary from a roughly linear separator to a
+circular/ring-respecting classifier. It motivates the entire
+geometry-sensitive regularization framework.</p>
+<figure class="paper-figure" id="P06_F01">
+<img src="../../paper_figures/P06_F01_page04.png" alt="P06 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 1, PDF p. 4
+(cropped from canonical reading copy), internal review only. Unlabeled
+data changes natural decision boundary.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> Figure 2, p. 2421 (PDF
+p. 23), shows two-moons LapSVM decision surfaces with RBF kernels as
+<span class="math inline">\(gamma_{I}\)</span> increases from 0 to 0.01
+to 1 while <span class="math inline">\(gamma_{A} = 0.03125\)</span>. The
+visual point is that increasing intrinsic regularization makes the
+separator wrap around the data geometry rather than follow only the two
+labeled points.</p>
+<figure class="paper-figure" id="P06_F02">
+<img src="../../paper_figures/P06_F02_F03_page23.png" alt="P06 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 2, PDF
+p. 23 (cropped from canonical reading copy), internal review only.
+Intrinsic regularization reshapes two-moons separator.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> Figure 3, p. 2421 (PDF
+p. 23), compares best decision surfaces on two moons for SVM, TSVM, and
+LapSVM. It shows LapSVM producing a manifold-respecting boundary
+comparable to or better than TSVM while retaining the RKHS out-of-sample
+function form.</p>
+<figure class="paper-figure" id="P06_F03">
+<img src="../../paper_figures/P06_F02_F03_page23.png" alt="P06 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 3, PDF
+p. 23 (cropped from canonical reading copy), internal review only.
+Two-moons SVM/TSVM/LapSVM comparison.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> USPS handwritten digit
+experiments, Section 5.2, pp. 2421-2423 (PDF pp. 23-25), use 45 pairwise
+digit classification tasks, 2 labeled images per class and 398 unlabeled
+images, polynomial degree-3 kernels, and a 1:9 split of regularization
+weight between ambient and intrinsic terms. Figure 4, p. 2422 (PDF
+p. 24), reports lower PRBEP error rates for LapRLS/LapSVM than RLS/SVM
+across most pairwise tasks, confirms out-of-sample behavior through
+test-versus-unlabeled scatter plots, and compares variability with TSVM.
+Table 3, p. 2422 (PDF p. 24), gives one-vs-rest multiclass errors: SVM
+23.6, TSVM 26.5, LapSVM 12.7, RLS 23.6, LapRLS 12.7. Figure 5, p. 2423
+(PDF p. 25), shows error decreasing with more labeled examples and
+manifold methods retaining an advantage at small label counts.</p>
+<figure class="paper-figure" id="P06_F04">
+<img src="../../paper_figures/P06_F04_page24.png" alt="P06 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 4, PDF
+p. 24 (cropped from canonical reading copy), internal review only. USPS
+digit PRBEP/scatter/variability results.
+</figcaption>
+</figure>
+<figure class="paper-figure" id="P06_F05">
+<img src="../../paper_figures/P06_F05_page25.png" alt="P06 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 5, PDF
+p. 25 (cropped from canonical reading copy), internal review only. USPS
+error versus labeled examples.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> Isolet spoken-letter
+experiments, Section 5.3, pp. 2423-2425 (PDF pp. 25-27), train on
+Isolet1 and test on Isolet5 for 30 speaker-defined splits, using RBF
+kernels with width <span class="math inline">\(\sigma = 10\)</span>.
+Figure 6, p. 2424 (PDF p. 26), shows LapRLS/LapSVM improving on
+unlabeled training speakers and more modest but consistent improvements
+on test speakers. Figure 7 and Table 4, p. 2425 (PDF p. 27), compare
+test versus unlabeled errors and report one-vs-rest 26-class error
+rates: SVM 28.6 unlabeled / 36.9 test, TSVM 46.6 / 43.3, LapSVM 24.5 /
+33.7, RLS 28.3 / 36.3, LapRLS 24.1 / 33.3.</p>
+<figure class="paper-figure" id="P06_F06">
+<img src="../../paper_figures/P06_F06_page26.png" alt="P06 Figure 6 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 6, PDF
+p. 26 (cropped from canonical reading copy), internal review only.
+Isolet speaker experiments.
+</figcaption>
+</figure>
+<figure class="paper-figure" id="P06_F07">
+<img src="../../paper_figures/P06_F07_page27.png" alt="P06 Figure 7 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 7, PDF
+p. 27 (cropped from canonical reading copy), internal review only.
+Isolet test versus unlabeled errors.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> WebKB text
+classification, Section 5.4, pp. 2425-2427 (PDF pp. 27-29), uses 1051
+web pages, course versus non-course, 3000 TFIDF features,
+unit-normalized vectors, linear kernels, and cosine-distance graph
+weights. In the first WebKB experiment, Table 5, p. 2426 (PDF p. 28),
+reports transductive PRBEP/error averages over 100 realizations with 12
+labeled examples: SVM 76.39 / 10.41, TSVM 88.15 / 5.22, LapSVM 87.73 /
+5.41, RLS 73.49 / 11.68, LapRLS 86.37 / 5.99. The authors caution that
+some comparator protocols differ. Figure 8, p. 2427 (PDF p. 29), shows
+PRBEP increasing with labeled examples and investigates different
+unlabeled-set sizes; unlabeled performance improves with more unlabeled
+data, but test performance does not always improve because fixed
+parameters can become suboptimal.</p>
+<figure class="paper-figure" id="P06_F08">
+<img src="../../paper_figures/P06_F08_page29.png" alt="P06 Figure 8 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 8, PDF
+p. 29 (cropped from canonical reading copy), internal review only. WebKB
+unlabeled-set effects.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> Figures 9 and 10,
+p. 2429 (PDF p. 31), illustrate the unsupervised Section 6.1 regularized
+spectral clustering idea on two moons and two spirals as <span
+class="math inline">\(gamma_{A}\)</span> increases with <span
+class="math inline">\(gamma_{I} = 1\)</span>. These figures show the
+ambient RKHS penalty changing the smoothness and geometry of
+cluster-indicator-like functions.</p>
+<figure class="paper-figure" id="P06_F09">
+<img src="../../paper_figures/P06_F09_F10_page31.png" alt="P06 Figure 9 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 9, PDF
+p. 31 (cropped from canonical reading copy), internal review only.
+Regularized spectral clustering on two moons.
+</figcaption>
+</figure>
+<figure class="paper-figure" id="P06_F10">
+<img src="../../paper_figures/P06_F09_F10_page31.png" alt="P06 Figure 10 cropped figure panel">
+<figcaption>
+Reproduced from Belkin, Niyogi, and Sindhwani (2006), Figure 10, PDF
+p. 31 (cropped from canonical reading copy), internal review only.
+Regularized spectral clustering on spirals.
+</figcaption>
+</figure>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p><span class="math inline">\(explicit\)</span> The paper’s main
+theoretical claim is a pair of representer theorems. The known-marginal
+version, Theorem 1 / Equation (3), p. 2404 (PDF p. 6), and the more
+technical Theorem 7 / Equation (7), p. 2410 (PDF p. 12), show that an
+intrinsic penalty can still lead to a kernel-plus-integral
+representation. The empirical graph version, Theorem 2 / Equation (5),
+p. 2405 (PDF p. 7), shows the solution is an expansion over all labeled
+and unlabeled data points.</p>
+<p><span class="math inline">\(explicit\)</span> Section 3.1,
+pp. 2407-2408 (PDF pp. 9-10), develops RKHS/integral-operator machinery.
+Lemma 3, p. 2408 (PDF p. 10), characterizes when a function can be
+represented as <span class="math inline">\(L_{K} g\)</span> using
+eigenvalues of the integral operator. This is used in the proof of the
+known-marginal representer theorem.</p>
+<p><span class="math inline">\(explicit\)</span> Lemma 4, p. 2409 (PDF
+p. 11), identifies the closure <span class="math inline">\(S = span{K(x,
+.): x in M}\)</span> and its orthogonal complement; functions in <span
+class="math inline">\(S^perp\)</span> vanish on <code>M</code>. Lemma 5,
+p. 2409 (PDF p. 11), then shows the minimizer lies in <code>S</code>
+when the intrinsic norm depends only on the restriction to
+<code>M</code>.</p>
+<p><span class="math inline">\(explicit\)</span> Proposition 6, p. 2409
+(PDF p. 11), is important for interpretation: if the intrinsic norm is
+simply the RKHS norm of the restriction to <code>M</code>, then the
+minimizer is the same as ordinary regularization with a different
+combined regularization parameter. The paper uses this to argue that a
+distinct intrinsic smoothness measure is required.</p>
+<p><span class="math inline">\(explicit\)</span> Theorem 8 and Corollary
+9, pp. 2411-2412 (PDF pp. 13-14), show that when <code>M</code> is a
+smooth compact manifold and <code>D</code> is a smooth differential
+operator such as a Laplace-Beltrami operator, the boundedness conditions
+needed by Theorem 7 hold. Corollary 10, p. 2412 (PDF p. 14), states a
+Sobolev regularity consequence for <span
+class="math inline">\(L_{K}^(1/2)\)</span>.</p>
+<p><code>contextual</code> The paper does not prove graph Laplacian
+convergence in detail. It states that under certain conditions
+exponential adjacency weights lead to convergence of the graph Laplacian
+to the Laplace-Beltrami operator or a weighted version, and points to
+Belkin (2003), Lafon (2004), Belkin and Niyogi (2005), Coifman et
+al. (2005), and Hein et al. (2005); see Section 2.2, p. 2405 (PDF
+p. 7).</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p><span class="math inline">\(explicit\)</span> The framework depends
+on a relation between the marginal geometry and the conditional
+distribution. Section 2, p. 2403 (PDF p. 5), explicitly says unlabeled
+data are unlikely to help if no identifiable relation exists between
+<span class="math inline">\(P_{X}\)</span> and <code>P(y|x)</code>.</p>
+<p><span class="math inline">\(explicit\)</span> The authors note that
+using only an intrinsic regularizer is ill-posed because the true
+manifold/marginal is unavailable and only sampled points are observed;
+see Remark 2, p. 2406 (PDF p. 8). This is a central reason for including
+the ambient RKHS penalty.</p>
+<p><span class="math inline">\(explicit\)</span> Graph construction,
+weights, graph scale, <span class="math inline">\(gamma_{A}\)</span>,
+and <span class="math inline">\(gamma_{I}\)</span> are model-selection
+choices. Section 7, p. 2430 (PDF p. 32), says the authors do not yet
+have a good understanding of how to choose the extrinsic and intrinsic
+regularization parameters.</p>
+<p><span class="math inline">\(explicit\)</span> Computational
+scalability is a limitation. Section 4.4, p. 2417 (PDF p. 19), notes
+that naive dense Gram-matrix implementations require <span
+class="math inline">\(O((l+u)^3)\)</span> complexity. Section 7, p. 2430
+(PDF p. 32), repeats that large-scale scalability remains open.</p>
+<p><span class="math inline">\(explicit\)</span> Generalization and
+convergence theory are incomplete. Section 7, p. 2430 (PDF p. 32), says
+the dependence of generalization error on numbers of labeled and
+unlabeled examples is poorly understood.</p>
+<p><span class="math inline">\(explicit\)</span> Experimental claims are
+suggestive rather than exhaustive. Section 5.4, p. 2426 (PDF p. 28),
+explicitly cautions that exact datasets and protocols differ for some
+WebKB comparator results, so those comparisons are meant only to suggest
+state-of-the-art-like performance.</p>
+<p><code>derived</code> The empirical graph regularizer inherits all the
+usual sensitivity of graph Laplacian methods: neighbor graph topology,
+bandwidth/weight scale, normalization, and density effects can alter the
+low-frequency functions. The paper acknowledges this indirectly through
+graph-weight choices, normalized Laplacian comments, and model-selection
+concerns, but does not systematize graph-construction selection.</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p><span class="math inline">\(explicit\)</span> This is a canonical
+paper for graph-Laplacian regularization inside kernel methods. It gives
+a clean objective in which the graph Laplacian is not merely a
+transductive label-propagation device but an intrinsic regularizer
+combined with an ambient RKHS penalty.</p>
+<p><span class="math inline">\(explicit\)</span> The paper is
+historically important for distinguishing graph transduction from
+semi-supervised out-of-sample learning. The empirical representer
+theorem expands over labeled plus unlabeled points, but the final
+predictor is still <span class="math inline">\(f\,(x) = sum_{i}
+alpha_{i} K(x_{i}, x)\)</span>, so new points can be evaluated without
+rerunning the graph algorithm; see Theorem 2 / Equation (5), p. 2405
+(PDF p. 7), and Table 1, p. 2418 (PDF p. 20).</p>
+<p><code>contextual</code> For H005, its importance is the formulation
+of graph Laplacian smoothing as a regularization term <span
+class="math inline">\(f^T L f\)</span>, with explicit graph construction
+and weight choices, rather than a paper about shortest-path graph
+lengths or geodesic-distance embedding.</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<ul>
+<li><span class="math inline">\(explicit\)</span> Ambient RKHS kernel:
+<span class="math inline">\(K: X x X \to R\)</span> is a Mercer kernel
+with RKHS <span class="math inline">\(H_{K}\)</span>; see Equation (1),
+p. 2403 (PDF p. 5), and Section 3.1, pp. 2407-2408 (PDF pp. 9-10).</li>
+<li><span class="math inline">\(explicit\)</span> Empirical graph
+affinity/edge weight: <span class="math inline">\(W_{ij}\)</span> are
+edge weights in the data adjacency graph; examples include binary
+weights and heat-kernel weights</li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / 4t).
+\end{aligned}
+\]</span></p>
+<p>See Table 1, p. 2418 (PDF p. 20).</p>
+<ul>
+<li><span class="math inline">\(explicit\)</span> Graph construction
+choices: Step 1 of Table 1, p. 2418 (PDF p. 20), says to construct a
+data adjacency graph with <span class="math inline">\(l+u\)</span> nodes
+using, for example, k nearest neighbors or a graph kernel.</li>
+<li><span class="math inline">\(explicit\)</span> Graph Laplacian: <span
+class="math inline">\(L = D - W\)</span>, <span
+class="math inline">\(D_{ii} = sum_{j} W_{ij}\)</span>; see Equation
+(4), p. 2405 (PDF p. 7), and Table 1, p. 2418 (PDF p. 20).</li>
+<li><span class="math inline">\(explicit\)</span> Normalized graph
+Laplacian: <span class="math inline">\(L_{tilde} = D^{-1/2} L
+D^{-1/2}\)</span> may be used interchangeably in all formulas and is
+used in all empirical studies in Section 5; see Remark 3, p. 2406 (PDF
+p. 8).</li>
+<li><span class="math inline">\(explicit\)</span> Heat semigroup
+alternative intrinsic regularizer: <span class="math inline">\(e^{-t
+\Delta_{M}}\)</span> is named as a family of smoothing operators
+corresponding to diffusion/Brownian motion on <code>M</code>; small-time
+heat kernels are close to Gaussians in geodesic coordinates and can be
+approximated by sharp Gaussians in ambient space; see Remark 1, p. 2405
+(PDF p. 7).</li>
+<li><span class="math inline">\(explicit\)</span> Iterated Laplacians
+<span class="math inline">\((\Delta_{M})^k\)</span> and linear
+combinations are named as natural smoothness penalties; see Remark 1,
+p. 2405 (PDF p. 7). The WebKB experiment uses iterated Laplacians of
+degree 3 with 15-nearest-neighbor graphs weighted by cosine distances;
+see Section 5.4, p. 2426 (PDF p. 28).</li>
+<li><code>derived</code> In H005 conductance vocabulary, <span
+class="math inline">\(W_{ij}\)</span> behaves as graph conductance
+because it multiplies squared differences in the Dirichlet energy: high
+<span class="math inline">\(W_{ij}\)</span> strongly penalizes variation
+across edge <code>(i,j)</code>, while low or zero <span
+class="math inline">\(W_{ij}\)</span> weakly penalizes or disconnects
+the pair. The authors call these “edge weights,” not
+“conductances.”</li>
+</ul>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p><span class="math inline">\(explicit\)</span> The empirical intrinsic
+operator is the graph Laplacian <span class="math inline">\(L = D -
+W\)</span>; the penalty is <span class="math inline">\(f^T L f\)</span>
+inside Equation (4), p. 2405 (PDF p. 7). The paper also discusses
+normalized <span class="math inline">\(D^{-1/2} L D^{-1/2}\)</span> in
+Remark 3, p. 2406 (PDF p. 8), and uses that normalized form in
+experiments.</p>
+<p><span class="math inline">\(explicit\)</span> The continuum intrinsic
+operator is the manifold Laplace-Beltrami operator <span
+class="math inline">\(\Delta_{M}\)</span> or weighted Laplace-Beltrami
+operator, connected to the Dirichlet energy <span
+class="math inline">\(int_{M} \Vert nabla_{M} f\Vert ^2 d \mu\)</span>;
+see Remark 1, p. 2405 (PDF p. 7).</p>
+<p><span class="math inline">\(explicit\)</span> The diffusion operator
+appears as the heat semigroup <span class="math inline">\(e^{-t
+\Delta_{M}}\)</span>, described as smoothing/Brownian motion on the
+manifold; see Remark 1, p. 2405 (PDF p. 7). This is an intrinsic
+regularizer option, not the main empirical operator used in
+LapRLS/LapSVM experiments.</p>
+<h3 id="task">Task</h3>
+<p><span class="math inline">\(explicit\)</span> Primary task:
+semi-supervised classification/regression with labeled plus unlabeled
+examples, using LapRLS and LapSVM; see Sections 2 and 4.</p>
+<p><span class="math inline">\(explicit\)</span> Related tasks:
+transductive inference and out-of-sample semi-supervised prediction; see
+Section 4.5 and Table 2, p. 2420 (PDF p. 22). The authors claim graph
+regularization and label propagation are recovered in limiting regimes
+of <span class="math inline">\(gamma_{A}\)</span> and <span
+class="math inline">\(gamma_{I}\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> Secondary tasks:
+unsupervised regularized spectral clustering and data representation,
+Section 6.1, pp. 2428-2429 (PDF pp. 30-31), and fully supervised
+class-dependent intrinsic regularization, Section 6.2, pp. 2429-2430
+(PDF pp. 31-32).</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<ul>
+<li><span class="math inline">\(explicit\)</span> Use unlabeled data
+because labels are costly and natural learning is often semi-supervised;
+Section 1.1, pp. 2401-2402 (PDF pp. 3-4).</li>
+<li><span class="math inline">\(explicit\)</span> Incorporate the
+geometry of the marginal distribution into regularization so prior
+simplicity changes after observing unlabeled data; Figure 1 and
+surrounding text, p. 2402 (PDF p. 4).</li>
+<li><span class="math inline">\(explicit\)</span> Combine spectral graph
+theory, manifold learning, and RKHS regularization into a coherent
+framework; Section 1, pp. 2400-2401 (PDF pp. 2-3).</li>
+<li><span class="math inline">\(explicit\)</span> Obtain a natural
+out-of-sample extension missing from many purely graph-based
+transductive approaches; Section 1, p. 2401 (PDF p. 3), and Section 4.5,
+p. 2419 (PDF p. 21).</li>
+<li><span class="math inline">\(explicit\)</span> Provide representer
+theorems as the theoretical basis for finite algorithms; Section 1,
+p. 2401 (PDF p. 3), Theorem 1, Theorem 2, and Theorem 7.</li>
+</ul>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<ul>
+<li><code>derived</code> The intrinsic graph regularizer is a low-pass
+graph-signal prior: it favors functions with small energy over
+high-weight edges, i.e. functions whose values vary slowly over the data
+graph.</li>
+<li><code>derived</code> The ambient RKHS term is a stabilizer and
+extension mechanism: it prevents the sampled-manifold problem from being
+ill-posed and defines behavior away from the observed vertices.</li>
+<li><code>derived</code> The graph weight/bandwidth choice is
+effectively a choice of what geometric variations are expensive. Heat
+weights, binary kNN weights, cosine weights, and iterated Laplacians
+encode different assumptions about locality, density, and feature space
+geometry.</li>
+</ul>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p><span class="math inline">\(explicit\)</span> The continuum penalty
+<span class="math inline">\(int_{M} \Vert nabla_{M} f\Vert ^2\)</span>
+is tied to the Laplace-Beltrami operator through the identity <span
+class="math inline">\(int_{M} f \Delta_{M} f d\\mu = int_{M} \Vert
+nabla_{M} f\Vert ^2 d\\mu\)</span>, p. 2405 (PDF p. 7). Thus the penalty
+suppresses components with large Laplacian energy.</p>
+<p><code>derived</code> In the graph case, <span
+class="math inline">\(f^T L f\)</span> suppresses graph high-frequency
+components. Increasing <span class="math inline">\(gamma_{I}\)</span>
+pushes the predictor toward functions that are smoother over the graph,
+as directly visualized in Figure 2, p. 2421 (PDF p. 23), where larger
+<span class="math inline">\(gamma_{I}\)</span> reshapes the two-moons
+decision surface.</p>
+<p><span class="math inline">\(explicit\)</span> In the unsupervised
+setting, the paper obtains a generalized eigenproblem, Equation (14),
+p. 2428 (PDF p. 30), and notes that multiple eigenvectors give a
+regularized out-of-sample extension of Laplacian Eigenmaps. This makes
+the eigenfunction/spectral interpretation explicit.</p>
+<p><code>contextual</code> Normalized Laplacian use in experiments means
+the effective smoothing is degree-normalized rather than raw
+unnormalized Dirichlet smoothing; see Remark 3, p. 2406 (PDF p. 8). This
+matters for density effects.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p><span class="math inline">\(explicit\)</span> The paper uses fixed
+examples such as k-nearest-neighbor graphs, graph kernels, binary
+weights, heat-kernel weights, cosine-distance weights for text, and
+iterated Laplacians. See Table 1, p. 2418 (PDF p. 20), and Section 5.4,
+p. 2426 (PDF p. 28).</p>
+<p><code>contextual</code> It does not develop
+self-tuned/local-bandwidth kernels, adaptive-radius graphs, continuous
+bandwidth selection, or cKNN-style density normalization. Those topics
+belong more directly to P01, P03, P04, P08, P09, and P10 in the H005
+plan.</p>
+<p><code>derived</code> The paper is still relevant to adaptive-scale
+graph construction because any adaptive weight matrix can be inserted
+into the same <span class="math inline">\(f^T L f\)</span> regularizer.
+The representer theorem and LapRLS/LapSVM algebra care about
+<code>L</code>, not about whether <code>L</code> came from fixed
+bandwidth, kNN, local bandwidth, or another construction.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<ul>
+<li><span class="math inline">\(explicit\)</span> It does not claim
+unlabeled data always help; Section 2, p. 2403 (PDF p. 5), says
+unlabeled marginal information is unlikely to help without a relation
+between <span class="math inline">\(P_{X}\)</span> and
+<code>P(y|x)</code>.</li>
+<li><span class="math inline">\(explicit\)</span> It does not solve
+model selection for <span class="math inline">\(gamma_{A}\)</span>,
+<span class="math inline">\(gamma_{I}\)</span>, graph scale, or weight
+construction; Section 7, p. 2430 (PDF p. 32), names model selection as
+future work.</li>
+<li><span class="math inline">\(explicit\)</span> It does not give a
+complete generalization-error theory for labeled/unlabeled sample sizes;
+Section 7, p. 2430 (PDF p. 32), names this as poorly understood.</li>
+<li><span class="math inline">\(explicit\)</span> It does not solve
+scalability for large datasets; Section 4.4, p. 2417 (PDF p. 19), and
+Section 7, p. 2430 (PDF p. 32), name cubic dense-matrix scaling and
+efficient algorithms as open issues.</li>
+<li><code>contextual</code> It does not claim its graph weights are
+metric edge lengths or inverse-length conductances. The paper’s graph
+weights are affinities used in a Laplacian regularizer.</li>
+<li><code>contextual</code> It does not claim to optimize
+geodesic-distance reconstruction or graph-to-layout isometry. Its use of
+manifold geometry is for function regularization and semi-supervised
+prediction.</li>
+</ul>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p><span class="math inline">\(explicit\)</span> The paper provides the
+clean classical reference for a graph Laplacian smoothness term in a
+learning objective: <span class="math inline">\(f^T L f\)</span>, with
+graph weights controlling how strongly edgewise differences are
+penalized. This is directly relevant to H005’s question of how
+conductance/kernel choices affect low-pass smoothing.</p>
+<p><code>derived</code> For SIMODS, the paper supports describing
+graph-signal smoothing as a regularization problem where conductance
+choices change the preferred low-frequency functions. Its most
+transferable formula is Equation (4), p. 2405 (PDF p. 7), plus the
+practical algorithm summary in Table 1, p. 2418 (PDF p. 20).</p>
+<p><code>contextual</code> Current <code>fit.rdgraph.regression()</code>
+semantics must be kept distinct. The H005 planning notes state that the
+current <code>gflow</code> low-pass operator for precomputed graphs uses
+supplied <code>weight.list</code> values as positive edge lengths for
+ordering/truncation, then uses Riemannian-complex edge masses from
+local-neighborhood overlaps with conductance <span
+class="math inline">\(c_{e}^\rho = 1/\max(rho_{1}(e), 1e-10)\)</span>.
+That is not the same as the paper’s heat/cosine/binary affinity <span
+class="math inline">\(W_{ij}\)</span> and not the same as a planned
+direct length conductance <span class="math inline">\(c_{e}^len =
+1/(ell_{e} + \epsilon)\)</span>.</p>
+<p><code>derived</code> The paper is best cited for the general
+principle “a graph Laplacian affinity matrix defines a smoothness
+regularizer” and for the intrinsic/extrinsic split. It should not be
+cited as evidence that the current <code>rdgraph</code> overlap-density
+smoother is a length-conductance method. It can motivate planned
+comparators: run the same graph-signal smoothing criterion with direct
+length conductances, heat-kernel conductances, and the current
+overlap-density conductance, then compare selection behavior.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–10 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures.</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<p>No original explanatory figure was created. A useful optional figure
+for synthesis would be a three-edge toy graph showing how the same
+topology gives different <span class="math inline">\(f^T L f\)</span>
+smoothing under binary weights, heat weights, inverse-length
+conductance, and current <code>gflow</code> overlap-density conductance,
+but that cross-paper synthesis figure is better created after the
+P01-P10 audit pass.</p>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manifold regularization adds intrinsic geometric smoothness to
+standard RKHS regularization.</td>
+<td>explicit</td>
+<td>Eq. (2), p. 2404 (PDF p. 6)</td>
+<td><span class="math inline">\(gamma_{A}\)</span> ambient, <span
+class="math inline">\(gamma_{I}\)</span> intrinsic.</td>
+</tr>
+<tr>
+<td>Empirical intrinsic penalty is a graph Laplacian quadratic form over
+labeled plus unlabeled data.</td>
+<td>explicit</td>
+<td>Eq. (4), p. 2405 (PDF p. 7)</td>
+<td>Uses <code>W</code>, <code>D</code>, <span class="math inline">\(L =
+D - W\)</span>, and <span class="math inline">\(f^T L f\)</span>.</td>
+</tr>
+<tr>
+<td>The solution expands over labeled and unlabeled points.</td>
+<td>explicit</td>
+<td>Theorem 2 / Eq. (5), p. 2405 (PDF p. 7); proof Section 3.4,
+pp. 2412-2413</td>
+<td>Key out-of-sample bridge.</td>
+</tr>
+<tr>
+<td>Graph construction can use kNN or graph kernels; weights can be
+binary or heat weights.</td>
+<td>explicit</td>
+<td>Table 1, p. 2418 (PDF p. 20)</td>
+<td>Heat weight is <span class="math inline">\(\exp(-\Vert
+x_{i}-x_{j}\Vert ^2/4t)\)</span>.</td>
+</tr>
+<tr>
+<td>Normalized Laplacian is interchangeable in formulas and used in all
+empirical studies.</td>
+<td>explicit</td>
+<td>Remark 3, p. 2406 (PDF p. 8)</td>
+<td>Important density/degree normalization note.</td>
+</tr>
+<tr>
+<td>LapRLS has closed-form coefficient equation involving
+<code>J K</code>, <code>L K</code>, <span
+class="math inline">\(gamma_{A}\)</span>, and <span
+class="math inline">\(gamma_{I}\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (8), p. 2414 (PDF p. 16)</td>
+<td>Useful for algorithm extraction.</td>
+</tr>
+<tr>
+<td>LapSVM modifies the SVM dual quadratic form through
+<code>L K</code>.</td>
+<td>explicit</td>
+<td>Eqs. (10)-(12), pp. 2417-2418 (PDF pp. 19-20)</td>
+<td>Solves one QP in labeled dual variables plus a linear system.</td>
+</tr>
+<tr>
+<td>Unlabeled data help only under a marginal-conditional smoothness
+relation.</td>
+<td>explicit</td>
+<td>Section 2, p. 2403 (PDF p. 5)</td>
+<td>Scope condition.</td>
+</tr>
+<tr>
+<td>Only intrinsic regularization is ill-posed on a sampled manifold;
+ambient regularization is needed.</td>
+<td>explicit</td>
+<td>Remark 2, p. 2406 (PDF p. 8)</td>
+<td>Important for current graph-smoother comparisons.</td>
+</tr>
+<tr>
+<td>The paper leaves model selection and generalization theory
+unresolved.</td>
+<td>explicit</td>
+<td>Section 7, p. 2430 (PDF p. 32)</td>
+<td>Includes <span class="math inline">\(gamma_{A}\)</span>, <span
+class="math inline">\(gamma_{I}\)</span>, labeled/unlabeled
+dependence.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(W_{ij}\)</span> can be interpreted as
+conductance for H005 because it weights squared edge differences.</td>
+<td>derived</td>
+<td>Eq. (4), p. 2405 (PDF p. 7)</td>
+<td>The authors say “edge weights,” not “conductance.”</td>
+</tr>
+<tr>
+<td>The paper is not about direct metric edge-length conductance.</td>
+<td>contextual</td>
+<td>Table 1, Eq. (4), Section 5.4</td>
+<td>Weight examples are affinities/cosine/binary/heat, not <span
+class="math inline">\(1/length\)</span>.</td>
+</tr>
+<tr>
+<td>Current <code>gflow</code> overlap-density smoothing differs from
+this paper’s affinity Laplacian and from planned length-conductance
+comparators.</td>
+<td>contextual</td>
+<td>H005 execution plan and non-oracle graph selection inventory</td>
+<td>Included to prevent SIMODS scope drift.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ol type="1">
+<li>Check the factor convention in Equation (4), p. 2405 (PDF p. 7):
+with symmetric <code>W</code>, many graph-Laplacian conventions have
+<span class="math inline">\(f^T L f = (1/2) sum_{i,j} W_{ij}
+(f_{i}-f_{j})^2\)</span>, while the paper writes the double sum as <span
+class="math inline">\(f^T L f\)</span>. Determine whether the authors
+silently absorb a factor of 2 or use a different summation
+convention.</li>
+<li>Confirm whether “weighted by cosine distances” in the WebKB
+experiment, Section 5.4, p. 2426 (PDF p. 28), means cosine similarity
+used as affinity, a transformed distance, or a distance inside a later
+weighting rule. The text is not fully explicit.</li>
+<li>Verify whether the normalized Laplacian was used for every Section 5
+experiment exactly as Remark 3 states, including WebKB iterated
+Laplacians of degree 3.</li>
+<li>Decide whether the final H005 synthesis should cite Theorem 7 or
+only the simpler Theorems 1 and 2. Theorem 7 is mathematically important
+but may be too technical for the main literature narrative.</li>
+<li>For SIMODS, decide whether to treat manifold regularization as a
+“kernel-method reference” or as a “graph-signal low-pass reference.” It
+supports both, but its main task is semi-supervised prediction, not
+graph parameter selection.</li>
+</ol>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P06 requested an explicit Eq. (4) factor-convention note.
+The PDF prints the unhalved double sum as <span
+class="math inline">\(f^\top L f\)</span>; under the standard
+symmetric-Laplacian convention the double sum has a <span
+class="math inline">\(1/2\)</span> factor. The scaling does not alter
+the regularizer minimizer but should be named.</p></li>
+<li><p>Preserve the ambiguity in the WebKB description “weighted by
+cosine distances”: the PDF does not specify the exact affinity
+transform.</p></li>
+<li><p>Historical/canonical-importance statements should be labeled
+<code>contextual</code> or <code>derived</code>, not <span
+class="math inline">\(explicit\)</span>, unless quoting the paper’s own
+claims.</p></li>
+<li><p>Sparse-graph normalization should stay close to the PDF wording;
+do not convert it into a precise implementation rule without another
+source.</p></li>
+<li><p>2026-05-15: Initial Reviewer-P06 memo drafted from the canonical
+36-page JMLR PDF. I inspected all figures/tables by rendering the
+relevant pages locally and did not store any copied paper
+figures.</p></li>
+</ul>
+</body>
+</html>

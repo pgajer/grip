@@ -1,13 +1,16 @@
-# Legacy Placeholder
+# Papers associated with grip
 
-This directory no longer stores active literature or manuscript assets.
+Each paper has a separate scope and one editable source home.
 
-Canonical replacement:
+| Directory | Purpose and status | Source and build |
+| --- | --- | --- |
+| [grip-software-paper](grip-software-paper/) | R Journal software article | See its README; `make paper-pdf` from the grip root |
+| [gmds_manuscript](gmds_manuscript/) | Methods paper on path fidelity, scale and geometric recovery; author-review draft | `geodesic_mds.tex` at that directory root; `make gmds-paper-pdf` |
+| [data_to_geodesic_embedding_paper](data_to_geodesic_embedding_paper/) | Deferred broader data-to-graph and embedding research agenda, with scientific planning and literature assets | No principal manuscript exists yet; see its README |
 
-- `references/literature/`
+Edit manuscript masters, never dated review copies. Disposable compilation files
+belong in each paper's `build/`; immutable circulation packages belong in its
+`review-bundles/`. Evidence and reproducibility inputs remain with their papers.
+Internal editorial working notes live outside the repository.
 
-Current rule:
-
-- Do not place new manuscript assets here.
-- Do not place new literature here.
-- Keep this directory only as a temporary compatibility placeholder until no tooling or notes refer to `papers/`.
+The package's `.Rbuildignore` excludes this entire directory from R source packages.

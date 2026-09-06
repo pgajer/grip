@@ -1,0 +1,43 @@
+\begin{thebibliography}{5}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Belkin and Niyogi(2008)]{belkin2008towards}
+Mikhail Belkin and Partha Niyogi.
+\newblock Towards a theoretical foundation for laplacian-based manifold
+  methods.
+\newblock \emph{Journal of Computer and System Sciences}, 74\penalty0
+  (8):\penalty0 1289--1308, 2008.
+\newblock \doi{10.1016/j.jcss.2007.08.006}.
+
+\bibitem[Berry and Harlim(2016)]{berry2016variable}
+Tyrus Berry and John Harlim.
+\newblock Variable bandwidth diffusion kernels.
+\newblock \emph{Applied and Computational Harmonic Analysis}, 40\penalty0
+  (1):\penalty0 68--96, 2016.
+\newblock \doi{10.1016/j.acha.2015.01.001}.
+
+\bibitem[Cheng and Wu(2022)]{cheng2022knn}
+Xiuyuan Cheng and Hau-Tieng Wu.
+\newblock Convergence of graph laplacian with knn self-tuned kernels.
+\newblock \emph{Information and Inference: A Journal of the IMA}, 11\penalty0
+  (3):\penalty0 889--957, 2022.
+\newblock \doi{10.1093/imaiai/iaab019}.
+
+\bibitem[Coifman and Lafon(2006)]{coifman2006diffusion}
+Ronald~R. Coifman and Stephane Lafon.
+\newblock Diffusion maps.
+\newblock \emph{Applied and Computational Harmonic Analysis}, 21\penalty0
+  (1):\penalty0 5--30, 2006.
+\newblock \doi{10.1016/j.acha.2006.04.006}.
+
+\bibitem[Hein et~al.(2007)Hein, Audibert, and von Luxburg]{hein2007graph}
+Matthias Hein, Jean-Yves Audibert, and Ulrike von Luxburg.
+\newblock Graph laplacians and their convergence on random neighborhood graphs.
+\newblock \emph{Journal of Machine Learning Research}, 8:\penalty0 1325--1368,
+  2007.
+
+\end{thebibliography}

@@ -1,0 +1,871 @@
+metadata:
+  title: "Data-to-Geodesic Embedding Paper Resource Registry"
+  version: 1
+  updated: "2026-05-15"
+  description: >
+    Source registry for reusable manuscript resources: LaTeX manuscripts,
+    reports, dashboards, figures, experiment reports, and planning notes that
+    may supply formulas, prose, results, or figures for the SIMODS paper.
+
+schema:
+  allowed_readiness_values:
+    - "ready to cite internally"
+    - "usable with edits"
+    - "needs distilled figure/table"
+    - "background or supplement"
+    - "background or discussion"
+    - "archive/deprecated"
+    - "source of planning truth"
+    - "active planning artifact"
+    - "active audit artifact"
+    - "background"
+  allowed_manuscript_relevance:
+    - "reusable for main text"
+    - "supplement/background"
+    - "archive/deprecated"
+    - "internal/project management"
+  allowed_resource_roles:
+    - "canonical"
+    - "supporting"
+    - "historical"
+    - "internal"
+
+resources:
+  - id: R001
+    title: "Existing Geodesic MDS Manuscript"
+    project: "geodesicMDS"
+    type: "LaTeX manuscript"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/build/geodesic_mds.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/geodesic_mds.tex"
+    sections_supported: ["Related Work", "Geodesic MDS", "Diagnostics"]
+    reusable_items:
+      - "GMDS problem formulation"
+      - "notation and figure ideas"
+      - "relationship between graph paths and embedded graph paths"
+      - "background on graph drawing / MDS connection"
+    edits_needed:
+      - "Integrate with data graph reconstruction layer"
+      - "Trim content that belongs only to the narrower GMDS paper"
+      - "Align notation with SIMODS manuscript"
+    caveats:
+      - "The SIMODS paper needs a broader data-to-graph framing."
+
+  - id: R002
+    title: "GMDS Progress Report"
+    project: "geodesicMDS"
+    type: "progress report"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/gmds_progress_report/gmds_progress_report.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/gmds_progress_report/gmds_progress_report.tex"
+    sections_supported: ["Geodesic MDS", "Experiments", "Diagnostics"]
+    reusable_items:
+      - "Chronological record of tested and formulated GMDS strategies"
+      - "Figures explaining GMDS workflow and diagnostics"
+      - "Algorithm comparison history"
+    edits_needed:
+      - "Distill into manuscript-ready narrative"
+      - "Remove project-log style detail"
+    caveats:
+      - "Progress-report scope is broader than the final SIMODS paper."
+
+  - id: R003
+    title: "Edge-Isometric Repulsive Unfolding GMDS Report"
+    project: "geodesicMDS"
+    type: "methods report"
+    readiness: "background or discussion"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_isometric_repulsive_unfolding_gmds.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_isometric_repulsive_unfolding_gmds.tex"
+    sections_supported: ["Geodesic MDS", "Discussion", "Supplement"]
+    reusable_items:
+      - "Edge-barrier framework"
+      - "Repulsion families and annealing schedules"
+      - "Connection between edge-KK and edge-isometric formulations"
+    edits_needed:
+      - "Use selectively; repulsive unfolding may not belong in main paper"
+      - "Extract only the pieces needed to explain edge-KK/barrier language"
+    caveats:
+      - "Potentially too much for the main SIMODS story."
+
+  - id: R004
+    title: "edge-KK / Quadratic Edge-Barrier Equivalence Report"
+    project: "geodesicMDS"
+    type: "validation report"
+    readiness: "ready to cite internally"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex"
+    sections_supported: ["Geodesic MDS", "Methods"]
+    reusable_items:
+      - "Objective and gradient parity explanation"
+      - "Formula showing edge-KK as quadratic edge-barrier special case"
+      - "Validation figures for equivalence"
+    edits_needed:
+      - "Convert report language into concise manuscript proposition"
+    caveats:
+      - "Must align notation with final SIMODS notation."
+
+  - id: R005
+    title: "GMDS Method Audit From gflow Experiments"
+    project: "geodesicMDS"
+    type: "audit report"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/gmds_method_audit_from_gflow_experiments.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/gmds_method_audit_from_gflow_experiments.md"
+    sections_supported: ["Diagnostics", "Discussion"]
+    reusable_items:
+      - "Weaknesses of tested GMDS methods"
+      - "Potential improvements and diagnostic framing"
+    edits_needed:
+      - "Separate tested findings from speculative improvements"
+    caveats:
+      - "Audit prose may need careful pruning."
+
+  - id: R006
+    title: "Data Geodesic Geometry Progress Report"
+    project: "geodesic_data_geometry"
+    type: "progress report"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/geodesic_data_geometry_progress_report.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/geodesic_data_geometry_progress_report.tex"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Oracle Benchmarks", "Diagnostics"]
+    reusable_items:
+      - "Chronological record of data-to-graph methods"
+      - "Tables summarizing graph-family performance"
+      - "Figures for MST repair, pruning, and residual regimes"
+    edits_needed:
+      - "Distill into paper-level result story"
+      - "Extract only final benchmark conclusions"
+    caveats:
+      - "Contains project history and exploratory details not suitable for main text."
+
+  - id: R007
+    title: "Data Graph Constructions Manuscript/Report"
+    project: "geodesic_data_geometry"
+    type: "LaTeX report"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/build/data_graph_constructions.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Related Work", "Methods"]
+    reusable_items:
+      - "Graph construction definitions"
+      - "sKNN, mKNN, iKNN, radius, adaptive-radius, cKNN context"
+      - "MST repair and pruning illustrations"
+      - "historical and applied context for graph constructions"
+    edits_needed:
+      - "Condense and align with SIMODS paper notation"
+      - "Decide which graph families remain in main text"
+    caveats:
+      - "PHATE connection is useful background but may not be central."
+
+  - id: R008
+    title: "Geodesic Isometry Diagnostics Report"
+    project: "gflow / geodesic_data_geometry"
+    type: "diagnostics report"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/build/geodesic_isometry_diagnostics.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/quadform-benchmarks/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex"
+    sections_supported: ["Diagnostics", "Oracle Benchmarks"]
+    reusable_items:
+      - "Definitions of isometry residual diagnostics"
+      - "Path-level and residual-regime schematic figures"
+      - "Diagnostic vocabulary for graph reconstruction"
+    edits_needed:
+      - "Select a small final diagnostic set"
+      - "Avoid duplicating GMDS diagnostics"
+    caveats:
+      - "Some diagnostics were for investigation rather than final reporting."
+
+  - id: R009
+    title: "2D Quadform Surface Unpruned Benchmark"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "needs distilled figure/table"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/quadform_surface_unpruned_benchmark_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark"
+    sections_supported: ["Oracle Benchmarks", "Experiments"]
+    reusable_items:
+      - "Surface-target graph reconstruction performance"
+      - "adaptive-radius and cKNN comparisons"
+      - "parameter sensitivity figures"
+    edits_needed:
+      - "Create paper-ready summary figures"
+      - "Remove exploratory UI/report details"
+    caveats:
+      - "Report is too broad for direct manuscript inclusion."
+
+  - id: R010
+    title: "2D Quadform Curvature Tier 1 Benchmark"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "needs distilled figure/table"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark/runs/full/report/quadform_curvature_tier1_benchmark_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark"
+    sections_supported: ["Oracle Benchmarks", "Experiments"]
+    reusable_items:
+      - "curvature dependence of graph reconstruction"
+      - "sample-size and parameter sweeps"
+    edits_needed:
+      - "Extract final family-level and parameter-level conclusions"
+    caveats:
+      - "Needs clear distinction between oracle and non-oracle results."
+
+  - id: R011
+    title: "Pruning Method Comparison Report"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-pruning-method-comparison/runs/full/report/quadform_first_benchmark_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-pruning-method-comparison"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Supplement"]
+    reusable_items:
+      - "Evidence that pruning preserves geometry while reducing edges"
+      - "runtime/pruning method comparison"
+    edits_needed:
+      - "Likely summarize in a sentence or supplement"
+    caveats:
+      - "Not a central result for the main paper."
+
+  - id: R012
+    title: "3D Delaunay Oracle Stress Test"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test"
+    sections_supported: ["Oracle Benchmarks", "Supplement"]
+    reusable_items:
+      - "Delaunay reference-geodesic oracle stress tests"
+      - "edge length factor recommendation context"
+    edits_needed:
+      - "Only include if 3D oracle methods enter paper"
+    caveats:
+      - "High-anisotropy boundary cases require careful interpretation."
+
+  - id: R013
+    title: "3D Delaunay Factor-4 Recommendation Note"
+    project: "gflow / geodesic_data_geometry"
+    type: "recommendation note"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md"
+    sections_supported: ["Oracle Benchmarks", "Supplement"]
+    reusable_items:
+      - "Default factor-4 recommendation"
+      - "C++ backend behavioral harness considerations"
+    edits_needed:
+      - "Use as provenance rather than manuscript prose"
+    caveats:
+      - "Reference-oracle engineering detail."
+
+  - id: R014
+    title: "Quadform Initialization Sensitivity Notes/Figures"
+    project: "geodesicMDS"
+    type: "experiment figures"
+    readiness: "usable with edits"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_sensitivity_summary.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/quadform-curvature-initialization-sensitivity/implementation_plan.md"
+    sections_supported: ["Geodesic MDS", "Experiments", "Scaling Experiments"]
+    reusable_items:
+      - "weighted GRIP versus metric MDS initialization comparison"
+      - "curvature sensitivity"
+      - "timing/quality figures"
+    edits_needed:
+      - "Locate final run scripts and exact result tables"
+      - "Create manuscript-ready multi-panel figure"
+    caveats:
+      - "Need provenance check before using as final evidence."
+
+  - id: R015
+    title: "Repulsive Operator Isolation Report"
+    project: "geodesicMDS"
+    type: "experiment report"
+    readiness: "background or discussion"
+    priority: "P3"
+    manuscript_relevance: "supplement/background"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments/repulsive-operator-isolation/repulsive_operator_isolation_report.pdf"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/repulsive-operator-isolation/repulsive_operator_isolation_report.tex"
+    sections_supported: ["Discussion", "Supplement"]
+    reusable_items:
+      - "repel operator isolation plan and early diagnostics"
+    edits_needed:
+      - "Probably keep out of main text unless repulsive unfolding becomes central"
+    caveats:
+      - "Exploratory method lane."
+
+  - id: R016
+    title: "SIMODS Paper Scope Note"
+    project: "geodesicMDS"
+    type: "scope note"
+    readiness: "source of planning truth"
+    priority: "P1"
+    manuscript_relevance: "internal/project management"
+    resource_role: "internal"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_data_geodesic_mds_paper_scope.md"
+    source_path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_data_geodesic_mds_paper_scope.md"
+    sections_supported: ["All"]
+    reusable_items:
+      - "central thesis"
+      - "paper outline"
+      - "what still needs to be added"
+      - "immediate next actions"
+    edits_needed:
+      - "Supersede with manuscript-local planning files as work matures"
+    caveats:
+      - "Planning note, not manuscript prose."
+
+  - id: R017
+    title: "SIMODS Paper Planning Dashboard"
+    project: "geodesicMDS"
+    type: "HTML dashboard"
+    readiness: "active planning artifact"
+    priority: "P1"
+    manuscript_relevance: "internal/project management"
+    resource_role: "internal"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_paper_planning_dashboard.html"
+    source_path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/scripts/build_simods_scope_dashboard.py"
+    sections_supported: ["All", "Project Management"]
+    reusable_items:
+      - "task board"
+      - "paper outline navigator"
+      - "experiment roadmap"
+      - "risk list"
+    edits_needed:
+      - "Keep synchronized with source scope and evidence registries"
+    caveats:
+      - "Generated dashboard; edit builder/source rather than HTML."
+
+  - id: R018
+    title: "SIMODS Claim-to-Evidence Dashboard"
+    project: "geodesicMDS"
+    type: "HTML dashboard"
+    readiness: "active audit artifact"
+    priority: "P1"
+    manuscript_relevance: "internal/project management"
+    resource_role: "internal"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/claim_evidence_dashboard.html"
+    source_path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/evidence/claims.yml"
+    sections_supported: ["All", "Project Management"]
+    reusable_items:
+      - "claim status labels"
+      - "claim-to-source traceability"
+      - "audit/export surface"
+    edits_needed:
+      - "Expand as manuscript claims become concrete"
+    caveats:
+      - "Seeded registry, not exhaustive."
+
+  - id: R019
+    title: "Cross-Package Function Inventory"
+    project: "geodesicMDS"
+    type: "inventory note"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/geodesic_mds_cross_package_function_inventory.md"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/geodesic_mds_cross_package_function_inventory.md"
+    sections_supported: ["Software", "Reproducibility", "Supplement"]
+    reusable_items:
+      - "function ownership across gflow/grip/geodesicMDS"
+      - "software map seed"
+    edits_needed:
+      - "Update after any package moves"
+      - "Convert into concise table"
+    caveats:
+      - "May not reflect latest package state if not refreshed."
+
+  - id: R020
+    title: "Package Architecture And Method Ownership Note"
+    project: "geodesicMDS"
+    type: "architecture note"
+    readiness: "background"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/package_architecture_and_method_ownership.md"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/notes/package_architecture_and_method_ownership.md"
+    sections_supported: ["Software", "Reproducibility"]
+    reusable_items:
+      - "software ownership rationale"
+      - "package role discussion"
+    edits_needed:
+      - "Distill to one reproducibility paragraph or table"
+    caveats:
+      - "Internal architecture discussion, not necessarily paper content."
+
+  - id: R021
+    title: "Geodesic Data Geometry Project Brief"
+    project: "geodesic_data_geometry"
+    type: "project brief"
+    readiness: "source of planning truth"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_project_brief.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_project_brief.md"
+    sections_supported: ["Introduction", "Data Geodesic Geometry Reconstruction", "Experiments", "Discussion"]
+    reusable_items:
+      - "concise statement of the data-to-graph geodesic reconstruction problem"
+      - "current graph-family conclusions for adaptive-radius, cKNN, sKNN, iKNN, fixed-radius, and mKNN"
+      - "separation of surface, sample-oracle, density-aware, diffusion, and downstream biological targets"
+      - "cross-repository asset map for geodesic_data_geometry and gflow"
+    edits_needed:
+      - "Convert project-brief prose into manuscript introduction and methods language"
+      - "Cite concrete reports or tables for any result claims reused from the brief"
+    caveats:
+      - "Brief is a synthesis document; it should not be the only evidence for numerical claims."
+
+  - id: R022
+    title: "Geodesic Data Geometry Updated Experiment Plan"
+    project: "geodesic_data_geometry"
+    type: "experiment plan"
+    readiness: "active planning artifact"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_updated_experiment_plan.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_updated_experiment_plan.md"
+    sections_supported: ["Experiments", "Oracle Benchmarks", "Discussion", "Supplement"]
+    reusable_items:
+      - "current phase ordering for 2D surface-target, 3D reference, higher-dimensional, pruning, and non-oracle tracks"
+      - "recommended diagnostics for graph geodesic reconstruction"
+      - "explicit decision to keep sample-oracle and pruning out of the main benchmark lane for now"
+      - "graph-family inclusion and exclusion guidance"
+    edits_needed:
+      - "Translate phase language into manuscript scope and supplement roadmap"
+      - "Verify any final experiment list against the Report Agent outline"
+    caveats:
+      - "Plan records intended next work as well as learned conclusions; keep proposed items labeled."
+
+  - id: R023
+    title: "Data Graph Constructions Report Brief"
+    project: "geodesic_data_geometry"
+    type: "report brief"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/data-graph-constructions/data_graph_constructions_report_brief.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/data-graph-constructions/data_graph_constructions_report_brief.md"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Related Work", "Software", "Supplement"]
+    reusable_items:
+      - "rationale for broadening the PHATE/kNN report into data graph constructions"
+      - "PHATE support derivation and local-scale graph interpretation"
+      - "implementation asset list for graph constructors, repair, and pruning"
+      - "figure inventory for construction diagrams and noisy-circle examples"
+    edits_needed:
+      - "Use as provenance and drafting guide rather than as final prose"
+      - "Check old gflow source paths before citing them directly"
+    caveats:
+      - "The brief references an older gflow source path whose TeX source is missing locally, although the migrated geodesic_data_geometry manuscript exists."
+
+  - id: R024
+    title: "Geodesic Distance Literature Map"
+    project: "geodesic_data_geometry"
+    type: "literature map"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/geodesic_distance_literature_map.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/geodesic_distance_literature_map.md"
+    sections_supported: ["Related Work", "Data Geodesic Geometry Reconstruction", "Discussion"]
+    reusable_items:
+      - "Isomap and graph-geodesic estimator framing"
+      - "distinction between graph topology and edge weights"
+      - "related families: kNN, radius, adaptive local scale, pruning, diffusion, resistance, PHATE, UMAP, and pseudotime distances"
+    edits_needed:
+      - "Turn map entries into formal citations and concise related-work paragraphs"
+      - "Audit citation details before manuscript use"
+    caveats:
+      - "Background map, not a manuscript-ready bibliography."
+
+  - id: R025
+    title: "Density-Aware Geodesic Distance Definition Memo"
+    project: "geodesic_data_geometry"
+    type: "definition memo"
+    readiness: "background or supplement"
+    priority: "P3"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md"
+    sections_supported: ["Related Work", "Discussion", "Supplement"]
+    reusable_items:
+      - "vocabulary separating geodesic, density-weighted, diffusion, PHATE potential, and oracle distances"
+      - "notation for density-weighted path metrics"
+      - "cautionary framing for biological or support-aware distance targets"
+    edits_needed:
+      - "Keep density-aware material as context unless the manuscript adds a real-data or density-aware case study"
+      - "Condense definitions sharply if used"
+    caveats:
+      - "Defines a different target than the current surface-geodesic benchmark lane."
+
+  - id: R026
+    title: "Noisy Circle Strategy Comparison"
+    project: "geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "background or supplement"
+    priority: "P3"
+    manuscript_relevance: "supplement/background"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/noisy-circle-strategy-comparison/noisy_circle_strategy_comparison.html"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/cases/noisy_circle_strategy_comparison.R"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Supplement", "Discussion"]
+    reusable_items:
+      - "early noisy-circle evidence comparing CMST, local adaptive, iKNN, mKNN, and repair strategies"
+      - "replicated size benchmark structure"
+      - "motivation for treating MST/CMST as scaffold or diagnostic rather than privileged geometry"
+    edits_needed:
+      - "Use only as historical motivation or supplement after confirming scripts and results"
+      - "Avoid mixing noisy-circle latent targets with surface-target quadform results"
+    caveats:
+      - "Older benchmark target; not central to the current SIMODS main story."
+
+  - id: R027
+    title: "Global Geodesic Ratio Pruning Benchmark and Parity Report"
+    project: "geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark/index.html"
+    source_path: "/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark"
+    sections_supported: ["Data Geodesic Geometry Reconstruction", "Experiments", "Supplement", "Software"]
+    reusable_items:
+      - "R-vs-C++ parity audit for global geodesic-ratio pruning"
+      - "runtime and pruning-strength comparison against local geodesic pruning"
+      - "evidence for pruning as a sparsification/robustness track"
+    edits_needed:
+      - "Distill to a small supplement table or a short methods note"
+      - "Connect with quadform pruning report before treating pruning conclusions as final"
+    caveats:
+      - "Benchmark uses noisy circles, Swiss roll projection, and branch examples rather than the main quadform surface target."
+
+  - id: R028
+    title: "3D Quadform Delaunay Reference Geodesics"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML validation report"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference"
+    sections_supported: ["Oracle Benchmarks", "Methods", "Supplement"]
+    reusable_items:
+      - "epsilon-net plus Delaunay one-skeleton reference-geodesic construction for parameter dimension 3"
+      - "exact quadratic-hypersurface segment length formula"
+      - "reference convergence and runtime checks"
+    edits_needed:
+      - "Condense into reference-oracle methods text if 3D results are included"
+      - "Coordinate with factor-4 stress-test notes before final default is stated"
+    caveats:
+      - "Readiness report, not a final high-dimensional benchmark."
+
+  - id: R029
+    title: "3D Quadratic Hypersurface Smoke Benchmark"
+    project: "gflow / geodesic_data_geometry"
+    type: "HTML benchmark report"
+    readiness: "needs distilled figure/table"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark/report/quadform_3d_smoke_benchmark_report.html"
+    source_path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark"
+    sections_supported: ["Oracle Benchmarks", "Experiments", "Supplement"]
+    reusable_items:
+      - "first package-level 3D data-to-graph reconstruction check"
+      - "surface-geodesic-only comparison of sKNN, iKNN, adaptive-radius, and cKNN/geometric-mean adaptive-radius graphs"
+      - "interactive 3D diagnostic examples for selected graph settings"
+    edits_needed:
+      - "Keep as smoke evidence unless a full 3D benchmark is approved"
+      - "Extract only the family-level lessons needed for supplement or future-work discussion"
+    caveats:
+      - "Small smoke run; not sufficient as final main-paper evidence."
+
+  - id: R030
+    title: "GMDS Edge-Isometry Diagnostic Harness"
+    project: "geodesicMDS"
+    type: "HTML experiment report"
+    readiness: "needs distilled figure/table"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/full-phase12/gmds_edge_isometry_harness_report.html"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness"
+    sections_supported: ["Geodesic MDS", "Experiments", "Diagnostics", "Methods"]
+    reusable_items:
+      - "diagnostic contract separating edge-length fidelity, graph-geodesic fidelity, graph-surface stress, and surface-layout stress"
+      - "comparison of metric MDS, all-pairs geodesic-KK polish, and edge-only gKK local repair"
+      - "shared quadratic-surface modeling family linking graph reconstruction and GMDS evaluation"
+      - "evidence that edge-gKK from MDS strongly improves edge and GMDS stress relative to metric MDS"
+    edits_needed:
+      - "Distill into one manuscript-ready method comparison figure and a compact diagnostics table"
+      - "Check exact metrics.csv provenance before numerical claims are copied"
+    caveats:
+      - "Development harness, not a package API; final manuscript should cite curated results and scripts."
+
+  - id: R031
+    title: "Kernel Gram-gKK Comparison On 2D Quadratic Surfaces"
+    project: "geodesicMDS"
+    type: "HTML experiment report"
+    readiness: "background or discussion"
+    priority: "P3"
+    manuscript_relevance: "archive/deprecated"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.html"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.tex"
+    sections_supported: ["Discussion", "Supplement"]
+    reusable_items:
+      - "kernel Gram-gKK local-isometry extension and parameter sensitivity"
+      - "negative or weak improvement evidence relative to edge-gKK"
+      - "future-work framing for stronger local star/angle constraints"
+    edits_needed:
+      - "Use only to justify not making Gram-gKK central"
+      - "Avoid presenting as a primary SIMODS algorithm"
+    caveats:
+      - "Experimental extension appears secondary to edge-gKK for the current manuscript."
+
+  - id: R032
+    title: "Metric MDS to edge-gKK to Gram Polish"
+    project: "geodesicMDS"
+    type: "HTML experiment report"
+    readiness: "background or discussion"
+    priority: "P3"
+    manuscript_relevance: "archive/deprecated"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/kernel-gram-polish-medium/kernel_gram_polish_report/kernel_gram_polish_report.html"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/kernel-gram-polish-medium/kernel_gram_polish_report/kernel_gram_polish_report.tex"
+    sections_supported: ["Discussion", "Supplement"]
+    reusable_items:
+      - "post-edge-gKK Gram polish sweep"
+      - "evidence that the best polish gives only marginal surface-stress improvement"
+      - "edge-damage versus surface-gain diagnostic framing"
+    edits_needed:
+      - "Archive as a negative/secondary result unless Report Agent needs future-work support"
+    caveats:
+      - "Not suitable for main text unless the algorithm story changes."
+
+  - id: R033
+    title: "Edge-Isometric Repulsive Unfolding Initial Suite"
+    project: "geodesicMDS"
+    type: "HTML experiment report"
+    readiness: "background or discussion"
+    priority: "P3"
+    manuscript_relevance: "supplement/background"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.html"
+    source_path: "/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.tex"
+    sections_supported: ["Geodesic MDS", "Discussion", "Supplement"]
+    reusable_items:
+      - "first correctness-oriented harness for edge-isometric repulsive unfolding"
+      - "comparison against weighted GRIP, metric MDS, and edge-gKK baselines"
+      - "tradeoff plots for spread versus edge fidelity"
+    edits_needed:
+      - "Keep in discussion or supplement unless repulsive unfolding becomes a main contribution"
+      - "Separate baseline edge-gKK lessons from experimental repulsion conclusions"
+    caveats:
+      - "Repulsive schedules are exploratory and should not overtake the main pipeline."
+
+  - id: R034
+    title: "Weighted GRIP Phase Plan"
+    project: "grip"
+    type: "design note"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/grip/dev/design/weighted-grip/weighted_grip_phase_plan_2026-04-02.md"
+    source_path: "/Users/pgajer/current_projects/grip/dev/design/weighted-grip/weighted_grip_phase_plan_2026-04-02.md"
+    sections_supported: ["Geodesic MDS", "Software", "Reproducibility", "Supplement"]
+    reusable_items:
+      - "weighted GRIP API and implementation rationale"
+      - "weighted MISF hierarchy design"
+      - "relationship between graph edge lengths and multiscale layout initialization"
+    edits_needed:
+      - "Update against current grip exports before citing software details"
+      - "Condense to a software/reproducibility note if needed"
+    caveats:
+      - "Design plan rather than final validation report."
+
+  - id: R035
+    title: "GMDS Algorithm, Implementation, and Pathology Overview"
+    project: "grip"
+    type: "design note"
+    readiness: "usable with edits"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/grip/dev/design/gmds/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md"
+    source_path: "/Users/pgajer/current_projects/grip/dev/design/gmds/gmds_algorithm_implementation_and_pathology_overview_2026-03-31.md"
+    sections_supported: ["Geodesic MDS", "Diagnostics", "Discussion", "Software"]
+    reusable_items:
+      - "plain-language description of fixed-path GMDS objective"
+      - "tie-averaged multi-path GMDS explanation"
+      - "pathology taxonomy for grids, curved surfaces, tethering, and dimensionality limits"
+      - "implementation file map for grip GMDS components"
+    edits_needed:
+      - "Verify stale path references and current API names before manuscript use"
+      - "Use selectively so old pathology work does not distract from the edge-gKK story"
+    caveats:
+      - "Contains at least one stale project-home path and predates later geodesicMDS consolidation."
+
+  - id: R036
+    title: "MISF Geodesic KK Design"
+    project: "grip"
+    type: "design note"
+    readiness: "background or supplement"
+    priority: "P3"
+    manuscript_relevance: "supplement/background"
+    resource_role: "historical"
+    path: "/Users/pgajer/current_projects/grip/dev/design/lgkk/misf_geodesic_kk_design_2026-04-05.md"
+    source_path: "/Users/pgajer/current_projects/grip/dev/design/lgkk/misf_geodesic_kk_design_2026-04-05.md"
+    sections_supported: ["Geodesic MDS", "Software", "Supplement"]
+    reusable_items:
+      - "MISF-geodesic-KK public-family design"
+      - "multiscale scaffold and pair-mode policy"
+      - "relationship among exact GKK, landmark GKK, and MISF-based GMDS"
+    edits_needed:
+      - "Treat as implementation background unless MISF-GKK enters the main algorithm set"
+      - "Check implemented status against current grip repository before citation"
+    caveats:
+      - "Paper-grade benchmarking was still pending in the note."
+
+  - id: R037
+    title: "gmdsui Project Brief"
+    project: "gmdsui"
+    type: "project brief"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/gmdsui/notes/gmdsui_project_brief.md"
+    source_path: "/Users/pgajer/current_projects/gmdsui/notes/gmdsui_project_brief.md"
+    sections_supported: ["Software", "Diagnostics", "Supplement", "Discussion"]
+    reusable_items:
+      - "manifest-driven design for inspecting GMDS frame sequences"
+      - "diagnostic viewer requirements for edge stretch, reference coordinates, layouts, and time-series plots"
+      - "cross-project software context connecting geodesicMDS, grip, gflow, and gmdsui"
+    edits_needed:
+      - "Use as reproducibility/companion-tool context only if the manuscript includes software artifacts"
+      - "Do not imply the app is a validated analysis method"
+    caveats:
+      - "App skeleton/project brief, not manuscript evidence."
+
+  - id: R038
+    title: "MISF-GMDS Multiscale Embeddings Dashboard"
+    project: "geodesicMDS"
+    type: "interactive HTML dashboard"
+    readiness: "background or supplement"
+    priority: "P2"
+    manuscript_relevance: "supplement/background"
+    resource_role: "supporting"
+    path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive/misf_gmds_multiscale_embeddings_2026-04-02.html"
+    source_path: "/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive"
+    sections_supported: ["Geodesic MDS", "Diagnostics", "Supplement"]
+    reusable_items:
+      - "interactive visual examples of MISF-GMDS multiscale embeddings"
+      - "candidate supplementary visual diagnostics"
+      - "historical evidence for multiscale initialization behavior"
+    edits_needed:
+      - "Decide whether interactive artifacts belong in the supplement or remain internal"
+      - "Identify the source script or generation manifest before treating any panel as reproducible evidence"
+    caveats:
+      - "Interactive dashboard is useful for inspection but not a paper-ready figure by itself."
+
+  - id: R039
+    title: "Non-Oracle Graph Selection Method Inventory"
+    project: "data_to_geodesic_embedding_paper"
+    type: "methods inventory"
+    readiness: "active audit artifact"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/non_oracle_graph_selection_method_inventory.md"
+    source_path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/non_oracle_graph_selection_method_inventory.md"
+    sections_supported: ["Non-Oracle Graph Parameter Selection", "Methods", "Supplement", "Experiments"]
+    reusable_items:
+      - "source-driven inventory of the six requested non-oracle graph-selection families plus connectivity/MST guardrails"
+      - "mathematical criteria for top-variable, gene-set, PC-score, structural, outcome, and synthetic-feature selectors"
+      - "source asset index linking manuscript claims to gflow, CT-clearance, cell-cycle, symptoms, and gflow_examples scripts"
+      - "method-specific limitations and manuscript placement recommendations"
+    edits_needed:
+      - "Convert selected pieces into concise methods prose after selector benchmark design is approved"
+      - "Keep source path notes synchronized if gflow graph-selection files move"
+    caveats:
+      - "This is an inventory and provenance document, not experimental evidence."
+      - "Several methods are application-oriented or planned designs rather than main-text-ready results."
+
+  - id: R040
+    title: "Conductance and Kernel Choices for Graph Laplacians Literature Review"
+    project: "data_to_geodesic_embedding_paper"
+    type: "literature review"
+    readiness: "active audit artifact"
+    priority: "P1"
+    manuscript_relevance: "reusable for main text"
+    resource_role: "canonical"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.pdf"
+    source_path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.tex"
+    sections_supported: ["Related Work", "Non-Oracle Graph Parameter Selection", "Methods", "Supplement", "Discussion"]
+    reusable_items:
+      - "standalone synthesis of ten Tier 1 conductance/kernel graph-Laplacian papers"
+      - "concept map connecting inverse length conductance, heat kernels, self-tuned/local-scale kernels, adaptive/cKNN graph construction, diffusion normalization, and graph low-pass smoothing"
+      - "paper-by-paper summaries, conductance-family synthesis, task synthesis, theory table, and SIMODS/gflow benchmark implications"
+      - "explicit distinction between current gflow overlap-density smoothing and planned length/kernel-conductance comparators"
+      - "companion HTML, BibTeX database, source manifest, review memos, per-paper memo HTML pages, figure-screenshot manifest, and audit memos in the same literature workspace"
+      - "near-publishable per-paper LaTeX reviews with rebuilt PDF/HTML outputs and independent polished-review audit memos under paper_reviews_latex/"
+    edits_needed:
+      - "Distill selected pieces into concise related-work and methods prose"
+      - "Decide whether inverse-length and exponential conductance need additional Tier 2 sources before public manuscript use"
+      - "Render internal SVG explanatory figures to PDF/PNG before inclusion in a pdflatex final report"
+      - "If public supplement use is desired, decide whether polished per-paper reviews should remain internal aids or be copyedited into citable appendix material"
+    caveats:
+      - "Long internal synthesis, not yet condensed into manuscript style."
+      - "Several recommendations are benchmark-design guidance rather than completed experimental evidence."
+      - "Reproduced cropped paper-figure/table panels are internal review aids from cached canonical PDFs; public supplement use would require permission/copyright review and final reproduction labeling."
+      - "The polished per-paper reviews use cached PDFs as primary evidence and Markdown memos as archival scaffolding; generated HTML/PDF should be rebuilt from LaTeX, not edited by hand."

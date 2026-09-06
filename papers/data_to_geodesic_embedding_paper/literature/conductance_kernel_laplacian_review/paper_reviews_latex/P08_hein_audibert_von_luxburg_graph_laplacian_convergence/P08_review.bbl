@@ -1,0 +1,14 @@
+\begin{thebibliography}{1}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Hein et~al.(2007)Hein, Audibert, and von Luxburg]{hein2007graph}
+Matthias Hein, Jean-Yves Audibert, and Ulrike von Luxburg.
+\newblock Graph laplacians and their convergence on random neighborhood graphs.
+\newblock \emph{Journal of Machine Learning Research}, 8:\penalty0 1325--1368,
+  2007.
+
+\end{thebibliography}

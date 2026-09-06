@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Graph Laplacians and their Convergence on Random Neighborhood Graphs</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Graph Laplacians and their Convergence
+on Random Neighborhood Graphs</h1>
+</header>
+<p>Paper: Hein, Matthias; Audibert, Jean-Yves; von Luxburg, Ulrike.
+“Graph Laplacians and their Convergence on Random Neighborhood Graphs.”
+Journal of Machine Learning Research 8:1325-1368, 2007. Reviewer:
+Reviewer-P08 Auditor: Auditor-P08 Status: revised after audit Date:
+2026-05-15 Source manifest ID: P08 Canonical reading copy:
+<code>literature/conductance_kernel_laplacian_review/sources/pdf/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.pdf</code></p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<p>A mathematically capable reader should be comfortable with:</p>
+<ul>
+<li>Weighted graph terminology: vertices, edge weights, degree matrices,
+random-walk transition matrices, and the distinction between directed
+and undirected graphs.</li>
+<li>Graph Laplacians: unnormalized/combinatorial, random-walk, and
+symmetric normalized Laplacians, including their sign convention
+relative to continuum Laplace operators.</li>
+<li>Kernel neighborhood graphs: radius/bandwidth graphs where edge
+weights are functions of squared Euclidean distance, and the
+bias-variance intuition behind <span class="math inline">\(h \to
+0\)</span> while <span class="math inline">\(n h^m \to
+infinity\)</span>.</li>
+<li>Basic differential geometry: embedded submanifolds, Riemannian
+metrics, volume measure, gradients, divergence, Laplace-Beltrami
+operators, boundary effects, and normal coordinates.</li>
+<li>Sampling-density effects: a probability measure <code>P</code> on a
+manifold with density <code>p</code> relative to volume, and why a graph
+built from random samples contains both geometry and density
+information.</li>
+<li>Spectral methods: why eigenvectors/eigenfunctions of Laplacians are
+used for clustering, embedding, and smoothing.</li>
+<li>Semi-supervised learning intuition: label propagation as diffusion
+and Laplacian quadratic forms as smoothness penalties.</li>
+<li>Concentration tools at a high level: empirical averages
+approximating local kernel integrals, with rates controlled by sample
+size and bandwidth.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>The paper asks a deceptively simple question: if a graph is built
+from a random point cloud sampled on a manifold, what differential
+operator does the graph Laplacian approximate as the number of points
+grows and the neighborhood radius shrinks?</p>
+<p>The answer depends on three choices that are easy to blur
+together:</p>
+<ol type="1">
+<li>Which graph Laplacian is used: random-walk, unnormalized, or
+symmetric normalized.</li>
+<li>How the edge weights are constructed: here, a radius/bandwidth
+kernel with optional density reweighting controlled by <span
+class="math inline">\(\lambda\)</span>.</li>
+<li>Whether the sampling density is uniform or non-uniform on the
+manifold.</li>
+</ol>
+<p>The headline result is that when the sampling density is uniform, the
+three Laplacians all approximate the same Laplace-Beltrami operator up
+to constants. When the density is non-uniform, they do not. The
+random-walk graph Laplacian has the cleanest continuum interpretation:
+it converges to a weighted Laplace-Beltrami operator. The unnormalized
+Laplacian converges to that same operator multiplied by an additional
+density factor. The symmetric normalized Laplacian has a more
+complicated limit involving both multiplication by powers of
+<code>p</code> and applying the weighted Laplacian to a density-rescaled
+function.</p>
+<p>This matters for smoothing and eigenvectors. A graph Laplacian is not
+just “geometry.” It may smooth more strongly in high-density or
+low-density regions depending on the graph construction. The parameter
+<span class="math inline">\(\lambda\)</span> lets the user tune or
+remove the density effect for the random-walk Laplacian, but the same
+normalization choice does not transfer identically to the other
+Laplacians.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>The paper is motivated by graph Laplacians in semi-supervised
+learning, spectral clustering, and dimensionality reduction. The
+Introduction says graph Laplacians are used because they generate
+diffusion processes, their eigenvectors have geometric properties, and
+they induce adaptive regularization functionals (PDF pp. 1-2 / JMLR
+pp. 1325-1326). The paper focuses on random neighborhood graphs from iid
+samples on a submanifold of Euclidean space and studies the simultaneous
+limit <span class="math inline">\(n \to infinity\)</span>, <span
+class="math inline">\(h \to 0\)</span> (Section 1, PDF pp. 2-3 / JMLR
+pp. 1326-1327).</p>
+<p>Earlier work had treated deterministic grids, deterministic manifold
+graphs, fixed neighborhood limits, or only parts of the random graph
+convergence problem. Hein, Audibert, and von Luxburg position this paper
+as a unified pointwise convergence analysis for the three graph
+Laplacians most common in machine learning, under general submanifold
+and density assumptions (Section 1, PDF p. 3 / JMLR p. 1327).</p>
+<p>The key conceptual target is the weighted Laplace-Beltrami operator,
+not automatically the ordinary Laplace-Beltrami operator. The sampling
+density <code>p</code> can enter the continuum limit unless the graph
+weights are adjusted to remove it.</p>
+<h3 id="main-method">Main Method</h3>
+<p>The paper proceeds in four layers:</p>
+<ol type="1">
+<li>Section 2 defines graph Laplacians abstractly from Hilbert spaces on
+vertices and edges plus a difference operator <code>d</code>, with <span
+class="math inline">\(\Delta = d\, d\)</span>. This makes clear that a
+named finite graph Laplacian does not by itself determine the underlying
+discrete differential structure.</li>
+<li>Section 3 constructs random neighborhood graphs from iid samples
+<span class="math inline">\(X_{i}\)</span> on a submanifold
+<code>M</code>, using a compact-support kernel with bandwidth/radius
+<code>h</code> and density-reweighted edge weights <span
+class="math inline">\(k_tilde_{\lambda,h}\)</span>.</li>
+<li>Section 3.2 defines the continuum weighted Laplacian <span
+class="math inline">\(\Delta_{s} = p^{-s} \operatorname{div}(p^s
+\nabla)\)</span> and explains why it matters for diffusion, smoothness
+functionals, and spectral clustering.</li>
+<li>Section 5 proves pointwise convergence by separating bias and
+variance: first the continuum kernel averaging operator converges to the
+weighted Laplacian as <span class="math inline">\(h \to 0\)</span>; then
+empirical graph sums concentrate around those kernel averages as <span
+class="math inline">\(n \to infinity\)</span>.</li>
+</ol>
+<p>The paper is theoretical but includes numerical illustrations in
+Section 4 showing how the three Laplacian limits agree under uniform
+sampling and diverge under non-uniform sampling.</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p>The directed graph setup begins with a positive similarity matrix
+<code>W</code> and directed edges where <span
+class="math inline">\(w_{ij} &gt; 0\)</span>. The outgoing and incoming
+degree-like quantities are defined with a factor <span
+class="math inline">\(1/n\)</span> (Section 2.1, PDF p. 4 / JMLR
+p. 1328):</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_{i}^out &amp;= (1/n) sum_{j} w_{ij}, \\
+d_{i}^in  &amp;= (1/n) sum_{j} w_{ji}.
+\end{aligned}
+\]</span></p>
+<p>The general difference operator is Definition 1 (Section 2.2, PDF
+p. 4 / JMLR p. 1328):</p>
+<p><span class="math display">\[
+\begin{aligned}
+(d f)(e_{ij}) &amp;= gamma(w_{ij}) [f(j) - f(i)].
+\end{aligned}
+\]</span></p>
+<p>The graph Laplacian is Definition 4 (Section 2.3, PDF p. 5 / JMLR
+p. 1329):</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta &amp;= d\, d.
+\end{aligned}
+\]</span></p>
+<p>For undirected graphs, Definition 7 gives the corresponding explicit
+form (Section 2.4, PDF p. 6 / JMLR p. 1330):</p>
+<p><span class="math display">\[
+\begin{aligned}
+(\Delta f)(l) \\
+&amp;= [1 / chi(d_{l})] [ f(l) (1/n) sum_{i} gamma(w_{il})^2 phi(w_{il})
+\\
+- (1/n) sum_{i} f(i) gamma(w_{il})^2 phi(w_{il}) ].
+\end{aligned}
+\]</span></p>
+<p>The three machine-learning graph Laplacians are then named in Section
+2.4 (PDF pp. 6-7 / JMLR pp. 1330-1331):</p>
+<p><span class="math display">\[
+\begin{aligned}
+Random-walk: \\
+\Delta^(rw) f &amp;= (I - D^{-1} W) f \\
+(\Delta^(rw) f)(i) &amp;= f(i) - (1/d_{i})(1/n) sum_{j} w_{ij} f(j) \\
+Unnormalized/combinatorial: \\
+\Delta^(u) f &amp;= (D - W) f \\
+(\Delta^(u) f)(i) &amp;= d_{i} f(i) - (1/n) sum_{j} w_{ij} f(j) \\
+Symmetric normalized: \\
+\Delta^(n) f &amp;= D^{-1/2} (D - W) D^{-1/2} f \\
+&amp;= (I - D^{-1/2} W D^{-1/2}) f
+\end{aligned}
+\]</span></p>
+<p>The random neighborhood graph construction is Section 3.1 (PDF
+pp. 8-9 / JMLR pp. 1332-1333). The sample points are vertices, and the
+degree for the base kernel is</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_{h,n}(X_{i}) &amp;= (1/n) sum_{j} h^{-m} k( \Vert X_{i} - X_{j}\Vert
+^2 / h^2 ).
+\end{aligned}
+\]</span></p>
+<p>The density-reweighted kernel family is</p>
+<p><span class="math display">\[
+\begin{aligned}
+k_tilde_{\lambda,h}(X_{i}, X_{j}) \\
+&amp;= h^{-m} k( \Vert X_{i} - X_{j}\Vert ^2 / h^2 ) \\
+/ [d_{h,n}(X_{i}) d_{h,n}(X_{j})]^\lambda.
+\end{aligned}
+\]</span></p>
+<p>The graph edge weight is</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{\lambda,h}(X_{i}, X_{j}) &amp;= k_tilde_{\lambda,h}(X_{i}, X_{j}).
+\end{aligned}
+\]</span></p>
+<p>The paper assumes a compactly supported kernel when proving the main
+non-compact manifold results, so an edge exists only when <span
+class="math inline">\(\Vert X_{i} - X_{j}\Vert  \le  h R_{k}\)</span>
+(Section 3.1, PDF p. 8 / JMLR p. 1332). This is a radius/bandwidth
+graph, not a kNN graph.</p>
+<p>The extended graph Laplacians on all <code>x in M</code> are equation
+(3), Section 3.1 (PDF p. 9 / JMLR p. 1333):</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_tilde_{\lambda,h,n}(x) &amp;= (1/n) sum_{j} k_tilde_{\lambda,h}(x,
+X_{j}) \\
+A_tilde_{\lambda,h,n} f(x) &amp;= (1/n) sum_{j} k_tilde_{\lambda,h}(x,
+X_{j}) f(X_{j}) \\
+\Delta^(rw)_{\lambda,h,n} f(x) \\
+&amp;= (1/h^2) [ f - d_tilde_{\lambda,h,n}^{-1} A_tilde_{\lambda,h,n} f
+](x) \\
+\Delta^(u)_{\lambda,h,n} f(x) \\
+&amp;= (1/h^2) [ d_tilde_{\lambda,h,n} f - A_tilde_{\lambda,h,n} f ](x)
+\\
+\Delta^(n)_{\lambda,h,n} f(x) \\
+&amp;= (1/h^2) d_tilde_{\lambda,h,n}(x)^{-1/2} \\
+[ d_tilde_{\lambda,h,n} f / \sqrt(d_tilde_{\lambda,h,n}) \\
+- A_tilde_{\lambda,h,n}(f / \sqrt(d_tilde_{\lambda,h,n})) ](x).
+\end{aligned}
+\]</span></p>
+<p>The factor <span class="math inline">\(1/h^2\)</span> is explicit:
+the graph difference approximates a first derivative scaled by <span
+class="math inline">\(1/h\)</span>, so the Laplacian approximates a
+second derivative scaled by <span class="math inline">\(1/h^2\)</span>
+(Section 3.1, PDF p. 9 / JMLR p. 1333).</p>
+<p>The continuum weighted Laplacian is Definition 9 (Section 3.2, PDF
+p. 10 / JMLR p. 1334):</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta_{s} &amp;= \Delta_{M} + (s/p) &lt;\nabla p, \nabla&gt; \\
+&amp;= p^{-s} \operatorname{div}(p^s \nabla).
+\end{aligned}
+\]</span></p>
+<p>Its associated integration-by-parts identity and smoothness
+functional appear in equation (4) and the following discussion (PDF
+pp. 10-11 / JMLR pp. 1334-1335):</p>
+<p><span class="math display">\[
+\begin{aligned}
+int_{M} f (\Delta_{s} g) p^s dV &amp;= - int_{M} &lt;\nabla f, \nabla
+g&gt; p^s dV \\
+S(f) &amp;= int_{M} \Vert \nabla f\Vert ^2 p^s dV.
+\end{aligned}
+\]</span></p>
+<p>The Main Result in Section 3.3 (PDF p. 12 / JMLR p. 1336) states,
+with <span class="math inline">\(s = 2(1 - \lambda)\)</span> and
+constants depending only on the kernel and <span
+class="math inline">\(\lambda\)</span>:</p>
+<p><span class="math display">\[
+\begin{gathered}
+Random-walk: \\
+\Delta^(rw)_{\lambda,h,n} f(x) \to - \Delta_{s} f(x) \\
+\text{if} h \to 0 and n h^{m+2} / \log n \to infinity. \\
+Unnormalized: \\
+\Delta^(u)_{\lambda,h,n} f(x) \to - p(x)^{1-2 \lambda} \Delta_{s} f(x)
+\\
+\text{if} h \to 0 and n h^{m+2} / \log n \to infinity. \\
+Symmetric normalized: \\
+\Delta^(n)_{\lambda,h,n} f(x) \\
+\to - p(x)^{1/2-\lambda} \Delta_{s}( f / p^{1/2-\lambda} )(x) \\
+\text{if} h \to 0 and n h^{m+4} / \log n \to infinity.
+\end{gathered}
+\]</span></p>
+<p>The formal theorems add the constants. Theorem 30 (PDF pp. 32-33 /
+JMLR pp. 1356-1357) gives</p>
+<p><span class="math display">\[
+\begin{gathered}
+\Delta^(rw)_{\lambda,h,n} f(x) \to -(C2 / 2 C1) \Delta_{s} f(x), \\
+\Delta^(u)_{\lambda,h,n} f(x) \\
+\to -(C2 / 2 C1^(2 \lambda)) p(x)^{1-2 \lambda} \Delta_{s} f(x),
+\end{gathered}
+\]</span></p>
+<p>with almost sure convergence when <span class="math inline">\(h \to
+0\)</span> and <span class="math inline">\(n h^{m+2} / \log n \to
+infinity\)</span>, and error</p>
+<p><span class="math display">\[
+\begin{gathered}
+O(h) + O( \sqrt(\log n / (n h^{m+2})) ).
+\end{gathered}
+\]</span></p>
+<p>Theorem 31 (PDF p. 33 / JMLR p. 1357) gives the normalized-Laplacian
+statement with the stronger condition <span class="math inline">\(n
+h^{m+4} / \log n \to infinity\)</span>.</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p>The paper has no experimental table. It has four substantive
+method/result figures plus one geometric proof figure.</p>
+<p>Figure 1 (Section 3.2, PDF p. 11 / JMLR p. 1335) shows a density
+profile mapped onto a two-dimensional submanifold in <span
+class="math inline">\(\mathbb{R}^{3}\)</span> with two clusters. It
+illustrates the idea behind the weighted smoothness functional: for
+<span class="math inline">\(s &gt; 0\)</span>, changes in high-density
+regions are penalized more than changes in low-density regions.</p>
+<figure class="paper-figure" id="P08_F01">
+<img src="../../paper_figures/P08_F01_page11.png" alt="P08 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Hein, Audibert, and von Luxburg (2007), Figure 1, PDF
+p. 11 (cropped from canonical reading copy), internal review only.
+Density profile and smoothness functional intuition.
+</figcaption>
+</figure>
+<p>Figure 2 (Section 4.1, PDF p. 14 / JMLR p. 1338) shows the three
+graph Laplacian estimates on a uniform distribution over <span
+class="math inline">\([-3,3]^2\)</span>, with <span
+class="math inline">\(n = 2500\)</span>, <span class="math inline">\(h =
+1.4\)</span>, <span class="math inline">\(\lambda = 0\)</span>, and
+<span class="math inline">\(f(x) = \sin(\Vert x\Vert ^2 / 2) / \Vert
+x\Vert ^2\)</span>. The point is that under uniform sampling all three
+graph Laplacians agree up to scaling.</p>
+<figure class="paper-figure" id="P08_F02">
+<img src="../../paper_figures/P08_F02_page14.png" alt="P08 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Hein, Audibert, and von Luxburg (2007), Figure 2, PDF
+p. 14 (cropped from canonical reading copy), internal review only.
+Uniform-density Laplacian estimates.
+</figcaption>
+</figure>
+<p>Figure 3 (Section 4.1, PDF p. 15 / JMLR p. 1339) shows random-walk,
+unnormalized, and normalized Laplacian estimates for samples from a
+standard Gaussian distribution on <span
+class="math inline">\(\mathbb{R}^{2}\)</span>, with <span
+class="math inline">\(n = 2500\)</span>, <span class="math inline">\(h =
+1.2\)</span>, <span class="math inline">\(\lambda = 0\)</span>, and
+<span class="math inline">\(f(x) = sum_{i} x_{i} - 4\)</span>. This is
+the clearest visual demonstration that non-uniform density makes the
+three Laplacian limits disagree.</p>
+<figure class="paper-figure" id="P08_F03">
+<img src="../../paper_figures/P08_F03_page15.png" alt="P08 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Hein, Audibert, and von Luxburg (2007), Figure 3, PDF
+p. 15 (cropped from canonical reading copy), internal review only.
+Nonuniform-density normalization differences.
+</figcaption>
+</figure>
+<p>Figure 4 (Section 4.2, PDF p. 17 / JMLR p. 1341) studies the
+random-walk Laplacian on the sphere <span
+class="math inline">\(S^2\)</span> with non-uniform density <span
+class="math inline">\(p(phi, \theta) = 1/(8 \pi) + 3 \cos^2(\theta)/(8
+\pi)\)</span> and <span class="math inline">\(f(phi, \theta) =
+\cos(\theta)\)</span>, using <span class="math inline">\(n =
+2500\)</span>, <span class="math inline">\(h = 0.6\)</span>. Rows
+compare three <span class="math inline">\(\lambda\)</span> values and
+show how changing <span class="math inline">\(\lambda\)</span> changes
+the density bias and therefore the induced smoothing/diffusion behavior.
+There is a small sign/order ambiguity in the paper’s prose and caption:
+Section 3.3 and Theorems 25/30 define <span class="math inline">\(s =
+2(1-\lambda)\)</span>, which maps <span class="math inline">\(\lambda =
+0, 1, 2\)</span> to <span class="math inline">\(s = 2, 0, -2\)</span>,
+but the Section 4.2 text and Figure 4 caption state <span
+class="math inline">\(\lambda = 0, 1, 2\)</span> gives <span
+class="math inline">\(s = -2, 0, 2\)</span> (PDF pp. 16-17 / JMLR
+pp. 1340-1341). This memo treats the theorem formula as authoritative
+and flags the figure ordering as uncertain.</p>
+<figure class="paper-figure" id="P08_F04">
+<img src="../../paper_figures/P08_F04_page17.png" alt="P08 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Hein, Audibert, and von Luxburg (2007), Figure 4, PDF
+p. 17 (cropped from canonical reading copy), internal review only.
+Density-bias parameter on sphere; flagged sign/order ambiguity.
+</figcaption>
+</figure>
+<p>Figure 5 (Section 5.1.2, PDF p. 21 / JMLR p. 1345) is a proof aid
+showing the Euclidean separation parameter <code>kappa</code>, used to
+ensure local Euclidean neighborhoods do not accidentally connect
+intrinsically distant parts of a non-compact or self-approaching
+manifold.</p>
+<figure class="paper-figure" id="P08_F05">
+<img src="../../paper_figures/P08_F05_page21.png" alt="P08 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Hein, Audibert, and von Luxburg (2007), Figure 5, PDF
+p. 22 (cropped from canonical reading copy), internal review only.
+Geometric proof separation parameter.
+</figcaption>
+</figure>
+<p>The numerical examples are illustrative, not benchmark experiments.
+Their role is to make visible the theorem’s consequences: uniform
+density collapses the differences among Laplacians; non-uniform density
+and normalization choices lead to different continuum operators.</p>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>The main convergence claim is pointwise, not global spectral
+convergence. For a fixed interior point <code>x in M \ partial M</code>
+and smooth <code>f</code>, the extended graph Laplacian applied to
+<code>f</code> converges almost surely to the appropriate continuum
+operator under bandwidth/sample-size conditions (Main Result, Section
+3.3, PDF p. 12 / JMLR p. 1336; Theorems 30-31, PDF pp. 32-33 / JMLR
+pp. 1356-1357).</p>
+<p>The bias term is controlled by Theorem 25 and Corollary 27 (PDF
+pp. 27-29 / JMLR pp. 1351-1353). Theorem 25 shows the continuum
+random-walk kernel approximation converges to <span
+class="math inline">\(-(C2 / 2 C1) \Delta_{s} f + O(h)\)</span>.
+Corollary 27 extends this to unnormalized and normalized continuum
+operators.</p>
+<p>The variance term is controlled by concentration estimates for local
+kernel sums. Theorem 28 handles the simpler <span
+class="math inline">\(\lambda = 0\)</span> case (PDF p. 29 / JMLR
+p. 1353). Proposition 29 gives the empirical-to-continuum deviation for
+the density-reweighted averages (PDF pp. 30-31 / JMLR pp. 1354-1355).
+Theorem 30 combines bias and variance for random-walk and unnormalized
+Laplacians; Theorem 31 handles the normalized Laplacian.</p>
+<p>The assumptions are strong but explicit. Assumption 19 requires an
+embedded submanifold of bounded geometry with control of
+intrinsic/extrinsic distances and no self-approaching pathology (PDF
+pp. 22-23 / JMLR pp. 1346-1347). Assumption 20 requires a nonnegative
+non-increasing kernel with smoothness/decay conditions and <span
+class="math inline">\(k(0)=0\)</span>; the compact-support condition is
+imposed in the main non-compact proofs (PDF pp. 23-24 / JMLR
+pp. 1347-1348; Theorem 25, PDF p. 27 / JMLR p. 1351). Assumption 21
+requires iid sampling from a probability measure with positive <span
+class="math inline">\(C^3\)</span> density in the interior (PDF p. 24 /
+JMLR p. 1348).</p>
+<p>The paper explicitly warns about boundary effects. Section 4.1 says
+estimates are bad at the boundary because a local averaging ball is
+truncated, causing a first-derivative term of order <code>O(h)</code> to
+survive and then blow up after multiplication by <span
+class="math inline">\(1/h^2\)</span> (PDF p. 14 / JMLR p. 1338). Section
+5.4.1 says boundary conditions are unnecessary for pointwise interior
+convergence but remain an open problem for uniform convergence from
+random samples (PDF p. 27 / JMLR p. 1351).</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>The convergence is pointwise at interior points. The paper does not
+prove uniform convergence over all points, convergence of
+eigenvalues/eigenvectors in the shrinking-bandwidth setting, or spectral
+clustering consistency in this regime.</p>
+<p>The graph is a random radius/bandwidth neighborhood graph, not a kNN
+graph. The proof relies on a kernel bandwidth <code>h</code>; compact
+support makes the graph sparse and local. A Gaussian kernel is discussed
+as possible for compact manifolds, but the main non-compact theory uses
+compact support (Remark 26, PDF p. 28 / JMLR p. 1352).</p>
+<p>The unnormalized graph Laplacian requires knowledge of the intrinsic
+dimension <code>m</code> to use the correct <span
+class="math inline">\(h^{-m}\)</span> scaling. Section 3.1 says
+otherwise the estimate may vanish or blow up as <span
+class="math inline">\(h \to 0\)</span>, and simultaneous dimension
+estimation is left as an open problem (PDF p. 9 / JMLR p. 1333).</p>
+<p>The density correction uses the empirical degree function. This is
+related to adaptive density normalization in diffusion maps, but it is
+not a local bandwidth/length-scale graph where the distance denominator
+itself changes pointwise.</p>
+<p>The normalized Laplacian limit is harder to interpret. Section 3.3
+expands it and explicitly leaves possible applications to the reader
+(PDF p. 13 / JMLR p. 1337).</p>
+<p>The sign convention is easy to misread. Graph Laplacians here are
+positive semidefinite, while the paper uses the differential-geometric
+convention in which the Laplace-Beltrami operator is negative
+semidefinite. Therefore graph limits contain a minus sign (Theorem 25
+note, PDF p. 28 / JMLR p. 1352).</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>This is a central bridge paper between manifold-learning intuition
+and rigorous graph Laplacian asymptotics. Its main practical message is
+that “graph Laplacian approximates Laplace-Beltrami” is only safe under
+uniform sampling or under a normalization that removes density effects.
+In realistic non-uniform data, normalization controls the continuum
+operator.</p>
+<p>For later diffusion-map and graph signal processing work, the paper
+clarifies why degree normalization is not a cosmetic finite-sample
+choice. It changes drift, smoothing weights, and spectral behavior. The
+paper is also important because it separates random-walk, unnormalized,
+and symmetric normalized Laplacians in the same theoretical
+framework.</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p><span class="math inline">\(explicit\)</span>: Base radius kernel
+(Section 3.1, PDF p. 8 / JMLR p. 1332):</p>
+<p><span class="math display">\[
+\begin{aligned}
+k_{h}(\Vert x-y\Vert ^2) &amp;= h^{-m} k(\Vert x-y\Vert ^2 / h^2).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span>: Empirical degree for
+the base kernel (Section 3.1, PDF p. 8 / JMLR p. 1332):</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_{h,n}(X_{i}) &amp;= (1/n) sum_{j} h^{-m} k(\Vert X_{i} - X_{j}\Vert ^2
+/ h^2).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span>: Density-reweighted
+kernel/edge weight (Section 3.1, PDF p. 8 / JMLR p. 1332):</p>
+<p><span class="math display">\[
+\begin{aligned}
+k_tilde_{\lambda,h}(X_{i}, X_{j}) \\
+&amp;= h^{-m} k(\Vert X_{i}-X_{j}\Vert ^2 / h^2) \\
+/ [d_{h,n}(X_{i}) d_{h,n}(X_{j})]^\lambda. \\
+w_{\lambda,h}(X_{i}, X_{j}) &amp;= k_tilde_{\lambda,h}(X_{i}, X_{j}).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span>: Compact-support radius
+rule (Section 3.1, PDF p. 8 / JMLR p. 1332): if <code>k</code> has
+support radius <span class="math inline">\(R_{k}\)</span>, then points
+have an edge only when <span class="math inline">\(\Vert
+X_{i}-X_{j}\Vert  \le  h R_{k}\)</span>.</p>
+<p><code>derived</code>: The density-reweighted kernel is a
+conductance/affinity in the sense relevant to SIMODS: it is the positive
+edge weight that controls graph smoothing. Larger <span
+class="math inline">\(\lambda\)</span> divides by more of the local
+degree/density estimate, reducing the influence of dense regions in the
+random-walk limit.</p>
+<p><code>contextual</code>: The paper’s <span
+class="math inline">\(\lambda\)</span> correction is a density
+normalization, not a variable-length or local-bandwidth kernel. It
+changes weights by powers of degree estimates while the distance scale
+remains the global <code>h</code>.</p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p><span class="math inline">\(explicit\)</span>: Graph types include a
+general directed weighted graph in Section 2.1 and an undirected
+weighted graph in Section 2.4. The random neighborhood graphs in Section
+3.1 are undirected weighted graphs because the kernel and degree
+correction are symmetric in <span class="math inline">\(X_{i},
+X_{j}\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span>: The paper studies
+three graph Laplacians:</p>
+<ul>
+<li>Random-walk <span class="math inline">\(\Delta^(rw) = I - D^{-1}
+W\)</span>.</li>
+<li>Unnormalized <span class="math inline">\(\Delta^(u) = D -
+W\)</span>.</li>
+<li>Symmetric normalized <span class="math inline">\(\Delta^(n) =
+D^{-1/2}(D-W)D^{-1/2}\)</span>.</li>
+</ul>
+<p><span class="math inline">\(explicit\)</span>: The continuum target
+family is the weighted Laplacian</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta_{s} &amp;= p^{-s} \operatorname{div}(p^s \nabla) \\
+&amp;= \Delta_{M} + (s/p) &lt;\nabla p, \nabla&gt;,
+\end{aligned}
+\]</span></p>
+<p>with <span class="math inline">\(s = 2(1-\lambda)\)</span>
+(Definition 9, PDF p. 10 / JMLR p. 1334; Main Result, PDF p. 12 / JMLR
+p. 1336).</p>
+<p><span class="math inline">\(explicit\)</span>: Random-walk Laplacian
+has the clean limit to the weighted Laplace-Beltrami operator.
+Unnormalized and normalized Laplacians carry extra density
+transformations (Main Result, Section 3.3, PDF p. 12 / JMLR
+p. 1336).</p>
+<h3 id="task">Task</h3>
+<p><span class="math inline">\(explicit\)</span>: The paper names
+semi-supervised learning, spectral clustering, and dimensionality
+reduction as motivating graph Laplacian applications (Abstract, PDF p. 1
+/ JMLR p. 1325; Introduction, PDF pp. 1-2 / JMLR pp. 1325-1326).</p>
+<p><span class="math inline">\(explicit\)</span>: Section 3.2 also
+discusses regression and computer graphics/point-cloud processing as
+settings where different density effects may or may not be desired (PDF
+pp. 11-13 / JMLR pp. 1335-1337).</p>
+<p><code>derived</code>: For conductance/kernel smoothing, the relevant
+task is graph-based regularization or diffusion smoothing on sampled
+data: the graph Laplacian determines which differences in a function
+over the vertices are penalized and how a signal diffuses over the
+graph.</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p><span class="math inline">\(explicit\)</span>: The Introduction says
+Laplacians are important because they generate diffusion processes, have
+eigenvectors with geometric properties, and induce adaptive
+regularization functionals (PDF pp. 1-2 / JMLR pp. 1325-1326).</p>
+<p><span class="math inline">\(explicit\)</span>: Section 3.2 says label
+propagation in semi-supervised learning wants diffusion along
+high-density regions (PDF p. 11 / JMLR p. 1335).</p>
+<p><span class="math inline">\(explicit\)</span>: Section 3.2 says the
+smoothness functional <span class="math inline">\(\int \Vert \nabla
+f\Vert ^2 p^s dV\)</span> prefers smoothness in high-density regions
+when <span class="math inline">\(s &gt; 0\)</span> and allows more
+variation in low-density regions (PDF p. 11 / JMLR p. 1335).</p>
+<p><span class="math inline">\(explicit\)</span>: Section 3.3 says
+density effects can be eliminated for the random-walk Laplacian by
+choosing <span class="math inline">\(s = 0\)</span>, equivalently <span
+class="math inline">\(\lambda = 1\)</span>, and notes this may be useful
+in point-cloud/mesh processing when sampling density is an artifact (PDF
+p. 13 / JMLR p. 1337).</p>
+<p><span class="math inline">\(explicit\)</span>: Section 3.3 says there
+is no universal best choice between random-walk and unnormalized
+Laplacians from a machine-learning viewpoint, but mathematically only
+the random-walk graph Laplacian has the correct pointwise limit to the
+weighted Laplace-Beltrami operator (PDF p. 13 / JMLR p. 1337).</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p><code>derived</code>: If the analyst wants a purely geometric
+smoother, the random-walk Laplacian with <span
+class="math inline">\(\lambda = 1\)</span> is the clean choice in this
+paper’s framework because <span class="math inline">\(s = 0\)</span>
+removes the <span class="math inline">\(\nabla p\)</span> drift term
+from <span class="math inline">\(\Delta_{s}\)</span>.</p>
+<p><code>derived</code>: If the analyst wants density-aware label
+propagation, smaller <span class="math inline">\(\lambda\)</span> values
+retain positive <code>s</code> and therefore weight the smoothness
+functional by powers of density. This supports the cluster assumption by
+making sharp changes cheaper in low-density regions.</p>
+<p><code>derived</code>: The unnormalized Laplacian can be useful for
+label propagation because its extra factor <span
+class="math inline">\(p^{1-2 \lambda}\)</span> makes diffusion speed
+depend on density; the paper explicitly describes faster diffusion in
+high-density regions for <span class="math inline">\(\lambda &lt;
+1/2\)</span> (Section 3.3, PDF p. 12 / JMLR p. 1336).</p>
+<p><code>contextual</code>: For graph signal smoothing, the paper
+implies that changing from unnormalized to normalized Laplacian changes
+not only numerical conditioning but also the continuum smoothing
+prior.</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p><span class="math inline">\(explicit\)</span>: The weighted Laplacian
+generates anisotropic diffusion through the drift term <span
+class="math inline">\((s/p) &lt;\nabla p, \nabla f&gt;\)</span> (Section
+3.2 and Section 3.3, PDF pp. 11-12 / JMLR pp. 1335-1336).</p>
+<p><span class="math inline">\(explicit\)</span>: The smoothness
+functional is</p>
+<p><span class="math display">\[
+\begin{aligned}
+S(f) &amp;= int_{M} \Vert \nabla f\Vert ^2 p^s dV.
+\end{aligned}
+\]</span></p>
+<p>For <span class="math inline">\(s &gt; 0\)</span>, the paper states
+this prefers smooth functions in high-density regions and penalizes
+unsmooth behavior less in low-density regions (Section 3.2, PDF p. 11 /
+JMLR p. 1335).</p>
+<p><span class="math inline">\(explicit\)</span>: The paper connects
+eigenfunctions to spectral clustering. Under a compact no-boundary
+thought experiment, the first nonzero eigenfunction is described through
+the Rayleigh-Ritz principle:</p>
+<p><span class="math display">\[
+\begin{aligned}
+lambda_{1} &amp;= inf \int \Vert \nabla u\Vert ^2 p^s dV,
+\end{aligned}
+\]</span></p>
+<p>subject to normalization and orthogonality to constants. For <span
+class="math inline">\(s &gt; 0\)</span>, the first nonzero eigenfunction
+is likely to change sign in a low-density region because gradient cost
+is lower there (Section 3.2, PDF pp. 11-12 / JMLR pp. 1335-1336).</p>
+<p><span class="math inline">\(explicit\)</span>: Figure 4 (PDF p. 17 /
+JMLR p. 1341) shows that changing <span
+class="math inline">\(\lambda\)</span> changes the random-walk
+Laplacian’s behavior on a sphere with non-uniform density. The paper
+explains that for <span class="math inline">\(s = 2\)</span> the
+diffusion tends toward a step-like function changing near the equator,
+while for <span class="math inline">\(s = -2\)</span> the behavior flips
+and smoothing is emphasized in the low-density region (Section 4.2, PDF
+pp. 16-17 / JMLR pp. 1340-1341).</p>
+<p><code>uncertain</code>: Section 3.2 appears to contain a sign typo in
+the prose describing diffusion direction: it says “If <span
+class="math inline">\(s &lt; 0\)</span>” for both directions.
+Separately, Section 4.2 and the Figure 4 caption list <span
+class="math inline">\(\lambda = 0,1,2\)</span> as resulting in <span
+class="math inline">\(s = -2,0,2\)</span>, which reverses the theorem
+formula <span class="math inline">\(s = 2(1-\lambda)\)</span>. The memo
+therefore treats the displayed operator formula, Main Result, and
+Theorems 25/30/31 as authoritative, while flagging the explanatory
+prose/caption as uncertain.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p><span class="math inline">\(explicit\)</span>: The paper uses
+data-dependent edge weights through powers of empirical degrees,
+following Lafon and Coifman-Lafon (Section 3.1, PDF p. 8 / JMLR
+p. 1332). The tuning parameter is <span
+class="math inline">\(\lambda\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span>: The neighborhood
+radius/bandwidth itself is the global scalar <code>h</code>; convergence
+requires <span class="math inline">\(h \to 0\)</span> while enough
+points remain in each local neighborhood. For random-walk and
+unnormalized Laplacians, <span class="math inline">\(n h^{m+2} / \log n
+\to infinity\)</span>; for normalized, <span class="math inline">\(n
+h^{m+4} / \log n \to infinity\)</span> (Main Result, PDF p. 12 / JMLR
+p. 1336).</p>
+<p><span class="math inline">\(explicit\)</span>: There is no kNN graph
+in this paper. No theorem assumes <code>k</code> nearest neighbors or
+local scales based on neighbor distances.</p>
+<p><code>derived</code>: The construction is adaptive to sampling
+density in the edge amplitude, not adaptive in distance scale. This
+should be kept separate from later planned length/kernel-conductance
+comparators where the metric length scale or conductance kernel may vary
+locally.</p>
+<p><code>contextual</code>: The paper is still highly relevant to
+adaptive-scale graph construction because it shows that density
+normalization changes the limiting operator. Any future local bandwidth
+or conductance comparator should specify whether it targets <span
+class="math inline">\(\Delta_{M}\)</span>, <span
+class="math inline">\(\Delta_{s}\)</span>, or a different diffusion
+operator.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p><span class="math inline">\(explicit\)</span>: It does not prove
+spectral convergence for shrinking <code>h</code>. The Introduction
+distinguishes this paper from von Luxburg et al. (2007), which studies
+fixed <code>h</code> and spectral convergence to integral operators (PDF
+p. 2 / JMLR p. 1326).</p>
+<p><span class="math inline">\(explicit\)</span>: It does not resolve
+boundary-condition transfer from continuum manifolds to random graphs.
+Section 5.4.1 calls this an open problem (PDF p. 27 / JMLR p. 1351).</p>
+<p><span class="math inline">\(explicit\)</span>: It does not solve the
+problem of unknown intrinsic dimension for the unnormalized Laplacian
+scaling. Section 3.1 leaves simultaneous dimension estimation and
+Laplacian estimation as an open problem (PDF p. 9 / JMLR p. 1333).</p>
+<p><span class="math inline">\(explicit\)</span>: It does not claim a
+universal best graph Laplacian for all machine-learning problems.
+Section 3.3 says the choice depends on the problem (PDF p. 13 / JMLR
+p. 1337).</p>
+<p><span class="math inline">\(explicit\)</span>: It does not provide a
+kNN convergence theory or a self-tuned local bandwidth theory.</p>
+<p><code>derived</code>: It does not justify replacing all density-aware
+smoothers with geometry-only Laplace-Beltrami smoothing. The paper’s own
+examples show density-aware smoothing can be desirable in
+semi-supervised learning.</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p><code>contextual</code>: The paper supports a careful separation
+between graph construction, graph normalization, and smoothing target. A
+current gflow overlap-density smoother should not be described as
+equivalent to a planned length/kernel-conductance smoother merely
+because both use graph Laplacians or graph weights.</p>
+<p><code>derived</code>: If current
+<code>fit.rdgraph.regression()</code> semantics are based on
+overlap-density conductance, the operator likely encodes density and
+graph-degree effects directly through the present edge weights. That
+should be reported as the current behavior, not retroactively
+interpreted as a variable-bandwidth or density-corrected
+Laplace-Beltrami estimator.</p>
+<p><code>derived</code>: Planned length/kernel-conductance comparators
+should declare their continuum intent:</p>
+<ul>
+<li>Pure geometry target: analogous to <span
+class="math inline">\(\Delta_{M}\)</span>, which in this paper is
+obtained for the random-walk Laplacian by choosing <span
+class="math inline">\(\lambda = 1\)</span> so <span
+class="math inline">\(s = 0\)</span>.</li>
+<li>Density-aware target: analogous to <span
+class="math inline">\(\Delta_{s}\)</span>, with <span
+class="math inline">\(s &gt; 0\)</span> producing stronger smoothness
+penalties in high-density regions.</li>
+<li>Density-speed diffusion: analogous to the unnormalized limit with an
+extra factor <span class="math inline">\(p^{1-2 \lambda}\)</span>.</li>
+</ul>
+<p><code>derived</code>: The paper gives a warning for any SIMODS
+eigenfunction or low-pass smoothing interpretation: changing the
+Laplacian normalization may move the limiting sign-change
+surfaces/eigenfunctions toward low-density regions or modify them by
+density factors. That is a feature if the cluster assumption is desired
+and a bug if the goal is density-invariant geometry.</p>
+<p><code>contextual</code>: The paper’s <span
+class="math inline">\(\lambda\)</span> reweighting is a density
+normalization of kernel amplitudes. It should be compared to planned
+length/kernel-conductance variants as one comparator family, not folded
+into the current overlap-density smoother.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–5 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures.</p>
+<p>The memo references the paper’s figures directly:</p>
+<ul>
+<li>Figure 1, PDF p. 11 / JMLR p. 1335: density profile on a
+two-dimensional submanifold.</li>
+<li>Figure 2, PDF p. 14 / JMLR p. 1338: agreement of the three
+Laplacians under uniform sampling.</li>
+<li>Figure 3, PDF p. 15 / JMLR p. 1339: disagreement under Gaussian
+sampling in <span class="math inline">\(\mathbb{R}^{2}\)</span>.</li>
+<li>Figure 4, PDF p. 17 / JMLR p. 1341: effect of <span
+class="math inline">\(\lambda\)</span>/<code>s</code> on the sphere for
+random-walk Laplacian.</li>
+<li>Figure 5, PDF p. 21 / JMLR p. 1345: geometric proof illustration for
+<code>kappa</code>.</li>
+</ul>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<p>No original explanatory figures were created. A possible future audit
+figure would map <span class="math inline">\(\lambda \to s =
+2(1-\lambda)\)</span> and show the three limiting operators side by
+side, but the current memo keeps the review text-only to avoid
+introducing another artifact before audit.</p>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The paper studies graph Laplacians for semi-supervised learning,
+spectral clustering, and dimensionality reduction.</td>
+<td>explicit</td>
+<td>Abstract and Section 1, PDF pp. 1-2 / JMLR pp. 1325-1326</td>
+<td>Also repeated in Section 3.2 application discussion.</td>
+</tr>
+<tr>
+<td>The graph is built from iid samples on a submanifold using a kernel
+bandwidth/radius <code>h</code>.</td>
+<td>explicit</td>
+<td>Section 3.1, PDF pp. 8-9 / JMLR pp. 1332-1333</td>
+<td>Vertices are sample points; edge weights are <span
+class="math inline">\(k_tilde_{\lambda,h}\)</span>.</td>
+</tr>
+<tr>
+<td>The studied graph is a radius/bandwidth graph, not a kNN graph.</td>
+<td>explicit</td>
+<td>Section 3.1, PDF p. 8 / JMLR p. 1332</td>
+<td>Edges exist when <span class="math inline">\(\Vert
+X_{i}-X_{j}\Vert  \le  h R_{k}\)</span> under compact support. No
+nearest-neighbor construction is used.</td>
+</tr>
+<tr>
+<td>The density-reweighted edge weight divides the base kernel by
+empirical degrees to power <span
+class="math inline">\(\lambda\)</span>.</td>
+<td>explicit</td>
+<td>Section 3.1, PDF p. 8 / JMLR p. 1332</td>
+<td>Formula for <span
+class="math inline">\(k_tilde_{\lambda,h}\)</span>.</td>
+</tr>
+<tr>
+<td>The three Laplacians are random-walk, unnormalized, and symmetric
+normalized.</td>
+<td>explicit</td>
+<td>Section 2.4, PDF pp. 6-7 / JMLR pp. 1330-1331</td>
+<td>Includes matrix formulas <span
+class="math inline">\(I-D^{-1}W\)</span>, <span
+class="math inline">\(D-W\)</span>, and <span
+class="math inline">\(I-D^{-1/2}WD^{-1/2}\)</span>.</td>
+</tr>
+<tr>
+<td>The continuum target is the weighted Laplacian <span
+class="math inline">\(\Delta_{s} = p^{-s} \operatorname{div}(p^s
+\nabla)\)</span>.</td>
+<td>explicit</td>
+<td>Definition 9, PDF p. 10 / JMLR p. 1334</td>
+<td>Also written as <span class="math inline">\(\Delta_{M} +
+(s/p)&lt;\nabla p,\nabla&gt;\)</span>.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(s = 2(1-\lambda)\)</span>.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 30, PDF p. 32 / JMLR
+p. 1356</td>
+<td>Controls density effect.</td>
+</tr>
+<tr>
+<td>Random-walk graph Laplacian converges to the weighted
+Laplace-Beltrami operator up to constants.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 30, PDF pp. 32-33 /
+JMLR pp. 1356-1357</td>
+<td>Limit includes minus sign from sign convention.</td>
+</tr>
+<tr>
+<td>Unnormalized Laplacian has an extra factor <span
+class="math inline">\(p^{1-2 \lambda}\)</span> in the limit.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 30, PDF p. 32 / JMLR
+p. 1356</td>
+<td>This can change diffusion speed by density.</td>
+</tr>
+<tr>
+<td>Symmetric normalized Laplacian has a density-rescaled function in
+the limit.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 31, PDF p. 33 / JMLR
+p. 1357</td>
+<td>Limit is <span class="math inline">\(p^{1/2-\lambda} \Delta_{s}(f /
+p^{1/2-\lambda})\)</span> up to constants and sign.</td>
+</tr>
+<tr>
+<td>Under uniform density, all three Laplacians agree up to
+constants.</td>
+<td>explicit</td>
+<td>Abstract, PDF p. 1 / JMLR p. 1325; Section 3.3, PDF p. 12 / JMLR
+p. 1336; Figure 2, PDF p. 14 / JMLR p. 1338</td>
+<td>Only true when <code>p</code> is constant.</td>
+</tr>
+<tr>
+<td>Under non-uniform density, all three limits differ.</td>
+<td>explicit</td>
+<td>Section 3.3, PDF pp. 12-13 / JMLR pp. 1336-1337; Figure 3, PDF p. 15
+/ JMLR p. 1339</td>
+<td>The paper calls non-uniform measures generic in ML.</td>
+</tr>
+<tr>
+<td>Density effect can be removed for random-walk by <span
+class="math inline">\(\lambda = 1\)</span>.</td>
+<td>explicit</td>
+<td>Section 3.3, PDF p. 13 / JMLR p. 1337</td>
+<td>Since <span class="math inline">\(s=0\)</span>, the target is
+ordinary Laplace-Beltrami.</td>
+</tr>
+<tr>
+<td>For random-walk and unnormalized Laplacians, almost sure convergence
+requires <span class="math inline">\(h \to 0\)</span> and <span
+class="math inline">\(n h^{m+2}/\log n \to infinity\)</span>.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 30, PDF p. 32 / JMLR
+p. 1356</td>
+<td>Optimal rate <span class="math inline">\(h = O((\log
+n/n)^{1/(m+4)})\)</span>.</td>
+</tr>
+<tr>
+<td>For normalized Laplacian, the convergence condition is stronger:
+<span class="math inline">\(n h^{m+4}/\log n \to infinity\)</span>.</td>
+<td>explicit</td>
+<td>Main Result, PDF p. 12 / JMLR p. 1336; Theorem 31, PDF p. 33 / JMLR
+p. 1357</td>
+<td>Due to applying the Laplacian to a degree-dependent function.</td>
+</tr>
+<tr>
+<td>Boundary behavior is problematic for local averaging estimates.</td>
+<td>explicit</td>
+<td>Section 4.1, PDF p. 14 / JMLR p. 1338; Section 5.4.1, PDF p. 27 /
+JMLR p. 1351</td>
+<td>Pointwise results avoid boundary points.</td>
+</tr>
+<tr>
+<td>The graph smoothness functional is <span class="math inline">\(\int
+\Vert \nabla f\Vert ^2 p^s dV\)</span>.</td>
+<td>explicit</td>
+<td>Section 3.2, PDF p. 11 / JMLR p. 1335</td>
+<td>Derived from equation (4).</td>
+</tr>
+<tr>
+<td>For <span class="math inline">\(s &gt; 0\)</span>, smoothness is
+enforced more in high-density regions and less in low-density
+regions.</td>
+<td>explicit</td>
+<td>Section 3.2, PDF p. 11 / JMLR p. 1335</td>
+<td>Important for cluster assumption and semi-supervised learning.</td>
+</tr>
+<tr>
+<td>Eigenfunctions for <span class="math inline">\(s &gt; 0\)</span>
+tend to change sign in low-density regions.</td>
+<td>explicit</td>
+<td>Section 3.2, PDF pp. 11-12 / JMLR pp. 1335-1336</td>
+<td>Rayleigh-Ritz argument.</td>
+</tr>
+<tr>
+<td>Section 4.2/Figure 4 contains an apparent <span
+class="math inline">\(\lambda\)</span>-to-<code>s</code> ordering
+inconsistency.</td>
+<td>uncertain</td>
+<td>Section 4.2 and Figure 4 caption, PDF pp. 16-17 / JMLR
+pp. 1340-1341</td>
+<td>The theorem formula maps <span
+class="math inline">\(\lambda=0,1,2\)</span> to <span
+class="math inline">\(s=2,0,-2\)</span>; the caption/prose states <span
+class="math inline">\(s=-2,0,2\)</span>.</td>
+</tr>
+<tr>
+<td>The paper’s density correction is not the same as variable local
+bandwidth.</td>
+<td>derived</td>
+<td>Section 3.1, PDF p. 8 / JMLR p. 1332</td>
+<td>Distance denominator uses global <code>h</code>; degree correction
+changes amplitudes.</td>
+</tr>
+<tr>
+<td>Current gflow overlap-density smoothing should be kept distinct from
+planned length/kernel-conductance comparators.</td>
+<td>contextual</td>
+<td>Inference from P08 operators and SIMODS review scope</td>
+<td>P08 supports explicit separation of graph construction,
+normalization, and continuum target.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ul>
+<li>Should the final synthesis quote both PDF page numbers and JMLR page
+numbers, or standardize on one? This memo includes both to make audit
+easier.</li>
+<li>Should the apparent sign/order issues in Section 3.2 and Section
+4.2/Figure 4 be flagged in the shared audit notes, or is it enough to
+rely on the displayed formula and theorems?</li>
+<li>For SIMODS, which continuum target should planned comparators claim:
+density-aware <span class="math inline">\(\Delta_{s}\)</span>,
+density-invariant <span class="math inline">\(\Delta_{M}\)</span>, or a
+finite-sample graph-smoothing objective without continuum claims?</li>
+<li>Does current <code>fit.rdgraph.regression()</code> use a
+random-walk, unnormalized, normalized, or custom Laplacian form? The
+implications differ materially under P08.</li>
+<li>Should an audit figure be added later that compares the three
+limiting operators across <span class="math inline">\(\lambda = 0, 1/2,
+1, 2\)</span> for quick cross-paper synthesis?</li>
+</ul>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P08 resolved the gflow mapping question: current
+<code>fit.rdgraph.regression()</code> is a custom mass-symmetrized
+spectral smoother using overlap-density/Riemannian-complex conductance.
+It is not directly one of P08’s random-walk, unnormalized, or
+symmetric-normalized graph Laplacians.</p></li>
+<li><p>Keep the <span class="math inline">\(\lambda/s\)</span> issue
+flagged. The theorem formula <span
+class="math inline">\(s=2(1-\lambda)\)</span> should be treated as
+authoritative; Section 4.2/Figure 4 appear to reverse the
+ordering.</p></li>
+<li><p>Add kernel-assumption nuance for synthesis: <span
+class="math inline">\(k(0)=0\)</span> removes self-loops, and compact
+support is added for the paper’s main non-compact consistency
+theorems.</p></li>
+<li><p>2026-05-15: Drafted detailed P08 review memo from the canonical
+44-page JMLR PDF. No repository figures were created or copied.</p></li>
+</ul>
+</body>
+</html>

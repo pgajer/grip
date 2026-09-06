@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Writer-P05 polished review" />
+  <meta name="dcterms.date" content="2026-05-15" />
+  <title>Review: Gaussian Fields and Harmonic Functions for Semi-Supervised Learning</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" href="/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Review: Gaussian Fields and Harmonic Functions for
+Semi-Supervised Learning</h1>
+<p class="author">Writer-P05 polished review</p>
+<p class="date">2026-05-15</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>Zhu, Ghahramani, and Lafferty’s ICML 2003 paper <em>Semi-Supervised
+Learning Using Gaussian Fields and Harmonic Functions</em> is a compact
+canonical statement of graph-based semi-supervised learning as a
+Dirichlet problem on a weighted graph <span class="citation"
+data-cites="zhu2003semisupervised">(Zhu, Ghahramani, and Lafferty
+2003)</span>. Labeled examples are clamped boundary nodes, unlabeled
+examples are interior nodes, and predictions are obtained by minimizing
+a quadratic graph energy. The resulting function is harmonic: at every
+unlabeled vertex it equals a weighted average of neighboring values.
+This review treats the paper as a source for finite-graph harmonic
+extension, conductance-weighted interpolation, class-mass normalization,
+and entropy-based weight learning. For SIMODS and <code>gflow</code>,
+the paper is most useful not as a direct model of current
+overlap-density smoothing, but as a clean reference for how the choice
+of graph weights or kernel conductances controls a Laplacian solve.</p>
+</div>
+</header>
+<h1 id="why-this-paper-matters">Why This Paper Matters</h1>
+<p>The paper is important because it turns the informal semi-supervised
+premise that “nearby points should have similar labels” into a precise
+finite-graph calculus. Given labeled points, unlabeled points, and a
+symmetric nonnegative weight matrix <span
+class="math inline">\(W=(w_{ij})\)</span>, the learning problem is not
+first to estimate a parametric decision boundary. It is to find the
+smoothest function on the graph that agrees with the known labels. The
+labeled nodes are fixed boundary values; the unlabeled nodes receive the
+interior values of a harmonic extension.</p>
+<p>This is a particularly useful formulation for a conductance and
+kernel Laplacian review because the method exposes the role of the edge
+weights with unusual clarity. In the graph-energy view, large <span
+class="math inline">\(w_{ij}\)</span> makes disagreement between <span
+class="math inline">\(f_i\)</span> and <span
+class="math inline">\(f_j\)</span> expensive. In the Markov view, the
+row-normalized matrix <span class="math inline">\(P=D^{-1}W\)</span>
+controls random-walk hitting probabilities. In the electrical-network
+view used explicitly by the authors, the same weight is a conductance,
+so the solution is a voltage field with labeled classes acting as
+terminals. These interpretations are mathematically equivalent for the
+Dirichlet problem, but they emphasize different reuse patterns for later
+systems.</p>
+<p>The paper is also valuable because it is sober about the graph. Its
+authors do not present the Gaussian affinity as universally correct;
+they repeatedly note that the right graph may be unclear, and they
+devote a section to learning feature-wise length scales. That makes the
+paper an early, concrete reminder that graph construction is part of the
+model, not disposable preprocessing.</p>
+<h1 id="problem-setting-and-reader-orientation">Problem Setting and
+Reader Orientation</h1>
+<p>The setup is finite and direct. There are <span
+class="math inline">\(l\)</span> labeled examples and <span
+class="math inline">\(u\)</span> unlabeled examples, with <span
+class="math inline">\(n=l+u\)</span> graph vertices. The paper begins
+with binary labels <span class="math inline">\(y_i\in\{0,1\}\)</span>,
+orders labeled vertices first, and assumes a connected weighted graph. A
+typical affinity for Euclidean data is <span
+class="math display">\[w_{ij}
+  =
+  \exp\left\{
+    -\sum_{d=1}^{m} \frac{(x_{id}-x_{jd})^2}{\sigma_d^2}
+  \right\}.
+  \label{eq:p05-gaussian-weight}\]</span> The parameters <span
+class="math inline">\(\sigma_d\)</span> are global feature-wise length
+scales: small <span class="math inline">\(\sigma_d\)</span> makes the
+graph weight sensitive to coordinate <span
+class="math inline">\(d\)</span>, while large <span
+class="math inline">\(\sigma_d\)</span> suppresses that coordinate. For
+text, the paper instead uses a sparse 10-nearest-neighbor graph under
+cosine similarity and an exponential cosine-distance weight. Thus the
+common abstraction is not a single kernel formula, but a weighted graph
+whose entries encode the intended notion of similarity.</p>
+<p>The main unknown is a real-valued function <span
+class="math inline">\(f\)</span> on vertices. For binary classification,
+a labeled zero node is clamped to <span
+class="math inline">\(f_i=0\)</span>, and a labeled one node is clamped
+to <span class="math inline">\(f_i=1\)</span>. Unlabeled values are
+allowed to lie between zero and one. The smoothness objective is the
+quadratic graph energy <span class="math display">\[E(f)
+  =
+  \frac{1}{2}\sum_{i,j} w_{ij}(f_i-f_j)^2.
+  \label{eq:p05-energy}\]</span> This is the key object for a
+non-specialist reader. It says that changing the function across a
+strong edge is costly, while changing it across a weak edge is
+comparatively cheap. If <span class="math inline">\(W\)</span> is read
+as an electrical conductance matrix, the same expression is energy
+dissipation up to the usual convention for counting undirected
+edges.</p>
+<p>The paper derives this objective from a Gaussian random field whose
+density is proportional to <span class="math inline">\(\exp[-\beta
+E(f)]\)</span>, constrained to match the labels. Because the energy is
+quadratic, the most probable configuration is unique under the Dirichlet
+boundary condition, and it is also the mean of the field. The authors
+focus mainly on this mean/mode rather than on posterior uncertainty, but
+the probabilistic framing explains why a continuous relaxation of labels
+yields a closed-form linear-algebraic solution where discrete
+multi-label random fields often require hard combinatorial
+optimization.</p>
+<h1 id="the-harmonic-construction">The Harmonic Construction</h1>
+<p>Let <span class="math inline">\(\Delta=D-W\)</span> be the positive
+combinatorial graph Laplacian, where <span
+class="math inline">\(D_{ii}=d_i=\sum_j w_{ij}\)</span>. Minimizing <a
+href="#eq:p05-energy" data-reference-type="eqref"
+data-reference="eq:p05-energy">[eq:p05-energy]</a> subject to fixed
+labeled values gives the harmonic equation on unlabeled nodes: <span
+class="math display">\[\Delta f = 0 \quad \text{on } U,
+  \qquad
+  f_L=y_L.\]</span> Equivalently, each unlabeled value is the weighted
+average of its neighbors: <span
+class="math display">\[f_j=\frac{1}{d_j}\sum_i w_{ij}f_i,
+  \qquad j\in U.
+  \label{eq:p05-harmonic-average}\]</span> This local formula is the
+simplest way to understand harmonic extension. The unknown value at a
+node is pulled toward the boundary labels through every path in the
+graph, with each pull mediated by the conductances or affinities along
+the way.</p>
+<p>Writing labeled vertices before unlabeled vertices and partitioning
+<span class="math display">\[W=
+\begin{pmatrix}
+W_{LL} &amp; W_{LU}\\
+W_{UL} &amp; W_{UU}
+\end{pmatrix},\]</span> the paper’s closed-form solution is <span
+class="math display">\[f_U = (D_{UU}-W_{UU})^{-1}W_{UL}f_L.
+  \label{eq:p05-dirichlet-solve}\]</span> With <span
+class="math inline">\(P=D^{-1}W\)</span>, the same solution can be
+written as <span
+class="math display">\[f_U=(I-P_{UU})^{-1}P_{UL}f_L.\]</span> The first
+expression foregrounds the unnormalized Dirichlet Laplacian solve; the
+second foregrounds an absorbing Markov chain. Both are in the paper.
+Neither is the present overlap-density smoother in <code>gflow</code>;
+for SIMODS they should be read as finite-graph analogues and
+comparators, not as a description of current implementation
+semantics.</p>
+<figure>
+<img src="../../paper_figures/P05_F02_page03.png" style="width:82.0%" />
+<figcaption>Source Figure 2 crop shows the method’s most compact visual
+argument: with only a few large labeled points, harmonic energy
+minimization follows the graph geometry of bands and spirals rather than
+a Euclidean nearest-neighbor shortcut. Reproduced from Zhu, Ghahramani,
+and Lafferty (2003), internal review only. The figure is useful here
+because it makes the boundary-value character of the method visible:
+labels propagate through the weighted graph, not through an explicit
+separating surface.</figcaption>
+</figure>
+<h1
+id="interpretations-walks-voltages-heat-and-spectra">Interpretations:
+Walks, Voltages, Heat, and Spectra</h1>
+<p>One strength of the paper is that it does not leave the linear system
+as an opaque algebraic recipe. It offers several equivalent
+readings.</p>
+<p>In the random-walk view, an unlabeled node starts a walk with
+one-step transition probabilities <span
+class="math inline">\(P_{ij}=w_{ij}/d_i\)</span>. Labeled nodes are
+absorbing boundaries. Then <span class="math inline">\(f_i\)</span> is
+the probability that a walk starting at <span
+class="math inline">\(i\)</span> first hits a positive labeled node
+before a negative labeled node. The harmonic equation <a
+href="#eq:p05-harmonic-average" data-reference-type="eqref"
+data-reference="eq:p05-harmonic-average">[eq:p05-harmonic-average]</a>
+is exactly the first-step recursion for that hitting probability.</p>
+<p>In the electrical-network view, graph edges are resistors with
+conductance <span class="math inline">\(W\)</span>. Nodes labeled one
+are connected to a positive voltage source; nodes labeled zero are
+connected to ground. The unlabeled values <span
+class="math inline">\(f_U\)</span> are the resulting voltages, and the
+harmonic solution minimizes energy dissipation. This is the paper’s
+cleanest support for conductance language: outside this paragraph it is
+safer to say “weight” or “affinity, interpretable as conductance,”
+because the graph is also used as a similarity and transition
+object.</p>
+<p>In the heat-kernel and graph-kernel view, the paper uses the positive
+combinatorial Laplacian with the heat kernel <span
+class="math display">\[K_t=e^{-t\Delta}.\]</span> For the unlabeled
+subgraph with Dirichlet boundary conditions, it uses <span
+class="math display">\[K&#39;_t=e^{-t\Delta_{UU}},
+  \qquad
+  G=\int_0^\infty K&#39;_t\,dt
+    =\int_0^\infty e^{-t\Delta_{UU}}\,dt
+    =(D_{UU}-W_{UU})^{-1}.
+  \label{eq:p05-green}\]</span> This Green’s function is then the kernel
+behind the harmonic classifier: <span class="math display">\[f_U = G
+W_{UL}f_L.\]</span> The audit correction is important here: the PDF’s
+heat-kernel sign is negative for the positive Laplacian. Using <span
+class="math inline">\(e^{t\Delta}\)</span> would reverse the convention
+and would not yield the inverse formula above.</p>
+<p>The authors also compare the method to normalized cuts through the
+Rayleigh quotient <span class="math display">\[R(f)=\frac{f^\top \Delta
+f}{f^\top D f}.\]</span> The paper prints the numerator as a full double
+sum <span class="math inline">\(\sum_{ij}w_{ij}(f_i-f_j)^2\)</span>.
+Under the standard symmetric-<span class="math inline">\(W\)</span>
+convention, <span class="math display">\[f^\top \Delta f
+  =
+  \frac{1}{2}\sum_{i,j}w_{ij}(f_i-f_j)^2.\]</span> The missing factor of
+two is immaterial for the Rayleigh quotient and the generalized
+eigenproblem, but it matters if formulas are reused verbatim in a
+conductance review where edge-counting conventions must stay consistent
+with the energy in <a href="#eq:p05-energy" data-reference-type="eqref"
+data-reference="eq:p05-energy">[eq:p05-energy]</a>.</p>
+<h1 id="class-priors-and-class-mass-normalization">Class Priors and
+Class-Mass Normalization</h1>
+<p>The bare harmonic solution produces soft values, but the obvious
+decision rule is to threshold at <span
+class="math inline">\(1/2\)</span>. The paper shows why that can be a
+poor final step. If the estimated graph geometry is biased, the harmonic
+values may all be shifted toward one class even when their relative
+ordering still carries useful information. The authors’ digit
+experiments are the striking case: for “1” vs. “2”, many unlabeled
+values lie close to one, so thresholding labels too many points as digit
+one.</p>
+<p>Class-mass normalization (CMN) is their simple correction. If the
+desired prior class proportions are <span
+class="math inline">\(q\)</span> for class one and <span
+class="math inline">\(1-q\)</span> for class zero, CMN compares the
+prior-weighted and mass-normalized scores <span
+class="math display">\[\frac{q f_i}{\sum_{j\in U}f_j}
+  \quad \text{and} \quad
+  \frac{(1-q)(1-f_i)}{\sum_{j\in U}(1-f_j)}.\]</span> The node is
+assigned to class one when the first score is larger. This does not
+change the harmonic extension; it changes the decision rule after the
+graph has propagated label information. The distinction is useful for
+SIMODS because it separates an operator question from a calibration or
+class-balance question.</p>
+<figure>
+<img src="../../paper_figures/P05_F03_F04_page06.png"
+style="width:82.0%" />
+<figcaption>Crop containing source Figures 3 and 4 summarizes the
+paper’s empirical case for CMN and graph-based propagation. The top row
+shows digit tasks, including a failure of plain thresholding and a gain
+from combining a voted perceptron with graph harmonic minimization. The
+lower row shows 20-newsgroups document tasks on sparse
+10-nearest-neighbor cosine graphs. Reproduced from Zhu, Ghahramani, and
+Lafferty (2003), internal review only. This combined crop is included
+because it links two review themes: class-prior correction is crucial
+for some graph geometries, while the same finite-graph machinery
+transfers beyond pixel-space Gaussian weights.</figcaption>
+</figure>
+<h1 id="external-classifiers-and-softened-evidence">External Classifiers
+and Softened Evidence</h1>
+<p>The paper’s graph-only solution assumes the manifold structure
+inferred from features is sufficient. Section 5 acknowledges that this
+is often too austere. An external classifier can be incorporated by
+attaching a labeled “dongle” node to every unlabeled node. If the
+external classifier predicts <span class="math inline">\(h_U\)</span>
+and the probability of jumping from an unlabeled node to its dongle is
+<span class="math inline">\(\eta\)</span>, the paper gives <span
+class="math display">\[f_U
+  =
+  \left(I-(1-\eta)P_{UU}\right)^{-1}
+  \left((1-\eta)P_{UL}f_L+\eta h_U\right).\]</span> This formula is
+worth preserving because it shows how vertex-level evidence can be mixed
+with graph propagation without abandoning the harmonic framework. The
+authors also note that if labeled data are noisy, one could attach
+dongles to labeled nodes as well and move labels onto those auxiliary
+nodes. That remark marks a limitation of the main method: its default
+boundary values are hard, not noisy observations.</p>
+<h1 id="entropy-and-weight-learning">Entropy and Weight Learning</h1>
+<p>The graph weights are the method’s main modeling choice. Section 6
+proposes to learn the Gaussian length scales in <a
+href="#eq:p05-gaussian-weight" data-reference-type="eqref"
+data-reference="eq:p05-gaussian-weight">[eq:p05-gaussian-weight]</a> by
+minimizing average entropy over unlabeled predictions: <span
+class="math display">\[H(f)=\frac{1}{u}\sum_{i\in U}
+  \left[-f_i\log f_i-(1-f_i)\log(1-f_i)\right].\]</span> The rationale
+is heuristic but coherent: a good graph, constrained by the known
+labels, should yield confident interior values close to zero or one. The
+authors differentiate the harmonic solution with respect to the length
+scales and optimize by gradient descent.</p>
+<p>The paper also exposes the danger of this objective. Without
+smoothing, entropy has a degenerate minimum as <span
+class="math inline">\(\sigma\to 0\)</span>. The graph becomes too local,
+and predictions collapse toward a hard nearest-neighbor-like propagation
+procedure. To avoid this nuisance minimum, the authors replace the
+Markov transition matrix by a PageRank-style smoothed matrix <span
+class="math display">\[\widetilde{P}=\epsilon U+(1-\epsilon)P,\]</span>
+where <span class="math inline">\(U\)</span> is the uniform transition
+matrix. The smoothing is not a decorative technicality; it is what makes
+entropy minimization a usable weight-learning criterion in their toy
+example.</p>
+<figure>
+<img src="../../paper_figures/P05_F05_page07.png" style="width:82.0%" />
+<figcaption>Paper Figure 5 crop isolates the weight-learning issue. With
+no smoothing, entropy falls toward the unhelpful <span
+class="math inline">\(\sigma\to 0\)</span> limit and the tighter grid
+invades the sparser one. With <span
+class="math inline">\(\epsilon=0.01\)</span>, the useful minimum occurs
+near <span class="math inline">\(\sigma=0.67\)</span>, and the two-grid
+structure is recovered. Reproduced from Zhu, Ghahramani, and Lafferty
+(2003), internal review only. This is the paper’s clearest warning for
+kernel-conductance selection: making a kernel very local can optimize a
+formal confidence criterion while degrading the intended interpolation
+geometry.</figcaption>
+</figure>
+<p>On the digit task, the learned feature-wise <span
+class="math inline">\(\sigma_i\)</span> values act as feature selection.
+Small <span class="math inline">\(\sigma_i\)</span> makes a pixel
+dimension influential; large <span
+class="math inline">\(\sigma_i\)</span> suppresses it. The paper reports
+that entropy falls from 0.6931 to 0.6542 bits after learning, with CMN
+accuracy increasing from <span
+class="math inline">\(97.25\pm0.73\%\)</span> to <span
+class="math inline">\(98.56\pm0.43\%\)</span>, and threshold accuracy
+increasing from <span class="math inline">\(94.70\pm1.19\%\)</span> to
+<span class="math inline">\(98.02\pm0.39\%\)</span>.</p>
+<figure>
+<img src="../../paper_figures/P05_F06_page08.png" style="width:82.0%" />
+<figcaption>Crop containing Paper Table 1 and Paper Figure 6 shows the
+learned pixel-level length scales for the “1” vs. “2” digit task. The
+learned parameters suppress some dimensions and emphasize others,
+compensating for differences in within-class tightness. Reproduced from
+Zhu, Ghahramani, and Lafferty (2003), internal review only. For this
+review, the useful point is not the specific digit pattern but the
+modeling principle: length scales alter the graph itself, and therefore
+alter the harmonic solution.</figcaption>
+</figure>
+<h1 id="limitations-and-transfer-risks">Limitations and Transfer
+Risks</h1>
+<p>Several limits are worth keeping explicit. First, the main derivation
+is a finite-graph Dirichlet interpolation method, not a continuum
+convergence theory for graph Laplacians on manifolds. The paper uses
+manifold language and spectral connections, but it does not prove that
+<span class="math inline">\(\Delta\)</span>, <span
+class="math inline">\(P\)</span>, or <span
+class="math inline">\(G\)</span> converge to a particular differential
+operator.</p>
+<p>Second, the displayed formulas are mostly binary. The authors state
+that CMN and the matrix solution extend naturally to multi-label
+classification, and they contrast efficient Gaussian-field inference
+with NP-hard discrete multi-label random fields. Still, a synthesis
+should not import detailed multi-class algebra that is not in the
+paper.</p>
+<p>Third, the graph is both the strength and the vulnerability of the
+method. Poor weights can produce badly shifted soft predictions, and the
+entropy-learning criterion itself can become degenerate without
+smoothing. The paper’s remedy is practical and illuminating, but it
+remains a heuristic rather than a fully principled model-selection
+theory.</p>
+<p>Fourth, the empirical benchmarks are early-2000s scale: synthetic
+structures, downsampled handwritten digits, and 20-newsgroups text
+tasks. They demonstrate the mechanics and promise of harmonic graph
+propagation, especially under scarce labels, but they do not settle
+modern questions about calibration, robustness, scalability, or graph
+construction in high-noise settings.</p>
+<h1 id="implications-for-simods-and-gflow">Implications for SIMODS and
+<code>gflow</code></h1>
+<p>For SIMODS and <code>gflow</code>, the reusable core is the Dirichlet
+map <span class="math display">\[(W,f_L)\mapsto f_U.\]</span> Once <span
+class="math inline">\(W\)</span> is chosen, the solution follows from a
+Laplacian linear system or, equivalently, from absorbing random walks.
+Changing the conductance or kernel choice changes the interpolation even
+when graph topology and boundary values are held fixed. That is
+precisely the conceptual pressure point for comparing overlap-density
+conductance, inverse-length conductance, and kernel-based conductance
+variants.</p>
+<p>The paper should not be cited as evidence for current
+<code>fit.rdgraph.regression()</code> overlap-density smoothing. Zhu et
+al. use Gaussian feature-space weights for digits and exponential
+cosine-distance weights on sparse text graphs. The transfer to SIMODS is
+therefore structural: weighted graph regression by harmonic extension,
+not formula identity. In particular, the paper supports language such as
+“weights interpreted as conductances in a Dirichlet energy” and “kernel
+choice controls label propagation,” while it does not support claims
+about overlap-density or Riemannian-complex conductance.</p>
+<p>The most useful design lesson is that graph construction,
+normalization, and post-solve calibration are separate decisions. The
+unnormalized Laplacian solve <span
+class="math inline">\((D_{UU}-W_{UU})^{-1}W_{UL}f_L\)</span> and the
+row-normalized Markov form <span
+class="math inline">\((I-P_{UU})^{-1}P_{UL}f_L\)</span> are equivalent
+views of the same paper method, but they foreground different
+diagnostics. The energy view asks where sharp function changes are
+expensive; the Markov view asks how mass flows to labeled boundaries;
+the CMN layer asks whether the resulting soft masses match known class
+proportions. SIMODS comparisons should keep those layers distinct.</p>
+<h1 id="what-to-reuse">What To Reuse</h1>
+<p>The strongest reusable elements are the following. Use the graph
+energy <a href="#eq:p05-energy" data-reference-type="eqref"
+data-reference="eq:p05-energy">[eq:p05-energy]</a> as a clean statement
+of conductance-weighted smoothness. Use the harmonic average <a
+href="#eq:p05-harmonic-average" data-reference-type="eqref"
+data-reference="eq:p05-harmonic-average">[eq:p05-harmonic-average]</a>
+as the local interpretation of interpolation. Use the Dirichlet solve <a
+href="#eq:p05-dirichlet-solve" data-reference-type="eqref"
+data-reference="eq:p05-dirichlet-solve">[eq:p05-dirichlet-solve]</a> and
+Green’s function <a href="#eq:p05-green" data-reference-type="eqref"
+data-reference="eq:p05-green">[eq:p05-green]</a> as the finite-graph
+operator formulas. Use CMN as an example of post-hoc mass calibration
+that does not alter the graph solve. Use Figure 5’s smoothing story as a
+warning that confidence objectives can reward pathological overlocal
+kernels unless the transition process is regularized.</p>
+<p>For wording, the most faithful formulation is: Zhu et al. define
+graph weights/affinities that, in the electrical interpretation, are
+conductances. That phrasing preserves the paper’s terminology while
+still making the conductance implication available for SIMODS.</p>
+<h1 class="unnumbered" id="provenance">Provenance</h1>
+<p>Primary source: the local canonical P05 PDF in
+<code>sources/pdf/</code>, read in full, including the figure/table
+crops corresponding to Figures 1–6. Archival scaffolding: the local P05
+Markdown memo in <code>paper_memos/</code> and the P05 audit memo in
+<code>audits/</code>. Figure screenshots are internal-review captures
+listed in <code>paper_figure_screenshots.yml</code> and included from
+<code>../../paper_figures/</code>. The original three-node SVG was
+reviewed as a derived explanatory aid but not included here, since this
+LaTeX template does not configure SVG inclusion.</p>
+<div id="refs" class="references csl-bib-body hanging-indent"
+data-entry-spacing="0" role="list">
+<div id="ref-zhu2003semisupervised" class="csl-entry" role="listitem">
+Zhu, Xiaojin, Zoubin Ghahramani, and John Lafferty. 2003.
+<span>“Semi-Supervised Learning Using Gaussian Fields and Harmonic
+Functions.”</span> In <em>Proceedings of the 20th International
+Conference on Machine Learning</em>.
+</div>
+</div>
+</body>
+</html>

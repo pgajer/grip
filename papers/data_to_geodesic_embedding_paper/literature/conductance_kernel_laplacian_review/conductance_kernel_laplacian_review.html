@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="SIMODS Provenance/Librarian synthesis from H005 reviewer-auditor memos" />
+  <title>Conductance and Kernel Choices for Graph Laplacians: Theory, Tasks, and Implications for Graph Low-Pass Smoothing</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" href="review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Conductance and Kernel Choices for Graph
+Laplacians:<br />
+Theory, Tasks, and Implications for Graph Low-Pass Smoothing</h1>
+<p class="author">SIMODS Provenance/Librarian synthesis from H005
+reviewer-auditor memos</p>
+<p class="date">Built 2026-05-15 09:00:10 EDT</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>This report synthesizes ten full-paper reviews and audits on graph
+conductance and kernel choices for Laplacians, diffusion operators,
+semi-supervised graph regression, manifold learning, and graph signal
+smoothing. The immediate SIMODS purpose is methodological: to guide a
+future benchmark that compares the current <code>gflow</code>
+low-pass/GCV smoother with length- and kernel-conductance alternatives.
+The central conclusion is that researchers rarely choose conductances
+only as inverse metric lengths. Gaussian kernels, heat kernels,
+self-tuned/local-scale kernels, density-normalized kernels, Markov
+normalizations, and graph-spectral filters each encode a different
+answer to the question “what should count as a smooth signal on this
+graph?” These choices change the graph energy, the eigenbasis, the
+diffusion geometry, and therefore the behavior of low-pass smoothing and
+GCV. For SIMODS, the current <code>fit.rdgraph.regression()</code>
+operator must be kept conceptually separate from these planned
+comparators: the current precomputed-graph path uses supplied edge
+lengths for local neighborhood ordering/truncation and then constructs
+an overlap-density/Riemannian-complex conductance, not direct
+inverse-length, Gaussian, or self-tuned conductances.</p>
+</div>
+</header>
+<h1 id="review-corpus-and-evidence-conventions">Review Corpus and
+Evidence Conventions</h1>
+<p>This synthesis is based on the H005 review workspace
+<code>literature/conductance_kernel_laplacian_review</code>. The source
+manifest records the canonical reading copy for each Tier 1 paper,
+including original URL, DOI or arXiv identifier when available, local
+path, access date, page count, and SHA-256. Each Tier 1 paper was
+assigned to a dedicated reviewer and a dedicated auditor. Reviewers read
+the whole paper, including figures. Auditors checked formulas, operator
+definitions, figure references, evidence labels, and relevance to
+<code>gflow</code>/SIMODS. All ten audits returned minor revisions; no
+auditor requested a full reread. The review memos now include post-audit
+revision notes.</p>
+<p>The evidence labels used here are:</p>
+<dl>
+<dt>explicit</dt>
+<dd>
+<p>The claim is directly stated in the reviewed paper.</p>
+</dd>
+<dt>derived</dt>
+<dd>
+<p>The claim follows from formulas, algorithms, figures, or experiments
+in the paper, but is not stated in exactly this language.</p>
+</dd>
+<dt>contextual</dt>
+<dd>
+<p>The claim is our SIMODS/gflow interpretation or cross-paper
+synthesis.</p>
+</dd>
+<dt>uncertain</dt>
+<dd>
+<p>The claim is plausible but ambiguous, typographically suspect, or
+awaiting developer/paper confirmation.</p>
+</dd>
+</dl>
+<p>Unless otherwise marked, paper-specific statements in the
+paper-by-paper section are summaries of explicit or directly derived
+review findings. The SIMODS recommendations are contextual.</p>
+<table style="width:90%;">
+<caption>Tier 1 corpus and review role in the synthesis.</caption>
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">ID</th>
+<th style="text-align: left;">Paper</th>
+<th style="text-align: left;">Main conductance/kernel theme</th>
+<th style="text-align: left;">Main SIMODS role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P01</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="zelnikmanor2004selftuning">Zelnik-Manor and Perona
+(2004)</span></td>
+<td style="text-align: left;">self-tuned local-scale Gaussian
+affinity</td>
+<td style="text-align: left;">adaptive/local-scale comparator</td>
+</tr>
+<tr>
+<td style="text-align: left;">P02</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="belkin2001laplacian">Belkin and Niyogi (2001)</span></td>
+<td style="text-align: left;">heat-kernel and binary graph weights for
+Laplacian Eigenmaps</td>
+<td style="text-align: left;">heat-kernel manifold-learning
+baseline</td>
+</tr>
+<tr>
+<td style="text-align: left;">P03</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="coifman2006diffusion">Coifman and Lafon (2006)</span></td>
+<td style="text-align: left;">kernel, density normalization, Markov
+diffusion</td>
+<td style="text-align: left;">diffusion/Markov normalization
+baseline</td>
+</tr>
+<tr>
+<td style="text-align: left;">P04</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="berry2016variable">Berry and Harlim (2016)</span></td>
+<td style="text-align: left;">variable-bandwidth diffusion kernels</td>
+<td style="text-align: left;">local-bandwidth and density-correction
+theory</td>
+</tr>
+<tr>
+<td style="text-align: left;">P05</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="zhu2003semisupervised">Zhu, Ghahramani, and Lafferty
+(2003)</span></td>
+<td style="text-align: left;">graph weights for harmonic-function
+semi-supervised learning</td>
+<td style="text-align: left;">graph interpolation/regression
+analogue</td>
+</tr>
+<tr>
+<td style="text-align: left;">P06</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="belkin2006manifold">Belkin, Niyogi, and Sindhwani
+(2006)</span></td>
+<td style="text-align: left;">graph Laplacian regularization in
+learning</td>
+<td style="text-align: left;">regularization objective analogue</td>
+</tr>
+<tr>
+<td style="text-align: left;">P07</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="shuman2013emerging">Shuman et al. (2013)</span></td>
+<td style="text-align: left;">graph Fourier bases and spectral
+filters</td>
+<td style="text-align: left;">graph low-pass smoothing semantics</td>
+</tr>
+<tr>
+<td style="text-align: left;">P08</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="hein2007graph">Hein, Audibert, and Luxburg
+(2007)</span></td>
+<td style="text-align: left;">convergence of graph Laplacians on random
+neighborhood graphs</td>
+<td style="text-align: left;">normalization and density-limit
+warnings</td>
+</tr>
+<tr>
+<td style="text-align: left;">P09</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="belkin2008towards">Belkin and Niyogi (2008)</span></td>
+<td style="text-align: left;">theoretical foundation for Laplacian
+manifold methods</td>
+<td style="text-align: left;">heat-kernel/Laplace-Beltrami theory
+baseline</td>
+</tr>
+<tr>
+<td style="text-align: left;">P10</td>
+<td style="text-align: left;"><span class="citation"
+data-cites="cheng2022knn">Cheng and Wu (2022)</span></td>
+<td style="text-align: left;">kNN self-tuned kernel graph Laplacian
+convergence</td>
+<td style="text-align: left;">adaptive/kNN local-scale theory</td>
+</tr>
+</tbody>
+</table>
+<h1 id="primer-from-lengths-to-conductances-to-smoothers">Primer: From
+Lengths to Conductances to Smoothers</h1>
+<h2 id="weighted-graph-laplacians">Weighted Graph Laplacians</h2>
+<p>Let <span class="math inline">\(G=(V,E)\)</span> be an undirected
+graph with <span class="math inline">\(n=|V|\)</span> vertices. A graph
+signal is a vector <span
+class="math inline">\(f\in\mathbb{R}^n\)</span>, or a matrix <span
+class="math inline">\(F\in\mathbb{R}^{n\times p}\)</span> when <span
+class="math inline">\(p\)</span> features are smoothed on the same
+graph. A nonnegative edge weight <span
+class="math display">\[c_{ij}=c_{ji}\ge 0\]</span> can be called an
+affinity, similarity, weight, or conductance depending on the paper and
+task. With weighted adjacency <span
+class="math inline">\(W=(c_{ij})\)</span>, degree <span
+class="math inline">\(D_{ii}=\sum_j c_{ij}\)</span>, and unnormalized
+Laplacian <span class="math inline">\(L=D-W\)</span>, the standard
+Dirichlet energy is <span class="math display">\[\mathcal{E}_G(f)
+  =
+  f^\top L f
+  =
+  \frac12\sum_{i,j} c_{ij}(f_i-f_j)^2
+  =
+  \sum_{\{i,j\}\in E} c_{ij}(f_i-f_j)^2.\]</span> The factor convention
+matters. Several reviewed papers print unhalved double sums while also
+writing <span class="math inline">\(f^\top Lf\)</span>. This does not
+change minimizers, but it does matter for precise comparisons of
+objectives and constants.</p>
+<p>For a matrix signal <span class="math inline">\(F\)</span>, the
+analogous energy is <span
+class="math display">\[\operatorname{tr}(F^\top L F)
+  =
+  \frac12\sum_{i,j} c_{ij}\|F_i-F_j\|^2.\]</span> Large <span
+class="math inline">\(c_{ij}\)</span> makes disagreement across edge
+<span class="math inline">\((i,j)\)</span> expensive. Thus the
+conductance rule determines what functions are low energy before any
+smoothing parameter is chosen.</p>
+<h2 id="a-common-family-of-conductance-rules">A Common Family of
+Conductance Rules</h2>
+<p>The review treats many formulas as members of a common family <span
+class="math display">\[c_{ij}=\phi(\ell_{ij};\theta),\]</span> where
+<span class="math inline">\(\ell_{ij}\)</span> is an ambient distance,
+graph edge length, or local dissimilarity, and <span
+class="math inline">\(\theta\)</span> includes bandwidth, exponent,
+local bandwidth, density, or normalization parameters. Important
+examples are: <span class="math display">\[\begin{aligned}
+  c_{ij}^{\mathrm{len}} &amp;= (\ell_{ij}+\epsilon)^{-\alpha},\\
+  c_{ij}^{\mathrm{exp}} &amp;= \exp(-\ell_{ij}/\sigma),\\
+  c_{ij}^{\mathrm{rbf}} &amp;= \exp(-\ell_{ij}^2/\sigma^2),\\
+  c_{ij}^{\mathrm{self}} &amp;=
+\exp\!\left(-\frac{\ell_{ij}^2}{\sigma_i\sigma_j}\right),\\
+  c_{ij}^{\mathrm{vb}} &amp;=
+    h\!\left(\frac{\ell_{ij}^2}{\epsilon \rho_i\rho_j}\right).
+\end{aligned}\]</span> The inverse-length rule is natural when edge
+length is interpreted as physical resistance or cost. Heat/RBF kernels
+are natural when the graph is meant to approximate local heat diffusion
+on a point cloud or manifold. Self-tuned and variable-bandwidth kernels
+are natural when a single global scale fails under nonuniform sampling.
+Density-normalized kernels are natural when the target is geometry
+rather than sampling density.</p>
+<h2 id="low-pass-filtering">Low-Pass Filtering</h2>
+<p>If <span class="math inline">\(L=V\Lambda V^\top\)</span> is a
+symmetric graph Laplacian eigendecomposition, a spectral graph filter
+has the form <span class="math display">\[S_h =
+Vh(\Lambda)V^\top,\]</span> where <span
+class="math inline">\(h(\lambda)\)</span> attenuates high-frequency
+modes. Heat smoothing uses <span
+class="math inline">\(h_t(\lambda)=\exp(-t\lambda)\)</span>. Tikhonov
+smoothing uses <span
+class="math display">\[h_\eta(\lambda)=\frac{1}{1+\eta\lambda}\]</span>
+or an equivalent parameterization. More general graph signal processing
+filters may be polynomial, idealized low-pass, Butterworth-like, or
+learned, but they all inherit their meaning from the graph
+eigenbasis.</p>
+<p>If the operator is a row-stochastic diffusion matrix <span
+class="math inline">\(P\)</span> with eigenvalues <span
+class="math inline">\(\lambda_j\)</span>, diffusion powers use <span
+class="math inline">\(h_t(\lambda_j)=\lambda_j^t\)</span>. This is
+low-pass relative to the Markov operator: slowly varying modes have
+eigenvalues near 1 and survive many diffusion steps.</p>
+<h2 id="current-gflow-smoother-versus-planned-comparators">Current gflow
+Smoother Versus Planned Comparators</h2>
+<p>The H003/H004/H005 line of work needs one hard distinction. The
+current <code>fit.rdgraph.regression()</code> precomputed-graph path
+does not convert supplied edge lengths directly into conductances by
+<span class="math display">\[c_e=\frac{1}{\ell_e+\epsilon}.\]</span> As
+established in the companion source audit, supplied
+<code>weight.list</code> values are positive graph edge lengths used for
+local neighborhood ordering and truncation. The mass-symmetrized
+spectral smoother then uses an overlap-density/Riemannian-complex edge
+mass <span class="math inline">\(\rho_1(e)\)</span>, with conductance
+<span
+class="math display">\[c_e^\rho=\frac{1}{\max(\rho_1(e),10^{-10})}.\]</span>
+Therefore the papers reviewed here mainly support planned comparator
+families: inverse-length, heat/RBF, exponential, self-tuned,
+variable-bandwidth, density-normalized, and Markov diffusion smoothers.
+They do not retroactively describe the current <code>gflow</code>
+smoother.</p>
+<h1 id="concept-map">Concept Map</h1>
+<p>The concepts in this review form a pipeline, not a list of
+interchangeable phrases: <span
+class="math display">\[\begin{array}{ccccc}
+\text{edge length } \ell_{ij}
+&amp;\longrightarrow&amp;
+\text{conductance/affinity } c_{ij}
+&amp;\longrightarrow&amp;
+\text{operator } L \text{ or } P\\[3pt]
+&amp;&amp; \downarrow &amp;&amp; \downarrow\\[3pt]
+&amp;&amp; \text{graph energy/eigenbasis}
+&amp;&amp; \text{filter } h(\lambda) \text{ or diffusion time } t\\[3pt]
+&amp;&amp; \multicolumn{3}{c}{\downarrow}\\[3pt]
+&amp;&amp; \multicolumn{3}{c}{\text{graph low-pass smoothing and GCV}}
+\end{array}\]</span></p>
+<p>The main branches are:</p>
+<ul>
+<li><p><strong>Inverse length conductance</strong> treats short edges as
+strong couplings and long edges as weak couplings. It is close to
+physical resistance/conductance intuition and directly tests graph
+metric geometry.</p></li>
+<li><p><strong>Heat kernels</strong> convert squared local distances
+into local diffusion affinities. They are central in Laplacian Eigenmaps
+and Laplace-Beltrami approximation.</p></li>
+<li><p><strong>Self-tuned/local-scale kernels</strong> replace a global
+bandwidth with endpoint scales such as <span
+class="math inline">\(\sigma_i\sigma_j\)</span>, reducing global-scale
+fragility under nonuniform sampling.</p></li>
+<li><p><strong>Adaptive-radius/cKNN graph construction</strong> changes
+the support of the graph. This is related to, but not identical to,
+self-tuned conductance weighting. A paper may use nearest-neighbor
+distances for bandwidths without defining cKNN support.</p></li>
+<li><p><strong>Diffusion/Markov normalization</strong> changes
+affinities into a random-walk operator <span
+class="math inline">\(P\)</span>. The resulting eigenfunctions and
+smoothing behavior depend on degree and density normalization.</p></li>
+<li><p><strong>Graph low-pass smoothing</strong> applies a spectral
+response <span class="math inline">\(h(\lambda)\)</span> to the operator
+eigensystem. P07 is the clearest source for this filter
+semantics.</p></li>
+</ul>
+<h1 id="paper-by-paper-reviews">Paper-by-Paper Reviews</h1>
+<h2 id="p01-self-tuning-spectral-clustering">P01: Self-Tuning Spectral
+Clustering</h2>
+<p><span class="citation"
+data-cites="zelnikmanor2004selftuning">Zelnik-Manor and Perona
+(2004)</span> address a concrete failure mode of spectral clustering:
+one global Gaussian bandwidth can be too small for sparse regions and
+too large for dense regions. The paper modifies the Ng-Jordan-Weiss
+pipeline by replacing the global Gaussian affinity <span
+class="math display">\[A_{ij}=\exp\left(-\frac{d^2(s_i,s_j)}{\sigma^2}\right)\]</span>
+with the self-tuned affinity <span class="math display">\[\hat A_{ij}=
+  \exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right),
+  \qquad
+  \sigma_i=d(s_i,s_K),\]</span> where <span
+class="math inline">\(s_K\)</span> is the <span
+class="math inline">\(K\)</span>th neighbor of <span
+class="math inline">\(s_i\)</span>. The normalized affinity operator is
+<span class="math inline">\(L=D^{-1/2}\hat A D^{-1/2}\)</span>. In the
+paper’s terminology, <span class="math inline">\(\hat A\)</span> is an
+affinity; interpreting it as a conductance is our graph smoothing
+translation.</p>
+<p>The paper’s figures make the scale argument vivid. Figure 1 shows
+global bandwidth sensitivity. Figure 2 shows the central local-scale
+effect: local scaling weakens cross-cluster affinities that are
+misleading under a single global bandwidth. Figures 3–6 cover synthetic
+clustering, eigenvalue-gap limitations, alignment costs for estimating
+the number of clusters, and image segmentation.</p>
+<figure>
+<p><img src="paper_figures/P01_F01_page02.png" style="width:31.0%"
+alt="image" /> <img src="paper_figures/P01_F02_page03.png"
+style="width:31.0%" alt="image" /> <img
+src="paper_figures/P01_F03_F04_page04.png" style="width:31.0%"
+alt="image" /><br />
+<img src="paper_figures/P01_F05_page06.png" style="width:31.0%"
+alt="image" /> <img src="paper_figures/P01_F06_page07.png"
+style="width:31.0%" alt="image" /></p>
+<figcaption>Cropped figure panels containing the P01 figures discussed
+above. Reproduced from Zelnik-Manor and Perona (2004), Figures 1–6, PDF
+pp. 2–7, from the canonical reading copy, for internal review
+only.</figcaption>
+</figure>
+<p>For SIMODS, P01 is the prototype for a self-tuned Gaussian
+comparator. It does not define cKNN support or adaptive-radius graph
+construction. Its nearest-neighbor distances set bandwidths, not
+necessarily graph support. Thus a SIMODS cKNN connection is contextual
+synthesis. The reviewer/auditor also flagged an ambiguity: Eq. (3) as
+printed gives an ideal per-row cost of 1, whereas Figure 5 plots
+near-zero alignment costs. The final manuscript should not rely on the
+exact plotted cost scale.</p>
+<h2 id="p02-laplacian-eigenmaps">P02: Laplacian Eigenmaps</h2>
+<p><span class="citation" data-cites="belkin2001laplacian">Belkin and
+Niyogi (2001)</span> give one of the clearest early pipelines from
+point-cloud neighborhoods to graph Laplacian eigenvectors. Build a graph
+by an <span class="math inline">\(\epsilon\)</span>-neighborhood rule or
+symmetrized nearest-neighbor rule; assign either heat weights <span
+class="math display">\[W_{ij}=\exp\left(-\frac{\|x_i-x_j\|^2}{t}\right)\]</span>
+or binary weights; solve <span class="math display">\[Ly=\lambda
+Dy,\qquad L=D-W;\]</span> and use the first nontrivial eigenvectors as
+embedding coordinates.</p>
+<p>The paper’s heat-kernel derivation prints the short-time local heat
+kernel <span class="math display">\[H_t(x,y)\approx (4\pi t)^{-n/2}
+  \exp\left(-\frac{\|x-y\|^2}{4t}\right).\]</span> Thus the paper
+contains both <span class="math inline">\(t\)</span> and <span
+class="math inline">\(4t\)</span> bandwidth conventions. They should be
+preserved as printed rather than silently merged.</p>
+<p>The core variational identity is <span class="math display">\[y^\top
+Ly=\frac12\sum_{i,j}(y_i-y_j)^2W_{ij}.\]</span> For vector-valued
+embeddings, <span class="math display">\[\operatorname{tr}(Y^\top
+LY)=\frac12\sum_{i,j}\|Y_i-Y_j\|^2W_{ij}.\]</span> The paper sometimes
+writes unhalved objectives; this is an irrelevant constant for
+minimizers but should be stated. P02 is a strong source for heat weights
+and graph smoothness, but not for density correction, local bandwidth,
+or current <code>gflow</code> overlap-density smoothing.</p>
+<h2 id="p03-diffusion-maps">P03: Diffusion Maps</h2>
+<p><span class="citation" data-cites="coifman2006diffusion">Coifman and
+Lafon (2006)</span> move from symmetric affinities to Markov diffusion
+geometry. Starting with a symmetric nonnegative kernel <span
+class="math inline">\(k(x,y)\)</span>, define <span
+class="math display">\[d(x)=\int k(x,y)\,d\mu(y),\qquad
+  p(x,y)=\frac{k(x,y)}{d(x)}.\]</span> The row-stochastic operator <span
+class="math inline">\(P\)</span> has powers <span
+class="math inline">\(P^t\)</span>, and the diffusion distance is the
+distance between <span class="math inline">\(t\)</span>-step transition
+distributions. If <span
+class="math inline">\(P\psi_\ell=\lambda_\ell\psi_\ell\)</span>, then
+<span class="math display">\[D_t(x,y)^2=\sum_{\ell\ge
+1}\lambda_\ell^{2t}
+  \big(\psi_\ell(x)-\psi_\ell(y)\big)^2,\]</span> and the diffusion map
+uses coordinates <span class="math display">\[\Psi_t(x)=
+  (\lambda_1^t\psi_1(x),\ldots,\lambda_s^t\psi_s(x)).\]</span></p>
+<p>This paper is crucial because it separates three issues: the kernel,
+the degree/Markov normalization, and the diffusion time. Section 3
+introduces <span class="math inline">\(\alpha\)</span>-normalization,
+<span class="math display">\[k_\epsilon^{(\alpha)}(x,y)
+  =
+  \frac{k_\epsilon(x,y)}
+       {q_\epsilon(x)^\alpha q_\epsilon(y)^\alpha},\]</span> which
+changes the limiting operator. In particular, <span
+class="math inline">\(\alpha=1\)</span> removes sampling-density bias in
+the Laplace-Beltrami limit, while other values retain density-dependent
+terms.</p>
+<p>For graph low-pass smoothing, P03 gives the Markov counterpart of
+spectral filtering: <span class="math inline">\(P^t\)</span> multiplies
+mode <span class="math inline">\(\ell\)</span> by <span
+class="math inline">\(\lambda_\ell^t\)</span>, damping small-eigenvalue
+modes of <span class="math inline">\(P\)</span>. Calling Figure 3 a
+graph-signal low-pass figure is derived synthesis, not the paper’s own
+terminology. The audit also flagged the Section 3.4 <span
+class="math inline">\(\alpha=0\)</span> phrase as an apparent typo
+because the heading and proposition concern <span
+class="math inline">\(\alpha=1\)</span>.</p>
+<figure>
+<img src="paper_figures/P03_F03_page08.png" style="width:72.0%" />
+<figcaption>Cropped figure panel containing the P03 Figure 3 spectrum
+plot discussed as derived low-pass evidence. Reproduced from Coifman and
+Lafon (2006), Figure 3, PDF p. 12, from the canonical reading copy, for
+internal review only.</figcaption>
+</figure>
+<h2 id="p04-variable-bandwidth-diffusion-kernels">P04: Variable
+Bandwidth Diffusion Kernels</h2>
+<p><span class="citation" data-cites="berry2016variable">Berry and
+Harlim (2016)</span> ask what changes when the diffusion kernel
+bandwidth is local: <span class="math display">\[K_\epsilon^S(x,y)
+  =
+  h\!\left(
+    \frac{\|x-y\|^2}{\epsilon\rho(x)\rho(y)}
+  \right).\]</span> The paper’s practical Gaussian version uses <span
+class="math display">\[K_\epsilon^S(x_i,x_j)
+  =
+  \exp\left(
+    -\frac{\|x_i-x_j\|^2}
+          {4\epsilon\rho(x_i)\rho(x_j)}
+  \right).\]</span> The bandwidth <span
+class="math inline">\(\rho\)</span> is often taken as <span
+class="math inline">\(q^\beta\)</span>, where <span
+class="math inline">\(q\)</span> is sampling density. The limiting
+operator has the form <span class="math display">\[L_{\alpha,\rho}f
+  =
+  \Delta f
+  +2(1-\alpha)\frac{\nabla f\cdot\nabla q}{q}
+  +(d+2)\frac{\nabla f\cdot\nabla\rho}{\rho}.\]</span> When <span
+class="math inline">\(\rho=q^\beta\)</span>, this becomes <span
+class="math display">\[L_{\alpha,\beta}f
+  =
+  \Delta f+
+  c_1\frac{\nabla f\cdot\nabla q}{q},
+  \qquad
+  c_1=2-2\alpha+d\beta+2\beta.\]</span> The audit notes that sign
+conventions for <span class="math inline">\(\Delta\)</span> must be
+stated when comparing this formula to graph smoothing or heat
+semigroups.</p>
+<p>P04 is important for SIMODS because it shows that local scale is not
+just a numerical patch. It changes the continuum operator unless the
+normalization parameters are chosen deliberately. It supports
+variable-bandwidth kernel-conductance comparators and density-correction
+diagnostics. It does not describe the current
+<code>fit.rdgraph.regression()</code> overlap-density operator.</p>
+<h2 id="p05-gaussian-fields-and-harmonic-functions">P05: Gaussian Fields
+and Harmonic Functions</h2>
+<p><span class="citation" data-cites="zhu2003semisupervised">Zhu,
+Ghahramani, and Lafferty (2003)</span> treat graph weights as the basis
+for semi-supervised interpolation. Given labeled and unlabeled vertices,
+the harmonic solution minimizes graph energy subject to labeled boundary
+values, leading to a Laplacian block system. The weights are
+similarities/affinities, and in the electrical-network interpretation
+they may be read as conductances. Outside that interpretation, the safer
+phrase is “weight/affinity, interpretable as conductance.”</p>
+<p>The paper connects harmonic functions, Gaussian random fields, graph
+cuts, and kernel classifiers. The relevant SIMODS lesson is direct:
+changing the edge weights changes the interpolation. If labels or
+feature values are graph signals, the graph weights define what it means
+for the prediction to vary smoothly away from observed values.</p>
+<p>The audit corrected two convention points. First, the heat-kernel
+sign should be written as <span
+class="math inline">\(K_t=e^{-t\Delta}\)</span> under the paper’s
+convention. Second, the Rayleigh quotient numerator uses an unhalved
+double sum; the standard symmetric-Laplacian energy includes a <span
+class="math inline">\(1/2\)</span> factor.</p>
+<h2 id="p06-manifold-regularization">P06: Manifold Regularization</h2>
+<p><span class="citation" data-cites="belkin2006manifold">Belkin,
+Niyogi, and Sindhwani (2006)</span> develop a learning framework with an
+ambient regularizer and an intrinsic regularizer. The graph Laplacian
+term is the finite-sample proxy for intrinsic manifold regularity. In
+the graph form, large weights penalize variation between neighboring
+examples, so the conductance/affinity choice controls which functions
+are preferred.</p>
+<p>For SIMODS, P06 supports a regularization interpretation of graph
+smoothing. The same operator that defines low-pass filtering can also be
+viewed as a penalty in a learning objective. This is useful for
+explaining why GCV over graph smoothers is a non-oracle graph-selection
+candidate: a good graph should make relevant signals predictable or low
+energy without relying on oracle embedding metrics.</p>
+<p>The audit emphasized precision around factor conventions and
+experimental weight details. The paper’s Eq. (4) prints an unhalved
+double sum as <span class="math inline">\(f^\top Lf\)</span>; this
+should be normalized carefully in synthesis. The WebKB description says
+weights are based on cosine distances, but the exact affinity transform
+is not specified in the PDF. Therefore it should not be turned into a
+precise implementation recipe.</p>
+<h2 id="p07-graph-signal-processing">P07: Graph Signal Processing</h2>
+<p><span class="citation" data-cites="shuman2013emerging">Shuman et al.
+(2013)</span> is the core source for graph-spectral smoothing semantics.
+A graph Fourier basis comes from Laplacian eigenvectors: <span
+class="math display">\[L\chi_\ell=\lambda_\ell\chi_\ell.\]</span> The
+graph Fourier transform expands a signal in this basis, and a graph
+filter multiplies each coefficient by a response <span
+class="math inline">\(h(\lambda_\ell)\)</span>: <span
+class="math display">\[\hat f_{\mathrm{filtered}}
+  =
+  \sum_\ell h(\lambda_\ell)\hat f(\lambda_\ell)\chi_\ell.\]</span> This
+is exactly the language SIMODS needs when describing low-pass graph
+smoothing. The graph, weights, Laplacian normalization, and <span
+class="math inline">\(h(\lambda)\)</span> together define the
+smoother.</p>
+<p>P07 should be cited primarily for graph-spectral smoothing, not for a
+particular graph-construction recipe. It also gives a valuable warning:
+individual eigenvectors inside repeated or nearly repeated eigenspaces
+are not unique; the meaningful object is the eigenspace or filter
+action. Comparator discussions should always name the actual spectral
+response <span class="math inline">\(h(\lambda)\)</span>, such as heat,
+Tikhonov, polynomial, or idealized low-pass.</p>
+<h2
+id="p08-graph-laplacian-convergence-on-random-neighborhood-graphs">P08:
+Graph Laplacian Convergence on Random Neighborhood Graphs</h2>
+<p><span class="citation" data-cites="hein2007graph">Hein, Audibert, and
+Luxburg (2007)</span> analyze convergence of graph Laplacians under
+random geometric graph sampling, including unnormalized, random-walk,
+and normalized operators. The paper is a key warning against treating
+“the graph Laplacian” as a single object. Different normalizations
+converge to different continuum operators and can place eigenfunction
+sign changes in different density regions.</p>
+<p>For conductance design, P08 matters because it separates graph
+support, kernel weights, degree normalization, density effects, and
+limiting operator. If a SIMODS comparator uses a heat kernel, inverse
+length, or self-tuned kernel, the normalization choice remains a
+scientific choice. A density-aware operator may be useful for cluster
+assumptions; a density-invariant operator may be better for geometric
+recovery.</p>
+<p>The audit resolved the mapping to <code>gflow</code>: the current
+<code>fit.rdgraph.regression()</code> operator is a custom
+mass-symmetrized spectral smoother using
+overlap-density/Riemannian-complex conductance. It is not directly P08’s
+random-walk, unnormalized, or symmetric-normalized Laplacian. The audit
+also notes that <span class="math inline">\(k(0)=0\)</span> removes
+self-loops and compact support is part of the main non-compact
+consistency setup.</p>
+<h2
+id="p09-theoretical-foundation-for-laplacian-based-manifold-methods">P09:
+Theoretical Foundation for Laplacian-Based Manifold Methods</h2>
+<p><span class="citation" data-cites="belkin2008towards">Belkin and
+Niyogi (2008)</span> provide theoretical support for the idea that graph
+Laplacians built from local kernels can approximate manifold
+differential operators. The paper is a baseline for heat-kernel and
+Laplace-Beltrami interpretations of graph smoothness. Its role in SIMODS
+should be theoretical framing: it does not guarantee finite-sample
+performance for arbitrary biological graphs or for the current
+<code>gflow</code> overlap-density operator.</p>
+<p>The post-audit notes are important. The final synthesis must state
+the paper’s Laplacian sign convention before comparing equations to heat
+smoothing or graph-signal filtering. It must also preserve the
+distinction between theorem settings involving <span
+class="math inline">\(\operatorname{vol}(M)\)</span> and density
+scaling. Coifman-Lafon <span
+class="math inline">\(\alpha\)</span>-normalization can be mentioned
+contextually here, but detailed <span
+class="math inline">\(\alpha\)</span> claims should be sourced to
+P03/P04.</p>
+<p>P09 supports the practical reporting rule that any SIMODS
+kernel-conductance smoother should document four ingredients: distance,
+bandwidth rule, degree/density normalization, and target operator or
+practical surrogate.</p>
+<h2 id="p10-knn-self-tuned-kernel-graph-laplacian-convergence">P10: kNN
+Self-Tuned Kernel Graph Laplacian Convergence</h2>
+<p><span class="citation" data-cites="cheng2022knn">Cheng and Wu
+(2022)</span> connect self-tuned kernels to graph Laplacian convergence
+with kNN-derived local scales. This is the most direct theory source for
+the relationship between nearest-neighbor scale estimation and adaptive
+kernel-conductance rules. The paper separates Dirichlet-form convergence
+from pointwise operator convergence, a distinction that matters for
+smoothing: penalty-based smoothers align more naturally with
+Dirichlet-form statements, whereas pointwise Laplacian estimation needs
+stronger assumptions.</p>
+<p>For SIMODS, P10 supports a planned comparator of the form <span
+class="math display">\[c_{ij}
+  =
+  \exp\!\left(
+    -\frac{\ell_{ij}^2}{\widehat\rho_i\widehat\rho_j}
+  \right)\]</span> or the paper’s more precise kNN self-tuned scaling.
+However, kNN bandwidth estimation and graph support construction are
+different design choices. A SIMODS implementation must decide whether
+local scales are estimated from all point-cloud neighbors,
+graph-neighbor edge lengths, or another structure.</p>
+<p>The audit also cautions that special <span
+class="math inline">\(\alpha\)</span> choices are operator-specific. Do
+not transfer a default from diffusion maps or variable-bandwidth kernels
+without restating the exact construction. The MNIST/outlier result
+should be treated as secondary empirical evidence, not convergence
+proof.</p>
+<h1 id="synthesis-by-task">Synthesis by Task</h1>
+<h2 id="embedding-and-manifold-learning">Embedding and Manifold
+Learning</h2>
+<p>P02, P03, P04, P08, P09, and P10 all contribute to manifold-learning
+interpretations, but they emphasize different levels of the pipeline.
+P02 introduces the graph construction plus generalized eigenproblem. P09
+supplies theoretical foundation for local kernel graph Laplacians. P03
+adds Markov diffusion and density normalization. P04 and P10 introduce
+adaptive local scale and show that local bandwidth changes the limiting
+operator. P08 warns that normalization and density are not cosmetic.</p>
+<p>For SIMODS, this means a graph-smoothing benchmark should not report
+only “heat kernel” or “self-tuned kernel.” It should report graph
+support, kernel formula, bandwidth/local-scale rule, degree
+normalization, and filter response.</p>
+<h2 id="spectral-clustering">Spectral Clustering</h2>
+<p>P01 uses local-scale Gaussian affinities to reduce global bandwidth
+fragility in spectral clustering. P08 gives theoretical background on
+how graph normalization affects clustering-related eigenfunctions. P02
+links Laplacian eigenmaps to spectral clustering through the same graph
+smoothness objective. These papers support self-tuned and density-aware
+comparator families, but they do not directly provide a GCV
+graph-selection criterion.</p>
+<h2 id="diffusion-geometry">Diffusion Geometry</h2>
+<p>P03 and P04 are the main diffusion-geometry sources. They make clear
+that kernel weights are only the first stage. After degree and density
+normalization, the operator may be a Markov transition matrix, an
+infinitesimal generator, or a symmetric conjugate. Diffusion powers
+<span class="math inline">\(P^t\)</span> and heat semigroups <span
+class="math inline">\(e^{-tL}\)</span> are low-pass smoothers with
+different normalizations.</p>
+<h2 id="semi-supervised-learning-and-graph-regression">Semi-Supervised
+Learning and Graph Regression</h2>
+<p>P05 and P06 support the learning/regression view. P05 solves harmonic
+interpolation on a weighted graph. P06 uses graph Laplacian
+regularization in a broader learning objective. For SIMODS GCV, these
+papers justify measuring how well a graph supports smooth prediction of
+feature signals. They also warn that if the feature task is
+outcome-specific, the selector may become task-aligned rather than
+geometry-general.</p>
+<h2 id="graph-signal-processing-and-smoothing">Graph Signal Processing
+and Smoothing</h2>
+<p>P07 is the clearest conceptual home for low-pass smoothing. It says
+that the same graph signal can be smooth on one graph and rough on
+another, because smoothness is defined by the graph operator. This is
+the logic behind non-oracle graph selection by feature-signal GCV:
+candidate graphs are scored by whether meaningful signals are
+low-frequency and predictable. P07 also forces reporting of <span
+class="math inline">\(h(\lambda)\)</span>, not just the graph.</p>
+<h1 id="synthesis-by-conductance-family">Synthesis by Conductance
+Family</h1>
+<table style="width:90%;">
+<caption>Conductance/kernel families and synthesis role.</caption>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 23%" />
+<col style="width: 22%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Family</th>
+<th style="text-align: left;">Formula</th>
+<th style="text-align: left;">Main sources</th>
+<th style="text-align: left;">SIMODS interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Inverse length</td>
+<td style="text-align: left;"><span
+class="math inline">\((\ell+\epsilon)^{-\alpha}\)</span></td>
+<td style="text-align: left;">contextual comparator; not a reviewed
+paper’s central formula</td>
+<td style="text-align: left;">Best direct metric-geometry smoother
+comparator.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Heat/RBF</td>
+<td style="text-align: left;"><span
+class="math inline">\(\exp(-\ell^2/t)\)</span>, <span
+class="math inline">\(\exp(-\ell^2/(4t))\)</span></td>
+<td style="text-align: left;">P02, P03, P09</td>
+<td style="text-align: left;">Natural for point-cloud diffusion and
+Laplace-Beltrami approximation.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Exponential/Laplace</td>
+<td style="text-align: left;"><span
+class="math inline">\(\exp(-\ell/\sigma)\)</span></td>
+<td style="text-align: left;">H005 requested family; less central in
+Tier 1 corpus</td>
+<td style="text-align: left;">Useful robustness comparator, but needs
+additional source support.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Self-tuned Gaussian</td>
+<td style="text-align: left;"><span
+class="math inline">\(\exp[-\ell_{ij}^2/(\sigma_i\sigma_j)]\)</span></td>
+<td style="text-align: left;">P01, P10</td>
+<td style="text-align: left;">Local-scale comparator for nonuniform
+sampling.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Variable bandwidth</td>
+<td style="text-align: left;"><span
+class="math inline">\(h(\ell^2/[\epsilon\rho_i\rho_j])\)</span></td>
+<td style="text-align: left;">P04, P10</td>
+<td style="text-align: left;">Theory-backed adaptive bandwidth; operator
+changes with <span class="math inline">\(\rho\)</span> and
+normalization.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Density-normalized</td>
+<td style="text-align: left;"><span class="math inline">\(k/(q_i^\alpha
+q_j^\alpha)\)</span></td>
+<td style="text-align: left;">P03, P04, P08</td>
+<td style="text-align: left;">Separates geometry from sampling density
+when desired.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Binary support</td>
+<td style="text-align: left;"><span
+class="math inline">\(c_{ij}=1\)</span> on graph edges</td>
+<td style="text-align: left;">P02, P08</td>
+<td style="text-align: left;">Control comparator isolating graph support
+from metric weights.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="why-not-always-use-inverse-length">Why Not Always Use Inverse
+Length?</h2>
+<p>Inverse length is attractive because it respects a direct resistance
+intuition: short edges should transmit signal strongly; long edges
+should transmit weakly. For SIMODS, this is exactly why it should be a
+planned comparator. But the reviewed literature shows why researchers
+often use other forms:</p>
+<ul>
+<li><p>Heat kernels approximate local diffusion and suppress long edges
+exponentially rather than algebraically.</p></li>
+<li><p>Gaussian bandwidths provide a scale parameter that defines
+locality.</p></li>
+<li><p>Self-tuned kernels adjust that scale under nonuniform
+sampling.</p></li>
+<li><p>Density normalization can remove sampling-density bias from the
+limiting operator.</p></li>
+<li><p>Markov normalization turns affinities into transition
+probabilities and makes diffusion distances path-based rather than
+edge-local.</p></li>
+<li><p>Graph signal filters separate graph construction from the
+spectral response applied to the signal.</p></li>
+</ul>
+<p>Thus inverse length is one scientifically meaningful choice, not the
+universal default.</p>
+<h1 id="theory-results-and-their-benchmark-implications">Theory Results
+and Their Benchmark Implications</h1>
+<table style="width:89%;">
+<caption>Theory themes relevant to SIMODS comparator design.</caption>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Source</th>
+<th style="text-align: left;">Setting</th>
+<th style="text-align: left;">Operator issue</th>
+<th style="text-align: left;">Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">P02</td>
+<td style="text-align: left;">Local graph on point samples</td>
+<td style="text-align: left;">Heat weights and generalized
+eigenproblem</td>
+<td style="text-align: left;">Heat-kernel weights are principled but
+bandwidth and graph support remain choices.</td>
+</tr>
+<tr>
+<td style="text-align: left;">P03</td>
+<td style="text-align: left;">Diffusion maps</td>
+<td style="text-align: left;"><span
+class="math inline">\(\alpha\)</span>-normalization and Markov
+powers</td>
+<td style="text-align: left;">Degree/density normalization changes the
+geometry; <span class="math inline">\(P^t\)</span> is a low-pass
+diffusion smoother.</td>
+</tr>
+<tr>
+<td style="text-align: left;">P04</td>
+<td style="text-align: left;">Variable bandwidth diffusion</td>
+<td style="text-align: left;"><span
+class="math inline">\(\rho=q^\beta\)</span>, <span
+class="math inline">\(\alpha\)</span>, dimension <span
+class="math inline">\(d\)</span></td>
+<td style="text-align: left;">Local scale can stabilize sparse regions
+but changes drift terms unless normalized deliberately.</td>
+</tr>
+<tr>
+<td style="text-align: left;">P08</td>
+<td style="text-align: left;">Random neighborhood graph convergence</td>
+<td style="text-align: left;">Unnormalized/random-walk/normalized
+limits</td>
+<td style="text-align: left;">Normalization can move eigenfunctions and
+density effects; do not claim one generic Laplacian target.</td>
+</tr>
+<tr>
+<td style="text-align: left;">P09</td>
+<td style="text-align: left;">Laplacian-based manifold methods</td>
+<td style="text-align: left;">Kernel graph Laplacian to manifold
+operator</td>
+<td style="text-align: left;">Kernel-distance smoothers need documented
+distance, bandwidth, normalization, and target operator.</td>
+</tr>
+<tr>
+<td style="text-align: left;">P10</td>
+<td style="text-align: left;">kNN self-tuned kernels</td>
+<td style="text-align: left;">Local kNN scale and convergence</td>
+<td style="text-align: left;">kNN bandwidth estimation is a serious
+theory-backed local-scale comparator, especially for Dirichlet-form
+smoothing.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="implications-for-gflow-and-simods">Implications for gflow and
+SIMODS</h1>
+<h2 id="recommended-comparator-families">Recommended Comparator
+Families</h2>
+<p>The future non-oracle graph-selection benchmark should compare at
+least: <span class="math display">\[\begin{aligned}
+  c_e^\rho &amp;= \frac{1}{\max(\rho_1(e),10^{-10})}
+  &amp;&amp;\text{current \texttt{fit.rdgraph.regression()}
+semantics},\\
+  c_e^{\mathrm{len}} &amp;= \frac{1}{\ell_e+\epsilon}
+  &amp;&amp;\text{direct metric-length conductance},\\
+  c_e^{\mathrm{rbf}} &amp;= \exp(-\ell_e^2/\sigma^2)
+  &amp;&amp;\text{heat/RBF conductance},\\
+  c_e^{\mathrm{exp}} &amp;= \exp(-\ell_e/\sigma)
+  &amp;&amp;\text{exponential-distance conductance},\\
+  c_{ij}^{\mathrm{self}} &amp;=
+    \exp\!\left(-\frac{\ell_{ij}^2}{\sigma_i\sigma_j}\right)
+  &amp;&amp;\text{self-tuned local-scale conductance}.
+\end{aligned}\]</span> For diffusion-style variants, the benchmark must
+state whether the smoother is formed from a symmetric Laplacian, a
+random-walk matrix <span class="math inline">\(P\)</span>, a symmetric
+Markov conjugate, or another mass-symmetrized operator.</p>
+<h2 id="recommended-diagnostics">Recommended Diagnostics</h2>
+<p>The benchmark should not rely on GCV alone. It should record:</p>
+<ul>
+<li><p>selected graph parameter and selected smoothing
+parameter;</p></li>
+<li><p>GCV score and effective degrees of freedom;</p></li>
+<li><p>transfer function <span
+class="math inline">\(h(\lambda)\)</span>;</p></li>
+<li><p>eigenvalue spectrum and spectral gaps;</p></li>
+<li><p>eigenfunction localization or sign-change diagnostics;</p></li>
+<li><p>clean-function RMSE on synthetic known signals;</p></li>
+<li><p>agreement with oracle geodesic-isometry performance on synthetic
+quad benchmarks;</p></li>
+<li><p>sensitivity to sampling density and noise.</p></li>
+</ul>
+<h2 id="how-to-phrase-claims-in-the-manuscript">How to Phrase Claims in
+the Manuscript</h2>
+<p>The manuscript can safely say:</p>
+<ul>
+<li><p>Graph smoothing is operator-dependent: the graph support, edge
+weights, normalization, and spectral response define what “low
+frequency” means.</p></li>
+<li><p>Heat/RBF, self-tuned, and density-normalized kernels are standard
+families for graph Laplacians and diffusion operators.</p></li>
+<li><p>Local-scale kernels are motivated by nonuniform sampling and can
+change both numerical behavior and continuum limits.</p></li>
+<li><p>The current <code>gflow</code> smoother is an overlap-density /
+Riemannian-complex smoother, not a direct length-kernel
+smoother.</p></li>
+<li><p>A controlled SIMODS benchmark should test whether current
+overlap-density smoothing and length/kernel-conductance smoothing select
+graph parameters that agree with oracle geodesic-isometry
+performance.</p></li>
+</ul>
+<p>The manuscript should avoid saying:</p>
+<ul>
+<li><p>that <code>fit.rdgraph.regression()</code> currently implements
+<span class="math inline">\(1/(\ell+\epsilon)\)</span>, Gaussian, or
+self-tuned conductances;</p></li>
+<li><p>that self-tuned bandwidth estimation is the same as cKNN graph
+support;</p></li>
+<li><p>that one <span class="math inline">\(\alpha\)</span> or Laplacian
+normalization has the same meaning across all reviewed papers;</p></li>
+<li><p>that asymptotic manifold theory guarantees finite-sample SIMODS
+performance without a matching benchmark.</p></li>
+</ul>
+<h1 id="evidence-label-table">Evidence Label Table</h1>
+<table style="width:90%;">
+<caption>Selected synthesis claims with evidence labels.</caption>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 12%" />
+<col style="width: 27%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th style="text-align: left;">Claim</th>
+<th style="text-align: left;">Label</th>
+<th style="text-align: left;">Source</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Self-tuned spectral clustering uses <span
+class="math inline">\(\exp[-d^2/(\sigma_i\sigma_j)]\)</span>.</td>
+<td style="text-align: left;">explicit</td>
+<td style="text-align: left;">P01, Eq. (1)</td>
+<td style="text-align: left;">Local scale from <span
+class="math inline">\(K\)</span>th neighbor distance.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Laplacian Eigenmaps use heat weights and
+<span class="math inline">\(Ly=\lambda Dy\)</span>.</td>
+<td style="text-align: left;">explicit</td>
+<td style="text-align: left;">P02</td>
+<td style="text-align: left;">Heat bandwidth conventions <span
+class="math inline">\(t\)</span> and <span
+class="math inline">\(4t\)</span> both appear.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Diffusion maps define diffusion distance
+through <span class="math inline">\(P^t\)</span> spectra.</td>
+<td style="text-align: left;">explicit</td>
+<td style="text-align: left;">P03</td>
+<td style="text-align: left;">Markov normalization central.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Increasing diffusion time damps smaller
+Markov eigenvalues.</td>
+<td style="text-align: left;">derived</td>
+<td style="text-align: left;">P03 Figure 3 and formulas</td>
+<td style="text-align: left;">Low-pass language is synthesis.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Variable bandwidth kernels change
+continuum drift terms.</td>
+<td style="text-align: left;">explicit</td>
+<td style="text-align: left;">P04</td>
+<td style="text-align: left;">Depends on <span
+class="math inline">\(\alpha,\beta,d\)</span>.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Harmonic graph interpolation depends on
+edge weights.</td>
+<td style="text-align: left;">derived</td>
+<td style="text-align: left;">P05</td>
+<td style="text-align: left;">Weight-as-conductance language safest in
+electrical interpretation.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Graph filters require reporting <span
+class="math inline">\(h(\lambda)\)</span>.</td>
+<td style="text-align: left;">derived/contextual</td>
+<td style="text-align: left;">P07</td>
+<td style="text-align: left;">Essential for SIMODS comparator
+reporting.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Normalization changes graph Laplacian
+limits and eigenfunctions.</td>
+<td style="text-align: left;">explicit/derived</td>
+<td style="text-align: left;">P08</td>
+<td style="text-align: left;">Avoid generic “the graph Laplacian.”</td>
+</tr>
+<tr>
+<td style="text-align: left;">Kernel graph Laplacian theory supports
+planned heat-kernel comparators.</td>
+<td style="text-align: left;">derived</td>
+<td style="text-align: left;">P09</td>
+<td style="text-align: left;">Applicability depends on assumptions.</td>
+</tr>
+<tr>
+<td style="text-align: left;">kNN self-tuned kernels support adaptive
+local-scale comparators.</td>
+<td style="text-align: left;">derived</td>
+<td style="text-align: left;">P10</td>
+<td style="text-align: left;">Distinguish bandwidth estimation from
+support construction.</td>
+</tr>
+<tr>
+<td style="text-align: left;">Current <code>gflow</code> smoother is
+overlap-density, not length/RBF/self-tuned.</td>
+<td style="text-align: left;">contextual</td>
+<td style="text-align: left;">H003/H004 source audit plus H005
+scope</td>
+<td style="text-align: left;">Not a claim from the reviewed papers.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="open-risks-and-questions">Open Risks and Questions</h1>
+<ol>
+<li><p>The Tier 1 corpus is strong for heat/RBF, diffusion, self-tuned,
+local bandwidth, and graph signal filtering. It is weaker for direct
+inverse-length and <span
+class="math inline">\(\exp(-\ell/\sigma)\)</span> conductance rules as
+primary literature topics. Those may need Tier 2 additions if the final
+manuscript foregrounds them.</p></li>
+<li><p>Several sources use different Laplacian sign conventions. Final
+equations should state whether <span class="math inline">\(L\)</span> is
+positive semidefinite and whether heat is <span
+class="math inline">\(e^{-tL}\)</span> or <span
+class="math inline">\(e^{t\Delta}\)</span> under a PDE sign
+convention.</p></li>
+<li><p>Local bandwidth and graph support are separate implementation
+choices. A SIMODS self-tuned comparator should define both.</p></li>
+<li><p>If SVG explanatory figures are used in a <code>pdflatex</code>
+report, they should be rendered to PDF or PNG.</p></li>
+<li><p>Reproduced paper-figure cropped figure panels are now stored
+under <code>paper_figures/</code> and tracked by
+<code>paper_figure_screenshots.yml</code>. These are internal-review
+screenshots from canonical reading copies; if the final public
+supplement uses paper figures, permissions and reproduction labels will
+still be needed.</p></li>
+</ol>
+<h1 id="conclusion">Conclusion</h1>
+<p>The literature supports a principled benchmark in which the current
+overlap-density/Riemannian-complex <code>gflow</code> smoother is
+compared against direct length and kernel conductance smoothers. The
+most important design lesson is that the conductance rule cannot be
+separated from graph support, normalization, spectral response, and
+task. Heat kernels emphasize local diffusion; self-tuned kernels adapt
+to local sampling scale; variable-bandwidth and density-normalized
+kernels change continuum limits; graph signal processing turns the
+resulting operator into a filter <span
+class="math inline">\(h(\lambda)\)</span>. A SIMODS non-oracle
+graph-selection criterion should therefore report the full operator
+construction and should judge candidate smoothers by agreement with
+oracle geodesic-isometry performance, signal reconstruction behavior,
+and robustness diagnostics rather than by GCV alone.</p>
+<h1 id="local-artifact-inventory">Local Artifact Inventory</h1>
+<p>The H005 workspace contains:</p>
+<ul>
+<li><p><code>source_manifest.yml</code>: source acquisition
+manifest.</p></li>
+<li><p><code>references.bib</code>: BibTeX database for this
+report.</p></li>
+<li><p><code>paper_memos/P*.md</code>: revised-after-audit paper review
+memos.</p></li>
+<li><p><code>audits/P*_audit.md</code>: paper-specific audit
+memos.</p></li>
+<li><p><code>sources/pdf/P*.pdf</code>: cached canonical Tier 1 reading
+copies.</p></li>
+<li><p><code>figures/P01_self_tuned_kernel_toy.png</code>,
+<code>figures/P04_local_bandwidth_conductance_curve.png</code>,
+<code>figures/P05_three_node_harmonic_interpolation.svg</code>,
+<code>figures/P07_graph_filter_pipeline.png</code>, and
+<code>figures/P09_operator_limit_map.svg</code>: original internal
+explanatory figures created by reviewers.</p></li>
+</ul>
+<div id="refs" class="references csl-bib-body hanging-indent"
+data-entry-spacing="0" role="list">
+<div id="ref-belkin2001laplacian" class="csl-entry" role="listitem">
+Belkin, Mikhail, and Partha Niyogi. 2001. <span>“Laplacian Eigenmaps and
+Spectral Techniques for Embedding and Clustering.”</span> In
+<em>Advances in Neural Information Processing Systems</em>.
+</div>
+<div id="ref-belkin2008towards" class="csl-entry" role="listitem">
+———. 2008. <span>“Towards a Theoretical Foundation for Laplacian-Based
+Manifold Methods.”</span> <em>Journal of Computer and System
+Sciences</em> 74 (8): 1289–1308. <a
+href="https://doi.org/10.1016/j.jcss.2007.08.006">https://doi.org/10.1016/j.jcss.2007.08.006</a>.
+</div>
+<div id="ref-belkin2006manifold" class="csl-entry" role="listitem">
+Belkin, Mikhail, Partha Niyogi, and Vikas Sindhwani. 2006.
+<span>“Manifold Regularization: A Geometric Framework for Learning from
+Labeled and Unlabeled Examples.”</span> <em>Journal of Machine Learning
+Research</em> 7: 2399–2434.
+</div>
+<div id="ref-berry2016variable" class="csl-entry" role="listitem">
+Berry, Tyrus, and John Harlim. 2016. <span>“Variable Bandwidth Diffusion
+Kernels.”</span> <em>Applied and Computational Harmonic Analysis</em> 40
+(1): 68–96. <a
+href="https://doi.org/10.1016/j.acha.2015.01.001">https://doi.org/10.1016/j.acha.2015.01.001</a>.
+</div>
+<div id="ref-cheng2022knn" class="csl-entry" role="listitem">
+Cheng, Xiuyuan, and Hau-Tieng Wu. 2022. <span>“Convergence of Graph
+Laplacian with kNN Self-Tuned Kernels.”</span> <em>Information and
+Inference: A Journal of the IMA</em> 11 (3): 889–957. <a
+href="https://doi.org/10.1093/imaiai/iaab019">https://doi.org/10.1093/imaiai/iaab019</a>.
+</div>
+<div id="ref-coifman2006diffusion" class="csl-entry" role="listitem">
+Coifman, Ronald R., and Stephane Lafon. 2006. <span>“Diffusion
+Maps.”</span> <em>Applied and Computational Harmonic Analysis</em> 21
+(1): 5–30. <a
+href="https://doi.org/10.1016/j.acha.2006.04.006">https://doi.org/10.1016/j.acha.2006.04.006</a>.
+</div>
+<div id="ref-hein2007graph" class="csl-entry" role="listitem">
+Hein, Matthias, Jean-Yves Audibert, and Ulrike von Luxburg. 2007.
+<span>“Graph Laplacians and Their Convergence on Random Neighborhood
+Graphs.”</span> <em>Journal of Machine Learning Research</em> 8:
+1325–68.
+</div>
+<div id="ref-shuman2013emerging" class="csl-entry" role="listitem">
+Shuman, David I., Sunil K. Narang, Pascal Frossard, Antonio Ortega, and
+Pierre Vandergheynst. 2013. <span>“The Emerging Field of Signal
+Processing on Graphs: Extending High-Dimensional Data Analysis to
+Networks and Other Irregular Domains.”</span> <em>IEEE Signal Processing
+Magazine</em> 30 (3): 83–98. <a
+href="https://doi.org/10.1109/MSP.2012.2235192">https://doi.org/10.1109/MSP.2012.2235192</a>.
+</div>
+<div id="ref-zelnikmanor2004selftuning" class="csl-entry"
+role="listitem">
+Zelnik-Manor, Lihi, and Pietro Perona. 2004. <span>“Self-Tuning Spectral
+Clustering.”</span> In <em>Advances in Neural Information Processing
+Systems</em>.
+</div>
+<div id="ref-zhu2003semisupervised" class="csl-entry" role="listitem">
+Zhu, Xiaojin, Zoubin Ghahramani, and John Lafferty. 2003.
+<span>“Semi-Supervised Learning Using Gaussian Fields and Harmonic
+Functions.”</span> In <em>Proceedings of the 20th International
+Conference on Machine Learning</em>.
+</div>
+</div>
+</body>
+</html>

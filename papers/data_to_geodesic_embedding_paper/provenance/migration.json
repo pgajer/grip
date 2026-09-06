@@ -1,0 +1,773 @@
+{
+  "source_repository": "https://github.com/pgajer/geodesicMDS",
+  "source_commit": "740df964b0783a22d0fa50ec88c5a19e16cfb00f",
+  "source_path": "data_to_geodesic_embedding_paper",
+  "files": {
+    ".DS_Store": {
+      "sha256": "5db230e5511ebde71c41448cc4ed9993aa9767f1ca3861647ac63d17e5a4cb89"
+    },
+    "README.md": {
+      "sha256": "baa8475076b6fc4b29ca5a63b1a23fc8eb59a08253944832aa34ac962c5c7a59"
+    },
+    "evidence/claims.yml": {
+      "sha256": "66dce01fbb41cc317754a4aae949aff1f4c42f5568b03d5670e46835c0133f26"
+    },
+    "evidence/figures_tables.yml": {
+      "sha256": "56f66635e948837d345375f488946a1f36eca6e3fb582869847a30e90664d12c"
+    },
+    "evidence/resources.yml": {
+      "sha256": "319780210a0636ddee00ed7270e26485b488437e42d383cbf88758b8157010ea"
+    },
+    "figures/.gitkeep": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "literature/.DS_Store": {
+      "sha256": "a17c6c55c351dfffb3b4ff9779c0e586744e9f086e06cbf269fbeb91f7c83d05"
+    },
+    "literature/conductance_kernel_laplacian_review/.DS_Store": {
+      "sha256": "1ef5f72ece67618e02fc8ca18683177ad4b70cccf3a987937526748b3fb727c7"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P01_zelnik_manor_perona_self_tuning_audit.md": {
+      "sha256": "a0a829f6baacdfed300a36326971e01f9f41bd86efd2f383f313be816833b878"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P02_belkin_niyogi_laplacian_eigenmaps_audit.md": {
+      "sha256": "03f92a34ae7f5c76acd5e2ea3287925850490114bc784f36a04252ce9a30f9d6"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P03_coifman_lafon_diffusion_maps_audit.md": {
+      "sha256": "c3103d8990741fd14cc386f2c230f2971bebc187a3cbc1ded38d4049f958c078"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P04_berry_harlim_variable_bandwidth_diffusion_kernels_audit.md": {
+      "sha256": "d2170b149f8a2325c5fc008b690b50b119c0cc319b9a10c144313cd3ed840e83"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P05_zhu_ghahramani_lafferty_gaussian_fields_audit.md": {
+      "sha256": "5ac32ba8c369bd8ae325b158bb73954a97b3644a37e44ed6b405e8c46e5af75c"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P06_belkin_niyogi_sindhwani_manifold_regularization_audit.md": {
+      "sha256": "f78fa913aa5d7d89e3e97a2a1ab53fa49810510369f2b67f2952d4c30de11f1c"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P07_shuman_et_al_graph_signal_processing_audit.md": {
+      "sha256": "eeb0e546b374cc03adbf0602149cfb901ff99da225db76bcaf7fcc52f7aaf828"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P08_hein_audibert_von_luxburg_graph_laplacian_convergence_audit.md": {
+      "sha256": "8e06010567479d818ffe4e8b95887fd5551072d59bf5ef0dd7e2026374f8be7a"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P09_belkin_niyogi_theoretical_foundation_audit.md": {
+      "sha256": "e1b97338316d1dd6d01fd3b1bae57513b3398a3c5f3f28c98d35cd78ed787832"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/P10_cheng_wu_knn_self_tuned_kernels_audit.md": {
+      "sha256": "d856538e2df7bb6f912c6506101d2db33eb15eb804c773a3cfea01e0110672da"
+    },
+    "literature/conductance_kernel_laplacian_review/audits/TEMPLATE_audit_memo.md": {
+      "sha256": "f9b17c560fcb78f9204f6e0c12083fa8609fbdddf9da7de6bb28900b9b24b593"
+    },
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.bbl": {
+      "sha256": "89a5b3c1d304c27b68a922a622007ba8956812e8837da968d756f178b5fb12e6"
+    },
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.html": {
+      "sha256": "053b1441bcc27db8a1ba348170d72eb45304d3ce02f148c985f5b3fa26f2bac9"
+    },
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.pdf": {
+      "sha256": "038f9512430662592c74bdf57b6a1e24ac452b3f638e66c2f2abf5de78b3fcef"
+    },
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.tex": {
+      "sha256": "e8bca014d3e8fcd0d4aa23f9db9336f5f8866ef87673badf3a294f35fb4f8fa0"
+    },
+    "literature/conductance_kernel_laplacian_review/execution_plan.md": {
+      "sha256": "7f76e2771d20d2fb63808641d697261c3986c792b71c702bdec2be6c29a7a6c7"
+    },
+    "literature/conductance_kernel_laplacian_review/figures/P01_self_tuned_kernel_toy.png": {
+      "sha256": "01c9fea199de91f01bad48c3494ca1213d67101d02d815bf57a44de7db6153a2"
+    },
+    "literature/conductance_kernel_laplacian_review/figures/P04_local_bandwidth_conductance_curve.png": {
+      "sha256": "30126d4cbbc52c24ac0b19d4559eca34dc9b0ad6d9de2e0a2ec41af1320b94e4"
+    },
+    "literature/conductance_kernel_laplacian_review/figures/P05_three_node_harmonic_interpolation.svg": {
+      "sha256": "988c35a4e8dcdd42439392befdb19c12039fca8d2979000e05314c3f6d71524e"
+    },
+    "literature/conductance_kernel_laplacian_review/figures/P07_graph_filter_pipeline.png": {
+      "sha256": "5ebcb1542d6b980e66403a6b5756a84f8a18db26745aa192b40143bc6fefc767"
+    },
+    "literature/conductance_kernel_laplacian_review/figures/P09_operator_limit_map.svg": {
+      "sha256": "fc742a7997d63f3f35e9d8283975231d88df3de535d9b41d9cd3041589b069c4"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figure_screenshots.yml": {
+      "sha256": "f7994a57ad235e0bec6525d7fd6f96361e1e55c8e9cff0c099cdf67b19bb610c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P01_F01_page02.png": {
+      "sha256": "e69bd3ece814f1b3d4fb72570c19715f1f82a06d83e3461578a65bf23dea78ff"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P01_F02_page03.png": {
+      "sha256": "a5585dc5cac7bca987b00907de957608da407df5428a8bc29bdfd2f5ec55be55"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P01_F03_F04_page04.png": {
+      "sha256": "becb691badd2441af6614156341ed01a4e6b23a76ee17c5e9a7051f4e7c13cdc"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P01_F05_page06.png": {
+      "sha256": "5747670427107232e3d4f83dfff0e64d97a1524804dd885f1cf5bb1498bad2bc"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P01_F06_page07.png": {
+      "sha256": "4bf66ab743da2713454f5dfebd8b69a15e431ec7d3a9dcbd7e2e9c58007ed196"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P02_F01_page03.png": {
+      "sha256": "37bfafe0871024e14f3ea40672c25a5133c4e94e6280a85d2b92704a3d6cb3c7"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P02_F02_F03_page04.png": {
+      "sha256": "1e243e322eaf13a58de01fc09fb3c6b57126a455f858fe9cd980e7a607827eee"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P02_F04_page05.png": {
+      "sha256": "5ded36ae0622ea9709bbba62150c95fffc83754f87ddcb114b9596ccf56fc833"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P02_F05_page07.png": {
+      "sha256": "0c415711ef40b84698582115822225d7bbb345a4f77271ab977e2908dd5db465"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F01_page04.png": {
+      "sha256": "d52d973b3aee529776fe0f10ce0cc1ea136e89d4445428358924fc5b401315ba"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F02_page07.png": {
+      "sha256": "1005212c0f13f2859dbf74caf5447c44936ae17be1349611f22401eba6bfb099"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F03_page08.png": {
+      "sha256": "268a3256c503784af38192cd7a3b437f94136dfc60e916480944604e13b26449"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F04_page12.png": {
+      "sha256": "b59e8d99fbf1ba5095e125be98f52aab3cc565f354b786a2794630f0a92eaf94"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F05_page14.png": {
+      "sha256": "37d835782cf3ca5db40b71d5941dbee0f06de5a8cb96e41ab215d07acdcb4137"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_F06_page15.png": {
+      "sha256": "5e3f4a1e3e0357baee56c806bd11069d57be8fd477fb93351ac7af0937299e66"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_FB1_page18.png": {
+      "sha256": "f0c5c25dcc30c4163254fe034a18285ec914216af27e04b0303a5675c88e325a"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P03_FB2_page22.png": {
+      "sha256": "b6f91d0f1fc49919ffb30011964dabe74bb0a39250152a47007c58b3f7c8fa32"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F01_F02_page07.png": {
+      "sha256": "3a6e6b03f050d60d8b10d10cccb6db4af8fbcf3f24a97865517ea327732fac6f"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F03_page08.png": {
+      "sha256": "24ba9937094ddb8fd0b5caa38941329ababac0ade2418fd08c8ad2c0822935d4"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F04_page09.png": {
+      "sha256": "17f09a667e4cbc4601abab6fcb5a79cd5b35828a28c74abb2ed88a60a0d09be4"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F05_page10.png": {
+      "sha256": "6b03dc9fbf032400751322c7bde8e262b886790d4ad1951f75fa86aed5d240f3"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F06_page11.png": {
+      "sha256": "f57a113b2eb156508c924c4fb18b52a1c6ae57fb7465cd5b497150a7ea939bd8"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_F07_page12.png": {
+      "sha256": "62252a2e89b23bca42d895340d81be53bc8c5d2cb86437661d3c796916a13e7f"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_FA8_page20.png": {
+      "sha256": "bc74e253ade71fafadfb9fc80dfbc65a79eb40eb8e6f1265526be1397420e08d"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P04_FA9_page23.png": {
+      "sha256": "694375e5397bfcf6437dbb2286db990aac40f09cefdb55e40eed53d6f2677ed7"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P05_F01_page02.png": {
+      "sha256": "d9e0996da9979e190406a9d41e6855071eb8f2cd6bb4a9265570d8d7585e0398"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P05_F02_page03.png": {
+      "sha256": "399ed4f1c08b052457b9ea7d4f0e368d355d7ab92289c72ca4c5e3a8c0ecad04"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P05_F03_F04_page06.png": {
+      "sha256": "d5edb24cff745b2e6b9ea6552a1d5422dedb50f3941eebb6b97b6626c2791c66"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P05_F05_page07.png": {
+      "sha256": "52981f05d1bf2f79ea0c14386699c140e0c1d6a9b9dba3188dd6797b991379ad"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P05_F06_page08.png": {
+      "sha256": "ea9757093a0eae854074b3010c382a6ca77cf6901a9f0e2f2a05adb929e359f6"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F01_page04.png": {
+      "sha256": "287f7ccd3dcd3e3e4618e23de63baaf750c290e862a337fb0ed0be638676f0a0"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F02_F03_page23.png": {
+      "sha256": "95a31cecc1bcf8b27f24420da650a5b4808d354930af84c2a36e76bdd3be5e8e"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F04_page24.png": {
+      "sha256": "ab9210782bc0466a06a454ff329e80b307ea707502368b4dde79e66971c15cc2"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F05_page25.png": {
+      "sha256": "eaefd0464a0773825d5fbdb4fdc4e71d1253f9f05e76170ac3c31610b69b4e40"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F06_page26.png": {
+      "sha256": "04a89b9158f5c070b80762b156f8de61187cc8713b9cb4a3204717a4453471ba"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F07_page27.png": {
+      "sha256": "341fcd8e2be653e14423cdfd7259ac6ba25abd11e7277681a9fdfcf9fb1f00f0"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F08_page29.png": {
+      "sha256": "2ca1da7b3cb08642228d29e72159b7bd81c19e35af6679c86d628ff006799982"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P06_F09_F10_page31.png": {
+      "sha256": "a981cac596e295b46483221cf8ef951ec866a69f6b2cd6902cb8c6e11f585d26"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P07_E03_page09.png": {
+      "sha256": "3d45561a63ab0e48739979e7c04ffaf9fcddae5441967e9087f0ca9d192e0633"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P07_F01_page01.png": {
+      "sha256": "a15cc07b99868e849f3100033c358a7c9befe6e06fa7963b0adadc801e5a41b0"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P07_F02_F03_F04_page04.png": {
+      "sha256": "c52b519b7c44e8f1f80499a9665b69c6aabb1544616bd81c6025ff99f8816dbd"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P07_F05_page08.png": {
+      "sha256": "e2f2fd1944cd4fa2e2d80a58c168f5e1633c24239e50d6e339f3a2c7dede6a69"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P07_F06_F07_page12.png": {
+      "sha256": "0e4c507f779c18d29ad9875e8ffe11631fc0fe59342633258d887003cfb1d678"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P08_F01_page11.png": {
+      "sha256": "3677f0e77f56d5e62afa786be5fad97fa981dd5e0e33b2fccdf4b542345042af"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P08_F02_page14.png": {
+      "sha256": "2e9d6d83f4d1080cc0d93f5912dd1a492e7ade9120c675b6b4a97a6e7cf29440"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P08_F03_page15.png": {
+      "sha256": "676f343787963f2f765202a19434b0c496fa3a4c2ae9c3c35b257413fdc31628"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P08_F04_page17.png": {
+      "sha256": "44f5cc208a4c4dc460f81382ef593b26d1112581c3ce2bbbab956b4389f15607"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P08_F05_page21.png": {
+      "sha256": "7030591ca97b9a76437d5e3ae0aec4698e5df9fb890bcbb4fc5408857ab0d95f"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P09_F01_page10.png": {
+      "sha256": "f8ca430ec64ab7e73878a32ca53bac96e23994a627f58d829413b2fa0c8ecc29"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F01_F02_page15.png": {
+      "sha256": "f3b860f4b63f1094dcd6dc03dc800134a8a94396fceb0f5de93867b0c7a0d61e"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F03_page16.png": {
+      "sha256": "6902b9060d2b953d7f8dccfb3786d6f47c7e84fb278824c4402bf69f84faa237"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F04_F05_page17.png": {
+      "sha256": "ce2f90e63558a5443af9b124ba7b0c4b7945347c72d5b52f1dc3499c7dd22d57"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F06_F07_page18.png": {
+      "sha256": "12824a3a3685d1f377dfbd71d3af0512e18f08eb634593aaa298441515ea6cd3"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F08_F09_page19.png": {
+      "sha256": "8c6446daa0f52c544777b72713bf53d4c7ed3ba455b7e8abb6e6ca19910d2c7c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F10_page20.png": {
+      "sha256": "47eff206250a46b263ab5243a203786b3aed8757d82a2ca30c594f0cf76a9097"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_figures/P10_F11_page21.png": {
+      "sha256": "5ddb80c468d100183f0d9e2d960cc6838c1a8da404afd129cda7959394bb459b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P01_zelnik_manor_perona_self_tuning.md": {
+      "sha256": "4e95b1d496e61d0064ad846e9d53c4f018e3800f07d4dd5663d3aed551591e86"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P02_belkin_niyogi_laplacian_eigenmaps.md": {
+      "sha256": "fbcf115d4915b218e8194b9f0ce6716c0ff522e26620d4707035b5e905fd079b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P03_coifman_lafon_diffusion_maps.md": {
+      "sha256": "657dcb16b499d82600a37439ef7b10252211cebc17e7a8c97f1ea45ab223fede"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P04_berry_harlim_variable_bandwidth_diffusion_kernels.md": {
+      "sha256": "429ff5a759f283dd8539a0e7808b07516260b69c0aa56308c24ac15e7a456994"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P04_berry_harlim_variable_bandwidth_diffusion_kernels.pdf": {
+      "sha256": "4b923088a9d0d3211cfa1ff519188eb3a30116048dba14d2f21413ea3f883e36"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P05_zhu_ghahramani_lafferty_gaussian_fields.md": {
+      "sha256": "c654e58157291edc95bfd6a0a2654b1bbbb4cee317e0b85a090f9281d95e67b0"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P06_belkin_niyogi_sindhwani_manifold_regularization.md": {
+      "sha256": "9e7b066e565ea06365ae8ae646f7fead068594d82b95cea155e4dd00453f9643"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P07_shuman_et_al_graph_signal_processing.md": {
+      "sha256": "c7a7d848db79846a7d9619915b62241e15026d37902b7271b96a373f0a342d4c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.md": {
+      "sha256": "14f79d5791d5b9b16602eb5828b9f152062447e02efe361589806f6e302aa87d"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P09_belkin_niyogi_theoretical_foundation.md": {
+      "sha256": "741e37f1786e0e348ba2a1451b4915f6faa6c5c4e919c1568288a36cf8dbf80b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/P10_cheng_wu_knn_self_tuned_kernels.md": {
+      "sha256": "3624243a9a9a5127e48f1f94bc22264b1155b5761dddc32895dc5a84e57ad25d"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/TEMPLATE_review_memo.md": {
+      "sha256": "9fbae69a182e08dff48ef417d6b39c37acc3a124aa64813e837ea6655effda09"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P01_zelnik_manor_perona_self_tuning.html": {
+      "sha256": "26aa5533cd3a7dc90dfd8a57524927730cc7fe920bad003b5b01e35dbf5b5479"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P02_belkin_niyogi_laplacian_eigenmaps.html": {
+      "sha256": "36d03c6ba8faa9f533c06d0abcc81d47f4750fdca79308eddfd0b0fa30841096"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P03_coifman_lafon_diffusion_maps.html": {
+      "sha256": "a1412290bccd0ea750a4828ba8a747e76f340710be8d40311b85459760b2903a"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P04_berry_harlim_variable_bandwidth_diffusion_kernels.html": {
+      "sha256": "a8b8b0e64d2a6b1eabc2b604c3240bd0eb9958524e996eccdc2023a6e5c903e6"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P05_zhu_ghahramani_lafferty_gaussian_fields.html": {
+      "sha256": "1e9e04ed207d04503aac00b751514352b597ccee9e9ba309f0ad905078c791b6"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P06_belkin_niyogi_sindhwani_manifold_regularization.html": {
+      "sha256": "b30e91eb9e2cc0d70f912bbf9e3d71feb72a6b6c5595ecb304aa7698f4fdd323"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P07_shuman_et_al_graph_signal_processing.html": {
+      "sha256": "8c6c99fce854f380dc9c000e789a05e1aa229b5d1b262d66ea68621da950c427"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.html": {
+      "sha256": "7130816a7ebea4f4031c23f2a8f2a516a722f67b174fad81b168d43de9d60b8d"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P09_belkin_niyogi_theoretical_foundation.html": {
+      "sha256": "bba9c0bdbadd92be8352a777e6dd983f49fa4a5e3a399ec9a6233f97d887c60e"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/P10_cheng_wu_knn_self_tuned_kernels.html": {
+      "sha256": "308ca90e8de3f6ea3fc79c7222b3dca4533383250846ffe7f2ef7814da1546fa"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_memos/html/index.html": {
+      "sha256": "2a7abb3ddcb0088021d67999b604bfd3da7652c67524af5b8a8b783111b88bd4"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/.DS_Store": {
+      "sha256": "6f27da34f1d21efda641638d8b290be21f82063b1adb2e8cc02e5f701e46a8fb"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.bbl": {
+      "sha256": "9a2158dbead6de45590458cca73c81a256ae82092c20b708aea3e6a178f52887"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.pdf": {
+      "sha256": "b90c0be650a0e85a58c354209bd456fda3c4d27f21853146781bdc048960251b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.tex": {
+      "sha256": "513903f87fc7b2d3f26abb36a78f7aff5ce8566aa2d77d554ed51c9127e9fde1"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.bbl": {
+      "sha256": "b3489a0f8fff755bb2e022bef5f5671699d373e7326bf0c301852106804a2eef"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.pdf": {
+      "sha256": "8a90d42d620b73da5207d5c1a77eb3014f17c732595f2e8d06782b00ff14e7de"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.tex": {
+      "sha256": "7c8142c2e89457b3ff293e61f6c03f9127c0e2351184f3ab3d4e4dd777e8d9dc"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.bbl": {
+      "sha256": "3bd8bde029c4c0593058870d25b1df8f8e74c3236662642d06fcc70ccb5129b9"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.pdf": {
+      "sha256": "6d863277a9ec6ed8c027c65101d62f969e217294ee3aed19327f4e1fcbcd9ff8"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.tex": {
+      "sha256": "095ea7ad6e28c1902d2672a33ca807d876c702e796384ece7983c250cfea22af"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.bbl": {
+      "sha256": "fc50a3ff1943f4518948543bc4bb2a65da0885131ad702c26ec551a6af15b508"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.pdf": {
+      "sha256": "17613041b52e9bf9408ae9c3aacb3e9b9b23b6be3e2661b7b2c4531f485a2359"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.tex": {
+      "sha256": "7ae8ca66071873cc38e6dde63827f159be2564d1c01ac95bde10e2c7700226b9"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.bbl": {
+      "sha256": "69bd33e3caf6231c2aec2fd1c8890c1667ce31eacd10890a94326c2de70a3f93"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.pdf": {
+      "sha256": "f17dcba078e6ab3a992198b3d79cc9b2286be1b6e833b45acd4d38474f1ed47e"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.tex": {
+      "sha256": "a7c9e62f6594ba6c293d2a21f937f9379a1dd9e894a5814ac7cd820ae3e8d045"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.bbl": {
+      "sha256": "dc84b355443834682c146353a5ec6fec22358ce9f8ed228f013e927356ebb14b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.pdf": {
+      "sha256": "ef2c480a5f14eec1b07cdc89f1c854a688d246092e3d67ce064091e8d9433268"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.tex": {
+      "sha256": "c4ea6475cb0e33b5df98fd9d7af1455b675618f8073cb7b2015cd818dabd88ba"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.bbl": {
+      "sha256": "f8d234fe7f3c9066c9e86616567b776aeb60968e9b3f46e17048b2e1db5f5d3c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.pdf": {
+      "sha256": "eaaaaa41b2741cbbeab0619f7d7db1b9a4b01b60f86b453f25a17a178fdf7a1b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.tex": {
+      "sha256": "6c18cf0f12fadf0b8fc813cb4d7b6c4943edda382234484d932eac74b01c924b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.bbl": {
+      "sha256": "d1f59083a52f246cb9b91e9e23226e84a47335c18b761baa010dfb22108150ca"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.pdf": {
+      "sha256": "aaba54243f72799e37d81286def608273ef8a2f648e529029e79b009198d04fc"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.tex": {
+      "sha256": "3a11fe47f46def133504c52116e3d92dd30ce0ff4ac1416cb4312c22e17e65a2"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.bbl": {
+      "sha256": "b95f3580cfd3bcca2aecdb1e68e142c508ac81377dd29a789eb30915f1b7523c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.pdf": {
+      "sha256": "bff2ef6659350b3a55c087a4ae25ab474c623d17902fb3265e2772f12178e384"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.tex": {
+      "sha256": "b921d164e0521ca430fcd62b073ae7922ff618ee77bd0efb1f9cf93dbca4a5ab"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.bbl": {
+      "sha256": "038e03c44db02a1b5eb3b72eaaaa284aefbe4f9731d31b874bc507e7ed699153"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.pdf": {
+      "sha256": "e0fd516f75b37475efcc8b1b10d524fad2675fc32b6da9cc0d7b1ce04608f57b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.tex": {
+      "sha256": "d15c74d3c4b9ae169ec505348d861cccf29049f0976d6c4243b010d8ccf85813"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/README.md": {
+      "sha256": "a61b30bf81317de357051fec9f860d72676d53d953683ec8be5cc71a41f751fb"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/TEMPLATE_audit.md": {
+      "sha256": "295ad638107bf45c03950aa688d17ea9517c6cc906be0d1f326a49929ea85d61"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/TEMPLATE_review.tex": {
+      "sha256": "0d8919b6fdd919f6d6ca1075b59f763931bce1dc13ee4943c17ed79db3328ed0"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P01_polished_review_audit.md": {
+      "sha256": "841a8ab7744bb325ece70d441fa801b506617ef12195aaebfe61def0407e119c"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P02_polished_review_audit.md": {
+      "sha256": "b50774cb7d2700adc781ecd9efa4d04e0c4e547b8ca92446c7b38ad8e71e3d55"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P03_polished_review_audit.md": {
+      "sha256": "fe492c84543cf048b714ae6459b20d88017fa45c87a54eb9a1d7c8c0af7eccb4"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P04_polished_review_audit.md": {
+      "sha256": "5eadbf7c449ca05026f07a5534bd90ae73ad806e6a8168e443f98988cd0d79b6"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P05_polished_review_audit.md": {
+      "sha256": "6cf38c63bf59e49029282e4c8e62b29bca18c72a751ff594640cff546c115a97"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P06_polished_review_audit.md": {
+      "sha256": "1f08f349416b1636f35698708a72d9fd6a1215150d926816ed86317ec3611043"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P07_polished_review_audit.md": {
+      "sha256": "0705c526b7294b322ad9b609f8b5a3b79e2a01264fbd241e8566be0491c9d86a"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P08_polished_review_audit.md": {
+      "sha256": "e80f3776747ae87c8cc4bc456045b950e6cb473507bde047bb6d1ccf81fe2d5b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P09_polished_review_audit.md": {
+      "sha256": "e413d2643b6f0952e65293653bdd36e412531fa6fcaaa27546098aa6afb32796"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P10_polished_review_audit.md": {
+      "sha256": "ec4e6d8feb7c92654aa210ceafbe90a6434d9bff24a1d3d87166b6b6fa6c116b"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_paper_reviews.py": {
+      "sha256": "ac07623d04d0235806814119e7988f56260f2e67502dbb8c18d333b26ed2ac5d"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P01_review.html": {
+      "sha256": "e58abec9f72949390253f90b659bf33a7a86b224a6515392164195137fd55764"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P02_review.html": {
+      "sha256": "f6d65f6d4945258e5692616ffdf4349394f9090b039a97b60e9781b4338b2409"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P03_review.html": {
+      "sha256": "e1f50c6aa4202ea96d51eaede72a1a592eb6c2fc5bff49bdedf6ad263e78c950"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P04_review.html": {
+      "sha256": "cd46c31fa9016b1e732b988a1fc66140bf97a193f95fd404dea4773ed84f45fd"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P05_review.html": {
+      "sha256": "dc4af80aa39bccad5dca6c7020be0945b9a2220c5ccae0e73d4896f18588da95"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P06_review.html": {
+      "sha256": "32914cdb4180bc27a7c8914cc2de5d3678c92bcb2ddaf9e907df26ed238dd665"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P07_review.html": {
+      "sha256": "98c1bcabede580b9c0235640bac94badc8e868a6037f448c8e4067e9fb1b494e"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P08_review.html": {
+      "sha256": "0e4be34bf440605a06880a16a7546bad963012a4bafe8a7ca9cd5fbb089ad562"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P09_review.html": {
+      "sha256": "ac0b3564d1767babc9d42795a793b0a07155a18482066abce61cc8856bade631"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/html/P10_review.html": {
+      "sha256": "75ef9fccdd05d3addc14c75ae4055952311d2e08209611060c3b42f147cf4c95"
+    },
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/review_style.tex": {
+      "sha256": "98ea77bc3ef5f5940aebec7a48afe744b6eabf66be8e72337bdf14d62731fe8c"
+    },
+    "literature/conductance_kernel_laplacian_review/references.bib": {
+      "sha256": "8ae6c9aab4d2357effab1d6ff1a64bf5f45f00daed231058d6b7748ca9e2ea23"
+    },
+    "literature/conductance_kernel_laplacian_review/render_paper_figure_screenshots.py": {
+      "sha256": "9066afb9374a166e8ae3e671537787c08a2003ffcfe3f60520f11d2ba4f55c4b"
+    },
+    "literature/conductance_kernel_laplacian_review/render_tier1_memo_html.py": {
+      "sha256": "25865e9f9e76f813b93bf17ef438922ec39474a5e99b432f3d0b48ed3a25776e"
+    },
+    "literature/conductance_kernel_laplacian_review/review_assignments.yml": {
+      "sha256": "41387929ea412a5c180da5964a7eb073c55a88748544b7afdce946d717ac1bc4"
+    },
+    "literature/conductance_kernel_laplacian_review/review_html.css": {
+      "sha256": "550f4fffef741f31f554696f0387aed8b08f777710d09ef47b6850b51c4145b7"
+    },
+    "literature/conductance_kernel_laplacian_review/source_manifest.yml": {
+      "sha256": "7b73330e3a793cbc784773afb66606855ddb3476a76e0f01cf183a43c2010f25"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/.DS_Store": {
+      "sha256": "c909d180a200f38d0094033938c5a53614f6884f1d13b63060040296a6b2337f"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P01_zelnik_manor_perona_self_tuning_spectral_clustering.pdf": {
+      "sha256": "6c301a6b8bb3d514d051107d437704c30f15ff3732f76e149b1930690e899b59"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P02_belkin_niyogi_laplacian_eigenmaps.pdf": {
+      "sha256": "aba984615a8fdb028aaea6f7b1716d4252838b42538457d03678a5ce8c1132a0"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P03_coifman_lafon_diffusion_maps.pdf": {
+      "sha256": "1a2872909fa227183c93078b822f2746627d6898f9cef6393f22dcd24c9726f7"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P04_berry_harlim_variable_bandwidth_diffusion_kernels.pdf": {
+      "sha256": "f214717097b310b88371926c3ccb7258307ae7483a70f6f4e921921b9bc7b21d"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P05_zhu_ghahramani_lafferty_gaussian_fields_harmonic_functions.pdf": {
+      "sha256": "fe5394f834acb2afe704c4d95f16ea0ec176de12870b9d411289fd7cbad4b201"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P06_belkin_niyogi_sindhwani_manifold_regularization.pdf": {
+      "sha256": "f83f892575a6596aa587e3eddce1b7600f58e2eb9cad4e11ef141d3e8092efc6"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P07_shuman_et_al_emerging_field_gsp.pdf": {
+      "sha256": "8700aa3efea85f5024a39588c842e7445a5db04396105e63294e2de2ef8361f5"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.pdf": {
+      "sha256": "f053f7ec4e4abfc9efc37077c39efd1371e5a47836cd7805b55fec6cc87f6bd2"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P09_belkin_niyogi_theoretical_foundation_laplacian_manifold_methods.pdf": {
+      "sha256": "b9e24cc13c6ae9ae7077c415c8ae0e6bbb3b0c6761cc2ae3ed5fd983d571a650"
+    },
+    "literature/conductance_kernel_laplacian_review/sources/pdf/P10_cheng_wu_knn_self_tuned_kernels.pdf": {
+      "sha256": "f55453f5abfd2df65a7727c5acce4aa1a4f35658890402107a0fa32fdd341a5c"
+    },
+    "notes/.DS_Store": {
+      "sha256": "ae14720c16cbe0460e8319764113ac8415b5189ab475348768ea0919d02c851e"
+    },
+    "notes/.gitkeep": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "notes/TREND_FILTERING_MOVED.md": {
+      "sha256": "d738e935aa327d7d07a9843a40352a52f73d75ecff343aaababa8993fe30cf1e"
+    },
+    "notes/claim_evidence_dashboard.html": {
+      "sha256": "3d220cc4a30cb6d211f2ce3535ac724277bd7528243da5b7dbf9b80195b20fad"
+    },
+    "notes/figure_table_readiness_board.html": {
+      "sha256": "63653d0bd3d201f665f1493ce1cbdcabb6c66c48539af5b248de59a3403dbec2"
+    },
+    "notes/gflow_low_pass_gcv_operator/gflow_low_pass_gcv_operator.pdf": {
+      "sha256": "85f066695d40bdf3b10dee68ad255b75d81dbaf0c9b511ae5bae1568eb2185af"
+    },
+    "notes/gflow_low_pass_gcv_operator/gflow_low_pass_gcv_operator.tex": {
+      "sha256": "a8842772a2164e8a504a3969cc175ab8250723a8e5bcc4975ae5784bfa759bdb"
+    },
+    "notes/graph_hessian_literature_review/README.md": {
+      "sha256": "b622890ad47f20ec5871939396e9fb3e5ff0179cf3a94d7bfdb6e3326600b5b1"
+    },
+    "notes/graph_hessian_literature_review/graph_hessian_literature_review.md": {
+      "sha256": "0f6c988bfb76a477601222cc9734fd6c6d1fa1c04fd74052ccbcbd6392c977d2"
+    },
+    "notes/graph_hessian_literature_review/source_manifest.yml": {
+      "sha256": "89b60b979ffb382f521167d70bb25f9f399ea2a89dba8beb7debb3dbe808a435"
+    },
+    "notes/graph_hessian_literature_review/sources/pdf/kim_steinke_hein_2009_hessian_energy.pdf": {
+      "sha256": "47603034ac9693b37beab3204af7dc9c8ee5c77576fca47fe64c6ee8dab2f5ff"
+    },
+    "notes/manuscript_resource_dashboard.html": {
+      "sha256": "f2cba7d7ddd54230baf01d58796b7750c0ee71a97b3135ab19439491939a40cf"
+    },
+    "notes/non_oracle_graph_selection_benchmark_plan.md": {
+      "sha256": "431d2c1cbb1d3cced7c2f33f87f92f099b894d5b9eb93bd5d5ddf5d9aef75e67"
+    },
+    "notes/non_oracle_graph_selection_method_inventory.md": {
+      "sha256": "e3a876f3720ac005789d59fc1ea3fe8456b5a24af94a2e0c5d3045a2ca626bff"
+    },
+    "notes/simods_paper_planning_dashboard.html": {
+      "sha256": "20e6a65a24b05e95d476b56db2412ac09e54c252c1be89ad06a1bb225da2f143"
+    },
+    "paper_reviews_latex/.DS_Store": {
+      "sha256": "0d484509cefb7cbfac8a99e16098927ebafea02a828e579c22f005599e152be8"
+    },
+    "scripts/.gitkeep": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scripts/build_claim_evidence_dashboard.py": {
+      "sha256": "f788bd3f25f20944af72ef1623db4103895dd531c8922319216530e04a82f14c"
+    },
+    "scripts/build_figure_table_readiness_board.py": {
+      "sha256": "9407dde1b637f602a10d728e64cbfd4699d5f6ca4b4cb473d45609f3cd0c47dd"
+    },
+    "scripts/build_resource_dashboard.py": {
+      "sha256": "b217d156278ef48c993dd5cde5062e8a29a34387b953cee03506f9ec9db0555f"
+    },
+    "scripts/build_simods_scope_dashboard.py": {
+      "sha256": "a9aa7e7bc4153ad2a50ab9fa913f95ab72bf7b71f14b03307051b0e5909d55dd"
+    },
+    "tables/.gitkeep": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "notes/simods_data_geodesic_mds_paper_scope.md": {
+      "sha256": "2969a94515e01e2cc5830de4bd449e1761195aff2251e3ef3b9ad2dcd0215e4c",
+      "origin": "notes/simods_data_geodesic_mds_paper_scope.md"
+    }
+  },
+  "omitted_disposable_or_private": [
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.aux",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.blg",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.fls",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.log",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.out",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/conductance_kernel_laplacian_review.toc",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P01_zelnik_manor_perona_self_tuning/P01_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P02_belkin_niyogi_laplacian_eigenmaps/P02_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P03_coifman_lafon_diffusion_maps/P03_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P04_berry_harlim_variable_bandwidth_diffusion_kernels/P04_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P05_zhu_ghahramani_lafferty_gaussian_fields/P05_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P06_belkin_niyogi_sindhwani_manifold_regularization/P06_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P07_shuman_et_al_graph_signal_processing/P07_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P08_hein_audibert_von_luxburg_graph_laplacian_convergence/P08_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P09_belkin_niyogi_theoretical_foundation/P09_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.aux",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.blg",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.fdb_latexmk",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.fls",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.out",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/P10_cheng_wu_knn_self_tuned_kernels/P10_review.synctex.gz",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P01_zelnik_manor_perona_self_tuning.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P02_belkin_niyogi_laplacian_eigenmaps.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P03_coifman_lafon_diffusion_maps.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P04_berry_harlim_variable_bandwidth_diffusion_kernels.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P05_zhu_ghahramani_lafferty_gaussian_fields.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P06_belkin_niyogi_sindhwani_manifold_regularization.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P07_shuman_et_al_graph_signal_processing.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P08_hein_audibert_von_luxburg_graph_laplacian_convergence.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P09_belkin_niyogi_theoretical_foundation.log",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/build_logs/P10_cheng_wu_knn_self_tuned_kernels.log",
+    "tmp/P07_E03_candidate_crop.png",
+    "tmp/cropped_paper_figures_contact_sheet.png",
+    "tmp/cropped_paper_figures_contact_sheet_v2.png",
+    "tmp/figure_page_audit/P08-20.png",
+    "tmp/figure_page_audit/P08-21.png",
+    "tmp/figure_page_audit/P08-22.png",
+    "tmp/figure_page_audit/P08-23.png",
+    "tmp/figure_page_audit/P08_F05_candidate.png",
+    "tmp/figure_page_audit/P08_F05_candidate2.png",
+    "tmp/figure_page_audit/P10-19.png",
+    "tmp/figure_page_audit/P10-20.png",
+    "tmp/figure_page_audit/P10-21.png",
+    "tmp/figure_page_audit/P10-22.png",
+    "tmp/figure_page_audit/P10_F10_candidate.png",
+    "tmp/figure_page_audit/P10_F10_candidate2.png",
+    "tmp/figure_page_audit/audit_pages_contact.png",
+    "tmp/pdfs/P07_shuman/P07_figure_pages_contact.png",
+    "tmp/pdfs/P07_shuman/P07_layout.txt",
+    "tmp/pdfs/P07_shuman/page_01.txt",
+    "tmp/pdfs/P07_shuman/page_02.txt",
+    "tmp/pdfs/P07_shuman/page_03.txt",
+    "tmp/pdfs/P07_shuman/page_04.txt",
+    "tmp/pdfs/P07_shuman/page_05.txt",
+    "tmp/pdfs/P07_shuman/page_06.txt",
+    "tmp/pdfs/P07_shuman/page_07.txt",
+    "tmp/pdfs/P07_shuman/page_08.txt",
+    "tmp/pdfs/P07_shuman/page_09.txt",
+    "tmp/pdfs/P07_shuman/page_10.txt",
+    "tmp/pdfs/P07_shuman/page_11.txt",
+    "tmp/pdfs/P07_shuman/page_12.txt",
+    "tmp/pdfs/P07_shuman/page_13.txt",
+    "tmp/pdfs/P07_shuman/page_14.txt",
+    "tmp/pdfs/P07_shuman/pages/page-01.png",
+    "tmp/pdfs/P07_shuman/pages/page-02.png",
+    "tmp/pdfs/P07_shuman/pages/page-03.png",
+    "tmp/pdfs/P07_shuman/pages/page-04.png",
+    "tmp/pdfs/P07_shuman/pages/page-05.png",
+    "tmp/pdfs/P07_shuman/pages/page-06.png",
+    "tmp/pdfs/P07_shuman/pages/page-07.png",
+    "tmp/pdfs/P07_shuman/pages/page-08.png",
+    "tmp/pdfs/P07_shuman/pages/page-09.png",
+    "tmp/pdfs/P07_shuman/pages/page-10.png",
+    "tmp/pdfs/P07_shuman/pages/page-11.png",
+    "tmp/pdfs/P07_shuman/pages/page-12.png",
+    "tmp/pdfs/P07_shuman/pages/page-13.png",
+    "tmp/pdfs/P07_shuman/pages/page-14.png"
+  ],
+  "pending_edit": "The pre-existing inventory edit is transferred as an uncommitted staged change after importing its HEAD version.",
+  "private_editorial_files": [
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P04_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P08_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P05_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P01_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P09_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P03_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P07_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P06_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P02_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P10_polished_review_audit.md",
+    "literature/conductance_kernel_laplacian_review/review_assignments.yml"
+  ]
+}

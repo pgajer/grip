@@ -1,0 +1,63 @@
+bundle:
+  title: "Graph Hessian Literature Review Note"
+  canonical_workspace: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/graph_hessian_literature_review"
+  primary_source: "graph_hessian_literature_review.md"
+  built: "May 20, 2026"
+  purpose: "Short reusable literature note on attempts to define graph Hessian / Hessian-energy operators."
+sources:
+  - id: S001
+    title: "Hessian Eigenmaps"
+    authors: "Donoho and Grimes"
+    year: 2003
+    url: "https://www.math.ucdavis.edu/~saito/data/high-dimensions/HessianEigenmaps.pdf"
+    source_type: "PDF"
+    access_date: "2026-05-20"
+    role: "primary early Hessian-energy/manifold-learning source"
+  - id: S002
+    title: "Semi-supervised Regression using Hessian Energy with an Application to Semi-supervised Dimensionality Reduction"
+    authors: "Kim, Steinke, and Hein"
+    year: 2009
+    url: "https://papers.neurips.cc/paper/3741-semi-supervised-regression-using-hessian-energy-with-an-application-to-semi-supervised-dimensionality-reduction"
+    pdf_url: "https://papers.neurips.cc/paper_files/paper/2009/file/f4552671f8909587cf485ea990207f3b-Paper.pdf"
+    local_path: "sources/pdf/kim_steinke_hein_2009_hessian_energy.pdf"
+    canonical_reading_copy: true
+    source_type: "conference page and PDF"
+    access_date: "2026-05-20"
+    role: "main Hessian-energy regularization source for semi-supervised regression"
+  - id: S003
+    title: "Discrete Hessian Eigenmaps method for dimensionality reduction"
+    authors: "Ye and Zhi"
+    year: 2015
+    url: "https://www.sciencedirect.com/science/article/pii/S0377042714004075"
+    source_type: "publisher page"
+    access_date: "2026-05-20"
+    role: "discrete Hessian-operator follow-on source"
+  - id: S004
+    title: "HesGCN: Hessian graph convolutional networks for semi-supervised classification"
+    url: "https://www.sciencedirect.com/science/article/pii/S0020025519310643"
+    source_type: "publisher page"
+    access_date: "2026-05-20"
+    role: "example follow-on Hessian regularization / graph neural network source"
+  - id: S005
+    title: "Voxel graph operators"
+    authors: "Nourian and Azadi"
+    year: 2024
+    url: "https://www.sciencedirect.com/science/article/pii/S0965997824001297"
+    source_type: "open-access publisher page"
+    access_date: "2026-05-20"
+    role: "voxel/mesh-style graph differential operator source"
+  - id: S006
+    title: "High-Order Regularization on Graphs"
+    authors: "Zhou and Burges"
+    year: 2008
+    url: "https://www.microsoft.com/en-us/research/publication/high-order-regularization-graphs/"
+    source_type: "Microsoft Research page"
+    access_date: "2026-05-20"
+    role: "related high-order graph regularization / Hodge-style calculus source"
+  - id: S007
+    title: "Spectral Clustering of Graphs with the Bethe Hessian"
+    year: 2014
+    url: "https://papers.neurips.cc/paper/5520-spectral-clustering-of-graphs-with-the-bethe-hessian"
+    source_type: "NeurIPS page"
+    access_date: "2026-05-20"
+    role: "terminology caveat: Bethe Hessian is not a graph-signal Hessian"

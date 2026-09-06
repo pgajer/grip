@@ -1,6 +1,6 @@
 # Graph-geodesic embedding methods paper
 
-The active source is `geodesic_mds.tex`. It is being refocused as
+The active source is `geodesic_mds.tex`. Its title is
 **What Graph-Geodesic Embeddings Preserve: Path Fidelity, Scale, and Geometric
 Recovery**, using the completed grip initializer and radius studies.
 
@@ -14,7 +14,7 @@ Do not describe it as submission-ready.
 ## Canonical sources and provenance
 
 - One active manuscript: `geodesic_mds.tex` and `geodesic_mds.bib`.
-- The pre-refocus manuscript is preserved in Git at commit `740df96`.
+- The pre-refocus manuscript is preserved in Git at commit `740df96` in the geodesicMDS repository.
 - Historical snapshots under `archive/` remain historical, not active versions.
 - `evidence/source-manifest.json` pins the grip source commit and file hashes.
 - `evidence/claims.json` records the retained claims and their assumptions.
@@ -68,9 +68,9 @@ contribution clear while documenting shared experimental material.
 
 ## Author-review packaging
 
-`make review-bundle` writes the PDF, a minimal typesetting source ZIP, a
+After committing the active source, `make review-bundle` writes the PDF, a minimal typesetting source ZIP, a
 frozen-evidence reproduction ZIP, and an artifact hash manifest under
-`build/review-bundle/`. The packager uses an explicit active-source list and
+`review-bundles/<Eastern-date-time>-<commit>/`. The packager uses an explicit active-source list and
 excludes historical manuscripts, unrelated figures, and private review notes.
 Each archive includes its own file-hash manifest. The reproduction archive
 regenerates figures and verifies frozen numerical evidence; it does not refit
@@ -82,3 +82,17 @@ The September 6 audit revision adds component-wise coordinate diagnostics, local
 rigidity checks, contraction prevalence, measured neighborhood sensitivity and
 paired stiffness comparisons. Distribute one complete `review-bundle` directory;
 do not mix a PDF from one dated revision with archives from another.
+
+## Repository consolidation
+
+This directory in the normal grip checkout is the sole editable paper home.
+`provenance/migration.json` records the original audited commit and every imported
+file hash; `provenance/style-revision.json` identifies the separately adopted style
+sources. Corrections to that revision are recorded by subsequent grip commits.
+Historical review packages under `review-bundles/` are immutable outputs. The
+packager refuses overwrites and checks the built PDF against its source inputs
+and current commit. `build/` is disposable; it never contains unique manuscripts.
+
+From the grip root use `make gmds-paper-pdf`, `make gmds-paper-verify`, or
+`make gmds-paper-review-bundle`. These targets use frozen evidence without
+requiring the old geodesicMDS checkout or private working files.

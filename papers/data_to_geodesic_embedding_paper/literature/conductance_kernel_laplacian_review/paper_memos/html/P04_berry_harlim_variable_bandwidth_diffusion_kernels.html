@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Variable Bandwidth Diffusion Kernels</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Variable Bandwidth Diffusion
+Kernels</h1>
+</header>
+<p>Paper: Berry, Tyrus; Harlim, John. “Variable Bandwidth Diffusion
+Kernels.” Applied and Computational Harmonic Analysis 40(1):68-96, 2016.
+DOI: 10.1016/j.acha.2015.01.001. arXiv:1406.5064. Reviewer: Reviewer-P04
+Auditor: Auditor-P04 Status: revised after audit Date: 2026-05-15 Source
+manifest ID: P04 Canonical reading copy:
+<code>literature/conductance_kernel_laplacian_review/sources/pdf/P04_berry_harlim_variable_bandwidth_diffusion_kernels.pdf</code></p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<p>A mathematically capable reader should be comfortable with:</p>
+<ul>
+<li>Graph Laplacians and weighted adjacency kernels: how a kernel matrix
+becomes a Markov matrix or graph Laplacian.</li>
+<li>Diffusion maps and the Coifman-Lafon <span
+class="math inline">\(\alpha\)</span> normalization: <span
+class="math inline">\(\alpha=1\)</span> removes sampling-density bias;
+other <span class="math inline">\(\alpha\)</span> values retain density
+drift.</li>
+<li>Kernel density estimation: fixed bandwidth versus local bandwidth,
+and why sparse tails are hard.</li>
+<li>Riemannian manifolds embedded in Euclidean space: gradients, the
+Laplace-Beltrami operator, and volume measure.</li>
+<li>Backward Kolmogorov generators: operators of the form <span
+class="math inline">\(\Delta f + b dot \nabla f\)</span>.</li>
+<li>Monte Carlo approximation of integral operators from random point
+clouds.</li>
+<li>Spectral approximation: eigenvectors of a discrete graph operator as
+samples of eigenfunctions of a continuum operator.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>The paper asks what happens when the Gaussian-like affinity between
+two data points uses a local scale instead of one global bandwidth. In a
+fixed-bandwidth graph, two points at a given Euclidean distance receive
+the same edge weight no matter whether they lie in a dense region or a
+sparse tail. In a variable-bandwidth graph, the denominator of the
+kernel includes a local scale <span
+class="math inline">\(\rho(x)\rho(y)\)</span>, so the same distance can
+be treated as “near” in sparse regions and “far” in dense regions.</p>
+<p>The main message is subtle: changing bandwidth is not merely a
+numerical stabilization trick. It changes the continuum differential
+operator unless the normalization parameters are chosen carefully. For
+<span class="math inline">\(\rho=q^\beta\)</span>, where <code>q</code>
+is the sampling density, the limit is <span class="math inline">\(\Delta
+f + c1 \nabla f dot \nabla q/q\)</span>; the coefficient <code>c1</code>
+depends on both the diffusion-map normalization <span
+class="math inline">\(\alpha\)</span> and the bandwidth exponent
+<code>beta</code>. The finite-sample error also depends on
+<code>q</code> and <span class="math inline">\(\rho\)</span>, and
+fixed-bandwidth kernels can have unbounded pointwise errors where
+<code>q</code> approaches zero. This is the paper’s strongest connection
+to local-scale conductance: adaptive bandwidth can preserve effective
+connectivity in sparse regions while controlling the operator that the
+graph approximates.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>The paper generalizes the asymptotic and finite-sample theory for
+diffusion maps and Laplacian eigenmaps from fixed-bandwidth kernels to
+self-tuned or variable-bandwidth kernels. The motivation is stated in
+the Abstract and Section 1 (PDF pp. 1-2): practical kernel methods often
+use self-tuned kernels, but much of the theory available at the time
+covered only fixed bandwidths. The authors cite Zelnik-Manor and
+Perona’s self-tuning spectral clustering as a practical example, and
+Coifman-Lafon diffusion maps plus Singer’s finite-sample analysis as the
+theoretical background.</p>
+<p>The key gap is that previous general convergence work by Ting, Huang,
+and Jordan gave limiting operators for broad graph Laplacian sequences
+but not rates or discrete error bounds (Section 1, PDF p. 2). Berry and
+Harlim provide asymptotic expansions and pointwise high-probability
+errors for discrete variable-bandwidth operators. The most practically
+important case is non-compact or effectively open data support, where
+the sampling density is not bounded away from zero.</p>
+<h3 id="main-method">Main Method</h3>
+<p>The method uses a symmetric variable-bandwidth kernel</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^S(x,y) &amp;= h( \Vert x-y\Vert ^2 / (\epsilon \rho(x)
+\rho(y)) )
+\end{aligned}
+\]</span></p>
+<p>from equation (2) on PDF p. 1, then applies a density correction and
+left Markov normalization analogous to diffusion maps. The bandwidth
+function is often chosen as <span
+class="math inline">\(\rho=q^\beta\)</span> or estimated from data using
+a nearest-neighbor pilot density estimate (Section 3, PDF pp. 5-6).</p>
+<p>The theoretical development has two layers:</p>
+<ol type="1">
+<li>A continuum expansion of the associated integral operators, showing
+that the symmetric variable-bandwidth operator converges to</li>
+</ol>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\alpha,\rho} f &amp;= \Delta f \\
++ 2(1-\alpha) \nabla f dot \nabla q/q \\
++ (d+2) \nabla f dot \nabla \rho/\rho
+\end{aligned}
+\]</span></p>
+<p>from Theorem 1 and equation (6), PDF p. 3.</p>
+<ol start="2" type="1">
+<li>A discrete Monte Carlo error analysis, extending Singer’s
+fixed-bandwidth bound, showing that pointwise errors depend on powers of
+<span class="math inline">\(q(x_{i})\)</span>, <span
+class="math inline">\(\rho(x_{i})\)</span>, <span
+class="math inline">\(\Vert \nabla f(x_{i})\Vert\)</span>,
+<code>N</code>, and <span class="math inline">\(\epsilon\)</span>
+(Theorem 1, equation (5), PDF p. 3; Appendix B, PDF pp. 22-26).</li>
+</ol>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p>The paper’s fixed-bandwidth baseline is equation (1), PDF p. 1:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}(x,y) &amp;= h( \Vert x-y\Vert ^2 / \epsilon ).
+\end{aligned}
+\]</span></p>
+<p>The variable-bandwidth kernel is equation (2), PDF p. 1:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^S(x,y) &amp;= h( \Vert x-y\Vert ^2 / (\epsilon
+\rho(x)\rho(y)) ).
+\end{aligned}
+\]</span></p>
+<p>For fixed bandwidth, diffusion maps approximate the Kolmogorov
+operator in equation (3), PDF p. 2:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\alpha} f &amp;= \Delta f + (2-2alpha) \nabla f dot \nabla q/q.
+\end{aligned}
+\]</span></p>
+<p>Singer’s fixed-bandwidth high-probability error, quoted as equation
+(4), PDF p. 3, is:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha} f(x_{i}) \\
+&amp;= (1/\epsilon) [ sum_{j} K_{\epsilon}(x_{i},x_{j}) f(x_{j}) /
+sum_{j} K_{\epsilon}(x_{i},x_{j}) - f(x_{i}) ] \\
+&amp;= L_{\alpha} f(x_{i}) + O( \epsilon, \Vert \nabla f(x_{i})\Vert  /
+\sqrt(N \epsilon^{1+d/2}) )
+\end{aligned}
+\]</span></p>
+<p>where the paper writes the denominator as <span
+class="math inline">\(\sqrt(N \epsilon^{1/2+d/4})\)</span> after the
+square-root convention in the displayed bound.</p>
+<p>Theorem 1, PDF p. 3, defines:</p>
+<p><span class="math display">\[
+\begin{aligned}
+F_{i}(x_{j}) &amp;= K_{\epsilon}^S(x_{i},x_{j}) f(x_{j}) /
+[q_{\epsilon}^S(x_{i})^\alpha q_{\epsilon}^S(x_{j})^\alpha] \\
+G_{i}(x_{j}) &amp;= K_{\epsilon}^S(x_{i},x_{j})        /
+[q_{\epsilon}^S(x_{i})^\alpha q_{\epsilon}^S(x_{j})^\alpha] \\
+q_{\epsilon}^S(x_{i}) &amp;= sum_{l} K_{\epsilon}^S(x_{i},x_{l}) /
+\rho(x_{i})^d.
+\end{aligned}
+\]</span></p>
+<p>The corresponding discrete operator in equation (5), PDF p. 3,
+is:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha}^S f(x_{i}) \\
+&amp;= (1 / [\epsilon m \rho(x_{i})^2]) \\
+[ sum_{j} F_{i}(x_{j}) / sum_{j} G_{i}(x_{j}) - f(x_{i}) ].
+\end{aligned}
+\]</span></p>
+<p>With high probability,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha}^S f(x_{i}) \\
+&amp;= L_{\alpha,\rho} f(x_{i}) \\
++ O( \epsilon, \\
+q(x_{i})^{1/2} \rho(x_{i})^{-d/2} / \sqrt(N \epsilon^{4+d/2}), \\
+\Vert \nabla f(x_{i})\Vert  q(x_{i})^{-(1/2-2alpha+2dalpha)} \\
+\rho(x_{i})^{-(d/2+1)} / \sqrt(N \epsilon^{1+d/2}) )
+\end{aligned}
+\]</span></p>
+<p>using the paper’s displayed equation (5) notation:</p>
+<p><span class="math display">\[
+\begin{gathered}
+O( \epsilon, \\
+q(x_{i})^{1/2} \rho(x_{i})^{-d/2} / [\sqrt(N) \epsilon^{2+d/4}], \\
+\Vert \nabla f(x_{i})\Vert  q(x_{i})^{-(1/2-2alpha+2dalpha)} \\
+\rho(x_{i})^{-(d/2+1)} / [\sqrt(N) \epsilon^{1/2+d/4}] ).
+\end{gathered}
+\]</span></p>
+<p>The continuum operator is equation (6), PDF p. 3:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\alpha,\rho} f &amp;= \\
+\Delta f + 2(1-\alpha) \nabla f dot \nabla q/q \\
++ (d+2) \nabla f dot \nabla \rho/\rho.
+\end{aligned}
+\]</span></p>
+<p>Corollary 1, equation (7), PDF p. 3, specializes to <span
+class="math inline">\(\rho=q^\beta+O(\epsilon)\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha,\beta}^S f(x_{i}) \\
+&amp;= L_{\alpha,\beta} f(x_{i}) \\
++ O( \epsilon, \\
+q(x_{i})^{(1-d \beta)/2} / [\sqrt(N) \epsilon^{2+d/4}], \\
+\Vert \nabla f(x_{i})\Vert  q(x_{i})^{-c2} / [\sqrt(N)
+\epsilon^{1/2+d/4}] ).
+\end{aligned}
+\]</span></p>
+<p>The limiting operator is equation (8), PDF p. 3:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\alpha,\beta} f &amp;= \Delta f + c1 \nabla f dot \nabla q/q, \\
+c1 &amp;= 2 - 2alpha + d \beta + 2 \beta, \\
+c2 &amp;= 1/2 - 2alpha + 2dalpha + d \beta/2 + \beta.
+\end{aligned}
+\]</span></p>
+<p>For non-compact manifolds where <code>q</code> may approach zero,
+Section 2 (PDF p. 4) says the error powers should satisfy:</p>
+<p><span class="math display">\[
+\begin{gathered}
+(1-d \beta)/2 &gt; 0, \\
+c2 &lt; 0.
+\end{gathered}
+\]</span></p>
+<p>The paper emphasizes <span class="math inline">\(\beta&lt;0\)</span>,
+especially <span class="math inline">\(\beta=-1/2\)</span>, because it
+enlarges bandwidth in sparse regions and shrinks it in dense regions.
+For gradient flow estimation with <span
+class="math inline">\(c1=1\)</span>, <span
+class="math inline">\(\beta=-1/2\)</span> gives <span
+class="math inline">\(\alpha=-d/4\)</span>; for the Laplacian with <span
+class="math inline">\(c1=0\)</span>, <span
+class="math inline">\(\beta=-1/2\)</span> gives <span
+class="math inline">\(\alpha=1/2-d/4\)</span> (Section 2, PDF p. 4).</p>
+<p>Section 3, equation (9), PDF p. 5, gives the stochastic process
+target:</p>
+<p><span class="math display">\[
+\begin{aligned}
+dx &amp;= -c1 \nabla U(x) dt + \sqrt(2) dW_{t}, \\
+q(x) proportional to \exp(-c1 U(x)).
+\end{aligned}
+\]</span></p>
+<p>Its backward generator is <span
+class="math inline">\(L_{\alpha,\beta}\)</span> in equation (8).</p>
+<p>The nearest-neighbor pilot bandwidth and density estimate in Section
+3, equation (10), PDF p. 5, are:</p>
+<p><span class="math display">\[
+\begin{aligned}
+rho_{0}(x_{i}) &amp;= [ (1/(k0-1)) sum_{j=2}^{k0} \Vert x_{i} -
+x_{I(i,j)}\Vert ^2 ]^{1/2}, \\
+epsilon_{0}^{1/2} &amp;= (1/N) sum_{i} rho_{0}(x_{i}), \\
+tilde rho_{0} &amp;= rho_{0} / epsilon_{0}^{1/2},
+\end{aligned}
+\]</span></p>
+<p>and</p>
+<p><span class="math display">\[
+\begin{aligned}
+q_{0}(x_{i}) &amp;= \\
+(2pi)^{-d/2} / [rho_{0}(x_{i})^d N] \\
+sum_{l&amp;=1}^N \exp( -\Vert x_{i}-x_{l}\Vert ^2 / [2
+rho_{0}(x_{i})rho_{0}(x_{l})] )
+\end{aligned}
+\]</span></p>
+<p>equivalently displayed with <span
+class="math inline">\(epsilon_{0}\)</span> and <span
+class="math inline">\(tilde rho_{0}\)</span> in equation (10), with
+error</p>
+<p><span class="math display">\[
+\begin{aligned}
+q_{0}(x_{i}) &amp;= q(x_{i}) + O( epsilon_{0}, \\
+\sqrt(q(x_{i})) / [N^{1/2} epsilon_{0}^{d/4} tilde rho_{0}(x_{i})^{d/2}]
+).
+\end{aligned}
+\]</span></p>
+<p>The paper then uses <span
+class="math inline">\(\rho=q_{0}^\beta=q^\beta+O(epsilon_{0})\)</span>
+and notes that balancing the errors gives <span
+class="math inline">\(epsilon_{0}=O(N^{-1/(1+d/4)})\)</span> (Section 3,
+PDF p. 5).</p>
+<p>The numerical implementation kernel and normalizations, Section 3,
+PDF pp. 5-6, are:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^S(x_{i},x_{j}) &amp;= \\
+\exp( -\Vert x_{i}-x_{j}\Vert ^2 / [4 \epsilon \rho(x_{i})\rho(x_{j})]
+), \\
+q_{\epsilon}^S(x_{i}) &amp;= \\
+sum_{j&amp;=1}^N K_{\epsilon}^S(x_{i},x_{j}) / \rho(x_{i})^d, \\
+K_{\epsilon,\alpha}^S(x_{i},x_{j}) &amp;= \\
+K_{\epsilon}^S(x_{i},x_{j}) / [q_{\epsilon}^S(x_{i})^\alpha
+q_{\epsilon}^S(x_{j})^\alpha], \\
+q_{\epsilon,\alpha}^S(x_{i}) &amp;= \\
+sum_{j&amp;=1}^N K_{\epsilon,\alpha}^S(x_{i},x_{j}), \\
+hat K_{\epsilon,\alpha}^S(x_{i},x_{j}) &amp;= \\
+K_{\epsilon,\alpha}^S(x_{i},x_{j}) / q_{\epsilon,\alpha}^S(x_{i}), \\
+L_{\epsilon,\alpha,\beta}^S(x_{i},x_{j}) &amp;= \\
+[hat K_{\epsilon,\alpha}^S(x_{i},x_{j}) - delta_{ij}] / [\epsilon
+\rho(x_{i})^2].
+\end{aligned}
+\]</span></p>
+<p>For eigensolvers, Section 3 constructs a symmetric conjugate. With
+<span
+class="math inline">\(D_{ii}=q_{\epsilon,\alpha}^S(x_{i})\)</span>,
+<span class="math inline">\(P_{ii}=\rho(x_{i})\)</span>, and <span
+class="math inline">\(K_{ij}=K_{\epsilon,\alpha}^S(x_{i},x_{j})\)</span>,</p>
+<p><span class="math display">\[
+\begin{aligned}
+L &amp;= P^{-2}(D^{-1}K - I)/\epsilon, \\
+S &amp;= P D^{1/2}, \\
+hat L &amp;= (1/\epsilon)(S^{-1} K S^{-1} - P^{-2}),
+\end{aligned}
+\]</span></p>
+<p>with entries</p>
+<p><span class="math display">\[
+\begin{aligned}
+hat L_{ij} &amp;= \\
+(1/[\epsilon \rho(x_{i})\rho(x_{j})]) \\
+[ K_{\epsilon,\alpha}^S(x_{i},x_{j}) / \\
+\sqrt(q_{\epsilon,\alpha}^S(x_{i})q_{\epsilon,\alpha}^S(x_{j})) \\
+- delta_{ij} ].
+\end{aligned}
+\]</span></p>
+<p>Eigenvectors are normalized so that <span class="math inline">\(\Vert
+phi_{vec}\Vert _{\mathbb{R}^{N}}=\sqrt(N)\)</span>, matching the Monte
+Carlo <span class="math inline">\(L^2(q)\)</span> norm (Section 3, PDF
+p. 6). Sparse implementation keeps <code>k</code> nearest neighbors and
+symmetrizes <code>K</code> as <span
+class="math inline">\((K+K^T)/2\)</span> (Section 3, PDF pp. 6-7).</p>
+<p>Appendix A gives the continuum operator derivation. It defines the
+integral operator in equation (A.1), PDF p. 14:</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{\epsilon}^S f &amp;= \epsilon^{-d/2} int_{M} K_{\epsilon}^S(x,y) f(y)
+dV(y).
+\end{aligned}
+\]</span></p>
+<p>It also defines right and left formulations:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^R(x,y) &amp;= h( \Vert x-y\Vert ^2 / [\epsilon \rho(y)]
+)        (A.2, PDF p. 14) \\
+K_{\epsilon}^L(x,y) &amp;= h( \Vert x-y\Vert ^2 / [\epsilon \rho(x)]
+)        (A.3, PDF p. 15)
+\end{aligned}
+\]</span></p>
+<p>Lemma 2, equation (A.4), PDF p. 15, extends the fixed-bandwidth
+expansion to non-compact manifolds under integrability and
+bounded-density assumptions:</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{\epsilon}(fq)(x) \\
+&amp;= m0 f(x)q(x) \\
++ \epsilon m2[ omega(x)f(x)q(x) + \Delta(fq)(x) ] \\
++ O(\epsilon^2).
+\end{aligned}
+\]</span></p>
+<p>The left formulation yields <span
+class="math inline">\(L_{\epsilon}^L f = \Delta f + O(\epsilon)\)</span>
+in equation (A.10), PDF p. 17. The right formulation yields the drifted
+operator</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon}^R f &amp;= \\
+\Delta f + (d+2) \nabla \rho/\rho dot \nabla f + O(\epsilon)
+\end{aligned}
+\]</span></p>
+<p>after equation (A.11), PDF p. 18. The symmetric formulation has
+expansion (A.12), PDF p. 19, and normalized limit (A.13):</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon}^S f &amp;= \\
+(1/[\epsilon m \rho(x)^2]) [G_{\epsilon}^S f(x)/G_{\epsilon}^S 1(x) -
+f(x)] \\
+&amp;= \Delta f + (d+2) \nabla \rho/\rho dot \nabla f + O(\epsilon).
+\end{aligned}
+\]</span></p>
+<p>For non-uniform sampling, Appendix A.5 defines the biased operator
+<span
+class="math inline">\(G_{\epsilon,q}^S(f)=G_{\epsilon}^S(fq)\)</span>,
+equation (A.15) for density expansion,</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{\epsilon,q}^S(1) \\
+&amp;= m0 \rho^d q [1 + \epsilon m(tilde omega + L^S q) +
+O(\epsilon^2)],
+\end{aligned}
+\]</span></p>
+<p>and the right debiasing in equation (A.16):</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{\epsilon,q,\alpha}^S(f) &amp;= \\
+G_{\epsilon,q}^S( f \rho^{d \alpha} / G_{\epsilon,q}^S(1)^\alpha ).
+\end{aligned}
+\]</span></p>
+<p>The normalized non-uniform result is equation (A.20), PDF p. 22:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha}^S f(x) \\
+&amp;= \Delta f \\
++ 2(1-\alpha) \nabla f dot \nabla q/q \\
++ (d+2) \nabla f dot \nabla \rho/\rho \\
++ O(\epsilon).
+\end{aligned}
+\]</span></p>
+<p>With <span class="math inline">\(\rho=q^\beta\)</span>, equation
+(A.21), PDF p. 22, gives:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha,\beta}^S f(x) \\
+&amp;= \Delta f + c1 \nabla f dot \nabla q/q + O(\epsilon).
+\end{aligned}
+\]</span></p>
+<p>Appendix B defines the discrete density normalization factor in
+(B.1), PDF p. 23:</p>
+<p><span class="math display">\[
+\begin{aligned}
+q_{\epsilon}^S(x_{j}) &amp;= sum_{l} K_{\epsilon}^S(x_{j},x_{l}) /
+\rho(x_{j})^d.
+\end{aligned}
+\]</span></p>
+<p>The discrete ratio approximating the continuous operator is equation
+(B.2), PDF p. 23:</p>
+<p><span class="math display">\[
+\begin{gathered}
+L_{\epsilon,\alpha}^S f(x_{i}) \\
+approx (1/[\epsilon m \rho(x_{i})^2]) \\
+[sum_{j} F_{i}(x_{j}) / sum_{j} G_{i}(x_{j}) - f(x_{i})].
+\end{gathered}
+\]</span></p>
+<p>The density renormalization error is controlled by (B.7), PDF
+p. 25:</p>
+<p><span class="math display">\[
+\begin{aligned}
+q(x_{j})^{1/2} \rho(x_{j})^{-d/2} / [N^{1/2} \epsilon^{2+d/4}] &amp;=
+O(1).
+\end{aligned}
+\]</span></p>
+<p>The statistical bias error is controlled by (B.11), PDF p. 26:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Vert \nabla f(x_{i})\Vert  q(x_{i})^{-(1/2-2alpha+2dalpha)} \\
+\rho(x_{i})^{-(d/2+1)} \\
+/ [\sqrt(N) \epsilon^{1/2+d/4}] &amp;= O(1).
+\end{aligned}
+\]</span></p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p>Figure 1 (Section 4, PDF p. 7) compares fixed bandwidth (<span
+class="math inline">\(\alpha=1/2, \beta=0\)</span>) and variable
+bandwidth (<span class="math inline">\(\alpha=-1/4, \beta=-1/2\)</span>)
+for the fourth eigenfunction of the 1D Ornstein-Uhlenbeck generator
+using 2000 deterministic quantile-spaced points from a standard normal
+density. Fixed bandwidth is visibly sensitive to <span
+class="math inline">\(\epsilon\)</span>; variable bandwidth matches the
+analytic curve across a wider range.</p>
+<figure class="paper-figure" id="P04_F01">
+<img src="../../paper_figures/P04_F01_F02_page07.png" alt="P04 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 1, PDF p. 7 (cropped
+from canonical reading copy), internal review only. Fixed versus
+variable bandwidth eigenfunction behavior.
+</figcaption>
+</figure>
+<p>Figure 2 (Section 4, PDF p. 7) repeats the 1D Ornstein-Uhlenbeck
+experiment with 20000 quantile-spaced points. The variable-bandwidth MSE
+has a broad low-error region, while the fixed-bandwidth MSE remains poor
+over the tested range; the right panel shows the best fixed-bandwidth
+eigenfunction still failing in the tails.</p>
+<figure class="paper-figure" id="P04_F02">
+<img src="../../paper_figures/P04_F01_F02_page07.png" alt="P04 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 2, PDF p. 7 (cropped
+from canonical reading copy), internal review only. Variable-bandwidth
+MSE stability.
+</figcaption>
+</figure>
+<p>Figure 3 (Section 4, PDF p. 8) tests a proposed fixed-bandwidth
+workaround: remove outliers. Even with deterministic samples and removal
+of <span class="math inline">\(\sqrt(N)\)</span> low-probability points,
+the fixed-bandwidth approximation converges slowly; the authors estimate
+that matching the variable-bandwidth MSE of 0.002 from 1000 points would
+require about <span class="math inline">\(6\,10^7\)</span>
+fixed-bandwidth points under the observed power law.</p>
+<figure class="paper-figure" id="P04_F03">
+<img src="../../paper_figures/P04_F03_page08.png" alt="P04 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 3, PDF p. 8 (cropped
+from canonical reading copy), internal review only. Outlier-removal
+fixed-bandwidth workaround.
+</figcaption>
+</figure>
+<p>Figure 4 (Section 4, PDF p. 9) uses 10 randomly sampled 1D
+Ornstein-Uhlenbeck data sets with <span
+class="math inline">\(N=20000\)</span>. Fixed bandwidth is tuned over 65
+epsilon values for each data set but still does not recover the analytic
+fourth eigenfunction well. Variable bandwidth is substantially better,
+though one random data set gives a poor estimate, consistent with the
+theorem’s pointwise high-probability nature.</p>
+<figure class="paper-figure" id="P04_F04">
+<img src="../../paper_figures/P04_F04_page09.png" alt="P04 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 4, PDF p. 9 (cropped
+from canonical reading copy), internal review only. Random 1D OU
+samples.
+</figcaption>
+</figure>
+<p>Figure 5 (Section 4, PDF p. 10) studies the 2D Ornstein-Uhlenbeck
+process with standard Gaussian invariant measure and analytic fourth
+eigenfunction <span class="math inline">\(phi_{4}(x,y)=xy\)</span>.
+Variable bandwidth produces a visibly reasonable estimate; fixed
+bandwidth does not, despite empirical epsilon tuning.</p>
+<figure class="paper-figure" id="P04_F05">
+<img src="../../paper_figures/P04_F05_page10.png" alt="P04 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 5, PDF p. 10 (cropped
+from canonical reading copy), internal review only. 2D OU eigenfunction
+example.
+</figcaption>
+</figure>
+<p>Figure 6 (Section 5, PDF p. 11) studies the Laplacian on a unit
+circle sampled with density <span
+class="math inline">\(q(\theta)=(1/(4pi))(2+\cos(\theta))\)</span>.
+Variable bandwidth (<span class="math inline">\(\alpha=1/4,
+\beta=-1/2\)</span>) yields lower MSE over a much wider epsilon range
+than fixed bandwidth (<span class="math inline">\(\alpha=1,
+\beta=0\)</span>), both for deterministic inverse-CDF samples and
+perturbed samples. The right panel shows the automatic epsilon tuning
+statistic <span class="math inline">\(S(\epsilon) proportional to
+\epsilon^a\)</span>, whose maximum slope is near <span
+class="math inline">\(d/2=1/2\)</span>.</p>
+<figure class="paper-figure" id="P04_F06">
+<img src="../../paper_figures/P04_F06_page11.png" alt="P04 Figure 6 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 6, PDF p. 11 (cropped
+from canonical reading copy), internal review only. Unit-circle
+nonuniform sampling and automatic epsilon tuning.
+</figcaption>
+</figure>
+<p>Figure 7 (Section 5, PDF p. 12) studies a non-uniformly sampled unit
+sphere. Variable bandwidth (<span class="math inline">\(\alpha=0,
+\beta=-1/2\)</span>) is less sensitive to epsilon and works with the
+automatic tuning method. Fixed bandwidth (<span
+class="math inline">\(\alpha=1, \beta=0\)</span>) can work only with
+careful tuning; the automatic epsilon is too small and disconnects
+sparse regions from the rest of the manifold.</p>
+<figure class="paper-figure" id="P04_F07">
+<img src="../../paper_figures/P04_F07_page12.png" alt="P04 Figure 7 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure 7, PDF p. 12 (cropped
+from canonical reading copy), internal review only. Sphere nonuniform
+sampling.
+</figcaption>
+</figure>
+<p>Figure A.8 (Appendix A.4, PDF p. 20) numerically verifies that
+left-bandwidth kernels converge to <span class="math inline">\(\Delta
+f\)</span>, while right and symmetric bandwidth formulations include the
+drift <span class="math inline">\((d+2) \nabla \rho/\rho dot \nabla
+f\)</span>. It uses <span
+class="math inline">\(\rho(\theta)=\exp(\cos(\theta))\)</span> on a
+circle and a torus.</p>
+<figure class="paper-figure" id="P04_FA8">
+<img src="../../paper_figures/P04_FA8_page20.png" alt="P04 Figure A.8 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure A.8, PDF p. 20 (cropped
+from canonical reading copy), internal review only. Left/right/symmetric
+bandwidth drift verification.
+</figcaption>
+</figure>
+<p>Figure A.9 (Appendix A.5, PDF p. 23) numerically verifies the <span
+class="math inline">\(\rho=q^\beta\)</span> expansion for non-uniform
+sampling on the circle. With <span
+class="math inline">\(\beta=-1/2\)</span>, <span
+class="math inline">\(\alpha=1/4\)</span> recovers the Laplacian (<span
+class="math inline">\(c1=0\)</span>), and <span
+class="math inline">\(\alpha=-1/4\)</span> recovers the backward
+Kolmogorov operator with <span class="math inline">\(c1=1\)</span>.</p>
+<figure class="paper-figure" id="P04_FA9">
+<img src="../../paper_figures/P04_FA9_page23.png" alt="P04 Figure A.9 cropped figure panel">
+<figcaption>
+Reproduced from Berry and Harlim (2016), Figure A.9, PDF p. 23 (cropped
+from canonical reading copy), internal review only. rho equals q^beta
+expansion verification.
+</figcaption>
+</figure>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>Theorem 1 (Section 2, PDF p. 3) is the central claim: for a smooth
+function on a manifold without boundary and a density <span
+class="math inline">\(q\)</span> that is bounded above and in <span
+class="math inline">\(L^1 \cap C^3\)</span>, the discrete
+variable-bandwidth operator converges pointwise with high probability to
+<span class="math inline">\(L_{\alpha,\rho}\)</span> and has three error
+components: asymptotic bias <span
+class="math inline">\(O(\epsilon)\)</span>, density-renormalization
+sampling error, and ratio-estimator sampling error.</p>
+<p>Corollary 1 (Section 2, PDF pp. 3-4) specializes the theory to <span
+class="math inline">\(\rho=q^\beta+O(\epsilon)\)</span>. This is the
+bridge from local bandwidth to sampling-density-adaptive operators. It
+identifies <code>c1</code>, the density drift in the limiting operator,
+and <code>c2</code>, the exponent controlling sparse-density blow-up in
+the finite-sample error.</p>
+<p>Appendix A proves the continuum expansions. Its main conceptual
+result is that symmetric variable bandwidth acts like right bandwidth
+after a local coordinate scaling, which is why the term <span
+class="math inline">\((d+2) \nabla \rho/\rho dot \nabla f\)</span>
+appears.</p>
+<p>Appendix B proves the finite-sample rate by adapting Singer’s
+Chernoff-bound analysis. It shows that the density estimate error and
+the ratio-estimator error behave differently, and that fixed bandwidth
+places sampling density in the denominator of the operator-estimation
+error.</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>The results are pointwise for smooth functions, not a full spectral
+convergence theorem (Section 2, PDF p. 5; Section 6, PDF p. 13). The
+numerical experiments compare eigenfunctions, but the authors explicitly
+say extending spectral convergence to variable-bandwidth kernels is
+beyond the paper’s scope.</p>
+<p>The theory excludes manifolds with boundary, especially non-compact
+manifolds with non-compact boundaries (Section 2, PDF pp. 4-5; Section
+6, PDF p. 13). Fixed-bandwidth diffusion maps on compact manifolds have
+implicit Neumann boundary conditions, but the authors do not extend that
+proof here.</p>
+<p>The recommended <span class="math inline">\(\rho=q^\beta\)</span>
+construction requires intrinsic dimension <code>d</code>, both for
+choosing <span class="math inline">\(\alpha,\beta\)</span> and for the
+<span class="math inline">\(\rho^d\)</span> density normalization
+(Section 6, PDF p. 13). The paper suggests automatic epsilon tuning may
+help estimate dimension but does not establish a robust
+dimension-estimation method.</p>
+<p>The kernels are isotropic scalar-bandwidth kernels. The authors
+mention anisotropic generalizations but leave them outside the paper
+(Section 6, PDF p. 13).</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>This paper is a key bridge between practical self-tuned graph kernels
+and diffusion-map continuum theory. It explains why variable bandwidth
+is more than a heuristic for clustering: with the correct normalization
+it can approximate Laplacians or gradient-flow generators, and with the
+wrong normalization it approximates a different drift-diffusion
+operator. It also makes a strong finite-sample argument that fixed
+bandwidth can fail on non-compact or heavy-tailed data because
+sparse-density points enter the graph as high-error locations.</p>
+<p>For a conductance-kernel review, P04 is important because it links
+local affinity strength, local length scale, density normalization, and
+limiting differential operators in one explicit formula family. It is
+also the conceptual parent of later kNN self-tuned graph Laplacian
+theory.</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p><span class="math inline">\([explicit]\)</span> Fixed affinity,
+equation (1), PDF p. 1:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}(x,y) &amp;= h( \Vert x-y\Vert ^2 / \epsilon ).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\([explicit]\)</span> Symmetric
+variable-bandwidth affinity, equation (2), PDF p. 1:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^S(x,y) &amp;= h( \Vert x-y\Vert ^2 / [\epsilon
+\rho(x)\rho(y)] ).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\([explicit]\)</span> Gaussian
+implementation, Section 3, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^S(x_{i},x_{j}) &amp;= \\
+\exp( -\Vert x_{i}-x_{j}\Vert ^2 / [4 \epsilon \rho(x_{i})\rho(x_{j})]
+).
+\end{aligned}
+\]</span></p>
+<p><code>[derived]</code> Local conductance interpretation for nearby
+points: if <span class="math inline">\(\rho(y) approx \rho(x)\)</span>,
+then a distance <span class="math inline">\(\delta=\Vert
+x-y\Vert\)</span> gets approximate affinity</p>
+<p><span class="math display">\[
+\begin{gathered}
+K(x,y) approx \exp( -\delta^2 / [4 \epsilon \rho(x)^2] ),
+\end{gathered}
+\]</span></p>
+<p>so the local <span class="math inline">\(\exp(-1)\)</span> length
+scale is about <span class="math inline">\(2 \sqrt(\epsilon)
+\rho(x)\)</span>. If <span class="math inline">\(\rho=q^{-1/2}\)</span>,
+sparse regions with small <code>q</code> have larger local length scale
+and therefore larger edge affinity at the same physical distance. This
+is derived from the Section 3 Gaussian formula, not stated as a
+conductance theorem by the authors.</p>
+<p><span class="math inline">\([explicit]\)</span> Right and left
+bandwidth kernels in Appendix A, equations (A.2)-(A.3), PDF
+pp. 14-15:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{\epsilon}^R(x,y) &amp;= h( \Vert x-y\Vert ^2 / [\epsilon \rho(y)] ),
+\\
+K_{\epsilon}^L(x,y) &amp;= h( \Vert x-y\Vert ^2 / [\epsilon \rho(x)] ).
+\end{aligned}
+\]</span></p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p><span class="math inline">\([explicit]\)</span> The graph/diffusion
+operator is the row-normalized, density-debiased kernel operator</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{\epsilon,\alpha,\beta}^S(x_{i},x_{j}) &amp;= \\
+[hat K_{\epsilon,\alpha}^S(x_{i},x_{j}) - delta_{ij}] / [\epsilon
+\rho(x_{i})^2],
+\end{aligned}
+\]</span></p>
+<p>from Section 3, PDF p. 6.</p>
+<p><span class="math inline">\([explicit]\)</span> Its symmetric
+conjugate is</p>
+<p><span class="math display">\[
+\begin{aligned}
+hat L &amp;= (1/\epsilon)(S^{-1} K S^{-1} - P^{-2}), \\
+S &amp;= P D^{1/2}, \\
+P_{ii}&amp;=\rho(x_{i}), \\
+D_{ii}&amp;=q_{\epsilon,\alpha}^S(x_{i}).
+\end{aligned}
+\]</span></p>
+<p>This is used for eigenvalue computation (Section 3, PDF p. 6).</p>
+<p><span class="math inline">\([explicit]\)</span> The continuum limit
+for arbitrary <span class="math inline">\(\rho\)</span> is <span
+class="math inline">\(L_{\alpha,\rho}\)</span> in equation (6), PDF
+p. 3.</p>
+<p><span class="math inline">\([explicit]\)</span> The continuum limit
+for <span class="math inline">\(\rho=q^\beta\)</span> is <span
+class="math inline">\(L_{\alpha,\beta}\)</span> in equation (8), PDF
+p. 3.</p>
+<h3 id="task">Task</h3>
+<p>The paper is about graph-based operator estimation, diffusion
+geometry, and spectral/eigenfunction recovery. Its numerical tasks
+are:</p>
+<ul>
+<li>estimating the generator of Ornstein-Uhlenbeck gradient-flow
+processes on <code>R</code> and <span
+class="math inline">\(\mathbb{R}^{2}\)</span>;</li>
+<li>estimating Laplacian eigenfunctions on non-uniformly sampled compact
+manifolds, specifically the circle and sphere;</li>
+<li>evaluating epsilon sensitivity and automatic bandwidth
+selection;</li>
+<li>validating continuum expansions by pointwise operator application in
+the appendices.</li>
+</ul>
+<p>It is not a semi-supervised learning paper, but its results directly
+inform graph regression and graph signal smoothing because those methods
+depend on the graph operator induced by the chosen edge weights.</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p><span class="math inline">\([explicit]\)</span> The Abstract, PDF
+p. 1, says variable-bandwidth kernels are common in applications, but
+existing theory mostly covers fixed bandwidths.</p>
+<p><span class="math inline">\([explicit]\)</span> Section 1, PDF p. 2,
+says the main contribution is to extend Coifman-Lafon asymptotics and
+Singer’s discrete analysis to variable-bandwidth kernels and to give
+rigorous error bounds.</p>
+<p><span class="math inline">\([explicit]\)</span> Section 1, PDF p. 2,
+says fixed-bandwidth errors become unbounded as sampling density
+approaches zero and that choosing bandwidth inversely proportional to
+density can control sparse-region errors.</p>
+<p><span class="math inline">\([explicit]\)</span> Section 2, PDF p. 4,
+says <span class="math inline">\(\beta&lt;0\)</span> is expected to work
+best because it increases bandwidth in sparse regions and decreases
+bandwidth in dense regions.</p>
+<p><span class="math inline">\([explicit]\)</span> Section 5, PDF
+pp. 10-12, motivates variable bandwidth on compact manifolds by reduced
+epsilon sensitivity under non-uniform sampling.</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p><code>[derived]</code> For local-scale conductance, the paper implies
+that a density-adaptive graph can keep sparse-tail points connected
+without globally increasing epsilon. A global epsilon large enough for
+sparse regions would over-connect dense regions; a global epsilon small
+enough for dense regions can disconnect sparse regions.</p>
+<p><code>[derived]</code> The paper also implies that local bandwidth
+and diffusion-map density normalization should be considered jointly.
+Changing only edge conductance without changing normalization changes
+the limiting operator.</p>
+<p><code>[derived]</code> The finite-sample bounds imply that adaptive
+bandwidth can be necessary for convergence in operator-estimation
+settings on open/non-compact supports, not merely beneficial.</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p><span class="math inline">\([explicit]\)</span> The operator drift
+changes with <span class="math inline">\(\rho\)</span>: equation (6)
+adds <span class="math inline">\((d+2) \nabla f dot \nabla
+\rho/\rho\)</span>. Thus eigenfunctions and diffusion geometry can
+change if bandwidth is altered without compensating <span
+class="math inline">\(\alpha,\beta\)</span> choices.</p>
+<p><span class="math inline">\([explicit]\)</span> For <span
+class="math inline">\(\rho=q^\beta\)</span>, equation (8) says the
+density drift is governed by <code>c1</code>. Setting <span
+class="math inline">\(c1=0\)</span> recovers the Laplacian and removes
+density bias; setting <span class="math inline">\(c1=1\)</span> recovers
+the generator for the sampled gradient flow in the authors’
+examples.</p>
+<p><span class="math inline">\([explicit]\)</span> Figures 1-7 show that
+variable bandwidth improves eigenfunction recovery or epsilon stability
+in all tested non-uniform examples, with especially large benefits on
+non-compact Gaussian examples and sparse regions of the sphere.</p>
+<p><code>[derived]</code> For graph smoothing, the practical effect is a
+spatially varying smoothing length. In sparse regions, <span
+class="math inline">\(\rho=q^{-1/2}\)</span> makes the smoother borrow
+from farther neighbors; in dense regions, it remains local. The
+continuum effect is not just “more smoothing”: it is a specific
+diffusion-plus-drift operator controlled by <span
+class="math inline">\(\alpha,\beta,d\)</span>.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p>P04 is directly about adaptive-scale graph construction. It
+formalizes the same intuition as self-tuned spectral clustering, but in
+a diffusion-map/operator-estimation framework with continuum limits and
+finite-sample error terms.</p>
+<p>For conductance comparators, the most portable formula is the Section
+3 Gaussian:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp( -\Vert x_{i}-x_{j}\Vert ^2 / [4 \epsilon rho_{i}
+rho_{j}] ).
+\end{aligned}
+\]</span></p>
+<p>If <span class="math inline">\(rho_{i}=q_{i}^\beta\)</span>, this
+becomes a density-adaptive conductance. If <span
+class="math inline">\(\beta=-1/2\)</span>, then sparse regions have
+larger local scale. The kernel itself is symmetric, but subsequent
+Markov normalizations and the final <span
+class="math inline">\(rho_{i}^{-2}\)</span> generator scaling make the
+operator non-symmetric unless one uses the symmetric conjugate for
+eigensolvers.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p>The paper does not claim that every self-tuned kernel recovers the
+Laplacian. It shows the opposite: variable bandwidth adds drift unless
+<span class="math inline">\(\alpha,\beta\)</span> are chosen to cancel
+density effects.</p>
+<p>The paper does not prove spectral convergence for variable-bandwidth
+kernels, despite using eigenfunction experiments.</p>
+<p>The paper does not handle non-compact manifolds with boundary.</p>
+<p>The paper does not give a ready-made method for intrinsic dimension
+estimation; it only suggests an epsilon-tuning slope heuristic may
+help.</p>
+<p>The paper does not define conductance for gflow or SIMODS directly.
+It defines kernel affinities and operators whose edge weights may be
+used as conductances in a graph construction.</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p>P04 should be kept distinct from current <code>gflow</code>
+overlap-density smoothing semantics. The current overlap-density
+smoother should not be retroactively described as Berry-Harlim
+variable-bandwidth diffusion unless it actually uses the paper’s <span
+class="math inline">\(\rho\)</span>, <span
+class="math inline">\(q_{\epsilon}^S\)</span>, <span
+class="math inline">\(\alpha\)</span>, and <span
+class="math inline">\(\rho^{-2}\)</span> generator normalization.</p>
+<p>The paper is most relevant to planned length/kernel-conductance
+comparators:</p>
+<ul>
+<li>A local-length comparator can set <span
+class="math inline">\(rho_{i}\)</span> from a pilot density estimate or
+kNN scale and use <span class="math inline">\(w_{ij}=\exp(-d_{ij}^2/(4
+\epsilon rho_{i} rho_{j}))\)</span>.</li>
+<li>A kernel-conductance comparator can compare fixed bandwidth,
+kNN/self-tuned bandwidth, and <span
+class="math inline">\(\rho=q^\beta\)</span> bandwidth while tracking the
+induced operator normalization separately.</li>
+<li>A density-adaptive smoothing comparator must choose whether it wants
+Laplacian-like behavior (<span class="math inline">\(c1=0\)</span>) or
+density-biased gradient-flow behavior (<span
+class="math inline">\(c1&gt;0\)</span>), because P04 shows that this
+choice is mathematical, not cosmetic.</li>
+</ul>
+<p>For SIMODS narrative, P04 supports the idea that local scale is an
+operator-design parameter. It also warns that sparse-region robustness
+from larger bandwidth comes with a drift term and dimension-dependent
+normalization.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–7 and Appendix Figures
+A.8–A.9 are managed by <code>paper_figure_screenshots.yml</code> and
+embedded in the generated HTML memo next to the primary figure
+descriptions. These are internal-review cropped figure panels from the
+canonical reading copy, not manuscript-ready reused figures.</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<p>Created:</p>
+<p><code>literature/conductance_kernel_laplacian_review/figures/P04_local_bandwidth_conductance_curve.png</code></p>
+<p>This original figure illustrates the Section 3 Gaussian
+implementation formula with a 1D Gaussian toy density and <span
+class="math inline">\(\rho=q^{-1/2}\)</span>. It shows relative density,
+local length scale <span class="math inline">\(2 \sqrt(\epsilon)
+\rho(x)\)</span>, and the approximate edge affinity for a fixed small
+displacement. It is meant to clarify the derived local-conductance
+implication: sparse regions receive larger bandwidth and therefore
+higher affinity for the same physical separation.</p>
+<figure>
+<img src="../../figures/P04_local_bandwidth_conductance_curve.png"
+alt="Original internal explanatory figure: P04 local-bandwidth conductance curve" />
+<figcaption aria-hidden="true">Original internal explanatory figure: P04
+local-bandwidth conductance curve</figcaption>
+</figure>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fixed kernels use <span
+class="math inline">\(K_{\epsilon}(x,y)=h(\Vert x-y\Vert
+^2/\epsilon)\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (1), Section 1, PDF p. 1</td>
+<td>Baseline fixed bandwidth.</td>
+</tr>
+<tr>
+<td>Variable kernels use <span
+class="math inline">\(K_{\epsilon}^S(x,y)=h(\Vert x-y\Vert ^2/(\epsilon
+\rho(x)\rho(y)))\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (2), Section 1, PDF p. 1</td>
+<td>Symmetric local scale.</td>
+</tr>
+<tr>
+<td>Diffusion-map fixed-bandwidth limit is <span
+class="math inline">\(\Delta f + (2-2alpha) \nabla f dot \nabla
+q/q\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (3), Section 2, PDF p. 2</td>
+<td>Recovers Laplacian at <span
+class="math inline">\(\alpha=1\)</span>.</td>
+</tr>
+<tr>
+<td>Theorem 1 gives pointwise high-probability errors for the discrete
+variable-bandwidth operator.</td>
+<td>explicit</td>
+<td>Theorem 1, Eq. (5), PDF p. 3</td>
+<td>Three error components.</td>
+</tr>
+<tr>
+<td>Arbitrary <span class="math inline">\(\rho\)</span> adds <span
+class="math inline">\((d+2) \nabla f dot \nabla \rho/\rho\)</span> to
+the limiting operator.</td>
+<td>explicit</td>
+<td>Eq. (6), PDF p. 3; Eq. (A.20), PDF p. 22</td>
+<td>Core operator effect.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\rho=q^\beta\)</span> yields <span
+class="math inline">\(L_{\alpha,\beta}=\Delta f+c1 \nabla f dot \nabla
+q/q\)</span>.</td>
+<td>explicit</td>
+<td>Corollary 1, Eq. (8), PDF p. 3</td>
+<td><span class="math inline">\(c1=2-2alpha+d \beta+2
+\beta\)</span>.</td>
+</tr>
+<tr>
+<td>Sparse-region errors are controlled by <code>c2</code>; fixed
+bandwidth can blow up as <span
+class="math inline">\(q\to0\)</span>.</td>
+<td>explicit</td>
+<td>Corollary 1 discussion, PDF p. 4</td>
+<td>For <span class="math inline">\(\beta=0\)</span>, <span
+class="math inline">\(\alpha&gt;0\)</span>, <span
+class="math inline">\(c2&gt;0\)</span>.</td>
+</tr>
+<tr>
+<td><span class="math inline">\(\beta&lt;0\)</span> increases bandwidth
+in sparse regions and decreases it in dense regions.</td>
+<td>explicit</td>
+<td>Section 2, PDF p. 4</td>
+<td>Author’s stated intuition.</td>
+</tr>
+<tr>
+<td>The practical Gaussian affinity is <span
+class="math inline">\(\exp(-\Vert x_{i}-x_{j}\Vert ^2/(4 \epsilon
+rho_{i} rho_{j}))\)</span>.</td>
+<td>explicit</td>
+<td>Section 3, PDF p. 5</td>
+<td>Conductance-ready formula.</td>
+</tr>
+<tr>
+<td>For nearby points, local length scale is approximately <span
+class="math inline">\(2 \sqrt(\epsilon) \rho(x)\)</span>.</td>
+<td>derived</td>
+<td>Section 3 Gaussian formula, PDF p. 5</td>
+<td>Derived by setting exponent to <code>-1</code> and <span
+class="math inline">\(\rho(y) approx \rho(x)\)</span>.</td>
+</tr>
+<tr>
+<td>The pilot density estimate uses kNN scale <span
+class="math inline">\(rho_{0}\)</span> and produces <span
+class="math inline">\(q_{0}=q+O(\ldots)\)</span>.</td>
+<td>explicit</td>
+<td>Eq. (10), Section 3, PDF p. 5</td>
+<td>Used to set <span
+class="math inline">\(\rho=q_{0}^\beta\)</span>.</td>
+</tr>
+<tr>
+<td>Sparse matrices are built with kNN truncation and symmetrized by
+<span class="math inline">\((K+K^T)/2\)</span>.</td>
+<td>explicit</td>
+<td>Section 3, PDF pp. 6-7</td>
+<td>Implementation detail.</td>
+</tr>
+<tr>
+<td>1D and 2D Ornstein-Uhlenbeck experiments show fixed bandwidth
+failing in sparse tails.</td>
+<td>explicit</td>
+<td>Figures 1-5, Section 4, PDF pp. 7-10</td>
+<td>Empirical validation of sparse-density error story.</td>
+</tr>
+<tr>
+<td>Circle and sphere experiments show reduced epsilon sensitivity for
+variable bandwidth on compact non-uniform data.</td>
+<td>explicit</td>
+<td>Figures 6-7, Section 5, PDF pp. 11-12</td>
+<td>Compact-manifold evidence.</td>
+</tr>
+<tr>
+<td>Variable bandwidth is necessary for convergence in some
+operator-estimation problems with densities not bounded away from
+zero.</td>
+<td>explicit</td>
+<td>Conclusion, PDF p. 13</td>
+<td>Author claim.</td>
+</tr>
+<tr>
+<td>The paper does not prove spectral convergence.</td>
+<td>explicit</td>
+<td>Section 2, PDF p. 5; Section 6, PDF p. 13</td>
+<td>Only pointwise convergence is proved.</td>
+</tr>
+<tr>
+<td>P04 informs planned SIMODS length/kernel-conductance comparators but
+is not identical to current overlap-density smoothing.</td>
+<td>derived</td>
+<td>Whole paper plus local project distinction</td>
+<td>The paper gives kernel/operator formulas, not current gflow
+semantics.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ol type="1">
+<li>Should the memo treat <span
+class="math inline">\(\rho=q^\beta\)</span> as a candidate SIMODS
+comparator directly, or should planned comparators use a kNN-scale <span
+class="math inline">\(rho_{i}\)</span> closer to Zelnik-Manor/Perona and
+Cheng/Wu?</li>
+<li>For local conductance, should the audit emphasize the raw symmetric
+affinity <span class="math inline">\(w_{ij}\)</span> or the full
+generator normalization with <span
+class="math inline">\(rho_{i}^{-2}\)</span> and <span
+class="math inline">\(\alpha\)</span> debiasing?</li>
+<li>Does the project want the Laplacian target (<span
+class="math inline">\(c1=0\)</span>) or a density-biased/gradient-flow
+target (<span class="math inline">\(c1&gt;0\)</span>) for planned
+smoothing comparators?</li>
+<li>Should dimension <code>d</code> be fixed from known SIMODS geometry
+or estimated from data when using <span class="math inline">\(\beta !=
+0\)</span>?</li>
+<li>Should future memos standardize a conductance notation that
+separates edge affinity, row-stochastic transition probability, and
+graph generator scaling?</li>
+</ol>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P04 flagged Eq. (4) denominator wording. The final
+synthesis should preserve the paper’s displayed high-probability
+denominator convention and avoid translating it into a different
+square-root form unless the algebra is shown explicitly.</p></li>
+<li><p>The paper’s <span class="math inline">\(\Delta\)</span> sign
+convention should be stated wherever Eq. (6) or the generator <span
+class="math inline">\(L_{\alpha,\rho}\)</span> is summarized, because
+sign conventions differ across graph Laplacian and PDE
+communities.</p></li>
+<li><p>SIMODS/gflow clarification for synthesis: P04 supports
+variable-bandwidth kernel-conductance comparators and density-normalized
+operator variants. It does not describe the current
+<code>fit.rdgraph.regression()</code> overlap-density /
+Riemannian-complex conductance.</p></li>
+<li><p>Any phrase such as “conceptual parent” for later adaptive
+smoothers should be labeled <code>contextual</code>, not attributed
+directly to Berry and Harlim.</p></li>
+<li><p>2026-05-15: Drafted by Reviewer-P04 from the canonical P04 PDF.
+Rendered and visually inspected pages containing Figures 1-7 and
+Appendix Figures A.8-A.9. Created one original explanatory
+conductance/local-bandwidth figure.</p></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Belkin and Niyogi, Laplacian Eigenmaps</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Belkin and Niyogi, Laplacian
+Eigenmaps</h1>
+</header>
+<p>Paper: Belkin, Mikhail and Niyogi, Partha. “Laplacian Eigenmaps and
+Spectral Techniques for Embedding and Clustering.” Advances in Neural
+Information Processing Systems, 2001. Reviewer: Reviewer-P02 Auditor:
+Auditor-P02 Status: revised after audit Date: 2026-05-15 Source manifest
+ID: P02 Canonical reading copy:
+<code>sources/pdf/P02_belkin_niyogi_laplacian_eigenmaps.pdf</code>; 7
+PDF pages; SHA-256 in <code>source_manifest.yml</code> is
+<code>aba984615a8fdb028aaea6f7b1716d4252838b42538457d03678a5ce8c1132a0</code>.</p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<p>A mathematically capable reader should be comfortable with the
+following before reading the paper:</p>
+<ul>
+<li>Weighted undirected graphs: adjacency/weight matrices
+<code>W</code>, degree matrices <code>D</code>, connected components,
+and nearest-neighbor graphs.</li>
+<li>Graph Laplacians: the unnormalized Laplacian <span
+class="math inline">\(L = D - W\)</span>, positive semidefiniteness,
+constant-vector nullspace, and Rayleigh quotient minimization.</li>
+<li>Generalized eigenproblems: especially <span class="math inline">\(L
+y = \lambda D y\)</span>, orthogonality constraints, and why the trivial
+zero eigenvector is discarded.</li>
+<li>Kernels and radial affinity functions: Gaussian/heat-kernel weights
+that decay with squared Euclidean distance.</li>
+<li>Basic Riemannian geometry: manifolds embedded in Euclidean space,
+local coordinates, gradients, divergence, and the Laplace-Beltrami
+operator.</li>
+<li>Heat equation intuition: the heat kernel as a Green’s function,
+short-time Gaussian asymptotics, and localization as time goes to
+zero.</li>
+<li>Dimensionality reduction context circa 2000: PCA, Isomap, locally
+linear embedding, and spectral clustering/normalized cuts.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>The paper starts from a common manifold-learning assumption:
+high-dimensional observations may be samples from a lower-dimensional
+geometric object. Instead of trying to estimate that object explicitly,
+Belkin and Niyogi build a graph on the sample points, make nearby points
+strongly connected, and then use low-frequency eigenvectors of the graph
+Laplacian as coordinates. “Low-frequency” here means smooth on the
+graph: if two vertices are connected by a large weight, their embedding
+coordinates are penalized for being far apart.</p>
+<p>The key conceptual bridge is that the graph Laplacian is treated as a
+discrete analogue of the Laplace-Beltrami operator on the underlying
+manifold. The heat kernel motivates Gaussian edge weights between nearby
+data points. A reader should not expect a modern convergence theorem or
+density-normalized operator in this paper. The paper is primarily an
+algorithmic and geometric proposal, supported by short derivations and
+qualitative examples.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>The paper addresses nonlinear dimensionality reduction for data that
+are ambient high-dimensional but intrinsically low-dimensional. The
+introduction gives the example of gray-scale images of a fixed object
+under camera motion: the pixel vectors lie in <span
+class="math inline">\(\mathbb{R}^{n^2}\)</span>, but the intrinsic
+degrees of freedom are those of the camera (page 1, introduction).
+[explicit]</p>
+<p>The authors position their method against general dimensionality
+reduction methods that do not explicitly use the manifold structure, and
+cite contemporary interest from Isomap and locally linear embedding
+(page 1, introduction; references [4] and [6]). [explicit]</p>
+<p>The paper’s central claim is that a simple graph construction plus
+one sparse generalized eigenproblem gives a locality-preserving
+representation whose coordinates reflect intrinsic geometric structure
+(pages 1-3, introduction and Section 1). [explicit]</p>
+<h3 id="main-method">Main Method</h3>
+<p>Input: data points <span class="math inline">\(x_{1}, \ldots, x_{k}
+in \mathbb{R}^{l}\)</span> (page 2, Section 1). [explicit]</p>
+<p>Step 1 constructs an undirected weighted graph with one node per data
+point and edges between close points (page 2, Section 1). The paper
+gives two graph options. [explicit]</p>
+<ul>
+<li>Epsilon-neighborhood graph: connect <code>i</code> and
+<code>j</code> when <span class="math inline">\(\Vert x_{i} - x_{j}\Vert
+^2 &lt; \epsilon\)</span> in the Step 1 statement on page 2. The
+advantage listed is geometric motivation and natural symmetry; the
+disadvantages listed are possible disconnected components and difficulty
+choosing <span class="math inline">\(\epsilon\)</span> (page 2, Section
+1, Step 1(a)). [explicit]</li>
+<li>Symmetrized <code>n</code>-nearest-neighbor graph: connect
+<code>i</code> and <code>j</code> if either <code>i</code> is among the
+<code>n</code> nearest neighbors of <code>j</code> or <code>j</code> is
+among the <code>n</code> nearest neighbors of <code>i</code>. The
+advantage listed is easier choice and a tendency toward connected
+graphs; the disadvantage listed is weaker geometric intuition (page 2,
+Section 1, Step 1(b)). [explicit]</li>
+</ul>
+<p>Step 2 chooses edge weights. The paper gives two options.
+[explicit]</p>
+<ul>
+<li>Heat-kernel weights: if nodes <code>i</code> and <code>j</code> are
+connected, set <span class="math inline">\(W_{ij} = \exp(-\Vert x_{i} -
+x_{j}\Vert ^2 / t)\)</span> in Section 1, Step 2(a), page 2.
+[explicit]</li>
+<li>Binary weights: <span class="math inline">\(W_{ij} = 1\)</span> if
+and only if vertices <code>i</code> and <code>j</code> are connected by
+an edge, avoiding the choice of <code>t</code> (page 2, Section 1, Step
+2(b)). [explicit]</li>
+</ul>
+<p>Step 3 solves the generalized eigenproblem</p>
+<p><span class="math display">\[
+\begin{aligned}
+L y &amp;= \lambda D y
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(D_{ii} = sum_{j} W_{ji}\)</span>
+and <span class="math inline">\(L = D - W\)</span>; the embedding of
+<span class="math inline">\(x_{i}\)</span> into <span
+class="math inline">\(\mathbb{R}^{m}\)</span> is <span
+class="math inline">\((y_{1}(i), \ldots, y_{m}(i))\)</span>, using the
+first <code>m</code> nontrivial eigenvectors after the constant
+zero-eigenvalue vector <span class="math inline">\(y_{0}\)</span> (page
+3, Section 1, equation (1)). [explicit]</p>
+<p>If the graph is disconnected, the paper instructs the reader to apply
+Step 3 separately to each connected component (page 2, Section 1, Step
+3). [explicit]</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p>The graph smoothness objective for a one-dimensional map is</p>
+<p><span class="math display">\[
+\begin{gathered}
+sum_{i,j} (y_{i} - y_{j})^2 W_{ij}
+\end{gathered}
+\]</span></p>
+<p>under constraints that prevent trivial collapse (page 3, Section 2).
+[explicit]</p>
+<p>The quadratic identity is</p>
+<p><span class="math display">\[
+\begin{aligned}
+(1/2) sum_{i,j} (y_{i} - y_{j})^2 W_{ij} &amp;= y^T L y
+\end{aligned}
+\]</span></p>
+<p>with <span class="math inline">\(L = D - W\)</span>, equation (2),
+page 3. [explicit]</p>
+<p>The normalization constraint <span class="math inline">\(y^T D y =
+1\)</span> removes arbitrary scaling, and the orthogonality constraint
+<span class="math inline">\(y^T D 1 = 0\)</span> removes the constant
+zero-eigenvalue solution. The resulting one-dimensional nontrivial
+embedding is the eigenvector with the smallest nonzero generalized
+eigenvalue (page 4, Section 2). [explicit]</p>
+<p>For an <code>m</code>-dimensional embedding, the authors write <span
+class="math inline">\(Y = [y_{1} y_{2} \ldots y_{m}]\)</span>,
+minimize</p>
+<p><span class="math display">\[
+\begin{aligned}
+sum_{i,j} \Vert Y_{i} - Y_{j}\Vert ^2 W_{ij} &amp;=
+\operatorname{tr}(Y^T L Y)
+\end{aligned}
+\]</span></p>
+<p>and constrain <span class="math inline">\(Y^T D Y = I\)</span> to
+prevent collapse onto a lower-dimensional subspace (pages 4-5, Section
+2). [explicit]</p>
+<p>The manifold analogue in Section 2.1 is to minimize average squared
+gradient energy,</p>
+<p><span class="math display">\[
+\operatorname*{arg\,min}_{\|f\|_{L^2(M)}=1}
+\int_M \|\nabla f(x)\|^2\,dx .
+\]</span></p>
+<p>which leads to eigenfunctions of the Laplace-Beltrami operator <span
+class="math inline">\(\mathcal L\)</span> (page 5, Section 2.1).
+[explicit]</p>
+<p>The heat equation connection in Section 2.2 is</p>
+<p><span class="math display">\[
+\frac{\partial u}{\partial t} = \mathcal L u,
+\qquad
+u(x,t)=\int_M H_t(x,y)f(y)\,dy .
+\]</span></p>
+<p>with <span class="math inline">\(H_{t}\)</span> the heat
+kernel/Green’s function (pages 5-6, Section 2.2). [explicit]</p>
+<p>The local heat-kernel approximation is written as</p>
+<p><span class="math display">\[
+H_t(x,y) \approx (4\pi t)^{-n/2}
+\exp\!\left(-\frac{\|x-y\|^2}{4t}\right)
+\]</span></p>
+<p>for small <code>t</code> and nearby <code>x,y</code>, with <span
+class="math inline">\(n = \dim M\)</span> (page 6, Section 2.2).
+[explicit]</p>
+<p>The Section 2.2 derivation concludes with an epsilon-truncated
+edge-weight formula</p>
+<p><span class="math display">\[
+W_{ij} =
+\begin{cases}
+\exp\!\left(-\dfrac{\|x_i-x_j\|^2}{4t}\right),
+  &amp; \|x_i-x_j\| &lt; \epsilon,\\
+0, &amp; \text{otherwise}.
+\end{cases}
+\]</span></p>
+<p>on page 6, Section 2.2. [explicit]</p>
+<p>Audit note: Section 1 uses <span class="math inline">\(\exp(-\Vert
+x_{i} - x_{j}\Vert ^2 / t)\)</span>, while Section 2.2 derives <span
+class="math inline">\(\exp(-\Vert x_{i} - x_{j}\Vert ^2 / 4t)\)</span>.
+This is probably a bandwidth convention/rescaling rather than a
+substantive disagreement, but the memo should preserve both forms
+because the paper prints both (page 2, Section 1; page 6, Section 2.2).
+[explicit/derived]</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p>Figure 1 appears on page 3, immediately before the eigenproblem. It
+compares Laplacian Eigenmaps to PCA on 1000 binary <code>40 x 40</code>
+images containing either a vertical or horizontal bar at random
+locations. The left panel shows example horizontal and vertical bars;
+the middle panel is the two-dimensional Laplacian Eigenmaps
+representation; the right panel is PCA using the first two principal
+directions. Dots are vertical bars and plus signs are horizontal bars.
+The point of the figure is that the spectral graph embedding separates
+or organizes the two bar families more cleanly than a global linear PCA
+projection (page 3, Figure 1; page 6, Example 1). [explicit/derived]</p>
+<figure class="paper-figure" id="P02_F01">
+<img src="../../paper_figures/P02_F01_page03.png" alt="P02 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2001), Figure 1, PDF p. 3 (cropped
+from canonical reading copy), internal review only. Laplacian Eigenmaps
+versus PCA on bar images.
+</figcaption>
+</figure>
+<p>Figure 2 appears on page 4. It shows the 300 most frequent words of
+the Brown corpus in the spectral domain. The experiment represents each
+word as a 600-dimensional vector using left and right neighbor
+frequencies from corpus bigram statistics (page 4, Figure 2; page 6,
+Example 2). The arrows mark regions magnified in Figure 3. The figure is
+qualitative evidence that graph-neighborhood geometry over context-count
+vectors can produce linguistically meaningful clusters in a
+two-dimensional eigenmap. [explicit/derived]</p>
+<figure class="paper-figure" id="P02_F02">
+<img src="../../paper_figures/P02_F02_F03_page04.png" alt="P02 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2001), Figure 2, PDF p. 4 (cropped
+from canonical reading copy), internal review only. Brown-corpus word
+embedding.
+</figcaption>
+</figure>
+<figure class="paper-figure" id="P02_F03">
+<img src="../../paper_figures/P02_F02_F03_page04.png" alt="P02 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2001), Figure 3, PDF p. 4 (cropped
+from canonical reading copy), internal review only. Magnified
+word-embedding fragments.
+</figcaption>
+</figure>
+<p>Figure 3 appears on page 4 above Figure 2 and shows the three
+arrow-marked fragments from Figure 2. The caption states that the first
+fragment contains infinitives of verbs, the second contains
+prepositions, and the third mostly modal and auxiliary verbs, concluding
+that syntactic structure is well preserved (page 4, Figure 3).
+[explicit]</p>
+<p>Figure 4 appears on page 5. It plots 685 speech data points in a
+two-dimensional Laplacian spectral representation. The data are from a
+sentence sampled at 1 kHz, converted to short-time Fourier spectra every
+5 ms, producing 685 vectors of 256 Fourier coefficients for 30 ms
+chunks; each vector is labeled by phonetic segment identity (page 5,
+Figure 4; page 7, Example 3). The figure has marked regions later
+magnified in Figure 5 and visually shows a spoke-like geometry.
+[explicit]</p>
+<figure class="paper-figure" id="P02_F04">
+<img src="../../paper_figures/P02_F04_page05.png" alt="P02 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2001), Figure 4, PDF p. 5 (cropped
+from canonical reading copy), internal review only. Speech spectral
+embedding.
+</figcaption>
+</figure>
+<figure class="paper-figure" id="P02_F05">
+<img src="../../paper_figures/P02_F05_page07.png" alt="P02 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2001), Figure 5, PDF p. 7 (cropped
+from canonical reading copy), internal review only. Magnified speech
+regions.
+</figcaption>
+</figure>
+<p>Figure 5 appears on page 7. It magnifies three selected regions from
+Figure 4 and labels phonetic classes. The caption emphasizes phonetic
+homogeneity of chosen regions and explains symbols such as
+<code>sh</code>, <code>aa</code>, <code>ao</code>, <code>kcl</code>,
+<code>dcl</code>, <code>gcl</code>, and <code>h#</code> (page 7, Figure
+5). The accompanying text says the two spokes in Figure 4 correspond
+predominantly to fricatives and closures, while the central portion
+corresponds mostly to periodic sounds such as vowels, nasals, and
+semivowels (page 7, Example 3). [explicit]</p>
+<p>Experimental limitations: the experiments are illustrative and
+qualitative. The paper does not report train/test metrics, clustering
+accuracy, stability under parameter changes, comparison across graph
+constructions, or runtime measurements (Section 3, pages 6-7).
+[derived]</p>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>The core theoretical claim is a variational analogy: minimizing graph
+energy <span class="math inline">\(\sum (y_{i}-y_{j})^2 W_{ij}\)</span>
+under suitable constraints gives Laplacian eigenvectors, while
+minimizing squared gradient energy on a manifold gives Laplace-Beltrami
+eigenfunctions (pages 3-5, Section 2 and Section 2.1). [explicit]</p>
+<p>The paper claims that the graph Laplacian obtained from nearby data
+points may be viewed as an approximation to the Laplace-Beltrami
+operator on the underlying manifold (page 1, introduction; pages 5-6,
+Sections 2.1-2.2). [explicit]</p>
+<p>The heat-kernel argument supplies a “principled” choice of weights by
+linking <span class="math inline">\(W_{ij}\)</span> to the local
+short-time heat kernel (page 2, introduction; page 6, Section 2.2).
+[explicit]</p>
+<p>The paper also states that locality preservation makes the algorithm
+relatively insensitive to outliers and noise, and that it implicitly
+emphasizes natural clusters (page 2, introduction). This is a
+motivation/claim rather than something quantitatively demonstrated in
+the paper. [explicit/contextual]</p>
+<p>The graph-theoretic connection to clustering is mostly through the
+objective and through cited spectral clustering/normalized cuts work,
+not through a new clustering theorem (page 2, introduction; reference
+[5]). [contextual]</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>The paper gives no asymptotic convergence theorem for the empirical
+graph Laplacian to the Laplace-Beltrami operator. It gives a geometric
+derivation and analogy, with a local heat-kernel approximation (pages
+5-6, Sections 2.1-2.2). [explicit/contextual]</p>
+<p>Parameter choice remains unresolved. The paper itself says
+epsilon-neighborhoods can lead to disconnected components and make <span
+class="math inline">\(\epsilon\)</span> difficult to choose;
+nearest-neighbor graphs are simpler but less geometrically intuitive;
+heat weights require choosing <code>t</code>; binary weights avoid
+<code>t</code> but discard distance magnitudes (page 2, Section 1).
+[explicit]</p>
+<p>The heat-kernel derivation is local and short-time. It assumes nearby
+points in local coordinates and small <code>t</code>, and it does not
+address finite-sample density bias, boundary effects, variable
+bandwidths, anisotropy, or high-dimensional distance concentration (page
+6, Section 2.2). [explicit/derived]</p>
+<p>The paper’s graph construction is not adaptive-scale. It uses a
+global epsilon, a global number of nearest neighbors, and a global heat
+parameter <code>t</code>; it does not introduce local bandwidths or
+self-tuning kernels (page 2, Section 1; page 6, Section 2.2).
+[explicit]</p>
+<p>The paper treats edge weights as affinities for embedding and
+clustering, not as physical conductances or length-normalized transport
+rates. Interpreting <span class="math inline">\(W_{ij}\)</span> as a
+conductance is natural in graph-Laplacian language but is not the
+vocabulary used by the authors. [derived]</p>
+<p>The experiments are visual demonstrations on toy images, word-context
+vectors, and speech spectra. They do not establish general performance,
+parameter robustness, or biological plausibility (pages 6-7, Section 3).
+[derived]</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>This is a foundational paper for spectral manifold learning. It makes
+the now-standard Laplacian Eigenmaps pipeline concise: build a
+neighborhood graph, assign heat or binary weights, solve <span
+class="math inline">\(L y = \lambda D y\)</span>, and use nontrivial
+low-frequency eigenvectors as coordinates (pages 2-3, Section 1).
+[explicit/contextual]</p>
+<p>Methodologically, the paper connects three ideas that remain central:
+graph smoothness penalties, Laplace-Beltrami eigenfunctions, and
+heat-kernel affinities. It also links manifold embedding to spectral
+clustering by showing that a locality-preserving embedding naturally
+highlights clusters (page 2, introduction; pages 3-5, Section 2).
+[explicit/contextual]</p>
+<p>For the conductance/kernel review, P02 is important because it
+establishes the heat-kernel weight as a graph affinity for low-frequency
+Laplacian coordinates, while also exposing early unresolved issues:
+global scale choice, connectivity, and lack of density correction.
+[derived]</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p><span class="math inline">\(\epsilon\)</span> graph edge rule:</p>
+<p><span class="math display">\[
+i \sim j \quad \text{if}\quad \lVert x_i-x_j\rVert^2 &lt; \epsilon .
+\]</span></p>
+<p>Label: explicit. Source: page 2, Section 1, Step 1(a). Notes: the
+printed Step 1 condition uses squared norm <span
+class="math inline">\(&lt; \epsilon\)</span>; the later heat derivation
+uses <span class="math inline">\(\Vert x_{i} - x_{j}\Vert  &lt;
+\epsilon\)</span> in the final truncated formula on page 6. Treat this
+as a notational threshold convention to audit. [explicit/uncertain]</p>
+<p>Symmetrized <code>n</code>-nearest-neighbor edge rule:</p>
+<p><span class="math display">\[
+i \sim j
+\quad \text{if}\quad
+i \in \operatorname{NN}_n(j)
+\ \text{or}\
+j \in \operatorname{NN}_n(i).
+\]</span></p>
+<p>Label: explicit. Source: page 2, Section 1, Step 1(b). Notes: the OR
+rule makes the graph undirected/symmetric after nearest-neighbor search.
+[explicit]</p>
+<p>Heat-kernel affinity in the algorithm:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / t)
+\end{aligned}
+\]</span></p>
+<p>for connected nodes. Label: explicit. Source: page 2, Section 1, Step
+2(a). Notes: global bandwidth <code>t</code>; no local scaling.
+[explicit]</p>
+<p>Binary affinity:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= 1
+\end{aligned}
+\]</span></p>
+<p>if vertices are connected by an edge. Label: explicit. Source: page
+2, Section 1, Step 2(b). Notes: this is a parameter-free simplification
+after graph construction. [explicit]</p>
+<p>Local manifold heat kernel:</p>
+<p><span class="math display">\[
+\begin{aligned}
+H_{t}(x,y) \approx (4 \pi t)^(-n/2) \exp(-\Vert x-y\Vert ^2 / 4t)
+\end{aligned}
+\]</span></p>
+<p>Label: explicit. Source: page 6, Section 2.2. Notes: local
+approximation for small <code>t</code> and nearby points in local
+coordinates. [explicit]</p>
+<p>Epsilon-truncated heat affinity from Section 2.2:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / 4t)  \text{if} \Vert
+x_{i} - x_{j}\Vert  &lt; \epsilon \\
+0                           \text{otherwise}
+\end{aligned}
+\]</span></p>
+<p>Label: explicit. Source: page 6, Section 2.2. Notes: the factor
+<code>4</code> differs from the Section 1 algorithmic formula and can be
+absorbed into a bandwidth convention if <code>t</code> is redefined.
+[explicit/derived]</p>
+<p>Conductance interpretation:</p>
+<p><span class="math display">\[
+\begin{aligned}
+c_{ij} :&amp;= W_{ij}
+\end{aligned}
+\]</span></p>
+<p>Label: derived. Source: derived from graph Laplacian <span
+class="math inline">\(L = D - W\)</span> and graph Dirichlet energy,
+pages 3-4, Section 2. Notes: the paper calls these weights, not
+conductances; using conductance language is a review-layer
+interpretation. [derived]</p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p>The graph is weighted, undirected, and has <code>k</code> nodes, one
+per data point. Edges connect nearby points by either epsilon
+neighborhoods or symmetrized nearest neighbors (page 2, Section 1).
+[explicit]</p>
+<p>The weight matrix <code>W</code> is symmetric under the stated
+constructions. The degree matrix is diagonal with entries <span
+class="math inline">\(D_{ii} = sum_{j} W_{ji}\)</span>, equivalently row
+or column sums because <code>W</code> is symmetric (page 3, Section 1,
+after equation (1)). [explicit]</p>
+<p>The graph Laplacian is <span class="math inline">\(L = D -
+W\)</span>, symmetric positive semidefinite, and can be viewed as an
+operator on functions over graph vertices (page 3, Section 1, after
+equation (1)). [explicit]</p>
+<p>The generalized eigenproblem is <span class="math inline">\(L y =
+\lambda D y\)</span>, equation (1), page 3. The constant vector is the
+zero-eigenvalue eigenvector, and for a connected graph it is the only
+one (page 4, Section 2). [explicit]</p>
+<p>There is no Markov normalization or row-stochastic diffusion operator
+in this paper. The normalization appears through the generalized
+eigenproblem and the <code>D</code>-weighted orthogonality/scale
+constraints (pages 3-4, Sections 1-2). [derived]</p>
+<h3 id="task">Task</h3>
+<p>Primary task: nonlinear dimensionality reduction or embedding of
+high-dimensional data sampled from a low-dimensional manifold (pages
+1-3, introduction and Section 1). [explicit]</p>
+<p>Secondary task: clustering or cluster-revealing representation
+through locality-preserving spectral coordinates (page 2, introduction;
+Figures 1-5, pages 3-7). [explicit/contextual]</p>
+<p>Demonstration domains: toy binary image bars, word-context vectors
+from the Brown corpus, and speech short-time Fourier spectra (pages 6-7,
+Section 3; Figures 1-5). [explicit]</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p>The authors want a geometrically motivated algorithm for data sampled
+from a low-dimensional manifold embedded in high-dimensional space (page
+1, abstract). [explicit]</p>
+<p>They motivate graph Laplacians because the graph Laplacian
+approximates the Laplace-Beltrami operator, and the embedding maps
+approximate natural maps defined on the whole manifold (page 1,
+introduction). [explicit]</p>
+<p>They motivate the heat-kernel weights by the connection between the
+Laplacian and the heat kernel, which they say enables principled weight
+choice (page 2, introduction; page 6, Section 2.2). [explicit]</p>
+<p>They motivate locality preservation because nearby points should
+remain nearby in the embedding, and because local methods may be
+relatively insensitive to outliers and noise (page 2, introduction;
+pages 3-4, Section 2). [explicit]</p>
+<p>They motivate clustering by saying natural clusters are implicitly
+emphasized and by connecting to spectral clustering/normalized cuts
+(page 2, introduction). [explicit]</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p>The <code>D</code>-weighted constraint implies that high-degree
+vertices contribute more to the normalization measure, making the
+embedding respect the graph’s empirical sampling/affinity mass rather
+than treating all vertices uniformly in the constraint (pages 3-4,
+Sections 1-2). [derived]</p>
+<p>The global heat scale <code>t</code> functions as a
+locality/smoothing knob: smaller <code>t</code> concentrates weight near
+very close neighbors; larger <code>t</code> makes weights decay more
+slowly on the constructed graph (page 2, Step 2(a); page 6, Section
+2.2). [derived]</p>
+<p>The binary-weight option implies that the authors view graph topology
+alone as sometimes sufficient, even when distance magnitudes inside the
+neighborhood graph are discarded (page 2, Step 2(b)). [derived]</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p>The energy identity <span class="math inline">\((1/2) \sum
+(y_{i}-y_{j})^2 W_{ij} = y^T L y\)</span> makes each eigenvector a
+smooth graph signal subject to orthogonality and scale constraints.
+Strong weights force small coordinate differences, so low eigenvectors
+vary slowly along high-affinity edges (page 3, equation (2); page 4,
+Section 2). [explicit/derived]</p>
+<p>The heat kernel motivation says the discrete weights approximate
+local heat flow on the manifold, so the low graph eigenvectors are
+intended to approximate low Laplace-Beltrami eigenfunctions (pages 5-6,
+Sections 2.1-2.2). [explicit/derived]</p>
+<p>The embedding uses <span class="math inline">\(y_{1}, \ldots,
+y_{m}\)</span>, not <span class="math inline">\(y_{0}\)</span>, because
+<span class="math inline">\(y_{0}\)</span> is constant with eigenvalue
+zero and collapses all vertices to the same coordinate (pages 3-4,
+Sections 1-2). [explicit]</p>
+<p>For clustering, the relevant smoothing effect is that graph cuts or
+clusters should appear as low-energy variations when within-cluster
+weights are high and between-cluster weights are weak. The paper
+suggests this connection but does not formalize it beyond links to
+spectral clustering and examples (page 2, introduction; pages 3-4,
+Section 2; reference [5]). [contextual/derived]</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p>This paper is a baseline global-scale construction. It does not use
+local bandwidths, mutual reachability distances, self-tuning kernels,
+density equalization, or variable-bandwidth diffusion kernels (page 2,
+Section 1; page 6, Section 2.2). [explicit/derived]</p>
+<p>The nearest-neighbor graph is adaptive only in the weak topological
+sense that each point contributes a fixed number of neighbor candidates.
+The edge weights, when heat weights are used, still use a global
+<code>t</code> rather than a pointwise scale such as <span
+class="math inline">\(sigma_{i} sigma_{j}\)</span> (page 2, Section 1).
+[derived]</p>
+<p>This makes P02 useful as the canonical comparator for simple
+heat-kernel Laplacian eigenmaps, but not as a source for modern
+adaptive-scale conductance formulas. [derived]</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p>The paper does not claim that the heat-kernel graph Laplacian is
+density-unbiased. [derived]</p>
+<p>The paper does not provide a finite-sample or asymptotic convergence
+theorem. [contextual]</p>
+<p>The paper does not propose an adaptive bandwidth, self-tuning,
+variable-bandwidth, or anisotropic kernel. [explicit/derived]</p>
+<p>The paper does not define edge weights as physical conductances,
+lengths, or resistances. [explicit]</p>
+<p>The paper does not claim that PCA is always worse; Figure 1 is a
+specific illustrative toy comparison (page 3, Figure 1; page 6, Example
+1). [derived]</p>
+<p>The paper does not optimize or evaluate clustering labels with
+quantitative metrics in the examples. [derived]</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p>For gflow/SIMODS, P02 should be treated as evidence for a planned
+length/kernel-conductance comparator family: build a graph over objects,
+assign heat-kernel or binary affinities, form <span
+class="math inline">\(L = D - W\)</span>, and use graph
+smoothness/eigenstructure as the operator basis. [derived]</p>
+<p>Keep this distinct from current <code>fit.rdgraph.regression()</code>
+overlap-density smoothing. P02 does not describe overlap-density
+smoothing, and the current gflow behavior should not be re-described as
+Laplacian Eigenmaps unless the implemented weights, graph construction,
+and objective actually match <code>W</code>, <code>D</code>,
+<code>L</code>, and <span class="math inline">\(L y = \lambda D
+y\)</span> semantics. [derived]</p>
+<p>The clean overlap point is conceptual rather than identical: both
+current smoothing and P02-style graph methods use local relationships to
+regularize functions over a graph or sample set. The planned comparators
+can ask whether length-based or heat-kernel conductances produce better
+smoothing or embeddings than overlap-density weights, but that
+comparison must be described as a new comparator, not as a claim made by
+Belkin and Niyogi. [derived]</p>
+<p>P02 is especially useful for explaining why a kernel-conductance
+graph should penalize large differences across high-affinity edges: the
+exact graph Dirichlet energy identity is equation (2), page 3.
+[explicit]</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–5 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures. [explicit]</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<p>None created. A possible future explanatory figure for auditors would
+be a small three-node graph showing how increasing <span
+class="math inline">\(W_{ij}\)</span> increases the penalty <span
+class="math inline">\((y_{i}-y_{j})^2 W_{ij}\)</span>, or a
+one-dimensional plot comparing <span
+class="math inline">\(\exp(-r^2/t)\)</span> and <span
+class="math inline">\(\exp(-r^2/4t)\)</span> as bandwidth conventions.
+[derived]</p>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The method constructs a weighted graph with one node per data
+point.</td>
+<td>explicit</td>
+<td>Page 2, Section 1</td>
+<td>Input points <span class="math inline">\(x_{1}, \ldots, x_{k} in
+\mathbb{R}^{l}\)</span>.</td>
+</tr>
+<tr>
+<td>Epsilon-neighborhood and <code>n</code>-nearest-neighbor graphs are
+the two graph options.</td>
+<td>explicit</td>
+<td>Page 2, Section 1, Step 1(a)-(b)</td>
+<td>Epsilon is symmetric but hard to choose; nearest-neighbor tends
+toward connected graphs but is less geometrically intuitive.</td>
+</tr>
+<tr>
+<td>Heat weights in the algorithm are <span class="math inline">\(W_{ij}
+= \exp(-\Vert x_{i}-x_{j}\Vert ^2/t)\)</span>.</td>
+<td>explicit</td>
+<td>Page 2, Section 1, Step 2(a)</td>
+<td>Applies only if nodes are connected.</td>
+</tr>
+<tr>
+<td>Binary weights are allowed as <span
+class="math inline">\(W_{ij}=1\)</span> on graph edges.</td>
+<td>explicit</td>
+<td>Page 2, Section 1, Step 2(b)</td>
+<td>Presented as a simplification avoiding <code>t</code>.</td>
+</tr>
+<tr>
+<td>The eigenproblem is <span class="math inline">\(L y = \lambda D
+y\)</span>.</td>
+<td>explicit</td>
+<td>Page 3, Section 1, equation (1)</td>
+<td>Uses <span class="math inline">\(D_{ii}=sum_{j} W_{ji}\)</span>,
+<span class="math inline">\(L=D-W\)</span>.</td>
+</tr>
+<tr>
+<td>The graph Dirichlet identity is <span class="math inline">\((1/2)
+\sum (y_{i}-y_{j})^2 W_{ij} = y^T L y\)</span>.</td>
+<td>explicit</td>
+<td>Page 3, Section 2, equation (2)</td>
+<td>Main smoothing identity.</td>
+</tr>
+<tr>
+<td>The trivial eigenvector is constant with eigenvalue zero.</td>
+<td>explicit</td>
+<td>Page 4, Section 2</td>
+<td>For connected graph, it is the only zero eigenvector.</td>
+</tr>
+<tr>
+<td>The embedding uses the first <code>m</code> nontrivial
+eigenvectors.</td>
+<td>explicit</td>
+<td>Page 3, Section 1; page 4, Section 2</td>
+<td><span class="math inline">\(x_{i} \to (y_{1}(i), \ldots,
+y_{m}(i))\)</span>.</td>
+</tr>
+<tr>
+<td>The manifold analogue minimizes squared gradient energy and leads to
+Laplace-Beltrami eigenfunctions.</td>
+<td>explicit</td>
+<td>Page 5, Section 2.1</td>
+<td>Uses Stokes/formal adjoint argument.</td>
+</tr>
+<tr>
+<td>The heat kernel is locally Gaussian with exponent <span
+class="math inline">\(-\Vert x-y\Vert ^2/(4t)\)</span>.</td>
+<td>explicit</td>
+<td>Page 6, Section 2.2</td>
+<td>Short-time local-coordinate approximation.</td>
+</tr>
+<tr>
+<td>The Section 2.2 final weight is epsilon-truncated <span
+class="math inline">\(\exp(-\Vert x_{i}-x_{j}\Vert
+^2/(4t))\)</span>.</td>
+<td>explicit</td>
+<td>Page 6, Section 2.2</td>
+<td>Different bandwidth convention from Section 1.</td>
+</tr>
+<tr>
+<td>The paper is a global-scale graph method, not a
+self-tuned/adaptive-bandwidth method.</td>
+<td>derived</td>
+<td>Page 2, Section 1; page 6, Section 2.2</td>
+<td>Uses global <span class="math inline">\(\epsilon\)</span>,
+<code>n</code>, and <code>t</code>.</td>
+</tr>
+<tr>
+<td>The examples are qualitative rather than quantitative
+benchmarks.</td>
+<td>derived</td>
+<td>Pages 6-7, Section 3; Figures 1-5</td>
+<td>No accuracy/stability/runtime table.</td>
+</tr>
+<tr>
+<td>The graph weights can be interpreted as conductances for review
+purposes.</td>
+<td>derived</td>
+<td>Pages 3-4, Section 2</td>
+<td>Paper uses “weights”, not “conductances”.</td>
+</tr>
+<tr>
+<td>Current gflow overlap-density smoothing is not the same as P02
+heat-kernel Laplacian Eigenmaps.</td>
+<td>derived</td>
+<td>P02 method pages 2-4; project review requirement</td>
+<td>Keep implemented current smoother distinct from planned
+comparators.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ol type="1">
+<li>Should the review normalize the two heat-kernel formulas into one
+bandwidth convention, or preserve both printed forms everywhere? I
+preserved both and flagged the <code>t</code> versus <code>4t</code>
+difference.</li>
+<li>Should the epsilon graph condition be recorded as <span
+class="math inline">\(\Vert x_{i}-x_{j}\Vert ^2 &lt; \epsilon\)</span>
+from Section 1 or <span class="math inline">\(\Vert
+x_{i}-x_{j}\Vert  &lt; \epsilon\)</span> from Section 2.2? I recorded
+both and treated the difference as a threshold convention needing
+audit.</li>
+<li>Do we want an original explanatory figure comparing P02’s
+heat-kernel affinity with planned length/kernel-conductance comparators,
+or should figures remain only referenced from the canonical PDF?</li>
+<li>For SIMODS language, should “conductance” be reserved only for
+planned comparator implementations, with P02 always called
+“affinity/weight” unless explicitly translating into graph-Laplacian
+conductance notation?</li>
+<li>Are there project-specific details of current
+<code>fit.rdgraph.regression()</code> overlap-density smoothing that
+should be inserted by the auditor, or should this memo intentionally
+stay paper-local and comparator-facing?</li>
+</ol>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P02 flagged the vector-valued trace identity. The exact
+scalar identity is <span class="math display">\[
+  y^\top L y = \frac12\sum_{i,j} (y_i-y_j)^2 W_{ij}.
+\]</span> For vector-valued <span class="math inline">\(Y\)</span>, the
+same factor convention applies: <span class="math display">\[
+  \mathrm{tr}(Y^\top L Y)
+  = \frac12\sum_{i,j}\|Y_i-Y_j\|^2 W_{ij}.
+\]</span> The paper’s unhalved objective differs by a constant factor
+that does not change the minimizer, but the final synthesis should state
+the factor convention explicitly.</p></li>
+<li><p>Scope/absence statements should be treated as
+<code>derived</code> or <code>contextual</code>, not as direct author
+claims unless the paper states them.</p></li>
+<li><p>SIMODS/gflow clarification for synthesis: current
+<code>fit.rdgraph.regression()</code> uses supplied edge lengths for
+neighborhood ordering/truncation and then constructs an
+overlap-density/Riemannian-complex conductance. P02 supports planned
+inverse-length or heat/RBF comparator conductances, not the current
+overlap-density smoother semantics.</p></li>
+<li><p>2026-05-15: Draft memo created by Reviewer-P02 from canonical
+7-page PDF, including pages with Figures 1-5.</p></li>
+</ul>
+</body>
+</html>

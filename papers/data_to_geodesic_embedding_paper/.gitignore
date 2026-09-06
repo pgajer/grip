@@ -1,0 +1,5 @@
+build/
+tmp/
+__pycache__/
+!literature/**/*.pdf
+!paper_reviews_latex/**/*.pdf

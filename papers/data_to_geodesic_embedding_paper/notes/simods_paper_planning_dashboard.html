@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIMODS Paper Planning Dashboard</title>
+  <style>
+    :root {
+      --bg: #f7f7f3;
+      --ink: #1d252c;
+      --muted: #5e6871;
+      --panel: #ffffff;
+      --line: #d8d6cd;
+      --accent: #0f6d7a;
+      --accent-2: #8b3f1f;
+      --good: #24745b;
+      --warn: #9a6a00;
+      --risk: #9a2f2f;
+      --shadow: 0 10px 30px rgba(20, 30, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.55;
+    }
+    a { color: var(--accent); }
+    code {
+      padding: 0.1rem 0.28rem;
+      border-radius: 4px;
+      background: #ece9df;
+      font-size: 0.92em;
+    }
+    header {
+      padding: 28px clamp(20px, 5vw, 56px) 22px;
+      background: #14232b;
+      color: #fff;
+    }
+    header h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    header p {
+      max-width: 980px;
+      margin: 0;
+      color: #d8e2e5;
+      font-size: 1.06rem;
+    }
+    .meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .meta-strip span {
+      border: 1px solid rgba(255,255,255,0.24);
+      color: #eef6f7;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.88rem;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px clamp(20px, 5vw, 56px);
+      background: rgba(247, 247, 243, 0.95);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+    nav a {
+      flex: 0 0 auto;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: #fff;
+      font-size: 0.92rem;
+    }
+    main {
+      width: min(1320px, calc(100% - 40px));
+      margin: 24px auto 56px;
+    }
+    section {
+      margin: 24px 0;
+    }
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.55rem;
+      letter-spacing: 0;
+    }
+    .section-title p {
+      max-width: 720px;
+      margin: 0;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .panel, .outline-card, .task-card, .experiment-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .panel {
+      padding: 18px;
+    }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+    .pipe-step {
+      position: relative;
+      min-height: 130px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .pipe-step:not(:last-child)::after {
+      content: ">";
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .pipe-step h3, .task-card h3, .outline-card h3, .experiment-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+    }
+    .pipe-step p, .task-card p, .outline-card p, .experiment-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .outline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .outline-card {
+      padding: 16px;
+    }
+    .outline-number {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 700;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .controls button, .controls select, .export-button {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 10px;
+      font: inherit;
+    }
+    .controls button.active {
+      border-color: var(--accent);
+      background: #e6f4f5;
+      color: #073f47;
+    }
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .task-card {
+      padding: 15px;
+    }
+    .task-topline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .task-key {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #ece9df;
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .priority {
+      background: #fff0d1;
+      color: var(--warn);
+    }
+    .status {
+      background: #e8f1ef;
+      color: var(--good);
+    }
+    dl {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr);
+      gap: 4px 10px;
+      margin: 12px 0 0;
+      font-size: 0.9rem;
+    }
+    dt {
+      color: var(--muted);
+      font-weight: 700;
+    }
+    dd {
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 170px;
+    }
+    th:last-child, td:last-child {
+      width: 110px;
+      white-space: nowrap;
+    }
+    th {
+      background: #ebe8de;
+      font-size: 0.88rem;
+    }
+    td ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .source-refs {
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .source-list {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      list-style: none;
+      box-shadow: var(--shadow);
+    }
+    .source-list li {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 8px;
+      align-items: baseline;
+    }
+    .source-list span {
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .experiment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .experiment-card {
+      padding: 16px;
+    }
+    .experiment-meta {
+      display: grid;
+      gap: 4px;
+      margin: 10px 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .risk-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .risk-list li {
+      padding: 12px;
+      border-left: 4px solid var(--accent-2);
+      background: #fff;
+      border-radius: 6px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #fff;
+      color: var(--ink);
+    }
+    footer {
+      width: min(1320px, calc(100% - 40px));
+      margin: 0 auto 42px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    @media (max-width: 980px) {
+      .grid.two, .grid.three, .pipeline, .outline-grid, .task-grid, .experiment-grid {
+        grid-template-columns: 1fr;
+      }
+      .pipe-step:not(:last-child)::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SIMODS Paper Planning Dashboard</h1>
+    <p>A local decision artifact for the integrated paper on data geodesic geometry and geodesic multidimensional scaling.</p>
+    <div class="meta-strip">
+      <span>Generated: 2026-09-06 19:26:26 EDT</span>
+      <span>Source scope timestamp: 2026-05-14</span>
+      <span>Target: SIAM Journal on Mathematics of Data Science</span>
+      <span>Mode: planning, evidence, and next actions</span>
+    </div>
+  </header>
+  <nav>
+    <a href="#thesis">Thesis</a>
+    <a href="#outline">Outline</a>
+    <a href="#tasks">Tasks</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#experiments">Experiments</a>
+    <a href="#risks">Risks</a>
+    <a href="#export">Export</a>
+  </nav>
+  <main>
+    <section id="thesis">
+      <div class="section-title">
+        <h2>Central Thesis</h2>
+        <p>The paper is strongest as a complete route from data to geodesic quasi-isometric embedding.</p>
+      </div>
+      <div class="pipeline">
+        <div class="pipe-step">
+          <h3>Data</h3>
+          <p>Finite sample X in an ambient feature space, often from a structured geometric or biological process.</p>
+        </div>
+        <div class="pipe-step">
+          <h3>Data Graph</h3>
+          <p>Construct G(X) so graph geodesics approximate intrinsic geometry. Main candidates: adaptive-radius and cKNN.</p>
+        </div>
+        <div class="pipe-step">
+          <h3>Graph Metric</h3>
+          <p>Use edge lengths and shortest paths to obtain d^G, with non-oracle parameter selection for real data.</p>
+        </div>
+        <div class="pipe-step">
+          <h3>GMDS Layout</h3>
+          <p>Represent graph geodesics through embedded graph path lengths using weighted GRIP -> edge-KK or metric MDS -> edge-KK.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="outline">
+      <div class="section-title">
+        <h2>Paper Outline</h2>
+        <p>These sections come from the scope note. Each card names the role the section must play in the final SIMODS manuscript.</p>
+      </div>
+      <div class="outline-grid">
+        
+            <article class="outline-card" id="outline-1-introduction">
+              <span class="outline-number">1</span>
+              <h3>1. Introduction</h3>
+              <p>Frame the paper as a full data-to-geodesic-embedding pipeline.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-2-related-work">
+              <span class="outline-number">2</span>
+              <h3>2. Related Work</h3>
+              <p>Connect MDS, Isomap, graph construction, PHATE, graph drawing, GRIP, and graph signal smoothing.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-3-data-geodesic-geometry-reconstruction">
+              <span class="outline-number">3</span>
+              <h3>3. Data Geodesic Geometry Reconstruction</h3>
+              <p>Formalize X -&gt; G(X) and define graph families, MST repair, and pruning.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-4-oracle-benchmarks-on-quadratic-surfaces">
+              <span class="outline-number">4</span>
+              <h3>4. Oracle Benchmarks On Quadratic Surfaces</h3>
+              <p>Show which graph constructions recover known surface geodesics.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-5-non-oracle-graph-parameter-selection">
+              <span class="outline-number">5</span>
+              <h3>5. Non-Oracle Graph Parameter Selection</h3>
+              <p>Turn oracle benchmark insight into practical graph selection criteria.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-6-geodesic-mds">
+              <span class="outline-number">6</span>
+              <h3>6. Geodesic MDS</h3>
+              <p>Define graph-to-layout isometry through embedded graph path lengths.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-7-gmds-diagnostics-and-stopping-rules">
+              <span class="outline-number">7</span>
+              <h3>7. GMDS Diagnostics And Stopping Rules</h3>
+              <p>Make edge fidelity, spread, runtime, and convergence measurable.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-8-experiments">
+              <span class="outline-number">8</span>
+              <h3>8. Experiments</h3>
+              <p>Assemble oracle, non-oracle, layout, timing, and real-data evidence.</p>
+            </article>
+            
+
+            <article class="outline-card" id="outline-9-discussion">
+              <span class="outline-number">9</span>
+              <h3>9. Discussion</h3>
+              <p>Position the work as a bridge between data analysis and graph drawing.</p>
+            </article>
+            
+      </div>
+    </section>
+
+    <section id="tasks">
+      <div class="section-title">
+        <h2>What Still Needs To Be Added</h2>
+        <p>Filter the current task board by priority or status. This is the working version of the open-items section.</p>
+      </div>
+      <div class="controls" aria-label="Task filters">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="P1">P1</button>
+        <button data-filter="P2">P2</button>
+        <button data-filter="not yet">Not yet</button>
+        <button data-filter="needs">Needs synthesis/standardization</button>
+        <button data-filter="open">Open decisions</button>
+      </div>
+      <div class="task-grid" id="task-grid">
+        
+            <article class="task-card" data-priority="P1" data-status="started" data-owner="Manuscript / Orchestrator">
+              <div class="task-topline">
+                <span class="task-key">A</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">started</span>
+              </div>
+              <h3>Decide manuscript asset structure</h3>
+              <p>The SIMODS workspace exists, but the actual LaTeX skeleton and manuscript-local references/figure conventions are still pending.</p>
+              <dl>
+                <dt>Owner</dt><dd>Manuscript / Orchestrator</dd>
+                <dt>Source</dt><dd>SIMODS scope note, Section A</dd>
+                <dt>Next action</dt><dd>Create the first LaTeX skeleton, references.bib, and a policy for copying or regenerating publication figures into data_to_geodesic_embedding_paper.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P1" data-status="needs synthesis" data-owner="Geodesic data geometry orchestrator">
+              <div class="task-topline">
+                <span class="task-key">B</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">needs synthesis</span>
+              </div>
+              <h3>Consolidate graph reconstruction results</h3>
+              <p>The paper needs a small decisive result package, not the full history of exploratory graph-construction reports.</p>
+              <dl>
+                <dt>Owner</dt><dd>Geodesic data geometry orchestrator</dd>
+                <dt>Source</dt><dd>geodesic_data_geometry reports and benchmark CSVs</dd>
+                <dt>Next action</dt><dd>Ask the GDG lane to produce a paper-ready table/figure set showing adaptive-radius and cKNN as current leading graph families.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P1" data-status="not yet standardized" data-owner="Implementation + Experiment agents">
+              <div class="task-topline">
+                <span class="task-key">C</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">not yet standardized</span>
+              </div>
+              <h3>Generalize non-oracle graph parameter selection</h3>
+              <p>This is the main missing bridge from oracle benchmarks to usable real data analysis.</p>
+              <dl>
+                <dt>Owner</dt><dd>Implementation + Experiment agents</dd>
+                <dt>Source</dt><dd>gflow graph-selection machinery</dd>
+                <dt>Next action</dt><dd>Audit existing gflow k-selection functions, define a common interface, and test GCV, JS-degree, graph edit/stability, and connectivity burden criteria across adaptive-radius and cKNN.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P1" data-status="not yet run" data-owner="Experiment agent">
+              <div class="task-topline">
+                <span class="task-key">D</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">not yet run</span>
+              </div>
+              <h3>Show oracle recovery of non-oracle choices</h3>
+              <p>The paper needs to show that non-oracle selectors recover near-oracle graph parameters on controlled geometry.</p>
+              <dl>
+                <dt>Owner</dt><dd>Experiment agent</dd>
+                <dt>Source</dt><dd>quadratic-surface oracle benchmarks</dd>
+                <dt>Next action</dt><dd>Run selector-vs-oracle comparisons on the 2D curvature suite, then extend selectively to 3D quadratic hypersurface examples.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P1" data-status="partly formulated" data-owner="GMDS implementation lane">
+              <div class="task-topline">
+                <span class="task-key">E</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">partly formulated</span>
+              </div>
+              <h3>Define final edge-KK stopping criteria</h3>
+              <p>The paper needs one coherent stopping rule rather than fixed budgets scattered across experiments.</p>
+              <dl>
+                <dt>Owner</dt><dd>GMDS implementation lane</dd>
+                <dt>Source</dt><dd>edge-KK timing and diagnostic reports</dd>
+                <dt>Next action</dt><dd>Choose edge rRMSE, q95 residual, improvement window, max-iteration, and failure/reporting thresholds; retrofit main scripts to record them.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P2" data-status="open decision" data-owner="Theory + Experiment agents">
+              <div class="task-topline">
+                <span class="task-key">F</span>
+                <span class="pill priority">P2</span>
+                <span class="pill status">open decision</span>
+              </div>
+              <h3>Decide whether repulsive unfolding is in the main paper</h3>
+              <p>Initial visual evidence suggests weighted GRIP -&gt; edge-KK and metric MDS -&gt; edge-KK may already be spread enough for the paper.</p>
+              <dl>
+                <dt>Owner</dt><dd>Theory + Experiment agents</dd>
+                <dt>Source</dt><dd>edge-isometric repulsive unfolding reports</dd>
+                <dt>Next action</dt><dd>Keep repulsive unfolding as future/discussion unless it clearly fixes a failure mode in a compact experiment.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P1" data-status="not decided" data-owner="Human + Experiment agent">
+              <div class="task-topline">
+                <span class="task-key">G</span>
+                <span class="pill priority">P1</span>
+                <span class="pill status">not decided</span>
+              </div>
+              <h3>Choose real data case studies</h3>
+              <p>The SIMODS paper should include one or two interpretable real-data examples, but they must not drown the mathematical story.</p>
+              <dl>
+                <dt>Owner</dt><dd>Human + Experiment agent</dd>
+                <dt>Source</dt><dd>AGP, cell-cycle, Valencia 13k, VIRGO2 candidates</dd>
+                <dt>Next action</dt><dd>Choose a first low-friction dataset, likely cell cycle or VIRGO2, and define preprocessing, distance, metadata, and comparison baselines.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P2" data-status="needs concise map" data-owner="Provenance / Librarian">
+              <div class="task-topline">
+                <span class="task-key">H</span>
+                <span class="pill priority">P2</span>
+                <span class="pill status">needs concise map</span>
+              </div>
+              <h3>Clarify software ownership</h3>
+              <p>The code can remain cross-package, but the paper needs a clean reproducibility story.</p>
+              <dl>
+                <dt>Owner</dt><dd>Provenance / Librarian</dd>
+                <dt>Source</dt><dd>gflow, grip, geodesicMDS, geodesic_data_geometry, gmdsui</dd>
+                <dt>Next action</dt><dd>Write a software map: graph construction in gflow, layout in grip, experiments/manuscript in geodesicMDS and geodesic_data_geometry, visual inspection in gmdsui.</dd>
+              </dl>
+            </article>
+            
+
+            <article class="task-card" data-priority="P2" data-status="open decision" data-owner="Manuscript lane">
+              <div class="task-topline">
+                <span class="task-key">I</span>
+                <span class="pill priority">P2</span>
+                <span class="pill status">open decision</span>
+              </div>
+              <h3>Set SIMODS length and supplement strategy</h3>
+              <p>The project has more experiments than can fit in one paper unless the main figures are selected aggressively.</p>
+              <dl>
+                <dt>Owner</dt><dd>Manuscript lane</dd>
+                <dt>Source</dt><dd>SIMODS author guidelines</dd>
+                <dt>Next action</dt><dd>Decide what stays in the main text, what moves to supplement, and what remains project documentation.</dd>
+              </dl>
+            </article>
+            
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="section-title">
+        <h2>Claim To Evidence Map</h2>
+        <p>Use this table to keep manuscript claims traceable to reports, scripts, or benchmark outputs.</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Claim</th>
+            <th>Status</th>
+            <th>Paper note</th>
+            <th>Sources</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>Adaptive-radius and cKNN are current leading graph families on 2D quadratic surfaces.</td>
+              <td><span class="pill evidence-status">tested / needs distilled paper table</span></td>
+              <td>Use a distilled figure/table, not the full exploratory report sequence.</td>
+              <td class="source-refs">[1], [2]</td>
+            </tr>
+            
+
+            <tr>
+              <td>Fixed-radius and mKNN are weaker and can be sparse baselines.</td>
+              <td><span class="pill evidence-status">tested / needs concise citation</span></td>
+              <td>Good candidate for supplement or a short negative-result paragraph.</td>
+              <td class="source-refs">[2]</td>
+            </tr>
+            
+
+            <tr>
+              <td>Pruning usually preserves graph-geodesic geometry while reducing edge count.</td>
+              <td><span class="pill evidence-status">tested / probably secondary</span></td>
+              <td>Useful as sparsification context; likely not central to the SIMODS story.</td>
+              <td class="source-refs">[3]</td>
+            </tr>
+            
+
+            <tr>
+              <td>Surface-target errors are cleaner than sample-oracle errors.</td>
+              <td><span class="pill evidence-status">tested / interpretation settled for now</span></td>
+              <td>Future benchmark summaries should focus on surface-target metrics.</td>
+              <td class="source-refs">[4]</td>
+            </tr>
+            
+
+            <tr>
+              <td>Metric MDS -&gt; edge-KK and weighted GRIP -&gt; edge-KK are strong GMDS baselines.</td>
+              <td><span class="pill evidence-status">tested / needs main-paper figure</span></td>
+              <td>This should be one of the central layout-method comparisons.</td>
+              <td class="source-refs">[5], [6]</td>
+            </tr>
+            
+
+            <tr>
+              <td>edge-KK is a quadratic edge-barrier special case with a_ij = k_ij ell_ij^2.</td>
+              <td><span class="pill evidence-status">tested / documented</span></td>
+              <td>Use to connect the older edge-KK language to the newer edge-isometric framework.</td>
+              <td class="source-refs">[7]</td>
+            </tr>
+            
+
+            <tr>
+              <td>Repulsive unfolding is conceptually rich but not yet necessary for the headline method.</td>
+              <td><span class="pill evidence-status">inferred from current visual tests</span></td>
+              <td>Keep optional until it earns a clear role.</td>
+              <td class="source-refs">[6]</td>
+            </tr>
+            
+        </tbody>
+      </table>
+      <ul class="source-list">
+        <li><span>[1]</span><code>/Users/pgajer/current_projects/geodesic_data_geometry</code></li>
+<li><span>[2]</span><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction</code></li>
+<li><span>[3]</span><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-pruning-method-comparison</code></li>
+<li><span>[4]</span><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-first-benchmark</code></li>
+<li><span>[5]</span><code>/Users/pgajer/current_projects/geodesicMDS/experiments</code></li>
+<li><span>[6]</span><code>/Users/pgajer/current_projects/geodesicMDS/notes/edge_isometric_repulsive_unfolding_gmds.pdf</code></li>
+<li><span>[7]</span><code>/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.pdf</code></li>
+      </ul>
+    </section>
+
+    <section id="experiments">
+      <div class="section-title">
+        <h2>Experiment Roadmap</h2>
+        <p>The paper needs enough experiments to support the whole pipeline without reproducing every exploratory report.</p>
+      </div>
+      <div class="experiment-grid">
+        
+            <article class="experiment-card">
+              <h3>Oracle graph reconstruction on quadratic surfaces</h3>
+              <p>Determine which graph constructions best recover intrinsic surface geodesics.</p>
+              <div class="experiment-meta">
+                <span><strong>Status:</strong> substantial results exist</span>
+                <span><strong>Paper role:</strong> Main evidence for data-to-graph layer.</span>
+              </div>
+              <ul><li>2D curvature suite</li><li>3D Delaunay oracle stress tests</li><li>surface-target relative RMS tables/figures</li></ul>
+            </article>
+            
+
+            <article class="experiment-card">
+              <h3>Non-oracle graph parameter selection</h3>
+              <p>Select graph parameters when intrinsic geodesic truth is unavailable.</p>
+              <div class="experiment-meta">
+                <span><strong>Status:</strong> major missing piece</span>
+                <span><strong>Paper role:</strong> Essential bridge to real data.</span>
+              </div>
+              <ul><li>GCV smoothing</li><li>JS degree distribution</li><li>graph edit/stability</li><li>connectivity/MST burden</li></ul>
+            </article>
+            
+
+            <article class="experiment-card">
+              <h3>GMDS layout comparison</h3>
+              <p>Compare metric MDS, weighted GRIP, and edge-KK repaired layouts.</p>
+              <div class="experiment-meta">
+                <span><strong>Status:</strong> results exist, needs distillation</span>
+                <span><strong>Paper role:</strong> Main evidence for graph-to-layout layer.</span>
+              </div>
+              <ul><li>metric MDS -&gt; edge-KK</li><li>weighted GRIP -&gt; edge-KK</li><li>timing through n up to 3200 where available</li></ul>
+            </article>
+            
+
+            <article class="experiment-card">
+              <h3>Stopping-rule and scaling study</h3>
+              <p>Turn edge-KK from an experimental repair step into a reproducible algorithm.</p>
+              <div class="experiment-meta">
+                <span><strong>Status:</strong> partly run</span>
+                <span><strong>Paper role:</strong> Needed for clean methods section.</span>
+              </div>
+              <ul><li>edge rRMSE</li><li>q95 residual</li><li>improvement window</li><li>elapsed time</li></ul>
+            </article>
+            
+
+            <article class="experiment-card">
+              <h3>Real data case study</h3>
+              <p>Demonstrate the full non-oracle pipeline on data where geometry matters.</p>
+              <div class="experiment-meta">
+                <span><strong>Status:</strong> not selected</span>
+                <span><strong>Paper role:</strong> Needed for broad data-science relevance.</span>
+              </div>
+              <ul><li>cell cycle</li><li>VIRGO2</li><li>Valencia 13k</li><li>AGP</li></ul>
+            </article>
+            
+      </div>
+    </section>
+
+    <section id="risks">
+      <div class="section-title">
+        <h2>Risks And Unknowns</h2>
+        <p>These are the places where the manuscript can lose coherence if they remain implicit.</p>
+      </div>
+      <ul class="risk-list">
+        <li><strong>Non-oracle selection is the main missing scientific bridge.</strong> Without it, the paper risks becoming an oracle benchmark plus a layout method.</li>
+        <li><strong>Real-data scope needs restraint.</strong> One clean biological or structured-data example may be stronger than several half-digested examples.</li>
+        <li><strong>Repulsive unfolding should earn its place.</strong> If edge-KK baselines already give useful spread, repulsive methods may belong in discussion or future work.</li>
+        <li><strong>Software ownership must be explicit.</strong> gflow, grip, geodesicMDS, geodesic_data_geometry, and gmdsui each have a role; the manuscript should make that map simple.</li>
+      </ul>
+    </section>
+
+    <section id="export">
+      <div class="section-title">
+        <h2>Export Next-Step Summary</h2>
+        <p>Copy this into Codex when you want to turn the dashboard into implementation or writing tasks.</p>
+      </div>
+      <button class="export-button" id="copy-export">Copy summary</button>
+      <textarea id="export-text" spellcheck="false"># SIMODS Paper Planning Dashboard Export
+
+## Priority Tasks
+
+### A. Decide manuscript asset structure
+- Priority: P1
+- Status: started
+- Owner: Manuscript / Orchestrator
+- Source: SIMODS scope note, Section A
+- Summary: The SIMODS workspace exists, but the actual LaTeX skeleton and manuscript-local references/figure conventions are still pending.
+- Next action: Create the first LaTeX skeleton, references.bib, and a policy for copying or regenerating publication figures into data_to_geodesic_embedding_paper.
+
+### B. Consolidate graph reconstruction results
+- Priority: P1
+- Status: needs synthesis
+- Owner: Geodesic data geometry orchestrator
+- Source: geodesic_data_geometry reports and benchmark CSVs
+- Summary: The paper needs a small decisive result package, not the full history of exploratory graph-construction reports.
+- Next action: Ask the GDG lane to produce a paper-ready table/figure set showing adaptive-radius and cKNN as current leading graph families.
+
+### C. Generalize non-oracle graph parameter selection
+- Priority: P1
+- Status: not yet standardized
+- Owner: Implementation + Experiment agents
+- Source: gflow graph-selection machinery
+- Summary: This is the main missing bridge from oracle benchmarks to usable real data analysis.
+- Next action: Audit existing gflow k-selection functions, define a common interface, and test GCV, JS-degree, graph edit/stability, and connectivity burden criteria across adaptive-radius and cKNN.
+
+### D. Show oracle recovery of non-oracle choices
+- Priority: P1
+- Status: not yet run
+- Owner: Experiment agent
+- Source: quadratic-surface oracle benchmarks
+- Summary: The paper needs to show that non-oracle selectors recover near-oracle graph parameters on controlled geometry.
+- Next action: Run selector-vs-oracle comparisons on the 2D curvature suite, then extend selectively to 3D quadratic hypersurface examples.
+
+### E. Define final edge-KK stopping criteria
+- Priority: P1
+- Status: partly formulated
+- Owner: GMDS implementation lane
+- Source: edge-KK timing and diagnostic reports
+- Summary: The paper needs one coherent stopping rule rather than fixed budgets scattered across experiments.
+- Next action: Choose edge rRMSE, q95 residual, improvement window, max-iteration, and failure/reporting thresholds; retrofit main scripts to record them.
+
+### F. Decide whether repulsive unfolding is in the main paper
+- Priority: P2
+- Status: open decision
+- Owner: Theory + Experiment agents
+- Source: edge-isometric repulsive unfolding reports
+- Summary: Initial visual evidence suggests weighted GRIP -&gt; edge-KK and metric MDS -&gt; edge-KK may already be spread enough for the paper.
+- Next action: Keep repulsive unfolding as future/discussion unless it clearly fixes a failure mode in a compact experiment.
+
+### G. Choose real data case studies
+- Priority: P1
+- Status: not decided
+- Owner: Human + Experiment agent
+- Source: AGP, cell-cycle, Valencia 13k, VIRGO2 candidates
+- Summary: The SIMODS paper should include one or two interpretable real-data examples, but they must not drown the mathematical story.
+- Next action: Choose a first low-friction dataset, likely cell cycle or VIRGO2, and define preprocessing, distance, metadata, and comparison baselines.
+
+### H. Clarify software ownership
+- Priority: P2
+- Status: needs concise map
+- Owner: Provenance / Librarian
+- Source: gflow, grip, geodesicMDS, geodesic_data_geometry, gmdsui
+- Summary: The code can remain cross-package, but the paper needs a clean reproducibility story.
+- Next action: Write a software map: graph construction in gflow, layout in grip, experiments/manuscript in geodesicMDS and geodesic_data_geometry, visual inspection in gmdsui.
+
+### I. Set SIMODS length and supplement strategy
+- Priority: P2
+- Status: open decision
+- Owner: Manuscript lane
+- Source: SIMODS author guidelines
+- Summary: The project has more experiments than can fit in one paper unless the main figures are selected aggressively.
+- Next action: Decide what stays in the main text, what moves to supplement, and what remains project documentation.
+
+## Evidence Items
+
+- Claim: Adaptive-radius and cKNN are current leading graph families on 2D quadratic surfaces.
+  - Status: tested / needs distilled paper table
+  - Note: Use a distilled figure/table, not the full exploratory report sequence.
+  - Sources: [1], [2]
+
+- Claim: Fixed-radius and mKNN are weaker and can be sparse baselines.
+  - Status: tested / needs concise citation
+  - Note: Good candidate for supplement or a short negative-result paragraph.
+  - Sources: [2]
+
+- Claim: Pruning usually preserves graph-geodesic geometry while reducing edge count.
+  - Status: tested / probably secondary
+  - Note: Useful as sparsification context; likely not central to the SIMODS story.
+  - Sources: [3]
+
+- Claim: Surface-target errors are cleaner than sample-oracle errors.
+  - Status: tested / interpretation settled for now
+  - Note: Future benchmark summaries should focus on surface-target metrics.
+  - Sources: [4]
+
+- Claim: Metric MDS -&gt; edge-KK and weighted GRIP -&gt; edge-KK are strong GMDS baselines.
+  - Status: tested / needs main-paper figure
+  - Note: This should be one of the central layout-method comparisons.
+  - Sources: [5], [6]
+
+- Claim: edge-KK is a quadratic edge-barrier special case with a_ij = k_ij ell_ij^2.
+  - Status: tested / documented
+  - Note: Use to connect the older edge-KK language to the newer edge-isometric framework.
+  - Sources: [7]
+
+- Claim: Repulsive unfolding is conceptually rich but not yet necessary for the headline method.
+  - Status: inferred from current visual tests
+  - Note: Keep optional until it earns a clear role.
+  - Sources: [6]
+
+## Source References
+- [1] /Users/pgajer/current_projects/geodesic_data_geometry
+- [2] /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction
+- [3] /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-pruning-method-comparison
+- [4] /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-first-benchmark
+- [5] /Users/pgajer/current_projects/geodesicMDS/experiments
+- [6] /Users/pgajer/current_projects/geodesicMDS/notes/edge_isometric_repulsive_unfolding_gmds.pdf
+- [7] /Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.pdf</textarea>
+    </section>
+  </main>
+  <footer>
+    Source note: <code>/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_data_geodesic_mds_paper_scope.md</code><br>
+    Generated by: <code>/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/scripts/build_simods_scope_dashboard.py</code>
+  </footer>
+  <script>
+    const buttons = document.querySelectorAll('[data-filter]');
+    const cards = document.querySelectorAll('.task-card');
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'));
+        button.classList.add('active');
+        const filter = button.getAttribute('data-filter');
+        cards.forEach((card) => {
+          const haystack = [
+            card.dataset.priority || '',
+            card.dataset.status || '',
+            card.dataset.owner || '',
+            card.textContent || ''
+          ].join(' ').toLowerCase();
+          card.style.display = (filter === 'all' || haystack.includes(filter.toLowerCase())) ? '' : 'none';
+        });
+      });
+    });
+
+    document.getElementById('copy-export').addEventListener('click', async () => {
+      const text = document.getElementById('export-text').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById('copy-export').textContent = 'Copied';
+        setTimeout(() => document.getElementById('copy-export').textContent = 'Copy summary', 1200);
+      } catch (error) {
+        document.getElementById('export-text').focus();
+        document.getElementById('export-text').select();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Towards a Theoretical Foundation for Laplacian-Based Manifold Methods</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Towards a Theoretical Foundation for
+Laplacian-Based Manifold Methods</h1>
+</header>
+<p>Paper: Belkin, Mikhail, and Partha Niyogi, “Towards a Theoretical
+Foundation for Laplacian-Based Manifold Methods,” Journal of Computer
+and System Sciences 74(8):1289-1308, 2008; DOI <span
+class="math inline">\(10.1016/j.jcss.2007.08.006\)</span>. The cached
+PDF is an author-hosted preprint dated 23 April 2007. Reviewer:
+Reviewer-P09 Auditor: Auditor-P09 Status: revised after audit Date:
+2026-05-15 Source manifest ID: P09 Canonical reading copy:
+<code>sources/pdf/P09_belkin_niyogi_theoretical_foundation_laplacian_manifold_methods.pdf</code>;
+SHA-256
+<code>b9e24cc13c6ae9ae7077c415c8ae0e6bbb3b0c6761cc2ae3ed5fd983d571a650</code>;
+29 pages; author-hosted PDF from
+<code>https://misha.belkin-wang.org/papers/TT_JCSS_08.pdf</code>.</p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<ul>
+<li><span class="math inline">\(explicit\)</span> Graph Laplacians,
+weighted adjacency matrices, degree sums, and the idea that a graph
+Laplacian applied to a function compares <span
+class="math inline">\(f(x_{i})\)</span> with a weighted average of
+nearby values. Section 2, PDF p. 5, defines a complete weighted graph
+and the point-cloud Laplacian operator.</li>
+<li><span class="math inline">\(explicit\)</span> Riemannian manifolds
+embedded in Euclidean space, tangent spaces, geodesic distance,
+exponential coordinates, volume form, and the Laplace-Beltrami operator.
+Section 2, PDF pp. 3-5, introduces these objects; Section 4.1, PDF
+pp. 9-11, reviews geodesics, the exponential map, and chordal versus
+geodesic distance.</li>
+<li><span class="math inline">\(explicit\)</span> Heat kernels and the
+heat equation. Section 3.1, PDF pp. 7-9, explains that the heat operator
+on Euclidean space is Gaussian convolution and motivates the graph
+construction as an empirical heat-kernel approximation.</li>
+<li><span class="math inline">\(explicit\)</span> Probability
+convergence tools: law of large numbers, concentration inequalities,
+Hoeffding’s inequality, convergence in probability, and uniform
+convergence over function classes. These are used in Section 4.2, PDF
+pp. 11-13; Section 6, PDF pp. 23-26; and Theorem 7.2, PDF p. 27.</li>
+<li><span class="math inline">\(explicit\)</span> Smoothness assumptions
+on functions and densities: <span
+class="math inline">\(C^\infty\)</span> test functions for the main
+pointwise theorem, uniform derivative bounds up to order 3 for the
+uniform theorem, and a twice differentiable positive density for the
+normalized nonuniform theorem. See Theorems 3.1, 3.2, and 5.2.</li>
+<li><code>contextual</code> Familiarity with Laplacian Eigenmaps,
+diffusion maps, spectral clustering, and manifold regularization helps
+place the paper historically, but the paper itself is about operator
+convergence rather than a new embedding or classifier.</li>
+<li><code>contextual</code> A reader should know that different graph
+normalizations target different continuum operators. This is the main
+reason P09 matters for conductance/kernel comparisons: unnormalized and
+normalized weights can converge to different density-biased or
+density-corrected operators.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>This paper addresses a basic justification problem behind
+Laplacian-based manifold learning. Many algorithms build a graph on
+sampled data and then use the graph Laplacian for embedding, clustering,
+semi-supervised learning, or smoothing. The graph is easy to compute,
+but the object one hopes to approximate is geometric: the
+Laplace-Beltrami operator on the unknown manifold from which the data
+were sampled. P09 proves that, under smooth manifold and bandwidth
+assumptions, a Gaussian-weighted point-cloud graph Laplacian converges
+to the relevant continuum differential operator.</p>
+<p>The key construction is a complete weighted graph. Every sample point
+is connected to every other sample point, with weight</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / (4t)).
+\end{aligned}
+\]</span></p>
+<p>Small <code>t</code> makes the graph local. Large <code>n</code>
+makes the empirical weighted average approximate an integral over the
+manifold. The scaled difference between <code>f(x)</code> and nearby
+weighted values behaves like the infinitesimal generator of heat
+diffusion, which is the Laplace-Beltrami operator. The mathematical work
+is needed because the data provide ambient Euclidean chord distances,
+while the manifold operator is intrinsic and depends on geodesic
+geometry.</p>
+<p>For a nonuniform sampling density, the same unnormalized graph no
+longer isolates pure geometry. It converges to a density-weighted
+Laplacian. Section 5 then explains how normalizing by empirical local
+degrees can remove one density scaling and produce a different weighted
+Laplacian. This is the central warning for downstream use: “graph
+Laplacian” is not one object. The continuum limit depends on the weight
+kernel, the bandwidth, the sampling density, and the normalization.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p><span class="math inline">\(explicit\)</span> The introduction states
+the problem directly: manifold methods assume data lie on or near a
+low-dimensional submanifold, but in practice one has only a point cloud
+and constructs an adjacency graph as a proxy for the manifold; PDF
+pp. 1-2, Section 1. The paper seeks theoretical support for the
+intuition that graph-based inference corresponds to geometric inference
+on the underlying manifold.</p>
+<p><span class="math inline">\(explicit\)</span> The paper focuses on
+graph-Laplacian methods used for “semi-supervised learning, clustering,
+data representation” and asks when the empirical graph Laplacian is
+related to the data-generating process; Abstract and Section 1, PDF
+pp. 1-2.</p>
+<p><span class="math inline">\(explicit\)</span> The main contribution
+is an operator convergence result: under suitable assumptions, the graph
+Laplacian of a point cloud converges to the Laplace-Beltrami operator on
+the underlying manifold. The abstract identifies Theorem 3.1 as the
+first random graph Laplacian convergence result of this type in the
+machine-learning context; PDF p. 1.</p>
+<p><span class="math inline">\(explicit\)</span> The paper grew out of
+analysis of Laplacian Eigenmaps and extends the COLT 2005 version with
+fuller uniform-convergence proofs and discussion of arbitrary sampling
+densities; Section 1.1, PDF pp. 2-3.</p>
+<h3 id="main-method">Main Method</h3>
+<p><span class="math inline">\(explicit\)</span> The starting object is
+a compact smooth <code>k</code>-dimensional manifold <code>M</code>
+isometrically embedded in <span
+class="math inline">\(\mathbb{R}^{N}\)</span>; Section 2, PDF p. 3. The
+embedding induces a Riemannian metric and a canonical volume
+measure.</p>
+<p><span class="math inline">\(explicit\)</span> The paper defines the
+positive-sign convention Laplace-Beltrami operator by <span
+class="math inline">\(\Delta_{M} f = -\operatorname{div}(nabla_{M}
+f)\)</span>, and equivalently through the integration-by-parts identity
+in Equation (1), PDF p. 4:</p>
+<p><span class="math display">\[
+\begin{aligned}
+int_{M} h(x) \Delta_{M} f(x) d\\mu(x) \\
+&amp;= int_{M} &lt;nabla_{M} h(x), nabla_{M} f(x)&gt; d\\mu(x).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Given points <span
+class="math inline">\(x_{1},\ldots,x_{n}\)</span>, the graph is complete
+and weighted by a Gaussian of ambient squared chord distance, Section 2,
+PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / (4t)).
+\end{aligned}
+\]</span></p>
+<p>The associated matrix has off-diagonal entries <span
+class="math inline">\(-w_{ij}\)</span> and diagonal entries <span
+class="math inline">\(sum_{k} w_{ik}\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> The matrix is extended
+to a point-cloud Laplace operator on any function, Section 2, PDF
+p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{n}^t f(x) \\
+&amp;= (1/n) sum_{j} \exp(-\Vert x - x_{j}\Vert ^2/(4t)) (f(x) -
+f(x_{j})).
+\end{aligned}
+\]</span></p>
+<p>The paper calls this the Laplacian associated with the point
+cloud.</p>
+<p><span class="math inline">\(explicit\)</span> The continuous analog
+replaces the empirical measure by a measure <code>nu</code> on
+<code>M</code>, Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L^t f(x) \\
+&amp;= f(x) int_{M} \exp(-\Vert x-y\Vert ^2/(4t)) dnu(y) \\
+- int_{M} f(y) \exp(-\Vert x-y\Vert ^2/(4t)) dnu(y).
+\end{aligned}
+\]</span></p>
+<p>Section 4.2 uses the scaled form</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{t} f(p) \\
+&amp;= 1 / (t (4 \pi t)^(k/2)) \\
+int_{M} \exp(-\Vert p-x\Vert ^2/(4t)) (f(x) - f(p)) d\\mu(x),
+\end{aligned}
+\]</span></p>
+<p>Equation (6), PDF p. 11, up to the paper’s sign convention.</p>
+<p><span class="math inline">\(explicit\)</span> The proof has two
+layers, described in Section 3 and Section 4.2. First, the empirical
+operator converges to the integral operator by law of large numbers and
+Hoeffding concentration. Second, the scaled integral operator converges
+to the Laplace-Beltrami operator as <span class="math inline">\(t \to
+0\)</span>; see PDF pp. 6 and 11-13.</p>
+<p><span class="math inline">\(explicit\)</span> The geometric proof
+reduces the manifold integral to a small ball (Lemma 4.1, PDF p. 13),
+changes coordinates with the exponential map (Section 4.4, PDF
+pp. 14-15), uses chordal/geodesic distance agreement to fourth order
+(Lemma 4.3, PDF pp. 14-15), and analyzes the resulting Gaussian integral
+in <span class="math inline">\(\mathbb{R}^{k}\)</span> (Proposition 4.4,
+PDF pp. 16-17).</p>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p><span class="math inline">\(explicit\)</span> Laplace-Beltrami
+variational identity, Equation (1), PDF p. 4:</p>
+<p><span class="math display">\[
+\begin{aligned}
+int_{M} h \Delta_{M} f d\\mu &amp;= int_{M} &lt;nabla_{M} h, nabla_{M}
+f&gt; d\\mu.
+\end{aligned}
+\]</span></p>
+<p>This is the continuum smoothness operator that graph Laplacians are
+meant to approximate.</p>
+<p><span class="math inline">\(explicit\)</span> Weighted Laplacian for
+a nonuniform measure <span class="math inline">\(dnu = P d\\mu\)</span>,
+Section 2, PDF p. 4:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta_{M,nu} f(x) &amp;= \Delta_{P} f(x) \\
+&amp;= (1/P(x)) \operatorname{div}(P(x) nabla_{M} f).
+\end{aligned}
+\]</span></p>
+<p>The paper later uses related density-weighted forms <span
+class="math inline">\(\Delta_{P^2}\)</span> and <span
+class="math inline">\(\Delta_{P}\)</span>; see Section 5, PDF
+pp. 18-23.</p>
+<p><span class="math inline">\(explicit\)</span> Complete Gaussian graph
+kernel, Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{t}(x_{i}, x_{j}) &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / (4t)).
+\end{aligned}
+\]</span></p>
+<p>This is not a compact-support, epsilon-neighborhood, kNN, self-tuned,
+or conductance-from-length kernel. It is a full graph with rapidly
+decaying weights.</p>
+<p><span class="math inline">\(explicit\)</span> Point-cloud Laplacian,
+Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{n}^t f(x) &amp;= (1/n) sum_{j} K_{t}(x, x_{j}) (f(x) - f(x_{j})).
+\end{aligned}
+\]</span></p>
+<p>On sample vertices this is the matrix graph Laplacian divided by
+<code>n</code>.</p>
+<p><span class="math inline">\(explicit\)</span> Main uniform-density
+limit, Theorem 3.1, PDF p. 6:</p>
+<p><span class="math display">\[
+\begin{aligned}
+t_{n} &amp;= n^(-1/(k+2+\alpha)), \alpha &gt; 0 \\
+1 / (t_{n} (4 \pi t_{n})^(k/2)) L_{n}^{t_{n}} f(x) \\
+\to (1/vol(M)) \Delta_{M} f(x)
+\end{aligned}
+\]</span></p>
+<p>The convergence is in probability for a fixed smooth <code>f</code>
+and point <code>x</code>.</p>
+<p><span class="math inline">\(explicit\)</span> Uniform-over-functions
+theorem, Theorem 3.2, PDF pp. 6-7, and Theorem 6.3, PDF p. 26: for an
+equicontinuous function class with uniform derivative bounds up to order
+3, there exists <span class="math inline">\(t_{n} \to 0\)</span> such
+that the scaled empirical operator converges uniformly over the class to
+<span class="math inline">\((1/vol(M)) \Delta_{M}\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> Nonuniform-density
+unnormalized limit, Theorem 3.3, PDF p. 7, and Theorem 5.1, PDF
+p. 19:</p>
+<p><span class="math display">\[
+\begin{gathered}
+scaled L_{n}^{t_{n}} f(x) \to P(x) \Delta_{P^2} f(x)
+\end{gathered}
+\]</span></p>
+<p>Theorem 3.3 includes a <code>vol(M)</code> factor under its measure
+convention; Theorem 5.1 states the same density-biased phenomenon under
+the Section 5 convention.</p>
+<p><span class="math inline">\(explicit\)</span> Normalized weights,
+Section 5.1, PDF p. 20:</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{t}(x, y) &amp;= (4 \pi t)^(-k/2) \exp(-\Vert x-y\Vert ^2/(4t)) \\
+W(x, x_{i}) &amp;= (1/t) G_{t}(x, x_{i}) \\
+/ \sqrt(dhat_{t}(x) dhat_{t}(x_{i})).
+\end{aligned}
+\]</span></p>
+<p>Here <span class="math inline">\(d_{t}(x) = int_{M} G_{t}(x,y) P(y)
+vol(y)\)</span>, and <span class="math inline">\(dhat_{t}\)</span> is
+its empirical estimate from the point cloud.</p>
+<p><span class="math inline">\(explicit\)</span> Normalized limiting
+continuous operator, Section 5.1.1, PDF p. 20:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{t}^P f(x) \\
+&amp;= (1/t) int_{M} G_{t}(x,y) / \sqrt(d_{t}(x)d_{t}(y)) \\
+(f(x)-f(y)) P(y) vol(y).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Normalized nonuniform
+limit, Theorem 5.2, PDF p. 23: if <code>M</code> is compact without
+boundary, <code>P</code> is bounded above and below away from zero, and
+<code>P</code> is twice differentiable, then for some sequence <span
+class="math inline">\(t_{n}\)</span>, the normalized empirical Laplacian
+converges in probability to <span class="math inline">\(\Delta_{P}
+f(p)\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> Chordal/geodesic
+approximation, Lemma 4.3, PDF pp. 14-15:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Vert x\Vert ^2_Rk - \Vert y-p\Vert ^2_RN &amp;= g(x), with |g(x)| =
+O(\Vert x\Vert ^4).
+\end{aligned}
+\]</span></p>
+<p>This is the reason an ambient Gaussian kernel can approximate an
+intrinsic heat-kernel operator to the order needed for the Laplacian
+limit.</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p><span class="math inline">\(explicit\)</span> Figure 1, PDF p. 10, is
+the only figure in the paper. It contrasts geodesic distance along the
+manifold with ambient chord distance. Its role is not empirical; it
+supports the proof intuition behind Lemma 4.3 by showing why <span
+class="math inline">\(dist_{M}(x,y)\)</span> and <span
+class="math inline">\(\Vert x-y\Vert\)</span> are close locally but
+conceptually different.</p>
+<figure class="paper-figure" id="P09_F01">
+<img src="../../paper_figures/P09_F01_page10.png" alt="P09 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Belkin and Niyogi (2008), Figure 1, PDF p. 10 (cropped
+from canonical reading copy), internal review only. Geodesic versus
+ambient chord distance.
+</figcaption>
+</figure>
+<p><span class="math inline">\(explicit\)</span> The paper contains no
+experimental section, algorithms, result tables, or numerical
+comparisons. It is a theory paper about operator convergence. The
+examples and cited applications are contextual rather than empirically
+evaluated in this PDF.</p>
+<p><span class="math inline">\(explicit\)</span> The paper has no tables
+in the canonical PDF.</p>
+<p><code>contextual</code> For the H005 review, Figure 1 is useful
+mainly as a reminder that the Gaussian weights use ambient chord
+distance while the limit operator is intrinsic. It is not a conductance,
+kernel-response, eigenvector, clustering, or smoothing result
+figure.</p>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p><span class="math inline">\(explicit\)</span> Theorem 3.1, PDF p. 6,
+gives pointwise convergence in probability of the scaled Gaussian
+point-cloud Laplacian to <span
+class="math inline">\((1/\operatorname{vol}(M))\Delta_M f(x)\)</span>
+under uniform sampling from a compact embedded manifold, <span
+class="math inline">\(f \in C^\infty(M)\)</span>, and <span
+class="math inline">\(t_n=n^{-1/(k+2+\alpha)}\)</span>.</p>
+<p><span class="math inline">\(explicit\)</span> Theorem 3.2, PDF
+pp. 6-7, extends the uniform-density result to a function class with
+uniform derivative bounds up to order 3; the proof is completed as
+Theorem 6.3 in Section 6, PDF p. 26.</p>
+<p><span class="math inline">\(explicit\)</span> Theorem 3.3, PDF p. 7,
+states that under arbitrary positive sampling density <code>P</code>,
+the same unnormalized graph Laplacian converges to a density-scaled
+weighted Laplacian rather than to the pure Laplace-Beltrami
+operator.</p>
+<p><span class="math inline">\(explicit\)</span> Theorem 5.1, PDF p. 19,
+develops the nonuniform-density result in Section 5 and identifies the
+limiting operator as <span class="math inline">\(P(x) \Delta_{P^2}
+f(x)\)</span> under the Section 5 scaling convention.</p>
+<p><span class="math inline">\(explicit\)</span> Section 5.1, PDF
+pp. 19-23, shows how normalizing weights by empirical local degree
+estimates changes the target operator. Theorem 5.2, PDF p. 23, proves
+convergence in probability to <span class="math inline">\(\Delta_{P}
+f(p)\)</span> under bounded positive twice differentiable
+<code>P</code>.</p>
+<p><span class="math inline">\(explicit\)</span> Proposition 4.4, PDF
+pp. 16-17, is the core analytic step: after reducing the manifold
+integral to a local Euclidean Gaussian integral, the leading
+Taylor/Hessian term becomes <span class="math inline">\((1/vol(M))
+\Delta_{M} f(p)\)</span> while curvature and chordal-distance error
+terms vanish.</p>
+<p><span class="math inline">\(explicit\)</span> Lemma 4.1, PDF p. 13,
+proves the Gaussian integral outside any open ball around <code>p</code>
+is exponentially negligible. This justifies localizing the manifold
+analysis.</p>
+<p><span class="math inline">\(explicit\)</span> Lemma 4.2, PDF p. 14,
+states that in exponential coordinates at <code>p</code>, <span
+class="math inline">\(\Delta_{M} f(p)\)</span> equals the Euclidean
+Laplacian of the coordinate representation at the origin.</p>
+<p><span class="math inline">\(explicit\)</span> Lemma 4.3, PDF
+pp. 14-15, proves the fourth-order relationship between squared geodesic
+and chordal distances. This is a critical assumption bridge from
+observable ambient distances to intrinsic manifold geometry.</p>
+<p><span class="math inline">\(explicit\)</span> Proposition 6.1, PDF
+pp. 23-24, gives uniform empirical convergence over an equicontinuous
+precompact function class by Arzela-Ascoli plus a finite-net/union-bound
+argument.</p>
+<p><span class="math inline">\(explicit\)</span> Proposition 6.2, PDF
+pp. 24-25, gives uniform convergence of the continuous Gaussian operator
+to the Laplace-Beltrami operator over function classes with uniform
+derivative bounds up to order 3.</p>
+<p><code>contextual</code> The paper proves convergence of operators
+applied to smooth functions, not convergence of graph eigenvectors,
+eigenvalues, embeddings, classifiers, or graph-regularized estimators.
+Those spectral/algorithmic consequences require additional perturbation
+and statistical arguments.</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p><span class="math inline">\(explicit\)</span> The primary theorem
+assumes a compact smooth embedded manifold and uniform sampling; Theorem
+3.1, PDF p. 6. Boundary effects are not central in the main result, and
+Theorem 5.2 explicitly assumes a compact manifold without boundary, PDF
+p. 23.</p>
+<p><span class="math inline">\(explicit\)</span> The test function in
+Theorem 3.1 is smooth (<span class="math inline">\(C^\infty\)</span>),
+and uniform convergence requires bounded derivatives up to order 3;
+Theorems 3.1, 3.2, and 6.3, PDF pp. 6-7 and 26. This is not a result for
+arbitrary noisy graph signals.</p>
+<p><span class="math inline">\(explicit\)</span> The graph is complete
+with Gaussian weights; Section 2, PDF p. 5. The paper does not prove the
+same theorem for sparse kNN graphs, mutual kNN graphs, epsilon graphs,
+conductance graphs, or self-tuned local bandwidths.</p>
+<p><span class="math inline">\(explicit\)</span> The bandwidth sequence
+is theoretical. Theorem 3.1 fixes <span class="math inline">\(t_{n} =
+n^(-1/(k+2+\alpha))\)</span>; normalized Theorem 5.2 states existence of
+a sequence <span class="math inline">\(t_{n}\)</span> rather than a
+practical rule; PDF pp. 6 and 23.</p>
+<p><span class="math inline">\(explicit\)</span> For nonuniform
+sampling, the unnormalized Laplacian is density biased. Theorems 3.3 and
+5.1 show convergence to <span class="math inline">\(P(x)
+\Delta_{P^2}\)</span>, not directly to <span
+class="math inline">\(\Delta_{M}\)</span>; PDF pp. 7 and 19.</p>
+<p><span class="math inline">\(explicit\)</span> Normalization removes a
+scaling factor but still yields a weighted Laplacian <span
+class="math inline">\(\Delta_{P}\)</span>, not automatically the pure
+geometry operator. Section 5.1 says a different normalization can
+recover the Laplace-Beltrami operator, but this PDF outlines only the
+normalized-weight convergence to <span
+class="math inline">\(\Delta_{P}\)</span>; PDF pp. 19-23.</p>
+<p><span class="math inline">\(explicit\)</span> The paper does not
+present finite-sample constants usable for tuning in an applied
+pipeline. Hoeffding bounds are used to prove convergence in probability,
+but the results are asymptotic and proof-oriented; Section 4.2 and
+Section 5.1.1, PDF pp. 12-13 and 20-21.</p>
+<p><code>contextual</code> The paper assumes noiseless samples on the
+manifold. It does not address off-manifold noise, finite-thickness data
+clouds, sample-dependent metric learning, graph disconnection, numerical
+conditioning of eigenvectors, or out-of-sample extension.</p>
+<p><code>derived</code> Because the proof relies on local Taylor
+expansions, compactness, smooth positive density, and a shrinking
+Gaussian scale, it should not be used as direct evidence that an
+arbitrary empirical graph smoother has a Laplace-Beltrami
+interpretation. It supports carefully matched kernel, bandwidth,
+density, and normalization choices.</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p><span class="math inline">\(explicit\)</span> The abstract and
+Section 1 claim the paper helps close the gap between
+“manifold-motivated” algorithms and explicit theoretical guarantees; PDF
+pp. 1-2.</p>
+<p><span class="math inline">\(explicit\)</span> The paper is tied
+historically to Laplacian Eigenmaps and the COLT 2005 result, with later
+related developments by Lafon/Coifman, Hein/Audibert/von Luxburg,
+Singer, and others listed in Section 1.1; PDF pp. 2-3.</p>
+<p><code>contextual</code> For the H005 conductance/kernel-laplacian
+review, P09 supplies the clean conceptual bridge: a Gaussian edge kernel
+plus graph Laplacian can be understood as a finite-sample approximation
+to a continuum diffusion/Laplace operator, but only after specifying
+sampling, scaling, and normalization.</p>
+<p><code>contextual</code> P09 complements P08. P08 is more directly
+about graph Laplacian convergence varieties and consistency issues; P09
+is the compact proof narrative that explains why the
+Gaussian/chordal-distance construction approximates the intrinsic
+operator in the first place.</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p><span class="math inline">\(explicit\)</span> Complete Gaussian
+affinity, Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp(-\Vert x_{i} - x_{j}\Vert ^2 / (4t)).
+\end{aligned}
+\]</span></p>
+<p>This is the paper’s core graph weight. It is a radial kernel on
+ambient Euclidean chord distance with bandwidth parameter <code>t</code>
+and exponent denominator <code>4t</code>.</p>
+<p><span class="math inline">\(explicit\)</span> Gaussian heat kernel
+normalization used for normalized weights, Section 5.1, PDF p. 20:</p>
+<p><span class="math display">\[
+\begin{aligned}
+G_{t}(x, y) &amp;= (4 \pi t)^(-k/2) \exp(-\Vert x-y\Vert ^2/(4t)).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Degree/density
+estimate, Section 5.1, PDF p. 20:</p>
+<p><span class="math display">\[
+\begin{aligned}
+d_{t}(x) &amp;= int_{M} G_{t}(x,y) P(y) vol(y) \\
+dhat_{t}(x_{i}) &amp;= (1/(n-1)) sum_{j != i} G_{t}(x_{i},x_{j})
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Normalized
+affinity/operator weight, Section 5.1, PDF p. 20:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W(x, x_{i}) &amp;= (1/t) G_{t}(x, x_{i}) \\
+/ \sqrt(dhat_{t}(x) dhat_{t}(x_{i})).
+\end{aligned}
+\]</span></p>
+<p><code>derived</code> The effective conductance for a graph-smoothing
+energy would be proportional to <span
+class="math inline">\(w_{ij}\)</span> or to the normalized <span
+class="math inline">\(W(x_{i},x_{j})\)</span>, depending on whether the
+graph uses the unnormalized or degree-normalized construction. P09 does
+not frame these weights as electrical conductances, but graph Laplacian
+off-diagonal weights play that mathematical role.</p>
+<p><code>contextual</code> The paper’s kernel is global-support
+Gaussian. Any H005 “length/kernel-conductance” comparator using finite
+graph lengths, local neighborhoods, or self-tuned scales should be
+presented as a planned comparator inspired by this class of theory, not
+as the exact P09 construction.</p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p><span class="math inline">\(explicit\)</span> Matrix graph Laplacian,
+Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+(L_{n}^t)_{ij} &amp;= -w_{ij} for i != j \\
+(L_{n}^t)_{ii} &amp;= sum_{k} w_{ik}
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Function-valued
+point-cloud Laplacian, Section 2, PDF p. 5:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L_{n}^t f(x) &amp;= (1/n) sum_{j} w_{t}(x,x_{j}) (f(x) - f(x_{j})).
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(explicit\)</span> Functional
+approximation, Section 2 and Equation (6), PDF pp. 5 and 11:</p>
+<p><span class="math display">\[
+\begin{aligned}
+L^t f(x) &amp;= int_{M} w_{t}(x,y) (f(x) - f(y)) dnu(y)
+\end{aligned}
+\]</span></p>
+<p>with a scale factor <span class="math inline">\(1/(t(4 \pi
+t)^(k/2))\)</span> when taking the Laplace limit.</p>
+<p><span class="math inline">\(explicit\)</span> Heat diffusion
+connection, Section 3.1, PDF pp. 7-9: the Euclidean heat operator is
+Gaussian convolution, and Equation (5), PDF p. 8, expresses the
+Laplacian as the small-time derivative of the heat flow:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta f(x) &amp;= lim_{t \to 0} (1/t) (f(x) - H_{t} f(x)).
+\end{aligned}
+\]</span></p>
+<p><code>derived</code> In graph-signal terms, the graph operator is a
+local averaging residual. Low values mean <code>f</code> is close to its
+kernel-weighted local average; large values mark high local curvature or
+high graph-frequency variation.</p>
+<h3 id="task">Task</h3>
+<p><span class="math inline">\(explicit\)</span> The paper’s task is
+theoretical operator approximation: prove convergence from a point-cloud
+graph Laplacian to a manifold differential operator. It is motivated by
+semi-supervised learning, clustering, and data representation, but it
+does not implement one of those tasks; Abstract and Section 1, PDF
+pp. 1-2.</p>
+<p><code>contextual</code> The closest task categories for H005 are
+graph signal smoothing and graph/manifold regularization, because the
+same weights enter penalties like <span class="math inline">\(sum_{ij}
+w_{ij} (f_{i}-f_{j})^2\)</span> and low-frequency Laplacian bases.</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p><span class="math inline">\(explicit\)</span> The authors say most
+manifold algorithms are “manifold-motivated” and lack explicit
+theoretical guarantees; Abstract, PDF p. 1.</p>
+<p><span class="math inline">\(explicit\)</span> They argue
+graph-theoretic techniques are justifiable only when related to the
+underlying data-generating process; Section 1, PDF p. 2.</p>
+<p><span class="math inline">\(explicit\)</span> They state their main
+step toward a theoretical foundation: under conditions, the graph
+Laplacian is directly related to and converges to the Laplace-Beltrami
+operator; Section 1, PDF p. 2.</p>
+<p><span class="math inline">\(explicit\)</span> They emphasize that the
+graph is an empirical object constructed from sampled data; Section 1,
+PDF p. 2. This is exactly the reason the proof combines probability and
+differential geometry.</p>
+<p><span class="math inline">\(explicit\)</span> They motivate
+arbitrary-density analysis because practical samples need not be uniform
+on the manifold; Section 3, PDF p. 7, and Section 5, PDF p. 18.</p>
+<p><span class="math inline">\(explicit\)</span> They motivate
+normalized weights because the unnormalized operator under nonuniform
+sampling is multiplied by the density; Section 5.1, PDF p. 19.</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p><code>derived</code> The paper implicitly motivates
+kernel-conductance design by showing that the choice of edge weight is
+not merely numerical: it selects the continuum differential operator
+being approximated.</p>
+<p><code>derived</code> The paper motivates density correction when the
+sampling density is a nuisance rather than the target geometry. Theorem
+3.3 and Section 5.1 show that unnormalized graphs mix geometry and
+sampling density.</p>
+<p><code>derived</code> The proof motivates using ambient distances only
+at sufficiently local scales. Lemma 4.3 makes chordal distance safe
+asymptotically because local chordal and geodesic squared distances
+differ only at fourth order.</p>
+<p><code>derived</code> The paper motivates treating bandwidth as part
+of the statistical model. The limit needs both <span
+class="math inline">\(n \to infinity\)</span> and <span
+class="math inline">\(t \to 0\)</span>; fixed or poorly scaled
+bandwidths are different regimes.</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p><span class="math inline">\(explicit\)</span> Section 2, PDF p. 4,
+notes that eigenfunctions of the Laplace-Beltrami operator form a basis
+for <span class="math inline">\(L^2(M)\)</span> and gives the
+circle/Fourier harmonics example. This is the continuum spectral
+foundation behind Laplacian Eigenmaps and graph spectral smoothing.</p>
+<p><span class="math inline">\(explicit\)</span> Section 3.1, PDF
+pp. 7-9, ties the Laplacian to heat diffusion: the heat operator smooths
+a function by Gaussian averaging, and the Laplacian is the infinitesimal
+generator of that smoothing.</p>
+<p><code>contextual</code> If graph Laplacian operators converge to
+continuum Laplacians, then low graph frequencies can be interpreted as
+discrete approximations to smooth manifold modes. P09 does not itself
+prove eigenvector convergence, so this interpretation should be treated
+as contextual.</p>
+<p><code>derived</code> In smoothing language, <span
+class="math inline">\(L_{n}^t f\)</span> measures how much a value
+differs from its local Gaussian average. Penalizing <span
+class="math inline">\(f^T L f\)</span> suppresses local variation across
+high-weight edges, which approximates intrinsic smoothness only under
+compatible sampling, bandwidth, and normalization.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p><span class="math inline">\(explicit\)</span> P09 does not propose
+adaptive or self-tuned bandwidths. The main kernel has a single global
+bandwidth <code>t</code>; Section 2, PDF p. 5.</p>
+<p><span class="math inline">\(explicit\)</span> The normalization in
+Section 5.1 is degree/density normalization, not local bandwidth
+adaptation. It uses <span class="math inline">\(dhat_{t}(x)\)</span>
+estimates with the same global <code>t</code>; PDF p. 20.</p>
+<p><code>contextual</code> P09 is foundational for later adaptive-scale
+work because it shows what a clean global Gaussian limit looks like.
+Adaptive-scale comparators should cite P09 as baseline theory and use
+P04/P10-style sources for variable-bandwidth or kNN self-tuned
+guarantees.</p>
+<p><code>derived</code> For SIMODS planned length/kernel-conductance
+comparators, P09 supports the idea that a kernel of local distance can
+define a meaningful Laplacian smoother. It does not by itself determine
+the right local scale, neighbor truncation, or density correction for
+SIMODS data.</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p><span class="math inline">\(explicit\)</span> It does not claim
+convergence for Laplacian eigenvectors or eigenvalues. The related
+non-geometric spectral convergence work is mentioned in Section 1.1, PDF
+p. 3, but P09’s theorems are operator-on-function convergence
+statements.</p>
+<p><span class="math inline">\(explicit\)</span> It does not present a
+new semi-supervised learning algorithm, classifier, clustering
+algorithm, or embedding method. It provides theory for a class of
+Laplacian-based methods; Abstract and Section 1, PDF pp. 1-2.</p>
+<p><span class="math inline">\(explicit\)</span> It does not analyze
+sparse kNN/self-tuned graphs. The graph in Section 2 is complete with
+Gaussian weights; PDF p. 5.</p>
+<p><span class="math inline">\(explicit\)</span> It does not solve
+practical bandwidth selection. The theorem gives asymptotic scaling or
+existence of a sequence; Theorems 3.1 and 5.2, PDF pp. 6 and 23.</p>
+<p><span class="math inline">\(explicit\)</span> It does not prove that
+unnormalized graphs recover pure geometry under nonuniform sampling. In
+fact, Theorems 3.3 and 5.1 show density-weighted limits; PDF pp. 7 and
+19.</p>
+<p><code>derived</code> It does not validate current
+<code>fit.rdgraph.regression()</code> overlap-density smoothing
+semantics as a Laplace-Beltrami-consistent method. Any such claim would
+require matching the actual SIMODS weights, graph construction,
+normalization, and data-generating assumptions to the P09
+hypotheses.</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p><code>contextual</code> P09 is useful for SIMODS as baseline theory
+for graph Laplacian smoothing based on kernel weights. If planned
+length/kernel-conductance comparators use edge conductances of the form
+<span class="math inline">\(\exp(-length^2/(4t))\)</span> or a
+normalized heat-kernel analog, P09 supplies the continuum-operator
+interpretation to test against.</p>
+<p><code>derived</code> P09 suggests that a SIMODS kernel-conductance
+smoother should document four choices explicitly: the distance used in
+the kernel, the bandwidth schedule or selection rule, the
+sampling-density/degree normalization, and the target continuum operator
+or practical surrogate.</p>
+<p><code>derived</code> P09 warns that density is not an implementation
+detail. If SIMODS neighborhoods have variable sample density,
+unnormalized weights may smooth according to both geometry and density.
+Normalization may be needed if the desired comparator is geometric
+rather than density-aware.</p>
+<p><code>contextual</code> Current gflow overlap-density smoothing
+should remain distinct from planned length/kernel-conductance
+comparators. P09 studies Gaussian distance kernels and graph Laplacian
+limits, not overlap-density weights. It can help frame future
+comparators but should not be cited as evidence that the current
+overlap-density smoother has the same continuum limit.</p>
+<p><code>derived</code> For H005, the paper supports adding a “density
+sensitivity” diagnostic to comparator interpretation: if a method
+changes materially under degree normalization, the difference may
+reflect the operator distinction highlighted in Theorems 3.3, 5.1, and
+5.2.</p>
+<p><code>contextual</code> Because the paper is asymptotic and assumes
+smooth manifolds, its role in SIMODS should be theoretical framing and
+comparator design, not a guarantee of finite-sample performance.</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panel for Figure 1 is managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure description. This is an
+internal-review cropped figure panel from the canonical reading copy,
+not a manuscript-ready reused figure.</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<ul>
+<li><code>literature/conductance_kernel_laplacian_review/figures/P09_operator_limit_map.svg</code></li>
+<li>Concept illustrated: the relationship among the complete Gaussian
+point-cloud Laplacian, the uniform-sampling Laplace-Beltrami limit, the
+nonuniform density-weighted limit, and the normalized-weight limit.</li>
+<li>Source references: Sections 2, 3, 5, and 5.1; Theorems 3.1, 3.3,
+5.1, and 5.2.</li>
+<li>Purpose: original internal explanatory figure for keeping
+unnormalized and normalized operator targets distinct during H005
+synthesis.</li>
+</ul>
+<figure>
+<img src="../../figures/P09_operator_limit_map.svg"
+alt="Original internal explanatory figure: P09 operator limit map" />
+<figcaption aria-hidden="true">Original internal explanatory figure: P09
+operator limit map</figcaption>
+</figure>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The paper aims to justify Laplacian-based manifold methods by
+proving graph Laplacian convergence to manifold differential
+operators.</td>
+<td>explicit</td>
+<td>Abstract and Section 1, PDF pp. 1-2</td>
+<td>Central paper claim.</td>
+</tr>
+<tr>
+<td>The graph is complete and uses Gaussian weights <span
+class="math inline">\(\exp(-\Vert x_{i}-x_{j}\Vert
+^2/(4t))\)</span>.</td>
+<td>explicit</td>
+<td>Section 2, PDF p. 5</td>
+<td>Not kNN, not self-tuned.</td>
+</tr>
+<tr>
+<td>The point-cloud operator divides the graph Laplacian action by
+<code>n</code> and extends it to arbitrary <code>x</code>.</td>
+<td>explicit</td>
+<td>Section 2, PDF p. 5</td>
+<td>Important for scaling.</td>
+</tr>
+<tr>
+<td>Under uniform sampling, the scaled point-cloud Laplacian converges
+in probability to <span class="math inline">\((1/vol(M)) \Delta_{M}
+f\)</span>.</td>
+<td>explicit</td>
+<td>Theorem 3.1, PDF p. 6</td>
+<td>Fixed smooth function and fixed point.</td>
+</tr>
+<tr>
+<td>Uniform convergence over a smooth bounded function class is
+proved.</td>
+<td>explicit</td>
+<td>Theorem 3.2, PDF pp. 6-7; Theorem 6.3, PDF p. 26</td>
+<td>Uses derivative bounds and equicontinuity.</td>
+</tr>
+<tr>
+<td>Ambient chord distance is asymptotically good enough for intrinsic
+geometry because squared-distance error is fourth order.</td>
+<td>explicit</td>
+<td>Lemma 4.3, PDF pp. 14-15</td>
+<td>Core geometric bridge.</td>
+</tr>
+<tr>
+<td>For nonuniform sampling, the unnormalized graph Laplacian converges
+to a density-weighted Laplacian, not pure <span
+class="math inline">\(\Delta_{M}\)</span>.</td>
+<td>explicit</td>
+<td>Theorem 3.3, PDF p. 7; Theorem 5.1, PDF p. 19</td>
+<td>Key density-bias warning.</td>
+</tr>
+<tr>
+<td>Degree-normalized weights change the limit to <span
+class="math inline">\(\Delta_{P}\)</span> under smooth positive density
+assumptions.</td>
+<td>explicit</td>
+<td>Section 5.1 and Theorem 5.2, PDF pp. 19-23</td>
+<td>Normalization removes a density multiplier but does not necessarily
+produce pure geometry.</td>
+</tr>
+<tr>
+<td>The paper proves operator convergence, not eigenvector/eigenvalue
+convergence.</td>
+<td>explicit</td>
+<td>Theorems 3.1, 3.2, 3.3, 5.1, 5.2; Section 1.1, PDF p. 3</td>
+<td>Spectral convergence is discussed as related work, not the
+result.</td>
+</tr>
+<tr>
+<td>Figure 1 is the only figure and explains geodesic versus chordal
+distance.</td>
+<td>explicit</td>
+<td>Figure 1, PDF p. 10</td>
+<td>Internal-review cropped figure panel embedded in generated
+HTML.</td>
+</tr>
+<tr>
+<td>P09 is relevant to SIMODS planned length/kernel-conductance
+comparators.</td>
+<td>derived</td>
+<td>Section 2 weights plus Theorems 3.1, 3.3, 5.2</td>
+<td>Applicability depends on matching graph construction and
+normalization.</td>
+</tr>
+<tr>
+<td>P09 validates current gflow overlap-density smoothing.</td>
+<td>uncertain</td>
+<td>Not claimed in PDF</td>
+<td>Keep separate from planned kernel-conductance comparators.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ul>
+<li>Confirm whether the memo should state both Theorem 3.3’s <span
+class="math inline">\(vol(M) P(x) \Delta_{P^2}\)</span> scaling and
+Theorem 5.1’s <span class="math inline">\(P(x) \Delta_{P^2}\)</span>
+scaling as convention-dependent, or whether the synthesis should
+standardize one measure convention.</li>
+<li>Check whether the normalized-weight discussion should mention the
+broader Coifman-Lafon alpha-normalization family from P03/P04, even
+though P09 itself only outlines the normalized construction needed for
+Theorem 5.2.</li>
+<li>Decide how strongly H005 should use P09 for planned SIMODS
+length/kernel-conductance comparators versus reserving finite-sample and
+adaptive-bandwidth claims for P08 and P10.</li>
+<li>Verify whether the original explanatory figure should remain
+SVG-only or be rendered to PNG for downstream manuscript assembly.</li>
+</ul>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P09 requested an explicit sign-convention note around Eq.
+(6). The final synthesis should state the paper’s Laplacian sign
+convention before comparing Eq. (6) to graph-smoothing or heat-semigroup
+conventions.</p></li>
+<li><p>Resolve the density-scaling convention carefully: Theorem 3.3 and
+Theorem 5.1 use different normalization contexts involving <span
+class="math inline">\(\mathrm{vol}(M)\)</span>. Do not collapse them
+into one density formula without preserving the theorem
+setting.</p></li>
+<li><p>Coifman-Lafon <span class="math inline">\(\alpha\)</span>
+normalization should be treated as a contextual cross-reference here;
+detailed <span class="math inline">\(\alpha\)</span>-normalization
+claims should be sourced to P03/P04.</p></li>
+<li><p>The SVG explanatory figure is fine for internal review. If used
+in the <code>pdflatex</code> final report, render it to PDF or PNG
+first.</p></li>
+<li><p>2026-05-15: Reviewer-P09 created the memo from the canonical
+29-page PDF, inspected Figure 1 visually, and added one original
+explanatory SVG figure.</p></li>
+</ul>
+</body>
+</html>

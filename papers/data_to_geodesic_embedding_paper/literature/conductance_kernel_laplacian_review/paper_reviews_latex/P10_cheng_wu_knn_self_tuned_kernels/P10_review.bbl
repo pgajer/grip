@@ -1,0 +1,20 @@
+\begin{thebibliography}{2}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Cheng and Wu(2022)]{cheng2022knn}
+Xiuyuan Cheng and Hau-Tieng Wu.
+\newblock Convergence of graph laplacian with knn self-tuned kernels.
+\newblock \emph{Information and Inference: A Journal of the IMA}, 11\penalty0
+  (3):\penalty0 889--957, 2022.
+\newblock \doi{10.1093/imaiai/iaab019}.
+
+\bibitem[Zelnik-Manor and Perona(2004)]{zelnikmanor2004selftuning}
+Lihi Zelnik-Manor and Pietro Perona.
+\newblock Self-tuning spectral clustering.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2004.
+
+\end{thebibliography}

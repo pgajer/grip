@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Writer-P01 polished review" />
+  <title>Paper Review: Self-Tuning Spectral Clustering</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" href="/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Self-Tuning Spectral Clustering</h1>
+<p class="author">Writer-P01 polished review</p>
+<p class="date">Built May 15, 2026</p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>Zelnik-Manor and Perona’s <em>Self-Tuning Spectral Clustering</em>
+<span class="citation"
+data-cites="zelnikmanor2004selftuning">(Zelnik-Manor and Perona
+2004)</span> is a short paper with an unusually durable idea: replace
+the single bandwidth in a Gaussian affinity graph by a local bandwidth
+estimated at each data point. The paper presents this as an automation
+device for spectral clustering, but for a conductance and graph
+Laplacian review its main value is more general. It supplies a
+symmetric, adaptive edge-weight rule that changes the graph before any
+eigenvector computation begins. Dense regions get small local scales,
+sparse regions get large local scales, and cross-scale edges that would
+be too strong under a global Gaussian can be suppressed. This review
+treats that construction as the paper’s explicit contribution, then
+separately draws out its implications for SIMODS and
+<code>gflow</code>.</p>
+</div>
+</header>
+<h1 id="why-this-paper-matters">Why This Paper Matters</h1>
+<p>The paper addresses a familiar weakness of graph-based learning: the
+graph is often more consequential than the eigensolver applied to it. In
+standard spectral clustering, a distance <span
+class="math inline">\(d(s_i,s_j)\)</span> between data points is
+converted to an affinity by a Gaussian kernel. With one global scale
+<span class="math inline">\(\sigma\)</span>, the weight between two
+distinct points is <span class="math display">\[A_{ij} =
+  \exp\left(-\frac{d^2(s_i,s_j)}{\sigma^2}\right), \qquad
+A_{ii}=0.\]</span> This formula makes <span
+class="math inline">\(\sigma\)</span> a single declaration of what
+counts as nearby. If the data have one density and one geometric scale,
+that can be reasonable. If one cluster is compact and another is
+diffuse, or if meaningful structure appears at several scales, no single
+value can represent the whole data set well.</p>
+<p>Zelnik-Manor and Perona identify this as both a practical and
+conceptual problem. Their explicit goal is to reduce manual tuning in
+spectral clustering: they want the scale of analysis and the number of
+clusters to be estimated from the data rather than chosen by repeated
+trial. The part most relevant here is the first of those goals. The
+paper’s local-scale affinity has become a canonical example of an
+adaptive-bandwidth kernel for graphs. In conductance language, it says
+that the edge weight between two vertices should depend not only on
+their separation but also on the local sampling scales at both
+endpoints.</p>
+<h1 id="problem-setting-and-reader-orientation">Problem Setting and
+Reader Orientation</h1>
+<p>Spectral clustering begins by building a weighted graph on data
+points. Each vertex is a data point <span
+class="math inline">\(s_i\)</span>, and each edge weight records how
+strongly two points are connected. The paper calls these weights
+affinities. In a graph smoothing or electrical-network vocabulary, the
+same nonnegative off-diagonal weights can be read as conductances, with
+larger weights allowing more flow, diffusion, or smoothing between the
+corresponding vertices. The paper itself does not use this conductance
+interpretation, so throughout this review that translation is a
+synthesis for comparison with SIMODS rather than an explicit claim by
+the authors.</p>
+<p>The algorithm reviewed and modified by the paper is the
+Ng-Jordan-Weiss spectral clustering procedure. Given an affinity matrix
+<span class="math inline">\(A\)</span>, form the degree matrix <span
+class="math display">\[D_{ii}=\sum_{j=1}^n A_{ij}\]</span> and the
+symmetric normalized affinity <span class="math display">\[L = D^{-1/2}
+A D^{-1/2}.\]</span> The leading eigenvectors of <span
+class="math inline">\(L\)</span> define a low-dimensional coordinate
+system: each row of the eigenvector matrix is treated as an embedded
+version of the corresponding data point. More precisely, the
+Ng-Jordan-Weiss procedure first forms the leading eigenvector matrix
+<span class="math inline">\(X\)</span>, row-normalizes it to <span
+class="math display">\[Y_{ij} = \frac{X_{ij}}{\left(\sum_j
+X_{ij}^2\right)^{1/2}},\]</span> and then applies <span
+class="math inline">\(k\)</span>-means to the rows of <span
+class="math inline">\(Y\)</span>. P01 keeps the normalized affinity and
+eigenspace construction, but later replaces this final row-clustering
+stage with an eigenvector-rotation and non-maximum assignment rule. A
+useful mental model is that good clusters make the graph nearly block
+diagonal. In the ideal case, the leading eigenspace separates by blocks,
+although repeated eigenvalues mean that the eigensolver may return an
+arbitrary rotation of the cluster indicator directions.</p>
+<p>The open issue is that all of this depends on <span
+class="math inline">\(A\)</span>. If a global Gaussian bandwidth is too
+small, the graph fragments; if it is too large, separate structures
+merge. Figure 1 of the paper gives the motivating examples: global
+bandwidths that work for one synthetic data set fail for another, and
+even an apparently optimal global bandwidth can fail when several scales
+coexist.</p>
+<h1 id="main-construction">Main Construction</h1>
+<p>The core construction is local scaling. Instead of one <span
+class="math inline">\(\sigma\)</span>, the paper assigns a local scale
+<span class="math inline">\(\sigma_i\)</span> to each point <span
+class="math inline">\(s_i\)</span>. The distance from <span
+class="math inline">\(s_i\)</span> to <span
+class="math inline">\(s_j\)</span>, as seen from <span
+class="math inline">\(s_i\)</span>, is <span
+class="math inline">\(d(s_i,s_j)/\sigma_i\)</span>, and the same pair as
+seen from <span class="math inline">\(s_j\)</span> is <span
+class="math inline">\(d(s_j,s_i)/\sigma_j\)</span>. For a symmetric
+distance this leads to the product-scaled squared distance <span
+class="math display">\[\frac{d(s_i,s_j)d(s_j,s_i)}{\sigma_i\sigma_j}
+  =
+  \frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}.\]</span> The proposed affinity
+is therefore <span class="math display">\[\hat A_{ij}
+  =
+  \exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right),
+  \qquad i\ne j,
+  \qquad \hat A_{ii}=0.\]</span> The local scale used in the experiments
+is the distance from <span class="math inline">\(s_i\)</span> to its
+<span class="math inline">\(K\)</span>th nearest neighbor, <span
+class="math display">\[\sigma_i = d(s_i,s_K).\]</span> All reported
+experiments use <span class="math inline">\(K=7\)</span>. The authors
+state that <span class="math inline">\(K\)</span> is independent of
+scale and depends on embedding dimension, but they do not give an
+operational dimension-to-<span class="math inline">\(K\)</span> recipe.
+They also note in the discussion that richer local statistics might
+produce better scale estimates.</p>
+<p>After replacing <span class="math inline">\(A\)</span> by <span
+class="math inline">\(\hat A\)</span>, the rest of the graph operator is
+the same symmetrically normalized affinity: <span
+class="math display">\[D_{ii}=\sum_j \hat A_{ij}, \qquad
+  L = D^{-1/2}\hat A D^{-1/2}.\]</span> This is important for
+interpretation. The paper is not proposing a new Laplacian
+normalization, a random-walk diffusion limit, or a continuum consistency
+theorem. Its primary mathematical intervention is the adaptive kernel
+used to populate the graph weights.</p>
+<figure>
+<img src="../../paper_figures/P01_F02_page03.png" style="width:82.0%" />
+<figcaption>Local scaling changes the relative graph weights before
+normalization. Reproduced from Zelnik-Manor and Perona (2004), Figure 2,
+internal review only. The figure is the paper’s clearest kernel
+evidence: under a global scale, cross-cluster affinities can be stronger
+than within-background affinities, whereas local scaling suppresses
+those cross-scale links while retaining sparse within-cluster
+connectivity.</figcaption>
+</figure>
+<h1 id="conductance-kernel-or-normalization-choice">Conductance, Kernel,
+or Normalization Choice</h1>
+<p>For this review, the clean extraction is <span
+class="math display">\[c_{ij} = \hat A_{ij}
+  =
+  \exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right)\]</span> if
+one chooses to read the affinity as a graph conductance. This is a
+derived conductance interpretation, not terminology used in the paper.
+The explicit paper language is affinity, and the explicit operator is a
+normalized affinity matrix. A Laplacian-style operator could be written
+as <span class="math inline">\(I-L\)</span>, but that is not the object
+the authors foreground.</p>
+<p>The product <span class="math inline">\(\sigma_i\sigma_j\)</span> is
+the decisive design choice. It preserves a symmetric matrix while
+letting both endpoint neighborhoods influence the edge. A point in a
+dense region has a small local scale, so an edge incident to that point
+must be short relative to a small neighborhood to receive a large
+weight. A point in a sparse region has a larger scale, so distances
+within the sparse region are not automatically punished simply because
+the global data set also contains a dense cluster. In this sense the
+kernel partially equalizes sampling density at the graph-construction
+stage.</p>
+<p>It is also important to separate local bandwidth selection from graph
+support selection. The paper estimates <span
+class="math inline">\(\sigma_i\)</span> using nearest-neighbor
+distances, but the affinity formula itself is not a continuous <span
+class="math inline">\(k\)</span>-nearest-neighbor support rule or a
+mutual-neighbor graph rule. Unless an implementation later sparsifies
+the matrix, P01 is best read as an adaptive weighting method on a dense
+affinity matrix. That distinction matters for SIMODS comparisons, where
+one may need to distinguish edge existence from edge conductance.</p>
+<h1 id="eigenfunctions-experiments-and-evidence">Eigenfunctions,
+Experiments, and Evidence</h1>
+<p>The second half of the paper asks how to estimate the number of
+clusters. The authors reject a simple eigenvalue-gap rule as unreliable.
+In the ideal block-diagonal case, each cluster block contributes its own
+spectrum, and the top eigenvalue <span class="math inline">\(1\)</span>
+has multiplicity equal to the number of groups. In noisy or imperfectly
+separated data, however, the eigenvalues move away from one, and gaps
+depend on the internal geometry of individual clusters rather than only
+on the number of clusters. Figure 4 makes this point empirically: the
+first ten eigenvalues have different patterns across synthetic data
+sets.</p>
+<p>The authors therefore turn from eigenvalues to eigenvectors. If <span
+class="math inline">\(L\)</span> were strictly block diagonal, the
+relevant eigenvectors could be chosen so that each row has nonzero
+entries only in the coordinate associated with its cluster. Repeated
+eigenvalues obscure this structure because any orthogonal rotation of
+the leading eigenspace is also valid. The proposed remedy is to find a
+rotation <span class="math inline">\(R\)</span> such that <span
+class="math display">\[Z = X R\]</span> has rows that align as closely
+as possible with coordinate axes. With <span class="math display">\[M_i
+= \max_j Z_{ij},\]</span> the paper prints the alignment objective <span
+class="math display">\[J = \sum_{i=1}^n \sum_{j=1}^C
+\frac{Z_{ij}^2}{M_i^2}.\]</span> The final group number is selected as
+the largest candidate with minimal alignment cost; in Figure 5, costs up
+to <span class="math inline">\(0.01\%\)</span> apart are treated as the
+same value, and the largest such group number is selected. Points are
+assigned by the largest squared entry in their rotated row.</p>
+<p>The audit flags a real ambiguity here. If the printed <span
+class="math inline">\(J\)</span> is used literally, a perfectly
+one-sparse row contributes <span class="math inline">\(1\)</span>, not
+<span class="math inline">\(0\)</span>. Yet Figure 5 plots near-zero
+costs and labels them as the alignment cost of Eq. (3). The safest
+reading is that the figure shows a shifted or normalized excess cost, or
+that some implementation convention is omitted from the text. The
+ranking rule is clear enough for the paper’s argument, but the plotted
+scale should not be cited as the literal unnormalized objective without
+additional verification.</p>
+<figure>
+<img src="../../paper_figures/P01_F05_page06.png" style="width:82.0%" />
+<figcaption>The eigenvector-rotation criterion is useful but
+underspecified in scale. Reproduced from Zelnik-Manor and Perona (2004),
+Figure 5, internal review only. The selected cluster number is the
+largest candidate with minimal plotted alignment cost, with costs up to
+<span class="math inline">\(0.01\%\)</span> apart treated as ties. For
+internal synthesis, the important point is the selection logic, not the
+absolute y-axis values, since the plotted cost appears shifted or
+normalized relative to the printed formula.</figcaption>
+</figure>
+<p>The experiments are persuasive for the intended synthetic-data claim:
+local scaling makes spectral clustering less brittle on multi-scale
+examples. Figure 3 shows many synthetic results in which the proposed
+method recovers intuitive clusters and estimates the group number
+automatically, though the paper reports one failure where a three-group
+case is predicted as two. Figure 6, the image-segmentation example,
+should be read more narrowly. It mainly supports the automation claim:
+comparable image results could be obtained without local scaling only by
+manually setting both the global bandwidth and the number of groups
+differently for different images.</p>
+<h1 id="limitations-and-transfer-risks">Limitations and Transfer
+Risks</h1>
+<p>The paper is deliberately heuristic. It does not prove that the
+local-scale kernel converges to a particular Laplace-Beltrami operator,
+does not analyze smoothing bias or variance, and does not discuss
+stationary distributions or diffusion times. For modern graph-learning
+work, this means P01 should be cited as a practical adaptive-bandwidth
+graph construction, not as a continuum-limit result.</p>
+<p>The local scale estimate is also minimal. A <span
+class="math inline">\(K\)</span>th-neighbor distance is easy to compute
+and scale-adaptive, but the paper gives no rule for choosing <span
+class="math inline">\(K\)</span> beyond reporting that <span
+class="math inline">\(K=7\)</span> worked in their experiments. The
+discussion explicitly leaves open better local statistics. A SIMODS
+implementation should therefore treat <span
+class="math inline">\(K\)</span> as a modeling choice, not as a resolved
+constant.</p>
+<p>Finally, the automatic cluster-number procedure is less central for
+SIMODS than the kernel. Its geometric intuition is valuable: good
+leading eigenvectors should become close to axis-aligned cluster
+indicators after an orthogonal rotation. But the printed cost and
+plotted cost require caution, and the method still requires a maximum
+possible group number before the search begins.</p>
+<h1 id="implications-for-simods-and-gflow">Implications for SIMODS and
+<code>gflow</code></h1>
+<p>The following implications are synthesis, not explicit claims by
+Zelnik-Manor and Perona. For SIMODS, P01 is most useful as a comparator
+for edge weighting under heterogeneous sampling. If a graph has a
+meaningful length <span class="math inline">\(\ell_{ij}\)</span> on
+candidate edges, a P01-style conductance could be <span
+class="math display">\[c_{ij}
+  =
+  \exp\left(-\frac{\ell_{ij}^2}{\sigma_i\sigma_j}\right),\]</span> with
+<span class="math inline">\(\sigma_i\)</span> estimated from local
+neighbor lengths or local graph geometry. Such a comparator would ask
+whether adaptive local bandwidths improve robustness when the data
+contain dense and sparse regions at the same time.</p>
+<p>This should remain distinct from current
+<code>fit.rdgraph.regression()</code> semantics. The current
+<code>gflow</code> smoother is an overlap-density or Riemannian-complex
+construction, not merely a Gaussian kernel with a self-tuned bandwidth.
+P01 therefore should not be used to reinterpret the existing smoother
+after the fact. Its role is cleaner as a planned
+length/kernel-conductance baseline: keep the current method intact, add
+a local-scale Gaussian edge-weight comparator where distances or lengths
+are well defined, and compare stability, boundary behavior, and
+sensitivity to sampling heterogeneity.</p>
+<p>P01 also gives a useful diagnostic question for graph design. Are
+weak edges weak because they cross a true structural boundary, or
+because a fixed global scale is unfair to a sparse region? The
+local-scale kernel is a compact way to test that distinction. If
+performance improves under P01-style weighting, the improvement would
+suggest that local sampling density, rather than only graph topology, is
+affecting the smoother or clustering result.</p>
+<h1 id="what-to-reuse">What To Reuse</h1>
+<p>The reusable artifact is the symmetric local-scale edge weight <span
+class="math display">\[\hat A_{ij}
+  =
+  \exp\left(-\frac{d^2(s_i,s_j)}{\sigma_i\sigma_j}\right),
+  \qquad
+  \sigma_i=d(s_i,s_K).\]</span> For a review table, this paper should be
+classified as local-bandwidth Gaussian affinity weighting with symmetric
+normalized spectral clustering. It is not a cKNN support construction,
+not an inverse-length conductance rule, and not a proof of graph
+Laplacian convergence. Its strongest evidence is the Figure 2
+demonstration that local scaling can reverse the mistaken ordering of
+cross-cluster and within-sparse-cluster affinities produced by a global
+bandwidth.</p>
+<h1 class="unnumbered" id="provenance">Provenance</h1>
+<p>Primary source: the canonical P01 PDF in <code>sources/pdf/</code>,
+read in full including figures and appendix. Archival scaffolding: the
+P01 Markdown memo in and P01 audit in <code>audits/</code>. Figure
+screenshots: internal-review captures listed in ; included paths are
+relative to this review directory and use .</p>
+<div id="refs" class="references csl-bib-body hanging-indent"
+data-entry-spacing="0" role="list">
+<div id="ref-zelnikmanor2004selftuning" class="csl-entry"
+role="listitem">
+Zelnik-Manor, Lihi, and Pietro Perona. 2004. <span>“Self-Tuning Spectral
+Clustering.”</span> In <em>Advances in Neural Information Processing
+Systems</em>.
+</div>
+</div>
+</body>
+</html>

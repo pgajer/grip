@@ -1,0 +1,310 @@
+metadata:
+  title: "SIMODS Claim-to-Evidence Registry"
+  version: 1
+  updated: "2026-05-14"
+  description: >
+    Source registry for the SIMODS manuscript claim-to-evidence dashboard.
+    Claims should be maintained here and rendered into HTML with
+    scripts/build_claim_evidence_dashboard.py.
+
+sources:
+  S001:
+    label: "SIMODS scope note"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_data_geodesic_mds_paper_scope.md"
+    type: "scope note"
+  S002:
+    label: "SIMODS planning dashboard"
+    path: "/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/notes/simods_paper_planning_dashboard.html"
+    type: "dashboard"
+  S003:
+    label: "geodesic_data_geometry project brief"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_project_brief.md"
+    type: "project brief"
+  S004:
+    label: "geodesic_data_geometry updated experiment plan"
+    path: "/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_updated_experiment_plan.md"
+    type: "plan"
+  S005:
+    label: "gflow data geodesic reconstruction reports"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction"
+    type: "report directory"
+  S006:
+    label: "surface unpruned benchmark report"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/quadform_surface_unpruned_benchmark_report.html"
+    type: "HTML report"
+  S007:
+    label: "pruning comparison report"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-pruning-method-comparison/runs/full/report/quadform_first_benchmark_report.html"
+    type: "HTML report"
+  S008:
+    label: "first quadform benchmark report"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-first-benchmark/runs/full/report/quadform_first_benchmark_report.html"
+    type: "HTML report"
+  S009:
+    label: "3D Delaunay oracle stress report"
+    path: "/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html"
+    type: "HTML report"
+  S010:
+    label: "3D Delaunay oracle factor-4 note"
+    path: "/Users/pgajer/current_projects/gflow/dev/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md"
+    type: "recommendation note"
+  S011:
+    label: "GMDS method report"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_isometric_repulsive_unfolding_gmds.pdf"
+    type: "PDF report"
+  S012:
+    label: "edge-KK/quadratic barrier equivalence report"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.pdf"
+    type: "PDF report"
+  S013:
+    label: "GMDS experiments"
+    path: "/Users/pgajer/current_projects/geodesicMDS/experiments"
+    type: "experiment directory"
+  S014:
+    label: "GMDS progress report"
+    path: "/Users/pgajer/current_projects/geodesicMDS/notes/gmds_progress_report/gmds_progress_report.pdf"
+    type: "PDF report"
+  S015:
+    label: "gflow package"
+    path: "/Users/pgajer/current_projects/gflow"
+    type: "R package"
+  S016:
+    label: "grip package"
+    path: "/Users/pgajer/current_projects/grip"
+    type: "R package"
+  S017:
+    label: "gmdsui package"
+    path: "/Users/pgajer/current_projects/gmdsui"
+    type: "R package"
+
+claims:
+  - id: C001
+    claim: "The SIMODS paper should present a complete pipeline from data to data-derived weighted graph to graph geodesic metric to GMDS embedding."
+    status: "proposed"
+    evidence_strength: "conceptual"
+    manuscript_section: "Introduction"
+    needed_for: "main_text"
+    source_ids: ["S001", "S002"]
+    risk: "The paper can become too broad if the two halves are not integrated tightly."
+    next_action: "Use this pipeline as the organizing figure and opening thesis."
+    notes: "This is the central framing claim, not an empirical result."
+
+  - id: C002
+    claim: "A standalone geodesic-MDS paper can look detached from data analysis unless paired with a data-to-graph reconstruction layer."
+    status: "inferred"
+    evidence_strength: "medium"
+    manuscript_section: "Introduction"
+    needed_for: "main_text"
+    source_ids: ["S001"]
+    risk: "Needs careful wording so it does not overstate how readers would react."
+    next_action: "Frame as motivation for the integrated SIMODS paper."
+    notes: "Interpretive claim from manuscript-positioning discussion."
+
+  - id: C003
+    claim: "Data geodesic geometry reconstruction asks for a weighted graph G(X) whose graph geodesic distances approximate intrinsic distances on the sampled object."
+    status: "proposed"
+    evidence_strength: "conceptual"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    needed_for: "main_text"
+    source_ids: ["S001", "S003"]
+    risk: "Needs precise notation and relationship to Isomap/manifold learning."
+    next_action: "Turn into formal problem statement in the manuscript."
+    notes: "Definition-level claim."
+
+  - id: C004
+    claim: "Geodesic MDS evaluates embedded graph path lengths rather than only ambient pairwise chords."
+    status: "proposed"
+    evidence_strength: "conceptual"
+    manuscript_section: "Geodesic MDS"
+    needed_for: "main_text"
+    source_ids: ["S001", "S011", "S014"]
+    risk: "Notation must distinguish d_ij^Z, d_ij^G, and d_ij^{G,Z}."
+    next_action: "Reuse notation from GMDS manuscript/report."
+    notes: "Core methodological definition."
+
+  - id: C005
+    claim: "If all graph edge lengths are preserved in the embedding, then all graph path lengths and graph geodesic distances are preserved exactly."
+    status: "proposed"
+    evidence_strength: "strong_conceptual"
+    manuscript_section: "Geodesic MDS"
+    needed_for: "main_text"
+    source_ids: ["S001", "S011"]
+    risk: "Must state assumptions: same graph support and positive edge lengths."
+    next_action: "Include as a short proposition or explanatory paragraph."
+    notes: "This is the key bridge from edge fidelity to graph-geodesic isometry."
+
+  - id: C006
+    claim: "Adaptive-radius and continuous-kNN are the current leading graph construction families on 2D quadratic-surface benchmarks."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Oracle Benchmarks"
+    needed_for: "main_text"
+    source_ids: ["S005", "S006"]
+    risk: "Needs a distilled paper-ready table/figure and exact metric definitions."
+    next_action: "Ask the data geometry lane for a concise result package."
+    notes: "Dashboard-level claim from current benchmark interpretation."
+
+  - id: C007
+    claim: "Fixed-radius and mKNN graph constructions have been weaker in current quadratic-surface tests and are likely sparse baselines rather than central methods."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Oracle Benchmarks"
+    needed_for: "supplement_or_short_main_note"
+    source_ids: ["S005", "S006"]
+    risk: "Should not be generalized beyond tested regimes without qualification."
+    next_action: "Summarize as a limited negative result."
+    notes: "Useful for narrowing the manuscript method set."
+
+  - id: C008
+    claim: "Geometric pruning mostly reduces edge count while preserving graph-geodesic isometry in the tested quadratic-surface setting."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Data Geodesic Geometry Reconstruction"
+    needed_for: "supplement_or_discussion"
+    source_ids: ["S007"]
+    risk: "Pruning is secondary to the main paper and may distract if overemphasized."
+    next_action: "Mention as sparsification tool if space allows."
+    notes: "Should be framed as tested in current graph families and examples."
+
+  - id: C009
+    claim: "Surface-target oracle errors are cleaner headline metrics than sample-oracle errors for the quadratic-surface benchmarks."
+    status: "inferred"
+    evidence_strength: "medium"
+    manuscript_section: "Oracle Benchmarks"
+    needed_for: "main_text"
+    source_ids: ["S008"]
+    risk: "Needs explanation that sample-oracle estimates may be biased by tube-radius choices."
+    next_action: "Use surface-target metrics in main figures; put sample-oracle discussion in methods/supplement if needed."
+    notes: "Interpretation from comparing benchmark targets."
+
+  - id: C010
+    claim: "The R/Qhull 3D Delaunay oracle is credible as a provisional behavioral reference for a future C++ backend."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Oracle Benchmarks"
+    needed_for: "supplement_or_methods"
+    source_ids: ["S009", "S010"]
+    risk: "Boundary/high-anisotropy cases require tolerant thresholds and clear framing."
+    next_action: "Keep as reference-oracle methodology, not a main result unless 3D benchmarks enter the paper."
+    notes: "Factor 4 was recommended for reference-truth generation."
+
+  - id: C011
+    claim: "The practical GMDS algorithms currently favored are weighted GRIP -> edge-KK and metric MDS -> edge-KK."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Geodesic MDS"
+    needed_for: "main_text"
+    source_ids: ["S011", "S013", "S014"]
+    risk: "Needs paper-ready comparison figures and timing summary."
+    next_action: "Distill GMDS layout comparison into main figure/table."
+    notes: "This is likely the central graph-to-layout methods claim."
+
+  - id: C012
+    claim: "edge-KK is equivalent to the quadratic edge-barrier objective when a_ij = k_ij ell_ij^2 and lambda = 0."
+    status: "tested"
+    evidence_strength: "strong"
+    manuscript_section: "Geodesic MDS"
+    needed_for: "main_text"
+    source_ids: ["S012"]
+    risk: "Needs notation alignment with the final manuscript."
+    next_action: "Use this equivalence to unify edge-KK and edge-isometric barrier language."
+    notes: "Objective and gradient parity tests were run."
+
+  - id: C013
+    claim: "The expensive part of metric-MDS initialization at large n is the all-pairs graph distance/MDS layer, while edge-KK repair itself is fast with the C++ backend."
+    status: "tested"
+    evidence_strength: "medium"
+    manuscript_section: "Scaling Experiments"
+    needed_for: "main_text"
+    source_ids: ["S011", "S013", "S016"]
+    risk: "Needs a clean timing figure with hardware/context details."
+    next_action: "Extract timing comparison for weighted GRIP -> edge-KK versus metric MDS -> edge-KK."
+    notes: "Supports weighted GRIP as scalable initialization."
+
+  - id: C014
+    claim: "Repulsive unfolding is conceptually rich but not currently necessary for the headline GMDS method unless a compact experiment shows a clear benefit."
+    status: "inferred"
+    evidence_strength: "low_to_medium"
+    manuscript_section: "Discussion"
+    needed_for: "discussion"
+    source_ids: ["S011", "S013"]
+    risk: "Visual satisfaction is not a fully quantified criterion."
+    next_action: "Keep as discussion/future work unless a failure case emerges."
+    notes: "Should not distract from the edge-KK story."
+
+  - id: C015
+    claim: "Non-oracle graph parameter selection is the largest missing bridge from oracle benchmarks to real data."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Non-Oracle Graph Parameter Selection"
+    needed_for: "main_text"
+    source_ids: ["S001", "S002", "S004", "S015"]
+    risk: "Without this section, the paper is less convincing as a data-analysis pipeline."
+    next_action: "Audit and generalize gflow graph-selection methods across adaptive-radius and cKNN."
+    notes: "This is the highest-priority missing manuscript component."
+
+  - id: C016
+    claim: "GCV of graph smoothing is an attractive non-oracle graph-selection criterion because it introduces a graph signal smoothing operator."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Non-Oracle Graph Parameter Selection"
+    needed_for: "main_text"
+    source_ids: ["S001", "S015"]
+    risk: "Requires selecting and documenting one primary smoothing operator."
+    next_action: "Inventory existing gflow GCV/k-selection machinery and define its graph-family-general interface."
+    notes: "Potentially strengthens the paper mathematically."
+
+  - id: C017
+    claim: "Jensen-Shannon degree-distribution stabilization and graph edit/stability criteria are plausible non-oracle graph-selection diagnostics."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Non-Oracle Graph Parameter Selection"
+    needed_for: "main_text_or_supplement"
+    source_ids: ["S001", "S015"]
+    risk: "Needs empirical comparison against oracle choices."
+    next_action: "Run selector-vs-oracle recovery tests after interface audit."
+    notes: "May become supplement if GCV is the primary selector."
+
+  - id: C018
+    claim: "The manuscript needs one or two real data case studies with interpretable geometry."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Experiments"
+    needed_for: "main_text"
+    source_ids: ["S001", "S002"]
+    risk: "Real data can dilute the core methods story if not chosen carefully."
+    next_action: "Select between cell cycle, VIRGO2, Valencia 13k, and AGP for the first case study."
+    notes: "Cell cycle or VIRGO2 currently look like lower-friction candidates."
+
+  - id: C019
+    claim: "The manuscript should explicitly map software ownership across gflow, grip, geodesicMDS, geodesic_data_geometry, and gmdsui."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Reproducibility / Software"
+    needed_for: "main_text_or_supplement"
+    source_ids: ["S001", "S015", "S016", "S017"]
+    risk: "Cross-package methods may look hard to reproduce without a clear map."
+    next_action: "Create software ownership figure/table."
+    notes: "This may also help future package organization."
+
+  - id: C020
+    claim: "HTML dashboards are useful manuscript planning and audit artifacts, while Markdown remains the durable source/protocol layer."
+    status: "tested"
+    evidence_strength: "workflow"
+    manuscript_section: "Project Management"
+    needed_for: "internal"
+    source_ids: ["S001", "S002"]
+    risk: "This is internal process, not a paper claim."
+    next_action: "Use the claim-to-evidence dashboard as the manuscript truth-control surface."
+    notes: "Useful for Codex coordination and human review."
+
+  - id: C021
+    claim: "gflow graph smoothing and GCV methods should be presented in the SIMODS paper as non-oracle graph-selection criteria, not as a full regression-over-graphs methodology."
+    status: "proposed"
+    evidence_strength: "planning"
+    manuscript_section: "Non-Oracle Graph Parameter Selection"
+    needed_for: "main_text"
+    source_ids: ["S001", "S015"]
+    risk: "Too much regression-over-graphs detail could dilute the main data-to-GMDS pipeline and turn the paper into several papers at once."
+    next_action: "Describe one primary graph smoothing/GCV criterion in the main text, compare it to oracle choices, and move broader regression details to supplement, package documentation, or future work."
+    notes: "This is a manuscript scope-control claim."

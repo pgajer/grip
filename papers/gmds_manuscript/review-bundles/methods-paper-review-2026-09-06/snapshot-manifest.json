@@ -1,0 +1,9 @@
+{
+  "origin": "/Users/pgajer/current_projects/geodesicMDS/gmds_manuscript/build/methods-paper-review-2026-09-06",
+  "status": "historical_author_review_snapshot_do_not_edit",
+  "files_sha256": {
+    "evidence-reproduction.zip": "703b99d5be18cce4d8ad8e20c334cd4429e0d4bc5c5caaff4928b78b330fbb09",
+    "geodesic_mds.pdf": "207c495f6213f3dc91f2f53b22150a665f9b9706a42d9bccb1a24ea1bf85aaef",
+    "typesetting-source.zip": "d1ccc10b7c46e35d40ef123e7cab6b1f305f9718716fde29de014addca34f44e"
+  }
+}

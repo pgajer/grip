@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Paper Review: Zhu, Ghahramani, and Lafferty, Gaussian Fields and Harmonic Functions</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../../review_html.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Paper Review: Zhu, Ghahramani, and Lafferty, Gaussian
+Fields and Harmonic Functions</h1>
+</header>
+<p>Paper: Zhu, Xiaojin; Ghahramani, Zoubin; Lafferty, John.
+“Semi-Supervised Learning Using Gaussian Fields and Harmonic Functions.”
+ICML 2003. Reviewer: Reviewer-P05 Auditor: Auditor-P05 Status: revised
+after audit Date: 2026-05-15 Source manifest ID: P05 Canonical reading
+copy:
+<code>/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/sources/pdf/P05_zhu_ghahramani_lafferty_gaussian_fields_harmonic_functions.pdf</code></p>
+<h2 id="whole-paper-review">Whole-Paper Review</h2>
+<h3 id="reader-background-needed">Reader Background Needed</h3>
+<ul>
+<li>Weighted graphs: vertices are data points; edge weights encode
+similarity or conductance.</li>
+<li>Combinatorial graph Laplacian: <span class="math inline">\(\Delta =
+D - W\)</span>, where <span class="math inline">\(D_{ii} = sum_{j}
+w_{ij}\)</span>.</li>
+<li>Dirichlet boundary-value problems: some nodes are clamped to known
+values while the unknown interior values are solved from a harmonic
+equation.</li>
+<li>Markov chains on graphs: row-normalizing <code>W</code> gives <span
+class="math inline">\(P = D^{-1} W\)</span>; labeled nodes can be
+absorbing boundaries.</li>
+<li>Quadratic forms: <span class="math inline">\(f^T \Delta f\)</span>
+penalizes rough graph signals.</li>
+<li>Gaussian random fields: a quadratic energy induces a Gaussian
+density over real-valued functions.</li>
+<li>Semi-supervised learning: few labeled examples, many unlabeled
+examples, with the hope that unlabeled geometry helps prediction.</li>
+<li>Basic spectral graph ideas: heat kernels, Green’s functions,
+normalized cuts, and eigenvectors of graph Laplacians.</li>
+<li>For Section 6: entropy minimization, length-scale hyperparameters,
+and elementary matrix calculus for differentiating an inverse.</li>
+</ul>
+<h3
+id="what-a-non-expert-should-understand-before-reading-this-paper">What
+A Non-Expert Should Understand Before Reading This Paper</h3>
+<p>This paper turns semi-supervised classification into a graph
+interpolation problem. Every labeled or unlabeled example is a node in a
+weighted graph. A high edge weight means “these two examples should
+probably have similar labels.” The known labels are fixed boundary
+values. The unknown labels are not learned by fitting a parametric
+classifier first; they are solved as the smoothest real-valued function
+on the graph that agrees with the labeled nodes.</p>
+<p>The central object is a function <code>f</code> on graph vertices.
+For binary labels, labeled nodes have <span
+class="math inline">\(f=0\)</span> or <span
+class="math inline">\(f=1\)</span>; unlabeled nodes get values between 0
+and 1. A node with value near 1 is classified as class 1, but the paper
+also shows why a plain <span class="math inline">\(1/2\)</span>
+threshold can fail when graph weights create badly unbalanced masses.
+The method is called “harmonic” because each unlabeled value is a
+weighted average of its neighbors. It is also a Gaussian random field
+because the quadratic smoothness energy defines a Gaussian distribution
+over all possible functions that match the labels; the harmonic function
+is the mean/mode of that field.</p>
+<p>For the H005 conductance review, the paper is important because it
+treats graph weights as conductances. The weight formula determines how
+labels, heat, voltage, or random-walk hitting probabilities propagate
+through the graph. Changing the kernel bandwidth or the feature-wise
+length scales changes the interpolating function even when the labeled
+data are unchanged.</p>
+<h3 id="problem-and-context">Problem And Context</h3>
+<p>The paper addresses semi-supervised learning with many unlabeled
+examples and few labeled examples. The authors motivate the setting by
+the cost of labels and by the idea that unlabeled data reveal a
+“manifold structure” on which nearby examples should have similar
+classifications (Introduction, pp. 1-2). [explicit]</p>
+<p>The proposed method differs from discrete-label Markov random fields
+and graph mincut approaches by using a continuous Gaussian field over
+real-valued functions, not a discrete field over labels. The authors
+claim this relaxation gives a unique most probable configuration with a
+closed-form harmonic solution computable by matrix methods or loopy
+belief propagation (Introduction, p. 1; Section 3.3, p. 4).
+[explicit]</p>
+<p>The paper’s own application framing is classification, not general
+graph signal smoothing. However, the mathematical core is graph
+interpolation/regression from boundary values: solve a Laplacian
+Dirichlet problem on unlabeled nodes. That is why it is relevant to
+length/kernel-conductance smoothing in H005. [derived]</p>
+<h3 id="main-method">Main Method</h3>
+<p>The basic algorithm is harmonic energy minimization:</p>
+<ol type="1">
+<li>Build a weighted graph <span class="math inline">\(G=(V,E)\)</span>
+on labeled and unlabeled data (Section 2, p. 2). [explicit]</li>
+<li>Clamp labeled nodes <span
+class="math inline">\(L={1,\ldots,l}\)</span> to their observed binary
+labels <span class="math inline">\(f_{l}(i)=y_{i}\)</span> (Section 2,
+p. 2). [explicit]</li>
+<li>Minimize the quadratic graph energy <span class="math inline">\(E(f)
+= (1/2) sum_{i,j} w_{ij} (f(i)-f(j))^2\)</span> subject to those
+boundary values (Eq. 2, p. 2). [explicit]</li>
+<li>Solve the harmonic equation <span class="math inline">\(\Delta f =
+0\)</span> on the unlabeled nodes <span
+class="math inline">\(U={l+1,\ldots,l+u}\)</span> with Dirichlet
+boundary <span class="math inline">\(f_{L}=f_{l}\)</span> (Section 2,
+p. 2). [explicit]</li>
+<li>Classify from <span class="math inline">\(f_{u}\)</span>, either by
+thresholding at <span class="math inline">\(1/2\)</span> or by class
+mass normalization when class priors are available (Section 4, Eq. 9,
+p. 4). [explicit]</li>
+</ol>
+<p>The paper also gives two extensions:</p>
+<ul>
+<li>External classifier combination: attach a labeled “dongle” node to
+each unlabeled node and let a transition probability <code>eta</code>
+control how strongly the external prediction pulls the harmonic solution
+(Section 5, Eq. 10, p. 4). [explicit]</li>
+<li>Weight/length-scale learning: choose feature-wise Gaussian
+bandwidths <span class="math inline">\(sigma_{d}\)</span> by minimizing
+average label entropy on the unlabeled nodes, using a smoothed
+transition matrix to avoid a degenerate zero-bandwidth minimum (Section
+6, Eqs. 11-15, pp. 5-7). [explicit]</li>
+</ul>
+<h3 id="main-formulas-and-operators">Main Formulas And Operators</h3>
+<p>Data are <code>l</code> labeled points <span
+class="math inline">\((x_{1},y_{1}),\ldots,(x_{l},y_{l})\)</span> and
+<code>u</code> unlabeled points <span
+class="math inline">\(x_{l+1},\ldots,x_{l+u}\)</span>, with <span
+class="math inline">\(n=l+u\)</span>; initially labels are binary
+<code>y in {0,1}</code> (Section 2, p. 2). [explicit]</p>
+<p>Feature-weighted Gaussian affinity:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp( - sum_{d=1}^m ((x_{id} - x_{jd})^2 / sigma_{d}^2) )
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 1 (p. 2). The <span
+class="math inline">\(sigma_{d}\)</span> are feature-wise length-scale
+hyperparameters. Larger <span class="math inline">\(sigma_{d}\)</span>
+makes dimension <code>d</code> less influential; smaller <span
+class="math inline">\(sigma_{d}\)</span> makes the weight more sensitive
+to that dimension. [explicit]</p>
+<p>Graph energy:</p>
+<p><span class="math display">\[
+\begin{aligned}
+E(f) &amp;= (1/2) sum_{i,j} w_{ij} (f(i)-f(j))^2
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 2 (p. 2). It penalizes label variation across high-weight
+edges. If <span class="math inline">\(w_{ij}\)</span> is large, a
+difference between <code>f(i)</code> and <code>f(j)</code> is expensive.
+[explicit]</p>
+<p>Gaussian field:</p>
+<p><span class="math display">\[
+\begin{aligned}
+p_{\beta}(f) &amp;= \exp(-\beta E(f)) / Z_{\beta} \\
+Z_{\beta} &amp;= integral_{f_{L}=f_{l}} \exp(-\beta E(f)) df
+\end{aligned}
+\]</span></p>
+<p>This appears immediately after Eq. 2 (p. 2). The field is constrained
+to match the labeled boundary values. [explicit]</p>
+<p>Laplacian and harmonic property:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta &amp;= D - W \\
+D &amp;= diag(d_{i}), d_{i} = sum_{j} w_{ij} \\
+\Delta f &amp;= 0 on U, f_{L} = f_{l} on L \\
+f(j) &amp;= (1/d_{j}) sum_{i~j} w_{ij} f(i), for j=l+1,\ldots,l+u \\
+P &amp;= D^{-1} W, so f = P f on U
+\end{aligned}
+\]</span></p>
+<p>The average-value relation is Eq. 3 (p. 2). It is the local
+interpolation rule: an unlabeled node equals the weighted mean of
+neighbors. [explicit]</p>
+<p>Block solution:</p>
+<p><span class="math display">\[
+\begin{aligned}
+W &amp;= [ W_{ll}  W_{lu} \\
+W_{ul}  W_{uu} ] \\
+f_{u} &amp;= (D_{uu} - W_{uu})^{-1} W_{ul} f_{l} \\
+&amp;= (I - P_{uu})^{-1} P_{ul} f_{l}
+\end{aligned}
+\]</span></p>
+<p>This is Eqs. 4-5 (p. 2). It is the main linear solve. [explicit]</p>
+<p>Heat kernel and Green’s function on the unlabeled subgraph:</p>
+<p><span class="math display">\[
+\begin{aligned}
+K_{t} &amp;= \exp(t \Delta)                         on the full graph \\
+K&#39;_t &amp;= \exp(-t \Delta_{uu})                    with Dirichlet
+boundary \\
+G &amp;= integral_{0}^infty K&#39;_t dt \\
+&amp;= integral_{0}^infty \exp(-t \Delta_{uu}) dt \\
+&amp;= (D_{uu} - W_{uu})^{-1}
+\end{aligned}
+\]</span></p>
+<p>The paper defines the graph heat kernel and then the restricted
+Green’s function in Section 3.2; the expression for <code>G</code> is
+Eq. 6 (p. 3). [explicit]</p>
+<p>Kernel-classifier view:</p>
+<p><span class="math display">\[
+\begin{aligned}
+f_{u} &amp;= G W_{ul} f_{l} \\
+f(j) &amp;= sum_{i=1}^l sum_{k} y_{i} w_{ik} G(k,j)
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 7 (p. 3). It shows the harmonic solution as a specific
+graph-kernel classifier based on the Green’s function. [explicit]</p>
+<p>Normalized cut comparator:</p>
+<p><span class="math display">\[
+\begin{aligned}
+R(f) &amp;= (f^T \Delta f)/(f^T D f) \\
+&amp;= [sum_{ij} w_{ij} (f(i)-f(j))^2] / [sum_{i} d_{i} f(i)^2] \\
+\Delta f &amp;= \lambda D f
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 8 and the following eigenproblem (Section 3.3, p. 4). It
+is not the paper’s algorithm but connects the harmonic method to
+spectral clustering. [explicit]</p>
+<p>Class mass normalization:</p>
+<p><span class="math display">\[
+\begin{aligned}
+class 1 mass &amp;= sum_{i} f_{u}(i) \\
+class 0 mass &amp;= sum_{i} (1 - f_{u}(i)) \\
+classify i as class 1 iff \\
+q \, f_{u}(i) / sum_{i} f_{u}(i) \\
+&gt; (1-q) \, (1-f_{u}(i)) / sum_{i} (1-f_{u}(i))
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 9 (p. 4). It rescales the soft masses to match prior
+class proportions <code>q</code> and <code>1-q</code>. [explicit]</p>
+<p>External classifier/dongle solution:</p>
+<p><span class="math display">\[
+\begin{aligned}
+f_{u} &amp;= (I - (1-eta) P_{uu})^{-1} ( (1-eta) P_{ul} f_{l} + eta
+h_{u} )
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 10 (p. 4). <span class="math inline">\(h_{u}\)</span> is
+the external classifier’s unlabeled prediction and <code>eta</code> is
+the transition probability to the attached dongle node. [explicit]</p>
+<p>Entropy-based length-scale objective:</p>
+<p><span class="math display">\[
+\begin{aligned}
+H(f) &amp;= (1/u) sum_{i=l+1}^{l+u} H_{i}(f(i)) \\
+H_{i}(f(i)) &amp;= - f(i) \log f(i) - (1-f(i)) \log(1-f(i))
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 11 (p. 5). Smaller entropy means more confident values
+near 0 or 1. [explicit]</p>
+<p>Smoothed transition matrix for weight learning:</p>
+<p><span class="math display">\[
+\begin{aligned}
+P_{tilde} &amp;= \epsilon U + (1-\epsilon) P \\
+U_{ij} &amp;= 1/(l+u)
+\end{aligned}
+\]</span></p>
+<p>This appears in Section 6 (p. 5), before Eq. 12. It prevents the
+entropy objective from being minimized by the degenerate limit <span
+class="math inline">\(sigma_{d} \to 0\)</span>. [explicit]</p>
+<p>Entropy gradient pieces:</p>
+<p><span class="math display">\[
+\begin{aligned}
+dH/dsigma_{d} &amp;= (1/u) sum_{i=l+1}^{l+u} \log((1-f(i))/f(i)) \,
+df(i)/dsigma_{d} \\
+df_{u}/dsigma_{d} &amp;= \\
+(I - P_tilde_uu)^{-1} \\
+( dP_tilde_uu/dsigma_{d} \, f_{u} + dP_tilde_ul/dsigma_{d} \, f_{l} ) \\
+dp_{ij}/dsigma_{d} &amp;= \\
+[ dw_{ij}/dsigma_{d} - p_{ij} sum_{n&amp;=1}^{l+u} dw_{in}/dsigma_{d} ]
+/ \\
+[ sum_{n&amp;=1}^{l+u} w_{in} ] \\
+dw_{ij}/dsigma_{d} &amp;= 2 w_{ij} (x_{id} - x_{jd})^2 / sigma_{d}^3
+\end{aligned}
+\]</span></p>
+<p>These are Eqs. 12-14 and the following derivative formula (p. 5).
+[explicit]</p>
+<p>For CMN-aware entropy learning, the paper replaces <code>f(i)</code>
+in Eq. 11 with a normalized probability <code>bar f(i)</code> (Eq. 15,
+p. 5). In the denominator, the class-0 term uses <span
+class="math inline">\((1-f_{u}(i))\)</span> multiplied by the total
+class-1 mass <span class="math inline">\(sum_{j} f_{u}(j)\)</span>.
+[explicit]</p>
+<p>Text-document affinity:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{uv} &amp;= \exp( -(1/0.03) \, (1 - (u^T v)/(|u\Vert v|)) )
+\end{aligned}
+\]</span></p>
+<p>This is Eq. 16 (p. 6). Edges are only between 10-nearest-neighbor
+documents under cosine similarity, symmetrized by connecting if either
+document is in the other’s 10 nearest neighbors (Experimental Results,
+p. 6). [explicit]</p>
+<h3 id="figures-and-experiments">Figures And Experiments</h3>
+<p>Figure 1 (p. 2) shows the graph construction on scanned digits:
+labeled data are boundary nodes and unlabeled data are interior nodes.
+It is mainly conceptual, making clear that labels are clamped rather
+than merely used as training examples. [explicit]</p>
+<figure class="paper-figure" id="P05_F01">
+<img src="../../paper_figures/P05_F01_page02.png" alt="P05 Figure 1 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 1, PDF p. 2
+(cropped from canonical reading copy), internal review only. Labeled
+boundary nodes and unlabeled interior nodes.
+</figcaption>
+</figure>
+<p>Figure 2 (p. 3) demonstrates harmonic energy minimization on two
+synthetic datasets: three bands and two spirals. Large symbols are
+labeled points; other points are unlabeled. The authors state that the
+method follows the data structure where kNN would fail; the figure
+visually supports graph-geometric label propagation. [explicit]</p>
+<figure class="paper-figure" id="P05_F02">
+<img src="../../paper_figures/P05_F02_page03.png" alt="P05 Figure 2 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 2, PDF p. 3
+(cropped from canonical reading copy), internal review only. Harmonic
+energy on synthetic structures.
+</figcaption>
+</figure>
+<p>Figure 3 (p. 6) has three digit experiments. Left: digits “1”
+vs. “2”; CMN improves over plain thresholding, and plain thresholding
+performs poorly because many <span
+class="math inline">\(f_{u}(j)\)</span> values are close to 1. Middle:
+all 10 digits on an intentionally unbalanced dataset; CMN again improves
+performance. Right: odd vs. even digits; adding a voted-perceptron
+external classifier via Eq. 10 improves accuracy over either harmonic or
+perceptron information alone. [explicit]</p>
+<figure class="paper-figure" id="P05_F03">
+<img src="../../paper_figures/P05_F03_F04_page06.png" alt="P05 Figure 3 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 3, PDF p. 6
+(cropped from canonical reading copy), internal review only. Digit
+experiments and class-mass normalization.
+</figcaption>
+</figure>
+<p>Figure 4 (p. 6) reports document categorization on 20 newsgroups
+tasks: PC vs. MAC, baseball vs. hockey, and MS-Windows vs. MAC. Harmonic
+energy minimization performs much better than 1NN and voted perceptron
+baselines on these graph/text tasks, while the improvement from class
+prior is less significant than on digits. [explicit]</p>
+<figure class="paper-figure" id="P05_F04">
+<img src="../../paper_figures/P05_F03_F04_page06.png" alt="P05 Figure 4 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 4, PDF p. 6
+(cropped from canonical reading copy), internal review only. Document
+classification results.
+</figcaption>
+</figure>
+<p>Figure 5 (p. 7) isolates weight-matrix learning. The toy dataset has
+two slightly different grids connected by a few points and two labeled
+examples. Panel (a) shows the unsmoothed small-sigma failure, where
+<span class="math inline">\(H \to 0\)</span> as <span
+class="math inline">\(\sigma \to 0\)</span> and the tighter grid invades
+the sparser one. Panel (b) shows the useful result at <span
+class="math inline">\(\sigma=0.67\)</span> with smoothing <span
+class="math inline">\(\epsilon=0.01\)</span>. Panel (c) shows that
+smoothing removes the nuisance entropy minimum near zero. [explicit]</p>
+<figure class="paper-figure" id="P05_F05">
+<img src="../../paper_figures/P05_F05_page07.png" alt="P05 Figure 5 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 5, PDF p. 7
+(cropped from canonical reading copy), internal review only.
+Weight-matrix learning and sigma degeneracy.
+</figcaption>
+</figure>
+<p>Table 1 (p. 8) shows entropy and accuracy before and after learning
+<span class="math inline">\(\sigma\)</span> values for digits “1”
+vs. “2”: entropy decreases from 0.6931 to 0.6542 bits; CMN accuracy
+rises from <span class="math inline">\(97.25 +/- 0.73%\)</span> to <span
+class="math inline">\(98.56 +/- 0.43%\)</span>; threshold accuracy rises
+from <span class="math inline">\(94.70 +/- 1.19%\)</span> to <span
+class="math inline">\(98.02 +/- 0.39%\)</span>. [explicit]</p>
+<p>Figure 6 (p. 8) visualizes learned feature-wise <span
+class="math inline">\(sigma_{i}\)</span> values for “1” vs. “2”: average
+“1”, average “2”, initial sigmas, learned sigmas. The authors say
+learned parameters exaggerate variations within class “1” while
+suppressing variations within class “2”, compensating for class
+tightness differences in feature space. [explicit]</p>
+<figure class="paper-figure" id="P05_F06">
+<img src="../../paper_figures/P05_F06_page08.png" alt="P05 Figure 6 cropped figure panel">
+<figcaption>
+Reproduced from Zhu, Ghahramani, and Lafferty (2003), Figure 6, PDF p. 8
+(cropped from canonical reading copy), internal review only. Learned
+feature-wise sigmas.
+</figcaption>
+</figure>
+<h3 id="theoretical-claims">Theoretical Claims</h3>
+<p>The minimum-energy function is harmonic: it satisfies <span
+class="math inline">\(\Delta f = 0\)</span> on unlabeled nodes and
+equals the labels on labeled nodes (Section 2, p. 2). [explicit]</p>
+<p>The harmonic solution is unique by the maximum principle and is
+either constant or has <span class="math inline">\(0 &lt; f(j) &lt;
+1\)</span> for unlabeled nodes (Section 2, p. 2). [explicit]</p>
+<p>The random-walk interpretation says <code>f(i)</code> is the
+probability that a walk starting at unlabeled node <code>i</code> hits a
+labeled node with label 1 before hitting a labeled node with label 0
+(Section 3.1, p. 3). [explicit]</p>
+<p>The electrical-network interpretation treats graph edges as resistors
+with conductance <code>W</code>; label-1 nodes attach to positive
+voltage and label-0 nodes to ground, so <span
+class="math inline">\(f_{u}\)</span> gives node voltages and minimizes
+energy dissipation (Section 3.1, p. 3). [explicit]</p>
+<p>The Green’s function interpretation connects the harmonic solution to
+an integral over heat diffusion on the unlabeled subgraph with Dirichlet
+boundary conditions (Section 3.2, Eq. 6, p. 3). [explicit]</p>
+<p>For multi-label discrete random fields, the authors state that
+lowest-energy configurations are typically NP-hard, while the harmonic
+Gaussian-field solution can be computed efficiently using matrix methods
+even in the multi-label case (Introduction p. 1; Section 3.3 p. 4).
+[explicit]</p>
+<p>The paper does not prove continuum convergence of graph Laplacians to
+manifold operators. It uses manifold-structure language and spectral
+connections, but the technical development is finite-graph harmonic
+interpolation. [contextual]</p>
+<h3 id="limitations-and-scope">Limitations And Scope</h3>
+<p>The method relies heavily on the graph weight matrix <code>W</code>;
+the authors explicitly say the right graph is often unclear and may need
+to be learned from data (Introduction p. 2; Section 6 p. 5).
+[explicit]</p>
+<p>Plain harmonic thresholding can produce severely unbalanced
+classifications when <code>W</code> is poorly estimated or does not
+reflect the classification goal (Section 4, p. 4). [explicit]</p>
+<p>The base paper assumes labeled data are noise-free and clamps them
+exactly. The authors note that if this assumption is doubtful, one could
+attach dongles to labeled nodes too and move the labels onto those new
+nodes (Section 5, p. 5). [explicit]</p>
+<p>The entropy criterion for learning weights is heuristic. The authors
+justify it intuitively and experimentally, but also note a degeneracy as
+<span class="math inline">\(sigma_{d} \to 0\)</span> and introduce
+PageRank-style smoothing to avoid the nuisance minimum (Section 6, p. 5;
+Figure 5, p. 7). [explicit]</p>
+<p>The experiments are early-2000s benchmarks: synthetic data,
+handwritten digits, and 20 newsgroups. They show the method’s promise
+but do not settle modern scalability, calibration, or robustness
+questions. [contextual]</p>
+<h3 id="historical-methodological-importance">Historical /
+Methodological Importance</h3>
+<p>This paper is a canonical finite-graph formulation of semi-supervised
+learning as harmonic extension from labeled boundary nodes. Its
+importance for H005 is that the same Laplacian machinery underlies
+graph-based interpolation, regression, diffusion, and smoothing; the
+only thing that changes across many later methods is how <code>W</code>,
+<code>D</code>, normalization, and boundary/regularization terms are
+chosen. [contextual]</p>
+<p>The paper is also methodologically valuable because it gives several
+equivalent readings of the same linear system: Gaussian field mean/mode,
+energy minimizer, random-walk hitting probability, electrical potential,
+Green’s-function kernel classifier, and spectral graph object (Sections
+2-3, pp. 2-4). [explicit]</p>
+<h2 id="conductance-kernel-extraction">Conductance / Kernel
+Extraction</h2>
+<h3 id="conductance-affinity-or-kernel-formulas">Conductance, Affinity,
+Or Kernel Formula(s)</h3>
+<p>Gaussian feature-space affinity (Eq. 1, p. 2):</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{ij} &amp;= \exp( - sum_{d} (x_{id} - x_{jd})^2 / sigma_{d}^2 )
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit]. The authors present this as an example when
+<span class="math inline">\(x in \mathbb{R}^{m}\)</span>. They call
+<span class="math inline">\(sigma_{1},\ldots,sigma_{m}\)</span>
+length-scale hyperparameters. They also say other weightings may be more
+appropriate for discrete or symbolic data. [explicit]</p>
+<p>Text graph affinity (Eq. 16, p. 6):</p>
+<p><span class="math display">\[
+\begin{aligned}
+w_{uv} &amp;= \exp( -(1/0.03) \, (1 - cosine(u,v)) ) \\
+cosine(u,v) &amp;= u^T v / (|u\Vert v|)
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit]. The edge set is 10-nearest-neighbor under
+cosine similarity with mutual-or condition: connect if <code>u</code> is
+among <code>v</code>’s 10 nearest neighbors or vice versa.
+[explicit]</p>
+<p>Conductance interpretation:</p>
+<p><span class="math display">\[
+\begin{aligned}
+edge conductance c_{ij} &amp;= w_{ij} \\
+edge resistance r_{ij} &amp;= 1/w_{ij}
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit for conductance; derived for resistance]. Section
+3.1 says to imagine edges as resistors with conductance <code>W</code>.
+Resistance is the reciprocal of conductance by the standard
+electrical-network interpretation. [explicit/derived]</p>
+<p>Transition probabilities:</p>
+<p><span class="math display">\[
+\begin{aligned}
+P &amp;= D^{-1} W \\
+P_{ij} &amp;= w_{ij} / d_{i} \\
+d_{i} &amp;= sum_{j} w_{ij}
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit]. The paper writes <span class="math inline">\(f
+= P f\)</span>, <span class="math inline">\(P = D^{-1} W\)</span> after
+Eq. 3 (p. 2). The random-walk interpretation in Section 3.1 uses <span
+class="math inline">\(P_{ij}\)</span> as the one-step transition
+probability. [explicit]</p>
+<p>Green’s-function kernel:</p>
+<p><span class="math display">\[
+\begin{aligned}
+G &amp;= (D_{uu} - W_{uu})^{-1}
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit]. Eq. 6 defines <code>G</code> as the inverse of
+the restricted Laplacian and as the time integral of the heat kernel on
+the unlabeled subgraph. Eq. 7 uses <code>G</code> in a kernel-classifier
+representation. [explicit]</p>
+<p>Smoothed transition matrix for learned weights:</p>
+<p><span class="math display">\[
+\begin{aligned}
+P_{tilde} &amp;= \epsilon U + (1-\epsilon) P
+\end{aligned}
+\]</span></p>
+<p>Evidence: [explicit]. Section 6 uses this smoothing to avoid a
+degeneracy in entropy minimization. [explicit]</p>
+<h3 id="graph-laplacian-or-diffusion-operator">Graph, Laplacian, Or
+Diffusion Operator</h3>
+<p>The primary operator is the combinatorial Laplacian <span
+class="math inline">\(\Delta = D - W\)</span> (Section 2, p. 2).
+[explicit]</p>
+<p>The Dirichlet operator solved on unlabeled nodes is <span
+class="math inline">\(\Delta_{uu} = D_{uu} - W_{uu}\)</span>; its
+inverse gives the Green’s function <code>G</code> (Eq. 6, p. 3).
+[explicit]</p>
+<p>The Markov operator is <span class="math inline">\(P = D^{-1}
+W\)</span>; the harmonic condition can be written <span
+class="math inline">\(f = P f\)</span> on unlabeled nodes (Section 2,
+p. 2). [explicit]</p>
+<p>The paper contrasts the full heat kernel <span
+class="math inline">\(K_{t} = \exp(t \Delta)\)</span> with the
+restricted heat kernel <span class="math inline">\(K&#39;_t = \exp(-t
+\Delta_{uu})\)</span>. The sign convention in the rendered PDF uses
+<span class="math inline">\(K_{t} = e^{t \Delta}\)</span> for the full
+graph and <span class="math inline">\(K&#39;_t = e^{-t
+\Delta_{uu}}\)</span> for the positive restricted Laplacian; the key use
+is the integral inverse in Eq. 6. [explicit/contextual]</p>
+<h3 id="task">Task</h3>
+<p>Primary task: semi-supervised classification by graph harmonic
+interpolation from labeled nodes to unlabeled nodes. [explicit]</p>
+<p>Mathematical task: Dirichlet graph regression/interpolation with hard
+boundary labels. [derived]</p>
+<p>Related tasks discussed: spectral clustering, graph mincuts, graph
+kernels, random-walk hitting probabilities, electrical networks, and
+feature/length-scale selection by entropy minimization. [explicit]</p>
+<h3 id="explicit-author-motivations">Explicit Author Motivations</h3>
+<p>The authors want to exploit unlabeled data because labels can be
+costly, and unlabeled examples can reveal data-manifold structure
+(Introduction, p. 1). [explicit]</p>
+<p>They adopt continuous Gaussian fields because the most probable
+configuration is unique, harmonic, and available in closed form, unlike
+many discrete multi-label random fields (Introduction, p. 1; Section
+3.3, p. 4). [explicit]</p>
+<p>They include class priors because the graph structure <code>W</code>
+can be poorly estimated and may not reflect the classification goal
+(Section 4, p. 4). [explicit]</p>
+<p>They include external classifiers because a graph-only manifold may
+be insufficient; the dongle construction combines supervised predictions
+with harmonic energy minimization (Introduction p. 2; Section 5 p. 4).
+[explicit]</p>
+<p>They propose entropy minimization for learning weights because
+ordinary likelihood is not appropriate when labeled values are fixed and
+unlabeled data do not have a generative model (Section 6, p. 5).
+[explicit]</p>
+<h3 id="derived-or-implied-motivations">Derived Or Implied
+Motivations</h3>
+<p>The paper implies that bandwidth or conductance selection is part of
+the model, not a preprocessing detail. Eq. 1 sets all label propagation,
+and Section 6 learns <span class="math inline">\(sigma_{d}\)</span> to
+alter graph geometry. [derived]</p>
+<p>The paper implies that graph smoothness can act as nonparametric
+regression: labels are boundary values and predictions are interpolated
+interior values. This is not presented as “regression” terminology, but
+the linear system is exactly harmonic extension. [derived]</p>
+<p>The paper implies that class-prior correction is a calibration layer
+on top of graph interpolation. CMN does not change the harmonic solve;
+it rescales the resulting masses for decision making. [derived]</p>
+<h3 id="effect-on-eigenfunctions-diffusion-smoothing">Effect On
+Eigenfunctions / Diffusion / Smoothing</h3>
+<p>High weights force <code>f(i)</code> and <code>f(j)</code> to be
+close in the energy <code>E(f)</code>. Thus the chosen kernel controls
+where sharp label transitions are cheap or expensive. [derived from Eq.
+2]</p>
+<p>In the random-walk view, increasing <span
+class="math inline">\(w_{ij}\)</span> increases transition probability
+from <code>i</code> to <code>j</code> after row normalization, unless
+all outgoing weights from <code>i</code> increase together. This changes
+hitting probabilities and therefore class probabilities. [derived from
+<span class="math inline">\(P=D^{-1}W\)</span>]</p>
+<p>In the electrical view, increasing <span
+class="math inline">\(w_{ij}\)</span> increases conductance and
+decreases resistance between nodes. Voltage interpolation then pulls
+more strongly along that edge. [explicit/derived from Section 3.1]</p>
+<p>In the Green’s-function view, <span
+class="math inline">\(G=(D_{uu}-W_{uu})^{-1}\)</span> integrates heat
+flow over all times with labeled nodes as Dirichlet boundaries. Weight
+changes alter the restricted Laplacian spectrum, so they change both
+diffusion paths and smoothing length scales. [explicit/derived from Eq.
+6]</p>
+<p>In Section 6 and Figure 6, learned feature-wise <span
+class="math inline">\(sigma_{i}\)</span> values reshape the graph by
+making weights more or less sensitive to particular pixel dimensions. A
+small <span class="math inline">\(sigma_{i}\)</span> means dimension
+<code>i</code> has high influence; large <span
+class="math inline">\(sigma_{i}\)</span> suppresses that feature.
+[explicit]</p>
+<p>Toy three-node interpolation, matching the paper’s Eq. 3:</p>
+<p><span class="math display">\[
+\begin{aligned}
+label node 1: f1 &amp;= 0 \\
+unlabeled node 2: f2 unknown \\
+label node 3: f3 &amp;= 1 \\
+w12 &amp;= a, w23 = b \\
+f2 &amp;= (a f1 + b f3)/(a+b) = b/(a+b)
+\end{aligned}
+\]</span></p>
+<p>Evidence: [derived]. This is a direct specialization of Eq. 3. It
+shows how conductance controls interpolation: if <span
+class="math inline">\(b &gt;&gt; a\)</span>, the middle node is close to
+label 1; if <span class="math inline">\(a &gt;&gt; b\)</span>, it is
+close to label 0.</p>
+<h3 id="relationship-to-adaptive-scale-graph-construction">Relationship
+To Adaptive-Scale Graph Construction</h3>
+<p>The paper uses feature-wise global length scales <span
+class="math inline">\(sigma_{d}\)</span>, not local self-tuning
+bandwidths or adaptive-radius/kNN density corrections.
+[explicit/contextual]</p>
+<p>It does, however, anticipate later adaptive-scale concerns by
+learning <span class="math inline">\(sigma_{d}\)</span> from labeled and
+unlabeled data. Section 6 shows that different feature dimensions can
+receive different effective scales, and Figure 6 visualizes pixel-level
+feature selection. [explicit]</p>
+<p>The text experiments use sparse 10-nearest-neighbor graph
+construction before assigning Eq. 16 weights. This is adaptive in graph
+topology through nearest-neighbor selection, but the exponential cosine
+scale <code>0.03</code> itself is fixed. [explicit]</p>
+<p>The entropy degeneracy as <span class="math inline">\(\sigma \to
+0\)</span> is directly relevant to H005’s conductance choices: a kernel
+can become too local, producing hard nearest-neighbor-like propagation
+rather than stable smoothing (Section 6, p. 5; Figure 5, p. 7).
+[derived]</p>
+<h3 id="what-the-paper-does-not-claim">What The Paper Does Not
+Claim</h3>
+<p>The paper does not claim that Eq. 1 is the universally correct weight
+formula. It says other weightings are possible and may be more
+appropriate for discrete or symbolic <code>x</code> (Section 2, p. 2).
+[explicit]</p>
+<p>The paper does not provide manifold convergence theorems for <span
+class="math inline">\(\Delta\)</span>, <code>P</code>, or
+<code>G</code>. [contextual]</p>
+<p>The paper does not study graph low-pass filtering as a
+signal-processing task, although its harmonic solution is a
+smoothing/interpolation operator. [contextual]</p>
+<p>The paper does not use current gflow
+overlap-density/Riemannian-complex conductance, inverse-length
+conductance, or kernel-conductance comparators. Any connection to those
+H005 variants is our synthesis, not an author claim. [contextual]</p>
+<p>The paper does not soften the labeled boundary values in the main
+method; labels are clamped. It only suggests a dongle variant if labels
+may be noisy (Section 5, p. 5). [explicit]</p>
+<h3 id="relevance-to-gflow-simods">Relevance To gflow / SIMODS</h3>
+<p>For SIMODS/gflow, this paper is best treated as a reference model for
+graph Dirichlet interpolation. Given a weighted graph and boundary
+values, the prediction is obtained by a Laplacian linear system.
+[derived]</p>
+<p>The current <code>fit.rdgraph.regression()</code>
+overlap-density/Riemannian-complex smoother must remain distinct from
+this paper’s Gaussian feature-space weights. Current gflow semantics use
+overlap-density conductance such as:</p>
+<p><span class="math display">\[
+\begin{aligned}
+c_{e}^\rho &amp;= 1 / \max(rho_{1}(e), 1e-10)
+\end{aligned}
+\]</span></p>
+<p>That is not in Zhu et al. 2003. [contextual]</p>
+<p>Planned length/kernel-conductance comparators, such as:</p>
+<p><span class="math display">\[
+\begin{aligned}
+c_{e}^len &amp;= 1 / (ell_{e} + \epsilon) \\
+c_{ij} &amp;= phi(ell_{ij}; \theta)
+\end{aligned}
+\]</span></p>
+<p>are closer in spirit to this paper because they make the
+conductance/kernel choice the object that shapes the Laplacian solve.
+But the exact formulas in Zhu et al. are Eq. 1 for Euclidean features
+and Eq. 16 for cosine text features. [contextual]</p>
+<p>The three-node example in
+<code>figures/P05_three_node_harmonic_interpolation.svg</code> is a
+useful sanity check for any gflow comparator: changing conductance alone
+changes the interpolated/regressed value even when node labels and graph
+topology stay fixed. [derived]</p>
+<h2 id="figure-handling">Figure Handling</h2>
+<h3 id="copied-paper-figures-used">Copied Paper Figures Used</h3>
+<p>Reproduced cropped figure panels for Figures 1–6 are managed by
+<code>paper_figure_screenshots.yml</code> and embedded in the generated
+HTML memo next to the primary figure descriptions. These are
+internal-review cropped figure panels from the canonical reading copy,
+not manuscript-ready reused figures. [explicit]</p>
+<h3 id="original-explanatory-figures-proposed-or-created">Original
+Explanatory Figures Proposed Or Created</h3>
+<ul>
+<li><code>/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/literature/conductance_kernel_laplacian_review/figures/P05_three_node_harmonic_interpolation.svg</code>
+<ul>
+<li>Original figure created for this review.</li>
+<li>Concept illustrated: Eq. 3 harmonic averaging on a three-node path
+with endpoint labels <code>0</code> and <code>1</code>.</li>
+<li>Purpose: show how conductance weights affect
+interpolation/regression: <span class="math inline">\(f2 =
+b/(a+b)\)</span>.</li>
+<li>This figure is not copied from Zhu et al. 2003.</li>
+</ul></li>
+</ul>
+<figure>
+<img src="../../figures/P05_three_node_harmonic_interpolation.svg"
+alt="Original internal explanatory figure: P05 three-node harmonic interpolation" />
+<figcaption aria-hidden="true">Original internal explanatory figure: P05
+three-node harmonic interpolation</figcaption>
+</figure>
+<h2 id="evidence-table">Evidence Table</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Label</th>
+<th>Source reference</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The method represents labeled and unlabeled examples as vertices in
+a weighted graph.</td>
+<td>explicit</td>
+<td>Abstract; Section 2, p. 2</td>
+<td>Figure 1 visualizes this construction.</td>
+</tr>
+<tr>
+<td>Edge weights encode similarity and can be Gaussian feature-space
+weights.</td>
+<td>explicit</td>
+<td>Eq. 1, p. 2</td>
+<td>Other weights are allowed.</td>
+</tr>
+<tr>
+<td>The energy minimized is quadratic in edge differences.</td>
+<td>explicit</td>
+<td>Eq. 2, p. 2</td>
+<td><span class="math inline">\(1/2 \sum w_{ij}
+(f(i)-f(j))^2\)</span>.</td>
+</tr>
+<tr>
+<td>The Gaussian field has density proportional to <span
+class="math inline">\(\exp(-\beta E(f))\)</span> under label
+constraints.</td>
+<td>explicit</td>
+<td>Section 2, p. 2</td>
+<td>Partition function integrates over functions clamped on labeled
+data.</td>
+</tr>
+<tr>
+<td>The minimizing function is harmonic on unlabeled nodes.</td>
+<td>explicit</td>
+<td>Section 2; Eq. 3, p. 2</td>
+<td>Weighted neighbor average.</td>
+</tr>
+<tr>
+<td>The main solve is <span
+class="math inline">\(f_{u}=(D_{uu}-W_{uu})^{-1}W_{ul}
+f_{l}\)</span>.</td>
+<td>explicit</td>
+<td>Eq. 5, p. 2</td>
+<td>Equivalent Markov form uses <span
+class="math inline">\((I-P_{uu})^{-1}P_{ul} f_{l}\)</span>.</td>
+</tr>
+<tr>
+<td><code>f(i)</code> is a random-walk hitting probability.</td>
+<td>explicit</td>
+<td>Section 3.1, p. 3</td>
+<td>Label-1 absorbing boundary.</td>
+</tr>
+<tr>
+<td>Edge weights can be interpreted as electrical conductances.</td>
+<td>explicit</td>
+<td>Section 3.1, p. 3</td>
+<td>The solution is node voltage.</td>
+</tr>
+<tr>
+<td>The Green’s function is the inverse restricted Laplacian.</td>
+<td>explicit</td>
+<td>Eq. 6, p. 3</td>
+<td>Also integral over heat kernel.</td>
+</tr>
+<tr>
+<td>The harmonic solution can be read as a kernel classifier.</td>
+<td>explicit</td>
+<td>Eq. 7, p. 3</td>
+<td>Kernel is <code>G</code>.</td>
+</tr>
+<tr>
+<td>Class mass normalization rescales decisions using class prior
+<code>q</code>.</td>
+<td>explicit</td>
+<td>Section 4; Eq. 9, p. 4</td>
+<td>Addresses unbalanced threshold outputs.</td>
+</tr>
+<tr>
+<td>External classifiers enter through dongle nodes and Eq. 10.</td>
+<td>explicit</td>
+<td>Section 5, p. 4</td>
+<td><code>eta</code> controls the pull of external predictions.</td>
+</tr>
+<tr>
+<td>Weight learning minimizes average unlabeled label entropy.</td>
+<td>explicit</td>
+<td>Section 6; Eq. 11, p. 5</td>
+<td>Heuristic criterion.</td>
+</tr>
+<tr>
+<td>Smoothing <code>P</code> avoids a zero-bandwidth entropy
+degeneracy.</td>
+<td>explicit</td>
+<td>Section 6, p. 5; Figure 5, p. 7</td>
+<td>PageRank-inspired smoothing.</td>
+</tr>
+<tr>
+<td>Weight/kernel selection controls graph
+interpolation/regression.</td>
+<td>derived</td>
+<td>Eqs. 2-5; Section 3.1</td>
+<td>Direct from energy, averaging, and conductance views.</td>
+</tr>
+<tr>
+<td>The paper proves manifold convergence of the graph Laplacian.</td>
+<td>uncertain</td>
+<td>Not found</td>
+<td>It discusses spectral/manifold context but gives no such
+theorem.</td>
+</tr>
+<tr>
+<td>The paper uses gflow’s overlap-density conductance.</td>
+<td>contextual</td>
+<td>Not in paper</td>
+<td>Distinct H005 context only.</td>
+</tr>
+<tr>
+<td>The text-document affinity uses an exponential cosine-distance
+weight on a sparse 10NN graph.</td>
+<td>explicit</td>
+<td>Eq. 16 and surrounding text, p. 6</td>
+<td>Used in 20 newsgroups experiments.</td>
+</tr>
+<tr>
+<td>Learned pixel-level <span class="math inline">\(sigma_{i}\)</span>
+values act as feature selection.</td>
+<td>explicit</td>
+<td>Section 7.2; Figure 6, p. 8</td>
+<td>Authors state this directly in Section 6 and discuss Figure 6.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions-for-auditor">Open Questions For Auditor</h2>
+<ul>
+<li>Check whether the sign convention for the full heat kernel in
+Section 3.2 should be described exactly as printed (<span
+class="math inline">\(K_{t}=e^{t \Delta}\)</span>) or normalized to the
+more common <span class="math inline">\(e^{-t \Delta}\)</span>
+convention in the synthesis. The memo records the printed/restricted
+forms separately.</li>
+<li>Confirm whether the final H005 report should call <span
+class="math inline">\(w_{ij}\)</span> “conductance” throughout or
+reserve “conductance” for the electrical-network interpretation in
+Section 3.1.</li>
+<li>Decide whether the final synthesis should include the three-node
+interpolation SVG or recreate it in the report’s house style.</li>
+<li>Verify whether multi-label classification needs a separate note in
+the final report; this paper says CMN extends naturally and matrix
+methods remain efficient, but the detailed formulas are mostly
+binary.</li>
+<li>Audit that the gflow overlap-density paragraph is treated as
+contextual synthesis, not as a claim about Zhu et al. 2003.</li>
+</ul>
+<h2 id="revision-notes">Revision Notes</h2>
+<h3 id="post-audit-revision-2026-05-15">Post-Audit Revision,
+2026-05-15</h3>
+<ul>
+<li><p>Auditor-P05 corrected the heat-kernel sign convention: the PDF
+prints <span class="math inline">\(K_t=e^{-t\Delta}\)</span>, not <span
+class="math inline">\(e^{t\Delta}\)</span>. Use the negative exponent in
+the final synthesis unless explicitly changing Laplacian sign
+conventions.</p></li>
+<li><p>Eq. (8)’s Rayleigh quotient numerator uses an unhalved double
+sum; under the standard symmetric-Laplacian convention, <span
+class="math display">\[
+  f^\top L f = \frac12\sum_{i,j} w_{ij}(f_i-f_j)^2.
+\]</span> The factor does not change the optimization but should be
+documented.</p></li>
+<li><p>Outside the electrical-network interpretation, use
+“weight/affinity, interpretable as conductance” rather than calling
+every <span class="math inline">\(w_{ij}\)</span> a
+conductance.</p></li>
+<li><p>SIMODS/gflow clarification for synthesis: P05 supports graph
+Laplacian and Markov/harmonic-function interpretations of weighted graph
+regression. It should not be cited as describing the current
+<code>fit.rdgraph.regression()</code> overlap-density smoother.</p></li>
+<li><p>2026-05-15: Initial Reviewer-P05 memo drafted from the canonical
+8-page PDF. All pages and figures were rendered and visually inspected.
+One original explanatory SVG was created.</p></li>
+</ul>
+</body>
+</html>

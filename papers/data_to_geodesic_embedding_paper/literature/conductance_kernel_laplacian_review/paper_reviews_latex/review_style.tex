@@ -1,0 +1,42 @@
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{placeins}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\setlist[itemize]{leftmargin=1.6em}
+\setlist[enumerate]{leftmargin=1.8em}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\vol}{\operatorname{vol}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+
+\newenvironment{reviewbox}[1]
+{\par\medskip\noindent\textbf{#1.}\ }
+{\par\medskip}
+
+\newcommand{\paperfigure}[4]{%
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\linewidth]{#1}
+\caption{#2 Reproduced from #3, internal review only. #4}
+\end{figure}
+}

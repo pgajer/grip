@@ -1,0 +1,2700 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIMODS Figure/Table Readiness Board</title>
+  <style>
+    :root {
+      --bg: #f7f6f1;
+      --ink: #1d252c;
+      --muted: #5c6670;
+      --panel: #fff;
+      --line: #d7d1c3;
+      --accent: #0f6d7a;
+      --accent-soft: #e2f2f3;
+      --ready: #1f7356;
+      --work: #9a6a00;
+      --need: #a33f2f;
+      --quiet: #516a7a;
+      --shadow: 0 10px 30px rgba(20, 30, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      padding: 28px clamp(20px, 5vw, 56px);
+      color: #fff;
+      background: #17232b;
+    }
+    header h1 { margin: 0 0 8px; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.05; letter-spacing: 0; }
+    header p { max-width: 980px; margin: 0; color: #dbe5e7; }
+    .meta-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .meta-strip span { border: 1px solid rgba(255,255,255,0.26); border-radius: 999px; padding: 6px 10px; font-size: 0.88rem; }
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px clamp(20px, 5vw, 56px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 246, 241, 0.96);
+      backdrop-filter: blur(10px);
+    }
+    nav a { flex: 0 0 auto; text-decoration: none; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; font-size: 0.92rem; }
+    main { width: min(1400px, calc(100% - 40px)); margin: 24px auto 56px; }
+    section { margin: 24px 0; }
+    .section-title { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin-bottom: 12px; }
+    h2 { margin: 0; font-size: 1.55rem; }
+    .section-title p { max-width: 780px; margin: 0; color: var(--muted); }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .summary-tile { padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); }
+    .summary-tile strong { display: block; font-size: 2rem; line-height: 1; color: var(--accent); }
+    .summary-tile span { color: var(--muted); }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .filters label { display: grid; gap: 4px; font-size: 0.84rem; color: var(--muted); font-weight: 700; }
+    select, input, button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 8px 10px;
+      font: inherit;
+      color: var(--ink);
+    }
+    .asset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .asset-card { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); }
+    .asset-topline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+    .asset-id { display: inline-grid; place-items: center; min-width: 44px; padding: 4px 8px; border-radius: 999px; color: #fff; background: #17232b; font-weight: 800; font-size: 0.8rem; }
+    .pill, .ref-pill { display: inline-block; border-radius: 999px; padding: 4px 8px; background: #ece8dc; color: var(--ink); font-size: 0.78rem; font-weight: 700; white-space: nowrap; margin: 0 3px 3px 0; }
+    .kind { background: var(--accent-soft); color: #064951; }
+    .placement { background: #e8edf8; color: #24415f; }
+    .status-ready, .status-usable_with_edits { background: var(--ready); color: #fff; }
+    .status-needs_redraw, .status-needs_distillation { background: var(--work); color: #fff; }
+    .status-needed { background: var(--need); color: #fff; }
+    .status-supplement_only, .status-background_only, .status-deprecated { background: var(--quiet); color: #fff; }
+    .asset-card h3 { margin: 0 0 10px; font-size: 1.08rem; line-height: 1.35; }
+    dl { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 5px 10px; margin: 0 0 12px; font-size: 0.92rem; }
+    dt { color: var(--muted); font-weight: 800; }
+    dd { margin: 0; }
+    code { display: block; padding: 6px 8px; border-radius: 5px; background: #eeeae0; overflow-wrap: anywhere; font-size: 0.84rem; }
+    h4 { margin: 0 0 5px; font-size: 0.9rem; color: var(--accent); }
+    ul { margin: 0; padding-left: 18px; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; box-shadow: var(--shadow); }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #ebe6d9; }
+    textarea {
+      width: 100%;
+      min-height: 300px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #fff;
+      color: var(--ink);
+    }
+    footer { width: min(1400px, calc(100% - 40px)); margin: 0 auto 42px; color: var(--muted); font-size: 0.92rem; }
+    @media (max-width: 1100px) { .summary-grid, .filters, .asset-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SIMODS Figure/Table Readiness Board</h1>
+    <p>Source-driven inventory of existing, candidate, supplemental, background, and missing manuscript visuals and tables.</p>
+    <div class="meta-strip">
+      <span>Generated: 2026-09-06 19:26:26 EDT</span>
+      <span>Registry: /Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/evidence/figures_tables.yml</span>
+      <span>Registry updated: 2026-05-15</span>
+      <span>Records: 43</span>
+    </div>
+  </header>
+  <nav>
+    <a href="#summary">Summary</a>
+    <a href="#assets">Assets</a>
+    <a href="#matrix">Section Matrix</a>
+    <a href="#missing">Missing Assets</a>
+    <a href="#export">Export</a>
+  </nav>
+  <main>
+    <section id="summary">
+      <div class="section-title">
+        <h2>Summary</h2>
+        <p>Counts separate existing figures/tables from planned missing assets and highlight what can move toward main text.</p>
+      </div>
+      
+    <div class="summary-grid">
+      <div class="summary-tile"><strong>26</strong><span>Figures</span></div><div class="summary-tile"><strong>10</strong><span>Tables</span></div><div class="summary-tile"><strong>1</strong><span>Interactives</span></div><div class="summary-tile"><strong>6</strong><span>Planned/Missing</span></div><div class="summary-tile"><strong>6</strong><span>Ready Main</span></div><div class="summary-tile"><strong>9</strong><span>Needs Redraw/Distill</span></div>
+    </div>
+    
+    </section>
+    <section id="assets">
+      <div class="section-title">
+        <h2>Assets</h2>
+        <p>Filter by kind, status, section, placement, owner, resource ID, claim ID, or free text.</p>
+      </div>
+      <div class="filters">
+        <label>Kind
+          <select id="filter-kind"><option value="">All</option><option value="figure">figure</option>
+<option value="interactive">interactive</option>
+<option value="planned">planned</option>
+<option value="table">table</option></select>
+        </label>
+        <label>Status
+          <select id="filter-status"><option value="">All</option><option value="background_only">background_only</option>
+<option value="deprecated">deprecated</option>
+<option value="needed">needed</option>
+<option value="needs_distillation">needs_distillation</option>
+<option value="needs_redraw">needs_redraw</option>
+<option value="supplement_only">supplement_only</option>
+<option value="usable_with_edits">usable_with_edits</option></select>
+        </label>
+        <label>Section
+          <select id="filter-section"><option value="">All</option><option value="Data Geodesic Geometry Reconstruction">Data Geodesic Geometry Reconstruction</option>
+<option value="Diagnostics">Diagnostics</option>
+<option value="Discussion">Discussion</option>
+<option value="Experiments">Experiments</option>
+<option value="Geodesic MDS">Geodesic MDS</option>
+<option value="Introduction">Introduction</option>
+<option value="Non-Oracle Graph Parameter Selection">Non-Oracle Graph Parameter Selection</option>
+<option value="Oracle Benchmarks">Oracle Benchmarks</option>
+<option value="Related Work">Related Work</option>
+<option value="Reproducibility / Software">Reproducibility / Software</option>
+<option value="Scaling Experiments">Scaling Experiments</option></select>
+        </label>
+        <label>Main/Supplement
+          <select id="filter-placement"><option value="">All</option><option value="background">background</option>
+<option value="main">main</option>
+<option value="supplement">supplement</option></select>
+        </label>
+        <label>Owner
+          <select id="filter-owner"><option value="">All</option><option value="Experiment Engineer">Experiment Engineer</option>
+<option value="Experiment Engineer / Figure Curator">Experiment Engineer / Figure Curator</option>
+<option value="Experiment Engineer / Methods-Theory Agent">Experiment Engineer / Methods-Theory Agent</option>
+<option value="Experiment Engineer / Report Agent">Experiment Engineer / Report Agent</option>
+<option value="Methods/Theory Agent">Methods/Theory Agent</option>
+<option value="Methods/Theory Agent / Figure Curator">Methods/Theory Agent / Figure Curator</option>
+<option value="Orchestrator / Experiment Engineer">Orchestrator / Experiment Engineer</option>
+<option value="Provenance-Librarian / Report Agent">Provenance-Librarian / Report Agent</option>
+<option value="Report Agent">Report Agent</option>
+<option value="Report Agent / Figure Curator">Report Agent / Figure Curator</option>
+<option value="Report Agent / Provenance-Librarian">Report Agent / Provenance-Librarian</option></select>
+        </label>
+        <label>Resource ID
+          <select id="filter-resource"><option value="">All</option><option value="R001">R001</option>
+<option value="R002">R002</option>
+<option value="R003">R003</option>
+<option value="R004">R004</option>
+<option value="R006">R006</option>
+<option value="R007">R007</option>
+<option value="R008">R008</option>
+<option value="R009">R009</option>
+<option value="R010">R010</option>
+<option value="R011">R011</option>
+<option value="R012">R012</option>
+<option value="R013">R013</option>
+<option value="R014">R014</option>
+<option value="R016">R016</option>
+<option value="R017">R017</option>
+<option value="R019">R019</option>
+<option value="R020">R020</option>
+<option value="R021">R021</option>
+<option value="R022">R022</option>
+<option value="R023">R023</option>
+<option value="R025">R025</option>
+<option value="R027">R027</option>
+<option value="R028">R028</option>
+<option value="R029">R029</option>
+<option value="R030">R030</option>
+<option value="R031">R031</option>
+<option value="R033">R033</option>
+<option value="R037">R037</option>
+<option value="R038">R038</option>
+<option value="R039">R039</option></select>
+        </label>
+        <label>Claim ID
+          <select id="filter-claim"><option value="">All</option><option value="C001">C001</option>
+<option value="C002">C002</option>
+<option value="C003">C003</option>
+<option value="C004">C004</option>
+<option value="C005">C005</option>
+<option value="C006">C006</option>
+<option value="C007">C007</option>
+<option value="C008">C008</option>
+<option value="C009">C009</option>
+<option value="C010">C010</option>
+<option value="C011">C011</option>
+<option value="C012">C012</option>
+<option value="C013">C013</option>
+<option value="C014">C014</option>
+<option value="C015">C015</option>
+<option value="C016">C016</option>
+<option value="C017">C017</option>
+<option value="C018">C018</option>
+<option value="C019">C019</option></select>
+        </label>
+        <label>Search
+          <input id="filter-search" type="search" placeholder="title, action, path">
+        </label>
+      </div>
+      <div class="asset-grid" id="asset-grid">
+        
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_redraw"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Report Agent / Figure Curator"
+              data-resources="R001,R002"
+              data-claims="C004,C011"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Redraw as part of an integrated data-to-graph-to-GMDS pipeline figure or keep as a GMDS subpanel.&quot;, &quot;build_command&quot;: &quot;python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py&quot;, &quot;caveats&quot;: [&quot;Current figure was designed for the narrower GMDS manuscript.&quot;], &quot;id&quot;: &quot;F001&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Report Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Good GMDS-internal schematic, but the SIMODS paper needs the data-graph layer added upstream.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_mds_workflow.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R002&quot;], &quot;status&quot;: &quot;needs_redraw&quot;, &quot;supported_claim_ids&quot;: [&quot;C004&quot;, &quot;C011&quot;], &quot;title&quot;: &quot;Geodesic MDS workflow&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F001</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_redraw">needs_redraw</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Geodesic MDS workflow</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Report Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R002</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C004</span>, <span class="ref-pill">C011</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_mds_workflow.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py</code></dd>
+                <dt>Build</dt><dd><code>python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py</code></dd>
+                <dt>Readiness</dt><dd>Good GMDS-internal schematic, but the SIMODS paper needs the data-graph layer added upstream.</dd>
+                <dt>Action</dt><dd>Redraw as part of an integrated data-to-graph-to-GMDS pipeline figure or keep as a GMDS subpanel.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Current figure was designed for the narrower GMDS manuscript.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Methods/Theory Agent / Figure Curator"
+              data-resources="R001,R002"
+              data-claims="C004,C005"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Retitle and align notation with final SIMODS symbols.&quot;, &quot;build_command&quot;: &quot;python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py&quot;, &quot;caveats&quot;: [&quot;Must avoid duplicating the edge-isometry proposition figure if one is created.&quot;], &quot;id&quot;: &quot;F002&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Strong explanatory figure for fixed graph paths and embedded path lengths.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_stress_definition.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R002&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C004&quot;, &quot;C005&quot;], &quot;title&quot;: &quot;Geodesic stress definition schematic&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F002</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Geodesic stress definition schematic</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R002</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C004</span>, <span class="ref-pill">C005</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_stress_definition.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py</code></dd>
+                <dt>Build</dt><dd><code>python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py</code></dd>
+                <dt>Readiness</dt><dd>Strong explanatory figure for fixed graph paths and embedded path lengths.</dd>
+                <dt>Action</dt><dd>Retitle and align notation with final SIMODS symbols.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Must avoid duplicating the edge-isometry proposition figure if one is created.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="background_only"
+              data-section="Related Work"
+              data-placement="background"
+              data-owner="Report Agent"
+              data-resources="R001"
+              data-claims="C004"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use only if the introduction needs a compact GMDS motivation example.&quot;, &quot;build_command&quot;: &quot;python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py&quot;, &quot;caveats&quot;: [&quot;May distract from the data-geodesic reconstruction story.&quot;], &quot;id&quot;: &quot;F003&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;background&quot;, &quot;manuscript_section&quot;: &quot;Related Work&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Useful motivation for output-side path fidelity but probably too narrow for the main SIMODS arc.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_star_bias.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;], &quot;status&quot;: &quot;background_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C004&quot;], &quot;title&quot;: &quot;Star bias motivation example&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F003</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-background_only">background_only</span>
+                <span class="pill placement">background</span>
+              </div>
+              <h3>Star bias motivation example</h3>
+              <dl>
+                <dt>Section</dt><dd>Related Work</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C004</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_star_bias.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py</code></dd>
+                <dt>Build</dt><dd><code>python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py</code></dd>
+                <dt>Readiness</dt><dd>Useful motivation for output-side path fidelity but probably too narrow for the main SIMODS arc.</dd>
+                <dt>Action</dt><dd>Use only if the introduction needs a compact GMDS motivation example.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May distract from the data-geodesic reconstruction story.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="background_only"
+              data-section="Related Work"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R001,R007"
+              data-claims="C003"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use as supplement/background unless a compact graph-scale panel is needed.&quot;, &quot;build_command&quot;: &quot;python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py&quot;, &quot;caveats&quot;: [&quot;Not tied to the current quadform benchmark evidence.&quot;], &quot;id&quot;: &quot;F004&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Related Work&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Explains graph scale qualitatively.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_k_regimes.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R007&quot;], &quot;status&quot;: &quot;background_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;], &quot;title&quot;: &quot;Neighborhood k regimes&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F004</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-background_only">background_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Neighborhood k regimes</h3>
+              <dl>
+                <dt>Section</dt><dd>Related Work</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R007</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_k_regimes.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py</code></dd>
+                <dt>Build</dt><dd><code>python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py</code></dd>
+                <dt>Readiness</dt><dd>Explains graph scale qualitatively.</dd>
+                <dt>Action</dt><dd>Use as supplement/background unless a compact graph-scale panel is needed.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Not tied to the current quadform benchmark evidence.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Methods/Theory Agent / Figure Curator"
+              data-resources="R004"
+              data-claims="C012"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Distill or redraw as a cleaner proposition-support figure if used in main text.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Notation must be synchronized with the manuscript.&quot;], &quot;id&quot;: &quot;F005&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Directly supports the edge-KK/quadratic-barrier equivalence claim.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/objective_gradient_parity.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R004&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C012&quot;], &quot;title&quot;: &quot;edge-KK objective and gradient parity&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F005</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>edge-KK objective and gradient parity</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R004</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C012</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/objective_gradient_parity.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Directly supports the edge-KK/quadratic-barrier equivalence claim.</dd>
+                <dt>Action</dt><dd>Distill or redraw as a cleaner proposition-support figure if used in main text.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Notation must be synchronized with the manuscript.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Geodesic MDS"
+              data-placement="supplement"
+              data-owner="Methods/Theory Agent"
+              data-resources="R004"
+              data-claims="C012"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Keep as supplemental evidence unless a detailed equivalence appendix is written.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Too fine-grained for the main narrative.&quot;], &quot;id&quot;: &quot;F006&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent&quot;, &quot;readiness_note&quot;: &quot;Useful as supplemental validation for the equivalence.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/per_edge_term_parity.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R004&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C012&quot;], &quot;title&quot;: &quot;Per-edge term parity&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F006</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Per-edge term parity</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R004</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C012</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/per_edge_term_parity.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful as supplemental validation for the equivalence.</dd>
+                <dt>Action</dt><dd>Keep as supplemental evidence unless a detailed equivalence appendix is written.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Too fine-grained for the main narrative.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="main"
+              data-owner="Report Agent / Figure Curator"
+              data-resources="R006,R007"
+              data-claims="C003"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Simplify labels and align graph-family set with final main-text scope.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Circle example is pedagogical, not the main surface benchmark.&quot;], &quot;id&quot;: &quot;F007&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Strong existing visual for graph support families.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/construction_rules_nonuniform_circle.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R007&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;], &quot;title&quot;: &quot;Graph construction rules on nonuniform circle&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F007</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Graph construction rules on nonuniform circle</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R007</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/construction_rules_nonuniform_circle.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Strong existing visual for graph support families.</dd>
+                <dt>Action</dt><dd>Simplify labels and align graph-family set with final main-text scope.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Circle example is pedagogical, not the main surface benchmark.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R006,R007"
+              data-claims="C003"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use in methods or supplement after deciding how much repair detail belongs in main text.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Component repair is supporting machinery, not a headline result.&quot;], &quot;id&quot;: &quot;F008&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Clear repair concept diagram, useful if connectivity repair is explained.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/component_mst_repair_diagram.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R007&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;], &quot;title&quot;: &quot;Component-MST repair diagram&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F008</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Component-MST repair diagram</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R007</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/component_mst_repair_diagram.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Clear repair concept diagram, useful if connectivity repair is explained.</dd>
+                <dt>Action</dt><dd>Use in methods or supplement after deciding how much repair detail belongs in main text.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Component repair is supporting machinery, not a headline result.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R006,R007,R011"
+              data-claims="C008"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Keep supplemental unless pruning is elevated in the manuscript.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Pruning currently appears secondary.&quot;], &quot;id&quot;: &quot;F009&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Good conceptual pruning schematic.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/local_geodesic_pruning_diagram.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R007&quot;, &quot;R011&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C008&quot;], &quot;title&quot;: &quot;Local geodesic pruning diagram&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F009</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Local geodesic pruning diagram</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R007</span>, <span class="ref-pill">R011</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C008</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/local_geodesic_pruning_diagram.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Good conceptual pruning schematic.</dd>
+                <dt>Action</dt><dd>Keep supplemental unless pruning is elevated in the manuscript.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Pruning currently appears secondary.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Report Agent / Figure Curator"
+              data-resources="R007,R009,R010"
+              data-claims="C006,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Update captions and pair with benchmark performance panels.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May need recoloring/resizing for SIAM-style multi-panel layout.&quot;], &quot;id&quot;: &quot;F010&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Report Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Useful visual introduction to the controlled surface benchmark family.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/quadform_surface_examples.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R007&quot;, &quot;R009&quot;, &quot;R010&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Quadratic graph surface examples&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F010</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Quadratic graph surface examples</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Report Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R007</span>, <span class="ref-pill">R009</span>, <span class="ref-pill">R010</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/quadform_surface_examples.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful visual introduction to the controlled surface benchmark family.</dd>
+                <dt>Action</dt><dd>Update captions and pair with benchmark performance panels.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May need recoloring/resizing for SIAM-style multi-panel layout.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_distillation"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R006,R009"
+              data-claims="C006,C007,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Distill to a manuscript-ready figure with exact metric definitions and selected families.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Needs exact provenance table and final family selection.&quot;], &quot;id&quot;: &quot;F011&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Likely one of the highest-value main-text result panels.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_method_performance.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/surface_method_performance.png&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R009&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C007&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;2D surface-target family performance&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F011</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>2D surface-target family performance</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R009</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C007</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_method_performance.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/surface_method_performance.png</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Likely one of the highest-value main-text result panels.</dd>
+                <dt>Action</dt><dd>Distill to a manuscript-ready figure with exact metric definitions and selected families.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Needs exact provenance table and final family selection.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_distillation"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R006,R009"
+              data-claims="C006"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Merge with adaptive-radius parameter panel or move to supplement.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May be too detailed for main text unless compressed.&quot;], &quot;id&quot;: &quot;F012&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Supports cKNN parameter-selection discussion.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_cknn_parameters.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/cknn_error_by_parameters.png&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R009&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;], &quot;title&quot;: &quot;cKNN parameter dependence&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F012</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>cKNN parameter dependence</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R009</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_cknn_parameters.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/cknn_error_by_parameters.png</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supports cKNN parameter-selection discussion.</dd>
+                <dt>Action</dt><dd>Merge with adaptive-radius parameter panel or move to supplement.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May be too detailed for main text unless compressed.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_distillation"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R010"
+              data-claims="C006,C007"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Extract final family-level conclusions and decide whether it is main or supplement.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Must distinguish oracle and non-oracle settings.&quot;], &quot;id&quot;: &quot;F013&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Best current curvature-dependence candidate.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark/runs/full/report/figures/family_performance_by_curvature.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark&quot;, &quot;source_resource_ids&quot;: [&quot;R010&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C007&quot;], &quot;title&quot;: &quot;Curvature-tier family performance&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F013</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Curvature-tier family performance</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R010</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C007</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark/runs/full/report/figures/family_performance_by_curvature.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Best current curvature-dependence candidate.</dd>
+                <dt>Action</dt><dd>Extract final family-level conclusions and decide whether it is main or supplement.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Must distinguish oracle and non-oracle settings.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="usable_with_edits"
+              data-section="Diagnostics"
+              data-placement="main"
+              data-owner="Methods/Theory Agent / Figure Curator"
+              data-resources="R006,R008"
+              data-claims="C003,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Align terminology with final graph-reconstruction diagnostic set.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Avoid overlap with GMDS diagnostic definitions.&quot;], &quot;id&quot;: &quot;F014&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Diagnostics&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Clear diagnostic vocabulary figure for local/mid/long residual regimes.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/residual_regime_schematic.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R008&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Residual-regime diagnostic schematic&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F014</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Residual-regime diagnostic schematic</h3>
+              <dl>
+                <dt>Section</dt><dd>Diagnostics</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R008</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/residual_regime_schematic.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Clear diagnostic vocabulary figure for local/mid/long residual regimes.</dd>
+                <dt>Action</dt><dd>Align terminology with final graph-reconstruction diagnostic set.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Avoid overlap with GMDS diagnostic definitions.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Diagnostics"
+              data-placement="supplement"
+              data-owner="Methods/Theory Agent"
+              data-resources="R008"
+              data-claims="C003,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use as supplement if path-level residual diagnostics are described.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May be too detailed for the main paper.&quot;], &quot;id&quot;: &quot;F015&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Diagnostics&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent&quot;, &quot;readiness_note&quot;: &quot;Useful technical diagnostic schematic.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/path_level_schematic.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R008&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Path-level diagnostic schematic&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F015</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Path-level diagnostic schematic</h3>
+              <dl>
+                <dt>Section</dt><dd>Diagnostics</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R008</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/path_level_schematic.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful technical diagnostic schematic.</dd>
+                <dt>Action</dt><dd>Use as supplement if path-level residual diagnostics are described.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May be too detailed for the main paper.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Diagnostics"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R008"
+              data-claims="C006,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use as supporting supplement or redraw as part of a final benchmark dashboard figure.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Diagnostic report predates final manuscript figure selection.&quot;], &quot;id&quot;: &quot;F016&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Diagnostics&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Summarizes available diagnostic benchmarks.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/benchmark_summary.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R008&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Graph diagnostics benchmark summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F016</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Graph diagnostics benchmark summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Diagnostics</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R008</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/benchmark_summary.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Summarizes available diagnostic benchmarks.</dd>
+                <dt>Action</dt><dd>Use as supporting supplement or redraw as part of a final benchmark dashboard figure.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Diagnostic report predates final manuscript figure selection.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_distillation"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R014"
+              data-claims="C011,C013"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Locate exact result tables/scripts and make a manuscript-ready multi-panel figure.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Current registry already flags need for provenance check.&quot;], &quot;id&quot;: &quot;F017&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Strong candidate for comparing weighted GRIP and metric-MDS initializations.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_sensitivity_summary.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/quadform-curvature-initialization-sensitivity/implementation_plan.md&quot;, &quot;source_resource_ids&quot;: [&quot;R014&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C011&quot;, &quot;C013&quot;], &quot;title&quot;: &quot;Quadform initialization sensitivity summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F017</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Quadform initialization sensitivity summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R014</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C011</span>, <span class="ref-pill">C013</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_sensitivity_summary.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/quadform-curvature-initialization-sensitivity/implementation_plan.md</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Strong candidate for comparing weighted GRIP and metric-MDS initializations.</dd>
+                <dt>Action</dt><dd>Locate exact result tables/scripts and make a manuscript-ready multi-panel figure.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Current registry already flags need for provenance check.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="needs_distillation"
+              data-section="Scaling Experiments"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R014"
+              data-claims="C013"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Repackage with hardware/context notes and final algorithm labels.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Needs exact run provenance before final numerical use.&quot;], &quot;id&quot;: &quot;F018&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Scaling Experiments&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Candidate timing evidence for the scalable initialization claim.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_runtime.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_summary.csv&quot;, &quot;source_resource_ids&quot;: [&quot;R014&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C013&quot;], &quot;title&quot;: &quot;Quadform initialization timing/runtime&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F018</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Quadform initialization timing/runtime</h3>
+              <dl>
+                <dt>Section</dt><dd>Scaling Experiments</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R014</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C013</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_runtime.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_summary.csv</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Candidate timing evidence for the scalable initialization claim.</dd>
+                <dt>Action</dt><dd>Repackage with hardware/context notes and final algorithm labels.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Needs exact run provenance before final numerical use.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="background_only"
+              data-section="Geodesic MDS"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R001,R002"
+              data-claims="C011"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Keep as background/supplement unless MISF-GMDS is revived in main text.&quot;, &quot;build_command&quot;: &quot;Rscript /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R&quot;, &quot;caveats&quot;: [&quot;Large stage trace may be visually busy.&quot;], &quot;id&quot;: &quot;F019&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Useful history for MISF-GMDS but not central to current edge-KK story.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_misf_stages_irregular_rectangle_15x15.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R002&quot;], &quot;status&quot;: &quot;background_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C011&quot;], &quot;title&quot;: &quot;MISF-GMDS irregular-stage trace&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F019</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-background_only">background_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>MISF-GMDS irregular-stage trace</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R002</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C011</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_misf_stages_irregular_rectangle_15x15.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R</code></dd>
+                <dt>Build</dt><dd><code>Rscript /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R</code></dd>
+                <dt>Readiness</dt><dd>Useful history for MISF-GMDS but not central to current edge-KK story.</dd>
+                <dt>Action</dt><dd>Keep as background/supplement unless MISF-GMDS is revived in main text.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Large stage trace may be visually busy.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Reproducibility / Software"
+              data-placement="supplement"
+              data-owner="Report Agent / Provenance-Librarian"
+              data-resources="R001,R002,R019"
+              data-claims="C019"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Update or replace with cross-package SIMODS ownership map.&quot;, &quot;build_command&quot;: &quot;python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py&quot;, &quot;caveats&quot;: [&quot;Current diagram may not reflect latest package split.&quot;], &quot;id&quot;: &quot;F020&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Reproducibility / Software&quot;, &quot;owner_role&quot;: &quot;Report Agent / Provenance-Librarian&quot;, &quot;readiness_note&quot;: &quot;Existing software-oriented diagram.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_current_implementation_summary.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R002&quot;, &quot;R019&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C019&quot;], &quot;title&quot;: &quot;Current implementation summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F020</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Current implementation summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Reproducibility / Software</dd>
+                <dt>Owner</dt><dd>Report Agent / Provenance-Librarian</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R002</span>, <span class="ref-pill">R019</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C019</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_current_implementation_summary.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py</code></dd>
+                <dt>Build</dt><dd><code>python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py</code></dd>
+                <dt>Readiness</dt><dd>Existing software-oriented diagram.</dd>
+                <dt>Action</dt><dd>Update or replace with cross-package SIMODS ownership map.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Current diagram may not reflect latest package split.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Oracle Benchmarks"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R006,R028"
+              data-claims="C010"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use in supplement if 3D reference methodology is included.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Not a final 3D benchmark result.&quot;], &quot;id&quot;: &quot;F021&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Supports 3D reference readiness.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_reference_convergence.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R028&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C010&quot;], &quot;title&quot;: &quot;3D Delaunay reference convergence&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F021</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>3D Delaunay reference convergence</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R028</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C010</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_reference_convergence.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supports 3D reference readiness.</dd>
+                <dt>Action</dt><dd>Use in supplement if 3D reference methodology is included.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Not a final 3D benchmark result.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Oracle Benchmarks"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R006,R012"
+              data-claims="C010"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Keep supplement unless 3D oracle work becomes central.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Boundary/high-anisotropy interpretation requires care.&quot;], &quot;id&quot;: &quot;F022&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Supports Delaunay reference stress-test discussion.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_stress_reference_convergence.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R012&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C010&quot;], &quot;title&quot;: &quot;3D Delaunay stress reference convergence&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F022</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>3D Delaunay stress reference convergence</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R012</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C010</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_stress_reference_convergence.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supports Delaunay reference stress-test discussion.</dd>
+                <dt>Action</dt><dd>Keep supplement unless 3D oracle work becomes central.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Boundary/high-anisotropy interpretation requires care.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="background_only"
+              data-section="Discussion"
+              data-placement="background"
+              data-owner="Report Agent"
+              data-resources="R025"
+              data-claims="C018"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Do not use unless the manuscript adds a density-aware or real-data case study.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Different target than current surface-geodesic benchmark lane.&quot;], &quot;id&quot;: &quot;F023&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;background&quot;, &quot;manuscript_section&quot;: &quot;Discussion&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Background for density-aware targets, not current main target.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/density_oracle_sensitivity.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md&quot;, &quot;source_resource_ids&quot;: [&quot;R025&quot;], &quot;status&quot;: &quot;background_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C018&quot;], &quot;title&quot;: &quot;Density-aware oracle sensitivity&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F023</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-background_only">background_only</span>
+                <span class="pill placement">background</span>
+              </div>
+              <h3>Density-aware oracle sensitivity</h3>
+              <dl>
+                <dt>Section</dt><dd>Discussion</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R025</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C018</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/density_oracle_sensitivity.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Background for density-aware targets, not current main target.</dd>
+                <dt>Action</dt><dd>Do not use unless the manuscript adds a density-aware or real-data case study.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Different target than current surface-geodesic benchmark lane.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="background_only"
+              data-section="Discussion"
+              data-placement="background"
+              data-owner="Report Agent"
+              data-resources="R033"
+              data-claims="C014"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use only in discussion/future work.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Exploratory method lane.&quot;], &quot;id&quot;: &quot;F024&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;background&quot;, &quot;manuscript_section&quot;: &quot;Discussion&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Useful background for why repulsive unfolding is not the current headline method.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/figures/spread_edge_tradeoff.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R033&quot;], &quot;status&quot;: &quot;background_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C014&quot;], &quot;title&quot;: &quot;Repulsive unfolding spread-edge tradeoff&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F024</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-background_only">background_only</span>
+                <span class="pill placement">background</span>
+              </div>
+              <h3>Repulsive unfolding spread-edge tradeoff</h3>
+              <dl>
+                <dt>Section</dt><dd>Discussion</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R033</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C014</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/figures/spread_edge_tradeoff.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful background for why repulsive unfolding is not the current headline method.</dd>
+                <dt>Action</dt><dd>Use only in discussion/future work.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Exploratory method lane.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="deprecated"
+              data-section="Discussion"
+              data-placement="background"
+              data-owner="Report Agent"
+              data-resources="R031"
+              data-claims="C014"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Archive unless requested for method-ablation supplement.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Resource is classified archive/deprecated.&quot;], &quot;id&quot;: &quot;F025&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;background&quot;, &quot;manuscript_section&quot;: &quot;Discussion&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Negative/secondary evidence against making Gram-gKK central.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/figures/median_surface_stress_by_method.png&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R031&quot;], &quot;status&quot;: &quot;deprecated&quot;, &quot;supported_claim_ids&quot;: [&quot;C014&quot;], &quot;title&quot;: &quot;Kernel Gram-gKK median surface stress&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F025</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-deprecated">deprecated</span>
+                <span class="pill placement">background</span>
+              </div>
+              <h3>Kernel Gram-gKK median surface stress</h3>
+              <dl>
+                <dt>Section</dt><dd>Discussion</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R031</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C014</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/figures/median_surface_stress_by_method.png</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Negative/secondary evidence against making Gram-gKK central.</dd>
+                <dt>Action</dt><dd>Archive unless requested for method-ablation supplement.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Resource is classified archive/deprecated.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="figure"
+              data-status="supplement_only"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R007"
+              data-claims="C003"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use only if failure modes are discussed explicitly.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May broaden manuscript scope.&quot;], &quot;id&quot;: &quot;F026&quot;, &quot;kind&quot;: &quot;figure&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Useful supplement visual for graph construction pathologies.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/failure_mode_examples.pdf&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R007&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;], &quot;title&quot;: &quot;Data graph construction failure modes&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">F026</span>
+                <span class="pill kind">figure</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Data graph construction failure modes</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R007</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/failure_mode_examples.pdf</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful supplement visual for graph construction pathologies.</dd>
+                <dt>Action</dt><dd>Use only if failure modes are discussed explicitly.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May broaden manuscript scope.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="needs_distillation"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Report Agent"
+              data-resources="R006,R009"
+              data-claims="C006,C007,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Distill into a compact main-text table or merge into the main benchmark figure.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Needs exact metric definitions in caption.&quot;], &quot;id&quot;: &quot;T001&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Report Agent&quot;, &quot;readiness_note&quot;: &quot;Most direct table candidate for headline graph-family ordering.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_family_medians.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R009&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C007&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;2D surface family medians&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T001</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>2D surface family medians</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R009</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C007</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_family_medians.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Most direct table candidate for headline graph-family ordering.</dd>
+                <dt>Action</dt><dd>Distill into a compact main-text table or merge into the main benchmark figure.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Needs exact metric definitions in caption.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="needs_distillation"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Report Agent"
+              data-resources="R006,R009"
+              data-claims="C006,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Shorten to selected families and final benchmark metrics.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May be too dense for main text.&quot;], &quot;id&quot;: &quot;T002&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Report Agent&quot;, &quot;readiness_note&quot;: &quot;Useful for parameter-region reporting.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_best_by_size.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R009&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;2D surface best settings by size&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T002</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>2D surface best settings by size</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R009</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_best_by_size.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful for parameter-region reporting.</dd>
+                <dt>Action</dt><dd>Shorten to selected families and final benchmark metrics.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May be too dense for main text.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="supplement_only"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="supplement"
+              data-owner="Report Agent"
+              data-resources="R006,R011,R027"
+              data-claims="C008"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use if pruning is mentioned; avoid main-text overload.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Uses a benchmark family outside the main quadform surface-target lane.&quot;], &quot;id&quot;: &quot;T003&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Supplement table for pruning as sparsification.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/pruning_method_summary.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark/index.html&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R011&quot;, &quot;R027&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C008&quot;], &quot;title&quot;: &quot;Pruning method summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T003</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Pruning method summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R011</span>, <span class="ref-pill">R027</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C008</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/pruning_method_summary.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark/index.html</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supplement table for pruning as sparsification.</dd>
+                <dt>Action</dt><dd>Use if pruning is mentioned; avoid main-text overload.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Uses a benchmark family outside the main quadform surface-target lane.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="supplement_only"
+              data-section="Diagnostics"
+              data-placement="supplement"
+              data-owner="Methods/Theory Agent"
+              data-resources="R008"
+              data-claims="C006,C009"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use only if the diagnostics section needs a compact supplement table.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Table is tied to the diagnostics report rather than final benchmark package.&quot;], &quot;id&quot;: &quot;T004&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Diagnostics&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent&quot;, &quot;readiness_note&quot;: &quot;Supports diagnostic report summary.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/experiments/quadform-benchmarks/geodesic-isometry-diagnostics-report/build/benchmark_summary_table.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R008&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Graph diagnostic benchmark summary table&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T004</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Graph diagnostic benchmark summary table</h3>
+              <dl>
+                <dt>Section</dt><dd>Diagnostics</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R008</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/experiments/quadform-benchmarks/geodesic-isometry-diagnostics-report/build/benchmark_summary_table.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supports diagnostic report summary.</dd>
+                <dt>Action</dt><dd>Use only if the diagnostics section needs a compact supplement table.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Table is tied to the diagnostics report rather than final benchmark package.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="supplement_only"
+              data-section="Oracle Benchmarks"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R006,R028"
+              data-claims="C010"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use in supplement if 3D reference construction is described.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Not a main result unless 3D benchmark scope expands.&quot;], &quot;id&quot;: &quot;T005&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Reference-oracle readiness summary.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/delaunay_reference_summary.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R028&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C010&quot;], &quot;title&quot;: &quot;3D Delaunay reference summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T005</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>3D Delaunay reference summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R028</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C010</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/delaunay_reference_summary.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Reference-oracle readiness summary.</dd>
+                <dt>Action</dt><dd>Use in supplement if 3D reference construction is described.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Not a main result unless 3D benchmark scope expands.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="supplement_only"
+              data-section="Oracle Benchmarks"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R006,R013"
+              data-claims="C010"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Use as provenance rather than main prose.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Reference-oracle engineering detail.&quot;], &quot;id&quot;: &quot;T006&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Supports the provisional factor-4 reference edge-filter recommendation.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/factor4_sentinel_summary.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R013&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C010&quot;], &quot;title&quot;: &quot;3D factor-4 sentinel summary&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T006</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>3D factor-4 sentinel summary</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R013</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C010</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/factor4_sentinel_summary.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Supports the provisional factor-4 reference edge-filter recommendation.</dd>
+                <dt>Action</dt><dd>Use as provenance rather than main prose.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Reference-oracle engineering detail.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="supplement_only"
+              data-section="Oracle Benchmarks"
+              data-placement="supplement"
+              data-owner="Experiment Engineer"
+              data-resources="R006,R029"
+              data-claims="C010"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Keep supplement/background unless a full 3D benchmark is approved.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Smoke run only.&quot;], &quot;id&quot;: &quot;T007&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;Small 3D smoke benchmark summary.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/smoke3d_family_medians.tex&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark/report/quadform_3d_smoke_benchmark_report.html&quot;, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R029&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C010&quot;], &quot;title&quot;: &quot;3D smoke benchmark family medians&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T007</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>3D smoke benchmark family medians</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R029</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C010</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/smoke3d_family_medians.tex</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark/report/quadform_3d_smoke_benchmark_report.html</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Small 3D smoke benchmark summary.</dd>
+                <dt>Action</dt><dd>Keep supplement/background unless a full 3D benchmark is approved.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Smoke run only.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="needs_distillation"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Experiment Engineer / Report Agent"
+              data-resources="R002,R030"
+              data-claims="C011,C013"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Extract a compact manuscript table or convert to figure from metrics.csv.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Rendered path is an HTML report; the specific table is embedded in the report.&quot;], &quot;id&quot;: &quot;T008&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Report Agent&quot;, &quot;readiness_note&quot;: &quot;Central table candidate for edge-gKK versus metric MDS and all-pairs geodesic-KK.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/full-phase12/gmds_edge_isometry_harness_report.html&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness&quot;, &quot;source_resource_ids&quot;: [&quot;R002&quot;, &quot;R030&quot;], &quot;status&quot;: &quot;needs_distillation&quot;, &quot;supported_claim_ids&quot;: [&quot;C011&quot;, &quot;C013&quot;], &quot;title&quot;: &quot;GMDS full Phase 1/2 harness median performance&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T008</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-needs_distillation">needs_distillation</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>GMDS full Phase 1/2 harness median performance</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R002</span>, <span class="ref-pill">R030</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C011</span>, <span class="ref-pill">C013</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/full-phase12/gmds_edge_isometry_harness_report.html</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Central table candidate for edge-gKK versus metric MDS and all-pairs geodesic-KK.</dd>
+                <dt>Action</dt><dd>Extract a compact manuscript table or convert to figure from metrics.csv.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Rendered path is an HTML report; the specific table is embedded in the report.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="usable_with_edits"
+              data-section="Reproducibility / Software"
+              data-placement="supplement"
+              data-owner="Provenance-Librarian / Report Agent"
+              data-resources="R001,R002,R019"
+              data-claims="C019"
+              data-missing="no rendered path"
+              data-search="{&quot;action_needed&quot;: &quot;Update against current gflow/grip/geodesicMDS/geodesic_data_geometry/gmdsui ownership.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;No separate rendered table file exists.&quot;], &quot;id&quot;: &quot;T009&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Reproducibility / Software&quot;, &quot;owner_role&quot;: &quot;Provenance-Librarian / Report Agent&quot;, &quot;readiness_note&quot;: &quot;Existing manuscript/source table can seed a cross-package software table.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/geodesic_mds.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R001&quot;, &quot;R002&quot;, &quot;R019&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C019&quot;], &quot;title&quot;: &quot;Implementation layer inventory&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T009</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Implementation layer inventory</h3>
+              <dl>
+                <dt>Section</dt><dd>Reproducibility / Software</dd>
+                <dt>Owner</dt><dd>Provenance-Librarian / Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R001</span>, <span class="ref-pill">R002</span>, <span class="ref-pill">R019</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C019</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/geodesic_mds.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Existing manuscript/source table can seed a cross-package software table.</dd>
+                <dt>Action</dt><dd>Update against current gflow/grip/geodesicMDS/geodesic_data_geometry/gmdsui ownership.</dd>
+                <dt>Missing</dt><dd>no rendered path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>No separate rendered table file exists.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="table"
+              data-status="usable_with_edits"
+              data-section="Data Geodesic Geometry Reconstruction"
+              data-placement="main"
+              data-owner="Report Agent"
+              data-resources="R007,R023"
+              data-claims="C003"
+              data-missing="no rendered path"
+              data-search="{&quot;action_needed&quot;: &quot;Extract and update to final graph-family set.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;No separate rendered table file exists.&quot;], &quot;id&quot;: &quot;T010&quot;, &quot;kind&quot;: &quot;table&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Data Geodesic Geometry Reconstruction&quot;, &quot;owner_role&quot;: &quot;Report Agent&quot;, &quot;readiness_note&quot;: &quot;Source report has taxonomy-style tabular content suitable for a concise methods table.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex&quot;, &quot;source_resource_ids&quot;: [&quot;R007&quot;, &quot;R023&quot;], &quot;status&quot;: &quot;usable_with_edits&quot;, &quot;supported_claim_ids&quot;: [&quot;C003&quot;], &quot;title&quot;: &quot;Graph construction taxonomy table&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">T010</span>
+                <span class="pill kind">table</span>
+                <span class="pill status status-usable_with_edits">usable_with_edits</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Graph construction taxonomy table</h3>
+              <dl>
+                <dt>Section</dt><dd>Data Geodesic Geometry Reconstruction</dd>
+                <dt>Owner</dt><dd>Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R007</span>, <span class="ref-pill">R023</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C003</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Source report has taxonomy-style tabular content suitable for a concise methods table.</dd>
+                <dt>Action</dt><dd>Extract and update to final graph-family set.</dd>
+                <dt>Missing</dt><dd>no rendered path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>No separate rendered table file exists.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="interactive"
+              data-status="supplement_only"
+              data-section="Geodesic MDS"
+              data-placement="supplement"
+              data-owner="Report Agent / Provenance-Librarian"
+              data-resources="R038"
+              data-claims="C011"
+              data-missing=""
+              data-search="{&quot;action_needed&quot;: &quot;Decide whether interactive assets belong in supplement or remain internal.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Generation manifest needs stronger provenance before formal supplement use.&quot;], &quot;id&quot;: &quot;I001&quot;, &quot;kind&quot;: &quot;interactive&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Report Agent / Provenance-Librarian&quot;, &quot;readiness_note&quot;: &quot;Useful interactive supplement candidate for multiscale behavior.&quot;, &quot;rendered_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive/misf_gmds_multiscale_embeddings_2026-04-02.html&quot;, &quot;source_path&quot;: &quot;/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive&quot;, &quot;source_resource_ids&quot;: [&quot;R038&quot;], &quot;status&quot;: &quot;supplement_only&quot;, &quot;supported_claim_ids&quot;: [&quot;C011&quot;], &quot;title&quot;: &quot;MISF-GMDS multiscale embeddings dashboard&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">I001</span>
+                <span class="pill kind">interactive</span>
+                <span class="pill status status-supplement_only">supplement_only</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>MISF-GMDS multiscale embeddings dashboard</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Report Agent / Provenance-Librarian</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R038</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C011</span></dd>
+                <dt>Rendered</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive/misf_gmds_multiscale_embeddings_2026-04-02.html</code></dd>
+                <dt>Source</dt><dd><code>/Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive</code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Useful interactive supplement candidate for multiscale behavior.</dd>
+                <dt>Action</dt><dd>Decide whether interactive assets belong in supplement or remain internal.</dd>
+                <dt>Missing</dt><dd>none</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Generation manifest needs stronger provenance before formal supplement use.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Introduction"
+              data-placement="main"
+              data-owner="Report Agent / Figure Curator"
+              data-resources="R016,R017,R021,R022"
+              data-claims="C001,C002,C003,C004"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Draw a clean manuscript-ready schematic: data -&gt; weighted graph -&gt; graph geodesic metric -&gt; GMDS embedding.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;This should probably be Figure 1.&quot;], &quot;id&quot;: &quot;P001&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Introduction&quot;, &quot;owner_role&quot;: &quot;Report Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;No integrated SIMODS pipeline schematic exists yet.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R016&quot;, &quot;R017&quot;, &quot;R021&quot;, &quot;R022&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C001&quot;, &quot;C002&quot;, &quot;C003&quot;, &quot;C004&quot;], &quot;title&quot;: &quot;Data-to-graph-to-GMDS pipeline schematic&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P001</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Data-to-graph-to-GMDS pipeline schematic</h3>
+              <dl>
+                <dt>Section</dt><dd>Introduction</dd>
+                <dt>Owner</dt><dd>Report Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R016</span>, <span class="ref-pill">R017</span>, <span class="ref-pill">R021</span>, <span class="ref-pill">R022</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C001</span>, <span class="ref-pill">C002</span>, <span class="ref-pill">C003</span>, <span class="ref-pill">C004</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>No integrated SIMODS pipeline schematic exists yet.</dd>
+                <dt>Action</dt><dd>Draw a clean manuscript-ready schematic: data -&gt; weighted graph -&gt; graph geodesic metric -&gt; GMDS embedding.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>This should probably be Figure 1.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Geodesic MDS"
+              data-placement="main"
+              data-owner="Methods/Theory Agent / Figure Curator"
+              data-resources="R003,R004,R030"
+              data-claims="C005,C012"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Create a compact proposition figure or proof schematic.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;May be better as a text proposition if figure budget is tight.&quot;], &quot;id&quot;: &quot;P002&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Geodesic MDS&quot;, &quot;owner_role&quot;: &quot;Methods/Theory Agent / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;No single clean figure yet shows why preserving edges preserves graph path lengths.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R003&quot;, &quot;R004&quot;, &quot;R030&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C005&quot;, &quot;C012&quot;], &quot;title&quot;: &quot;Edge-isometry proposition schematic&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P002</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Edge-isometry proposition schematic</h3>
+              <dl>
+                <dt>Section</dt><dd>Geodesic MDS</dd>
+                <dt>Owner</dt><dd>Methods/Theory Agent / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R003</span>, <span class="ref-pill">R004</span>, <span class="ref-pill">R030</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C005</span>, <span class="ref-pill">C012</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>No single clean figure yet shows why preserving edges preserves graph path lengths.</dd>
+                <dt>Action</dt><dd>Create a compact proposition figure or proof schematic.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>May be better as a text proposition if figure budget is tight.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Oracle Benchmarks"
+              data-placement="main"
+              data-owner="Experiment Engineer / Figure Curator"
+              data-resources="R006,R009,R010,R022"
+              data-claims="C006,C007,C009"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Distill surface examples, family performance, and parameter sensitivity into one or two final figures.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Depends on final main-text versus supplement allocation.&quot;], &quot;id&quot;: &quot;P003&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Oracle Benchmarks&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Figure Curator&quot;, &quot;readiness_note&quot;: &quot;Existing plots are useful but not yet a final main-text result figure.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R006&quot;, &quot;R009&quot;, &quot;R010&quot;, &quot;R022&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C006&quot;, &quot;C007&quot;, &quot;C009&quot;], &quot;title&quot;: &quot;Final oracle benchmark summary figure&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P003</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Final oracle benchmark summary figure</h3>
+              <dl>
+                <dt>Section</dt><dd>Oracle Benchmarks</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Figure Curator</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R006</span>, <span class="ref-pill">R009</span>, <span class="ref-pill">R010</span>, <span class="ref-pill">R022</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C006</span>, <span class="ref-pill">C007</span>, <span class="ref-pill">C009</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Existing plots are useful but not yet a final main-text result figure.</dd>
+                <dt>Action</dt><dd>Distill surface examples, family performance, and parameter sensitivity into one or two final figures.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Depends on final main-text versus supplement allocation.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Non-Oracle Graph Parameter Selection"
+              data-placement="main"
+              data-owner="Experiment Engineer / Methods-Theory Agent"
+              data-resources="R016,R022,R039"
+              data-claims="C015,C016,C017"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Use R039 to design a method-family table now; after approved experiments, create the selector-vs-oracle recovery table.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Requires approved follow-up work; do not invent results.&quot;], &quot;id&quot;: &quot;P004&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Non-Oracle Graph Parameter Selection&quot;, &quot;owner_role&quot;: &quot;Experiment Engineer / Methods-Theory Agent&quot;, &quot;readiness_note&quot;: &quot;The method-family inventory now exists, but no result figure/table exists for the largest missing bridge from oracle benchmarks to real data.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R016&quot;, &quot;R022&quot;, &quot;R039&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C015&quot;, &quot;C016&quot;, &quot;C017&quot;], &quot;title&quot;: &quot;Non-oracle graph-selection schematic and result table&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P004</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Non-oracle graph-selection schematic and result table</h3>
+              <dl>
+                <dt>Section</dt><dd>Non-Oracle Graph Parameter Selection</dd>
+                <dt>Owner</dt><dd>Experiment Engineer / Methods-Theory Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R016</span>, <span class="ref-pill">R022</span>, <span class="ref-pill">R039</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C015</span>, <span class="ref-pill">C016</span>, <span class="ref-pill">C017</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>The method-family inventory now exists, but no result figure/table exists for the largest missing bridge from oracle benchmarks to real data.</dd>
+                <dt>Action</dt><dd>Use R039 to design a method-family table now; after approved experiments, create the selector-vs-oracle recovery table.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Requires approved follow-up work; do not invent results.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Experiments"
+              data-placement="main"
+              data-owner="Orchestrator / Experiment Engineer"
+              data-resources="R016,R017,R022"
+              data-claims="C018"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Select dataset, define preprocessing and graph selection, then produce a compact data-to-layout case figure.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Blocked on real-data case study choice.&quot;], &quot;id&quot;: &quot;P005&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;main&quot;, &quot;manuscript_section&quot;: &quot;Experiments&quot;, &quot;owner_role&quot;: &quot;Orchestrator / Experiment Engineer&quot;, &quot;readiness_note&quot;: &quot;No real-data case-study figure exists because the dataset is not selected.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R016&quot;, &quot;R017&quot;, &quot;R022&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C018&quot;], &quot;title&quot;: &quot;Real-data case study figure&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P005</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">main</span>
+              </div>
+              <h3>Real-data case study figure</h3>
+              <dl>
+                <dt>Section</dt><dd>Experiments</dd>
+                <dt>Owner</dt><dd>Orchestrator / Experiment Engineer</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R016</span>, <span class="ref-pill">R017</span>, <span class="ref-pill">R022</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C018</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>No real-data case-study figure exists because the dataset is not selected.</dd>
+                <dt>Action</dt><dd>Select dataset, define preprocessing and graph selection, then produce a compact data-to-layout case figure.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Blocked on real-data case study choice.</li></ul>
+              </div>
+            </article>
+            
+
+            <article class="asset-card"
+              data-kind="planned"
+              data-status="needed"
+              data-section="Reproducibility / Software"
+              data-placement="supplement"
+              data-owner="Provenance-Librarian / Report Agent"
+              data-resources="R019,R020,R037"
+              data-claims="C019"
+              data-missing="no rendered path; no source path"
+              data-search="{&quot;action_needed&quot;: &quot;Create a concise software ownership table or diagram.&quot;, &quot;build_command&quot;: null, &quot;caveats&quot;: [&quot;Should be checked against current package APIs before release.&quot;], &quot;id&quot;: &quot;P006&quot;, &quot;kind&quot;: &quot;planned&quot;, &quot;main_or_supplement&quot;: &quot;supplement&quot;, &quot;manuscript_section&quot;: &quot;Reproducibility / Software&quot;, &quot;owner_role&quot;: &quot;Provenance-Librarian / Report Agent&quot;, &quot;readiness_note&quot;: &quot;Existing inventories are useful but no final cross-package ownership graphic exists.&quot;, &quot;rendered_path&quot;: null, &quot;source_path&quot;: null, &quot;source_resource_ids&quot;: [&quot;R019&quot;, &quot;R020&quot;, &quot;R037&quot;], &quot;status&quot;: &quot;needed&quot;, &quot;supported_claim_ids&quot;: [&quot;C019&quot;], &quot;title&quot;: &quot;Cross-package software ownership map&quot;}">
+              <div class="asset-topline">
+                <span class="asset-id">P006</span>
+                <span class="pill kind">planned</span>
+                <span class="pill status status-needed">needed</span>
+                <span class="pill placement">supplement</span>
+              </div>
+              <h3>Cross-package software ownership map</h3>
+              <dl>
+                <dt>Section</dt><dd>Reproducibility / Software</dd>
+                <dt>Owner</dt><dd>Provenance-Librarian / Report Agent</dd>
+                <dt>Resources</dt><dd><span class="ref-pill">R019</span>, <span class="ref-pill">R020</span>, <span class="ref-pill">R037</span></dd>
+                <dt>Claims</dt><dd><span class="ref-pill">C019</span></dd>
+                <dt>Rendered</dt><dd><code></code></dd>
+                <dt>Source</dt><dd><code></code></dd>
+                <dt>Build</dt><dd><code></code></dd>
+                <dt>Readiness</dt><dd>Existing inventories are useful but no final cross-package ownership graphic exists.</dd>
+                <dt>Action</dt><dd>Create a concise software ownership table or diagram.</dd>
+                <dt>Missing</dt><dd>no rendered path; no source path</dd>
+              </dl>
+              <div>
+                <h4>Caveats</h4>
+                <ul><li>Should be checked against current package APIs before release.</li></ul>
+              </div>
+            </article>
+            
+      </div>
+    </section>
+    <section id="matrix">
+      <div class="section-title">
+        <h2>Section Coverage Matrix</h2>
+        <p>Shows visual/table readiness by manuscript section.</p>
+      </div>
+      
+    <table>
+      <thead><tr><th>Manuscript section</th><th>ready</th><th>usable_with_edits</th><th>needs_redraw</th><th>needs_distillation</th><th>needed</th><th>supplement_only</th><th>background_only</th><th>deprecated</th><th>Total</th></tr></thead>
+      <tbody><tr><td>Data Geodesic Geometry Reconstruction</td><td>0</td><td>3</td><td>0</td><td>0</td><td>0</td><td>3</td><td>0</td><td>0</td><td>6</td></tr><tr><td>Diagnostics</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>3</td><td>0</td><td>0</td><td>4</td></tr><tr><td>Discussion</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>1</td><td>3</td></tr><tr><td>Experiments</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr><tr><td>Geodesic MDS</td><td>0</td><td>2</td><td>1</td><td>2</td><td>1</td><td>2</td><td>1</td><td>0</td><td>9</td></tr><tr><td>Introduction</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr><tr><td>Non-Oracle Graph Parameter Selection</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td></tr><tr><td>Oracle Benchmarks</td><td>0</td><td>1</td><td>0</td><td>5</td><td>1</td><td>5</td><td>0</td><td>0</td><td>12</td></tr><tr><td>Related Work</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>2</td><td>0</td><td>2</td></tr><tr><td>Reproducibility / Software</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td><td>3</td></tr><tr><td>Scaling Experiments</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr></tbody>
+    </table>
+    
+    </section>
+    <section id="missing">
+      <div class="section-title">
+        <h2>Missing Assets</h2>
+        <p>Records with no rendered path, no source path, missing files, or no claim IDs.</p>
+      </div>
+      
+    <table>
+      <thead><tr><th>ID</th><th>Title</th><th>Kind</th><th>Issue</th><th>Action</th></tr></thead>
+      <tbody>
+            <tr>
+              <td>T009</td>
+              <td>Implementation layer inventory</td>
+              <td>table</td>
+              <td>no rendered path</td>
+              <td>Update against current gflow/grip/geodesicMDS/geodesic_data_geometry/gmdsui ownership.</td>
+            </tr>
+            
+            <tr>
+              <td>T010</td>
+              <td>Graph construction taxonomy table</td>
+              <td>table</td>
+              <td>no rendered path</td>
+              <td>Extract and update to final graph-family set.</td>
+            </tr>
+            
+            <tr>
+              <td>P001</td>
+              <td>Data-to-graph-to-GMDS pipeline schematic</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Draw a clean manuscript-ready schematic: data -&gt; weighted graph -&gt; graph geodesic metric -&gt; GMDS embedding.</td>
+            </tr>
+            
+            <tr>
+              <td>P002</td>
+              <td>Edge-isometry proposition schematic</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Create a compact proposition figure or proof schematic.</td>
+            </tr>
+            
+            <tr>
+              <td>P003</td>
+              <td>Final oracle benchmark summary figure</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Distill surface examples, family performance, and parameter sensitivity into one or two final figures.</td>
+            </tr>
+            
+            <tr>
+              <td>P004</td>
+              <td>Non-oracle graph-selection schematic and result table</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Use R039 to design a method-family table now; after approved experiments, create the selector-vs-oracle recovery table.</td>
+            </tr>
+            
+            <tr>
+              <td>P005</td>
+              <td>Real-data case study figure</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Select dataset, define preprocessing and graph selection, then produce a compact data-to-layout case figure.</td>
+            </tr>
+            
+            <tr>
+              <td>P006</td>
+              <td>Cross-package software ownership map</td>
+              <td>planned</td>
+              <td>no rendered path; no source path</td>
+              <td>Create a concise software ownership table or diagram.</td>
+            </tr>
+            </tbody>
+    </table>
+    
+    </section>
+    <section id="export">
+      <div class="section-title">
+        <h2>Export For Report Agent Or Auditor</h2>
+        <p>Markdown summary suitable for a drafting or audit handoff.</p>
+      </div>
+      <button id="copy-export">Copy export</button>
+      <textarea id="export-text" spellcheck="false"># SIMODS Figure/Table Readiness Export
+
+## F001: Geodesic MDS workflow
+- Kind: figure
+- Status: needs_redraw
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R001, R002
+- Supported claims: C004, C011
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_mds_workflow.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py
+- Build command: python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_mds_workflow.py
+- Readiness note: Good GMDS-internal schematic, but the SIMODS paper needs the data-graph layer added upstream.
+- Action needed: Redraw as part of an integrated data-to-graph-to-GMDS pipeline figure or keep as a GMDS subpanel.
+- Owner role: Report Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Current figure was designed for the narrower GMDS manuscript.
+
+## F002: Geodesic stress definition schematic
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R001, R002
+- Supported claims: C004, C005
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_geodesic_stress_definition.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py
+- Build command: python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_geodesic_stress_definition.py
+- Readiness note: Strong explanatory figure for fixed graph paths and embedded path lengths.
+- Action needed: Retitle and align notation with final SIMODS symbols.
+- Owner role: Methods/Theory Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Must avoid duplicating the edge-isometry proposition figure if one is created.
+
+## F003: Star bias motivation example
+- Kind: figure
+- Status: background_only
+- Manuscript section: Related Work
+- Main/supplement: background
+- Source resources: R001
+- Supported claims: C004
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_star_bias.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py
+- Build command: python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py
+- Readiness note: Useful motivation for output-side path fidelity but probably too narrow for the main SIMODS arc.
+- Action needed: Use only if the introduction needs a compact GMDS motivation example.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - May distract from the data-geodesic reconstruction story.
+
+## F004: Neighborhood k regimes
+- Kind: figure
+- Status: background_only
+- Manuscript section: Related Work
+- Main/supplement: supplement
+- Source resources: R001, R007
+- Supported claims: C003
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_k_regimes.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py
+- Build command: python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_nonuniqueness_examples.py
+- Readiness note: Explains graph scale qualitatively.
+- Action needed: Use as supplement/background unless a compact graph-scale panel is needed.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Not tied to the current quadform benchmark evidence.
+
+## F005: edge-KK objective and gradient parity
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R004
+- Supported claims: C012
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/objective_gradient_parity.pdf
+- Source path: /Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex
+- Build command: 
+- Readiness note: Directly supports the edge-KK/quadratic-barrier equivalence claim.
+- Action needed: Distill or redraw as a cleaner proposition-support figure if used in main text.
+- Owner role: Methods/Theory Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Notation must be synchronized with the manuscript.
+
+## F006: Per-edge term parity
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Geodesic MDS
+- Main/supplement: supplement
+- Source resources: R004
+- Supported claims: C012
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/notes/figures/edge_gkk_quadratic_barrier_equivalence/per_edge_term_parity.pdf
+- Source path: /Users/pgajer/current_projects/geodesicMDS/notes/edge_gkk_quadratic_barrier_equivalence_report.tex
+- Build command: 
+- Readiness note: Useful as supplemental validation for the equivalence.
+- Action needed: Keep as supplemental evidence unless a detailed equivalence appendix is written.
+- Owner role: Methods/Theory Agent
+- Missing flags: none
+- Caveats:
+  - Too fine-grained for the main narrative.
+
+## F007: Graph construction rules on nonuniform circle
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: main
+- Source resources: R006, R007
+- Supported claims: C003
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/construction_rules_nonuniform_circle.pdf
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Strong existing visual for graph support families.
+- Action needed: Simplify labels and align graph-family set with final main-text scope.
+- Owner role: Report Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Circle example is pedagogical, not the main surface benchmark.
+
+## F008: Component-MST repair diagram
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: supplement
+- Source resources: R006, R007
+- Supported claims: C003
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/component_mst_repair_diagram.pdf
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Clear repair concept diagram, useful if connectivity repair is explained.
+- Action needed: Use in methods or supplement after deciding how much repair detail belongs in main text.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Component repair is supporting machinery, not a headline result.
+
+## F009: Local geodesic pruning diagram
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: supplement
+- Source resources: R006, R007, R011
+- Supported claims: C008
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/local_geodesic_pruning_diagram.pdf
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Good conceptual pruning schematic.
+- Action needed: Keep supplemental unless pruning is elevated in the manuscript.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Pruning currently appears secondary.
+
+## F010: Quadratic graph surface examples
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R007, R009, R010
+- Supported claims: C006, C009
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/quadform_surface_examples.pdf
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Useful visual introduction to the controlled surface benchmark family.
+- Action needed: Update captions and pair with benchmark performance panels.
+- Owner role: Report Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - May need recoloring/resizing for SIAM-style multi-panel layout.
+
+## F011: 2D surface-target family performance
+- Kind: figure
+- Status: needs_distillation
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R006, R009
+- Supported claims: C006, C007, C009
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_method_performance.png
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/surface_method_performance.png
+- Build command: 
+- Readiness note: Likely one of the highest-value main-text result panels.
+- Action needed: Distill to a manuscript-ready figure with exact metric definitions and selected families.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Needs exact provenance table and final family selection.
+
+## F012: cKNN parameter dependence
+- Kind: figure
+- Status: needs_distillation
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R006, R009
+- Supported claims: C006
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/surface_cknn_parameters.png
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark/report/figures/cknn_error_by_parameters.png
+- Build command: 
+- Readiness note: Supports cKNN parameter-selection discussion.
+- Action needed: Merge with adaptive-radius parameter panel or move to supplement.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: none
+- Caveats:
+  - May be too detailed for main text unless compressed.
+
+## F013: Curvature-tier family performance
+- Kind: figure
+- Status: needs_distillation
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R010
+- Supported claims: C006, C007
+- Rendered path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark/runs/full/report/figures/family_performance_by_curvature.png
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-curvature-tier1-benchmark
+- Build command: 
+- Readiness note: Best current curvature-dependence candidate.
+- Action needed: Extract final family-level conclusions and decide whether it is main or supplement.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Must distinguish oracle and non-oracle settings.
+
+## F014: Residual-regime diagnostic schematic
+- Kind: figure
+- Status: usable_with_edits
+- Manuscript section: Diagnostics
+- Main/supplement: main
+- Source resources: R006, R008
+- Supported claims: C003, C009
+- Rendered path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/residual_regime_schematic.pdf
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex
+- Build command: 
+- Readiness note: Clear diagnostic vocabulary figure for local/mid/long residual regimes.
+- Action needed: Align terminology with final graph-reconstruction diagnostic set.
+- Owner role: Methods/Theory Agent / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Avoid overlap with GMDS diagnostic definitions.
+
+## F015: Path-level diagnostic schematic
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Diagnostics
+- Main/supplement: supplement
+- Source resources: R008
+- Supported claims: C003, C009
+- Rendered path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/path_level_schematic.pdf
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex
+- Build command: 
+- Readiness note: Useful technical diagnostic schematic.
+- Action needed: Use as supplement if path-level residual diagnostics are described.
+- Owner role: Methods/Theory Agent
+- Missing flags: none
+- Caveats:
+  - May be too detailed for the main paper.
+
+## F016: Graph diagnostics benchmark summary
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Diagnostics
+- Main/supplement: supplement
+- Source resources: R008
+- Supported claims: C006, C009
+- Rendered path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/figures/benchmark_summary.pdf
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex
+- Build command: 
+- Readiness note: Summarizes available diagnostic benchmarks.
+- Action needed: Use as supporting supplement or redraw as part of a final benchmark dashboard figure.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Diagnostic report predates final manuscript figure selection.
+
+## F017: Quadform initialization sensitivity summary
+- Kind: figure
+- Status: needs_distillation
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R014
+- Supported claims: C011, C013
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_sensitivity_summary.pdf
+- Source path: /Users/pgajer/current_projects/geodesicMDS/experiments/quadform-curvature-initialization-sensitivity/implementation_plan.md
+- Build command: 
+- Readiness note: Strong candidate for comparing weighted GRIP and metric-MDS initializations.
+- Action needed: Locate exact result tables/scripts and make a manuscript-ready multi-panel figure.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Current registry already flags need for provenance check.
+
+## F018: Quadform initialization timing/runtime
+- Kind: figure
+- Status: needs_distillation
+- Manuscript section: Scaling Experiments
+- Main/supplement: main
+- Source resources: R014
+- Supported claims: C013
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_runtime.pdf
+- Source path: /Users/pgajer/current_projects/geodesicMDS/notes/figures/quadform_initialization_timing_summary.csv
+- Build command: 
+- Readiness note: Candidate timing evidence for the scalable initialization claim.
+- Action needed: Repackage with hardware/context notes and final algorithm labels.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: none
+- Caveats:
+  - Needs exact run provenance before final numerical use.
+
+## F019: MISF-GMDS irregular-stage trace
+- Kind: figure
+- Status: background_only
+- Manuscript section: Geodesic MDS
+- Main/supplement: supplement
+- Source resources: R001, R002
+- Supported claims: C011
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_misf_stages_irregular_rectangle_15x15.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R
+- Build command: Rscript /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_misf_gmds_section_assets.R
+- Readiness note: Useful history for MISF-GMDS but not central to current edge-KK story.
+- Action needed: Keep as background/supplement unless MISF-GMDS is revived in main text.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Large stage trace may be visually busy.
+
+## F020: Current implementation summary
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Reproducibility / Software
+- Main/supplement: supplement
+- Source resources: R001, R002, R019
+- Supported claims: C019
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/fig_current_implementation_summary.pdf
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py
+- Build command: python3 /Users/pgajer/current_projects/grip/papers/gmds_manuscript/figures/generate_current_implementation_summary.py
+- Readiness note: Existing software-oriented diagram.
+- Action needed: Update or replace with cross-package SIMODS ownership map.
+- Owner role: Report Agent / Provenance-Librarian
+- Missing flags: none
+- Caveats:
+  - Current diagram may not reflect latest package split.
+
+## F021: 3D Delaunay reference convergence
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: supplement
+- Source resources: R006, R028
+- Supported claims: C010
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_reference_convergence.png
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html
+- Build command: 
+- Readiness note: Supports 3D reference readiness.
+- Action needed: Use in supplement if 3D reference methodology is included.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Not a final 3D benchmark result.
+
+## F022: 3D Delaunay stress reference convergence
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: supplement
+- Source resources: R006, R012
+- Supported claims: C010
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/delaunay_stress_reference_convergence.png
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-oracle-stress-test/report/quadform_3d_delaunay_oracle_stress_test_report.html
+- Build command: 
+- Readiness note: Supports Delaunay reference stress-test discussion.
+- Action needed: Keep supplement unless 3D oracle work becomes central.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Boundary/high-anisotropy interpretation requires care.
+
+## F023: Density-aware oracle sensitivity
+- Kind: figure
+- Status: background_only
+- Manuscript section: Discussion
+- Main/supplement: background
+- Source resources: R025
+- Supported claims: C018
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/figures/density_oracle_sensitivity.png
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/density_aware_geodesic_distance_definition_memo.md
+- Build command: 
+- Readiness note: Background for density-aware targets, not current main target.
+- Action needed: Do not use unless the manuscript adds a density-aware or real-data case study.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Different target than current surface-geodesic benchmark lane.
+
+## F024: Repulsive unfolding spread-edge tradeoff
+- Kind: figure
+- Status: background_only
+- Manuscript section: Discussion
+- Main/supplement: background
+- Source resources: R033
+- Supported claims: C014
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/figures/spread_edge_tradeoff.png
+- Source path: /Users/pgajer/current_projects/geodesicMDS/experiments/edge-isometric-repulsive-unfolding-initial-suite/results/full/report/edge_isometric_repulsive_unfolding_initial_suite_report.tex
+- Build command: 
+- Readiness note: Useful background for why repulsive unfolding is not the current headline method.
+- Action needed: Use only in discussion/future work.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Exploratory method lane.
+
+## F025: Kernel Gram-gKK median surface stress
+- Kind: figure
+- Status: deprecated
+- Manuscript section: Discussion
+- Main/supplement: background
+- Source resources: R031
+- Supported claims: C014
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/figures/median_surface_stress_by_method.png
+- Source path: /Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/direct-gram-dense/kernel_gram_report/kernel_gram_gkk_comparison_report.tex
+- Build command: 
+- Readiness note: Negative/secondary evidence against making Gram-gKK central.
+- Action needed: Archive unless requested for method-ablation supplement.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Resource is classified archive/deprecated.
+
+## F026: Data graph construction failure modes
+- Kind: figure
+- Status: supplement_only
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: supplement
+- Source resources: R007
+- Supported claims: C003
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/figures/failure_mode_examples.pdf
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Useful supplement visual for graph construction pathologies.
+- Action needed: Use only if failure modes are discussed explicitly.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - May broaden manuscript scope.
+
+## T001: 2D surface family medians
+- Kind: table
+- Status: needs_distillation
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R006, R009
+- Supported claims: C006, C007, C009
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_family_medians.tex
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark
+- Build command: 
+- Readiness note: Most direct table candidate for headline graph-family ordering.
+- Action needed: Distill into a compact main-text table or merge into the main benchmark figure.
+- Owner role: Experiment Engineer / Report Agent
+- Missing flags: none
+- Caveats:
+  - Needs exact metric definitions in caption.
+
+## T002: 2D surface best settings by size
+- Kind: table
+- Status: needs_distillation
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R006, R009
+- Supported claims: C006, C009
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/surface_best_by_size.tex
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-surface-unpruned-benchmark
+- Build command: 
+- Readiness note: Useful for parameter-region reporting.
+- Action needed: Shorten to selected families and final benchmark metrics.
+- Owner role: Experiment Engineer / Report Agent
+- Missing flags: none
+- Caveats:
+  - May be too dense for main text.
+
+## T003: Pruning method summary
+- Kind: table
+- Status: supplement_only
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: supplement
+- Source resources: R006, R011, R027
+- Supported claims: C008
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/pruning_method_summary.tex
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/reports/global_ratio_pruning_benchmark/index.html
+- Build command: 
+- Readiness note: Supplement table for pruning as sparsification.
+- Action needed: Use if pruning is mentioned; avoid main-text overload.
+- Owner role: Report Agent
+- Missing flags: none
+- Caveats:
+  - Uses a benchmark family outside the main quadform surface-target lane.
+
+## T004: Graph diagnostic benchmark summary table
+- Kind: table
+- Status: supplement_only
+- Manuscript section: Diagnostics
+- Main/supplement: supplement
+- Source resources: R008
+- Supported claims: C006, C009
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/experiments/quadform-benchmarks/geodesic-isometry-diagnostics-report/build/benchmark_summary_table.tex
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/geodesic-isometry-diagnostics-report/geodesic_isometry_diagnostics.tex
+- Build command: 
+- Readiness note: Supports diagnostic report summary.
+- Action needed: Use only if the diagnostics section needs a compact supplement table.
+- Owner role: Methods/Theory Agent
+- Missing flags: none
+- Caveats:
+  - Table is tied to the diagnostics report rather than final benchmark package.
+
+## T005: 3D Delaunay reference summary
+- Kind: table
+- Status: supplement_only
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: supplement
+- Source resources: R006, R028
+- Supported claims: C010
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/delaunay_reference_summary.tex
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-delaunay-reference/report/quadform_3d_delaunay_reference_report.html
+- Build command: 
+- Readiness note: Reference-oracle readiness summary.
+- Action needed: Use in supplement if 3D reference construction is described.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Not a main result unless 3D benchmark scope expands.
+
+## T006: 3D factor-4 sentinel summary
+- Kind: table
+- Status: supplement_only
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: supplement
+- Source resources: R006, R013
+- Supported claims: C010
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/factor4_sentinel_summary.tex
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/experiments/geodesic-distance-estimation/notes/quadform_3d_delaunay_oracle_factor4_recommendation.md
+- Build command: 
+- Readiness note: Supports the provisional factor-4 reference edge-filter recommendation.
+- Action needed: Use as provenance rather than main prose.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Reference-oracle engineering detail.
+
+## T007: 3D smoke benchmark family medians
+- Kind: table
+- Status: supplement_only
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: supplement
+- Source resources: R006, R029
+- Supported claims: C010
+- Rendered path: /Users/pgajer/current_projects/geodesic_data_geometry/notes/geodesic_data_geometry_progress_report/tables/smoke3d_family_medians.tex
+- Source path: /Users/pgajer/current_projects/gflow/dev/data-geodesic-reconstruction/quadform-3d-smoke-benchmark/report/quadform_3d_smoke_benchmark_report.html
+- Build command: 
+- Readiness note: Small 3D smoke benchmark summary.
+- Action needed: Keep supplement/background unless a full 3D benchmark is approved.
+- Owner role: Experiment Engineer
+- Missing flags: none
+- Caveats:
+  - Smoke run only.
+
+## T008: GMDS full Phase 1/2 harness median performance
+- Kind: table
+- Status: needs_distillation
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R002, R030
+- Supported claims: C011, C013
+- Rendered path: /Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness/reports/curated/full-phase12/gmds_edge_isometry_harness_report.html
+- Source path: /Users/pgajer/current_projects/geodesicMDS/experiments/gmds-edge-isometry-harness
+- Build command: 
+- Readiness note: Central table candidate for edge-gKK versus metric MDS and all-pairs geodesic-KK.
+- Action needed: Extract a compact manuscript table or convert to figure from metrics.csv.
+- Owner role: Experiment Engineer / Report Agent
+- Missing flags: none
+- Caveats:
+  - Rendered path is an HTML report; the specific table is embedded in the report.
+
+## T009: Implementation layer inventory
+- Kind: table
+- Status: usable_with_edits
+- Manuscript section: Reproducibility / Software
+- Main/supplement: supplement
+- Source resources: R001, R002, R019
+- Supported claims: C019
+- Rendered path: 
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/geodesic_mds.tex
+- Build command: 
+- Readiness note: Existing manuscript/source table can seed a cross-package software table.
+- Action needed: Update against current gflow/grip/geodesicMDS/geodesic_data_geometry/gmdsui ownership.
+- Owner role: Provenance-Librarian / Report Agent
+- Missing flags: no rendered path
+- Caveats:
+  - No separate rendered table file exists.
+
+## T010: Graph construction taxonomy table
+- Kind: table
+- Status: usable_with_edits
+- Manuscript section: Data Geodesic Geometry Reconstruction
+- Main/supplement: main
+- Source resources: R007, R023
+- Supported claims: C003
+- Rendered path: 
+- Source path: /Users/pgajer/current_projects/geodesic_data_geometry/manuscript/data-graph-constructions/data_graph_constructions.tex
+- Build command: 
+- Readiness note: Source report has taxonomy-style tabular content suitable for a concise methods table.
+- Action needed: Extract and update to final graph-family set.
+- Owner role: Report Agent
+- Missing flags: no rendered path
+- Caveats:
+  - No separate rendered table file exists.
+
+## I001: MISF-GMDS multiscale embeddings dashboard
+- Kind: interactive
+- Status: supplement_only
+- Manuscript section: Geodesic MDS
+- Main/supplement: supplement
+- Source resources: R038
+- Supported claims: C011
+- Rendered path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive/misf_gmds_multiscale_embeddings_2026-04-02.html
+- Source path: /Users/pgajer/current_projects/grip/papers/gmds_manuscript/interactive
+- Build command: 
+- Readiness note: Useful interactive supplement candidate for multiscale behavior.
+- Action needed: Decide whether interactive assets belong in supplement or remain internal.
+- Owner role: Report Agent / Provenance-Librarian
+- Missing flags: none
+- Caveats:
+  - Generation manifest needs stronger provenance before formal supplement use.
+
+## P001: Data-to-graph-to-GMDS pipeline schematic
+- Kind: planned
+- Status: needed
+- Manuscript section: Introduction
+- Main/supplement: main
+- Source resources: R016, R017, R021, R022
+- Supported claims: C001, C002, C003, C004
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: No integrated SIMODS pipeline schematic exists yet.
+- Action needed: Draw a clean manuscript-ready schematic: data -&gt; weighted graph -&gt; graph geodesic metric -&gt; GMDS embedding.
+- Owner role: Report Agent / Figure Curator
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - This should probably be Figure 1.
+
+## P002: Edge-isometry proposition schematic
+- Kind: planned
+- Status: needed
+- Manuscript section: Geodesic MDS
+- Main/supplement: main
+- Source resources: R003, R004, R030
+- Supported claims: C005, C012
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: No single clean figure yet shows why preserving edges preserves graph path lengths.
+- Action needed: Create a compact proposition figure or proof schematic.
+- Owner role: Methods/Theory Agent / Figure Curator
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - May be better as a text proposition if figure budget is tight.
+
+## P003: Final oracle benchmark summary figure
+- Kind: planned
+- Status: needed
+- Manuscript section: Oracle Benchmarks
+- Main/supplement: main
+- Source resources: R006, R009, R010, R022
+- Supported claims: C006, C007, C009
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: Existing plots are useful but not yet a final main-text result figure.
+- Action needed: Distill surface examples, family performance, and parameter sensitivity into one or two final figures.
+- Owner role: Experiment Engineer / Figure Curator
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - Depends on final main-text versus supplement allocation.
+
+## P004: Non-oracle graph-selection schematic and result table
+- Kind: planned
+- Status: needed
+- Manuscript section: Non-Oracle Graph Parameter Selection
+- Main/supplement: main
+- Source resources: R016, R022, R039
+- Supported claims: C015, C016, C017
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: The method-family inventory now exists, but no result figure/table exists for the largest missing bridge from oracle benchmarks to real data.
+- Action needed: Use R039 to design a method-family table now; after approved experiments, create the selector-vs-oracle recovery table.
+- Owner role: Experiment Engineer / Methods-Theory Agent
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - Requires approved follow-up work; do not invent results.
+
+## P005: Real-data case study figure
+- Kind: planned
+- Status: needed
+- Manuscript section: Experiments
+- Main/supplement: main
+- Source resources: R016, R017, R022
+- Supported claims: C018
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: No real-data case-study figure exists because the dataset is not selected.
+- Action needed: Select dataset, define preprocessing and graph selection, then produce a compact data-to-layout case figure.
+- Owner role: Orchestrator / Experiment Engineer
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - Blocked on real-data case study choice.
+
+## P006: Cross-package software ownership map
+- Kind: planned
+- Status: needed
+- Manuscript section: Reproducibility / Software
+- Main/supplement: supplement
+- Source resources: R019, R020, R037
+- Supported claims: C019
+- Rendered path: 
+- Source path: 
+- Build command: 
+- Readiness note: Existing inventories are useful but no final cross-package ownership graphic exists.
+- Action needed: Create a concise software ownership table or diagram.
+- Owner role: Provenance-Librarian / Report Agent
+- Missing flags: no rendered path, no source path
+- Caveats:
+  - Should be checked against current package APIs before release.
+</textarea>
+    </section>
+  </main>
+  <footer>
+    Generated from <code>/Users/pgajer/current_projects/grip/papers/data_to_geodesic_embedding_paper/evidence/figures_tables.yml</code>. Edit the YAML registry, not the generated HTML.
+  </footer>
+  <script>
+    const cards = Array.from(document.querySelectorAll('.asset-card'));
+    const filters = {
+      kind: document.getElementById('filter-kind'),
+      status: document.getElementById('filter-status'),
+      section: document.getElementById('filter-section'),
+      placement: document.getElementById('filter-placement'),
+      owner: document.getElementById('filter-owner'),
+      resource: document.getElementById('filter-resource'),
+      claim: document.getElementById('filter-claim'),
+      search: document.getElementById('filter-search')
+    };
+
+    function exactOrEmpty(card, field, value) {
+      if (!value) return true;
+      return (card.dataset[field] || '') === value;
+    }
+
+    function listContains(card, field, value) {
+      if (!value) return true;
+      return (card.dataset[field] || '').split(',').map(x => x.trim()).includes(value);
+    }
+
+    function applyFilters() {
+      const text = filters.search.value.trim().toLowerCase();
+      cards.forEach((card) => {
+        const ok =
+          exactOrEmpty(card, 'kind', filters.kind.value) &&
+          exactOrEmpty(card, 'status', filters.status.value) &&
+          exactOrEmpty(card, 'section', filters.section.value) &&
+          exactOrEmpty(card, 'placement', filters.placement.value) &&
+          exactOrEmpty(card, 'owner', filters.owner.value) &&
+          listContains(card, 'resources', filters.resource.value) &&
+          listContains(card, 'claims', filters.claim.value) &&
+          (!text || (card.dataset.search || '').toLowerCase().includes(text) || card.textContent.toLowerCase().includes(text));
+        card.style.display = ok ? '' : 'none';
+      });
+    }
+
+    Object.values(filters).forEach((el) => {
+      el.addEventListener('input', applyFilters);
+      el.addEventListener('change', applyFilters);
+    });
+
+    document.getElementById('copy-export').addEventListener('click', async () => {
+      const text = document.getElementById('export-text').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        document.getElementById('copy-export').textContent = 'Copied';
+        setTimeout(() => document.getElementById('copy-export').textContent = 'Copy export', 1200);
+      } catch (error) {
+        document.getElementById('export-text').focus();
+        document.getElementById('export-text').select();
+      }
+    });
+  </script>
+</body>
+</html>

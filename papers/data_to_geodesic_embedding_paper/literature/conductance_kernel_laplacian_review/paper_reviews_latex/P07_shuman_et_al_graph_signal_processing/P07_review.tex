@@ -1,0 +1,435 @@
+\documentclass[11pt]{article}
+\input{../review_style.tex}
+
+\title{Paper Review: Shuman et al., \emph{The Emerging Field of Signal Processing on Graphs}}
+\author{Writer-P07 polished review}
+\date{May 15, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Shuman, Narang, Frossard, Ortega, and Vandergheynst give a tutorial account of
+graph signal processing, the vocabulary that treats data on vertices as
+signals and weighted graphs as the domains on which frequency, smoothness, and
+filtering are defined \citep{shuman2013emerging}.  The paper's central move is
+to replace classical Fourier modes by graph Laplacian eigenvectors, and
+classical frequencies by graph Laplacian eigenvalues.  Once that basis is
+fixed, smoothing becomes a graph spectral low-pass operation: high-eigenvalue
+components are attenuated by a chosen response such as
+$\hat h(\lambda)=1/(1+\gamma\lambda)$ or $\hat h(\lambda)=\exp(-\tau\lambda)$.
+For SIMODS and \code{gflow}, P07 is therefore best used as a source for
+graph-spectral smoothing semantics.  It explains why edge weights,
+normalization, and filter response all change what counts as smooth, but it
+does not prescribe graph construction rules, adaptive bandwidths, or the
+current \code{gflow} overlap-density conductance.
+\end{abstract}
+
+\section{Why This Paper Matters}
+
+The paper is not a new graph construction method.  It is a translation manual
+between classical signal processing and irregular weighted graphs.  A
+time-series sample and a graph signal with the same number of entries are both
+vectors in $\mathbb{R}^N$, but the graph signal carries extra structure: its
+entries live on vertices connected by weighted edges.  Processing that vector
+without using the graph discards the very dependencies that made a graph
+representation useful.
+
+The review value for conductance/kernel Laplacians is concentrated in one
+idea.  After a graph is chosen, the pair $(W,L)$ defines a spectral geometry.
+Low graph frequencies are modes that vary slowly across high-weight edges;
+high graph frequencies are modes that oscillate across those edges.  A
+smoother is then not just ``a graph'' or ``a kernel.''  It is a graph, a
+Laplacian or related operator, and a spectral response $\hat h(\lambda)$ that
+says how much each frequency is passed or suppressed.
+
+That viewpoint is directly useful for SIMODS.  It supports reporting the
+operator actually used by a smoother, not merely the support graph.  A length
+conductance, a Gaussian affinity, a self-tuned kernel, and an
+overlap-density-derived conductance may all lead to Laplacians; they do not
+define the same frequency scale or the same low-pass prior.  P07 gives the
+language for saying this cleanly, while leaving graph selection to other
+papers and to the SIMODS criterion itself.
+
+\paperfigure
+  {../../figures/P07_graph_filter_pipeline.png}
+  {Original explanatory schematic of the graph-filtering pipeline used in this
+  review.  Edge weights define $L=D-W$; the eigendecomposition of $L$ supplies
+  graph Fourier modes and frequencies; a response $\hat h(\lambda)$ then
+  attenuates selected graph Fourier coefficients.}
+  {Writer-P07, derived from Shuman et al. (2013), Sections II--III.}
+  {The figure is original internal scaffolding, not a reproduced figure from
+  the paper.  Its main purpose is to keep separate the graph, the basis, and
+  the filter response.}
+
+\section{Problem Setting and Reader Orientation}
+
+The paper works with a finite, connected, undirected, weighted graph
+$G=\{V,E,W\}$ with $N$ vertices.  A graph signal is a function
+$f:V\to\mathbb{R}$, stored as a vector $f\in\mathbb{R}^N$ whose $i$th entry is
+the value at vertex $i$.  Edge weights are application-dependent.  They may
+come from physics, physical proximity, feature-space similarity, or an
+inferred graph.  The authors give the thresholded Gaussian affinity
+\[
+  W_{ij}
+  =
+  \begin{cases}
+    \exp\!\left(-\frac{\operatorname{dist}(i,j)^2}{2\theta^2}\right),
+      & \operatorname{dist}(i,j)\leq \kappa,\\
+    0, & \text{otherwise,}
+  \end{cases}
+\]
+as a common construction and also mention $k$-nearest-neighbor graphs.  This
+formula is background, not a proposed optimal rule.  In the paper it is an
+example of how weighted graphs arise when an application does not already
+provide one.
+
+The default operator is the non-normalized graph Laplacian
+\[
+  L = D-W,\qquad D_{ii}=\sum_j W_{ij}.
+\]
+It acts as a difference operator:
+\[
+  (Lf)(i) = \sum_{j\in N_i} W_{ij}\{f(i)-f(j)\}.
+\]
+Large weights therefore make differences across the corresponding edge more
+important.  In conductance language, $W_{ij}$ is conductance-like in the
+derived sense that it multiplies the edgewise squared difference.  The paper's
+own vocabulary is more general: edge weight, similarity, or affinity.
+
+The graph signal processing challenge is that basic classical operations have
+no obvious graph analogue.  There is no canonical shift by three vertices on
+an arbitrary graph, no natural every-other-sample downsampling rule, and no
+uniformly spaced frequency axis.  Shuman et al. address this by building a
+spectral calculus from the graph Laplacian.  The calculus is especially clear
+for symmetric Laplacians, where orthonormal eigenvectors provide an expansion
+basis.
+
+\section{Graph Fourier Basis and Frequency}
+
+Because $L$ is real and symmetric, it has orthonormal eigenvectors
+$u_0,\ldots,u_{N-1}$ with nonnegative eigenvalues
+\[
+  Lu_\ell = \lambda_\ell u_\ell,\qquad
+  0=\lambda_0 < \lambda_1 \leq \cdots \leq \lambda_{N-1}.
+\]
+For a connected graph, $u_0$ is constant.  The graph Fourier transform expands
+a signal in this eigenbasis:
+\[
+  \hat f(\lambda_\ell)
+  =
+  \langle f,u_\ell\rangle
+  =
+  \sum_{i=1}^{N} f(i)u_\ell^*(i),
+\]
+with inverse
+\[
+  f(i)=\sum_{\ell=0}^{N-1}\hat f(\lambda_\ell)u_\ell(i).
+\]
+This is the paper's central analogy.  Classical Fourier analysis expands a
+function in eigenfunctions of the one-dimensional Laplacian; graph Fourier
+analysis expands a vertex signal in eigenvectors of the graph Laplacian.
+
+The eigenvalues are called graph frequencies because of their variational
+meaning.  Low eigenvalues correspond to eigenvectors that change slowly across
+large-weight edges.  High eigenvalues correspond to more oscillatory
+eigenvectors, often with more sign changes across edges.  The statement is
+not only visual; it follows from the Laplacian quadratic form and the Rayleigh
+quotient characterization of eigenvectors.  The paper does note a small
+linear-algebra caveat: when eigenvalues have multiplicity, individual
+eigenvectors are not unique.  The spectral subspace and the resulting matrix
+function $\hat h(L)$ are the invariant objects.
+
+\paperfigure
+  {../../paper_figures/P07_F02_F03_F04_page04.png}
+  {Figures 2--4 show the paper's frequency semantics.  Smooth low-index
+  eigenvectors, zero-crossing counts, and a heat kernel represented in both
+  vertex and graph spectral domains together make the rule visible:
+  increasing $\lambda_\ell$ means increasing graph oscillation.}
+  {Shuman et al. (2013), Figs. 2--4, PDF p. 4.}
+  {Internal-review screenshot.  This page is the cleanest reproduced visual
+  evidence for the graph Fourier basis and graph-frequency interpretation.}
+
+\section{Smoothness as a Graph-Dependent Quantity}
+
+The paper's smoothness definition is built from weighted edge differences.  An
+edge derivative contains $\sqrt{W_{ij}}\{f(j)-f(i)\}$, and the global
+$p$-Dirichlet form aggregates those local differences.  For $p=2$ the result
+is the graph Laplacian quadratic form:
+\[
+  S_2(f)
+  =
+  \sum_{(i,j)\in E} W_{ij}\{f(j)-f(i)\}^2
+  =
+  f^\top L f.
+\]
+With this convention, a signal is smooth if it is nearly constant across
+strong edges.  A jump across a weak edge costs little; the same jump across a
+strong edge costs more.
+
+Example 1 is the most important small example for SIMODS.  The authors plot
+the same vertex signal on three graphs with the same vertices but different
+edge sets.  Its graph Fourier content and quadratic-form value change from
+one graph to another.  The lesson is blunt and useful: smoothness is not a
+property of the signal alone.  It is a property of the signal together with
+the graph and the operator.
+
+This is where P07 can help a SIMODS reader most.  A graph-selection score that
+asks whether features are smooth is meaningful only after specifying the graph
+family, weight rule, Laplacian normalization, and filter response.  Changing
+the graph, weights, or Laplacian normalization changes the spectral basis and
+frequency scale; changing the filter response changes the effective passband
+and attenuation prior.  P07 motivates this reporting discipline; it does not
+supply the selection criterion.
+
+\section{Spectral Filters and Low-Pass Smoothing}
+
+Once the graph Fourier transform is fixed, graph spectral filtering is
+straightforward.  A filter multiplies each graph Fourier coefficient by a
+transfer function:
+\[
+  \hat f_{\mathrm{out}}(\lambda_\ell)
+  =
+  \hat f_{\mathrm{in}}(\lambda_\ell)\hat h(\lambda_\ell).
+\]
+Equivalently,
+\[
+  f_{\mathrm{out}}
+  =
+  \hat h(L)f_{\mathrm{in}}
+  =
+  U\operatorname{diag}\{\hat h(\lambda_0),\ldots,
+    \hat h(\lambda_{N-1})\}U^\top f_{\mathrm{in}}.
+\]
+This matrix-function notation is the main reusable operator statement.  The
+same graph can produce different smoothers depending on $\hat h$.  A heat
+kernel, a Tikhonov response, a polynomial approximation, and an idealized
+low-pass cutoff are different operators even when they share $L$.
+
+The paper's Tikhonov example makes the connection to denoising explicit.  If
+$y=f_0+\eta$ and the desired clean signal is assumed smooth on the graph, the
+regularized problem
+\[
+  \argmin_f \|f-y\|_2^2 + \gamma f^\top L f
+\]
+has solution
+\[
+  f^\ast(i)
+  =
+  \sum_{\ell=0}^{N-1}
+  \frac{1}{1+\gamma\lambda_\ell}
+  \hat y(\lambda_\ell)u_\ell(i).
+\]
+The multiplier $\hat h(\lambda)=1/(1+\gamma\lambda)$ is a low-pass filter:
+it preserves the constant and slowly varying components and shrinks the
+high-frequency components.
+
+The image-denoising illustration is helpful but should not be over-read.  The
+authors connect nearby pixels and set Gaussian weights using noisy
+pixel-value differences, with reported parameters $\theta=0.1$, $\kappa=0$,
+and $\gamma=10$.  In context this is an example of edge-aware graph filtering,
+not an implementation recipe for a thresholded Gaussian kernel in SIMODS.  The
+takeaway is that graph weights can suppress smoothing across image edges by
+making those edges weak in $W$.
+
+The paper also gives a locality result.  If $\hat h(\lambda)$ is a polynomial
+of degree $K$, then $\hat h(L)$ depends only on vertices within $K$ graph hops.
+This bridges spectral and vertex-domain views: polynomial filters are
+spectral filters that can be applied locally.  Heat and Tikhonov filters are
+not finite-degree polynomials, but in practice they can be approximated by
+polynomial or Krylov methods when full eigendecomposition is too expensive.
+
+\section{Heat Kernels and Scale}
+
+Heat diffusion is the clearest low-pass semantics for the current SIMODS
+conversation because it uses the response
+\[
+  \hat h_\tau(\lambda)=\exp(-\tau\lambda).
+\]
+In the paper's notation, $R=\exp(-L)$ is a heat diffusion operator and
+$R^\tau f=\exp(-\tau L)f$ is the signal after diffusion time $\tau$.  Small
+$\tau$ gives a short-range smoother, dominated by local graph structure.
+Larger $\tau$ lets information spread farther and increasingly reflects the
+global graph.
+
+This is not merely metaphorical.  Diagonalizing $L$ shows exactly what heat
+diffusion does:
+\[
+  \exp(-\tau L)f
+  =
+  \sum_{\ell=0}^{N-1}
+  e^{-\tau\lambda_\ell}\hat f(\lambda_\ell)u_\ell.
+\]
+The zero-frequency component is unchanged, and high frequencies are damped
+more strongly as either $\lambda_\ell$ or $\tau$ increases.  Thus the heat
+parameter is a scale parameter in the graph spectral domain.
+
+\paperfigure
+  {../../paper_figures/P07_E03_page09.png}
+  {Example 3 visualizes heat diffusion on a cerebral cortex graph.  A delta
+  signal at one vertex becomes progressively smoother and less local under
+  $\exp(-L)$, $\exp(-3L)$, $\exp(-7L)$, and $\exp(-15L)$; the corresponding
+  kernels show the increasing spectral attenuation.}
+  {Shuman et al. (2013), Example 3, PDF p. 9.}
+  {Internal-review screenshot.  For SIMODS this is the most direct visual
+  analogue of graph heat smoothing with an explicit $\exp(-\tau\lambda)$
+  response.}
+
+\section{Other Operators and Multiscale Transforms}
+
+The paper also extends convolution, translation, modulation, dilation,
+coarsening, downsampling, and wavelet transforms to graphs.  These sections
+are less central for SIMODS than the filter calculus, but they reinforce the
+same lesson: classical operations become graph-dependent once the domain is
+irregular.
+
+Graph convolution is defined so that convolution in the vertex domain
+corresponds to multiplication in the graph spectral domain:
+\[
+  (f*h)(i)=\sum_{\ell=0}^{N-1}
+  \hat f(\lambda_\ell)\hat h(\lambda_\ell)u_\ell(i).
+\]
+Graph translation is more delicate.  The authors define a translated spectral
+kernel centered at vertex $n$ by multiplying spectral components by
+$u_\ell^*(n)$ and applying the inverse graph Fourier transform.  Unlike a
+classical shift, this translation is not generally isometric and depends on
+the graph's eigenvectors.
+
+The wavelet discussion matters mainly as a caution about localization.  Vertex
+domain wavelets can be compactly localized by graph distance but may be less
+controlled spectrally.  Spectral graph wavelets are designed through graph
+frequency responses and translated to vertices.  Figure 6 and Figure 7 show a
+spatial/spectral tradeoff and high-pass localization near a discontinuity, but
+the paper is careful that general uncertainty principles and approximation
+theory on arbitrary graphs remain open.
+
+\section{Normalization and Operator Choice}
+
+Although most displayed formulas use the non-normalized Laplacian, the paper
+does not claim that it is always the right basis.  Section II-F introduces
+the symmetric normalized Laplacian
+\[
+  \widetilde L = D^{-1/2}LD^{-1/2},
+\]
+the random-walk matrix $P=D^{-1}W$, and the asymmetric random-walk Laplacian
+$L_a=I-P$.  The authors explicitly say that there is no clear answer for when
+to use the non-normalized Laplacian eigenvectors, normalized Laplacian
+eigenvectors, or another basis as the graph spectral filtering basis.
+
+This caveat is important for later synthesis.  P07's cleanest frequency
+story uses $L=D-W$, whose connected-graph DC eigenvector is constant.  Degree
+normalization changes the basis and the meaning of low frequency, especially
+on graphs with heterogeneous degrees or nonuniform sampling density.  A
+SIMODS report should therefore name the operator: non-normalized Laplacian,
+symmetric normalized Laplacian, random-walk diffusion, or the current
+mass-symmetrized \code{gflow} operator.
+
+\section{Limitations and Transfer Risks}
+
+The first transfer risk is over-citing P07 for graph construction.  The paper
+states that graph construction is extremely important and relatively little
+is known about how construction affects localized multiscale transforms.  That
+is an open-issue statement, not a theorem or design rule.  It supports the
+claim that construction choices matter; it does not validate a particular
+kernel bandwidth, $k$NN rule, inverse-length conductance, or adaptive local
+scale.
+
+The second risk is collapsing all graph smoothers into one phrase.  The paper
+places Tikhonov smoothing and heat diffusion side by side, but they have
+different responses:
+\[
+  \hat h_{\mathrm{Tik}}(\lambda)=\frac{1}{1+\gamma\lambda},
+  \qquad
+  \hat h_{\mathrm{heat}}(\lambda)=\exp(-\tau\lambda).
+\]
+Both are low-pass filters.  They are not identical.  Any SIMODS comparator
+derived from P07 should name the response curve alongside the graph and
+weight rule.
+
+The third risk is importing P07's $W$ into \code{gflow} too literally.  In
+Shuman et al., $W_{ij}$ is the edge weight used to build the Laplacian.  In
+current \code{gflow} notes, precomputed \code{weight.list} values are positive
+edge lengths used upstream for neighborhood ordering or truncation, while the
+mass-symmetrized spectral path uses overlap-density/Riemannian-complex edge
+masses to form the smoothing conductance.  P07 motivates reporting this
+distinction; it does not identify \code{weight.list} lengths with graph
+signal processing affinities.
+
+The fourth risk is computational.  Most spectral definitions require
+eigenvectors, and full eigendecomposition is not scalable for very large
+graphs.  The paper discusses polynomial approximations and Krylov methods as
+partial remedies, but it leaves fast graph Fourier transforms and broader
+numerical theory as open problems.
+
+\section{Implications for SIMODS and \code{gflow}}
+
+For SIMODS, P07 supplies a compact semantics for graph-signal smoothness:
+\[
+  \text{graph} + \text{weights} + \text{operator} + \hat h(\lambda)
+  \quad\Longrightarrow\quad
+  \text{smoother}.
+\]
+This is a useful template for separating current behavior from planned
+comparators.  The current \code{gflow} overlap-density smoother should be
+described in its own terms.  A length-conductance comparator can define a new
+$W$ from edge lengths, then pair it with a stated response such as heat or
+Tikhonov.  A kernel-conductance comparator can define $W_{ij}$ by a Gaussian
+or adaptive Gaussian rule, then again name the response.  P07 justifies why
+these choices change smoothing; it does not rank them.
+
+The paper also gives the right language for non-oracle graph selection.  If a
+candidate graph makes biologically or geometrically meaningful feature
+signals low-frequency, then its induced $L$ and $\hat h(L)$ may reconstruct
+those signals well.  Example 1 explains why this is not circular: the same
+signal can be smooth on one graph and rough on another.  But the selection
+criterion still has to be specified outside P07, for example by
+cross-validation, GCV, held-out reconstruction, or another SIMODS score.
+
+For writeups, P07 is strongest as a bridge citation for these claims:
+\begin{itemize}
+  \item Graph Fourier modes are Laplacian eigenvectors, and graph
+  frequencies are Laplacian eigenvalues.
+  \item Low graph frequencies mean slow variation across high-weight edges.
+  \item The quadratic form $f^\top Lf$ measures graph-dependent smoothness.
+  \item Spectral filters act as matrix functions $\hat h(L)$.
+  \item Tikhonov and heat filters are specific low-pass responses, not generic
+  synonyms for graph smoothing.
+  \item Graph construction and Laplacian normalization are important but
+  unresolved choices in the paper.
+\end{itemize}
+
+\section{What To Reuse}
+
+The reusable content is the operator vocabulary, not a construction recipe.
+Use P07 when explaining graph Fourier bases, graph frequencies, graph
+smoothness, graph spectral filters, low-pass smoothing, heat kernels, and the
+dependence of all of these on $W$, $L$, and the response $\hat h(\lambda)$.
+It is also fair to cite the paper for the fact that graph construction is a
+major open issue in graph signal processing.
+
+Avoid using P07 as evidence that any particular graph support, bandwidth,
+conductance rule, or normalization is optimal for SIMODS.  In particular, do
+not cite it as a source for current \code{gflow} overlap-density conductance,
+for inverse-length conductance, for self-tuned kernels, or for manifold
+Laplacian convergence.  Other papers in the review set carry those burdens.
+P07 gives the language for comparing the resulting smoothers once those
+operators have been defined.
+
+\section*{Provenance}
+
+Primary source: local canonical P07 PDF,
+\path{sources/pdf/P07_shuman_et_al_emerging_field_gsp.pdf}, 14 pages, read in
+full including Figures 1--7 and Examples 1--3.  Archival scaffolding: local
+Reviewer-P07 Markdown memo and Auditor-P07 audit memo dated May 15, 2026.
+Figure screenshots are internal-review captures listed in
+\path{paper_figure_screenshots.yml}; included reproduced images use
+\path{../../paper_figures/...}.  The pipeline schematic at
+\path{../../figures/P07_graph_filter_pipeline.png} is an original explanatory
+figure derived from the paper's equations and examples.  SIMODS and
+\code{gflow} implications above are synthesis from the paper plus local
+project notes, not explicit claims by Shuman et al.
+
+\bibliographystyle{plainnat}
+\bibliography{../../references}
+
+\end{document}

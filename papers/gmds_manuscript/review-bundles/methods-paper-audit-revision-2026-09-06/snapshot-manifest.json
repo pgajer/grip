@@ -1,0 +1,9 @@
+{
+  "origin": "/Users/pgajer/current_projects/geodesicMDS/gmds_manuscript/build/methods-paper-audit-revision-2026-09-06",
+  "status": "historical_author_review_snapshot_do_not_edit",
+  "files_sha256": {
+    "evidence-reproduction.zip": "bb1b870931ed07fed007f59caae66bd05db859695e3a7fab8adae75271987e06",
+    "geodesic_mds.pdf": "836d09e59a442d1fa9b0f94572e12bf4a89cc2a29c8988ed60d343bd49f72e35",
+    "typesetting-source.zip": "1f09d402929ec72f3a7614f0de79529c9d38f708b6efddf4e4402006857eb679"
+  }
+}
