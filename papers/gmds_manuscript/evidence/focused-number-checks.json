@@ -1,0 +1,16 @@
+{
+  "stress_primary": {
+    "improved": 1016,
+    "worsened": 76,
+    "ties": 84
+  },
+  "stress_fixed_primary": {
+    "improved": 1075,
+    "worsened": 17,
+    "ties": 84
+  },
+  "initializers": {
+    "Classical MDS": 25,
+    "Stress MDS": 25
+  }
+}

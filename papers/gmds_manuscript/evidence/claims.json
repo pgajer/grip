@@ -1,0 +1,146 @@
+{
+  "scope": "Focused analysis of graph-geodesic embedding fidelity; no new optimizer or universal manifold-recovery claim.",
+  "claims": [
+    {
+      "id": "C01",
+      "claim": "Endpoint chords and lengths of retained input paths are distinct; the latter need not equal shortest distances after embedding.",
+      "type": "definition",
+      "placement": "main",
+      "evidence": "new derivation from stated definitions",
+      "assumptions": "Elementary definitions and triangle inequality.",
+      "limitation": "Do not describe chord MDS as incorrect simply for approximating a different quantity.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C02",
+      "claim": "A common maximum relative edge error bounds relative error on every retained path; average edge stress does not imply geometric recovery.",
+      "type": "proposition",
+      "placement": "main",
+      "evidence": "new derivation from stated definitions",
+      "assumptions": "Positive edge targets; same graph and common calibration.",
+      "limitation": "No topology, injectivity, angle, or coordinate-recovery guarantee.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C03",
+      "claim": "The profiled unnormalized edge objective is homogeneous of degree two; every positive-loss configuration has a contraction descent direction, excluding positive-loss local minima when contraction is admissible.",
+      "type": "proposition",
+      "placement": "main",
+      "evidence": "new derivation from stated definitions",
+      "assumptions": "Positive weighted target norm; fixed weights; profiled target scale.",
+      "limitation": "Fixed stiffnesses and B>0. No assertion that every finite run collapses; normalized diagnostics and fixed-target nonconvexity remain separate.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C04",
+      "claim": "Paraboloid distances divided by r squared converge uniformly to a height-line metric.",
+      "type": "theorem",
+      "placement": "main",
+      "evidence": "surface-theory/report.tex",
+      "assumptions": "Fixed unit-disk endpoints or explicitly converging coupled samples.",
+      "limitation": "Unscaled antipodal distances need not tend to zero.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C05",
+      "claim": "Global raw-stress minimizers and classical MDS inherit the normalized paraboloid line limit.",
+      "type": "theorem",
+      "placement": "main",
+      "evidence": "surface-theory/report.tex",
+      "assumptions": "Fixed finite sample, at least two distinct limiting heights, fixed positive embedding dimension; stated excess-stress tolerance for approximate solutions.",
+      "limitation": "Does not certify the finite-budget fits as global optima.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C06",
+      "claim": "Saddle distances divided by r squared converge uniformly to a four-branch tree metric.",
+      "type": "theorem",
+      "placement": "main",
+      "evidence": "surface-theory/report.tex",
+      "assumptions": "Branch identity determined by sign of height and corresponding coordinate.",
+      "limitation": "Does not imply constant-negative-curvature hyperbolic geometry.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C07",
+      "claim": "The saddle tree Gram matrix has three positive and one negative eigenvalues when centered branch-height features have rank four.",
+      "type": "theorem",
+      "placement": "main",
+      "evidence": "surface-theory/report.tex",
+      "assumptions": "JF has rank four; classical 3D scaling retains the positive eigenspace.",
+      "limitation": "No universal nonplanarity theorem for raw-stress global minimizers.",
+      "status": "internally_rederived_pending_independent_author_review"
+    },
+    {
+      "id": "C08",
+      "claim": "Both initializers improve fixed-path agreement after edge-KK in all 25 bounded-saddle graph settings.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "study-initializers/summary/scores.csv.gz",
+      "assumptions": "Five n=1000 samples; 25 paired ambient graph settings; historical profiled scale.",
+      "limitation": "Finite achieved fits; settings are not 25 independent samples; chord agreement worsens.",
+      "status": "recomputed_from_frozen_tables_pending_author_review"
+    },
+    {
+      "id": "C09",
+      "claim": "Graph regime, k and scale policy affect the radius-study outcomes and the distinction between path and coordinate agreement.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "study-radius/summary/scores.csv.gz",
+      "assumptions": "Two surfaces and measures; three n=240 replicates; 1216 graphs including nested n=480 cases.",
+      "limitation": "Do not pool studies or interpret selected examples as universal recovery laws.",
+      "status": "recomputed_from_frozen_tables_pending_author_review"
+    },
+    {
+      "id": "C10",
+      "claim": "Random starts can change achieved geometry despite local stability to tiny perturbations.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "study-radius/summary/optimizer-sensitivity.csv.gz",
+      "assumptions": "32 radius-study control settings with shared random/original controls.",
+      "limitation": "Duplicated control rows are not independent replicates. The approximately 0.0003 perturbation maximum applies to stress starts; classical starts reach approximately 0.01888.",
+      "status": "recomputed_from_frozen_tables_pending_author_review"
+    },
+    {
+      "id": "C11",
+      "claim": "Increasing n at fixed k did not uniformly improve geodesic path/reference agreement in the nested check.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "study-radius/summary/scores.csv.gz",
+      "assumptions": "One nested replication per surface and measure; distinguish fixed k from fixed k/n.",
+      "limitation": "Not a population scaling law.",
+      "status": "recomputed_from_frozen_tables_pending_author_review"
+    },
+    {
+      "id": "C12",
+      "claim": "Height-dominated global coordinate error conceals horizontal distortion on both surfaces.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "coordinate-components/component-errors.csv",
+      "assumptions": "One global similarity alignment per fit; component residuals normalized by their own centered truth norms.",
+      "limitation": "Highlighted r64 k32 base-disk fits; component percentages can exceed 100; no component realignment.",
+      "status": "recomputed_from_frozen_coordinates_or_tables_pending_author_review"
+    },
+    {
+      "id": "C13",
+      "claim": "The three highlighted ambient saddle edge-length Jacobians have numerical rank 3n-6 at the original coordinates.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "coordinate-components/rigidity.csv",
+      "assumptions": "n240 r64 k32 union graphs, connected without MST repair; explicit SVD tolerance.",
+      "limitation": "Numerical local infinitesimal rigidity, not global rigidity or a conditioning bound; does not identify causes of achieved residuals.",
+      "status": "recomputed_from_frozen_coordinates_or_tables_pending_author_review"
+    },
+    {
+      "id": "C14",
+      "claim": "Density continuation does not consistently outperform equal-budget uniform stiffness.",
+      "type": "empirical",
+      "placement": "main",
+      "evidence": "continuation-comparison.csv",
+      "assumptions": "Paired primary n240 stress fits, same graph and scale policy, 1176 settings per policy.",
+      "limitation": "Correlated grid comparisons; achieved finite budgets; no universal ordering.",
+      "status": "recomputed_from_frozen_coordinates_or_tables_pending_author_review"
+    }
+  ],
+  "review_note": "The September 6 independent audit of the narrative revision found no errors in the six formal statements and reproduced the principal numerical comparisons. This revision addresses its qualifications and adds separately reproducible diagnostics. Final author approval remains pending."
+}

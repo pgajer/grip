@@ -1,0 +1,177 @@
+{
+  "scope": "All recorded routes in 24 selected configurations, no refitting; caches required to rerun this optional check.",
+  "coordinate_source_commit": "a43edfef1bbee70e825e790677abb35f12dfff53",
+  "sources": [
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep1-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "0f244c3b2645b7764a2b311ca21b3496e5f42edb52cbdb1321839b62b5452a9e"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep1-n240-r64/ambient-k32-result.rds",
+      "sha256": "14206df50ffc4cd7a34761e7980ce39258a14cdd801e0c8a43d957c6c2157433"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep1-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "7cefdbbd8b82a64e44eff452377739eb0d30444bc1561d0c13dcc0a94aa09e89"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep1-n240-r64/geodesic-k32-result.rds",
+      "sha256": "5772c4134933a902788223d3519eae2ef9dca756ca72da985a5968c90ca3795e"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep2-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "2955980b1efa61611a9f48590c6a4fc37ea70342ba5854b0b1f9dfa991d83093"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep2-n240-r64/ambient-k32-result.rds",
+      "sha256": "bbc267f93726055808a59200976424a29976e12c97331655f518b93d8ba91350"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep2-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "a3f9e6d9978c09c9f04b219e189415b2cabf015292ba354095f93b74a1afbfb2"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep2-n240-r64/geodesic-k32-result.rds",
+      "sha256": "1124f64d79a32654ed16fc2813a8bae5e82b599ef8f92a7505606f1998d422bb"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep3-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "893ef9a6f34ff80f1f0ebe5c38f1bab3716b68315d8468bca9d52502e711ebef"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep3-n240-r64/ambient-k32-result.rds",
+      "sha256": "f3ba4ef18ce54132454edea078e93637d190907706e7cf53143fab2810996398"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep3-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "134464b7cd790f6e72ac8950dead3b76d6a3f9fa20a2e0d620a59322cbc1252b"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/paraboloid-disk-rep3-n240-r64/geodesic-k32-result.rds",
+      "sha256": "b39e99464531b2ecfc4121b141a547d8ee9aca06daa781b8d4f3de7e1488c2e2"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep1-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "a767d67fa714e9abd78685f2a026df27a69438f1e96af9385448a7892066bd91"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep1-n240-r64/ambient-k32-result.rds",
+      "sha256": "130526602e0b82aa46637a6b2a0af524f095ddc20e7f49ddc0de37abf950150e"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep1-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "8faa348cc4142706c9ad8b1e8f26c9292ba0d41f0952849c2f4fa1fbfbf2ed87"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep1-n240-r64/geodesic-k32-result.rds",
+      "sha256": "dd620d4903fe49cd264da29c38ddbea8612dc29397f04c25d9514bf8ed240904"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep2-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "fe213c617cf739af9aa25e5444c80274fd0dc72251880a724ec4b76b768aeda5"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep2-n240-r64/ambient-k32-result.rds",
+      "sha256": "4f20bc8b84d7e43dcf836d98cd64fb8d5c6a40970e5ba5bb692aca36b7defb00"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep2-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "48c4ea2e1561eec6fa3c3e97415fea1c50123b873e8f9881c30bbf081528591a"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep2-n240-r64/geodesic-k32-result.rds",
+      "sha256": "bf2ecc93216d11aadffc7aa67a1619bbd3c9c10809da4b913f25ea900d40cc3e"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep3-n240-r64/ambient-k32-prepared.rds",
+      "sha256": "4c946540a5bb6b5904e09123be8c0e6bac25a5c69566fb260e9867e5edf1c991"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep3-n240-r64/ambient-k32-result.rds",
+      "sha256": "b1273ae0b16efe18e3a72059f5ed2806f37dcb8c7883eaf77cdacf0bdd17f430"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep3-n240-r64/geodesic-k32-prepared.rds",
+      "sha256": "2a4a44bd3b049f859ab83334dd9d2080f239c85d802fe79c6c28cd78bf3f2113"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/fits-v2/saddle-disk-rep3-n240-r64/geodesic-k32-result.rds",
+      "sha256": "e1025b8b036b6d013e197da0455c171d58c4a91d919907e96e4637371050247e"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep1-n240-r64-distance.csv",
+      "sha256": "e2c4f7661024347e35b86c96c761ac4c6eedb11c8774b472d26f04bb48176853"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep1-n240-r64-truth.csv",
+      "sha256": "f31b9615136bba10bfb67a19d15c96858d5b44c253036e01960bcd5759f4d333"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep2-n240-r64-distance.csv",
+      "sha256": "4b6a2963c6f0fd82003ece7921a91bbae73cf8e72000c426b60b9887d2be42b6"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep2-n240-r64-truth.csv",
+      "sha256": "91b1227793bc643fbc514b88e074791f799be1483092141959e1aa23901f0d35"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep3-n240-r64-distance.csv",
+      "sha256": "d6f99ddf0301adaea64d07f3cd63ca725a0481ebbf22c5991f0abd1759a1d241"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/paraboloid-disk-rep3-n240-r64-truth.csv",
+      "sha256": "6bc3f040d5d10a3019b757d0a3780613660195d5100266f3f445715fb96fa989"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep1-n240-r64-distance.csv",
+      "sha256": "26fde40061db600c8795984be31556c9bbdb9cd2087a634cd231c87d589db081"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep1-n240-r64-truth.csv",
+      "sha256": "e3f95c27ae55c9e2a2ba48e71e3c6ec844909ecdc66bc9dbed0835c488088e0b"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep2-n240-r64-distance.csv",
+      "sha256": "ba67b4daa2e6d44f538dc7b4180db64b82de5d663fe54f5a2a3400250cc6098d"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep2-n240-r64-truth.csv",
+      "sha256": "6c71d51bf26af715c4f3b1a4c60e71bdcf5ed6be30cc65bc1931f5d67b9a8a73"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep3-n240-r64-distance.csv",
+      "sha256": "1845674bca56b53e53b394a749b05a42565037d0a4fabd837ddf938e1dc91562"
+    },
+    {
+      "path": "output/mds-edge-kk-radius/inputs/saddle-disk-rep3-n240-r64-truth.csv",
+      "sha256": "04f3223e715e1f2fa8f6c9117db3fed41a969aceb4d2ac1f520d47a7b107e5b6"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep1-n240-r64.rds",
+      "sha256": "0e68740a947697beb85268e72679f60c286ac6500a2d6cb536df9bef198d94d1"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep2-n240-r64.rds",
+      "sha256": "94517122574924dcd1b7da887a6eec7078650cd65ea8dab2ed85767bf4c756c7"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep3-n240-r64.rds",
+      "sha256": "6c123494f174345091e691d0d34c1dd8cf7f0c890c48504818bc3f0aaf3a4ca1"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep1-n240-r64.rds",
+      "sha256": "52cfd8df055d84a7155a53cd700ea283e0aac381488cb5c174b1e8e654f6f8fd"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep2-n240-r64.rds",
+      "sha256": "2bba3bac69d37c8f8b8276df8ee76efa0afcf54d61822bffc56bf2efc8d528d0"
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep3-n240-r64.rds",
+      "sha256": "2c2e029e335e2c08a130e347749cf0e04271918a984c043066a79d33ba7617f3"
+    }
+  ],
+  "output_sha256": "1f5f3226ef79376e22c8e4bfa088a609fcdd94246980105632cddca001ff0253",
+  "configurations": 24,
+  "routes_per_configuration": 28680
+}

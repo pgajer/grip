@@ -1,0 +1,1299 @@
+\documentclass[11pt]{article}
+\usepackage[letterpaper,margin=0.9in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,amsthm,mathtools}
+\usepackage{graphicx,booktabs,tabularx,array,caption,xcolor,enumitem,float}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,urlcolor=blue!45!black,
+ pdftitle={Multidimensional scaling of expanding paraboloids and saddles}}
+\usepackage{bookmark}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=2pt,topsep=4pt}
+\emergencystretch=1.5em
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{theorem}[proposition]{Theorem}
+\newtheorem{corollary}[proposition]{Corollary}
+\theoremstyle{remark}\newtheorem{remark}[proposition]{Remark}
+\newcommand{\R}{\mathbb R}
+\newcommand{\one}{\mathbf 1}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\asinh}{\operatorname{asinh}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\providecommand{\reportbuilddatetime}{unknown}
+\InputIfFileExists{build_info.tex}{}{}
+\title{Multidimensional scaling of expanding\\paraboloids and saddles\\[0.5em]
+\large Smooth geodesic distances, experiments, and asymptotic geometry}
+\author{\small Source: \path{~/current_projects/grip/tools/reports/geodesic-mds/report.tex}}
+\date{Build \reportbuilddatetime}
+
+% The figure atlas preserves each existing vector figure at its native size.
+% Larger pages keep the original labels readable instead of shrinking a
+% twelve-panel plate into a letter-sized text column.
+\newsavebox{\platebox}
+\newlength{\normalpaperwidth}\setlength{\normalpaperwidth}{\paperwidth}
+\newlength{\normalpaperheight}\setlength{\normalpaperheight}{\paperheight}
+\newlength{\platepaperwidth}\newlength{\platepaperheight}
+\newcommand{\plate}[3]{%
+ \clearpage
+ \sbox{\platebox}{\includegraphics{figures/#1}}%
+ \setlength{\platepaperwidth}{\dimexpr\wd\platebox+1.4in\relax}%
+ \setlength{\platepaperheight}{\dimexpr\ht\platebox+3in\relax}%
+ \newgeometry{layoutwidth=\platepaperwidth,layoutheight=\platepaperheight,
+ left=.7in,right=.7in,top=.6in,bottom=.7in}
+ \paperwidth=\platepaperwidth\paperheight=\platepaperheight
+ \pdfpagewidth=\paperwidth\pdfpageheight=\paperheight
+ \begin{center}\usebox{\platebox}\par\vspace{.18in}
+ \begin{minipage}{\dimexpr\normalpaperwidth-1.8in\relax}
+ \captionsetup{font=normalsize,labelfont=bf,hypcap=false}
+ \captionof{figure}{#3}\label{#2}
+ \end{minipage}\end{center}
+ \clearpage
+ \paperwidth=\normalpaperwidth\paperheight=\normalpaperheight
+ \pdfpagewidth=\paperwidth\pdfpageheight=\paperheight
+ \restoregeometry
+}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+Does metric multidimensional scaling make an expanding curved surface flat?
+The answer depends on the input distances, the objective, the output dimension,
+and what is meant by ``flat.'' We study the graphs $z=x^2+y^2$ and $z=x^2-y^2$
+over disks of radius $r$, using shortest distances along the smooth surfaces.
+For the paraboloid, the distance matrix divided by $r^2$ converges to a line
+metric. Both classical multidimensional scaling and global raw-stress
+minimization inherit this normalized line limit. Boundary-antipodal separations
+survive on the smaller scale $r$: their geodesic distance is
+$\pi r-\pi^3/(96r)+O(r^{-3})$, while their fitted separation depends on the
+MDS objective and sampling regime. For the saddle, the scaled geodesic matrix
+converges to a four-branch tree metric: its intrinsic dimension is one, yet
+its classical Euclidean approximation spans three dimensions. This nonplanar
+limit is proved for generic samples covering all four branches. Selected
+raw-stress fits support the same behavior over the tested radii, without
+establishing convergence or universal nonplanarity. Experiments use
+240 coupled samples, ten radii, two sampling measures, and smooth geodesic
+solvers checked independently. All fifteen figures from the investigation are
+included, together with the ambient-distance comparison, numerical estimates,
+proofs, and an explanation of why an equal-axis plot of the original saddle can
+look like an interval.
+\end{abstract}
+\vfill
+\textbf{How to read the report.} Sections~\ref{sec:question}--\ref{sec:discussion}
+give the definitions, results, and principal proofs. The appendices supply
+geodesic formulas, the ambient-distance comparison, and numerical validation.
+The main text includes the comparative shape figure. The supporting atlas uses
+larger pages where needed to preserve readable labels; each figure is linked
+from the relevant discussion.
+\clearpage
+{\small\setlength{\parskip}{0pt}\tableofcontents}
+\clearpage
+
+\section{The question and the main distinctions}\label{sec:question}
+
+The motivating intuition is that MDS tries especially hard to preserve large
+distances and might therefore make a curved surface progressively flatter as
+the sampled domain grows. There is a useful part to this intuition: equal
+\emph{relative} errors on longer targets contribute more raw stress. But it
+does not imply a general preference for flat embeddings. The geometry of the
+entire target distance matrix determines what a good embedding looks like.
+
+We consider two families of compact surface patches:
+\begin{align}
+ \mathcal P_r&=\{(x,y,x^2+y^2):x^2+y^2\le r^2\},\\
+ \mathcal S_r&=\{(x,y,x^2-y^2):x^2+y^2\le r^2\}.
+\end{align}
+The coefficient of each quadratic is fixed at one in the chosen coordinates.
+The parameter $r$ is the radius of the \emph{base disk}, not the radius of an
+intrinsic geodesic ball. Throughout the main experiments, an input
+dissimilarity is a shortest path length along the smooth surface. Ambient
+Euclidean chord distances appear only in the explicitly identified comparison
+in Appendix~\ref{app:ambient}.
+
+Three meanings of flattening must be separated. First, a quadratic fit in the
+original units may have a smaller coefficient than the original surface.
+Second, an embedding divided by its overall size may approach a plane or a
+line. Third, the Gaussian curvature of the original surface may approach zero
+at points far from its vertex. These statements describe different quantities
+and need not agree.
+
+The experiments and proofs give the following answers.
+\begin{itemize}
+ \item \textbf{Paraboloid, geodesic input.} Finite-radius three-dimensional
+ fits are approximately shallower paraboloids, but their fitted quadratic
+ coefficients do not trend to zero over the tested radii. After uniform
+ division of all coordinates by $r^2$, the rigorous limit is a line.
+ \item \textbf{Saddle, geodesic input.} Across the tested large radii, selected
+ embeddings develop four thin branches spanning three dimensions. The classical-MDS nonplanarity
+ statement is proved under a sample rank condition. The raw-stress statement
+ is supported by the numerical fits, without a global optimality certificate.
+ \item \textbf{Original surfaces.} Both remain smooth two-dimensional surfaces
+ at every finite $r$. A narrow equal-axis plot does not mean the surface has
+ ceased to extend over its full base disk.
+\end{itemize}
+
+The strongest geometric distinction is between \textbf{intrinsic dimension
+and Euclidean span}. The saddle's limiting metric is a one-dimensional tree,
+but its classical MDS approximation has three independent Euclidean directions.
+Branches can be individually thin while the whole configuration is nonplanar.
+Figure~\ref{fig:scompare} in the main text compares this behavior with the
+paraboloid's line limit.
+
+The sampling statements also need a finite-radius interpretation. There is no
+uniform probability distribution on either entire infinite-area surface. We
+study a family of uniform distributions on finite patches, couple their
+samples across $r$, and then take a scaled limit.
+
+\section{Distances, objectives, and diagnostics}\label{sec:definitions}
+
+\subsection{Raw stress and the role of a long target distance}
+For $n$ sampled points let $\Delta_{ij}(r)$ be the prescribed dissimilarity,
+and let $Y_i\in\R^k$ be the fitted coordinates. Fixed-target, unweighted raw
+metric stress is
+\begin{equation}\label{eq:stress}
+ S_r(Y)=\sum_{i<j}\bigl(d_{ij}(Y)-\Delta_{ij}(r)\bigr)^2,
+ \qquad d_{ij}(Y)=\norm{Y_i-Y_j}.
+\end{equation}
+This is the usual weighted stress formulation with every pair weight equal
+to one and with the disparities fixed at the input distances
+\citep[Section 2, Eq.~(1)]{mair2022}. No monotone or other transformation of the
+targets is fitted.
+
+For a single pair, write $d=d_{ij}$ and $\delta=\Delta_{ij}$. Then
+\begin{equation}
+ \frac{\partial(d-\delta)^2}{\partial d}=2(d-\delta),\qquad
+ \frac{\partial^2(d-\delta)^2}{\partial d^2}=2.
+\end{equation}
+An absolute error of one contributes one, whether the target is ten or one
+thousand. If the relative error is $\varepsilon=(d-\delta)/\delta$, however,
+the contribution is $\delta^2\varepsilon^2$. Thus long targets receive a larger
+penalty for the \emph{same relative error}, but not for the same absolute error.
+They do not have a larger per-pair second derivative with respect to distance.
+
+Uniform scaling introduces no additional shape preference. Replacing all
+targets by $c\Delta$ and all coordinates by $cY$ multiplies stress by $c^2$.
+Its minimizers are therefore carried to the rescaled minimizers. Any change
+of normalized shape must come from a change in the relative pattern of the
+target distances, rather than their common magnitude alone.
+
+\subsection{Classical MDS is a different optimization problem}
+Let $J=I-\one\one^T/n$ be the centering matrix. Classical MDS forms
+\begin{equation}\label{eq:classical}
+ B=-\frac12J\Delta^{\circ2}J,
+\end{equation}
+where $\Delta^{\circ2}$ denotes the entrywise square. If
+$\lambda_1\ge\lambda_2\ge\cdots$ are its eigenvalues, the $k$-dimensional
+coordinates retain the largest $k$ positive eigenvalues and multiply each
+corresponding unit eigenvector by $\sqrt{\lambda_a}$. This minimizes
+\begin{equation}
+ \norm{B-YY^T}_F^2
+\end{equation}
+over centered configurations of rank at most $k$. The squared Frobenius norm
+is the sum of squared matrix entries. This Gram-matrix objective,
+often called strain, generally differs from raw distance stress.
+
+The official R documentation identifies \texttt{cmdscale} as classical MDS
+and describes the principal-component axes and rigid-motion ambiguity
+\citep{rcmdscale}. In grip 0.2.0, \texttt{metric.mds()} called that classical
+calculation on its prepared graph-distance matrix. From 0.2.0.9000 it is named
+\texttt{classical.mds()}, while \texttt{metric.mds()} wraps ratio SMACOF. The present
+experiments use the corresponding spectral calculation directly on smooth
+geodesic matrices, and separately fit raw stress. They do not use graph
+shortest paths as a substitute for smooth geodesics.
+
+\subsection{Sampling and numerical design}\label{sec:design}
+Each radius sweep uses $n=240$ and seed 20260905 at
+\begin{equation}
+ r\in\{0.1,0.25,0.5,1,2,4,8,16,32,64\}.
+\end{equation}
+The same independent uniform radial quantiles $U_i$ and angles
+$\Theta_i\sim\operatorname{Unif}[0,2\pi)$ are reused across radii and surfaces.
+For a realized quantile $\xi_i$, uniform sampling in the base disk uses
+$\rho_i=r\sqrt{\xi_i}$. Both surfaces have area density
+$\rho\sqrt{1+4\rho^2}\,d\rho\,d\theta$. Uniform surface-area sampling therefore uses
+\begin{equation}\label{eq:area-sampling}
+ \rho_i=\frac12\sqrt{\left[1+\xi_i\{(1+4r^2)^{3/2}-1\}\right]^{2/3}-1}.
+\end{equation}
+In the second family, $\rho_i/r\to \xi_i^{1/3}$ and
+$\rho_i^2/r^2\to \xi_i^{2/3}$. The limiting distribution differs from that of
+uniform base-disk sampling, but the geometric bounds below apply to both.
+
+Classical MDS is computed in two and three dimensions. For each raw-stress fit,
+six starts are optimized and the lowest stress is retained. The two-dimensional
+starts are classical MDS, the three coordinate-plane projections of the
+original sample, and two random configurations. The three-dimensional starts
+are classical MDS, the original sample, two two-dimensional fits with small
+random third-coordinate perturbations, and two random configurations.
+The perturbations avoid leaving a three-dimensional solver in an exactly
+planar stationary subspace. Each start's overall scale is initially profiled
+by least squares.
+
+Optimization uses L-BFGS-B with an analytic gradient, maximum 4000 iterations,
+and objective and gradient tolerances $10^{-14}$ and $10^{-10}$. Targets and
+coordinates are divided by the RMS input pair distance during fitting, and
+the optimized function is mean squared pair residual. These common factors do
+not change the minimizing shape. Multiple starts address, but do not eliminate,
+the local-minimum issue discussed by \citet[Section 3.1]{mair2022}.
+
+Both geodesic sweeps attempted 240 optimization runs each: 20 cases, two output
+dimensions, six starts. All 480 runs reported success and all 80 selected fits
+were retained. The ambient comparison attempted 120 two-dimensional runs;
+all succeeded and 20 fits were selected. Its three-dimensional solution is
+known exactly and did not require numerical stress minimization. No failed
+fits were omitted from the displayed results. Successful termination does
+not prove global optimality.
+
+\subsection{Distance error, dimensionality, and shape coefficients}
+With $M=n(n-1)/2$, the relative and absolute root mean squared distance errors are
+\begin{equation}\label{eq:errors}
+ \Erel=\sqrt{\frac{\sum_{i<j}(d_{ij}-\Delta_{ij})^2}
+                         {\sum_{i<j}\Delta_{ij}^2}},\qquad
+ \Eabs=\sqrt{\frac1M\sum_{i<j}(d_{ij}-\Delta_{ij})^2}.
+\end{equation}
+The first is dimensionless; the second has the units of input distance. A
+decrease in relative error does not require a decrease in absolute error.
+
+For centered embedding coordinates let $s_1\ge s_2\ge s_3\ge0$ be their
+singular values. The first principal component's variance fraction is
+$s_1^2/\sum_a s_a^2$. The ratios $s_2/s_1$ and $s_3/s_2$ describe shape without
+depending on the overall scale. A line limit has $s_2/s_1\to0$. A nondegenerate
+plane limit has $s_3/s_2\to0$ while $s_2/s_1$ stays bounded away from zero.
+The second ratio alone is insufficient to diagnose a line: two small axes
+can remain comparable while both disappear relative to the first.
+
+Quadratic shape diagnostics first center and rigidly align the embedding to
+the original coordinates, without rescaling. For the paraboloid we regress
+\begin{equation}\label{eq:parab-fit}
+ z=a(x^2+y^2)+bx+cy+d.
+\end{equation}
+For the saddle we use the more general fit
+\begin{equation}\label{eq:saddle-fit}
+ z=ax^2+bxy+cy^2+dx+ey+f.
+\end{equation}
+The reported saddle coefficient norm is $\sqrt{a^2+c^2+b^2/2}$, the Frobenius
+norm of the symmetric quadratic coefficient matrix. The original norm is
+$\sqrt2$. The coefficient of determination is
+$R^2=1-\sum_i(z_i-\widehat z_i)^2/\sum_i(z_i-\bar z)^2$.
+These are descriptive regressions on finite point clouds, not estimates of
+intrinsic Gaussian curvature or assertions of exact quadratic surfaces.
+
+\section{The paraboloid: finite-radius results and the line limit}\label{sec:paraboloid}
+
+\subsection{What the experiment shows}
+Figures~\ref{fig:p3d}--\ref{fig:pshape} show the complete geodesic experiment.
+Small patches give nearly planar fits, intermediate patches have three
+substantial directions, and large patches become strongly elongated. The
+following table gives the entire raw-stress three-dimensional base-disk sweep;
+all values are outcomes of one coupled sample, not averages or confidence
+intervals from independent replicates.
+\input{tables/paraboloid_sweep.tex}
+
+At $r=64$, the first principal component accounts for about $99.760\%$ of the
+variance. Surface-area sampling gives the same qualitative pattern, with
+$\Erel=0.001931$, $s_2/s_1=0.045085$, and $s_3/s_2=0.857030$ at that radius.
+The two smaller directions remain comparable, but both become small relative
+to the leading direction. This is a line limit, not a nondegenerate plane.
+
+The quadratic diagnostic addresses the separate question of whether the
+output is a shallower paraboloid in its original units.
+\input{tables/paraboloid_coefficients.tex}
+The original coefficient is $a=1$. Both methods produce substantially smaller
+coefficients, but the coefficients do not decrease toward zero over this
+sweep. At $r=64$, $R^2$ is approximately 0.9883 for classical MDS and 0.9657 for
+raw stress. The leading line-limit theorem does not determine the limiting
+quadratic coefficient: that coefficient depends on smaller-scale coordinates
+which disappear under division by $r^2$.
+
+\subsection{A uniform bound on all geodesic distances}
+Fix unit-disk points $u_i\in\R^2$, put $q_i=\norm{u_i}^2$, and write
+\begin{equation}
+ P_i(r)=(ru_i,r^2q_i).
+\end{equation}
+Let $g_{ij}(r)$ be their smooth geodesic distance.
+
+\begin{proposition}[Paraboloid distance bound]\label{prop:parab-bound}
+For every pair and every $r>0$,
+\begin{equation}\label{eq:parab-bound}
+ r^2|q_i-q_j|\le g_{ij}(r)
+ \le r^2|q_i-q_j|+(1+\pi)r.
+\end{equation}
+\end{proposition}
+\begin{proof}
+The length of every surface path is at least its absolute vertical displacement,
+which gives the lower bound. For the upper bound, start at the endpoint with
+larger base radius, move radially to the smaller radius, and then follow the
+shorter circular arc to the second endpoint. Radial arclength is
+$\sqrt{1+4\rho^2}\,d\rho$. The inequality
+$\sqrt{1+4\rho^2}\le1+2\rho$ bounds the radial part by the height difference
+plus at most $r$. The shorter circular arc has length at most $\pi r$.
+The entire constructed path lies inside the base disk.
+\end{proof}
+
+The bound implies uniform convergence over pairs:
+\begin{equation}\label{eq:parab-limit}
+ \frac{g_{ij}(r)}{r^2}\longrightarrow |q_i-q_j|.
+\end{equation}
+The limit is the distance matrix of one-dimensional coordinates $q_i$.
+Equal-radius points lose their angular separation on this scale. This does
+not say that their unscaled geodesic distance tends to zero.
+
+\subsection{Deriving the MDS limit directly from the objectives}
+\begin{theorem}[Normalized line limit]\label{thm:line}
+For a fixed finite sample with at least two distinct $q_i$, every global
+raw-stress minimizer in any fixed dimension $k\ge1$ approaches the height-line
+distance matrix after scaling coordinates by $r^2$. The centered Gram matrices
+converge to $q_cq_c^T$, where $q_c=Jq$. The same conclusion holds for classical
+MDS and for approximate raw-stress minimizers whose excess stress divided by
+$r^4$ tends to zero.
+\end{theorem}
+\begin{proof}
+Write $Y=r^2V$. Then
+\begin{equation}\label{eq:rescaled-stress}
+ r^{-4}S_r(r^2V)=\sum_{i<j}
+ \left(\norm{V_i-V_j}-\frac{g_{ij}(r)}{r^2}\right)^2.
+\end{equation}
+The line candidate $V_i=(q_i,0,\ldots,0)$ has normalized stress at most
+$M(1+\pi)^2/r^2$ by Proposition~\ref{prop:parab-bound}. A global minimizer does
+at least as well. Its sum of squared normalized residuals therefore tends to
+zero, so every individual residual tends to zero. Combined with
+\eqref{eq:parab-limit}, its fitted pair distances converge to $|q_i-q_j|$.
+Double-centering squared distances gives convergence of its centered Gram
+matrix to $q_cq_c^T$. This matrix has rank one under the stated condition.
+Allowing excess normalized stress $o(1)$ does not change the argument.
+
+For classical MDS, the scaled input matrix $B(r)/r^4$ converges directly to
+$q_cq_c^T$. Retaining its largest positive eigenvalues gives the same rank-one
+limit. The principal eigenvalue is separated from zero, while every other
+retained eigenvalue tends to zero on this scale.
+\end{proof}
+
+The theorem is about normalized geometry. It does not imply bounded unscaled
+coordinates, monotonically decreasing finite-radius stress, a flat-disk limit,
+or a limiting value of the fitted coefficient in \eqref{eq:parab-fit}.
+For the coupled surface-area samples, $q_i(r)\to \xi_i^{2/3}$; the same proof
+applies with the moving height-line candidate and its limiting coordinates.
+
+\section{Boundary antipodes on the paraboloid}\label{sec:antipodal}
+
+The line limit erases the angular separation of equal-height points. To recover
+what happens to such a pair, we must examine the smaller scale $r$. Set
+\begin{equation}
+ p_+(r)=(r,0,r^2),\qquad p_-(r)=(-r,0,r^2),
+\end{equation}
+and let $g_r$ be their smooth geodesic distance. Their ambient chord distance
+is $2r$. Their MDS separation is a third quantity, determined by the full
+dataset, target dimension, and objective.
+
+\subsection{The target geodesic: leading term and correction}
+The boundary semicircle gives $g_r\le\pi r$. If a shortest path reaches minimum
+base radius $m$, its radial travel costs at least $2(r^2-m^2)$, and its angular
+travel costs at least $\pi m$. Comparing the first of these bounds to
+$g_r\le\pi r$ gives $m/r\to1$. Hence
+$\pi m\le g_r\le\pi r$ proves $g_r/r\to\pi$.
+
+The exact geodesic primitives in Appendix~\ref{app:parab-geodesics} yield a
+sharper result:
+\begin{proposition}[Antipodal geodesic expansion]\label{prop:antipodal}
+As $r\to\infty$,
+\begin{equation}\label{eq:antipodal-expansion}
+ g_r=\pi r-\frac{\pi^3}{96r}+O(r^{-3}),\qquad
+ c=r-\frac{\pi^2}{32r}+O(r^{-3}),
+\end{equation}
+where $c$ is the minimum base radius of the minimizing path.
+\end{proposition}
+\begin{proof}
+Put $t=\sqrt{r^2-c^2}$. The symmetric turning geodesic has half-angle
+$H(c,t)=\pi/2$ and length $2L(c,t)$, where $H,L$ are defined in
+\eqref{eq:primitives}. With $c=\sqrt{r^2-t^2}$ their expansions are
+\begin{align}
+ H(c,t)&=2t+\frac{-t^3/3+t/4}{r^2}+O(r^{-4}),\\
+ 2L(c,t)&=4rt+\frac{-4t^3/3+t/2}{r}+O(r^{-3}).
+\end{align}
+Writing $t_0=\pi/4$, the half-angle equation gives
+$t=t_0+(t_0^3/6-t_0/8)/r^2+O(r^{-4})$. Substituting into the length and the
+expression for $c$ gives \eqref{eq:antipodal-expansion}.
+\end{proof}
+The shortest route stays near the boundary, dipping inward by order $1/r$.
+A through-vertex path has length of order $r^2$ and is much longer.
+
+\subsection{Raw-stress MDS: a fixed-sample theorem}
+\begin{theorem}[Antipodal separation under raw stress]\label{thm:raw-antipodal}
+Take a fixed finite set of nonzero interior unit-disk points with distinct
+squared radii, and adjoin the two boundary antipodes. Use all pair distances
+with equal weights and an output dimension $k\ge2$. For a global raw-stress
+minimizer,
+\begin{equation}\label{eq:raw-antipodal}
+ d_{\mathrm{MDS}}(p_+,p_-)=\pi r+O(1).
+\end{equation}
+\end{theorem}
+\begin{proof}
+First consider endpoints with unequal squared radii. Let their physical base
+radii be $a<b$, let $h=\log(b/a)>0$, and let $\alpha\in[0,\pi]$ be their
+smaller angular separation. The path
+\begin{equation}
+ \theta(\rho)=\theta(a)+\frac{\alpha\log(\rho/a)}h
+\end{equation}
+has length at most
+\begin{equation}\label{eq:log-path}
+ b^2-a^2+\frac h4+\frac{\alpha^2}{4h}.
+\end{equation}
+Indeed, its integrand is $\sqrt{4\rho^2+1+\alpha^2/h^2}$, and
+$\sqrt{4\rho^2+C}\le2\rho+C/(4\rho)$ gives this bound. The ratio $b/a$ is
+fixed as $r$ increases, so each unequal-radius target is
+$r^2|q_i-q_j|+O(1)$.
+
+Construct a feasible two-dimensional embedding by placing every interior
+point at $(0,r^2q_i)$ and the two boundary points at
+$(g_r/2,r^2)$ and $(-g_r/2,r^2)$. It fits the boundary pair exactly. Every
+other pair has a nonzero fixed height-level difference, and its fitted
+distance is also $r^2|q_i-q_j|+O(1)$: the transverse displacement is at most
+order $r$, whose squared contribution produces only an order-one correction
+to a distance of order $r^2$. The total stress of this candidate is $O(1)$
+for a fixed finite sample. Thus the global minimum is $O(1)$, and in particular
+\begin{equation}
+ |d_{\mathrm{MDS}}(p_+,p_-)-g_r|\le\sqrt{S_r^{\min}}=O(1).
+\end{equation}
+Proposition~\ref{prop:antipodal} completes the proof. The construction embeds
+unchanged into any $k\ge2$.
+\end{proof}
+
+The assumptions hold almost surely for a finite uniform interior sample, but
+the constants can become large when two radii are very close. The theorem is
+not uniform in sample size. Adding a complete boundary ring introduces many
+equal-radius constraints and is outside this argument. It also does not prove
+that a particular local numerical optimizer attains the required bounded
+stress. The order of the fixed-sample, large-radius, and population limits
+must not be silently interchanged.
+
+The bounded-stress construction is an asymptotic argument, not a sharp
+finite-radius estimate. In the present interior sample the smallest positive
+squared-radius gap is about $6.06\times10^{-6}$. The explicit feasible
+candidate's unnormalized stress still rises from about $6.87\times10^6$ at
+$r=64$ to $1.32\times10^8$ at $r=1024$. This is consistent with eventual
+$O(1)$ boundedness: the constants depend strongly on the fixed radial gaps,
+and the tested radii need not have reached that regime.
+
+\subsection{Classical MDS: the next-order finite-sample matrix}
+Classical MDS does not minimize the stress used in Theorem~\ref{thm:raw-antipodal},
+and its antipodal coefficient is different. For positive squared radii define
+the logarithmic mean
+\begin{equation}\label{eq:logmean}
+ \ell(q,p)=\frac{q-p}{\log q-\log p},\qquad \ell(q,q)=q.
+\end{equation}
+Let $\alpha_{ij}$ denote the smaller angular separation. Expanding the smooth
+geodesic primitives for fixed endpoints gives
+\begin{align}
+ g_{ij}(r)^2&=r^4(q_i-q_j)^2+r^2C_{ij}+O(1),\label{eq:second-order}\\
+ C_{ij}&=\tfrac14(q_i-q_j)(\log q_i-\log q_j)
+          +\ell(q_i,q_j)\alpha_{ij}^2.\label{eq:c-matrix}
+\end{align}
+For unequal radii, the first correction to the distance itself is
+\begin{equation}
+ g_{ij}(r)=r^2|q_i-q_j|
+ +\frac{|\log(q_i/q_j)|}{8}
+ +\frac{\alpha_{ij}^2}{2|\log(q_i/q_j)|}+O(r^{-2}).
+\end{equation}
+For equal radii, the fixed-angle turning expansion instead gives
+$g_{ij}^2=r^2q_i\alpha_{ij}^2+O(1)$, agreeing with the continuous expression
+for $C_{ij}$. These are fixed-endpoint expansions; the remainders need not be
+uniform as unequal radii approach equality or zero.
+
+To see the unequal-radius correction directly, set $a=r\sqrt p$,
+$b=r\sqrt q$, and $h=\log(b/a)$ for fixed $0<p<q$. At sufficiently large
+$r$, a bounded angular separation uses the monotone-radial geodesic branch.
+For its Clairaut constant $c$, the angular and length integrands expand as
+\begin{align}
+ \frac{c\sqrt{1+4\rho^2}}{\rho\sqrt{\rho^2-c^2}}
+ &=\frac{2c}{\rho}+O(\rho^{-3}),\\
+ \frac{\sqrt{1+4\rho^2}}{\sqrt{1-c^2/\rho^2}}
+ &=2\rho+\frac{c^2+1/4}{\rho}+O(\rho^{-3}).
+\end{align}
+Integration gives $\alpha=2ch+O(r^{-2})$, hence
+$c=\alpha/(2h)+O(r^{-2})$, and
+\begin{equation}
+ g(r)=b^2-a^2+(c^2+1/4)h+O(r^{-2})
+     =b^2-a^2+\frac h4+\frac{\alpha^2}{4h}+O(r^{-2}).
+\end{equation}
+Since $h=\tfrac12\log(q/p)$, this is the stated correction. Squaring gives
+\eqref{eq:c-matrix}. The expansion is uniform for $c$ in a fixed bounded
+neighborhood and for the particular fixed positive radial levels; it is not
+a uniform estimate over growing samples with arbitrarily close radii.
+
+Let $q_c=Jq$ and project off the constant and height directions:
+\begin{equation}
+ H=I-\frac{\one\one^T}{n}-\frac{q_cq_c^T}{\norm{q_c}^2},\qquad
+ T_{\perp}=-\frac12HCH.
+\end{equation}
+The leading classical axis is of size $r^2$ and follows $q_c$. The smaller
+axes, of size $r$, are determined by the positive eigenvalues of $T_{\perp}$.
+If $(\lambda_a,v_a)$, $a=1,2$, are its leading two positive eigenpairs and the
+retained subspace is separated from the discarded spectrum, then classical
+three-dimensional MDS satisfies
+\begin{equation}\label{eq:finite-kappa}
+ \frac{d_{\mathrm{classical}}(p_+,p_-)}r\longrightarrow
+ \kappa_n=\left[\sum_{a=1}^2\lambda_a
+       \{v_a(p_+)-v_a(p_-)\}^2\right]^{1/2}.
+\end{equation}
+The two points have identical $q$, so their leading height-axis difference
+vanishes. The correction to that axis contributes only $O(1)$ to their
+coordinate difference and therefore disappears after division by $r$.
+
+Using the same 240 base-disk interior points and then adjoining the pair gives
+$\kappa_n=2.92190551$. This dataset has 242 points; it is distinct from the
+240-point radius sweep. Direct classical fits confirm the next-order matrix.
+\input{tables/antipodal_finite.tex}
+At $r=1024$, the fitted ratio differs from $\kappa_n$ by less than $10^{-6}$.
+The geodesic correction also agrees with $\pi^3/96\simeq0.322982$ when
+$(\pi r-g_r)r$ is evaluated at large $r$.
+
+\subsection{The rotationally symmetric population operator}
+In a uniform base-disk population, $q$ is uniform on $[0,1]$ and angle is
+independent and uniform. The Fourier expansion of squared circular separation is
+\begin{equation}
+ \alpha^2=\frac{\pi^2}{3}
+       +4\sum_{m\ge1}\frac{(-1)^m}{m^2}\cos(m\alpha).
+\end{equation}
+For each of the two sampling measures studied, numerical quadrature of the
+second-order operator identifies the leading transverse modes as the sine
+and cosine modes with $m=1$. Dominance over other modes is a numerical finding,
+not an analytic mode-selection theorem. Their radial component solves
+\begin{equation}\label{eq:operator}
+ \lambda f(q)=\int_0^1\ell(q,p)f(p)\,d\mu(p),\qquad
+ \int_0^1 f(q)^2\,d\mu(q)=1,
+\end{equation}
+with $d\mu(q)=dq$ for base-disk sampling. The embedding radius in these two
+coordinates is $r\sqrt{2\lambda}\,|f(q)|$. Its boundary-antipodal coefficient is
+\begin{equation}\label{eq:population-kappa}
+ \kappa_\mu=2\sqrt{2\lambda}\,|f(1)|.
+\end{equation}
+For expanding surface-area samples the limiting measure is
+$d\mu(q)=\tfrac32\sqrt q\,dq$.
+
+The competing sectors can be derived explicitly. Let $\mathcal L$ be the
+integral operator with kernel $\ell(q,p)$ in $L^2(\mu)$, and let
+$\mathcal H$ project off $\operatorname{span}\{1,q\}$ in that space. The radial
+logarithmic term in \eqref{eq:c-matrix} is
+\begin{equation}
+ R(q,p)=\tfrac14\{q\log q+p\log p-q\log p-p\log q\}.
+\end{equation}
+Each summand has a factor $1$ or $q$ in at least one argument. Consequently
+$\mathcal H R\mathcal H=0$. The remaining angular average gives the radial
+sector $-\pi^2\mathcal H\mathcal L\mathcal H/6$. In nonzero Fourier sector $m$,
+the cosine/sine orthogonality factor $1/2$ combines with the coefficient in
+the Fourier series and classical MDS's factor $-1/2$ to give
+\begin{equation}\label{eq:angular-sectors}
+ \mathcal K_m=\frac{(-1)^{m+1}}{m^2}\mathcal L,\quad m\ge1;
+ \qquad \mathcal K_0=-\frac{\pi^2}{6}\mathcal H\mathcal L\mathcal H.
+\end{equation}
+For $m\ge1$, the constant and height projections vanish by angular
+orthogonality. This accounts for the signs and the competing-sector checks.
+
+Gauss--Legendre quadrature with 64, 128, 256, and 512 nodes gives the following
+operator estimates. The endpoint value is obtained from the eigen-equation,
+$f(1)=\lambda^{-1}\int\ell(1,p)f(p)\,d\mu(p)$, rather than by treating a
+quadrature node as the boundary.
+\input{tables/antipodal_population.tex}
+The last two base-disk estimates differ by less than $6\times10^{-9}$.
+Table~\ref{tab:population-sectors} records the competing eigenvalues at 256
+nodes, including the second eigenvalue within the $m=1$ radial problem.
+Every competitor is far below the leading eigenvalue for each measure.
+The same ordering was checked at 512 nodes. These checks support the selected
+pair without constituting a rigorous bound on quadrature error.
+\input{tables/population_sectors.tex}
+
+These constants are numerical evaluations of the population second-order
+operator, not exact closed forms or rigorous quadrature error bounds. The
+finite-sample spectral result above is separate. In particular, the present
+work does not establish a uniform remainder theorem allowing arbitrary joint
+limits $n,r\to\infty$. The values $\pi$, $2.92190551$, and $2.86038105$ answer
+different, explicitly specified questions; they are not contradictory estimates
+of one universal MDS distance.
+
+\section{The saddle: four branches instead of a line}\label{sec:saddle}
+
+\subsection{Curvature and the computed embeddings}
+For a graph $z=f(x,y)$, Gaussian curvature is
+\begin{equation}
+ K=\frac{f_{xx}f_{yy}-f_{xy}^2}{(1+f_x^2+f_y^2)^2}.
+\end{equation}
+Substitution gives
+\begin{equation}\label{eq:curvatures}
+ K_{\mathcal P}(\rho)=\frac4{(1+4\rho^2)^2},\qquad
+ K_{\mathcal S}(\rho)=-\frac4{(1+4\rho^2)^2}.
+\end{equation}
+Their magnitudes decay identically. The saddle is negatively curved everywhere,
+but does not approach a constant negative curvature. A description such as
+``asymptotically hyperbolic'' needs a specified meaning; it cannot be inferred
+in the constant-curvature sense from this surface equation. The following
+limit concerns base-disk expansion with distances divided by $r^2$.
+
+Figures~\ref{fig:s3d}--\ref{fig:sshape} and the main-text comparison in
+Figure~\ref{fig:scompare} show that the selected three-dimensional MDS outputs
+develop four narrow branches over the tested radii. Their three singular values
+remain comparable. This is finite-radius evidence for raw stress, not a proof
+that its selected fits converge. The raw-stress base-disk results are:
+\input{tables/saddle_sweep.tex}
+At $r=64$, classical MDS gives $s_2/s_1=0.9175$ and $s_3/s_2=0.9103$.
+Raw stress under surface-area sampling gives 0.9220 and 0.9177, with relative
+distance error 0.061128. These values provide no evidence of collapse to a
+plane or a line in the ambient embedding space. In contrast, the paraboloid
+raw-stress value $s_2/s_1=0.03743$ indicates strong elongation.
+
+The saddle quadratic coefficient norm decreases with radius
+(Figure~\ref{fig:sshape}). That observation describes a dimensional fit, not
+planarity. If all coordinates of a configuration are multiplied by $c$, a
+quadratic coefficient in a graph regression is divided by $c$. Thus a
+coefficient can tend to zero while all three axes remain comparable.
+The approximate four-branch shape also need not remain an exact smooth saddle.
+
+\plate{saddle_vs_paraboloid.pdf}{fig:scompare}{Direct comparison of raw-stress
+3D MDS using smooth geodesic distances and the same 240 base-disk samples.
+The paraboloid's $s_2/s_1$ falls toward zero, whereas the saddle's remains large.
+The right panel alone would not distinguish these outcomes because two
+shrinking transverse axes of a line-like cloud can remain comparable. Both
+ratios are needed to interpret normalized shape.}
+
+\subsection{Smooth shortest paths stay inside the base disk}
+The entire saddle graph is complete, simply connected, and negatively curved.
+Completeness follows because the induced metric dominates the base Euclidean
+metric, and the graph is smooth over all of $\R^2$. The Hadamard--Cartan theorem
+therefore gives a unique minimizing geodesic between every pair
+\citep[Theorem 6.5.2, Corollary 6.5.3, and proof of Lemma 6.5.4,
+pp.~124--125]{gorodski2022}.
+
+For an affine geodesic parameter, write $v=\dot x$, $w=\dot y$, and
+$\rho^2=x^2+y^2$. The geodesic equations are
+\begin{equation}\label{eq:saddle-ode}
+ \ddot x=-\frac{4x(v^2-w^2)}{1+4\rho^2},\qquad
+ \ddot y=\frac{4y(v^2-w^2)}{1+4\rho^2}.
+\end{equation}
+Consequently,
+\begin{align}
+ (\rho^2)''
+ &=2(v^2+w^2)-\frac{8(x^2-y^2)(v^2-w^2)}{1+4\rho^2}\\
+ &\ge\frac{2(v^2+w^2)}{1+4\rho^2}>0
+\end{align}
+for a nonconstant geodesic. A convex function cannot exceed its largest
+endpoint value on an interval. The full-surface geodesic therefore stays
+inside the largest endpoint base radius and is also the shortest path on the
+disk-restricted patch. This justifies computing the unrestricted smooth
+geodesic for the experiment's restricted domain.
+
+\subsection{The limiting four-branch tree metric}
+Fix unit-disk points $u_i=(a_i,b_i)$ and define
+\begin{equation}
+ P_i(r)=(ra_i,rb_i,r^2h_i),\qquad h_i=a_i^2-b_i^2,\qquad t_i=|h_i|.
+\end{equation}
+There are four branches: $h>0$ with $a>0$, $h>0$ with $a<0$, $h<0$ with
+$b>0$, and $h<0$ with $b<0$. They are the upper $+x$, upper $-x$, lower $+y$,
+and lower $-y$ branches used for colors in the figures. Zero-height points
+map to their common root. Let
+\begin{equation}\label{eq:tree}
+ T_{ij}=\begin{cases}
+ |t_i-t_j|,&\text{points on the same branch},\\
+ t_i+t_j,&\text{points on different branches}.
+ \end{cases}
+\end{equation}
+This is the path metric of four intervals attached at one root.
+
+\begin{proposition}[Saddle distance bound]\label{prop:tree-bound}
+For smooth saddle geodesic distances,
+\begin{equation}\label{eq:tree-bound}
+ r^2T_{ij}\le\Delta_{ij}(r)\le r^2T_{ij}+4r.
+\end{equation}
+In particular, $\Delta(r)/r^2\to T$ uniformly over pairs and unit-disk endpoints.
+\end{proposition}
+\begin{proof}
+Path length dominates total vertical variation. For two points on the same
+branch this gives the height difference. Different signs of height require
+crossing zero. Opposite positive-height branches require $x$ to cross zero,
+where height is nonpositive; opposite negative-height branches require $y$
+to cross zero, where height is nonnegative. In every different-branch case,
+the required total vertical variation is at least the sum of absolute heights.
+
+For the upper bound, move each endpoint at constant height along its hyperbola
+to the appropriate coordinate semiaxis. On a positive-height branch,
+$|dx/dy|\le1$ and $|y|\le r/\sqrt2$, so this horizontal connector has length
+at most $r$. The negative-height argument exchanges $x$ and $y$. Next connect
+the two semiaxis points monotonically on one branch or through the origin if
+the branches differ. The inequality $\sqrt{1+4x^2}\le1+2|x|$ bounds this part
+by the required vertical variation plus at most $2r$. Including both connectors
+gives the upper bound. All segments remain inside the base disk. Zero-height
+points use their straight ruling to the origin.
+\end{proof}
+
+At $r=64$, replacing the entire smooth matrix by $r^2T$ has relative distance
+RMSE 0.001588 for base-disk sampling and 0.001469 for surface-area sampling.
+The latter's unit coordinates converge, so its limiting tree uses their limits.
+
+The distinction from the paraboloid is the connectivity of height levels. A
+paraboloid height level is one circle, with travel distances only of order $r$.
+A positive saddle height level has two separate components that are still
+order $r^2$ apart geodesically. The limiting tree is intrinsically
+one-dimensional, but representing its branch distances approximately by
+Euclidean distances can require a configuration spanning three dimensions.
+Intrinsic dimension of the limiting tree and linear span of an MDS embedding
+are different concepts.
+
+\subsection{An antipodal contrast}
+For the saddle boundary pair $(\pm r,0,r^2)$, reflection in $y=0$ fixes both
+endpoints. Uniqueness of the minimizing geodesic forces it onto that meridian.
+Its exact distance is
+\begin{equation}\label{eq:saddle-antipodal}
+ 2\int_0^r\sqrt{1+4x^2}\,dx
+ =r\sqrt{1+4r^2}+\tfrac12\asinh(2r)\sim2r^2.
+\end{equation}
+The corresponding paraboloid geodesic is asymptotic to $\pi r$. Conversely,
+saddle antipodes on the ruling $x=y$ or $x=-y$ lie on a straight line in
+three-dimensional space and have exact distance $2r$. Thus the direction
+of a saddle antipodal pair matters. These formulas concern input geodesics;
+they do not give a universal fitted MDS distance for an individual saddle pair.
+
+\subsection{A nonplanarity theorem for classical MDS}
+\begin{theorem}[Three positive directions in the tree limit]\label{thm:tree-rank}
+Let $F$ be the $n\times4$ matrix whose $i$th row is $t_i e_{a(i)}^T$, where
+$a(i)$ is the branch index and $e_a$ is a standard basis vector. If $JF$ has
+rank four, the centered squared tree-distance matrix has exactly three
+positive eigenvalues and one negative eigenvalue. Classical three-dimensional
+MDS of the saddle therefore has three nonzero limiting singular values after
+division of coordinates by $r^2$ and cannot collapse to a plane or a line.
+\end{theorem}
+\begin{proof}
+Since $t=F\one_4$, expansion of \eqref{eq:tree} gives
+\begin{equation}
+ T_{ij}^2=t_i^2+t_j^2+2t_it_j-4t_it_j\,1_{\{a(i)=a(j)\}}.
+\end{equation}
+Double-centering removes the first two terms, yielding
+\begin{equation}\label{eq:tree-gram}
+ B_T=-\tfrac12JT^{\circ2}J
+     =JF(2I_4-\one_4\one_4^T)F^TJ.
+\end{equation}
+The middle matrix has eigenvalue $2$ on the three-dimensional subspace
+orthogonal to $\one_4$ and eigenvalue $-2$ along $\one_4$. If $JF$ has full
+column rank, Sylvester's law of inertia transfers these three positive and
+one negative directions to $B_T$, with zeros on the remaining subspace.
+By Proposition~\ref{prop:tree-bound}, $B(r)/r^4\to B_T$. Classical MDS retains
+its three positive directions; their eigenvalues stay positive in the limit.
+\end{proof}
+
+The rank condition holds for generic samples covering all four branches with
+enough distinct points and is verified for both limiting samples used here.
+Degenerate samples or missing branches require separate consideration. For
+the present base-disk sample, the limiting classical ratios are
+$s_2/s_1=0.918394$ and $s_3/s_2=0.909343$. For the limiting surface-area sample,
+they are 0.927947 and 0.923701.
+
+A readily checked sufficient condition is that all four branches contain a
+nonroot point and one branch contains two distinct positive lengths $t_i$.
+A sampled root also suffices when all four branches are represented.
+To verify either condition, suppose $JFv=0$. Then $Fv$ is constant. On one
+branch with two different positive lengths, constancy forces its component
+of $v$ and the constant to be zero; a sampled root forces the constant to zero
+directly. One nonroot point on each remaining branch then forces all other
+components of $v$ to vanish, proving rank four.
+
+\subsection{What the raw-stress equation proves, and what remains numerical}
+With $Y=r^2V$, the exact rescaling is
+\begin{equation}\label{eq:tree-stress}
+ r^{-4}S_r(r^2V)=\sum_{i<j}
+ \left(\norm{V_i-V_j}-\frac{\Delta_{ij}(r)}{r^2}\right)^2
+ \longrightarrow\sum_{i<j}(\norm{V_i-V_j}-T_{ij})^2.
+\end{equation}
+For a fixed finite sample this convergence is uniform on bounded
+configurations. Centered global minimizers are bounded: comparing with the
+zero configuration bounds stress, which bounds every fitted pair distance;
+centering then bounds every coordinate. Any accumulation point of scaled
+global minimizers therefore minimizes raw stress for the limiting tree.
+
+This identifies the limiting optimization problem. It does not by itself
+prove that every global three-dimensional minimizer of that problem is
+nonplanar. The inertia argument in Theorem~\ref{thm:tree-rank} applies to
+classical MDS, not automatically to raw stress. The six-start fits supply
+numerical evidence of raw-stress nonplanarity for the samples studied here.
+Under the theorem's rank condition the tree matrix is not Euclidean, because
+its centered squared-distance matrix has a negative eigenvalue. Its minimum
+raw stress is therefore positive in every fixed Euclidean output dimension.
+
+\subsection{Optimizer spread and a direct test of the saved planar fits}
+Optimizer success flags do not describe how much the fitted solutions depend
+on initialization. Table~\ref{tab:optimizer-spread} compares the six original
+3D starts at $r=64$. The relative spread is $(S_{\max}-S_{\min})/S_{\min}$;
+division by pair count or RMS target scale cancels in this ratio.
+\input{tables/optimizer_spread.tex}
+The saddle starts agree essentially to numerical precision, whereas the
+paraboloid starts reach materially different local minima. Sixteen additional
+paraboloid runs---eight for each sampling measure, comprising a selected-fit
+restart, three perturbations, and four new random starts---improved the
+selected stress only at relative order $10^{-9}$. These checks support the
+selected fits but do not certify global optima. The variability across
+paraboloid starts is another reason to treat its quadratic coefficients as
+descriptive rather than universal geometric constants.
+
+The saved saddle planar solutions admit a more direct dimensionality check.
+Normalize targets and coordinates by RMS input distance and use mean pair
+stress $F=S/M$. At planar coordinates $x_i\in\R^2$ with all $d_{ij}>0$, add
+a third coordinate $\varepsilon z_i$. A Taylor expansion gives
+\begin{equation}
+ F(x,\varepsilon z)=F(x,0)+\frac{\varepsilon^2}{M}
+ \sum_{i<j}\frac{d_{ij}-\Delta_{ij}}{d_{ij}}(z_i-z_j)^2+O(\varepsilon^4).
+\end{equation}
+Thus the Hessian in the added coordinates is $2L_w/M$, where
+$w_{ij}=(d_{ij}-\Delta_{ij})/d_{ij}$ and
+$L_w=\diag(\sum_j w_{ij})-w$ is the weighted Laplacian (weights can be negative).
+At $r=64$, its smallest eigenvalues are approximately $-0.0034782$ for
+base-disk sampling and $-0.0036110$ for surface-area sampling. Perturbations
+of size $10^{-3}$ along unit eigenvectors decrease the saved mean stresses;
+finite differences at size $10^{-5}$ agree with the negative curvatures to
+within $2\times10^{-6}$ in absolute value. The two saved planar fits are
+therefore not 3D local minima. This excludes those configurations, not all
+other planar stationary points or every possible planar global minimum.
+
+\section{Why the original saddle can look like an interval}\label{sec:scaling}
+
+At every finite $r$, the original graph is a saddle extending over the entire
+disk. The narrowing in an equal-axis display comes from its changing aspect
+ratio. Its horizontal coordinates range over $[-r,r]$, whereas height ranges
+over $[-r^2,r^2]$. At $r=32$, the horizontal width is 64 and the vertical span
+is 2048, a ratio of 32.
+
+The original experiment's snapshots divide all coordinates by RMS input
+geodesic distance, which is of order $r^2$. Uniform division by $r^2$ gives
+\begin{equation}
+ (x/r^2,y/r^2,z/r^2)=(a/r,b/r,a^2-b^2),
+ \qquad a^2+b^2\le1.
+\end{equation}
+The horizontal coordinates then lie in $[-1/r,1/r]$, while the vertical
+coordinate still spans $[-1,1]$. Thus the entire displayed surface is close
+to a vertical interval in the ambient coordinate metric.
+
+To retain the familiar appearance, rescale the axes differently:
+\begin{equation}
+ X=x/r,\quad Y=y/r,\quad Z=z/r^2
+ \quad\Longrightarrow\quad
+ Z=X^2-Y^2,\quad X^2+Y^2\le1.
+\end{equation}
+This shows the same saddle-shaped graph for every $r$, but it changes angles
+and relative lengths by scaling horizontal and vertical directions differently.
+Figure~\ref{fig:scaling} shows the full analytic surface and its boundary under
+both choices. The earlier snapshots were finite point clouds, rather than
+filled surface meshes; neither display choice removes any part of the domain.
+
+Ambient closeness does not imply geodesic closeness. The points
+$(\pm r,0,r^2)/r^2$ approach the same ambient point $(0,0,1)$, yet their
+geodesic distance divided by $r^2$ approaches $2$. This is why the original
+surface can look like an interval while its geodesic MDS embedding keeps
+the two upper branches apart. The two limits concern different metrics.
+
+\section{Discussion and answers to the original questions}\label{sec:discussion}
+
+The raw-stress intuition is correct when it refers to equal relative errors:
+a long target then contributes proportionally to the square of its length.
+It is incorrect if interpreted as a larger penalty for an equal absolute
+error or as a universal tendency to flatten curved inputs. Both the exact
+ambient reconstruction and the geodesic saddle experiment rule out that
+general conclusion.
+
+For the paraboloid with smooth geodesic input, the leading normalized metric
+forgets angle and keeps squared base radius. The stress comparison with a
+height-line candidate turns this geometric fact into a proof of the MDS line
+limit. The finite-radius shapes are shallower than the original in the
+quadratic diagnostic, but the observed coefficients do not trend to zero.
+Their infinite-radius limits have not been determined here.
+
+For the saddle, disconnected same-height components survive as different
+branches of a tree. The corresponding classical-MDS matrix has three positive
+directions, so it retains three-dimensional span. The raw-stress fits show the
+same behavior, but a theorem characterizing all global raw-stress minimizers
+of the tree remains open in this report.
+
+Boundary-antipodal questions illustrate why the scale and sample assumptions
+matter. On the paraboloid, their target separation is $\pi r+O(r^{-1})$, even
+though it disappears in the $r^2$ line limit. Global raw stress preserves its
+leading coefficient for a fixed generic interior sample plus the pair.
+Classical three-dimensional MDS instead has a coefficient determined by a
+transverse eigenproblem. The finite sample and population-operator estimates
+are different, and neither should be substituted for the fixed-sample raw-stress
+coefficient.
+
+The main numerical limitation is that these are coupled single-seed
+experiments, not a study of sampling variability. Optimizer convergence is
+reported but is not a certificate of global optimality. Smooth-geodesic
+validation is stringent numerical evidence, not interval arithmetic. The
+most useful further theory would characterize raw-stress minimizers of the
+four-branch metric and control joint population/large-radius limits for the
+paraboloid's subleading eigenproblem.
+
+\appendix
+\section{Smooth-geodesic computation and its justification}\label{app:geodesics}
+
+\subsection{Paraboloid metric and exact primitives}\label{app:parab-geodesics}
+In polar coordinates the paraboloid metric is
+\begin{equation}\label{eq:parab-metric}
+ ds^2=(1+4\rho^2)d\rho^2+\rho^2d\theta^2.
+\end{equation}
+Along a unit-speed geodesic, Clairaut's first integral is
+$c=\rho^2\,d\theta/ds$, with turning radius $\rho=c$ after choosing the
+angular orientation so $c\ge0$. The angular equation is
+\begin{equation}
+ \frac{d\theta}{d\rho}=
+ \frac{c\sqrt{1+4\rho^2}}{\rho\sqrt{\rho^2-c^2}}.
+\end{equation}
+The angular equation, a corresponding elementary primitive, and the Gaussian
+curvature are given by \citet[pp.~5--6, Eqs.~(9.2)--(9.4)]{wheeler2016}.
+The following equivalent angular expression and the length primitive are
+the forms used in the numerical solver. Put
+$t=\sqrt{\rho^2-c^2}$, $A=1+4c^2$, and
+$v=\asinh(2t/\sqrt A)$. Then
+\begin{align}\label{eq:primitives}
+ H(c,t)&=2cv+\operatorname{atan2}\!\left(t,c\sqrt{A+4t^2}\right),\\
+ L(c,t)&=\frac12t\sqrt{A+4t^2}+\frac14Av.
+\end{align}
+They measure angle and length from the turning point. In particular,
+$dL/dt=\sqrt{1+4c^2+4t^2}$. Pole and zero-angle limits are handled separately
+to avoid ambiguity in the angular expression at $c=0$.
+
+Sort endpoint radii as $a\le b$, and let $\alpha\in[0,\pi]$ be the smaller
+angular separation. Define $\alpha_0=H(a,\sqrt{b^2-a^2})$. If
+$\alpha\le\alpha_0$, solve the monotone-radial branch
+\begin{equation}\label{eq:monotone}
+ H(c,\sqrt{b^2-c^2})-H(c,\sqrt{a^2-c^2})=\alpha.
+\end{equation}
+Otherwise solve the turning branch, replacing the difference by a sum. The
+length is the corresponding difference or sum of $L$. The implementation uses
+62 vectorized bisection steps and the parameterization $c=a\sin\phi$,
+$t_a=a\cos\phi$ for numerical stability near a turning point.
+
+\subsection{Why these branches give shortest paths}
+A path whose total angular variation exceeds the smaller endpoint separation
+can be shortened by compressing its angular coordinate while keeping its
+radial profile. In radial arclength coordinates $s_\rho$, the metric is
+$ds_\rho^2+\rho(s_\rho)^2d\theta^2$, and the geodesic equation gives
+$s_\rho''=\rho\rho'\theta'^2\ge0$. Thus a geodesic has no radial maximum and
+at most one radial minimum. It stays within the larger endpoint radius and
+has either the monotone or turning form above.
+
+The monotone-branch angular difference increases with $c$. On the turning
+branch, each endpoint contribution satisfies
+\begin{equation}
+ \frac{d}{dc}H(c,\sqrt{\rho^2-c^2})
+ =2\asinh\!\frac{2\sqrt{\rho^2-c^2}}{\sqrt{1+4c^2}}
+  -\frac{\sqrt{1+4\rho^2}}{\sqrt{\rho^2-c^2}}.
+\end{equation}
+The derivative of this expression is negative for $0<c<\rho$: the first
+term's argument decreases, and the negative second term becomes more negative.
+The turning angular sum is therefore strictly concave, starts at $\pi$ as
+$c\downarrow0$, and ends at $\alpha_0$ at $c=a$. For $\alpha<\pi$ in the
+turning range it crosses the target exactly once. At $\alpha=\pi$, a positive
+root, when present, is shorter than the through-apex meridian. Indeed, along
+the turning family $dL_{\mathrm{total}}/dc=c\,dH_{\mathrm{total}}/dc$;
+integrating by parts between zero and the positive root shows that the length
+difference is negative because the intervening angular sum exceeds $\pi$.
+Otherwise the meridian is selected.
+
+These arguments select minimizing paths rather than arbitrary winding
+geodesics. They, the length primitive, and the MDS asymptotics are supplied
+derivations, rather than claims attributed to Wheeler's discussion of general
+geodesics on the surface.
+
+\subsection{Saddle shooting and continuation}
+The saddle solver integrates \eqref{eq:saddle-ode} in unit base coordinates.
+For $P=(ra,rb,r^2(a^2-b^2))$, the equations for $a,b$ contain $4r^2$ in place
+of 4. An adaptive Dormand--Prince 5(4) integrator carries position and velocity
+together with analytic sensitivities to the two initial velocity components.
+Damped Newton shooting solves the two endpoint constraints. The default
+relative and absolute integration tolerances are $2\times10^{-10}$ and
+$2\times10^{-12}$; the internal endpoint tolerance is $2\times10^{-9}$ in
+unit base coordinates.
+
+If the initial normalized velocity is $(v,w)$ at $(a,b)$ and the affine time
+interval is $[0,1]$, conservation of metric speed gives the path length as
+\begin{equation}
+ r\sqrt{v^2+w^2+4r^2(av-bw)^2}.
+\end{equation}
+Velocities are continued from the preceding radius. Failed solves are retried
+with finer continuation steps in radius and endpoints; unresolved pairs stop
+the experiment. No graph or mesh distances enter this process. The uniqueness
+and convexity argument in Section~\ref{sec:saddle} supplies its global
+shortest-path justification once the endpoint problem is accurately solved.
+
+\section{The ambient-distance paraboloid comparison}\label{app:ambient}
+
+The initial comparison used ambient Euclidean dissimilarities rather than the
+requested geodesics. It is retained because it isolates two distinct effects:
+exact finite-radius reconstruction and apparent narrowing under common scale
+normalization. Figures~\ref{fig:ambient-snapshots}--\ref{fig:ambient-sampling}
+contain all three figures from that comparison.
+
+\subsection{Exact reconstruction in three dimensions}
+For $P_i(r)=(ru_i,r^2q_i)$ with $q_i=\norm{u_i}^2$, set
+$\delta_{ij}=\norm{P_i-P_j}$. Choosing $Y_i=P_i$ gives zero raw stress, hence a
+global optimum. Every zero-stress fit has the same centered Gram matrix
+\begin{equation}
+ -\tfrac12J\delta^{\circ2}J=P_cP_c^T
+\end{equation}
+and is congruent to the original sample, up to translation, rotation, and
+reflection. Classical three-dimensional MDS recovers that Gram matrix exactly.
+The maximum relative coordinate recovery discrepancy over all twenty cases
+was less than $4.83\times10^{-15}$.
+
+For a direct flattening candidate, keep horizontal coordinates fixed and
+replace height by $a r^2q_i$. Its pair distances become
+\begin{equation}
+ \sqrt{r^2\norm{u_i-u_j}^2+a^2r^4(q_i-q_j)^2}.
+\end{equation}
+For any pair of unequal squared radii, decreasing $|a|$ below one creates a
+nonzero residual. The optimum remains $|a|=1$, with the sign representing
+reflection. Two-dimensional MDS, by contrast, is planar by construction and
+cannot exactly realize the distances of a generic affinely three-dimensional
+sample.
+
+\subsection{The normalized limit and population covariance}
+The scaled chord distances satisfy
+\begin{equation}
+ \frac{\delta_{ij}}{r^2}
+ =\sqrt{(q_i-q_j)^2+\frac{\norm{u_i-u_j}^2}{r^2}},\qquad
+ 0\le\frac{\delta_{ij}}{r^2}-|q_i-q_j|\le\frac2r.
+\end{equation}
+The proof of Theorem~\ref{thm:line} applies with candidate stress bound
+$4M/r^2$ instead of $M(1+\pi)^2/r^2$. Thus even exact three-dimensional
+reconstruction approaches a line after scale normalization. This is not a
+change in the original quadratic coefficient.
+
+For the uniform base-disk population, $q$ is uniform on $[0,1]$ and symmetry
+removes the cross-covariances. Therefore
+\begin{equation}
+ \Cov(P)=\diag\!\left(\frac{r^2}4,\frac{r^2}4,\frac{r^4}{12}\right).
+\end{equation}
+The leading variance fraction is
+\begin{equation}
+ \frac{\max\{3,r^2\}}{6+r^2},
+\end{equation}
+which equals $r^2/(r^2+6)$ for $r\ge\sqrt3$. Small patches are approximately
+planar; large normalized patches are approximately linear. This is not
+monotone flattening into a plane.
+
+\subsection{Numerical estimates and absolute versus relative error}
+\input{tables/ambient_sweep.tex}
+At $r=64$, surface-area sampling gives two-dimensional raw-stress relative
+RMSE 0.003688 and leading variance fraction 0.998431. Simply deleting height
+and optimally rescaling the original horizontal coordinates gives relative
+RMSE 0.6415 for the base-disk sample at that radius. This is one specified
+flat-disk candidate, not a lower bound over all planar embeddings.
+
+Between radii 4 and 64, the selected base-disk two-dimensional raw-stress fit
+improves in relative RMSE from 0.1141 to 0.002611, while its absolute RMSE grows
+from 0.8828 to 4.4392. A small relative error on a rapidly expanding distance
+scale does not mean the absolute errors are shrinking.
+
+\section{Validation, provenance, and reproduction}\label{app:reproduction}
+
+\subsection{Checks on the distance solvers and embeddings}
+For the paraboloid, 50 validation pairs across five radii were compared with
+adaptive quadrature of the original angle and length integrals and with
+independent Cartesian geodesic integration. The largest relative length
+disagreement was less than $3.05\times10^{-15}$, angular disagreement less
+than $1.64\times10^{-14}$ radians, and endpoint error divided by disk radius
+less than $3.98\times10^{-11}$. Pole, duplicate, same-meridian, and
+opposite-meridian cases were also checked.
+
+For the saddle, 60 validation comparisons (12 endpoint pairs at five radii)
+were checked using independent SciPy DOP853 integration and boundary-value
+collocation. The maximum relative length disagreement \emph{within that
+validation sample} was $7.87\times10^{-9}$ or less; maximum independent
+endpoint discrepancy divided by disk radius was $8.11\times10^{-7}$ or less.
+The latter is an external validation result and is distinct from the tighter
+internal shooting residual. The maximum relative energy drift on the
+\emph{independently integrated DOP853 trajectories} was less than
+$6.32\times10^{-11}$; this is not a drift measurement of saved production
+trajectories. Exact straight rulings and reflection-axis meridian
+integrals provide additional checks.
+
+\textbf{These maxima are not all-pairs accuracy bounds.} A targeted follow-up
+check selected 24 additional pairs from each actual $r=64$ matrix: the four
+shortest distances, four longest distances, four pairs with an endpoint nearest
+zero height, and twelve new random pairs. All 48 comparisons completed using
+independent DOP853 integration and collocation. Eight initial collocation
+attempts at tolerance $10^{-8}$ exhausted the node limit; retries at
+$10^{-7}$ succeeded. The three most discrepant pairs were then checked at
+three tighter settings, through collocation tolerance $10^{-10}$.
+
+The largest refined relative disagreement was approximately
+$8.48\times10^{-8}$, for surface-area sample indices 58 and 107 (zero based).
+The saved distance is $60.15202505808$ and the refined value is
+$60.15201995534$, an absolute discrepancy of about $5.10\times10^{-6}$.
+Relative disagreements here use the saved pair's own distance as denominator,
+which is useful for short pairs. This discrepancy is still small compared
+with the reported MDS fitting errors, but it demonstrates why a maximum over
+a validation sample must not be stated as an error bound for every pair.
+
+Every full geodesic matrix was checked against ambient chord lower bounds,
+explicit surface-path upper bounds, and all triangle inequalities. The saddle
+also passed the tree bounds. The triangle-inequality tolerance was $10^{-8}$
+times RMS input distance for the paraboloid and $10^{-7}$ for the saddle.
+The default saddle sweep contains 573,600 unordered pair distances across
+its twenty cases, and so does the paraboloid sweep.
+
+The analytic raw-stress gradient was independently checked by finite differences
+in the ambient experiment, with an $L^2$ discrepancy of $1.82\times10^{-8}$.
+The largest selected normalized-objective gradient components were below
+$4.66\times10^{-9}$ for ambient two-dimensional fits,
+$6.58\times10^{-9}$ for paraboloid geodesic fits, and
+$4.95\times10^{-9}$ for saddle geodesic fits. Selected three-dimensional raw
+fits were checked to have no larger raw stress than their two-dimensional
+and classical three-dimensional counterparts, within numerical tolerance.
+These comparisons are checks on the recorded solutions, not proofs that a
+global optimizer was found.
+
+\subsection{Reproduction without rerunning the analysis for prose changes}
+Result generation and report generation are separate. The report consumes
+the existing CSV, NPZ, vector-figure, and manifest artifacts. Its tables are
+generated directly from the CSV results. The axis-scaling illustration is a
+rendering of the analytic saddle equation and does not rerun MDS.
+
+From the repository root, the complete analysis and report can be reproduced by
+the following targets:
+\begin{quote}\small\ttfamily
+make -C tools/experiments/paraboloid-mmds-radius run\\
+make -C tools/experiments/paraboloid-mmds-radius geodesic\\
+make -C tools/experiments/paraboloid-mmds-radius antipodal\\
+make -C tools/experiments/saddle-mmds-radius run\\
+make -C tools/experiments/mds-audit-diagnostics run\\
+make -C tools/reports/geodesic-mds pdf
+\end{quote}
+The targeted follow-up checks reproduce the additional geodesic comparisons,
+all-radius optimizer spreads, sixteen extra paraboloid starts, transverse
+Hessians, and the population-sector eigenvalues. They read the saved experiment
+outputs and do not replace their matrices, coordinates, or selected fits.
+The report build verifies these diagnostic results as well as the original
+experiment bundles, checksums its consumed
+inputs, compiles LaTeX, and checks reference and citation resolution. It
+records a build-generated timestamp in the \texttt{America/New\_York} timezone.
+All four external citations have BibTeX metadata and claim-level source
+evidence in the accompanying \texttt{citation\_verification.html}.
+
+The recorded numerical environment uses Python 3.9.6, NumPy 1.24.4, SciPy 1.9.1,
+Matplotlib 3.7.5, and Numba 0.57.1 for saddle geodesics. Actual versions and
+checksums are preserved in the experiment and report manifests. The experiments
+do not change the R package or its public behavior.
+
+\clearpage
+\section{Complete figure atlas}\label{app:figures}
+
+The main-text comparison and the following fourteen plates include all fifteen
+distinct figures generated during the investigation. A PNG and PDF export of
+the same plot are one figure;
+vector versions are used whenever available. The final scaling illustration
+has been regenerated as a vector figure with the same analytic content and
+less crowded ticks. Larger plate pages preserve the native label sizes.
+
+Figures~\ref{fig:p3d}--\ref{fig:pshape} concern the requested paraboloid
+geodesics. Figures~\ref{fig:s3d}--\ref{fig:sshape} concern the saddle; the main-text
+Figure~\ref{fig:scompare} compares it with the paraboloid. Figure~\ref{fig:scaling} resolves the axis-scaling
+question. The final three figures are the ambient-distance comparison and
+must not be interpreted as geodesic results.
+
+\plate{geodesic_3d_snapshots.pdf}{fig:p3d}{Paraboloid with smooth geodesic input:
+original coordinates, classical three-dimensional MDS, and raw-stress
+three-dimensional MDS at four radii. The sample is uniform in the base disk,
+$n=240$. Color denotes squared base radius divided by $r^2$. Each case is
+centered, rigidly aligned, and divided by its RMS input geodesic distance;
+axes use equal units and common limits. Large-radius narrowing is a relative
+scale effect, not loss of the original surface's domain.}
+
+\plate{geodesic_diagnostics.pdf}{fig:pdiag}{Paraboloid geodesic radius sweep:
+relative distance RMSE and singular-value ratios for classical 3D, raw-stress
+3D, and raw-stress 2D MDS. Definitions are in Section~\ref{sec:definitions}.
+The falling $s_2/s_1$ at large radius identifies the line limit; $s_3/s_2$
+remaining substantial means the two smaller directions shrink together.
+The error curves compare objectives and imposed output dimensions.}
+
+\plate{geodesic_2d_snapshots.pdf}{fig:p2d}{Paraboloid geodesic raw-stress MDS
+when two-dimensional output is imposed. Coordinates are shown in principal
+component (PC) axes and divided by RMS input geodesic distance, with equal
+spatial units. Color denotes squared normalized base radius. Radial ordering
+becomes the dominant separation at large radius.}
+
+\plate{geodesic_sampling.pdf}{fig:psampling}{Paraboloid geodesic raw-stress
+3D MDS under uniform base-disk and uniform surface-area sampling. Each curve
+uses coupled quantiles across radius. Both measures show decreasing relative
+distance error and increasing concentration toward a line at large radius;
+their numerical rates differ. These are single-sample curves, not uncertainty
+intervals.}
+
+\plate{geodesic_shape.pdf}{fig:pshape}{Paraboloid shape regression after rigid
+alignment without scale fitting: $z=a(x^2+y^2)+bx+cy+d$. The original coefficient
+is one. Classical and raw-stress MDS give shallower fitted shapes, but the
+coefficients do not tend toward zero over the tested radii. The right panel
+uses a focused $R^2$ scale beginning at 0.9. The regression describes a point
+cloud; it does not identify an intrinsic curvature.}
+
+\plate{saddle_3d_snapshots.pdf}{fig:s3d}{Saddle with smooth geodesic input:
+original coordinates, classical 3D MDS, and raw-stress 3D MDS. Colors identify
+the four branches defined in Section~\ref{sec:saddle}. Each case is centered,
+rigidly aligned, and divided by its RMS geodesic distance, with equal spatial
+units and common limits. The original ambient display narrows, while MDS
+separates geodesically distant branches in three dimensions.}
+
+\plate{saddle_diagnostics.pdf}{fig:sdiag}{Saddle geodesic radius sweep.
+Relative distance RMSE compares classical 3D, raw-stress 3D, and raw-stress 2D
+fits. Neither $s_2/s_1$ nor $s_3/s_2$ tends toward zero for the 3D fits over
+the large-radius range. The input approaches a non-Euclidean tree metric,
+so a positive limiting relative fitting error is compatible with the theory.}
+
+\plate{saddle_2d_snapshots.pdf}{fig:s2d}{Saddle geodesic raw-stress MDS with
+two-dimensional output imposed. The coordinates use principal-component
+axes, equal units, and RMS input-distance normalization. Four narrow branches
+develop in the plane. Their planar appearance is an output constraint;
+the corresponding three-dimensional fit retains an additional substantial
+direction and achieves lower stress.}
+
+\plate{saddle_sampling.pdf}{fig:ssampling}{Saddle geodesic raw-stress 3D MDS
+under both sampling measures. Over the tested range, relative distance error
+appears to approach different positive levels, while the third-to-second singular-value ratio remains near
+one. Nonplanarity is therefore not an artifact of choosing uniform base-disk
+sampling rather than uniform surface area.}
+
+\plate{saddle_shape.pdf}{fig:sshape}{General saddle quadratic fit
+$z=ax^2+bxy+cy^2+dx+ey+f$ after rigid alignment. The coefficient norm is
+$\sqrt{a^2+c^2+b^2/2}$, with original value $\sqrt2$. Its decrease does not
+imply a plane: coefficients carry inverse-length units, while the embedding
+expands. The accompanying $R^2$ measures only the descriptive quadratic fit.}
+
+\plate{saddle_axis_scaling.pdf}{fig:scaling}{The same full analytic saddle at
+$r=32$, including its disk boundary. Left: all coordinates are divided by
+$r^2$, preserving their relative units and producing a narrow ambient view.
+Right: horizontal coordinates are divided by $r$ and height by $r^2$,
+recovering the familiar graph $Z=X^2-Y^2$ on the unit disk. The right-hand
+scaling changes relative lengths; it is useful for displaying the surface,
+but is not the metric normalization used for MDS comparisons.}
+
+\plate{embedding_snapshots.pdf}{fig:ambient-snapshots}{Ambient-distance
+comparison only: exact 3D reconstruction and raw-stress 2D MDS of the paraboloid.
+The inputs here are Euclidean chords, not smooth geodesics. Colors identify
+squared normalized base radius. Common RMS input-distance scaling makes the
+exactly reconstructed 3D cloud look narrow at large $r$, even though it is
+congruent to the original sample in its original units.}
+
+\plate{radius_diagnostics.pdf}{fig:ambient-diag}{Ambient-distance comparison
+only: relative distance RMSE for 2D methods and a height-line candidate,
+alongside leading principal-component variance fractions. The population
+curve is $\max\{3,r^2\}/(6+r^2)$ under uniform base-disk sampling. The exact
+3D reconstruction has zero stress to rounding and still approaches a line
+after scale normalization.}
+
+\plate{sampling_comparison.pdf}{fig:ambient-sampling}{Ambient-distance
+comparison only: the radius dependence of two-dimensional raw-stress MDS
+under uniform base-disk and uniform surface-area sampling. The two measures
+give the same qualitative large-radius line concentration. Relative error
+is normalized by the RMS chord distance, so it need not track absolute
+distance error.}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

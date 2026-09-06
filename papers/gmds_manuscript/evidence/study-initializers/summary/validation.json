@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "graphs": 25,
+  "primary_candidates": 125,
+  "smacof_starts": 150,
+  "surface_rows": 280,
+  "additional_fits": 15,
+  "max_score_recomputation_error": 0,
+  "max_scale_identity_error": 3.3003e-16,
+  "max_package_score_difference": 0,
+  "max_independent_path_difference": 8.8818e-16,
+  "max_baseline_score_difference": 8.2583e-11,
+  "original_inputs_unchanged": true,
+  "verified_at": "2026-09-05 14:53:26 EDT"
+}

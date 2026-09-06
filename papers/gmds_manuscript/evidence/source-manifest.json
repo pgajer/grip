@@ -1,0 +1,277 @@
+{
+  "repository": "https://github.com/pgajer/grip",
+  "commit": "a43edfef1bbee70e825e790677abb35f12dfff53",
+  "note": "Independent studies; do not pool settings or reused samples as independent replications.",
+  "files": [
+    {
+      "study": "surface-theory",
+      "source_path": "tools/reports/geodesic-mds/report.tex",
+      "export_path": "surface-theory/report.tex",
+      "source_bytes": 69470,
+      "source_sha256": "fdd59fa1b61d15c51feef23d246ab7c11b289f56ad9f476bc50e29380dab76c0",
+      "export_bytes": 69470,
+      "export_sha256": "fdd59fa1b61d15c51feef23d246ab7c11b289f56ad9f476bc50e29380dab76c0"
+    },
+    {
+      "study": "surface-theory",
+      "source_path": "tools/reports/geodesic-mds/references.bib",
+      "export_path": "surface-theory/references.bib",
+      "source_bytes": 1485,
+      "source_sha256": "54f157177b96701f474971fe8d5883ec85db47fb024a5bc02841ceb8669bc103",
+      "export_bytes": 1485,
+      "export_sha256": "54f157177b96701f474971fe8d5883ec85db47fb024a5bc02841ceb8669bc103"
+    },
+    {
+      "study": "surface-theory",
+      "source_path": "tools/reports/geodesic-mds/citation_verification.html",
+      "export_path": "surface-theory/citation_verification.html",
+      "source_bytes": 7596,
+      "source_sha256": "c1b9bcb3e9d5f57ce93063c3e9870116a0845823eec80ec2de6a69ef266bbfeb",
+      "export_bytes": 7596,
+      "export_sha256": "c1b9bcb3e9d5f57ce93063c3e9870116a0845823eec80ec2de6a69ef266bbfeb"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/README.md",
+      "export_path": "study-initializers/README.md",
+      "source_bytes": 10756,
+      "source_sha256": "f262d71f57e4a629c37e28cbb0bab1d478a130263cab641c4958e5a9e7a08f20",
+      "export_bytes": 10756,
+      "export_sha256": "f262d71f57e4a629c37e28cbb0bab1d478a130263cab641c4958e5a9e7a08f20"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/results.md",
+      "export_path": "study-initializers/summary/results.md",
+      "source_bytes": 8516,
+      "source_sha256": "34cba848a8c02654e6a5c6477818f5966c65095339ca453b8ded247f51a997e2",
+      "export_bytes": 8516,
+      "export_sha256": "34cba848a8c02654e6a5c6477818f5966c65095339ca453b8ded247f51a997e2"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/validation.json",
+      "export_path": "study-initializers/summary/validation.json",
+      "source_bytes": 436,
+      "source_sha256": "f53bef1e8be5c7c347879342b4c30d0c66a71e02d09edc2e67c9547a78dd56f1",
+      "export_bytes": 436,
+      "export_sha256": "f53bef1e8be5c7c347879342b4c30d0c66a71e02d09edc2e67c9547a78dd56f1"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/scores.csv",
+      "export_path": "study-initializers/summary/scores.csv.gz",
+      "source_bytes": 43986,
+      "source_sha256": "9ec5ed004bb3b4e40b8cd562437d365a2962f82a19fc0657dfb4d1b00da47ace",
+      "export_bytes": 16542,
+      "export_sha256": "9996a95b7b8ea70bde714d35683cfb5e5493c22352eecbe482de84b19600148f"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/selected-scores-percent.csv",
+      "export_path": "study-initializers/summary/selected-scores-percent.csv.gz",
+      "source_bytes": 2268,
+      "source_sha256": "5a176884b3b190c7e2e985a5603601af974c2987f0252f740c6cad4531352dbf",
+      "export_bytes": 1108,
+      "export_sha256": "d1d7d279b16ae79cb9a195b322715eaf9cd6401c73b1d15d842858d7a22e003c"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/graph-selection.csv",
+      "export_path": "study-initializers/summary/graph-selection.csv.gz",
+      "source_bytes": 7328,
+      "source_sha256": "67087542da8f77902266ab841a0ac8cb5036191a2e49542689d8bd1aac0779c4",
+      "export_bytes": 3029,
+      "export_sha256": "9fbc3ae2a5c6bcd39e420cbcc00ae6970c945bfb98f7ac26b0f8b6bc7d65a345"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/graph-statistics.csv",
+      "export_path": "study-initializers/summary/graph-statistics.csv.gz",
+      "source_bytes": 3440,
+      "source_sha256": "4481796b1c157cd0aa33e943c437326d1df080383e772bed2dd63c5b5b42a96b",
+      "export_bytes": 1489,
+      "export_sha256": "25a7670a8bdb6633958c54b1e7802829f48ba801cf0c896c297986f76e1519de"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/starts.csv",
+      "export_path": "study-initializers/summary/starts.csv.gz",
+      "source_bytes": 23368,
+      "source_sha256": "c85fecb3725339e04d7c7b46c9e14b4b0eaa5c956fa2bfde4602351da80b7bb4",
+      "export_bytes": 7397,
+      "export_sha256": "9beb989e701c03007edfbfcff579b6e8d3fb37982db2ee9be37ac5830f7cf63b"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/surface-scores.csv",
+      "export_path": "study-initializers/summary/surface-scores.csv.gz",
+      "source_bytes": 57040,
+      "source_sha256": "a29fda5d560d94ca789c2a85bc1239deb306e8984b67a61287d47f85af38574c",
+      "export_bytes": 17760,
+      "export_sha256": "d2c398ac07a92d9d375c4dbe11452a3598ebba090b88547e1f8cfa3b244f9975"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/additional-budget-scores.csv",
+      "export_path": "study-initializers/summary/additional-budget-scores.csv.gz",
+      "source_bytes": 5390,
+      "source_sha256": "bd4df33386efdac47f8390a7389a07d2504a49bebe4b993909672c8e0582a1b5",
+      "export_bytes": 2424,
+      "export_sha256": "a1c9ff3ab94ef2437538987a01de3cb9d70307c8164b7b845c9de91d2eace881"
+    },
+    {
+      "study": "study-initializers",
+      "source_path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/summary/manifest.json",
+      "export_path": "study-initializers/summary/manifest.json",
+      "source_bytes": 2771,
+      "source_sha256": "d0d85b825b85633275f3c7a204cb02d487758a38456d3d9c56574dd1621740ec",
+      "export_bytes": 2771,
+      "export_sha256": "d0d85b825b85633275f3c7a204cb02d487758a38456d3d9c56574dd1621740ec"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/README.md",
+      "export_path": "study-radius/README.md",
+      "source_bytes": 7973,
+      "source_sha256": "bb50cc82ba494ce4b43fa6d0cf2020f2f49eeaf7ad8880bae407fdf206be9d17",
+      "export_bytes": 7973,
+      "export_sha256": "bb50cc82ba494ce4b43fa6d0cf2020f2f49eeaf7ad8880bae407fdf206be9d17"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/PROTOCOL.md",
+      "export_path": "study-radius/PROTOCOL.md",
+      "source_bytes": 7822,
+      "source_sha256": "d82d3bcffe93ef1046383d526604db7b4278d71df8f6112c8182d0d855a220a5",
+      "export_bytes": 7822,
+      "export_sha256": "d82d3bcffe93ef1046383d526604db7b4278d71df8f6112c8182d0d855a220a5"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/PILOT.md",
+      "export_path": "study-radius/PILOT.md",
+      "source_bytes": 2308,
+      "source_sha256": "03d374b94163197e31e398c0a743e9127a66403e4340f4d09439961f2113479d",
+      "export_bytes": 2308,
+      "export_sha256": "03d374b94163197e31e398c0a743e9127a66403e4340f4d09439961f2113479d"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/RESULTS.md",
+      "export_path": "study-radius/summary/RESULTS.md",
+      "source_bytes": 4176,
+      "source_sha256": "067bc9b7b27199f03a2fc6606885a6d62f2e9629d30b31472917d64d3b6c5927",
+      "export_bytes": 4176,
+      "export_sha256": "067bc9b7b27199f03a2fc6606885a6d62f2e9629d30b31472917d64d3b6c5927"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/validation.json",
+      "export_path": "study-radius/summary/validation.json",
+      "source_bytes": 536,
+      "source_sha256": "c52b1b800c2e177d84de57a03a30bd4efe8da807403ea8e8e40d4429dd2dbd85",
+      "export_bytes": 536,
+      "export_sha256": "c52b1b800c2e177d84de57a03a30bd4efe8da807403ea8e8e40d4429dd2dbd85"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/scores.csv",
+      "export_path": "study-radius/summary/scores.csv.gz",
+      "source_bytes": 7276531,
+      "source_sha256": "c75b407b7107304c6a615d54113d47e1039cb17efdb4d31455db737fea29513f",
+      "export_bytes": 2217872,
+      "export_sha256": "d4b70190a7be2055836faa17ea2527697f92ce7182fe6eb26c7337fcfe97f66f"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/graphs.csv",
+      "export_path": "study-radius/summary/graphs.csv.gz",
+      "source_bytes": 327956,
+      "source_sha256": "5db1b5d6bc0284e5e71f934e86bbbd4fc7d7ba845635d65216ee08418b3e6097",
+      "export_bytes": 102507,
+      "export_sha256": "ceade0308556d7bfbf97b0726b8613a1bc3e4e48709015bb69ecb7cc316e97ef"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/starts.csv",
+      "export_path": "study-radius/summary/starts.csv.gz",
+      "source_bytes": 780190,
+      "source_sha256": "5c5d7eec1289b0349a42f8141a43445dd7f01f10360b4547973d8880f5b0a074",
+      "export_bytes": 161796,
+      "export_sha256": "26a148b491dab402b4f29c9dd8f510d751574e2ace35ea53eb60d112ed62e3bb"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/initializer-comparison.csv",
+      "export_path": "study-radius/summary/initializer-comparison.csv.gz",
+      "source_bytes": 1662,
+      "source_sha256": "9ac10c9562d3f40e6c1cd854c4cabce7ef17eea38eb3f17c7f0279d49c3aba13",
+      "export_bytes": 693,
+      "export_sha256": "73db4b11647172c265499a1c3d9781cfd5863b448fc12fa9d2d433c5b526e02d"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/size-comparison.csv",
+      "export_path": "study-radius/summary/size-comparison.csv.gz",
+      "source_bytes": 66249,
+      "source_sha256": "ecb0212f4a0f45f4783ab21cc7db2afb9d180351b0cae25a9acc6300d0a82f0f",
+      "export_bytes": 21194,
+      "export_sha256": "f8c84619f5e5fdee00fc551bb9a378e4cbd59fbd7a810fe3b42143d6a346a92e"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/scale-by-radius.csv",
+      "export_path": "study-radius/summary/scale-by-radius.csv.gz",
+      "source_bytes": 73292,
+      "source_sha256": "018d46cad8cb363e6eba730ba58595350a1067a7d240133b1618b81a30a7353b",
+      "export_bytes": 19104,
+      "export_sha256": "b56431ed8761c9f7d837ccc2f7719152a93e54821f76c09daa2085dee5f56697"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/locality.csv",
+      "export_path": "study-radius/summary/locality.csv.gz",
+      "source_bytes": 320040,
+      "source_sha256": "97b0935a2dc1668ecbfb23405a93458e3bc51051485d32864e811de941e4f782",
+      "export_bytes": 74417,
+      "export_sha256": "0e3b6928e9f897f75929ffe377a062b52e42b9d8672cf7ac8b9dcc95137db10a"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/snapshot-coordinates.csv",
+      "export_path": "study-radius/summary/snapshot-coordinates.csv.gz",
+      "source_bytes": 5761282,
+      "source_sha256": "aabd4306d8856727fef47e9332ab371efad1f484c6d2ed448bdb86f368fc7846",
+      "export_bytes": 1452368,
+      "export_sha256": "e2479aae8dd116f1b4d0e28e52eb51b387fd73f20c35008ecdfb43a20a15142a"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/optimizer-sensitivity.csv",
+      "export_path": "study-radius/summary/optimizer-sensitivity.csv.gz",
+      "source_bytes": 229153,
+      "source_sha256": "f1d76d83b071a3beeae652e91d2e204532c8cb81a93f5437c5e106d1f67a273d",
+      "export_bytes": 55248,
+      "export_sha256": "4b1b5e47c4640afda0f45ee8973bfbf4cb79a28a7b536ae5feebc286b79d916a"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/objective-validation.csv",
+      "export_path": "study-radius/summary/objective-validation.csv.gz",
+      "source_bytes": 20727,
+      "source_sha256": "d943b138ebab62e3b800d2a0472a00768a384bdc7abb1eeac4c18221df722a04",
+      "export_bytes": 5254,
+      "export_sha256": "90b9e39cc25d5e0472aec9de3cff733ce5e3fc8ea403c1b6f9416bfcac7e8d59"
+    },
+    {
+      "study": "study-radius",
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinate-validation.csv",
+      "export_path": "study-radius/summary/coordinate-validation.csv.gz",
+      "source_bytes": 65,
+      "source_sha256": "04a869d57cfd554d7eeccbe32127dd7154206876bee4ae15d4da10584dab78f7",
+      "export_bytes": 85,
+      "export_sha256": "7c821957b7e46d9286252e140c566fa99ed3a86152e204432d0a29ea180e4ca6"
+    }
+  ]
+}

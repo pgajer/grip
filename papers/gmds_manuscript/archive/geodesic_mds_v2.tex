@@ -1,0 +1,783 @@
+\documentclass[11pt]{article}
+
+\addtolength{\oddsidemargin}{-.5in}%
+\addtolength{\evensidemargin}{-1in}%
+\addtolength{\textwidth}{1in}%
+\addtolength{\textheight}{1.7in}%
+\addtolength{\topmargin}{-1in}%
+
+%% Standard packages
+\usepackage{amsmath, amssymb}
+\usepackage{amsthm}
+\usepackage{caption}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{natbib}
+\providecommand{\theHalgorithm}{\arabic{algorithm}}
+\providecommand{\theHfigure}{\arabic{figure}}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}[definition]{Proposition}
+\newtheorem{remark}[definition]{Remark}
+
+\newcommand{\acks}[1]{%
+  \section*{Acknowledgments}%
+  #1%
+}
+
+%% Notation macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bZ}{\mathbf{Z}}
+\newcommand{\bd}{\mathbf{d}}
+\newcommand{\bD}{\mathbf{D}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bU}{\mathbf{U}}
+\newcommand{\bV}{\mathbf{V}}
+\newcommand{\bW}{\mathbf{W}}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\innerprod}[2]{\langle #1, #2 \rangle}
+\newcommand{\dgeo}{d^{\mathrm{geo}}}
+\newcommand{\demb}{d^{\mathrm{emb}}}
+\newcommand{\dknn}{d^{k\text{-NN}}}
+\newcommand{\Gk}{G_k}
+\newcommand{\Stress}{\mathrm{Stress}}
+\newcommand{\StressOne}{S_1}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\placeholderfigurebox}[2][0.9\linewidth]{%
+  \fbox{\parbox[c][0.18\textheight][c]{#1}{\centering\footnotesize #2}}%
+}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\begin{document}
+
+\title{Geodesic Multidimensional Scaling:\\
+       Self-Consistent Dimensionality Reduction\\ via Graph Geodesic Distances}
+
+\author{Pawel Gajer and Jacques Ravel}
+% \author{\name Pawel Gajer \email pgajer@gmail.com \\
+% \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
+% Baltimore, Maryland, USA
+% \AND
+% \name Jacques Ravel \\
+% \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
+% Baltimore, Maryland, USA}
+
+\maketitle
+
+%% ============================================================
+
+The central task of \emph{multidimensional scaling} (MDS) is to find a
+configuration of $n$ points $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times
+  d}$ in a low-dimensional Euclidean space $\R^d$ such that the Euclidean
+distances $\norm{\bz_i - \bz_j}$ are as close as possible to a given $n
+\times n$ symmetric, non-negative dissimilarity matrix $\Delta = (\delta_{ij})$
+\citep{torgerson1952multidimensional, kruskal1964multidimensional,
+  borg2005modern, cox2000multidimensional}.  The criterion of closeness is made
+precise by a \emph{stress} function, and the embedding is obtained by
+minimizing this stress.  MDS and its relatives are among the oldest and most
+widely used tools in multivariate statistics, visualization, and machine
+learning \citep{shepard1962analysis, sammon1969nonlinear,
+  vandermaaten2008tsne, mcinnes2018umap}.
+
+When the input data are given as a matrix $\bX \in \R^{n \times m}$ of $n$
+observations in a high-dimensional ambient space $\R^m$, the most common choice
+is $\delta_{ij} = \norm{\bx_i - \bx_j}_{\R^m}$, the Euclidean distance in the
+original space. This is appropriate when the data are believed to be sampled
+uniformly from a convex region of a linear subspace of $\R^m$, so that Euclidean
+distances faithfully reflect intrinsic structure. However, when the data has a
+complex structure (lies on or near a nonlinear manifold embedded in $\R^m$ or is
+even more complex singular space), straight-line Euclidean distances are poor
+proxies for the intrinsic distances that govern the geometry of the data: two
+points near opposite ends of a curved surface may be close in ambient Euclidean
+distance but far apart along the surface.
+
+[A figure showing a 3d embedding of a iknn graph associated with a 16S vaginal
+or gut dataset - Illustration of complex data structure showing why Euclidean
+distance does not make sense to measure distance between points in $\R^m$ that
+are highly structured forming corridors and other complex structures]
+
+This limitation motivated \emph{Isomap} \citep{tenenbaum2000global} that
+approximates the intrinsic geodesic distance between points by constructing a
+$k$-nearest-neighbor ($k$-NN) graph on the data, computing all-pairs shortest
+paths on this graph (weighted by Euclidean edge lengths), and then feeding these
+graph-geodesic dissimilarities $\delta_{ij} = \dknn(\bx_i, \bx_j)$ into
+classical MDS. For data lying on a smooth, sufficiently sampled Riemannian
+manifold, the graph-geodesic distances converge to the true manifold geodesics
+as $n \to \infty$ \citep{bernstein2000graph, tenenbaum2000global}, and the
+resulting embedding recovers the intrinsic geometry with high fidelity.
+
+Despite this advance, Isomap retains a fundamental asymmetry that has not
+previously been identified as a source of systematic distortion.  On the
+\emph{input} side, distances are geodesic---shortest paths through the data
+graph.  On the \emph{output} side, the stress function measures faithfulness
+via \emph{Euclidean} distances between embedded points.  This means that
+Isomap optimizes an embedding in which the distance between $\bz_i$ and
+$\bz_j$ is the straight-line distance $\norm{\bz_i - \bz_j}$, not the
+embedded length of the corresponding input-side geodesic.
+
+The comparison below summarizes the distinction between standard MDS,
+Isomap, and the proposed Geodesic MDS in terms of the distance used on
+the input and output sides of the embedding problem.
+
+\begin{center}
+  \small
+  \begin{tabular}{@{}p{0.19\textwidth}p{0.34\textwidth}p{0.34\textwidth}@{}}
+    \toprule
+    Method & Input dissimilarity $\delta_{ij}$ & Output distance $d_{ij}$ \\
+    \midrule
+    Standard MDS & Euclidean $\norm{\cdot}_{\R^m}$ & Euclidean $\norm{\cdot}_{\R^d}$ \\
+    Isomap & $d_{G_k}$ (graph geodesic) & Euclidean $\norm{\cdot}_{\R^d}$ \\
+    Geodesic MDS & $d_{G_k}$ (graph geodesic) & embedded length of a fixed input geodesic \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+For data living on a smooth manifold with slowly varying curvature this
+asymmetry causes only a small error: nearby embedded points have
+approximately equal Euclidean and geodesic distances.  But for data with
+genuine graph or tree structure---where the topology enforces that all
+paths between certain pairs of points must pass through bottleneck
+vertices---the Euclidean output distance is a systematic \emph{underestimate}
+of the embedded length of the relevant graph geodesic (by the triangle inequality, with
+equality only when points are collinear in the embedding space).
+
+Consider a concrete example: a star graph with center $c$ and three arm
+tips $v_1, v_2, v_3$, each arm of unit length.  The graph distance between
+$v_1$ and $v_2$ is $\delta(v_1, v_2) = 2$ (through $c$).  Any faithful
+embedding must respect the topological constraint that the only path from
+$v_1$ to $v_2$ passes through $c$.  Standard MDS and Isomap both try to
+place $\bz_{v_1}$ and $\bz_{v_2}$ at Euclidean distance $2$ apart, which
+is perfectly achievable in $\R^2$---but doing so forces the embedded arms
+to be nearly collinear, misrepresenting the star topology.  The \emph{correct}
+criterion is that the \emph{path-length distance along the embedded arms}
+from $\bz_{v_1}$ to $\bz_{v_2}$ equals $\norm{\bz_{v_1} - \bz_c} +
+\norm{\bz_c - \bz_{v_2}} = 2$, which is compatible with any angular
+arrangement of the arms and correctly reflects the star structure.
+Figure~\ref{fig:star_bias} is intended to make this contrast visually explicit.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_star_bias.pdf}
+  \caption{Branching metrics expose the output-side inconsistency.  In a star graph, the graph distance between leaves is realized through the center.  Matching this distance with Euclidean output distances biases the embedding toward collinearity, whereas measuring output fidelity by the embedded lengths of the corresponding input geodesics preserves the correct topological structure.}
+  \label{fig:star_bias}
+\end{figure}
+
+
+%% ============================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{Classical MDS}
+\label{sec:classical_mds}
+
+Let $\Delta = (\delta_{ij})$ be an $n \times n$ symmetric dissimilarity
+matrix with $\delta_{ii} = 0$.  Classical MDS
+\citep{torgerson1952multidimensional, young1938discussion} seeks a
+configuration $\bZ \in \R^{n \times d}$ such that
+$\norm{\bz_i - \bz_j} \approx \delta_{ij}$.  When $\Delta$ contains
+squared Euclidean distances, the solution is obtained by eigendecomposition
+of the \emph{double-centered} Gram matrix
+\begin{equation}
+  \bB = -\tfrac{1}{2} \bJ \bD^{(2)} \bJ,
+  \label{eq:gram}
+\end{equation}
+where $\bD^{(2)}_{ij} = \delta_{ij}^2$ and
+$\bJ = \bI_n - n^{-1}\mathbf{1}\mathbf{1}^\top$ is the centering matrix.
+The $d$-dimensional embedding is
+$\bZ = \bU_d \Lambda_d^{1/2}$, where $\bU_d$ and $\Lambda_d$ contain the
+$d$ largest eigenvectors and eigenvalues of $\bB$
+\citep{eckart1936approximation, gower1966some}.
+This is also known as \emph{principal coordinate analysis} (PCoA)
+\citep{gower1966some}.  Classical MDS is a closed-form, non-iterative
+method; it yields an exact isometric embedding when $\bB$ is positive
+semidefinite (equivalently, when $\Delta$ satisfies Euclidean metric
+conditions \citep{schoenberg1935remarks}).
+
+\subsection{Metric MDS and Stress}
+\label{sec:metric_mds}
+
+When $\Delta$ is not a Euclidean distance matrix, classical MDS may place
+negative eigenvalues in $\bB$, and the embedding is approximate.  Metric
+MDS \citep{kruskal1964multidimensional} frames the problem explicitly as
+an optimization: find $\bZ \in \R^{n \times d}$ minimizing a \emph{stress}
+function that measures discrepancy between embedded distances and input
+dissimilarities.
+
+\paragraph{Kruskal's Stress-1.}
+The most widely used criterion is Kruskal's \emph{Stress-1}
+\citep{kruskal1964multidimensional}:
+\begin{equation}
+  \StressOne(\bZ) = \sqrt{
+    \frac{\displaystyle\sum_{i < j}
+      \bigl(d_{ij}(\bZ) - \delta_{ij}\bigr)^2}
+    {\displaystyle\sum_{i < j} d_{ij}(\bZ)^2}
+  },
+  \label{eq:stress1}
+\end{equation}
+where $d_{ij}(\bZ) = \norm{\bz_i - \bz_j}$ is the Euclidean distance
+between embedded points.  The normalization by $\sum_{i<j} d_{ij}^2$
+makes $\StressOne$ invariant to uniform scaling of $\bZ$; it takes values
+in $[0, 1]$, with 0 indicating a perfect isometric embedding.  An
+alternative normalization divides by $\sum_{i<j} \delta_{ij}^2$
+\citep{borg2005modern}, and is sometimes called Stress-1r; both are in
+common use.
+
+\paragraph{Weighted stress.}
+A generalization incorporates pair-specific weights $w_{ij} \geq 0$:
+\begin{equation}
+  \sigma_w(\bZ)
+  = \sum_{i < j} w_{ij}\,\bigl(d_{ij}(\bZ) - \delta_{ij}\bigr)^2.
+  \label{eq:weighted_stress}
+\end{equation}
+Common choices are $w_{ij} = \delta_{ij}^{-2}$ (relative weighting,
+emphasizing small distances) and $w_{ij} = 1$ (uniform).  The unweighted
+raw stress $\sigma(\bZ) = \sum_{i<j}(d_{ij}(\bZ) - \delta_{ij})^2$
+is the numerator of $\StressOne^2$ up to scaling.
+
+\paragraph{Qualitative interpretation.}
+Empirical guidelines due to \citet{kruskal1964nonmetric} and
+\citet{borg2005modern} suggest that $\StressOne < 0.05$ indicates an
+excellent fit, $0.05$--$0.10$ a good fit, $0.10$--$0.20$ a fair fit, and
+$> 0.20$ a poor fit, though these thresholds depend on $n$ and the
+structure of $\Delta$.
+
+\subsection{SMACOF}
+\label{sec:smacof}
+
+Direct minimization of $\sigma$ or $\StressOne$ is a non-convex problem
+with many local minima.  The \emph{Scaling by MAjorizing a COmplicated
+  Function} (SMACOF) algorithm \citep{deleeuw1977applications,
+  deleeuw2009multidimensional} is the dominant approach.  SMACOF exploits
+the identity
+\begin{equation}
+  \sigma(\bZ) = \sum_{i<j}w_{ij}\delta_{ij}^2
+  - 2\,\mathrm{tr}(\bZ^\top \bV\,\bZ)
+  + \mathrm{tr}(\bZ^\top \bW\,\bZ),
+  \label{eq:smacof_decomp}
+\end{equation}
+where $\bW_{ii} = \sum_{j \neq i} w_{ij}$, $\bW_{ij} = -w_{ij}$ ($i \neq
+j$), and $\bV$ is the Guttman transform of $\bZ$:
+\begin{equation}
+  \bV(\bZ)_{ij} = -w_{ij}\,\frac{\delta_{ij}}{d_{ij}(\bZ)}\quad(i \neq j),
+  \qquad
+  \bV(\bZ)_{ii} = -\sum_{j \neq i} \bV(\bZ)_{ij}.
+  \label{eq:guttman}
+\end{equation}
+The majorization step replaces the complicated function of $d_{ij}(\bZ)$
+by a quadratic upper bound that is tight at the current iterate $\bZ^{(t)}$,
+yielding the closed-form Guttman update
+\begin{equation}
+  \bZ^{(t+1)} = \bW^+ \bV(\bZ^{(t)})\,\bZ^{(t)},
+  \label{eq:guttman_update}
+\end{equation}
+where $\bW^+$ is the Moore-Penrose pseudoinverse of $\bW$.  SMACOF
+guarantees monotone decrease of $\sigma$ at each iteration and converges
+to a stationary point \citep{deleeuw2009multidimensional}.  Multiple random
+restarts are used in practice to mitigate local minima.  Efficient
+implementations are available in R \citep{deleeuw2009multidimensional}
+and Python \citep{pedregosa2011scikit}.
+
+\subsection{Non-Metric MDS}
+\label{sec:nonmetric_mds}
+
+Non-metric MDS \citep{kruskal1964nonmetric, shepard1962analysis} relaxes
+the requirement to reproduce input dissimilarity values, requiring only
+that the \emph{rank order} of distances be preserved.  The optimization
+alternates between isotonic regression (computing optimal
+\emph{disparities} $\hat\delta_{ij}$ that are monotone in $\delta_{ij}$)
+and gradient steps on the embedding.  Non-metric MDS is appropriate for
+ordinal or perceptual data; Geodesic MDS as proposed here is a metric
+method, though a non-metric geodesic variant is straightforward to
+formulate by applying isotonic regression to the graph-geodesic targets
+$d_G(i,j)$ while continuing to evaluate the output configuration by the
+corresponding embedded path lengths $\demb_G(i,j;\bZ)$.
+
+\subsection{Isomap}
+\label{sec:isomap}
+
+\emph{Isomap} \citep{tenenbaum2000global} addresses the limitation of MDS
+on nonlinear manifold-structured data by replacing Euclidean input
+dissimilarities with approximations of intrinsic geodesic distances.
+Given $\bX \in \R^{n \times m}$, the algorithm proceeds in three steps:
+
+\begin{enumerate}
+  \item \textbf{$k$-NN graph construction.}  Build a weighted undirected
+        graph $\Gk$ with vertex set $\{1, \ldots, n\}$, connecting $i$ and $j$
+        by an edge of weight $\norm{\bx_i - \bx_j}_{\R^m}$ whenever $j$ is
+        among the $k$ nearest neighbors of $i$ (or vice versa, in the symmetric
+        variant).
+
+  \item \textbf{Geodesic distance computation.}  Compute all-pairs
+        shortest-path distances $\dknn(i,j)$ on $\Gk$ using Dijkstra's
+        algorithm \citep{dijkstra1959note} or Floyd-Warshall
+        \citep{floyd1962algorithm}.  Set $\delta_{ij} := \dknn(i,j)$.
+
+  \item \textbf{Classical MDS.}  Apply classical MDS (Section
+        \ref{sec:classical_mds}) to the geodesic dissimilarity matrix $\Delta$
+        to obtain the low-dimensional embedding $\bZ \in \R^{n \times d}$.
+\end{enumerate}
+
+\paragraph{Convergence theory.}
+For data sampled i.i.d.\ from a compact Riemannian manifold $(M, g)$
+embedded in $\R^m$, the graph-geodesic distance $\dknn(i,j)$ converges
+to the Riemannian geodesic distance $d_M(i,j)$ as $n \to \infty$, provided
+$k$ grows appropriately with $n$ \citep{bernstein2000graph,
+  tenenbaum2000global, zha2003continuum, donoho2003hessian}.
+The resulting classical MDS embedding then recovers the isometric embedding
+of $M$ into a Euclidean space (when one exists) \citep{tenenbaum2000global}.
+
+\paragraph{The output-side limitation.}
+Despite this theoretical guarantee, Isomap measures the fidelity of the
+embedding by Euclidean distances $\norm{\bz_i - \bz_j}$ between embedded
+points---not by path-length distances along the embedded manifold.  For a
+smooth manifold this is a minor issue: the manifold in the embedding is
+nearly flat if $d$ is chosen correctly, so Euclidean and geodesic distances
+are approximately equal.  For discrete graph metrics, branching metrics
+(trees, stars), or data with topological bottlenecks, the discrepancy is
+fundamental, as we elaborate in \cref{sec:geodesic_mds}.
+
+\subsection{The k-NN Graph as a Geodesic Structure}
+\label{sec:knn_graph}
+
+The $k$-NN graph $\Gk$ constructed in step 1 of Isomap can be understood
+as a \emph{metric graph}---a weighted graph whose path metric approximates
+some underlying geodesic metric space.  Several observations are relevant
+for our construction.
+
+\paragraph{Consistency with the ambient metric.}
+The edge weights of $\Gk$ are Euclidean distances in $\R^m$, so the path
+metric $d_{\Gk}$ always satisfies $d_{\Gk}(i,j) \geq \norm{\bx_i - \bx_j}$
+(the shortest path cannot be shorter than the straight line).  Equality
+holds only for pairs connected by a direct edge.
+
+\paragraph{Sparsity and the role of $k$.}
+$\Gk$ has at most $kn$ edges (exactly $kn/2$ in expectation for large $n$
+with a symmetric construction), so the graph is sparse for small $k$.
+As $k$ increases, more edges are added, $d_{\Gk}(i,j)$ decreases toward
+$\norm{\bx_i - \bx_j}$, and the graph metric approaches the Euclidean
+ambient metric.  At $k = n-1$ (complete graph), $d_{\Gk}(i,j) =
+\norm{\bx_i - \bx_j}$ for all pairs, and the construction degenerates to
+standard Euclidean MDS.
+
+\paragraph{Spanner interpretation.}
+$\Gk$ is a $(1+\varepsilon)$-spanner of the Euclidean metric on $\bX$ for
+sufficiently large $k$ depending on the intrinsic dimensionality of the
+data \citep{althofer1993sparse, har-peled2006low}.  This means
+$d_{\Gk}(i,j) \leq (1+\varepsilon)\norm{\bx_i - \bx_j}$, so the graph
+geodesic approximates the Euclidean distance with controlled relative
+error.  For data with low intrinsic dimension $d^*$, $k = O(\varepsilon^{-d^*})$
+suffices \citep{har-peled2006low}.
+
+\paragraph{Minimum realization.}
+An edge $(i,j)$ in $K_n$ (the complete graph on $\bX$) is
+\emph{metrically redundant} with respect to $d_{\Gk}$ if there exists a
+path through intermediate points with equal total length.  The subgraph
+obtained by removing all metrically redundant edges is the
+\emph{minimum realization} $G^*$ of the metric $d_{\Gk}$
+\citep{dress1984trees, imrich1984optimal}, and encodes the intrinsic
+geodesic structure of the data.  For tree metrics, $G^*$ is the unique
+spanning tree; for hyperbolic metrics it is sparse; for generic metrics
+it approaches the complete graph.
+Figure~\ref{fig:k_regimes} is a natural companion here because the role of
+$k$ is one of the main geometric ideas of the paper.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_k_regimes.pdf}
+  \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the manifold and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
+  \label{fig:k_regimes}
+\end{figure}
+
+\subsection{Manifold Learning and Related Methods}
+\label{sec:manifold_learning}
+
+The broader context of our work is \emph{manifold learning}: the project
+of finding low-dimensional representations of high-dimensional data assumed
+to lie near a low-dimensional manifold.  Beyond Isomap, influential methods
+include Locally Linear Embedding (LLE) \citep{roweis2000nonlinear},
+Laplacian Eigenmaps \citep{belkin2003laplacian}, Hessian Eigenmaps
+\citep{donoho2003hessian}, Diffusion Maps \citep{coifman2006diffusion},
+$t$-SNE \citep{vandermaaten2008tsne}, and UMAP \citep{mcinnes2018umap}.
+With the exception of diffusion maps (which define an intrinsic distance via
+Markov chain commute times), all of these methods use Euclidean distances
+on the output side, making the inconsistency identified here relevant to the
+entire manifold learning literature.
+
+Graph drawing methods---particularly Kamada-Kawai \citep{kamada1989algorithm}
+and Fruchterman-Reingold \citep{fruchterman1991graph}---are also related.
+Kamada-Kawai minimizes a stress between graph-theoretic shortest-path
+distances (in the unweighted graph) and Euclidean distances in the 2D
+drawing, which is structurally similar to Isomap applied to an unweighted
+graph.  A geodesic variant of Kamada-Kawai, using embedded lengths of
+fixed graph geodesics on the output, is a natural companion to Geodesic
+MDS but is outside the scope of the present paper.
+
+%% ============================================================
+\section{Geodesic MDS}
+\label{sec:geodesic_mds}
+
+\subsection{The Self-Consistency Principle}
+\label{sec:self_consistency}
+
+We begin by articulating the principle that motivates the proposed method.
+
+\begin{definition}[Self-consistent embedding]
+  \label{def:self_consistency}
+  Let $(X, \delta)$ be a metric space with a graph structure $G = (X, E,
+  w)$ whose path metric $d_G$ satisfies $d_G(i,j) \geq \delta(i,j)$ for
+  all $i,j$.  For each pair $(i,j)$, choose a canonical $d_G$-geodesic
+  $\gamma_{ij}$ in $G$.  An embedding $f: X \to \R^d$ is
+  \emph{self-consistent} with respect to $(G, \Gamma)$, where
+  $\Gamma = \{\gamma_{ij}\}_{i<j}$, if the fidelity of the embedding is
+  measured by the path length of the image $f(\gamma_{ij})$---i.e., by the
+  sum of Euclidean edge lengths along that same input-side geodesic.
+\end{definition}
+
+Standard metric MDS and Isomap are not self-consistent in this sense:
+they measure fidelity by Euclidean distances $\norm{f(i) - f(j)}$, which
+are at most equal to any path-length distance through intermediate vertices.
+
+The self-consistency principle has a natural interpretation:
+\emph{the distance used to evaluate the embedding should be the same
+  type of distance, along the same family of geodesics, used to construct
+  the input dissimilarities.}
+If input dissimilarities are graph geodesics, output distances should be
+measured along those same graph geodesics after embedding.  This is not
+merely a philosophical preference: the
+analysis in \cref{sec:systematic_bias} below shows that using Euclidean
+output distances introduces a systematic downward bias in the estimated
+distances for topologically constrained pairs.
+
+\subsection{Systematic Bias of Euclidean Output Distances}
+\label{sec:systematic_bias}
+
+\begin{proposition}[Triangle inequality bias]
+  \label{prop:bias}
+  Let $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times d}$ be any embedding,
+  and let $G = (V, E, w)$ be a weighted graph with vertex set $V = \{1,
+  \ldots, n\}$.  For any pair $(i,j)$ with chosen shortest path
+  $i = v_0, v_1, \ldots, v_\ell = j$ in $G$, define the embedded length of
+  that geodesic by
+  \begin{equation}
+    \demb_G(i,j;\bZ)
+    = \sum_{s=0}^{\ell-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}}.
+    \label{eq:emb_geo}
+  \end{equation}
+  Then
+  \begin{equation}
+    \norm{\bz_i - \bz_j} \;\leq\; \demb_G(i,j;\bZ),
+    \label{eq:triangle_bias}
+  \end{equation}
+  with equality if and only if all embedded path vertices
+  $\bz_{v_0}, \ldots, \bz_{v_\ell}$ are collinear in $\R^d$ in the order
+  of the path.
+\end{proposition}
+
+\begin{proof}
+  By the triangle inequality applied $\ell$ times:
+  $\norm{\bz_i - \bz_j} = \norm{\sum_{s} (\bz_{v_{s+1}} - \bz_{v_s})}
+  \leq \sum_s \norm{\bz_{v_{s+1}} - \bz_{v_s}} = \demb_G(i,j;\bZ)$.
+  Equality holds iff all difference vectors $\bz_{v_{s+1}} - \bz_{v_s}$
+  are non-negative scalar multiples of a single unit vector, i.e., the
+  points are collinear in the stated order.
+\end{proof}
+
+
+\Cref{prop:bias} shows that standard MDS and Isomap systematically
+underestimate embedded geodesic lengths for all topologically
+non-degenerate pairs (those whose shortest path has $\ell \geq 2$ and
+does not embed as a straight line).  When the input dissimilarity
+$\delta_{ij}$ is a graph geodesic, minimizing Euclidean-output stress
+creates pressure to satisfy $\norm{\bz_i - \bz_j} \approx \delta_{ij}$,
+which in turn forces embedded paths to be approximately collinear.
+For tree-structured data this collapses the tree into a lower-dimensional
+structure than warranted; for star graphs it forces nearly collinear arm
+arrangement regardless of the dimension $d$.
+
+\subsection{The Geodesic Stress Function}
+\label{sec:geodesic_stress}
+
+We now define the proposed method.
+
+\paragraph{Setup.}
+Let $G = (V,E,w)$ be a connected weighted graph with vertex set
+$V = \{1,\ldots,n\}$ and positive edge weights $w_{uv} > 0$.  Write
+$d_G$ for the weighted shortest-path metric on $V$.  For each pair
+$i < j$, choose a canonical $d_G$-geodesic
+\begin{equation}
+  \gamma_{ij} = (v_0 = i, v_1, \ldots, v_L = j),
+  \label{eq:canonical_geodesic}
+\end{equation}
+breaking ties deterministically when multiple shortest paths exist.  The
+collection $\Gamma = \{\gamma_{ij} : i < j\}$ is part of the data of the
+method.  In this sense, Geodesic MDS is defined on the pair $(G,\Gamma)$,
+not on $G$ alone.
+
+An embedding is a configuration matrix $\bZ = (\bz_1, \ldots, \bz_n)^\top
+\in \R^{n \times d}$.  For fixed $(G,\Gamma)$, the \emph{embedded graph}
+$G(\bZ)$ is the same graph $G$ with edge lengths replaced by embedded
+Euclidean distances.  The \emph{embedded length of the chosen input
+geodesic} is
+\begin{equation}
+  \demb_{\Gamma}(i,j;\bZ)
+  = \sum_{s=0}^{L-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}},
+  \label{eq:emb_geodesic}
+\end{equation}
+where $\gamma_{ij} = (v_0, \ldots, v_L)$.
+
+\begin{definition}[Raw geodesic stress]
+  \label{def:raw_geodesic_stress}
+  The \emph{raw geodesic stress} of an embedding $\bZ \in \R^{n \times d}$
+  with respect to $(G,\Gamma)$ is
+  \begin{equation}
+    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
+    = \sum_{i < j}
+      \bigl(\demb_{\Gamma}(i,j;\bZ) - d_G(i,j)\bigr)^2.
+    \label{eq:raw_geo_stress}
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Geodesic Stress-1]
+  \label{def:geodesic_stress}
+  The normalized \emph{geodesic Stress-1} of $\bZ$ with respect to
+  $(G,\Gamma)$ is
+  \begin{equation}
+    {\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)
+    = \sqrt{
+        \frac{\Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)}
+             {\displaystyle\sum_{i < j} d_G(i,j)^2}
+      }.
+    \label{eq:geo_stress}
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Geodesic MDS embedding]
+  \label{def:gmds_embedding}
+  A \emph{Geodesic MDS embedding} of $(G,\Gamma)$ in $\R^d$ is any
+  minimizer
+  \begin{equation}
+    \hat{\bZ}_{\Gamma,d}(G)
+    \in \argmin_{\bZ \in \R^{n \times d}}
+    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G).
+    \label{eq:geo_mds}
+  \end{equation}
+  Equivalently, since the denominator in \cref{eq:geo_stress} is constant
+  in $\bZ$, one may minimize ${\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)$.
+\end{definition}
+
+\paragraph{Specialization to $k$-NN graphs.}
+When the input is a data matrix $\bX \in \R^{n \times m}$, we recover the
+construction used throughout this paper by fixing a neighborhood parameter
+$k \in \{1,\ldots,n-1\}$ and building the symmetric $k$-NN graph
+$\Gk = (V, E_k)$ with
+\begin{equation}
+  E_k = \{(i,j) : j \in \mathcal{N}_k(i) \text{ or } i \in \mathcal{N}_k(j)\},
+  \label{eq:knn_edges}
+\end{equation}
+where $\mathcal{N}_k(i)$ denotes the $k$ nearest neighbors of $i$ in
+$\R^m$.  Assign weights $w_{ij} = \norm{\bx_i - \bx_j}_{\R^m}$ for
+$(i,j) \in E_k$, compute the shortest-path metric
+$d_{\Gk}(i,j) = \delta_{ij}^{(k)}$, and choose a canonical shortest-path
+family $\Gamma_k = \{\gamma_{ij}^{(k)} : i < j\}$.  The resulting Geodesic
+MDS objective is
+\begin{equation}
+  \Stress^{\mathrm{geo}}_{\Gamma_k}(\bZ; \Gk)
+  = \sum_{i < j}
+    \bigl(\demb_{\Gamma_k}(i,j;\bZ) - \delta^{(k)}_{ij}\bigr)^2.
+  \label{eq:knn_raw_geo_stress}
+\end{equation}
+
+\begin{remark}[Normalization]
+  We normalize by the constant $\sum_{i<j} d_G(i,j)^2$ rather than by an
+  embedded denominator such as $\sum_{i<j} \demb_{\Gamma}(i,j;\bZ)^2$.
+  This keeps ${\StressOne}_{\Gamma}^{\mathrm{geo}}$ scale-free while
+  leaving the optimizer identical to the raw numerator
+  \cref{eq:raw_geo_stress}.  A Kruskal-style denominator depending on
+  $\bZ$ is still useful for reporting, but it changes the optimization
+  target.
+\end{remark}
+
+\begin{remark}[Fixed topology and fixed geodesics]
+  The graph topology $E$ and the chosen geodesic family $\Gamma$ are fixed
+  by the input metric data and are not part of the optimization.  Only the
+  vertex positions $\bz_1,\ldots,\bz_n$ are free.  This is a key design
+  choice: it ensures that the relevant routes are determined by the input
+  geometry and that the optimization preserves that chosen geodesic
+  structure after embedding.
+\end{remark}
+Figure~\ref{fig:geodesic_stress_definition} should make the fixed-geodesic,
+two-metric comparison in \cref{eq:emb_geodesic,eq:geo_stress} easy to see.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_geodesic_stress_definition.pdf}
+  \caption{Definition of geodesic stress.  Left: the input
+  dissimilarity $d_G(i,j)$ is the shortest-path distance between $i$ and
+  $j$ on the fixed weighted graph $G$; in the data-analytic specialization,
+  $G = \Gk$ is a $k$-NN graph.  Right: the output quantity
+  $\demb_{\Gamma}(i,j;\bZ)$ is the length of the canonical shortest path
+  chosen in the input graph, measured after the vertex positions move in
+  $\R^d$.  The route is fixed by the input geometry; only the embedded edge
+  lengths change during optimization.}
+  \label{fig:geodesic_stress_definition}
+\end{figure}
+
+
+\begin{remark}[Nonuniqueness is intrinsic, not a defect]
+  The objective \cref{eq:raw_geo_stress} is a fidelity criterion, not an
+  aesthetics criterion, so its minimizers need not be unique.  This is a
+  feature of the definition: multiple embeddings can realize the same graph
+  geodesic data equally well.
+\end{remark}
+
+For example, for a path graph $v_0 - v_1 - v_2$ with any fixed edge lengths,
+every embedding in $\R^2$ that preserves those two edge lengths is a global
+minimum of \cref{eq:raw_geo_stress}; one obtains an infinite family of minima
+by fixing the segment $[v_0,v_1]$ and rotating $[v_1,v_2]$ around $v_1$.
+Likewise, if $v_0,v_1,v_2$ form one triangle and $v_1,v_2,v_3$ form another
+triangle sharing the edge $[v_1,v_2]$, then both the non-overlapping and the
+overlapping realizations are global minima whenever all edge lengths are
+preserved.  \Cref{fig:nonuniqueness_examples} illustrates these two basic
+sources of nonuniqueness.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_nonuniqueness_examples.pdf}
+  \caption{Two sources of nonuniqueness for geodesic-stress minimizers.
+  Left: a three-vertex path has a one-parameter family of exact realizations
+  obtained by rotating the second edge while preserving both edge lengths.
+  Right: two triangles sharing an edge admit distinct exact realizations,
+  including a non-overlapping embedding and an overlapping embedding.  In both
+  examples the raw geodesic stress is zero because all relevant graph-geodesic
+  lengths are preserved.}
+  \label{fig:nonuniqueness_examples}
+\end{figure}
+
+\paragraph{A diagnostic lesson.}
+The diagnostic experiments reported separately in this project show that the
+all-pairs objective \cref{eq:raw_geo_stress} can admit visually pathological
+minimizers on simple synthetic graphs.  On orthogonal grids, graph geodesics
+systematically exceed straight-line Euclidean distances, so the gradient of the
+all-pairs geodesic stress can push the embedding toward stretched or folded
+configurations.  This does not invalidate the definition of GMDS: it shows that
+regularization is a separate modeling choice that may be needed when one wants
+both fidelity to graph geodesics and a visually well-spread realization.
+
+\paragraph{Regularized GMDS.}
+To incorporate such modeling choices explicitly, introduce a Euclidean
+dispersion regularizer
+\begin{equation}
+  R(\bZ) = \sum_{i < j} f_r\bigl(\norm{\bz_i - \bz_j}\bigr),
+  \label{eq:repulsive_regularizer}
+\end{equation}
+where $f_r : (0,\infty) \to (0,\infty)$ is a decreasing function.  A
+concrete choice used widely in force-directed graph drawing is the Coulomb-type
+penalty
+\begin{equation}
+  f_r(r) = \frac{1}{r^2 + \varepsilon_r^2},
+  \label{eq:coulomb_regularizer}
+\end{equation}
+with a small $\varepsilon_r > 0$ to prevent singularities.  The
+self-consistency principle applies to the fidelity term
+\cref{eq:raw_geo_stress}; the role of $R$ is different.  It is a Euclidean
+regularizer that encourages spread and discourages collapse, not a substitute
+for the graph-geodesic mismatch term itself.  A standard scalarized objective
+is therefore
+\begin{equation}
+  F_\lambda(\bZ; G,\Gamma)
+  = \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G) + \lambda R(\bZ),
+  \qquad \lambda > 0.
+  \label{eq:regularized_gmds}
+\end{equation}
+A \emph{regularized GMDS embedding} is a local minimizer of
+\cref{eq:regularized_gmds} for a specified $\lambda$.  The value of
+$\lambda$ is not universal; in practice it should be reported explicitly and
+chosen by a fidelity-dispersion trade-off study, continuation scheme, or
+task-specific validation criterion.
+
+\paragraph{An edge-based relaxation.}
+If exact minimization of \cref{eq:raw_geo_stress} is computationally
+prohibitive, one can replace it by the edge-only functional
+\begin{equation}
+  E_K(\bZ)
+  = \sum_{(i,j) \in E} k_{ij}\bigl(\norm{\bz_i - \bz_j} - w_{ij}\bigr)^2,
+  \label{eq:edge_relaxation}
+\end{equation}
+because for an edge $(i,j)$ the chosen graph geodesic is the edge itself and
+thus $\demb_{\Gamma}(i,j;\bZ) = \norm{\bz_i - \bz_j}$.  This is no longer the
+geodesic stress: it is a graph-drawing-style relaxation that penalizes only
+single-hop distortion, and is therefore closer to an edge-restricted
+Kamada-Kawai objective \citep{kamada1989algorithm, fruchterman1991graph}
+than to the full all-pairs GMDS criterion.
+
+The relation between \cref{eq:raw_geo_stress,eq:edge_relaxation} is easiest to
+see in edge-length coordinates.  Let $\ell(\bZ) \in \R^{|E|}$ be the vector of
+embedded edge lengths, let $w \in \R^{|E|}$ collect the graph edge weights, and
+let $A_{\Gamma}$ be the path-edge incidence matrix whose $(i,j)$-row indicates
+which edges lie on the chosen geodesic $\gamma_{ij}$.  Then
+\begin{equation}
+  \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
+  = \norm{A_{\Gamma}\bigl(\ell(\bZ) - w\bigr)}_2^2
+  = \bigl(\ell(\bZ)-w\bigr)^\top
+    A_{\Gamma}^\top A_{\Gamma}
+    \bigl(\ell(\bZ)-w\bigr),
+  \label{eq:path_incidence_stress}
+\end{equation}
+whereas
+\begin{equation}
+  E_K(\bZ)
+  = \bigl(\ell(\bZ)-w\bigr)^\top K \bigl(\ell(\bZ)-w\bigr),
+  \label{eq:edge_relaxation_matrix}
+\end{equation}
+with $K = \diag(k_{ij})$ diagonal.  Thus $E_K$ drops the off-diagonal
+path-coupling terms in $A_{\Gamma}^\top A_{\Gamma}$ and therefore does not
+control multi-hop geodesic distortion directly.  What is gained is a much
+cheaper objective; what is lost is explicit control of long-range path-length
+errors.
+
+If $E_K(\bZ) = 0$, then every edge length is realized exactly, hence every
+chosen graph-geodesic length is realized exactly as well, and
+\cref{eq:raw_geo_stress} also vanishes.  In the approximate regime, however,
+the two objectives are different and generally have different local minima.
+For this reason we treat \cref{eq:edge_relaxation} as a relaxation of GMDS,
+not as the definition of GMDS itself.  Whether this relaxation also avoids
+some of the pathologies of the full all-pairs objective is an empirical
+question, not a formal consequence of the definition.
+
+The weights $k_{ij}$ in \cref{eq:edge_relaxation} are user-chosen tuning
+parameters.  A simple default is $k_{ij} \equiv 1$.  If one wants to emphasize
+edge lengths that occur frequently in the graph, one may set
+$k_{ij} = \hat f_{\mathrm{edge}}(w_{ij})$, where
+$\hat f_{\mathrm{edge}}$ is a kernel density estimate of the empirical
+distribution of edge lengths.  Other choices, such as weights proportional to
+geodesic-usage counts, are also possible and should be justified by the
+application.
+
+%% ============================================================
+%% BIBLIOGRAPHY
+%% ============================================================
+
+\acks{Research reported in this publication was supported by grant number INV-048956 from the Gates Foundation.}
+
+\bibliographystyle{plainnat}
+\bibliography{geodesic_mds}
+
+\end{document}

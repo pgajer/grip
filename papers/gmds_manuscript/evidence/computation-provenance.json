@@ -1,0 +1,95 @@
+{
+  "source_commit": "a43edfef1bbee70e825e790677abb35f12dfff53",
+  "scope": "Source inspection supporting computational details. This is the committed export revision, not a claim that both studies ran one package version; original study manifests retain execution provenance.",
+  "files": [
+    {
+      "path": "R/gmds_layout_interface.R",
+      "sha256": "7e95744d760cdcb1cbfb5ff3c63b472b2a8969b9b344a905b2ae0382274a9a9a",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/R/gmds_layout_interface.R",
+      "supports": [
+        "Density stiffness formula, grid and normalization",
+        "edge-KK defaults"
+      ]
+    },
+    {
+      "path": "src/edge_isometric_gkk_rcpp.cpp",
+      "sha256": "67f78aef1362393a18eb2e97d69984034c3cf5b3a6bff0c769cec3351153246f",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/src/edge_isometric_gkk_rcpp.cpp",
+      "supports": [
+        "Armijo descent, gradient threshold and profiled/fixed-scale implementation"
+      ]
+    },
+    {
+      "path": "R/metric_mds.R",
+      "sha256": "da29635c250e882e2865617c980b3f546cbc841e2598cb4931270fe66c19bc62",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/R/metric_mds.R",
+      "supports": [
+        "Stress MDS adapter and physical-unit restoration"
+      ]
+    },
+    {
+      "path": "papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/common.R",
+      "sha256": "1a6aab43ac8146b15fc883bdecaa9eb584745e28f6f068fc6867722136119e5a",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/papers/grip-software-paper/reproducibility/experiments/mds-initializer-sensitivity/common.R",
+      "supports": [
+        "Bounded-study protocol and diagnostic definitions"
+      ]
+    },
+    {
+      "path": "papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/calibrate.R",
+      "sha256": "a948eb44a5ee4b6d63dca7c41c94a324e97f107de2108e706d97ad7527a1bf1c",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/calibrate.R",
+      "supports": [
+        "Oracle neighborhood calibration and 119744 reference pairs"
+      ]
+    },
+    {
+      "path": "papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/plot-results.R",
+      "sha256": "694889a0a1ea17b5532cbc22b5f4dc5e1e97631d308093ba45f2d5d56ac9e140",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/papers/grip-software-paper/reproducibility/experiments/two-fidelity-pilot/plot-results.R",
+      "supports": [
+        "Full k=3:80 calibration range and reference limitations"
+      ]
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/run.R",
+      "sha256": "3fc0bed8f25e7bf7aa091a09d2837236ea540ca6924796093ab1ac9144f7076c",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/tools/experiments/mds-edge-kk-radius/run.R",
+      "supports": [
+        "Radius fitting protocol, seeds, perturbations, graph construction and scaling"
+      ]
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/inputs.py",
+      "sha256": "6ffb5c4551064fcc8674b6f7f325011d233ff25cd278172d3e0b3734ac215535",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/tools/experiments/mds-edge-kk-radius/inputs.py",
+      "supports": [
+        "Area CDF, coupled sampling, seeds and numerical bounds checks"
+      ]
+    },
+    {
+      "path": "tools/experiments/paraboloid-mmds-radius/geodesic.py",
+      "sha256": "226dfe14c4034844a48764f15e15018ddcb3f2261d6f640d61c7c56539f37f0a",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/tools/experiments/paraboloid-mmds-radius/geodesic.py",
+      "supports": [
+        "Radial geodesic first integral and 62-step bisection"
+      ]
+    },
+    {
+      "path": "tools/experiments/saddle-mmds-radius/smooth_geodesic.py",
+      "sha256": "b1b8b7c57a4d150e31c95b96c6a60ea56a379df6f9279a269e902bed1329c346",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/tools/experiments/saddle-mmds-radius/smooth_geodesic.py",
+      "supports": [
+        "Saddle shooting tolerances and continuation"
+      ]
+    },
+    {
+      "path": "tools/experiments/mds-edge-kk-radius/validate-geodesics.py",
+      "sha256": "cf8c6b21393ce0c1263a0bf0d9b58726415eeb192f6e6b2e1aa9a8d0fb764fad",
+      "url": "https://github.com/pgajer/grip/blob/a43edfef1bbee70e825e790677abb35f12dfff53/tools/experiments/mds-edge-kk-radius/validate-geodesics.py",
+      "supports": [
+        "High-radius pair selection and independent numerical validation"
+      ]
+    }
+  ]
+}

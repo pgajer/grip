@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "graphs": 1216,
+  "candidates": 16416,
+  "mds_starts": 3648,
+  "repaired_graphs": 74,
+  "max_route_strict_discrepancy": 6.66507804503169e-08,
+  "max_package_score_difference": 1.25455201782643e-14,
+  "max_independent_path_difference": 8.881784197001249e-16,
+  "min_profiled_edge_scale": 4.07187674940384e-10,
+  "fixed_scale_range": [
+    0.993394735579928,
+    1.0262411432562
+  ],
+  "mds_iteration_limit": 25,
+  "geodesic_validation_pairs": 256,
+  "max_sampled_geodesic_discrepancy": 5.1623713129998015e-08
+}

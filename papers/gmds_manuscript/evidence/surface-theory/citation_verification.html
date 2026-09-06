@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Citation Verification</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --border: #d8dde6;
+      --text: #1d2733;
+      --muted: #5f6b7a;
+      --verified: #dff3e5;
+      --blocked: #ffe3e0;
+      --pending: #fff4cc;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: #f7f8fa;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 860px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+      background: #fff;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      vertical-align: top;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #eef1f5;
+      font-weight: 650;
+    }
+
+    tr[data-status="verified"] td.status {
+      background: var(--verified);
+    }
+
+    tr[data-status="metadata-only"] td.status,
+    tr[data-status="needs-human-review"] td.status {
+      background: var(--pending);
+    }
+
+    tr[data-status="unsupported"] td.status,
+    tr[data-status="wrong-source"] td.status {
+      background: var(--blocked);
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body><main><h1>Citation verification: combined MDS report</h1><p>Four sources, verified against the full-source passages on 2026-09-05. Evidence is carried forward from the experiment notes. All limit proofs and MDS constants are supplied derivations or computations, as distinguished in the report.</p><table><thead><tr><th>Key</th><th>Status</th><th>Context</th><th>Supported claim</th><th>Metadata</th><th>Source</th><th>Evidence</th><th>Notes</th></tr></thead><tbody><tr data-citation-key="mair2022" data-status="verified">
+          <td><code>mair2022</code></td>
+          <td class="status">verified</td>
+          <td>report.tex, Section 2: Distances, objectives, and diagnostics</td>
+          <td>The weighted stress formulation and the use of multiple starting configurations are described by Mair, Groenen, and de Leeuw (2022), Section 2, Equation (1), and Section 3.1.</td>
+          <td>Patrick Mair, Patrick J. F. Groenen, Jan de Leeuw. More on Multidimensional Scaling and Unfolding in R: smacof Version 2. Journal of Statistical Software 102(10), 1–47, 2022. DOI: 10.18637/jss.v102.i10.</td>
+          <td><a data-source-link href="https://www.jstatsoft.org/index.php/jss/article/view/v102i10/4301">Full source PDF</a>; <a href="https://doi.org/10.18637/jss.v102.i10">publisher metadata</a></td>
+          <td>Pages 2–3, Equation (1): weighted squared residuals between disparities and configuration distances, default weights one. Page 6, Section 3.1: local minima, classical starting configurations, and trying multiple random starts.</td>
+          <td>Codex read the full-source passages and publisher metadata on 2026-09-05. The experiment fixes target distances; it does not implement the paper's disparity transformations. The paraboloid theorem is a separate derivation in the README.</td>
+        </tr><tr data-citation-key="rcmdscale" data-status="verified">
+          <td><code>rcmdscale</code></td>
+          <td class="status">verified</td>
+          <td>report.tex, Section 2: Distances, objectives, and diagnostics</td>
+          <td>The R documentation identifies cmdscale as classical MDS and explains its principal-component axes and rigid-motion ambiguity.</td>
+          <td>R Core Team. Classical (Metric) Multidimensional Scaling: cmdscale. R Project for Statistical Computing, R-devel stats 4.6.0 documentation, accessed 2026-09-05.</td>
+          <td><a data-source-link href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cmdscale.html">Official R documentation</a></td>
+          <td>Description identifies classical multidimensional scaling and principal coordinates analysis. Details state the representation is determined up to location, rotation and reflection, and is returned in principal-component axes.</td>
+          <td>Codex read Description and Details on 2026-09-05. Version 4.6.0 appears in the page footer; 2026 records the documentation access year. Local wrapper behavior was independently checked in R/gmds_layout_interface.R and R/gmds_mds_compare.R.</td>
+        </tr><tr data-citation-key="wheeler2016" data-status="verified">
+          <td><code>wheeler2016</code></td>
+          <td class="status">verified</td>
+          <td>report.tex, Appendix A: Smooth-geodesic computation</td>
+          <td>The geodesic equation and an elementary angular primitive for this paraboloid are given by Wheeler (2016), pp. 5–6, Eqs. (9.3)–(9.4). The same source gives Gaussian curvature 4/(1+4rho²)² in Eq. (9.2).</td>
+          <td>Nicholas Wheeler. Geodesics on Surfaces of Revolution: General Theory Applied to Paraboloid &amp; Hexenhut. February 2016. Author's notes hosted at Reed College.</td>
+          <td><a data-source-link href="https://www.reed.edu/physics/faculty/wheeler/documents/Miscellaneous%20Math/Differential%20Geometry/DINI%20SURFACES/Surface%20of%20Revolution%20Geodesics/Geodesic%20Text.pdf">Full source PDF</a></td>
+          <td>Page 1 identifies author, title and date. Page 5 gives the metric and K=4/(1+4u)² with u=rho², the angular ODE (9.3), and primitive (9.4). Page 6 gives its normalized form and joins the inward and outward branches at the turning point.</td>
+          <td>Codex read the full-source passages on 2026-09-05. The implementation uses an algebraically equivalent angular primitive. Its length primitive, shortest-path branch proof, validation, and MDS asymptotics are derived independently in GEODESIC.md and are not attributed to the source. Wheeler explicitly discusses winding geodesics; no claim that all such geodesics are shortest is made here.</td>
+        </tr><tr data-citation-key="gorodski2022" data-status="verified">
+<td><code>gorodski2022</code></td><td class="status">verified</td>
+<td>report.tex, Section 5 and Appendix A: Saddle geodesics</td>
+<td>A complete simply connected manifold of nonpositive sectional curvature has a unique minimizing geodesic between every pair.</td>
+<td>Claudio Gorodski. An introduction to Riemannian geometry. Preliminary version 3, June 27, 2022. Author's notes hosted at Universidade de São Paulo.</td>
+<td><a data-source-link href="https://www.ime.usp.br/~gorodski/teaching/mat5771-2024/master02-21-2024.pdf">Full author source PDF</a></td>
+<td>Printed pp. 124–125 (one-based PDF pp. 130–131; zero-based indices 129–130): Theorem 6.5.2 states the Hadamard–Cartan covering result and its simply connected consequence; Corollary 6.5.3 gives uniqueness; the proof of Lemma 6.5.4 on printed p. 125 explicitly states that this geodesic is minimizing. The title page supplies the author, version, and date.</td>
+<td>Codex read these full-source passages on 2026-09-05. The URL path contains 2024, but the title page dates this version to 2022. Completeness, simple connectivity, curvature, and disk convexity for the particular saddle are established separately in README.md.</td>
+</tr></tbody></table></main></body></html>

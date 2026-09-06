@@ -1,0 +1,350 @@
+{
+  "BoundedGraphs": {
+    "value": 25,
+    "latex": "25",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Distinct replicate/k; both initializers improve path and worsen chord on every row"
+  },
+  "StressWins": {
+    "value": 23,
+    "latex": "23",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Paired final retained-path error on all graphs"
+  },
+  "ClassicalBefore": {
+    "value": 3.45066320977739,
+    "latex": "3.451",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected graphs; median percent path error; Classical MDS"
+  },
+  "ClassicalAfter": {
+    "value": 0.24474119437468,
+    "latex": "0.245",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected graphs; median percent path error; Classical MDS + edge-KK"
+  },
+  "StressBefore": {
+    "value": 2.26391523387603,
+    "latex": "2.264",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected graphs; median percent path error; Stress MDS"
+  },
+  "StressAfter": {
+    "value": 0.16407474605483,
+    "latex": "0.164",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected graphs; median percent path error; Stress MDS + edge-KK"
+  },
+  "CoordLow": {
+    "value": 4.59929661050106,
+    "latex": "4.60",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected stress + edge-KK; minimum coordinate percent error"
+  },
+  "CoordHigh": {
+    "value": 27.544646085013003,
+    "latex": "27.54",
+    "source": "study-initializers/summary/scores.csv.gz",
+    "selection": "Selected stress + edge-KK; maximum coordinate percent error"
+  },
+  "RadiusGraphs": {
+    "value": 1216,
+    "latex": "1{,}216",
+    "source": "study-radius/summary/graphs.csv.gz",
+    "selection": "All primary n=240 and n=480 graph rows"
+  },
+  "RadiusCandidates": {
+    "value": 16416,
+    "latex": "16{,}416",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary configurations, before and after refinement"
+  },
+  "RepairedGraphs": {
+    "value": 74,
+    "latex": "74",
+    "source": "study-radius/summary/graphs.csv.gz",
+    "selection": "Graphs with at least one added MST edge"
+  },
+  "InputMatrices": {
+    "value": 88,
+    "latex": "88",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Distinct surface/sample/radius input cases"
+  },
+  "RadiusStarts": {
+    "value": 3648,
+    "latex": "3{,}648",
+    "source": "study-radius/summary/starts.csv.gz",
+    "selection": "All primary MDS starts"
+  },
+  "CappedStarts": {
+    "value": 25,
+    "latex": "25",
+    "source": "study-radius/summary/starts.csv.gz",
+    "selection": "Starts reaching declared 1000-iteration cap"
+  },
+  "ValidationPairs": {
+    "value": 256,
+    "latex": "256",
+    "source": "study-radius/summary/validation.json",
+    "selection": "Recorded independent high-radius validation; not a new solver run"
+  },
+  "GeodesicDiscrepancy": {
+    "value": 5.1623713129998015e-08,
+    "latex": "5.16\\times10^{-8}",
+    "source": "study-radius/summary/validation.json",
+    "selection": "Recorded sampled maximum; not an all-pairs bound"
+  },
+  "ValidatedCoordinates": {
+    "value": 16928,
+    "latex": "16{,}928",
+    "source": "study-radius/summary/coordinate-validation.csv.gz",
+    "selection": "Recorded primary plus control coordinate reconstructions"
+  },
+  "CoordinateDiscrepancy": {
+    "value": 2.59232792002439e-12,
+    "latex": "2.59\\times10^{-12}",
+    "source": "study-radius/summary/coordinate-validation.csv.gz",
+    "selection": "Recorded independently reconstructed diagnostic maximum"
+  },
+  "GeodesicSaddlePath": {
+    "value": 0.36058151440398,
+    "latex": "0.36",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "n240 r64 k32 base-disk saddle, geodesic, stress_fixed_primary; median percent path_reference"
+  },
+  "GeodesicSaddleCoord": {
+    "value": 80.38467172291331,
+    "latex": "80.38",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "n240 r64 k32 base-disk saddle, geodesic, stress_fixed_primary; median percent procrustes"
+  },
+  "AmbientSaddlePath": {
+    "value": 36.998155911991695,
+    "latex": "37.00",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "n240 r64 k32 base-disk saddle, ambient, stress_fixed_primary; median percent path_reference"
+  },
+  "AmbientSaddleCoord": {
+    "value": 0.89612926089236,
+    "latex": "0.90",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "n240 r64 k32 base-disk saddle, ambient, stress_fixed_primary; median percent procrustes"
+  },
+  "FullInitializerCases": {
+    "value": 84,
+    "latex": "84",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Distinct n240 cases; full classical initializer, fixed-scale continuation; variation across k exceeds 1e-8"
+  },
+  "NeighborhoodSpreadMin": {
+    "value": 8.04688430857535,
+    "latex": "8.05",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Within-case max minus min across all seven k, 84 n240 full-geodesic classical fixed-scale cases; percentage points"
+  },
+  "NeighborhoodSpreadMedian": {
+    "value": 23.047015913557228,
+    "latex": "23.05",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Within-case max minus min across all seven k, 84 n240 full-geodesic classical fixed-scale cases; percentage points"
+  },
+  "NeighborhoodSpreadMax": {
+    "value": 58.30757487720146,
+    "latex": "58.31",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Within-case max minus min across all seven k, 84 n240 full-geodesic classical fixed-scale cases; percentage points"
+  },
+  "NestedBase": {
+    "value": 7.77119994985604,
+    "latex": "7.77",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Nested rep1 disk paraboloid, r64, geodesic, fixed-scale stress continuation; n=240, k=8; percent path/reference error"
+  },
+  "NestedSameK": {
+    "value": 9.23306009170655,
+    "latex": "9.23",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Nested rep1 disk paraboloid, r64, geodesic, fixed-scale stress continuation; n=480, k=8; percent path/reference error"
+  },
+  "NestedSameFraction": {
+    "value": 2.33505391209133,
+    "latex": "2.34",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Nested rep1 disk paraboloid, r64, geodesic, fixed-scale stress continuation; n=480, k=16; percent path/reference error"
+  },
+  "ClassicalPerturbation": {
+    "value": 0.018881982856066015,
+    "latex": "0.01888",
+    "source": "study-radius/summary/optimizer-sensitivity.csv.gz; study-radius/summary/scores.csv.gz",
+    "selection": "Maximum absolute change of s3/s2 from matched primary fit, both scales, classical starts"
+  },
+  "ClassicalRandomFixed": {
+    "value": 0.8208133963505031,
+    "latex": "0.82",
+    "source": "study-radius/summary/optimizer-sensitivity.csv.gz; study-radius/summary/scores.csv.gz",
+    "selection": "Maximum absolute change of s3/s2 from matched fixed-scale primary fit, classical starts"
+  },
+  "StressPerturbation": {
+    "value": 0.00030622778259392636,
+    "latex": "0.00031",
+    "source": "study-radius/summary/optimizer-sensitivity.csv.gz; study-radius/summary/scores.csv.gz",
+    "selection": "Maximum absolute change of s3/s2 from matched primary fit, both scales, stress starts"
+  },
+  "StressRandomFixed": {
+    "value": 0.8208152939574491,
+    "latex": "0.82",
+    "source": "study-radius/summary/optimizer-sensitivity.csv.gz; study-radius/summary/scores.csv.gz",
+    "selection": "Maximum absolute change of s3/s2 from matched fixed-scale primary fit, stress starts"
+  },
+  "ProfiledCount": {
+    "value": 6080,
+    "latex": "6{,}080",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary profiled refinements, both sizes, all initializers and schedules"
+  },
+  "ProfiledBelowHalf": {
+    "value": 830,
+    "latex": "830",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary profiled refinements; edge calibration strictly below 0.5"
+  },
+  "ProfiledBelowTenth": {
+    "value": 475,
+    "latex": "475",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary profiled refinements; edge calibration strictly below 0.1"
+  },
+  "ProfiledBelowThousandth": {
+    "value": 262,
+    "latex": "262",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary profiled refinements; edge calibration strictly below 0.001"
+  },
+  "ProfiledMedian": {
+    "value": 1.027997072139925,
+    "latex": "1.028",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Median calibration across all primary profiled refinements"
+  },
+  "ProfiledMinimum": {
+    "value": 4.07187674940384e-10,
+    "latex": "4.07\\times10^{-10}",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary refinements, all initializers/schedules/sample sizes; minimum edge calibration"
+  },
+  "FixedMinimum": {
+    "value": 0.993394735579928,
+    "latex": "0.99339",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary fixed-scale refinements, all initializers/schedules/sample sizes; minimum edge calibration"
+  },
+  "FixedMaximum": {
+    "value": 1.0262411432562,
+    "latex": "1.02624",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "All primary fixed-scale refinements, all initializers/schedules/sample sizes; maximum edge calibration"
+  },
+  "PrimaryGraphs": {
+    "value": 1176,
+    "latex": "1{,}176",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Distinct n240 primary graph settings"
+  },
+  "ProfiledImproved": {
+    "value": 1016,
+    "latex": "1{,}016",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_primary; absolute tie tolerance 1e-8"
+  },
+  "ProfiledWorsened": {
+    "value": 76,
+    "latex": "76",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_primary; absolute tie tolerance 1e-8"
+  },
+  "ProfiledTied": {
+    "value": 84,
+    "latex": "84",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_primary; absolute tie tolerance 1e-8"
+  },
+  "FixedImproved": {
+    "value": 1075,
+    "latex": "1{,}075",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_fixed_primary; absolute tie tolerance 1e-8"
+  },
+  "FixedWorsened": {
+    "value": 17,
+    "latex": "17",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_fixed_primary; absolute tie tolerance 1e-8"
+  },
+  "FixedTied": {
+    "value": 84,
+    "latex": "84",
+    "source": "study-radius/summary/scores.csv.gz",
+    "selection": "Paired n240 stress MDS versus stress_fixed_primary; absolute tie tolerance 1e-8"
+  },
+  "AmbientSaddleHorizontal": {
+    "value": 35.2376666468,
+    "latex": "35.24",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk saddle ambient fixed-scale stress continuation fits; one global similarity alignment; percent horizontal_error"
+  },
+  "AmbientSaddleVertical": {
+    "value": 0.0250582545856,
+    "latex": "0.03",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk saddle ambient fixed-scale stress continuation fits; one global similarity alignment; percent vertical_error"
+  },
+  "AmbientSaddleHeightOnly": {
+    "value": 2.63754470691,
+    "latex": "2.64",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk saddle ambient fixed-scale stress continuation fits; one global similarity alignment; percent height_only_error"
+  },
+  "AmbientParaboloidHorizontal": {
+    "value": 23.6601637688,
+    "latex": "23.66",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid ambient fixed-scale stress continuation fits; one global similarity alignment; percent horizontal_error"
+  },
+  "AmbientParaboloidVertical": {
+    "value": 0.0459494814611,
+    "latex": "0.05",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid ambient fixed-scale stress continuation fits; one global similarity alignment; percent vertical_error"
+  },
+  "AmbientParaboloidHeightOnly": {
+    "value": 3.7402365878599997,
+    "latex": "3.74",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid ambient fixed-scale stress continuation fits; one global similarity alignment; percent height_only_error"
+  },
+  "GeodesicParaboloidHorizontal": {
+    "value": 38.5843794028,
+    "latex": "38.58",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid geodesic fixed-scale stress continuation fits; one global similarity alignment; percent horizontal_error"
+  },
+  "GeodesicParaboloidVertical": {
+    "value": 0.197089599775,
+    "latex": "0.20",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid geodesic fixed-scale stress continuation fits; one global similarity alignment; percent vertical_error"
+  },
+  "GeodesicParaboloidHeightOnly": {
+    "value": 3.7402365878599997,
+    "latex": "3.74",
+    "source": "coordinate-components/coordinates.csv.gz",
+    "selection": "Median over three n240 r64 k32 base-disk paraboloid geodesic fixed-scale stress continuation fits; one global similarity alignment; percent height_only_error"
+  },
+  "RetainedRouteDiscrepancy": {
+    "value": 7.598088824778415e-15,
+    "latex": "7.60\\times10^{-15}",
+    "source": "retained-route-validation/independent-check.csv; study-radius/summary/scores.csv.gz",
+    "selection": "Maximum absolute disagreement of all-route recalculations for 24 configurations with frozen path and path-to-surface scores; caches required only to rerun optional R check"
+  }
+}

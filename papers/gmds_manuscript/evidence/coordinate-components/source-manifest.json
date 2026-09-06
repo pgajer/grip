@@ -1,0 +1,58 @@
+{
+  "repository": "https://github.com/pgajer/grip",
+  "commit": "a43edfef1bbee70e825e790677abb35f12dfff53",
+  "selection": "Both surfaces; three base-disk replicates; n240 r64 k32; both graph regimes; stress before and after fixed-scale density continuation, plus truth.",
+  "sources": [
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep1-n240-r64.rds",
+      "sha256": "0e68740a947697beb85268e72679f60c286ac6500a2d6cb536df9bef198d94d1"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/paraboloid-disk-rep1-n240-r64.npz",
+      "sha256": "112ef6e50725bede5926c37e8baa6a8e8ab0c0396422ce2f92a9398915ca03bc"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep2-n240-r64.rds",
+      "sha256": "94517122574924dcd1b7da887a6eec7078650cd65ea8dab2ed85767bf4c756c7"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/paraboloid-disk-rep2-n240-r64.npz",
+      "sha256": "9a5ac088228f84b3078af923592064966534a090d5164a31dfb7eaaecbbb0429"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/paraboloid-disk-rep3-n240-r64.rds",
+      "sha256": "6c123494f174345091e691d0d34c1dd8cf7f0c890c48504818bc3f0aaf3a4ca1"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/paraboloid-disk-rep3-n240-r64.npz",
+      "sha256": "7dd51090e6a7b1875804f463992f8d96c9b43378a6b6d50e5fa0e9c099496f45"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep1-n240-r64.rds",
+      "sha256": "52cfd8df055d84a7155a53cd700ea283e0aac381488cb5c174b1e8e654f6f8fd"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/saddle-disk-rep1-n240-r64.npz",
+      "sha256": "cbb33fa054387c69dea60ffc9a51de23a6de465767f2e0a883ec497edc4fa2c8"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep2-n240-r64.rds",
+      "sha256": "2bba3bac69d37c8f8b8276df8ee76efa0afcf54d61822bffc56bf2efc8d528d0"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/saddle-disk-rep2-n240-r64.npz",
+      "sha256": "b9f10d6fe3e319a5a948baa9faf0277890f5d22629e66aafd3f5491fdfdd79ed"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/coordinates/saddle-disk-rep3-n240-r64.rds",
+      "sha256": "2c2e029e335e2c08a130e347749cf0e04271918a984c043066a79d33ba7617f3"
+    },
+    {
+      "source_path": "tools/experiments/mds-edge-kk-radius/summary/inputs/saddle-disk-rep3-n240-r64.npz",
+      "sha256": "a753dfcdca4a9af1848f8fea69b1fb57fc9cd5183cec850f24007df391153601"
+    }
+  ],
+  "export_sha256": "943695cb56daa48c97c14cd7655035b34e62fe7ed25b1c4015be40ae1d24e246",
+  "rows": 7200,
+  "export_script": "scripts/export_coordinate_components.py"
+}

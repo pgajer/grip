@@ -1,0 +1,1645 @@
+\documentclass[twoside,11pt]{article}
+
+%% JMLR style
+\usepackage[nohyperref]{jmlr2e}
+
+%% Standard packages
+\usepackage{amsmath, amssymb}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{bbm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{natbib}
+\providecommand{\theHalgorithm}{\arabic{algorithm}}
+\providecommand{\theHfigure}{\arabic{figure}}
+
+%% Notation macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bZ}{\mathbf{Z}}
+\newcommand{\bd}{\mathbf{d}}
+\newcommand{\bD}{\mathbf{D}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\bJ}{\mathbf{J}}
+\newcommand{\bU}{\mathbf{U}}
+\newcommand{\bV}{\mathbf{V}}
+\newcommand{\bW}{\mathbf{W}}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\innerprod}[2]{\langle #1, #2 \rangle}
+\newcommand{\dgeo}{d^{\mathrm{geo}}}
+\newcommand{\demb}{d^{\mathrm{emb}}}
+\newcommand{\dknn}{d^{k\text{-NN}}}
+\newcommand{\Gk}{G_k}
+\newcommand{\Stress}{\mathrm{Stress}}
+\newcommand{\StressOne}{S_1}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\placeholderfigurebox}[2][0.9\linewidth]{%
+  \fbox{\parbox[c][0.18\textheight][c]{#1}{\centering\footnotesize #2}}%
+}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+%% JMLR editor/author info
+\jmlrheading{1}{2025}{1--??}{??/25}{??/25}{??/25}{Gajer and Ravel}
+
+\ShortHeadings{Geodesic Multidimensional Scaling}{Gajer and Ravel}
+\firstpageno{1}
+
+\providecommand{\manuscriptversion}{unversioned}
+\providecommand{\manuscriptbuildnumber}{NA}
+\providecommand{\manuscriptcommit}{unknown}
+\providecommand{\manuscriptbuilddatetime}{unknown}
+\InputIfFileExists{../build/manuscript_build_info.tex}{}{}
+
+\begin{document}
+
+\title{Geodesic Multidimensional Scaling:\\
+       Self-Consistent Dimensionality Reduction\\ via Graph Geodesic Distances}
+
+\author{\name Pawel Gajer \email pgajer@gmail.com \\
+        \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
+        Baltimore, Maryland, USA
+        \AND
+        \name Jacques Ravel \\
+        \addr Center for Advanced Microbiome Research and Innovation (CAMRI), Institute for Genome Sciences, Department of Microbiology and Immunology, University of Maryland School of Medicine \\
+        Baltimore, Maryland, USA}
+
+\editor{Editor Name}
+
+\maketitle
+\begin{center}
+\footnotesize
+Version \texttt{\manuscriptversion} \quad | \quad Build
+\texttt{\manuscriptbuildnumber} \quad | \quad Commit
+\texttt{\manuscriptcommit}\\
+Built \manuscriptbuilddatetime
+\end{center}
+\vspace{0.35em}
+
+%% ============================================================
+\begin{abstract}
+Multidimensional scaling (MDS) seeks a low-dimensional embedding of
+a set of points that faithfully reproduces a given pairwise dissimilarity
+matrix.  Classical and metric MDS measure faithfulness via the discrepancy
+between the input dissimilarities and the \emph{Euclidean} distances among
+the embedded points.  Isomap improved upon MDS for curved-manifold data by
+replacing Euclidean input dissimilarities with shortest-path distances on a
+$k$-nearest-neighbor ($k$-NN) graph, thereby approximating intrinsic
+manifold geodesics.  However, Isomap retains Euclidean distances on the
+\emph{output} side, creating a fundamental asymmetry: input distances are
+geodesic, but the fidelity criterion is Euclidean.  We argue that this
+asymmetry is not merely an aesthetic inconsistency but a systematic source
+of distortion whenever the data carry genuine graph or manifold structure.
+
+We propose \emph{Geodesic MDS}, a self-consistent formulation in which the
+input dissimilarities are graph geodesics and the output fidelity criterion
+measures the embedded lengths of those same input-side geodesics.  The
+embedding is sought in $\R^d$ such that a fixed family of shortest paths
+chosen from the input $k$-NN graph retains its path-length geometry as
+closely as possible after embedding.  We derive a closed-form
+gradient for this geodesic stress function, extend the SMACOF majorization
+framework to the geodesic setting, and characterize the role of $k$ as a
+geometric scale parameter that continuously interpolates between a sparse
+tree-like regime and standard metric MDS.  The resulting method is
+practically implemented by replacing one line in a standard MDS pipeline
+and adds no asymptotic complexity.  We situate the proposal within the
+metric geometry literature---connecting it to minimum metric realizations,
+tight spans, and metric spanners---and discuss applications to
+high-dimensional compositional data, phylogenetic embeddings, and network
+visualization.
+\end{abstract}
+
+\begin{keywords}
+  multidimensional scaling, dimensionality reduction, geodesic distance,
+  graph metric, $k$-nearest neighbor graph, Isomap, SMACOF, metric geometry,
+  manifold learning, stress function
+\end{keywords}
+
+%% ============================================================
+\section{Introduction}
+\label{sec:introduction}
+
+The central task of \emph{multidimensional scaling} (MDS) is to find a
+configuration of $n$ points $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times
+d}$ in a low-dimensional Euclidean space $\R^d$ such that the Euclidean
+distances $\norm{\bz_i - \bz_j}$ are as close as possible to a given $n
+\times n$ symmetric, non-negative dissimilarity matrix $\Delta = (\delta_{ij})$
+\citep{torgerson1952multidimensional, kruskal1964multidimensional,
+borg2005modern, cox2000multidimensional}.  The criterion of closeness is made
+precise by a \emph{stress} function, and the embedding is obtained by
+minimizing this stress.  MDS and its relatives are among the oldest and most
+widely used tools in multivariate statistics, visualization, and machine
+learning \citep{shepard1962analysis, sammon1969nonlinear,
+vandermaaten2008tsne, mcinnes2018umap}.
+
+When the input data are given as a matrix $\bX \in \R^{n \times m}$ of $n$
+observations in a high-dimensional ambient space $\R^m$, the most common
+choice is $\delta_{ij} = \norm{\bx_i - \bx_j}_{\R^m}$, the Euclidean
+distance in the original space.  This is appropriate when the data are
+believed to lie in a linear subspace of $\R^m$, so that Euclidean distances
+faithfully reflect intrinsic structure.  However, when the data lie on or
+near a nonlinear manifold embedded in $\R^m$, straight-line Euclidean
+distances are poor proxies for the intrinsic distances that govern the
+geometry of the data: two points near opposite ends of a curved surface
+may be close in ambient Euclidean distance but far apart along the surface.
+
+This limitation motivated \emph{Isomap}
+\citep{tenenbaum2000global}, one of the most influential manifold learning
+algorithms.  Isomap approximates the intrinsic geodesic distance between
+points by constructing a $k$-nearest-neighbor ($k$-NN) graph on the data,
+computing all-pairs shortest paths on this graph (weighted by Euclidean
+edge lengths), and then feeding these graph-geodesic dissimilarities
+$\delta_{ij} = \dknn(\bx_i, \bx_j)$ into classical MDS.  For data lying on
+a smooth, sufficiently sampled Riemannian manifold, the graph-geodesic
+distances converge to the true manifold geodesics as $n \to \infty$
+\citep{bernstein2000graph, tenenbaum2000global}, and the resulting embedding
+recovers the intrinsic geometry with high fidelity.
+
+\subsection{The Output-Side Inconsistency}
+
+Despite this advance, Isomap retains a fundamental asymmetry that has not
+previously been identified as a source of systematic distortion.  On the
+\emph{input} side, distances are geodesic---shortest paths through the data
+graph.  On the \emph{output} side, the stress function measures faithfulness
+via \emph{Euclidean} distances between embedded points.  This means that
+Isomap optimizes an embedding in which the distance between $\bz_i$ and
+$\bz_j$ is the straight-line distance $\norm{\bz_i - \bz_j}$, not the
+embedded length of the corresponding input-side geodesic.
+
+The comparison below summarizes the distinction between standard MDS,
+Isomap, and the proposed Geodesic MDS in terms of the distance used on
+the input and output sides of the embedding problem.
+
+\begin{center}
+  \small
+  \begin{tabular}{@{}p{0.19\textwidth}p{0.34\textwidth}p{0.34\textwidth}@{}}
+    \toprule
+    Method & Input dissimilarity $\delta_{ij}$ & Output distance $d_{ij}$ \\
+    \midrule
+    Standard MDS & Euclidean $\norm{\cdot}_{\R^m}$ & Euclidean $\norm{\cdot}_{\R^d}$ \\
+    Isomap & $d_{G_k}$ (graph geodesic) & Euclidean $\norm{\cdot}_{\R^d}$ \\
+    Geodesic MDS & $d_{G_k}$ (graph geodesic) & embedded length of a fixed input geodesic \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+For data living on a smooth manifold with slowly varying curvature this
+asymmetry causes only a small error: nearby embedded points have
+approximately equal Euclidean and geodesic distances.  But for data with
+genuine graph or tree structure---where the topology enforces that all
+paths between certain pairs of points must pass through bottleneck
+vertices---the Euclidean output distance is a systematic \emph{underestimate}
+of the embedded length of the relevant graph geodesic (by the triangle inequality, with
+equality only when points are collinear in the embedding space).
+
+Consider a concrete example: a star graph with center $c$ and three arm
+tips $v_1, v_2, v_3$, each arm of unit length.  The graph distance between
+$v_1$ and $v_2$ is $\delta(v_1, v_2) = 2$ (through $c$).  Any faithful
+embedding must respect the topological constraint that the only path from
+$v_1$ to $v_2$ passes through $c$.  Standard MDS and Isomap both try to
+place $\bz_{v_1}$ and $\bz_{v_2}$ at Euclidean distance $2$ apart, which
+is perfectly achievable in $\R^2$---but doing so forces the embedded arms
+to be nearly collinear, misrepresenting the star topology.  The \emph{correct}
+criterion is that the \emph{path-length distance along the embedded arms}
+from $\bz_{v_1}$ to $\bz_{v_2}$ equals $\norm{\bz_{v_1} - \bz_c} +
+\norm{\bz_c - \bz_{v_2}} = 2$, which is compatible with any angular
+arrangement of the arms and correctly reflects the star structure.
+Figure~\ref{fig:star_bias} is intended to make this contrast visually explicit.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_star_bias.pdf}
+  \caption{Branching metrics expose the output-side inconsistency.  In a star graph, the graph distance between leaves is realized through the center.  Matching this distance with Euclidean output distances biases the embedding toward collinearity, whereas measuring output fidelity by the embedded lengths of the corresponding input geodesics preserves the correct topological structure.}
+  \label{fig:star_bias}
+\end{figure}
+
+\subsection{Contributions}
+
+This paper introduces \emph{Geodesic MDS}, a reformulation of the metric
+MDS stress function that is self-consistent with respect to geodesic
+distance.  Our contributions are as follows.
+
+\begin{enumerate}
+  \item \textbf{Conceptual framework.}  We identify and formalize the
+  input/output asymmetry in Isomap and show that replacing Euclidean
+  output distances with embedded lengths of the input geodesics yields a
+  self-consistent stress function (\cref{sec:geodesic_mds}).
+
+  \item \textbf{Formal definition.}  We define the geodesic stress function
+  over a fixed graph topology (the $k$-NN graph of the input data) and a
+  fixed family of input-side geodesics, where the free variables are the
+  vertex positions in the target space $\R^d$ and the distances are
+  measured along those embedded paths
+  (\cref{sec:geodesic_stress}).
+
+  \item \textbf{Gradient derivation.}  We derive the gradient of the
+  geodesic stress with respect to vertex positions and characterize its
+  non-local dependence on the chosen input-side geodesics
+  (\cref{sec:gradient}).
+
+  \item \textbf{SMACOF extension.}  We extend the SMACOF majorization
+  framework \citep{deleeuw1977applications, deleeuw2009multidimensional}
+  to the geodesic setting by exploiting the fact that the fixed input
+  geodesics decompose into sums of Euclidean edge lengths, enabling a
+  tractable iterative optimization (\cref{sec:smacof}).
+
+  \item \textbf{Geometric characterization.}  We characterize the role of
+  $k$ as a geometric scale parameter: $k=1$ (spanning tree) corresponds to
+  a tree-metric embedding, while $k \to n$ (complete graph) recovers
+  standard metric MDS (\cref{sec:properties}).  We connect the construction
+  to minimum metric realizations, metric spanners, and the tight span from
+  metric geometry.
+\end{enumerate}
+
+\subsection{Relationship to Existing Work}
+
+Geodesic MDS is closely related to, but distinct from, several existing
+methods.  \emph{Isomap} \citep{tenenbaum2000global} uses graph geodesics
+on the input side only.  \emph{Kamada-Kawai graph drawing}
+\citep{kamada1989algorithm} minimizes a stress between graph-theoretic
+shortest-path distances and Euclidean drawing distances, but is restricted
+to 2D visualization and is not formulated as a dimensionality reduction
+method with explicit input/output distance comparison.  \emph{Metric graph
+embedding} theory \citep{bourgain1985lipschitz,
+linial1994geometry} studies distortion bounds for embedding graph metrics
+into $\ell_p$ spaces but does not define a stress function or optimization
+criterion.  \emph{Diffusion maps} \citep{coifman2006diffusion} define a
+Markov-chain-based distance that is intrinsic to the data graph but again
+uses Euclidean output distances.  To our knowledge, the self-consistent
+formulation proposed here---graph geodesics on the input side and
+embedded lengths of the corresponding fixed input geodesics on the output
+side---has not been previously proposed.
+
+\subsection{Organization}
+
+The remainder of the paper is organized as follows.
+\cref{sec:background} reviews MDS, Isomap, and the $k$-NN graph construction.
+\cref{sec:geodesic_mds} presents Geodesic MDS: the formal definition of
+geodesic stress, the gradient derivation, the SMACOF extension, and the
+geometric properties of the formulation.
+Subsequent sections (not included in this draft) present experiments,
+theoretical analysis, and applications.
+
+%% ============================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{Classical MDS}
+\label{sec:classical_mds}
+
+Let $\Delta = (\delta_{ij})$ be an $n \times n$ symmetric dissimilarity
+matrix with $\delta_{ii} = 0$.  Classical MDS
+\citep{torgerson1952multidimensional, young1938discussion} seeks a
+configuration $\bZ \in \R^{n \times d}$ such that
+$\norm{\bz_i - \bz_j} \approx \delta_{ij}$.  When $\Delta$ contains
+squared Euclidean distances, the solution is obtained by eigendecomposition
+of the \emph{double-centered} Gram matrix
+\begin{equation}
+  \bB = -\tfrac{1}{2} \bJ \bD^{(2)} \bJ,
+  \label{eq:gram}
+\end{equation}
+where $\bD^{(2)}_{ij} = \delta_{ij}^2$ and
+$\bJ = \bI_n - n^{-1}\mathbf{1}\mathbf{1}^\top$ is the centering matrix.
+The $d$-dimensional embedding is
+$\bZ = \bU_d \Lambda_d^{1/2}$, where $\bU_d$ and $\Lambda_d$ contain the
+$d$ largest eigenvectors and eigenvalues of $\bB$
+\citep{eckart1936approximation, gower1966some}.
+This is also known as \emph{principal coordinate analysis} (PCoA)
+\citep{gower1966some}.  Classical MDS is a closed-form, non-iterative
+method; it yields an exact isometric embedding when $\bB$ is positive
+semidefinite (equivalently, when $\Delta$ satisfies Euclidean metric
+conditions \citep{schoenberg1935remarks}).
+
+\subsection{Metric MDS and Stress}
+\label{sec:metric_mds}
+
+When $\Delta$ is not a Euclidean distance matrix, classical MDS may place
+negative eigenvalues in $\bB$, and the embedding is approximate.  Metric
+MDS \citep{kruskal1964multidimensional} frames the problem explicitly as
+an optimization: find $\bZ \in \R^{n \times d}$ minimizing a \emph{stress}
+function that measures discrepancy between embedded distances and input
+dissimilarities.
+
+\paragraph{Kruskal's Stress-1.}
+The most widely used criterion is Kruskal's \emph{Stress-1}
+\citep{kruskal1964multidimensional}:
+\begin{equation}
+  \StressOne(\bZ) = \sqrt{
+    \frac{\displaystyle\sum_{i < j}
+          \bigl(d_{ij}(\bZ) - \delta_{ij}\bigr)^2}
+         {\displaystyle\sum_{i < j} d_{ij}(\bZ)^2}
+  },
+  \label{eq:stress1}
+\end{equation}
+where $d_{ij}(\bZ) = \norm{\bz_i - \bz_j}$ is the Euclidean distance
+between embedded points.  The normalization by $\sum_{i<j} d_{ij}^2$
+makes $\StressOne$ invariant to uniform scaling of $\bZ$; it takes values
+in $[0, 1]$, with 0 indicating a perfect isometric embedding.  An
+alternative normalization divides by $\sum_{i<j} \delta_{ij}^2$
+\citep{borg2005modern}, and is sometimes called Stress-1r; both are in
+common use.
+
+\paragraph{Weighted stress.}
+A generalization incorporates pair-specific weights $w_{ij} \geq 0$:
+\begin{equation}
+  \sigma_w(\bZ)
+  = \sum_{i < j} w_{ij}\,\bigl(d_{ij}(\bZ) - \delta_{ij}\bigr)^2.
+  \label{eq:weighted_stress}
+\end{equation}
+Common choices are $w_{ij} = \delta_{ij}^{-2}$ (relative weighting,
+emphasizing small distances) and $w_{ij} = 1$ (uniform).  The unweighted
+raw stress $\sigma(\bZ) = \sum_{i<j}(d_{ij}(\bZ) - \delta_{ij})^2$
+is the numerator of $\StressOne^2$ up to scaling.
+
+\paragraph{Qualitative interpretation.}
+Empirical guidelines due to \citet{kruskal1964nonmetric} and
+\citet{borg2005modern} suggest that $\StressOne < 0.05$ indicates an
+excellent fit, $0.05$--$0.10$ a good fit, $0.10$--$0.20$ a fair fit, and
+$> 0.20$ a poor fit, though these thresholds depend on $n$ and the
+structure of $\Delta$.
+
+\subsection{SMACOF}
+\label{sec:smacof}
+
+Direct minimization of $\sigma$ or $\StressOne$ is a non-convex problem
+with many local minima.  The \emph{Scaling by MAjorizing a COmplicated
+Function} (SMACOF) algorithm \citep{deleeuw1977applications,
+deleeuw2009multidimensional} is the dominant approach.  SMACOF exploits
+the identity
+\begin{equation}
+  \sigma(\bZ) = \sum_{i<j}w_{ij}\delta_{ij}^2
+               - 2\,\mathrm{tr}(\bZ^\top \bV\,\bZ)
+               + \mathrm{tr}(\bZ^\top \bW\,\bZ),
+  \label{eq:smacof_decomp}
+\end{equation}
+where $\bW_{ii} = \sum_{j \neq i} w_{ij}$, $\bW_{ij} = -w_{ij}$ ($i \neq
+j$), and $\bV$ is the Guttman transform of $\bZ$:
+\begin{equation}
+  \bV(\bZ)_{ij} = -w_{ij}\,\frac{\delta_{ij}}{d_{ij}(\bZ)}\quad(i \neq j),
+  \qquad
+  \bV(\bZ)_{ii} = -\sum_{j \neq i} \bV(\bZ)_{ij}.
+  \label{eq:guttman}
+\end{equation}
+The majorization step replaces the complicated function of $d_{ij}(\bZ)$
+by a quadratic upper bound that is tight at the current iterate $\bZ^{(t)}$,
+yielding the closed-form Guttman update
+\begin{equation}
+  \bZ^{(t+1)} = \bW^+ \bV(\bZ^{(t)})\,\bZ^{(t)},
+  \label{eq:guttman_update}
+\end{equation}
+where $\bW^+$ is the Moore-Penrose pseudoinverse of $\bW$.  SMACOF
+guarantees monotone decrease of $\sigma$ at each iteration and converges
+to a stationary point \citep{deleeuw2009multidimensional}.  Multiple random
+restarts are used in practice to mitigate local minima.  Efficient
+implementations are available in R \citep{deleeuw2009multidimensional}
+and Python \citep{pedregosa2011scikit}.
+
+\subsection{Non-Metric MDS}
+\label{sec:nonmetric_mds}
+
+Non-metric MDS \citep{kruskal1964nonmetric, shepard1962analysis} relaxes
+the requirement to reproduce input dissimilarity values, requiring only
+that the \emph{rank order} of distances be preserved.  The optimization
+alternates between isotonic regression (computing optimal
+\emph{disparities} $\hat\delta_{ij}$ that are monotone in $\delta_{ij}$)
+and gradient steps on the embedding.  Non-metric MDS is appropriate for
+ordinal or perceptual data; Geodesic MDS as proposed here is a metric
+method, though a non-metric geodesic variant is straightforward to
+formulate by applying isotonic regression to the graph-geodesic targets
+$d_G(i,j)$ while continuing to evaluate the output configuration by the
+corresponding embedded path lengths $\demb_G(i,j;\bZ)$.
+
+\subsection{Isomap}
+\label{sec:isomap}
+
+\emph{Isomap} \citep{tenenbaum2000global} addresses the limitation of MDS
+on nonlinear manifold-structured data by replacing Euclidean input
+dissimilarities with approximations of intrinsic geodesic distances.
+Given $\bX \in \R^{n \times m}$, the algorithm proceeds in three steps:
+
+\begin{enumerate}
+  \item \textbf{$k$-NN graph construction.}  Build a weighted undirected
+  graph $\Gk$ with vertex set $\{1, \ldots, n\}$, connecting $i$ and $j$
+  by an edge of weight $\norm{\bx_i - \bx_j}_{\R^m}$ whenever $j$ is
+  among the $k$ nearest neighbors of $i$ (or vice versa, in the symmetric
+  variant).
+
+  \item \textbf{Geodesic distance computation.}  Compute all-pairs
+  shortest-path distances $\dknn(i,j)$ on $\Gk$ using Dijkstra's
+  algorithm \citep{dijkstra1959note} or Floyd-Warshall
+  \citep{floyd1962algorithm}.  Set $\delta_{ij} := \dknn(i,j)$.
+
+  \item \textbf{Classical MDS.}  Apply classical MDS (Section
+  \ref{sec:classical_mds}) to the geodesic dissimilarity matrix $\Delta$
+  to obtain the low-dimensional embedding $\bZ \in \R^{n \times d}$.
+\end{enumerate}
+
+\paragraph{Convergence theory.}
+For data sampled i.i.d.\ from a compact Riemannian manifold $(M, g)$
+embedded in $\R^m$, the graph-geodesic distance $\dknn(i,j)$ converges
+to the Riemannian geodesic distance $d_M(i,j)$ as $n \to \infty$, provided
+$k$ grows appropriately with $n$ \citep{bernstein2000graph,
+tenenbaum2000global, zha2003continuum, donoho2003hessian}.
+The resulting classical MDS embedding then recovers the isometric embedding
+of $M$ into a Euclidean space (when one exists) \citep{tenenbaum2000global}.
+
+\paragraph{The output-side limitation.}
+Despite this theoretical guarantee, Isomap measures the fidelity of the
+embedding by Euclidean distances $\norm{\bz_i - \bz_j}$ between embedded
+points---not by path-length distances along the embedded manifold.  For a
+smooth manifold this is a minor issue: the manifold in the embedding is
+nearly flat if $d$ is chosen correctly, so Euclidean and geodesic distances
+are approximately equal.  For discrete graph metrics, branching metrics
+(trees, stars), or data with topological bottlenecks, the discrepancy is
+fundamental, as we elaborate in \cref{sec:geodesic_mds}.
+
+\subsection{The k-NN Graph as a Geodesic Structure}
+\label{sec:knn_graph}
+
+The $k$-NN graph $\Gk$ constructed in step 1 of Isomap can be understood
+as a \emph{metric graph}---a weighted graph whose path metric approximates
+some underlying geodesic metric space.  Several observations are relevant
+for our construction.
+
+\paragraph{Consistency with the ambient metric.}
+The edge weights of $\Gk$ are Euclidean distances in $\R^m$, so the path
+metric $d_{\Gk}$ always satisfies $d_{\Gk}(i,j) \geq \norm{\bx_i - \bx_j}$
+(the shortest path cannot be shorter than the straight line).  Equality
+holds only for pairs connected by a direct edge.
+
+\paragraph{Sparsity and the role of $k$.}
+$\Gk$ has at most $kn$ edges (exactly $kn/2$ in expectation for large $n$
+with a symmetric construction), so the graph is sparse for small $k$.
+As $k$ increases, more edges are added, $d_{\Gk}(i,j)$ decreases toward
+$\norm{\bx_i - \bx_j}$, and the graph metric approaches the Euclidean
+ambient metric.  At $k = n-1$ (complete graph), $d_{\Gk}(i,j) =
+\norm{\bx_i - \bx_j}$ for all pairs, and the construction degenerates to
+standard Euclidean MDS.
+
+\paragraph{Spanner interpretation.}
+$\Gk$ is a $(1+\varepsilon)$-spanner of the Euclidean metric on $\bX$ for
+sufficiently large $k$ depending on the intrinsic dimensionality of the
+data \citep{althofer1993sparse, har-peled2006low}.  This means
+$d_{\Gk}(i,j) \leq (1+\varepsilon)\norm{\bx_i - \bx_j}$, so the graph
+geodesic approximates the Euclidean distance with controlled relative
+error.  For data with low intrinsic dimension $d^*$, $k = O(\varepsilon^{-d^*})$
+suffices \citep{har-peled2006low}.
+
+\paragraph{Minimum realization.}
+An edge $(i,j)$ in $K_n$ (the complete graph on $\bX$) is
+\emph{metrically redundant} with respect to $d_{\Gk}$ if there exists a
+path through intermediate points with equal total length.  The subgraph
+obtained by removing all metrically redundant edges is the
+\emph{minimum realization} $G^*$ of the metric $d_{\Gk}$
+\citep{dress1984trees, imrich1984optimal}, and encodes the intrinsic
+geodesic structure of the data.  For tree metrics, $G^*$ is the unique
+spanning tree; for hyperbolic metrics it is sparse; for generic metrics
+it approaches the complete graph.
+Figure~\ref{fig:k_regimes} is a natural companion here because the role of
+$k$ is one of the main geometric ideas of the paper.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_k_regimes.pdf}
+  \caption{The neighborhood parameter $k$ acts as a geometric scale parameter.  The same horseshoe-shaped point set is shown for three neighborhood sizes, with the same endpoint pair $p,q$ highlighted in each panel.  For small $k$, the graph is sparse and nearly tree-like; for intermediate $k$, shortest paths still follow the manifold and preserve local geodesic structure; and for large $k$, dense shortcut edges appear and the metric approaches the ambient Euclidean regime.}
+  \label{fig:k_regimes}
+\end{figure}
+
+\subsection{Manifold Learning and Related Methods}
+\label{sec:manifold_learning}
+
+The broader context of our work is \emph{manifold learning}: the project
+of finding low-dimensional representations of high-dimensional data assumed
+to lie near a low-dimensional manifold.  Beyond Isomap, influential methods
+include Locally Linear Embedding (LLE) \citep{roweis2000nonlinear},
+Laplacian Eigenmaps \citep{belkin2003laplacian}, Hessian Eigenmaps
+\citep{donoho2003hessian}, Diffusion Maps \citep{coifman2006diffusion},
+$t$-SNE \citep{vandermaaten2008tsne}, and UMAP \citep{mcinnes2018umap}.
+With the exception of diffusion maps (which define an intrinsic distance via
+Markov chain commute times), all of these methods use Euclidean distances
+on the output side, making the inconsistency identified here relevant to the
+entire manifold learning literature.
+
+Graph drawing methods---particularly Kamada-Kawai \citep{kamada1989algorithm}
+and Fruchterman-Reingold \citep{fruchterman1991graph}---are also related.
+Kamada-Kawai minimizes a stress between graph-theoretic shortest-path
+distances (in the unweighted graph) and Euclidean distances in the 2D
+drawing, which is structurally similar to Isomap applied to an unweighted
+graph.  A geodesic variant of Kamada-Kawai, using embedded lengths of
+fixed graph geodesics on the output, is a natural companion to Geodesic
+MDS but is outside the scope of the present paper.
+
+%% ============================================================
+\section{Geodesic MDS}
+\label{sec:geodesic_mds}
+
+\subsection{The Self-Consistency Principle}
+\label{sec:self_consistency}
+
+We begin by articulating the principle that motivates the proposed method.
+
+\begin{definition}[Self-consistent embedding]
+  \label{def:self_consistency}
+  Let $(X, \delta)$ be a metric space with a graph structure $G = (X, E,
+  w)$ whose path metric $d_G$ satisfies $d_G(i,j) \geq \delta(i,j)$ for
+  all $i,j$.  For each pair $(i,j)$, choose a canonical $d_G$-geodesic
+  $\gamma_{ij}$ in $G$.  An embedding $f: X \to \R^d$ is
+  \emph{self-consistent} with respect to $(G, \Gamma)$, where
+  $\Gamma = \{\gamma_{ij}\}_{i<j}$, if the fidelity of the embedding is
+  measured by the path length of the image $f(\gamma_{ij})$---i.e., by the
+  sum of Euclidean edge lengths along that same input-side geodesic.
+\end{definition}
+
+Standard metric MDS and Isomap are not self-consistent in this sense:
+they measure fidelity by Euclidean distances $\norm{f(i) - f(j)}$, which
+are at most equal to any path-length distance through intermediate vertices.
+
+The self-consistency principle has a natural interpretation:
+\emph{the distance used to evaluate the embedding should be the same
+type of distance, along the same family of geodesics, used to construct
+the input dissimilarities.}
+If input dissimilarities are graph geodesics, output distances should be
+measured along those same graph geodesics after embedding.  This is not
+merely a philosophical preference: the
+analysis in \cref{sec:systematic_bias} below shows that using Euclidean
+output distances introduces a systematic downward bias in the estimated
+distances for topologically constrained pairs.
+
+\subsection{Systematic Bias of Euclidean Output Distances}
+\label{sec:systematic_bias}
+
+\begin{proposition}[Triangle inequality bias]
+  \label{prop:bias}
+  Let $\bZ = (\bz_1, \ldots, \bz_n) \in \R^{n \times d}$ be any embedding,
+  and let $G = (V, E, w)$ be a weighted graph with vertex set $V = \{1,
+  \ldots, n\}$.  For any pair $(i,j)$ with chosen shortest path
+  $i = v_0, v_1, \ldots, v_\ell = j$ in $G$, define the embedded length of
+  that geodesic by
+  \begin{equation}
+    \demb_G(i,j;\bZ)
+    = \sum_{s=0}^{\ell-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}}.
+    \label{eq:emb_geo}
+  \end{equation}
+  Then
+  \begin{equation}
+    \norm{\bz_i - \bz_j} \;\leq\; \demb_G(i,j;\bZ),
+    \label{eq:triangle_bias}
+  \end{equation}
+  with equality if and only if all embedded path vertices
+  $\bz_{v_0}, \ldots, \bz_{v_\ell}$ are collinear in $\R^d$ in the order
+  of the path.
+\end{proposition}
+
+\begin{proof}
+  By the triangle inequality applied $\ell$ times:
+  $\norm{\bz_i - \bz_j} = \norm{\sum_{s} (\bz_{v_{s+1}} - \bz_{v_s})}
+  \leq \sum_s \norm{\bz_{v_{s+1}} - \bz_{v_s}} = \demb_G(i,j;\bZ)$.
+  Equality holds iff all difference vectors $\bz_{v_{s+1}} - \bz_{v_s}$
+  are non-negative scalar multiples of a single unit vector, i.e., the
+  points are collinear in the stated order.
+\end{proof}
+
+\Cref{prop:bias} shows that standard MDS and Isomap systematically
+underestimate embedded geodesic lengths for all topologically
+non-degenerate pairs (those whose shortest path has $\ell \geq 2$ and
+does not embed as a straight line).  When the input dissimilarity
+$\delta_{ij}$ is a graph geodesic, minimizing Euclidean-output stress
+creates pressure to satisfy $\norm{\bz_i - \bz_j} \approx \delta_{ij}$,
+which in turn forces embedded paths to be approximately collinear.
+For tree-structured data this collapses the tree into a lower-dimensional
+structure than warranted; for star graphs it forces nearly collinear arm
+arrangement regardless of the dimension $d$.
+
+\subsection{The Geodesic Stress Function}
+\label{sec:geodesic_stress}
+
+We now define the proposed method.
+
+\paragraph{Setup.}
+Let $G = (V,E,w)$ be a connected weighted graph with vertex set
+$V = \{1,\ldots,n\}$ and positive edge weights $w_{uv} > 0$.  Write
+$d_G$ for the weighted shortest-path metric on $V$.  For each pair
+$i < j$, choose a canonical $d_G$-geodesic
+\begin{equation}
+  \gamma_{ij} = (v_0 = i, v_1, \ldots, v_L = j),
+  \label{eq:canonical_geodesic}
+\end{equation}
+breaking ties deterministically when multiple shortest paths exist.  The
+collection $\Gamma = \{\gamma_{ij} : i < j\}$ is part of the data of the
+method.  In this sense, Geodesic MDS is defined on the pair $(G,\Gamma)$,
+not on $G$ alone.
+
+An embedding is a configuration matrix $\bZ = (\bz_1, \ldots, \bz_n)^\top
+\in \R^{n \times d}$.  For fixed $(G,\Gamma)$, the \emph{embedded graph}
+$G(\bZ)$ is the same graph $G$ with edge lengths replaced by embedded
+Euclidean distances.  The \emph{embedded length of the chosen input
+geodesic} is
+\begin{equation}
+  \demb_{\Gamma}(i,j;\bZ)
+  = \sum_{s=0}^{L-1} \norm{\bz_{v_s} - \bz_{v_{s+1}}},
+  \label{eq:emb_geodesic}
+\end{equation}
+where $\gamma_{ij} = (v_0, \ldots, v_L)$.
+
+\begin{definition}[Raw geodesic stress]
+  \label{def:raw_geodesic_stress}
+  The \emph{raw geodesic stress} of an embedding $\bZ \in \R^{n \times d}$
+  with respect to $(G,\Gamma)$ is
+  \begin{equation}
+    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
+    = \sum_{i < j}
+      \bigl(\demb_{\Gamma}(i,j;\bZ) - d_G(i,j)\bigr)^2.
+    \label{eq:raw_geo_stress}
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Geodesic Stress-1]
+  \label{def:geodesic_stress}
+  The normalized \emph{geodesic Stress-1} of $\bZ$ with respect to
+  $(G,\Gamma)$ is
+  \begin{equation}
+    {\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)
+    = \sqrt{
+        \frac{\Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)}
+             {\displaystyle\sum_{i < j} d_G(i,j)^2}
+      }.
+    \label{eq:geo_stress}
+  \end{equation}
+\end{definition}
+
+\begin{definition}[Geodesic MDS embedding]
+  \label{def:gmds_embedding}
+  A \emph{Geodesic MDS embedding} of $(G,\Gamma)$ in $\R^d$ is any
+  minimizer
+  \begin{equation}
+    \hat{\bZ}_{\Gamma,d}(G)
+    \in \argmin_{\bZ \in \R^{n \times d}}
+    \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G).
+    \label{eq:geo_mds}
+  \end{equation}
+  Equivalently, since the denominator in \cref{eq:geo_stress} is constant
+  in $\bZ$, one may minimize ${\StressOne}_{\Gamma}^{\mathrm{geo}}(\bZ; G)$.
+\end{definition}
+
+\paragraph{Specialization to $k$-NN graphs.}
+When the input is a data matrix $\bX \in \R^{n \times m}$, we recover the
+construction used throughout this paper by fixing a neighborhood parameter
+$k \in \{1,\ldots,n-1\}$ and building the symmetric $k$-NN graph
+$\Gk = (V, E_k)$ with
+\begin{equation}
+  E_k = \{(i,j) : j \in \mathcal{N}_k(i) \text{ or } i \in \mathcal{N}_k(j)\},
+  \label{eq:knn_edges}
+\end{equation}
+where $\mathcal{N}_k(i)$ denotes the $k$ nearest neighbors of $i$ in
+$\R^m$.  Assign weights $w_{ij} = \norm{\bx_i - \bx_j}_{\R^m}$ for
+$(i,j) \in E_k$, compute the shortest-path metric
+$d_{\Gk}(i,j) = \delta_{ij}^{(k)}$, and choose a canonical shortest-path
+family $\Gamma_k = \{\gamma_{ij}^{(k)} : i < j\}$.  The resulting Geodesic
+MDS objective is
+\begin{equation}
+  \Stress^{\mathrm{geo}}_{\Gamma_k}(\bZ; \Gk)
+  = \sum_{i < j}
+    \bigl(\demb_{\Gamma_k}(i,j;\bZ) - \delta^{(k)}_{ij}\bigr)^2.
+  \label{eq:knn_raw_geo_stress}
+\end{equation}
+
+\begin{remark}[Normalization]
+  We normalize by the constant $\sum_{i<j} d_G(i,j)^2$ rather than by an
+  embedded denominator such as $\sum_{i<j} \demb_{\Gamma}(i,j;\bZ)^2$.
+  This keeps ${\StressOne}_{\Gamma}^{\mathrm{geo}}$ scale-free while
+  leaving the optimizer identical to the raw numerator
+  \cref{eq:raw_geo_stress}.  A Kruskal-style denominator depending on
+  $\bZ$ is still useful for reporting, but it changes the optimization
+  target.
+\end{remark}
+
+\begin{remark}[Fixed topology and fixed geodesics]
+  The graph topology $E$ and the chosen geodesic family $\Gamma$ are fixed
+  by the input metric data and are not part of the optimization.  Only the
+  vertex positions $\bz_1,\ldots,\bz_n$ are free.  This is a key design
+  choice: it ensures that the relevant routes are determined by the input
+  geometry and that the optimization preserves that chosen geodesic
+  structure after embedding.
+\end{remark}
+Figure~\ref{fig:geodesic_stress_definition} should make the fixed-geodesic,
+two-metric comparison in \cref{eq:emb_geodesic,eq:geo_stress} easy to see.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_geodesic_stress_definition.pdf}
+  \caption{Definition of geodesic stress.  Left: the input
+  dissimilarity $d_G(i,j)$ is the shortest-path distance between $i$ and
+  $j$ on the fixed weighted graph $G$; in the data-analytic specialization,
+  $G = \Gk$ is a $k$-NN graph.  Right: the output quantity
+  $\demb_{\Gamma}(i,j;\bZ)$ is the length of the canonical shortest path
+  chosen in the input graph, measured after the vertex positions move in
+  $\R^d$.  The route is fixed by the input geometry; only the embedded edge
+  lengths change during optimization.}
+  \label{fig:geodesic_stress_definition}
+\end{figure}
+
+
+\begin{remark}[Nonuniqueness is intrinsic, not a defect]
+  The objective \cref{eq:raw_geo_stress} is a fidelity criterion, not an
+  aesthetics criterion, so its minimizers need not be unique.  This is a
+  feature of the definition: multiple embeddings can realize the same graph
+  geodesic data equally well.
+\end{remark}
+
+For example, for a path graph $v_0 - v_1 - v_2$ with any fixed edge lengths,
+every embedding in $\R^2$ that preserves those two edge lengths is a global
+minimum of \cref{eq:raw_geo_stress}; one obtains an infinite family of minima
+by fixing the segment $[v_0,v_1]$ and rotating $[v_1,v_2]$ around $v_1$.
+Likewise, if $v_0,v_1,v_2$ form one triangle and $v_1,v_2,v_3$ form another
+triangle sharing the edge $[v_1,v_2]$, then both the non-overlapping and the
+overlapping realizations are global minima whenever all edge lengths are
+preserved.  \Cref{fig:nonuniqueness_examples} illustrates these two basic
+sources of nonuniqueness.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_nonuniqueness_examples.pdf}
+  \caption{Two sources of nonuniqueness for geodesic-stress minimizers.
+  Left: a three-vertex path has a one-parameter family of exact realizations
+  obtained by rotating the second edge while preserving both edge lengths.
+  Right: two triangles sharing an edge admit distinct exact realizations,
+  including a non-overlapping embedding and an overlapping embedding.  In both
+  examples the raw geodesic stress is zero because all relevant graph-geodesic
+  lengths are preserved.}
+  \label{fig:nonuniqueness_examples}
+\end{figure}
+
+\paragraph{A diagnostic lesson.}
+The diagnostic experiments reported separately in this project show that the
+all-pairs objective \cref{eq:raw_geo_stress} can admit visually pathological
+minimizers on simple synthetic graphs.  On orthogonal grids, graph geodesics
+systematically exceed straight-line Euclidean distances, so the gradient of the
+all-pairs geodesic stress can push the embedding toward stretched or folded
+configurations.  This does not invalidate the definition of GMDS: it shows that
+regularization is a separate modeling choice that may be needed when one wants
+both fidelity to graph geodesics and a visually well-spread realization.
+
+\paragraph{Regularized GMDS.}
+To incorporate such modeling choices explicitly, introduce a Euclidean
+dispersion regularizer
+\begin{equation}
+  R(\bZ) = \sum_{i < j} f_r\bigl(\norm{\bz_i - \bz_j}\bigr),
+  \label{eq:repulsive_regularizer}
+\end{equation}
+where $f_r : (0,\infty) \to (0,\infty)$ is a decreasing function.  A
+concrete choice used widely in force-directed graph drawing is the Coulomb-type
+penalty
+\begin{equation}
+  f_r(r) = \frac{1}{r^2 + \varepsilon_r^2},
+  \label{eq:coulomb_regularizer}
+\end{equation}
+with a small $\varepsilon_r > 0$ to prevent singularities.  The
+self-consistency principle applies to the fidelity term
+\cref{eq:raw_geo_stress}; the role of $R$ is different.  It is a Euclidean
+regularizer that encourages spread and discourages collapse, not a substitute
+for the graph-geodesic mismatch term itself.  A standard scalarized objective
+is therefore
+\begin{equation}
+  F_\lambda(\bZ; G,\Gamma)
+  = \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G) + \lambda R(\bZ),
+  \qquad \lambda > 0.
+  \label{eq:regularized_gmds}
+\end{equation}
+A \emph{regularized GMDS embedding} is a local minimizer of
+\cref{eq:regularized_gmds} for a specified $\lambda$.  The value of
+$\lambda$ is not universal; in practice it should be reported explicitly and
+chosen by a fidelity-dispersion trade-off study, continuation scheme, or
+task-specific validation criterion.
+
+\paragraph{An edge-based relaxation.}
+If exact minimization of \cref{eq:raw_geo_stress} is computationally
+prohibitive, one can replace it by the edge-only functional
+\begin{equation}
+  E_K(\bZ)
+  = \sum_{(i,j) \in E} k_{ij}\bigl(\norm{\bz_i - \bz_j} - w_{ij}\bigr)^2,
+  \label{eq:edge_relaxation}
+\end{equation}
+because for an edge $(i,j)$ the chosen graph geodesic is the edge itself and
+thus $\demb_{\Gamma}(i,j;\bZ) = \norm{\bz_i - \bz_j}$.  This is no longer the
+geodesic stress: it is a graph-drawing-style relaxation that penalizes only
+single-hop distortion, and is therefore closer to an edge-restricted
+Kamada-Kawai objective \citep{kamada1989algorithm, fruchterman1991graph}
+than to the full all-pairs GMDS criterion.
+
+The relation between \cref{eq:raw_geo_stress,eq:edge_relaxation} is easiest to
+see in edge-length coordinates.  Let $\ell(\bZ) \in \R^{|E|}$ be the vector of
+embedded edge lengths, let $w \in \R^{|E|}$ collect the graph edge weights, and
+let $A_{\Gamma}$ be the path-edge incidence matrix whose $(i,j)$-row indicates
+which edges lie on the chosen geodesic $\gamma_{ij}$.  Then
+\begin{equation}
+  \Stress^{\mathrm{geo}}_{\Gamma}(\bZ; G)
+  = \norm{A_{\Gamma}\bigl(\ell(\bZ) - w\bigr)}_2^2
+  = \bigl(\ell(\bZ)-w\bigr)^\top
+    A_{\Gamma}^\top A_{\Gamma}
+    \bigl(\ell(\bZ)-w\bigr),
+  \label{eq:path_incidence_stress}
+\end{equation}
+whereas
+\begin{equation}
+  E_K(\bZ)
+  = \bigl(\ell(\bZ)-w\bigr)^\top K \bigl(\ell(\bZ)-w\bigr),
+  \label{eq:edge_relaxation_matrix}
+\end{equation}
+with $K = \diag(k_{ij})$ diagonal.  Thus $E_K$ drops the off-diagonal
+path-coupling terms in $A_{\Gamma}^\top A_{\Gamma}$ and therefore does not
+control multi-hop geodesic distortion directly.  What is gained is a much
+cheaper objective; what is lost is explicit control of long-range path-length
+errors.
+
+If $E_K(\bZ) = 0$, then every edge length is realized exactly, hence every
+chosen graph-geodesic length is realized exactly as well, and
+\cref{eq:raw_geo_stress} also vanishes.  In the approximate regime, however,
+the two objectives are different and generally have different local minima.
+For this reason we treat \cref{eq:edge_relaxation} as a relaxation of GMDS,
+not as the definition of GMDS itself.  Whether this relaxation also avoids
+some of the pathologies of the full all-pairs objective is an empirical
+question, not a formal consequence of the definition.
+
+The weights $k_{ij}$ in \cref{eq:edge_relaxation} are user-chosen tuning
+parameters.  A simple default is $k_{ij} \equiv 1$.  If one wants to emphasize
+edge lengths that occur frequently in the graph, one may set
+$k_{ij} = \hat f_{\mathrm{edge}}(w_{ij})$, where
+$\hat f_{\mathrm{edge}}$ is a kernel density estimate of the empirical
+distribution of edge lengths.  Other choices, such as weights proportional to
+geodesic-usage counts, are also possible and should be justified by the
+application.
+
+\subsection{Properties of Geodesic MDS}
+\label{sec:properties}
+
+\paragraph{Self-consistency.}
+Geodesic MDS satisfies \cref{def:self_consistency} by construction:
+both input dissimilarities and output distances are measured on the same
+fixed family of geodesics in $(G,\Gamma)$ (the former by the graph
+metric $d_G$, the latter by the embedded path lengths
+$\demb_{\Gamma}(i,j;\bZ)$).
+
+\paragraph{Recovery of standard MDS at $k = n-1$.}
+When the input graph is the $k$-NN specialization and $k = n-1$, every
+pair is connected by a direct edge, so
+$\demb_{\Gamma_{n-1}}(i,j;\bZ) = \norm{\bz_i - \bz_j}$ and
+$\delta^{(n-1)}_{ij} = \norm{\bx_i - \bx_j}$.  Geodesic stress reduces to
+standard metric Stress-1, and Geodesic MDS recovers standard metric MDS.
+
+\paragraph{Tree metric at small $k$.}
+For $k = 1$, $\Gk$ is (generically) a sparse forest; with a suitable
+connectivity correction (e.g., taking the minimum spanning tree as
+$G_1$) the graph is a tree.  The tree-path metric is then a tree metric in
+the sense of \citet{dress1984trees}, and Geodesic MDS seeks an
+embedding that faithfully represents the tree structure.  Tree metrics
+embed isometrically into $\R^1$ (the real line) with zero stress;
+thus for tree-structured data Geodesic MDS with $k=1$ achieves
+perfect stress in $d=1$.
+
+\paragraph{Interpolation and the role of $k$.}
+As $k$ increases from 1 to $n-1$, more edges are added to $\Gk$,
+$\delta^{(k)}_{ij}$ decreases toward $\norm{\bx_i - \bx_j}$, and
+$\demb_{\Gamma_k}(i,j;\bZ)$ decreases toward $\norm{\bz_i - \bz_j}$.  The
+geodesic stress thus interpolates between a tree-metric embedding at small
+$k$ and standard MDS at large $k$.  The parameter $k$ controls the
+geometric scale at which geodesic structure is enforced, analogous to the
+bandwidth parameter in kernel methods.
+
+\paragraph{Geodesic stress is never smaller than Euclidean stress.}
+By \cref{prop:bias}, $\demb_{\Gamma_k}(i,j;\bZ) \geq \norm{\bz_i - \bz_j}$
+for all $i,j$ and all $\bZ$.  If in addition $\delta^{(k)}_{ij} \geq
+\norm{\bx_i - \bx_j}$ (which holds by the triangle inequality on graph
+paths), then for the same configuration $\bZ$ the geodesic stress is
+larger than the Euclidean stress.  The optimal geodesic configuration
+$\hat{\bZ}_{\Gamma_k,d}(\Gk)$ is not in general the same as the optimal
+Euclidean configuration.
+
+\subsection{Gradient Derivation}
+\label{sec:gradient}
+
+We derive the gradient of the raw geodesic stress
+$\Stress^{\mathrm{geo}}_{\Gamma_k}(\bZ; \Gk)$
+(\cref{eq:knn_raw_geo_stress}) with respect to the position
+$\bz_\ell \in \R^d$ of a single vertex $\ell$.  For brevity, write
+$\sigma^{\mathrm{geo}}(\bZ) = \Stress^{\mathrm{geo}}_{\Gamma_k}(\bZ; \Gk)$.
+
+\paragraph{Fixed geodesics and differentiability.}
+For each pair $i < j$, let
+$\gamma_{ij}^{(k)} = (v_0 = i, v_1, \ldots, v_L = j)$ be the canonical
+shortest path chosen once from the input graph $\Gk$.  Then
+$\demb_{\Gamma_k}(i,j;\bZ)$ is the length of this fixed polygonal chain in the
+embedding.  Since the route does not change with $\bZ$, the only
+nonsmoothness comes from Euclidean norms at zero-length edges; away from
+such degenerate configurations, $\demb_{\Gamma_k}$ is differentiable.
+
+\paragraph{Gradient with respect to an intermediate vertex.}
+Let $\gamma_{ij}^{(k)} = (v_0, v_1, \ldots, v_L)$ be the chosen shortest
+path from $i = v_0$ to $j = v_L$.  Define the unit edge vector
+\begin{equation}
+  \mathbf{e}_{ab} = \frac{\bz_a - \bz_b}{\norm{\bz_a - \bz_b}},
+  \label{eq:unit_edge}
+\end{equation}
+so that $\frac{\partial}{\partial \bz_a}\norm{\bz_a - \bz_b} = \mathbf{e}_{ab}$
+and $\frac{\partial}{\partial \bz_b}\norm{\bz_a - \bz_b} = -\mathbf{e}_{ab}$.
+
+The gradient of $\demb_{\Gamma_k}(i,j;\bZ)$ with respect to $\bz_\ell$ depends on
+whether $\ell$ appears in $\gamma_{ij}^{(k)}$:
+\begin{align}
+  \frac{\partial\, \demb_{\Gamma_k}(i,j;\bZ)}{\partial\, \bz_\ell}
+  &= \begin{cases}
+       \mathbf{e}_{\ell, v_{s-1}} + \mathbf{e}_{\ell, v_{s+1}}
+         & \text{if } \ell = v_s,\ 0 < s < L, \\
+       \mathbf{e}_{\ell, v_1}
+         & \text{if } \ell = v_0 = i, \\
+       \mathbf{e}_{\ell, v_{L-1}}
+         & \text{if } \ell = v_L = j, \\
+       \bm{0}
+         & \text{if } \ell \notin \gamma_{ij}^{(k)}.
+     \end{cases}
+  \label{eq:geo_distance_gradient}
+\end{align}
+
+The formula captures the non-local nature of geodesic MDS: only those
+pairs $(i,j)$ whose chosen input geodesic passes through vertex $\ell$ contribute
+to the gradient at $\bz_\ell$.
+Figure~\ref{fig:gradient_nonlocality} should help readers see why the
+gradient depends on global geodesic-route structure rather than only on
+immediate graph neighbors.
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}[t]{0.82\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/fig_gradient_nonlocality_paths.pdf}
+  \end{minipage}
+
+  \caption{Geodesic stress has non-local gradients.  A vertex receives contributions only from endpoint pairs whose chosen input geodesic passes through it, so the gradient depends on global route structure rather than only on immediate graph neighbors.}
+  \label{fig:gradient_nonlocality}
+\end{figure}
+
+\paragraph{Gradient of the raw geodesic stress.}
+By the chain rule,
+\begin{equation}
+  \frac{\partial\, \sigma^{\mathrm{geo}}}{\partial\, \bz_\ell}
+  = 2 \sum_{i < j}
+    \bigl(\demb_{\Gamma_k}(i,j;\bZ) - \delta^{(k)}_{ij}\bigr)
+    \cdot \frac{\partial\, \demb_{\Gamma_k}(i,j;\bZ)}{\partial\, \bz_\ell}.
+  \label{eq:raw_gradient}
+\end{equation}
+Substituting \cref{eq:geo_distance_gradient} and collecting terms,
+the gradient decomposes into contributions from paths that pass through
+$\ell$ as an \emph{internal} vertex vs.\ paths that have $\ell$ as an
+\emph{endpoint}:
+\begin{align}
+  \frac{\partial\, \sigma^{\mathrm{geo}}}{\partial\, \bz_\ell}
+  &= 2 \sum_{\substack{i < j \\ \ell \in \gamma_{ij}^{(k)},\, \ell \neq i,j}}
+     \!\!\!\!\!\!
+     r_{ij}\,\bigl(\mathbf{e}_{\ell,\mathrm{prev}(\gamma_{ij}^{(k)})}
+                   + \mathbf{e}_{\ell,\mathrm{next}(\gamma_{ij}^{(k)})}\bigr)
+     \nonumber \\
+  &\quad + 2\sum_{\substack{j > \ell \\ \ell \in \gamma_{\ell j}^{(k)}}}
+     r_{\ell j}\,\mathbf{e}_{\ell,\mathrm{next}(\gamma_{\ell j}^{(k)})}
+     + 2\sum_{\substack{i < \ell \\ \ell \in \gamma_{i\ell}^{(k)}}}
+     r_{i\ell}\,\mathbf{e}_{\ell,\mathrm{prev}(\gamma_{i\ell}^{(k)})},
+  \label{eq:full_gradient}
+\end{align}
+where $r_{ij} = \demb_{\Gamma_k}(i,j;\bZ) - \delta^{(k)}_{ij}$ is the signed
+residual and $\mathrm{prev}(\gamma_{ij}^{(k)})$ (resp.\
+$\mathrm{next}(\gamma_{ij}^{(k)})$) denotes the predecessor (resp.\
+successor) of $\ell$ on the fixed path $\gamma_{ij}^{(k)}$.  The entire
+gradient matrix $\nabla_{\bZ} \sigma^{\mathrm{geo}}
+\in \R^{n \times d}$ can be assembled in $O(n^2 L_{\max})$ operations,
+where $L_{\max}$ is the maximum path length in $\Gk$.
+
+\paragraph{Degenerate edge lengths.}
+The geodesic stress is not differentiable only when some embedded edge on
+a chosen geodesic collapses to zero length.  At such a point, one may use
+the standard subgradient of the Euclidean norm or introduce a small
+edge-length stabilizer.  Away from these measure-zero degeneracies, the
+gradient above is valid.
+
+\subsection{SMACOF Majorization for Geodesic Stress}
+\label{sec:geo_smacof}
+
+The standard SMACOF majorization exploits the representation
+$d_{ij}(\bZ) = \norm{\bz_i - \bz_j}$ as a single Euclidean norm, which
+can be bounded below by a linear function of $\bZ$ via the Cauchy-Schwarz
+inequality.  For geodesic MDS, $\demb_{\Gamma_k}(i,j;\bZ)$ is a \emph{sum} of
+Euclidean norms along a path.  This structure still admits a majorization,
+as we now show.
+
+\paragraph{Fixed-geodesic majorization.}
+Fix a reference configuration $\bZ^{(t)}$.  The path family $\Gamma_k$ is
+already fixed by the input metric, so $\demb_{\Gamma_k}(i,j;\bZ)$ is always a sum
+of norms along the stored path $\gamma_{ij}^{(k)}$.  Each
+individual norm $\norm{\bz_a - \bz_b}$ admits the Cauchy-Schwarz majorization
+\begin{equation}
+  \norm{\bz_a - \bz_b}
+  \leq
+  \frac{\norm{\bz_a - \bz_b}^2 + \norm{\bz^{(t)}_a - \bz^{(t)}_b}^2}
+       {2\,\norm{\bz^{(t)}_a - \bz^{(t)}_b}}
+  \quad \text{(tight at } \bZ = \bZ^{(t)}\text{)}.
+  \label{eq:cs_majorization}
+\end{equation}
+Summing over path edges, the total geodesic distance is majorized by a
+function that is quadratic in $\bZ$, and hence the stress is majorized by
+a fourth-degree polynomial.  A tighter approach uses the standard SMACOF
+identity applied path-edge by path-edge.
+
+\paragraph{Path-augmented Guttman transform.}
+Define the \emph{path-edge weight} $\tilde{w}_{ab}^{(t)}$ as the total
+weight accumulated by edge $(a,b)$ across all chosen input geodesics:
+\begin{equation}
+  \tilde{w}_{ab}^{(t)}
+  = \sum_{i < j : (a,b) \in \gamma_{ij}^{(k)}}
+    \frac{1}{\norm{\bz^{(t)}_a - \bz^{(t)}_b}},
+  \label{eq:path_edge_weight}
+\end{equation}
+and the \emph{path-augmented Guttman matrix}
+\begin{equation}
+  \tilde{\bV}^{(t)}_{ab}
+  = -\tilde{w}^{(t)}_{ab}, \quad a \neq b; \qquad
+  \tilde{\bV}^{(t)}_{aa}
+  = \sum_{b \neq a} \tilde{w}^{(t)}_{ab}.
+  \label{eq:augmented_guttman}
+\end{equation}
+The majorization step then takes the form
+\begin{equation}
+  \bZ^{(t+1)} = \bigl(\tilde{\bW}^{(t)}\bigr)^+ \tilde{\bV}^{(t)} \bZ^{(t)},
+  \label{eq:geo_guttman_update}
+\end{equation}
+where $\tilde{\bW}^{(t)}$ is the diagonal matrix of row sums of
+$|\tilde{\bV}^{(t)}|$.  Since the geodesic family is fixed, the stored
+paths are reused at every iteration and only the embedded edge lengths are
+updated.
+
+\begin{proposition}[Monotone decrease]
+  \label{prop:monotone}
+  With the geodesic family $\Gamma_k$ fixed by the input metric, each step
+  \eqref{eq:geo_guttman_update} does not increase
+  $\sigma^{\mathrm{geo}}(\bZ)$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+  At iteration $t$, the fixed-geodesic majorization gives an upper bound
+  $\sigma^{\mathrm{geo}}(\bZ) \leq f^{(t)}(\bZ)$ for a function $f^{(t)}$
+  that is quadratic in $\bZ$ and tight at $\bZ^{(t)}$.  The update
+  \eqref{eq:geo_guttman_update} minimizes $f^{(t)}$, so
+  $f^{(t)}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t)}) =
+  \sigma^{\mathrm{geo}}(\bZ^{(t)})$.  Because the same fixed path family is
+  used in both the objective and the majorizer, we also have
+  $\sigma^{\mathrm{geo}}(\bZ^{(t+1)}) \leq f^{(t)}(\bZ^{(t+1)})$, hence
+  \[
+    \sigma^{\mathrm{geo}}(\bZ^{(t+1)})
+    \leq f^{(t)}(\bZ^{(t+1)})
+    \leq f^{(t)}(\bZ^{(t)})
+    = \sigma^{\mathrm{geo}}(\bZ^{(t)}).
+  \]
+\end{proof}
+
+\paragraph{Computational complexity.}
+Each iteration of the geodesic SMACOF requires:
+(i) path accumulation for $\tilde{\bW}^{(t)}$ and $\tilde{\bV}^{(t)}$
+using the stored geodesic family $\Gamma_k$: $O(n^2 L_{\max})$;
+(ii) a linear system solve: $O(n^3)$ or $O(n^2 d)$ with conjugate gradient.
+The dominant cost is $O(n^3)$, the same as standard SMACOF.
+The all-pairs shortest paths and the canonical geodesic family are
+computed once in preprocessing at cost
+$O(n(|E_k| + n\log n))$ using Dijkstra with a Fibonacci heap
+\citep{fredman1987fibonacci}.
+Figure~\ref{fig:geodesic_mds_workflow} summarizes the method at the level of
+data flow and is intended to complement the pseudocode in
+\cref{alg:geodesic_mds}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_geodesic_mds_workflow.pdf}
+  \caption{One iteration of Geodesic MDS.  A canonical family of shortest paths is chosen once from the input graph.  At each iteration, their embedded lengths are evaluated, converted into path-edge weights, and used to form a path-augmented Guttman update.  The process begins from a classical-MDS initialization on the input graph geodesics and repeats until convergence.}
+  \label{fig:geodesic_mds_workflow}
+\end{figure}
+
+\subsection{Algorithm}
+
+We summarize Geodesic MDS as \cref{alg:geodesic_mds}.
+
+\begin{algorithm}
+\caption{Geodesic MDS}
+\label{alg:geodesic_mds}
+\begin{algorithmic}[1]
+  \REQUIRE Data $\bX \in \R^{n \times m}$, target dimension $d$,
+           neighborhood size $k$, convergence tolerance $\varepsilon > 0$,
+           maximum iterations $T$.
+  \ENSURE Embedding $\bZ \in \R^{n \times d}$.
+  \\
+  \textit{// Step 1: Build input graph geodesic}
+  \STATE Construct symmetric $k$-NN graph $\Gk$ on $\bX$ with Euclidean
+         edge weights.
+  \STATE Compute all-pairs shortest paths $\delta^{(k)}_{ij}$ on $\Gk$
+         (Dijkstra / Floyd-Warshall).
+  \STATE Choose and store a canonical shortest path family
+         $\Gamma_k = \{\gamma_{ij}^{(k)} : i < j\}$ on $\Gk$.
+  \\
+  \textit{// Step 2: Initialize}
+  \STATE Initialize $\bZ^{(0)}$ via a baseline spectral/layout seed
+         (e.g.\ classical MDS on $\Delta^{(k)}$ or a multiscale graph layout seed).
+  \STATE $t \leftarrow 0$.
+  \\
+  \textit{// Step 3: Geodesic SMACOF iterations}
+  \REPEAT
+    \STATE Evaluate the embedded path lengths
+           $\demb_{\Gamma_k}(i,j;\bZ^{(t)})$ along the stored geodesics
+           $\gamma_{ij}^{(k)}$.
+    \STATE Accumulate path-augmented Guttman matrices
+           $\tilde{\bV}^{(t)}$, $\tilde{\bW}^{(t)}$ via \cref{eq:path_edge_weight,eq:augmented_guttman}.
+    \STATE Update $\bZ^{(t+1)} \leftarrow (\tilde{\bW}^{(t)})^+ \tilde{\bV}^{(t)} \bZ^{(t)}$.
+    \STATE $t \leftarrow t + 1$.
+  \UNTIL{$\abs{\sigma^{\mathrm{geo}}(\bZ^{(t)}) - \sigma^{\mathrm{geo}}(\bZ^{(t-1)})} < \varepsilon$
+         or $t \geq T$.}
+  \RETURN $\bZ^{(t)}$.
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Initialization.}
+Classical MDS (eigendecomposition) applied to $\Delta^{(k)}$ is the simplest
+baseline initializer and remains a strong candidate on several families.  The
+current implementation work reported below shows, however, that it is not a
+universal best choice: on highly regular meshes alternative seeds such as KK,
+GRIP, Weighted GRIP, or seeded MISF scaffolds can lead to substantially better
+final GMDS embeddings.  In practice we therefore recommend treating classical
+MDS as one member of an initializer pool rather than as a single default.
+
+\paragraph{Multiple restarts.}
+Since the geodesic stress landscape is non-convex, multiple restarts are
+advisable.  The current implementation suggests that the most useful restarts
+are often \emph{structured} rather than purely random: spectral seeds, KK
+seeds, GRIP-family seeds, and multiscale coarse scaffolds explore genuinely
+different basins, whereas small random perturbations of a single seed often do
+not.
+
+\paragraph{Selection of $k$.}
+The parameter $k$ controls the tradeoff between tree-metric fidelity
+(small $k$) and ambient-metric fidelity (large $k$).  We recommend
+selecting $k$ by a cross-validation procedure: hold out a random fraction
+of edges from $\Gk$, compute $\delta^{(k)}_{ij}$ on the remaining graph
+for held-out pairs, and evaluate how well the embedding reproduces these
+held-out geodesics.  The optimal $k$ minimizes held-out geodesic stress.
+An alternative is to use the Gromov-hyperbolicity $\delta_0$ of the input
+metric as a guide: for nearly tree-like metrics (small $\delta_0$), small
+$k$ is appropriate; for nearly Euclidean metrics (large $\delta_0$), large
+$k$ is preferable \citep{gromov1987hyperbolic}.
+
+\subsection{A MISF-based Multiscale Modification of GMDS}
+\label{sec:misf_gmds}
+
+The experiments of \cref{sec:properties} show that a global classical-MDS
+initialization can place GMDS into an unfavorable basin, especially on highly
+regular meshes.  A natural alternative is to borrow the
+\emph{maximal-independent-set filtration} (MISF) strategy introduced for large
+force-directed layouts by \citet{gajer2004multidimensional,gajer2002grip} and
+replace the force-directed objective at each scale by the geodesic objective
+developed above.  The resulting method is still a fixed-geodesic GMDS method:
+the fidelity term remains \cref{eq:raw_geo_stress}, but the initialization and
+the subsequent optimization are carried out in a coarse-to-fine manner.
+
+\paragraph{Filtration.}
+Given a connected weighted graph $G=(V,E,w)$, let
+\[
+  V = V_0 \supset V_1 \supset \cdots \supset V_L
+\]
+be a maximal-independent-set filtration in the sense of
+\citet{gajer2004multidimensional,gajer2002grip}: each $V_{\ell+1}$ is a maximal
+subset of $V_\ell$ whose vertices are separated in the graph by a prescribed
+minimum graph distance, so that the levels become progressively coarser.
+Intuitively, $V_L$ is a sparse sample of the original graph, while $V_0=V$ is
+the full vertex set.  The filtration is shown on the underlying $2$D mesh
+geometry in \cref{fig:misf_filtration_cases}.  For the regular $12\times 12$
+paraboloid the extracted level sizes are $20 \rightarrow 50 \rightarrow 144$;
+for the regular $15\times 15$ paraboloid they are
+$13 \rightarrow 28 \rightarrow 84 \rightarrow 225$; and for the irregular
+rectangle paraboloid they are $11 \rightarrow 32 \rightarrow 81 \rightarrow
+225$.
+
+\paragraph{Top level.}
+Instead of initializing the whole graph by classical MDS, we first solve a
+\emph{pure} GMDS problem only on the coarsest set $V_L$.  Concretely, we form
+the complete graph on $V_L$ with edge weights equal to the graph-geodesic
+distances $d_G(i,j)$ measured in the original graph $G$, choose a fixed
+geodesic family $\Gamma_L$ on this induced metric graph, and minimize the raw
+geodesic stress on $V_L$.  This coarse solve is the \emph{initial embedding} of
+the MISF pipeline.  The middle panel in the top row of
+\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+shows this initial coarse embedding.  It is not a random seed: it is already
+the result of a restartable pure-GMDS solve on $V_L$.  The right panel in the
+same row shows that this coarse embedding is later revisited by the sparse
+refinement stage.
+
+\paragraph{Geodesic insertion of finer levels.}
+Once $V_{\ell+1}$ has been embedded, each new vertex $v \in V_\ell \setminus
+V_{\ell+1}$ is placed with respect to a small anchor set
+$A_\ell(v) \subseteq V_{\ell+1}$ drawn from the already embedded coarser level.
+The initial location of $v$ is obtained by minimizing
+\[
+  \Phi_\ell(\bz_v)
+  =
+  \sum_{a \in A_\ell(v)}
+  \omega_{va}
+  \bigl( \norm{\bz_v - \bz_a} - d_G(v,a) \bigr)^2,
+\]
+where the anchor weights $\omega_{va}$ favor well-spread, geodesically close
+anchors.  This is a local nonlinear least-squares problem and plays the role of
+geodesic trilateration.  In the current implementation each inserted vertex is
+optimized independently by a small Armijo line-search solver.  The middle
+panels in the lower rows of
+\cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+show these insertion states before any active-set refinement.
+
+\paragraph{Sparse active-set refinement.}
+After all vertices of level $V_\ell$ have been inserted, the active set is
+refined by a sparse GMDS solve.  Let $P_\ell \subseteq V_\ell \times V_\ell$ be
+a sparse pair set consisting of short-range geodesic neighbors together with a
+small number of landmark pairs.  The level objective has the form
+\[
+  F_\ell(\bZ)
+  =
+  \sum_{(i,j)\in P_\ell}
+  \bigl(
+    \demb_{\Gamma}(i,j;\bZ) - d_G(i,j)
+  \bigr)^2
+  +
+  \lambda_\ell
+  \sum_{u \notin V_\ell}
+  \alpha_u \norm{\bz_u - \bar{\bz}_u}^2,
+\]
+where $\bar{\bz}_u$ denotes the current scaffold position of an inactive
+vertex.  The anchor term pins the already constructed coarser scaffold while
+allowing the active vertices to adjust.  In other words, the method uses the
+same fixed-geodesic discrepancy as GMDS, but only on a sparse set of active
+pairs, and with the non-active scaffold softly constrained.  The right panels
+of \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}
+show the corresponding refinement states.  After the levelwise cycle reaches
+$V_0$, an optional short full-graph pure-GMDS polish is applied.
+
+\paragraph{Implementation in \texttt{grip}.}
+The current prototype reuses the GRIP infrastructure already present in the
+\texttt{grip} package.  The MISF itself is extracted by
+\texttt{grip.build.misf()} in \texttt{R/grip\_misf.R}, which delegates to the
+compiled GRIP filtration code in \texttt{src/DrawGraph.cpp} and
+\texttt{src/grip\_rcpp.cpp}.  The multiscale GMDS preparation and orchestration
+are implemented in \texttt{R/grip\_geodesic\_misf.R} through
+\texttt{grip.prepare.misf.geodesic.mds()} and
+\texttt{grip.optimize.misf.geodesic.mds()}.  The per-vertex insertion kernel is
+implemented in \texttt{src/geodesic\_misf\_rcpp.cpp}, while both the coarse
+top-level solve and the sparse refinement stages reuse the compiled GMDS kernel
+in \texttt{src/geodesic\_mds\_rcpp.cpp}.  Thus the MISF modification changes the
+optimization schedule and the initialization strategy, but not the underlying
+fixed-path geodesic discrepancy.
+
+\paragraph{What the multiscale figures show.}
+\Cref{fig:misf_stages_regular_12x12} shows the regular $12\times 12$
+paraboloid.  The coarsest initial embedding on $V_2$ is already far from a
+recognizable paraboloid sample ($\rho = 0.8450$), and the subsequent
+refinement improves it only to $\rho = 0.5735$.  At the full level $V_0$, the
+insertion state is highly tangled and refinement reduces the active-set error
+from $\rho = 0.5685$ to $\rho = 0.4543$, but the result is still not a smooth
+paraboloid.  \Cref{fig:misf_stages_regular_15x15} shows the same phenomenon on
+the regular $15\times 15$ mesh: every level improves under refinement, yet the
+coarse sample and the full-level embedding remain visibly far from the target
+surface.
+
+By contrast, \cref{fig:misf_stages_irregular_15x15} shows that the irregular
+rectangle paraboloid is substantially easier for the same multiscale pipeline.
+Its coarsest initial embedding starts much closer to the target
+($\rho = 0.2994$), and each subsequent level remains more consistent with the
+reference surface.  The final level improves from $\rho = 0.2167$ after
+insertion to $\rho = 0.1950$ after sparse refinement, followed by a final full
+polish at $\rho = 0.1837$.  This mirrors the empirical observation from the
+previous section: the difficulty is not merely the presence of curvature, but
+the interaction between the optimization landscape and the high symmetry of the
+regular rectangular mesh.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Stagewise active-set Procrustes error $\rho$ for the MISF-GMDS
+  pipeline on the three paraboloid families shown in
+  \cref{fig:misf_stages_regular_12x12,fig:misf_stages_regular_15x15,fig:misf_stages_irregular_15x15}.  The
+  ``initial'' column is the coarse top-level GMDS solve for the first active
+  level and the anchor-based insertion state for the remaining levels; the
+  ``refined'' column is the corresponding sparse GMDS refinement.}
+  \label{tab:misf_stage_rho}
+  \begin{tabular}{llrrr}
+    \toprule
+    case & level & $|V_\ell|$ & initial $\rho$ & refined $\rho$ \\
+    \midrule
+    regular $12\times 12$ & $V_2$ & 20  & 0.8450 & 0.5735 \\
+    regular $12\times 12$ & $V_1$ & 50  & 0.6810 & 0.5431 \\
+    regular $12\times 12$ & $V_0$ & 144 & 0.5685 & 0.4543 \\
+    regular $12\times 12$ & final & 144 & ---    & 0.4546 \\
+    \midrule
+    regular $15\times 15$ & $V_3$ & 13  & 0.9268 & 0.7982 \\
+    regular $15\times 15$ & $V_2$ & 28  & 0.8841 & 0.7366 \\
+    regular $15\times 15$ & $V_1$ & 84  & 0.7193 & 0.6106 \\
+    regular $15\times 15$ & $V_0$ & 225 & 0.6870 & 0.6308 \\
+    regular $15\times 15$ & final & 225 & ---    & 0.6174 \\
+    \midrule
+    irregular $15\times 15$ & $V_3$ & 11  & 0.2994 & 0.2281 \\
+    irregular $15\times 15$ & $V_2$ & 32  & 0.2741 & 0.2349 \\
+    irregular $15\times 15$ & $V_1$ & 81  & 0.2345 & 0.1987 \\
+    irregular $15\times 15$ & $V_0$ & 225 & 0.2167 & 0.1950 \\
+    irregular $15\times 15$ & final & 225 & ---    & 0.1837 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_misf_filtration_cases.pdf}
+  \caption{MIS filtration levels displayed on the underlying $2$D mesh geometry.  Each
+  row shows one graph family, with the active level $V_\ell$ highlighted on top
+  of the full mesh graph.  The irregular rectangle keeps rectangular topology
+  but breaks the lattice symmetry in the geometry, yielding a more generic
+  coarse sample than the perfectly regular meshes.}
+  \label{fig:misf_filtration_cases}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_misf_stages_regular_12x12.pdf}
+  \caption{Regular $12\times 12$ paraboloid under MISF-GMDS.  Each row
+  corresponds to one active set $V_\ell$.  Left: the reference active-set
+  sample.  Middle: the initial multiscale embedding for that level (the coarse
+  pure-GMDS solve for $V_2$, then anchor-based insertion for $V_1$ and $V_0$).
+  Right: the sparse GMDS refinement of the same active set.  The coarsest level
+  is already not paraboloid-like, and although every level improves, the full
+  embedding remains folded.}
+  \label{fig:misf_stages_regular_12x12}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_misf_stages_regular_15x15.pdf}
+  \caption{Regular $15\times 15$ paraboloid under MISF-GMDS.  The same
+  qualitative pattern persists at the larger size: the coarsest-level solve does
+  not recover a recognizable paraboloid sample, insertion creates a tangled
+  full-level state, and sparse refinement improves but does not remove the
+  pathology.}
+  \label{fig:misf_stages_regular_15x15}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_misf_stages_irregular_rectangle_15x15.pdf}
+  \caption{Irregular $15\times 15$ rectangle lifted to a paraboloid.  The
+  multiscale pipeline is much better behaved on this less symmetric graph: the
+  coarsest level already resembles a sparse paraboloid sample, and each finer
+  refinement remains visibly closer to the reference geometry than in the
+  regular-grid cases.}
+  \label{fig:misf_stages_irregular_15x15}
+\end{figure}
+
+\subsection{Relationship to Metric Geometry}
+\label{sec:metric_geometry}
+
+The construction of Geodesic MDS is grounded in several concepts from
+metric geometry that illuminate its properties.
+
+\paragraph{Minimum realization.}
+The $k$-NN graph $\Gk$, after removing metrically redundant edges
+(pairs $(i,j)$ for which $\delta^{(k)}_{ij}$ equals the shortest path
+through other vertices), yields the \emph{minimum realization} of the
+input graph metric \citep{dress1984trees, imrich1984optimal}.
+Geodesic MDS with this minimum realization as the underlying graph
+uses the most parsimonious geodesic structure consistent with the data.
+
+\paragraph{Tight span.}
+The \emph{tight span} $T(\Delta)$ (or injective hull)
+\citep{dress1984trees, isbell1964six} is the minimal injective metric
+space containing $(X, \delta^{(k)})$.  It is a polyhedral complex whose
+1-skeleton contains the minimum realization.  Geodesic MDS seeks an
+embedding of the 0-skeleton (the $n$ data points) into $\R^d$ that
+preserves the 1-skeleton path metric, which is a projection of the
+tight span onto the original vertex set.
+
+\paragraph{Metric spanners.}
+As noted in \cref{sec:knn_graph}, $\Gk$ is a $(1+\varepsilon)$-spanner
+of the input Euclidean metric.  Geodesic MDS with a spanner graph thus
+approximates the full Euclidean MDS problem with a multiplicative error
+of $(1+\varepsilon)$ on input dissimilarities, while using a sparse graph
+structure that enforces geodesic consistency \citep{althofer1993sparse}.
+
+\paragraph{Gromov-Hausdorff approximation.}
+The graph metric $(\{1,\ldots,n\}, d_{\Gk})$ converges in the
+Gromov-Hausdorff sense to the underlying geodesic metric space as
+$n \to \infty$ and $k$ grows appropriately
+\citep{gromov1999metric, latschev2001riemannian, bernstein2000graph}.
+Geodesic MDS can therefore be interpreted as finding an optimal isometric
+embedding of a Gromov-Hausdorff approximation of the data geometry, rather
+than an optimal embedding of the ambient Euclidean point cloud.
+
+\subsection{Current State of the Working Implementation}
+\label{sec:current_implementation}
+
+The working implementation in the \texttt{grip} package is now best viewed as
+a family of related GMDS prototypes rather than a single finished algorithm.
+The common core is still the fixed-geodesic discrepancy
+\cref{eq:raw_geo_stress}: for a prepared graph-geodesic family
+$(G,\Gamma)$, the implementation measures the embedded length of the
+input-side geodesics and optimizes that mismatch in a compiled C++ kernel.
+Around that core, several experimental layers have been added in order to
+understand the main failure modes of the objective.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Current GMDS implementation layers in \texttt{grip}.}
+  \label{tab:implementation_layers}
+  \begin{tabular}{p{0.23\linewidth} p{0.34\linewidth} p{0.35\linewidth}}
+    \toprule
+    layer & main files / entry points & current role \\
+    \midrule
+    Pure and regularized GMDS &
+    \texttt{R/grip\_quality.R},
+    \texttt{src/geodesic\_mds\_rcpp.cpp},
+    \texttt{grip.prepare.graph.geodesic.mds()},
+    \texttt{grip.optimize.geodesic.mds()} &
+    Fixed-geodesic objective, tie-averaged shortest paths, anchor regularization, graph-distance-aware repulsion, and edge-spring relaxations. \\
+    \addlinespace
+    MISF-based GMDS &
+    \texttt{R/grip\_misf.R},
+    \texttt{R/grip\_geodesic\_misf.R},
+    \texttt{src/geodesic\_misf\_rcpp.cpp},
+    \texttt{grip.optimize.misf.geodesic.mds()} &
+    Coarse-to-fine GMDS pipeline with top-level solve, per-vertex insertion, sparse level refinement, and final full-graph polish. \\
+    \addlinespace
+    Layout-based basin finders &
+    \texttt{R/grip\_layout\_weighted.R},
+    \texttt{src/MishWeighted.cpp},
+    \texttt{src/grip\_rcpp.cpp},
+    Weighted GRIP / weighted KK / LGKK APIs &
+    External basin-finding and warm-start machinery for MISF-GMDS; currently the most useful source of coarse scaffolds and lower-level placement states. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+At this stage the implementation already supports several experimentally
+distinct variants: pure GMDS; tie-averaged GMDS; anchor-regularized GMDS;
+anchor-plus-repulsion and anchor-plus-edge-spring regularizations; an
+edge-relaxation surrogate; a MISF-based multiscale GMDS schedule; and seeded
+MISF variants that reuse KK, GRIP, and Weighted GRIP layouts as basin
+finders.  The goal of the recent experimental cycle was not merely to optimize
+one more hyperparameter, but to determine \emph{which part of the current
+pipeline is actually responsible for the observed pathologies}.
+
+\subsection{What the Recent Experiments Show}
+\label{sec:recent_experiments}
+
+\paragraph{The smooth target may exist even when the optimizer misses it.}
+The identifiability experiment on the regular and irregular paraboloid meshes
+showed that the smooth paraboloid is an \emph{exact} GMDS solution after the
+graph-weight normalization used by the generator.  In particular, for the
+regular $12\times 12$ paraboloid, a $15^\circ$ folded perturbation of the
+truth has only moderate raw geodesic stress
+($\sigma = 0.0102$, $\rho = 0.0325$), and pure GMDS started from that folded
+state returns close to the smooth reference
+($\sigma = 0.0002$, $\rho = 0.0303$ after $25$ iterations).  By contrast,
+pure GMDS started from a global classical-MDS seed lands in a very different
+basin ($\sigma = 0.0298$, $\rho = 0.3291$ on the same graph).  Thus the main
+issue is not absence of a smooth solution but basin selection.
+
+\paragraph{Single-scale regularization helps locally but does not solve the
+basin problem.}
+On the regular paraboloid meshes, anchor-based regularization improves the raw
+geodesic objective substantially but leaves the recovered shape much too far
+from the target.  For the regular $12\times 12$ paraboloid, direct
+\texttt{cmdscale $\rightarrow$ pure GMDS} ends at
+$(\sigma,\rho)=(0.0492, 0.3257)$, while the best single-scale regularized run
+reaches $(0.0221, 0.3214)$.  For the regular $15\times 15$ paraboloid, the
+best regularized run reaches $(0.0183, 0.2286)$, improving stress much more
+than shape.  In other words, the current anchor, repulsion, and edge-spring
+terms are useful as controlled perturbations of the objective, but they do not
+yet provide a reliable route to the correct basin on their own.
+
+\paragraph{Multiscale GMDS helps only if the scaffold is right.}
+The first MISF-GMDS prototype in \cref{sec:misf_gmds} showed that a pure-GMDS
+coarse solve is often not a good top-level scaffold on regular meshes.  The
+subsequent Phase~A--E experiments therefore replaced ``one GMDS initializer''
+by a seed pool and asked which part of the multiscale schedule actually needs
+help.  The answer is now fairly clear:
+\begin{enumerate}
+  \item the top MISF level is a basin-selection problem, not merely a local
+  refinement problem;
+  \item lower-level geodesic insertion can destroy a good coarse scaffold;
+  \item weighted KK is currently the strongest lower-level placement mechanism;
+  \item a small pool of top-level seeds is better than any single universal
+  default.
+\end{enumerate}
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Representative recent outcomes on the paraboloid families.  The
+  ``direct'' column is the full-graph \texttt{cmdscale $\rightarrow$ pure GMDS}
+  control.  The ``best single-scale regularized'' column reports the best
+  regularized-GMDS run from the single-scale study.  The last column gives the
+  best currently observed seeded multiscale pipeline on the corresponding
+  family.}
+  \label{tab:recent_paraboloid_results}
+  \begin{tabular}{lccc}
+    \toprule
+    case & direct $(\sigma,\rho)$ & best single-scale regularized $(\sigma,\rho)$ & current best multiscale $(\sigma,\rho)$ \\
+    \midrule
+    regular paraboloid $12\times 12$ & $(0.0492, 0.3257)$ & $(0.0221, 0.3214)$ & $(0.0109, 0.0904)$ \\
+    regular paraboloid $15\times 15$ & $(0.0519, 0.2317)$ & $(0.0183, 0.2286)$ & $(0.0148, 0.0726)$ \\
+    irregular rectangle paraboloid $15\times 15$ & $(0.2872, 0.1845)$ & --- & $(0.0951, 0.0889)$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.98\linewidth]{figures/fig_current_implementation_summary.pdf}
+  \caption{Summary of the current implementation state.  Left: progression of
+  final Procrustes error $\rho$ on the three paraboloid families as the
+  pipeline moves from direct full-graph GMDS to seeded multiscale variants.
+  Right: Block~1 of the Phase~E mesh-geometry study shows that the current
+  truth-free selector is still too \texttt{cmdscale}-biased: it chose
+  \texttt{cmdscale} in $10/12$ cases, whereas the oracle best final-$\rho$
+  seed was \texttt{kk} in $6/12$ cases, \texttt{cmdscale} in only $3/12$,
+  \texttt{grip} in $2/12$, and \texttt{weighted\_grip\_polish\_lgkk} in
+  $1/12$.}
+  \label{fig:current_implementation_summary}
+\end{figure}
+
+\paragraph{The current selector is not yet good enough.}
+The most recent Block~1 mesh-geometry expansion confirms that there is no
+single universal top-level winner across flat, saddle, paraboloid, and ripple
+meshes.  The current truth-free proxy chose \texttt{cmdscale} in $10/12$
+cases and matched the oracle best final-$\rho$ seed in only $4/12$ cases.
+This is precisely why the current pipeline should still be viewed as a
+research prototype: the best-performing top seed depends on geometry, and the
+automatic selector still over-rewards immediate low-stress spectral states.
+
+\subsection{Immediate Next Steps}
+\label{sec:next_steps}
+
+The recent experiments reduce the open problem to a much narrower one than we
+had at the beginning of the project.  The main challenge is no longer to
+decide whether GMDS should be single-scale or multiscale, or whether classical
+MDS should be discarded entirely.  Instead, the present evidence suggests the
+following agenda.
+
+\paragraph{1. Improve the truth-free seed selector.}
+The current Phase~E proxy uses only a one-level weighted-KK lookahead together
+with three rank terms (lookahead stress, roughness, and edge-floor).  This is
+not yet predictive enough.  The next selector experiments should include
+insertion-stability signals such as area-floor diagnostics, first-level energy
+jumps, and possibly a second short refinement step before choosing the winner.
+An especially promising direction is to retain a small shortlist of seeds
+rather than forcing a single winner too early.
+
+\paragraph{2. Keep weighted KK as the current lower-level default.}
+Across the recent multiscale studies, weighted KK is the strongest lower-level
+placement rule we currently have.  It should therefore remain the default
+lower-level mechanism while the top-level seed-selection problem is being
+improved.  Future comparisons should treat GRIP-family lower-level placement as
+an ablation against this weighted-KK baseline, not as the default.
+
+\paragraph{3. Expand only after the selector improves.}
+The ongoing mesh-geometry expansion is useful because it reveals where the
+selector fails, but the next full cross-family expansion should wait until the
+top-level proxy is better calibrated.  Otherwise we risk spending substantial
+computation on a pipeline whose automatic choice rule is not yet trustworthy.
+The most natural order is: first improve the selector on the mesh geometries,
+then move to perforated rectangles, and only then to annulus/sphere families.
+
+\paragraph{4. Continue objective-level diagnostics without conflating them with
+the optimizer.}
+The experiments already show that the smooth target may be an exact GMDS
+solution while the current initialization misses it.  This means that
+objective-level questions (fold-blindness, path averaging, repulsion,
+edge-relaxation) and optimization-level questions (basin finding, multiscale
+placement, seed selection) should continue to be studied in parallel but kept
+conceptually separate.  At present, the most urgent unresolved issue is
+optimization/basin selection rather than the formal definition of GMDS itself.
+
+%% ============================================================
+%% BIBLIOGRAPHY
+%% ============================================================
+
+\acks{Research reported in this publication was supported by grant number INV-048956 from the Gates Foundation.}
+
+\bibliography{geodesic_mds}
+
+\end{document}

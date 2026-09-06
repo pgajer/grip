@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "scope": "Algebraic diagnostics and explicit counterexamples; analytic proofs require separate reading.",
+  "checks": {
+    "tree_factorization": {
+      "max_difference": 4.440892098500626e-16,
+      "positive": 3,
+      "negative": 1
+    },
+    "tree_boundary_designs": {
+      "equal_tips_positive": 3,
+      "root_and_tips_positive": 3,
+      "root_and_tips_negative": 1
+    },
+    "disk_geodesic_containment": {
+      "max_formula_difference": 4.440892098500626e-15,
+      "minimum_convexity_gap": -3.552713678800501e-15
+    },
+    "profile_homogeneity": {
+      "max_difference": 1.7763568394002505e-15,
+      "fixed_scale_identity_difference": 0.0
+    },
+    "profile_euler_and_contraction": {
+      "euler_gap": 2.1316282072803006e-14,
+      "positive_loss": 20.78401603426438
+    },
+    "removed_update_counterexample": {
+      "before_stress": 0,
+      "after_stress": 1.5
+    },
+    "fixed_route_triangle_counterexample": {
+      "long_route": 20.19803902718557,
+      "two_direct_edges": 2.0
+    }
+  }
+}
