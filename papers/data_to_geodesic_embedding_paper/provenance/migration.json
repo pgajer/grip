@@ -769,5 +769,9 @@
     "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P02_polished_review_audit.md",
     "literature/conductance_kernel_laplacian_review/paper_reviews_latex/audits/P10_polished_review_audit.md",
     "literature/conductance_kernel_laplacian_review/review_assignments.yml"
-  ]
+  ],
+  "external_directory_links_not_duplicated": {
+    "oriented_graph_difference_trend_filtering": "/Users/pgajer/current_projects/trend_filtering/theory/oriented_graph_difference_trend_filtering",
+    "genlasso_trendfilter_history": "/Users/pgajer/current_projects/trend_filtering/literature/genlasso_trendfilter_history"
+  }
 }

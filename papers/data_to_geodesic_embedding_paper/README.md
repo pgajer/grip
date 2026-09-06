@@ -14,7 +14,7 @@ selection. Its scope is not merged into the focused methods manuscript.
 - `notes/simods_data_geodesic_mds_paper_scope.md`: historical scientific scope.
 - `notes/`: scientific benchmark and graph-selection plans, plus generated dashboards.
 - `evidence/`: claim, resource and figure/table registries.
-- `literature/` and `paper_reviews_latex/`: scholarly reviews, source evidence and figures.
+- `literature/`, including its `paper_reviews_latex/`: scholarly reviews, source evidence and figures.
 - `scripts/`: dashboard builders using local inputs.
 - `provenance/migration.json`: original paths and hashes.
 
