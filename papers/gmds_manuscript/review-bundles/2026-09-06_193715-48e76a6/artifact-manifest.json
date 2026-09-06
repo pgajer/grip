@@ -1,0 +1,51 @@
+{
+  "created_eastern": "2026-09-06T19:37:15.330081-04:00",
+  "paper_commit": "48e76a6e859a8196d6451144c368c0e7a9c81c4a",
+  "paper_branch": "codex/paraboloid-mmds-radius",
+  "tracked_paper_changes": "",
+  "status": "author_review_draft_not_approved_for_submission",
+  "scope": "Frozen-evidence verification and manuscript/figure regeneration; no full experiment refit.",
+  "files": {
+    "geodesic_mds.pdf": {
+      "sha256": "801743390e31ce56f06a5d444833727c36c60e96ae725100b6f743dab0a0cacb",
+      "bytes": 446351
+    },
+    "typesetting-source.zip": {
+      "sha256": "23e46789ac68a49ef24f72543e55a1ee85383c138236e7f01c897273bb3523f8",
+      "bytes": 171062
+    },
+    "evidence-reproduction.zip": {
+      "sha256": "ab2c8dc5b6bc3dd2ab96c939ff45b35fa49a450c153e3faa1017395573801ac6",
+      "bytes": 4677031
+    }
+  },
+  "typesetting_inputs": 17,
+  "reproduction_inputs": 74,
+  "build_inputs": {
+    "commit": "48e76a6e859a8196d6451144c368c0e7a9c81c4a",
+    "sha256": {
+      "geodesic_mds.tex": "27f86df6ff3b15bd96ad8f2d7b55a539c5c11a959148c1b8cab6e7fd07ccd25e",
+      "geodesic_mds.bib": "6580e95c43fbf01c2f55da598f97daf66dc6728a6076b3968ef3ff6cdd56d708",
+      "build/geodesic_mds.bbl": "cdef3e5d9e4bfd95c9fac8735ec473ae2b154d3d28551da82f51b22adb4a5bab",
+      "build/geodesic_mds.pdf": "801743390e31ce56f06a5d444833727c36c60e96ae725100b6f743dab0a0cacb",
+      "build/manuscript_build_info.tex": "830d8805f366895651fa658ccf3a587016a676f5e86202e0242b0643a3364022",
+      "figures/focused/graph-sensitivity.pdf": "ce9bf66689f18cdd3726f4a204d9b1e3eca0f9979a46782be577e7be6f3e1c96",
+      "figures/focused/initializer-comparison.pdf": "f4c45a7186a79fcf8380a6fe7ea1651eecdda88c1e537d47a463c36c1fb369df",
+      "figures/focused/paths.pdf": "919dc820fb14b8398e5c555d4e005504b7660b6c2c720d2e598bd20fd6c4e01e",
+      "figures/focused/saddle-spatial.pdf": "de9768f05638bbd987778e6d0b4bd9220b1c534757b745e372b8ce7f253be778",
+      "figures/focused/scale.pdf": "13b85e7403c1a238a1a2114041ad9b5932f7755950ef6e127ea8331493d8f016",
+      "figures/focused/shape-ratios.pdf": "934f6f376841b3fb0e5e9b3b1e74e64d56207937e0cd5bc5fc1f1b037073c94c",
+      "tables/focused/components.tex": "fdaca4d998b2ec989e38a618b648670e7d5f3cd5650201114768117ded58a660",
+      "tables/focused/continuation.tex": "d98e8f6f76b819542b6f70316f284900a3f5eebae8420cf7e65f1aa2904c8f72",
+      "tables/focused/initializers.tex": "e326b7ac97e1d80c27c9758eb9a6e7e5b26a511fd3bb6db95c9c5c846e706b59",
+      "tables/focused/numbers.tex": "4c3b919d455e11acbd2ec9906209a88f3f22ae9498fc8abd8e0adb7295e758bb",
+      "tables/focused/radius.tex": "78ed3641468d341e3371ba4a9ac03b4c6d0ea1dd0c05313282687e2f57897f65"
+    }
+  },
+  "python_environment": {
+    "executable": "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "numpy": "1.24.4",
+    "pandas": "2.0.3",
+    "matplotlib": "3.7.5"
+  }
+}

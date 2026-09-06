@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "figure_pdfs_pixel_identical_at_120dpi": [
+    "graph-sensitivity.pdf",
+    "initializer-comparison.pdf",
+    "paths.pdf",
+    "saddle-spatial.pdf",
+    "scale.pdf",
+    "shape-ratios.pdf"
+  ],
+  "table_macro_files_byte_identical": 5,
+  "fresh_generated_evidence_validation": "passed",
+  "scope": "Explicit regeneration from frozen exports in an isolated directory; no experiment refit."
+}
