@@ -23,28 +23,31 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-When observations lie on a curved or branching structure, distances along a
-neighborhood graph can represent relationships that straight-line distances
-in the observation space miss. Embedding the graph introduces a further
-choice: should the drawing preserve distances between endpoints, or lengths
-along the paths joining them? We examine what these criteria imply for
-geometric recovery by comparing classical scaling, metric stress
-multidimensional scaling (MDS), and edge-length refinement on sampled
-paraboloids and saddles. Uniform geodesic bounds show that expanding
-paraboloids approach a line metric after normalization, while saddles approach
-a four-branch tree metric. Under an explicit sample-rank condition, the
-saddle's classical-MDS limit spans three Euclidean dimensions even though the
-limiting tree is intrinsically one-dimensional. Two controlled studies show
-how this distinction enters finite-sample embeddings. Edge refinement improves
-retained-path agreement under both MDS initializers throughout a bounded-saddle
-comparison, but these improvements do not consistently improve coordinate
-agreement, and the larger radius study includes path-error increases.
-Profiling the target scale in an unnormalized edge loss creates a degeneracy:
-every positive-loss configuration can reduce the objective by contraction.
-Fixed-scale controls distinguish this effect from geometric change. The
-comparisons show why graph fidelity, path and endpoint agreement, and
-coordinate recovery must be distinguished when interpreting the effects of
-neighborhood size, initialization and scale.
+Embedding a neighborhood graph in Euclidean space can reproduce its distances
+accurately while misrepresenting the geometry the graph was built to
+approximate. Multidimensional scaling (MDS) fits graph distances with chords
+between embedded points, whereas path criteria compare the lengths of retained
+graph routes before and after embedding; whether either criterion implies
+recovery of the sampled coordinates is rarely assessed. We examine this
+question through theory and controlled comparisons of classical scaling,
+metric stress MDS, and edge-length refinement toward the graph-geodesic MDS
+(GMDS) path criterion on paraboloids and saddles.
+Uniform geodesic bounds show that expanding paraboloids approach a line metric
+after normalization and saddles a four-branch tree metric; under a sample-rank
+condition, the saddle's classical-MDS limit spans three Euclidean dimensions
+although the tree is intrinsically one-dimensional. Edge refinement lowers
+retained-path error in all \numBoundedGraphs{} bounded-saddle settings under
+both MDS initializers, but not in every setting of a larger radius study, and
+does not consistently lower coordinate error. At the largest saddle radius,
+fixed-scale fits to geodesic graphs reach \numGeodesicSaddlePath\% median path-to-surface
+error with \numGeodesicSaddleCoord\% coordinate error, whereas ambient-chord
+graphs reverse this pattern (\numAmbientSaddlePath\% and
+\numAmbientSaddleCoord\%). Profiling a common target scale in an unnormalized
+edge loss lets every positive-loss configuration reduce the objective by
+contraction alone; fixed-scale controls separate this effect from changes in
+shape. Path agreement, endpoint agreement, and coordinate recovery therefore
+require separate assessment under an explicit scale convention; agreement on
+one does not certify the others.
 \end{abstract}
 
 \section{Introduction}
@@ -52,87 +55,92 @@ Data-derived graphs represent relationships in settings ranging from
 scientific collaboration networks \citep{newman2001collaboration} to structural
 brain connectivity \citep{hagmann2008core} and single-cell expression data
 \citep{wolf2019paga}. Their vertices and edges describe different scientific
-objects, but representing these graphs in Euclidean space raises a common
-question: which relationships should the resulting coordinates preserve?
-Observed connections, similarity weights and geometric lengths have different
-interpretations. A graph's scientific use therefore determines which
-measurements its drawing should support.
+objects, but drawing any of them in Euclidean space raises a common question:
+which relationships should the coordinates preserve? Observed connections,
+similarity weights and geometric lengths have different interpretations, so a
+graph's scientific use determines which measurements its drawing must support.
 
-For observations sampled from a curved structure, neighborhood graphs provide
-a way to approximate intrinsic distances. Nearby observations are connected
-by edges, and shortest paths accumulate edge lengths to estimate distances
-along the structure. Isomap constructs such a graph using nearest-neighbor
-or radius neighborhoods, computes graph shortest-path distances, and applies
-classical multidimensional scaling (MDS) to obtain Euclidean coordinates
-\citep{tenenbaum2000global}. This construction introduces two approximations:
+For observations sampled from a curved structure, a neighborhood graph
+approximates intrinsic distances: nearby observations are joined by edges, and
+shortest paths accumulate edge lengths to estimate distances along the
+structure. Isomap constructs such a graph from nearest-neighbor or radius
+neighborhoods, computes its shortest-path distances, and applies classical
+multidimensional scaling (MDS) to obtain Euclidean coordinates
+\citep{tenenbaum2000global}. The construction involves two approximations:
 the graph approximates the intrinsic geometry, and the coordinates approximate
-the graph measurements. An accurate embedding of the graph cannot establish
-that its construction captured the geometry of interest.
+the graph. An accurate embedding of the graph therefore cannot establish that
+the graph captured the geometry of interest.
 
-The embedding step also changes how distance is measured. MDS seeks Euclidean
-coordinates whose endpoint separations approximate the supplied dissimilarities
-\citep{mair2022,rcmdscale}. When those dissimilarities are graph shortest-path
-distances, intrinsic path lengths become targets for ambient Euclidean chords.
-This is a choice of fidelity criterion. It agrees with intrinsic distance
-preservation when the target geometry has an exact Euclidean realization,
-as in the intrinsically Euclidean domains covered by Isomap's recovery
-result \citep{tenenbaum2000global}. On more general curved structures, a
-representation can preserve lengths along the structure while its endpoint
-chords remain shorter.
-
-Riemannian isometric embedding makes this distinction explicit. It preserves
-the metric on tangent vectors and hence the lengths of curves on the
-manifold. Distances measured within the embedded manifold are preserved,
-although Euclidean chords between its points can change
-\citep[Sections 1.2--1.3 and 3.2]{gorodski2022}. This curve-length viewpoint
-suggests a corresponding graph criterion: retain a selected route and compare
-its length before and after drawing it. Both measurements then refer to the
-same sequence of edges.
+The embedding step also changes what is measured. MDS seeks coordinates whose
+endpoint separations approximate the supplied dissimilarities
+\citep{mair2022,rcmdscale}; when those dissimilarities are graph shortest-path
+distances, intrinsic path lengths become targets for Euclidean chords. This
+choice of fidelity criterion coincides with intrinsic distance preservation
+only when the target geometry has an exact Euclidean realization, as in the
+intrinsically Euclidean domains covered by Isomap's recovery result
+\citep{tenenbaum2000global}. On more general curved structures the two
+criteria separate, as they do for a Riemannian isometric embedding, which
+preserves the lengths of curves on the manifold while Euclidean chords between
+its points can be shorter \citep[Sections 1.2--1.3 and 3.2]{gorodski2022}.
+The curve-length viewpoint suggests a graph criterion of the same kind: retain
+a selected route between two vertices and compare its length before and after
+drawing, so that both measurements refer to the same sequence of edges.
 
 Graph-geodesic multidimensional scaling (GMDS), as considered here, compares
 these retained-path lengths with their input lengths. It is a discrete,
-finite-path analogue of Riemannian curve-length preservation. The analogy
-does not make a small path loss a certificate of Riemannian isometry or
-geometric recovery: the graph supplies no full tangent-space metric, and
-path-length constraints need not prevent overlapping configurations.
-Edge-length refinement, referred to here as edge-KK, can improve path
-agreement because exact preservation of every edge length preserves every
-path length on the same graph. Whether edge lengths also determine the
-configuration up to rigid motion is the established global-rigidity problem
-\citep{gortler2010}.
+finite-path analogue of Riemannian curve-length preservation, and the analogy
+has limits: the graph supplies no full tangent-space metric, and path-length
+constraints need not prevent overlapping configurations, so a small path loss
+is not a certificate of isometry or geometric recovery. Because exact
+preservation of every edge length preserves every path length on the same
+graph, edge-length refinement of Kamada--Kawai type
+\citep{kamada1989algorithm}, referred to here as edge-KK, is one route to
+path agreement, although on a flexible graph exact path agreement still
+leaves the configuration free to move (Figure~\ref{fig:paths}). Whether edge
+lengths also determine the configuration up to rigid motion is the
+global-rigidity problem \citep{gortler2010}.
 
-Paraboloids and saddles allow these questions to be studied with a known
+\begin{figure}[tb]
+\centering\includegraphics[width=.9\linewidth]{figures/focused/paths.pdf}
+\caption{Two drawings of the same three-vertex unit path. Blue segments retain
+length one, and the route from 1 through 2 to 3 retains length two. The orange
+endpoint chord changes with the angle. Both drawings preserve every edge length
+and every retained path length. All spatial units are equal.}\label{fig:paths}
+\end{figure}
+
+Paraboloids and saddles allow these questions to be studied against a known
 reference geometry. As the sampled domain expands, we derive uniform bounds
 showing that normalized paraboloid geodesics approach a line metric and saddle
 geodesics approach a four-branch tree metric. The tree is intrinsically
-one-dimensional, yet its classical-MDS approximation spans three dimensions
-under an explicit sample-rank condition. These results concern particular
-surface limits within the broader study of classical MDS on metric spaces
-\citep{lim2024}. They explain why the dimension of an intrinsic distance
-structure need not equal the Euclidean span of its embedding.
+one-dimensional, yet under an explicit sample-rank condition its classical-MDS
+approximation spans three dimensions, so the dimension of an intrinsic
+distance structure need not equal the Euclidean span of its embedding. These
+results concern particular surface limits within the broader study of
+classical MDS on metric spaces \citep{lim2024}.
 
 Two controlled studies connect these limits to achieved embeddings. The first
 compares classical and stress-MDS initializations followed by edge-KK on a
-bounded saddle. The second varies domain radius, neighborhood size, graph
-construction and scale on both surfaces. Together they distinguish changes
-in endpoint and retained-path agreement from changes in coordinate recovery.
-Elementary edge-to-path bounds and least-squares scale identities clarify the
-objectives. In particular, profiling the target scale in an unnormalized edge
-loss precludes positive-loss local minima whenever uniform contraction is
-admissible. Fixed-scale controls separate this degeneracy from improvements in
-relative geometry. The analytical statements
-have fixed-sample assumptions; the numerical comparisons concern the stated
-samples and optimization budgets. The principal theoretical contributions are
-the surface-specific uniform bounds and the four-branch Gram factorization;
-the experiments document the effects of graph, initialization and scale choices without
-assuming a universal ordering of embedding methods.
+bounded saddle; the second varies domain radius, neighborhood size, graph
+construction and target scale on both surfaces. Together they separate
+changes in endpoint and retained-path agreement from changes in coordinate
+recovery. Elementary edge-to-path bounds and least-squares scale identities
+clarify what the objectives measure; in particular, profiling the target
+scale in an unnormalized edge loss precludes positive-loss local minima
+whenever uniform contraction is admissible, and fixed-scale controls separate
+this degeneracy from improvements in relative geometry. The principal
+theoretical contributions are the surface-specific uniform bounds and the
+four-branch Gram factorization; the experiments document the effects of
+graph, initialization and scale choices without assuming a universal ordering
+of embedding methods. The analytical statements have fixed-sample
+assumptions, and the numerical comparisons concern the stated samples and
+optimization budgets.
 
 \section{Distances, objectives, and scale}
 \subsection{A fixed graph and a fixed family of routes}
-To distinguish changes caused by embedding from those caused by graph
-construction, first hold the input graph fixed. We consider a connected
-undirected graph $G=(V,E,\ell)$ with $n$ vertices, indexed by $1,\ldots,n$,
-and positive edge lengths $\ell_e$. Its shortest-path distance between
+To separate the effect of embedding from the effect of graph construction,
+hold the input graph fixed: a connected undirected graph $G=(V,E,\ell)$ with
+$n$ vertices, indexed by $1,\ldots,n$, and positive edge lengths $\ell_e$.
+Its shortest-path distance between
 vertices $i$ and $j$ is $d_G(i,j)$. For each unordered pair, choose one
 shortest path $\gamma_{ij}$, breaking ties deterministically, and retain these
 routes as the family $\Gamma$.
@@ -175,9 +183,9 @@ has a different quadratic form in the edge residual vector.
 The smooth counterpart clarifies what this path criterion measures. A
 Riemannian isometric embedding $\phi:(M,g)\to\R^p$ pulls the Euclidean metric
 back to the given metric, $\phi^*g_{\mathrm{Euclidean}}=g$. For every piecewise
-smooth curve $\gamma$ on $M$, its image has the same length:
+smooth curve $\sigma$ on $M$, its image has the same length:
 \[
- L_{\mathrm{Euclidean}}(\phi\circ\gamma)=L_g(\gamma).
+ L_{\mathrm{Euclidean}}(\phi\circ\sigma)=L_g(\sigma).
 \]
 Taking the infimum over curves gives intrinsic distances $d_M$ on the domain
 and $d_{\phi(M)}$ on the image. Thus
@@ -195,10 +203,10 @@ polygonal path through its embedded vertices. The criterion checks the total
 lengths of this finite route family, not every curve on an underlying
 manifold. Preserving all smooth curve lengths determines the Riemannian
 metric and hence angles; a graph route family does not provide that full
-information. Even exact agreement on selected routes need not preserve every
-edge length or make the drawing injective. If all edges are preserved, all
-routes on the same abstract graph retain their lengths, with crossings in
-the drawing treated as crossings rather than additional junctions. This is
+information, and even exact agreement on selected routes need not preserve
+every edge length or make the drawing injective. Conversely, preserving every
+edge length preserves every route on the same abstract graph, with crossings
+in the drawing treated as crossings rather than additional junctions. This is
 the length-preservation connection underlying the GMDS criterion.
 
 \subsection{MDS and edge refinement}
@@ -212,19 +220,21 @@ matrix $\Delta$, raw metric stress adds the squared errors of these chords:
 Equal absolute distance errors make equal contributions to this unweighted
 loss, regardless of target distance. Equal relative errors make contributions
 proportional to $\Delta_{ij}^2$. Long distances therefore matter more for a
-fixed relative discrepancy, but this observation alone does not predict
-whether a fitted surface becomes planar or linear.
+fixed relative discrepancy. This weighting alone does not decide whether a
+fitted surface becomes planar or linear: Section~\ref{sec:limits} shows
+that, under the same loss, the expanding paraboloid approaches a line while
+the expanding saddle retains three dimensions, because their input distance
+geometries differ.
+
 Classical MDS approximates the geometry through inner products. Squaring the
 target distances entrywise and centering on both sides gives the matrix
 $B=-\tfrac12J\Delta^{\circ2}J$, where $J=I-\one\one^T/n$ and $\one$ is the
 $n$-vector of ones. Classical scaling retains up to the $p$ largest positive
 eigenvalues and their eigenvectors. Its rank-constrained Gram approximation
-is commonly called strain \citep[Theorem~2]{lim2024}. Classical scaling is implemented by \texttt{cmdscale} in R
-\citep{rcmdscale}; it does not minimize \eqref{eq:raw-stress}.
+is commonly called strain \citep[Theorem~2]{lim2024}; classical scaling does
+not minimize \eqref{eq:raw-stress}.
 
-The stress-MDS fits in our comparison use the ratio-SMACOF implementation in
-\texttt{smacof} \citep{mair2022}, with the package adapter restoring physical
-target units. After either MDS initialization, edge-KK refines the embedded
+After either MDS initialization, edge-KK refines the embedded
 edge lengths $d_e(Z)$. At a given stage, nonnegative stiffnesses $\kappa_e$
 weight their squared deviations from input lengths multiplied by a common
 target scale $a$:
@@ -264,34 +274,28 @@ coincide. Exact path fidelity therefore need not imply an injective drawing.
 This counterexample concerns a flexible graph; it does not establish
 continuous flexibility of the denser graphs in the experiments.
 
-\begin{figure}[tb]
-\centering\includegraphics[width=.9\linewidth]{figures/focused/paths.pdf}
-\caption{Two drawings of the same three-vertex unit path. Blue segments retain
-length one, and the route from 1 through 2 to 3 retains length two. The orange
-endpoint chord changes with the angle. Both drawings have zero edge and
-fixed-path stress. All spatial units are equal.}\label{fig:paths}
-\end{figure}
 
 \subsection{Profiled scale and contraction}
 Fitting a common target scale allows the input lengths to match the overall
 size of the drawing. The effect on optimization becomes visible by expanding
 the edge loss. The weighted squared sizes of the embedded and input edges are
-$A=\sum_e\kappa_ed_e^2$ and $B=\sum_e\kappa_e\ell_e^2$; their weighted
-cross-product is $C=\sum_e\kappa_ed_e\ell_e$. If $B>0$, the best target scale
-is $a(Z)=C/B$. Substitution into \eqref{eq:edge} gives the profiled loss
+$S_{dd}=\sum_e\kappa_ed_e^2$ and $S_{\ell\ell}=\sum_e\kappa_e\ell_e^2$; their
+weighted cross-product is $S_{d\ell}=\sum_e\kappa_ed_e\ell_e$. If
+$S_{\ell\ell}>0$, the best target scale is $a(Z)=S_{d\ell}/S_{\ell\ell}$. Substitution into \eqref{eq:edge} gives the profiled loss
 \begin{equation}
- \E(Z)=\min_a E(Z,a)=\tfrac12(A-C^2/B).
+ \E(Z)=\min_a E(Z,a)=\tfrac12\bigl(S_{dd}-S_{d\ell}^2/S_{\ell\ell}\bigr).
  \label{eq:profile}
 \end{equation}
 \begin{proposition}[Homogeneity of the profiled loss]\label{prop:scale}
-Hold the stiffnesses fixed and assume $B>0$.
+Hold the stiffnesses fixed and assume $S_{\ell\ell}>0$.
 For $c>0$, $a(cZ)=ca(Z)$ and $\E(cZ)=c^2\E(Z)$.
-If $A>0$, the normalized quantity $Q=2\E/A=1-C^2/(AB)$ is invariant under
+If $S_{dd}>0$, the normalized quantity
+$Q=2\E/S_{dd}=1-S_{d\ell}^2/(S_{dd}S_{\ell\ell})$ is invariant under
 uniform coordinate scaling.
 \end{proposition}
 \begin{proof}
-Scaling coordinates by $c$ multiplies $A$ by $c^2$ and $C$ by $c$, leaving
-$B$ unchanged. Substitute these relations into \eqref{eq:profile}.
+Scaling coordinates by $c$ multiplies $S_{dd}$ by $c^2$ and $S_{d\ell}$ by $c$,
+leaving $S_{\ell\ell}$ unchanged. Substitute these relations into \eqref{eq:profile}.
 \end{proof}
 A configuration with positive profiled loss has a strict descent direction
 under uniform contraction. Thus no positive-loss local minimum exists in an
@@ -301,24 +305,24 @@ $\langle Z,\nabla\E(Z)\rangle=2\E(Z)$, with the Frobenius inner product.
 A positive-loss stationary point is therefore impossible. If zero target
 scale and collapsed coordinates are admitted, total collapse attains zero
 loss. If scale must remain strictly positive, shrinking any configuration with
-$C>0$ still drives the infimum to zero, even when no noncollapsed zero-residual
+$S_{d\ell}>0$ still drives the infimum to zero, even when no noncollapsed zero-residual
 shape exists. These are properties of the unnormalized optimization problem
 at fixed stiffnesses; they do not assert that every finite run collapses.
 A small loss or gradient can reflect contraction without a change in relative
 shape. Separately normalized diagnostics remain meaningful.
-The optimal coordinate-scale calculation below is the weighted least-squares
-calculation underlying scale-normalized graph stress
-\citep[Section 3.2]{ahmed2026}; the additional issue here is profiling the
-target scale while minimizing the unnormalized objective over coordinates.
 
 For comparison, optimize the coordinate scale of a fixed shape against fixed
-edge targets. If $A>0$ and $C>0$, $\min_{c>0}E(cZ,1)=B Q/2$, attained at
-$c=C/A$. Thus a properly normalized shape loss and fixed-target fitting with
-optimal overall size have related shape objectives. The raw profiled loss
-\eqref{eq:profile} lacks this normalization. The present experiments use
-fixed-target controls without introducing a new optimizer for $Q$.
+edge targets. If $S_{dd}>0$ and $S_{d\ell}>0$,
+$\min_{c>0}E(cZ,1)=S_{\ell\ell}Q/2$, attained at $c=S_{d\ell}/S_{dd}$. This is the weighted least-squares calculation underlying
+scale-normalized graph stress \citep[Section 3.2]{ahmed2026}, and it shows
+that a properly normalized shape loss and fixed-target fitting with optimal
+overall size have related shape objectives. The raw profiled loss
+\eqref{eq:profile} lacks this normalization; the additional issue here is
+profiling the target scale while minimizing the unnormalized objective over
+coordinates. The present experiments use fixed-target controls without
+introducing a new optimizer for $Q$.
 
-\section{Expanding surfaces and their metric limits}
+\section{Expanding surfaces and their metric limits}\label{sec:limits}
 An elongated drawing can arise from the input distance geometry as well as
 from the fitting criterion. The paraboloid and saddle separate these effects
 because their smooth geodesic distances have explicit limits as the domain
@@ -374,9 +378,9 @@ at least two distinct limiting heights.
 \subsection{Saddle: a tree metric with three-dimensional classical span}
 On the saddle, equal height does not always allow a connection that stays at
 that height. Positive levels have two components, as do negative levels.
-This separation determines the limiting distances. Fix $(a_i,b_i)$ in the
+This separation determines the limiting distances. Fix $u_i=(x_i,y_i)$ in the
 unit disk and write the corresponding points on $z=x^2-y^2$ as
-$P_i(r)=(ra_i,rb_i,r^2h_i)$, where $h_i=a_i^2-b_i^2$ and $t_i=|h_i|$.
+$P_i(r)=(rx_i,ry_i,r^2h_i)$, where $h_i=x_i^2-y_i^2$ and $t_i=|h_i|$.
 Positive heights have separate $+x$ and $-x$
 branches; negative heights have separate $+y$ and $-y$ branches. Zero heights
 map to a common root. Define the four-branch tree distance
@@ -411,8 +415,8 @@ To determine the Euclidean span selected by classical MDS, encode each
 point by its distance from the root in its branch coordinate. In the next
 statement, $e_b$ denotes the $b$th standard basis vector of $\R^4$.
 \begin{theorem}\label{thm:saddle}
-Let $F$ be the $n\times4$ matrix with row $t_i e_{a(i)}^T$ for a nonroot point,
-where $a(i)$ is its branch label, and zero row for a root point.
+Let $F$ be the $n\times4$ matrix with row $t_i e_{\beta(i)}^T$ for a nonroot point,
+where $\beta(i)$ is its branch label, and zero row for a root point.
 If $JF$ has rank four, the double-centered Gram matrix
 $-\tfrac12JT^{\circ2}J$ has exactly three positive eigenvalues and one negative eigenvalue.
 Classical three-dimensional MDS of the expanding saddle therefore retains
@@ -434,10 +438,10 @@ point per branch also suffices. Missing branches or degenerate samples need
 separate analysis. The theorem applies to classical scaling; it does not
 exclude every planar minimizer of raw stress on the tree metric.
 Non-Euclidean Gram spectra for tree metrics are already illustrated by the
-three-leaf-star example of \citet[Example~2.6]{lim2024}. Here the surface
-distance bound identifies the tree arising from the expanding saddle, and
-the rank condition identifies when its classical approximation retains three
-positive directions.
+three-leaf-star example of \citet[Example~2.6]{lim2024}; the additions here
+are the surface distance bound that identifies the tree arising from the
+expanding saddle and the rank condition under which its classical
+approximation retains three positive directions.
 
 A simple example makes the spatial dimension concrete. Four branch tips at
 unit distance from the root have pairwise distances two. If only these tips
@@ -454,7 +458,7 @@ normalized distance limits differ because of the connectivity of height
 levels. Figure~\ref{fig:ratios} shows the corresponding finite-sample behavior.
 
 This explanation can be stated using Reeb graphs. On the unit disk, collapse
-each connected level component of $q(u)=\norm{u}^2$ or $h(a,b)=a^2-b^2$ to a
+each connected level component of $q(u)=\norm{u}^2$ or $h(u)=x^2-y^2$, $u=(x,y)$, to a
 point. Give a path in the quotient its total variation in function value,
 as in the metric Reeb construction \citep[Definitions 2.1 and 3.1]{memoli2023reeb}.
 Both height functions are 1-Lipschitz for their normalized surface distances.
@@ -479,14 +483,36 @@ in Theorems~\ref{thm:paraboloid} and \ref{thm:saddle}.}\label{fig:ratios}
 \end{figure}
 
 \section{Controlled experiments}
-The surface limits describe intrinsic distances and idealized MDS behavior.
-The experiments examine what happens when a sampled neighborhood graph and
-a finite optimization budget intervene. One study isolates the choice of MDS
-initializer on a bounded saddle. The other varies radius, graph construction
-and scale on both surfaces. Their designs differ, so each comparison retains
+The surface limits describe intrinsic distances and idealized MDS behavior;
+the two studies described next examine what happens when a sampled
+neighborhood graph and a finite optimization budget intervene. Classical
+scaling uses \texttt{cmdscale} in R \citep{rcmdscale}; stress MDS uses the
+ratio-SMACOF implementation in \texttt{smacof} \citep{mair2022}, with the
+package adapter restoring physical target units; graph construction, edge-KK
+and the diagnostics use the \texttt{grip} R package (Data and code
+availability). Table~\ref{tab:designs} summarizes the two designs. They
+differ in domain, sample size and scale policy, so each comparison retains
 its own samples, targets and scale policy.
 
-\subsection{Bounded-saddle initializer comparison}
+\begin{table}[tb]\centering\small
+\caption{The two controlled studies differ in design and are not pooled.
+Details and controls are given in Sections~\ref{sec:bounded} and
+\ref{sec:radius}.}\label{tab:designs}
+\begin{tabular}{@{}p{0.2\linewidth}p{0.36\linewidth}p{0.36\linewidth}@{}}
+\toprule
+ & Bounded-saddle initializer comparison & Radius, graph and scale comparison\\
+\midrule
+Surface, domain & $z=0.8(x^2-y^2)$ over $[-1,1]^2$ & $z=x^2\pm y^2$ above disks of radius $r\in\{1,2,4,\ldots,64\}$\\\addlinespace
+Samples & five, $n=1{,}000$, area-uniform & three, $n=240$, base-disk and surface-area uniform; one nested $n=480$\\\addlinespace
+Graphs & symmetric-union kNN, ambient chords; 25 graphs & symmetric-union kNN, geodesic or ambient targets; $k\in\{4,8,\ldots,128,239\}$\\\addlinespace
+Initializers & classical; stress (six starts) & classical; stress (three starts); fixed full-geodesic classical control\\\addlinespace
+Edge-KK scale & profiled & profiled and fixed\\\addlinespace
+Primary diagnostics & retained-path, edge, chord and coordinate errors & path-to-surface, coordinate and component errors, shape ratios, calibration factor\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Bounded-saddle initializer comparison}\label{sec:bounded}
 The first study uses five independent area-uniform samples of $n=1{,}000$
 points on $z=0.8(x^2-y^2)$ over $[-1,1]^2$. Symmetric-union kNN graphs use
 ambient chord lengths both for neighbor selection and as edge targets.
@@ -504,11 +530,12 @@ three output dimensions. Stress MDS selects the least achieved stress from
 six starts: one classical and five Gaussian, with 1,000 iterations per start.
 Both branches then receive the same five-stage edge-KK schedule, interpolating
 from density stiffness to uniform stiffness with 200 steps per stage. This
-historical comparison uses the profiled target scale. The Gaussian draws are
+study predates the fixed-scale controls of the radius study and uses
+the profiled target scale throughout. The Gaussian draws are
 paired across $k$ within each sample. Additional iterations are controls and
 do not replace the primary fits.
 
-\subsection{Radius, graph, and scale comparison}
+\subsection{Radius, graph, and scale comparison}\label{sec:radius}
 The second study samples $z=x^2+y^2$ and $z=x^2-y^2$ above disks with
 $r\in\{1,2,4,8,16,32,64\}$. For each surface, both uniform base-disk and uniform
 surface-area sampling are considered, with three independent $n=240$ samples
@@ -551,14 +578,14 @@ does not fit a new scale against the surface reference.
 Recovery of the generating configuration requires a separate comparison of
 coordinates. Coordinate error is a normalized Procrustes residual after translation,
 orthogonal transformation and one uniform scaling, with vertex correspondence
-retained. It is not the percentage of misclassified observations. Singular
+retained; it is a residual, not a classification rate. Singular
 values $s_1\ge s_2\ge s_3$ distinguish elongation ($s_2/s_1$ small) from
 planarity relative to the second direction ($s_3/s_2$ small). Neither is a
 certificate of topology or surface recovery.
 To assess horizontal and vertical recovery separately, we also split the
 residual from this same global similarity alignment into its $(x,y)$ and $z$
 components, dividing each norm by the corresponding centered truth norm.
-No additional component-specific rotation or scale is fitted. Component errors can exceed one. These
+No additional component-specific rotation or scale is fitted. These
 errors reveal distortions that the global norm can conceal when height dominates.
 
 The radius study contains \numRadiusGraphs{} primary graphs, \numRadiusCandidates{} scored primary
@@ -567,7 +594,7 @@ All \numInputMatrices{} numerical input matrices pass symmetry, chord lower boun
 constructed surface-path upper bounds and exhaustive vertex-triple checks
 within $10^{-7}$ times RMS distance. Independent high-radius numerical
 validation covers \numValidationPairs{} actual pairs in 16 cases, with maximum sampled relative
-discrepancy $\numGeodesicDiscrepancy$. This is not a certified all-pairs accuracy bound.
+discrepancy $\numGeodesicDiscrepancy$ over those sampled pairs.
 Independent reconstruction from \numValidatedCoordinates{} primary and control
 coordinate arrays checks singular-value quantities, edge calibration and error,
 raw chord stress, chord Stress-1, coordinate error, and graph-to-surface error.
@@ -583,6 +610,11 @@ scores to $\numRetainedRouteDiscrepancy$ in absolute error units.
 The retained near-tie routes and strict matrices are recorded separately.
 
 \section{Results}
+Throughout this section, counts and medians describe the declared graph
+grids at their achieved optimization budgets. They are not independent
+replications, uncertainty estimates for a preferred setting, or certificates
+of global optimality; they are also not probabilities for future data.
+
 \subsection{Path improvement and geometric agreement}
 In the bounded-saddle comparison, refinement improves path agreement while
 worsening normalized chord agreement. Edge-KK decreases
@@ -591,22 +623,23 @@ both initializers and increases chord Stress-1 in all corresponding comparisons.
 At the selected graphs, median path error decreases from \numClassicalBefore\% to \numClassicalAfter\%
 for classical initialization and from \numStressBefore\% to \numStressAfter\% for stress
 initialization (Table~\ref{tab:initializers}, Figure~\ref{fig:initializers}).
-Stress initialization gives the lower final path error in \numStressWins{} of \numBoundedGraphs{} graphs,
-with two reversals retained in the comparisons.
+Stress initialization gives the lower final path error in \numStressWins{} of \numBoundedGraphs{} graphs;
+the two graphs where classical initialization ends lower are reported, not
+excluded.
 
 Coordinate agreement does not follow the same pattern. The median coordinate
 error increases under classical initialization, while decreasing slightly
 under stress initialization. Across selected graphs, stress-initialized
 refinement gives coordinate errors ranging from \numCoordLow\% to \numCoordHigh\% despite
 small final path errors. All recorded edge-KK stages reach their iteration
-limits. These are achieved finite-budget outcomes, not established minima.
+limits.
 
 \begin{table}[tb]\centering\small
 \caption{Path agreement improves after edge-KK while chord agreement worsens:
 bounded-saddle medians over five selected graphs. Retained-path and edge
 columns use separately calibrated relative errors; chord is profiled Stress-1;
-coordinate error uses similarity alignment. Edge-KK uses the historical
-profiled scale.}\label{tab:initializers}
+coordinate error uses similarity alignment. Edge-KK uses the profiled
+target scale.}\label{tab:initializers}
 \input{tables/focused/initializers.tex}
 \end{table}
 \begin{figure}[tb]\centering
@@ -619,21 +652,17 @@ Vertical units and ranges differ across the three diagnostics.}\label{fig:initia
 \end{figure}
 
 \subsection{Graph fidelity and coordinate recovery separate on the saddle}
-The large-radius saddle makes the difference between intrinsic-distance
-agreement and coordinate recovery particularly clear. At $r=64$, $k=32$,
-the fixed-scale stress-initialized geodesic saddle fits
-have median path-to-surface error \numGeodesicSaddlePath\% and coordinate error \numGeodesicSaddleCoord\%.
-Ambient-graph fits give \numAmbientSaddleCoord\% coordinate error but \numAmbientSaddlePath\% path-to-surface
-error (Table~\ref{tab:radius}). The geodesic fits preserve intrinsic path
-measurements much better; the ambient fits have much smaller global coordinate
-residuals. These outcomes answer different geometric questions, and the global
-residual alone does not establish detailed surface recovery.
+The large-radius saddle separates intrinsic-distance agreement from
+coordinate recovery most clearly. At $r=64$, $k=32$, the fixed-scale
+stress-initialized geodesic saddle fits have median path-to-surface error
+\numGeodesicSaddlePath\% and coordinate error \numGeodesicSaddleCoord\%,
+whereas ambient-graph fits give \numAmbientSaddleCoord\% coordinate error
+but \numAmbientSaddlePath\% path-to-surface error (Table~\ref{tab:radius}).
+The two graph regimes therefore answer different geometric questions.
 Figure~\ref{fig:spatial} shows the corresponding configurations for the first
-sample, together with the smaller-radius comparison. The original surface
-extends over the entire disk at both radii. Its horizontal extent grows as
-$r$ and its vertical extent as $r^2$, so equal-axis views become narrow at
-large $r$. That ambient aspect ratio does not make the intrinsic saddle
-distance metric a line metric.
+sample, together with the smaller-radius comparison. The narrow equal-axis
+views at large $r$ reflect the surface's ambient aspect ratio, which does not
+make the intrinsic saddle distance metric a line metric.
 
 Height dominates the global coordinate norm on both surfaces at this radius.
 For the ambient saddle, the median horizontal error after the same alignment
@@ -671,13 +700,10 @@ residual exceeds the corresponding truth norm.}\label{tab:components}
 as the domain expands. Shown is the first base-disk sample, $n=240$, $k=32$.
 The fitted columns use stress MDS followed by fixed-scale density continuation.
 Colors identify the four original height-level branches. The original-surface
-wireframe includes the full disk boundary. All coordinates are centered and
-divided uniformly by $r^2$; fitted coordinates are also divided by their edge
-calibration factor and orthogonally aligned to the original observations.
-Each row uses common limits, equal spatial axes and an orthographic view.
-At $r=64$ the original disk's horizontal radius in these units is $1/64$,
-which explains its narrow appearance. No coordinate direction is enlarged
-independently.}\label{fig:spatial}
+wireframe includes the full disk boundary. Coordinates are centered, divided
+by $r^2$ and aligned as described in Appendix~\ref{app:rendering}; at
+$r=64$ the original disk's horizontal radius in these units is
+$1/64$.}\label{fig:spatial}
 \end{figure}
 
 \subsection{Neighborhood and initialization sensitivity}
@@ -690,14 +716,12 @@ with the refinement graph in all \numFullInitializerCases{} corresponding $n=240
 Across the seven tested $k$ values, the within-case range of that error has
 median \numNeighborhoodSpreadMedian{} percentage points, with ranges from
 \numNeighborhoodSpreadMin{} to \numNeighborhoodSpreadMax{} percentage points
-across cases. These are changes in error magnitude, not independent replications
-or estimates of uncertainty in a preferred $k$.
+across cases.
 
-The nested sample-size check distinguishes fixed $k$ from fixed $k/n$.
-For example, under geodesic construction and fixed-scale refinement on the
+A single nested sample-size check distinguishes fixed $k$ from fixed $k/n$.
+Under geodesic construction and fixed-scale refinement on the
 base-disk paraboloid, path-to-surface errors are \numNestedBase\% for $(n,k)=(240,8)$,
-\numNestedSameK\% for $(480,8)$, and \numNestedSameFraction\% for $(480,16)$. This single nested
-replication does not establish a general sample-size scaling law.
+\numNestedSameK\% for $(480,8)$, and \numNestedSameFraction\% for $(480,16)$.
 
 Tiny perturbations around stress-MDS starts change the final $s_3/s_2$
 ratios by at most \numStressPerturbation{} across the tested controls; the
@@ -706,7 +730,7 @@ Independently drawn starts can give much larger changes, up to approximately
 \numStressRandomFixed{} under fixed scale. Local stability around an initializer
 therefore does not imply insensitivity to its selection. Of the
 \numRadiusStarts{} primary radius-study MDS starts, \numCappedStarts{} reach their
-iteration caps; small stress changes are not a global-optimality certificate.
+iteration caps.
 \subsection{Contraction and fixed-scale controls}
 Allowing the target scale to vary can produce substantial contraction of the
 drawing. Across all primary refinements, including both sample sizes, all initializers
@@ -714,9 +738,8 @@ and both stiffness schedules, the profiled-scale runs attain edge calibration
 factors as small as $\numProfiledMinimum$. Among \numProfiledCount{} profiled
 refinements, \numProfiledBelowHalf{} have calibration below $0.5$,
 \numProfiledBelowTenth{} below $0.1$, and \numProfiledBelowThousandth{} below
-$0.001$; the median is \numProfiledMedian{}. These nested counts describe
-correlated configurations in the declared grid. The fixed-scale controls range from
-\numFixedMinimum{} to \numFixedMaximum{}.
+$0.001$; the median is \numProfiledMedian{}. The fixed-scale controls range
+from \numFixedMinimum{} to \numFixedMaximum{}.
 Contraction occurs at intermediate radii as well as large ones, so it is not
 an asymptotic property of the generating surface (Figure~\ref{fig:scale}).
 
@@ -724,9 +747,7 @@ Across the \numPrimaryGraphs{} primary $n=240$ graphs, profiled-scale refinement
 path error in \numProfiledImproved{} stress-initialized comparisons, worsens it in \numProfiledWorsened{}, and
 leaves \numProfiledTied{} ties. Fixed-scale refinement improves \numFixedImproved{}, worsens \numFixedWorsened{}, and leaves
 \numFixedTied{} ties. Ties mean absolute changes no larger than $10^{-8}$ in relative-error
-units. These counts describe the declared graph grid, not independent trials
-or probabilities for future data. Neither policy improves path error in every
-case. Fixed scale removes the contraction mechanism of Proposition~\ref{prop:scale};
+units. Neither policy improves path error in every case. Fixed scale removes the contraction mechanism of Proposition~\ref{prop:scale};
 nonconvexity and geometric ambiguity remain.
 
 \subsection{Density continuation and uniform stiffness}
@@ -737,8 +758,8 @@ retained-path error in 389 of 1,176 fixed-scale stress comparisons, higher error
 in 541, and ties in 246 (Table~\ref{tab:continuation}). The central half of paired
 changes is small, while the extremes are larger, particularly for coordinate
 error. Profiled-scale comparisons also favor neither schedule uniformly.
-The results establish schedule sensitivity at the achieved finite budgets;
-they do not demonstrate that continuation improves on uniform stiffness.
+The comparisons establish sensitivity to the schedule, not an ordering of
+the two schedules.
 
 \begin{table}[htbp]\centering\small
 \caption{Density continuation minus uniform-only error for paired stress-initialized
@@ -771,15 +792,36 @@ scatter only; all comparisons enter the reported counts.}\label{fig:scale}
 \FloatBarrier
 \section{Discussion}
 An embedding is useful only in relation to the measurements it is intended
-to support. In these experiments, accurate lengths along retained graph paths
-can coexist with substantial coordinate error, while close coordinate
-agreement can coexist with poor intrinsic-distance agreement. The distinction
-begins at graph construction: a drawing that faithfully represents a chosen
-graph still inherits that graph's approximation to the underlying geometry.
-When the reference surface is unknown, graph-to-layout agreement can assess
+to support, and the experiments show that the usual measurements do not
+certify one another. A small retained-path error does not certify coordinate
+recovery: in the geodesic saddle fits, accurate lengths along retained graph
+paths coexist with substantial coordinate error, and path fidelity alone need
+not fix a configuration. On the flexible three-vertex path of
+Figure~\ref{fig:paths}, edge lengths are preserved while the angle changes,
+although this counterexample does not diagnose the dense experimental graphs.
+In the ambient regime the original coordinates realize every target edge
+exactly, and for the three highlighted ambient saddle frameworks at $n=240$,
+$r=64$, $k=32$, the edge-length Jacobian at the original coordinates has
+numerical rank $714=3n-6$, with smallest nongauge singular values from
+$0.00490$ to $0.00613$ against six rigid-motion values of order $10^{-15}$.
+This supports local infinitesimal rigidity at those frameworks, not global
+rigidity or a quantitative stability theorem \citep{gortler2010}, and the
+experiments do not identify which combination of finite-budget optimization,
+conditioning and alternative global realizations accounts for each coordinate
+residual. Initialization or regularization can select among configurations
+with similar path errors, so their influence is part of the interpretation.
+
+A small global coordinate residual does not certify intrinsic-distance
+agreement or transverse geometry either. In the ambient saddle fits, close
+coordinate agreement coexists with poor path-to-surface agreement, and the
+same fits have horizontal errors far larger than their global residuals
+because height dominates the coordinate norm. Both measurements also inherit
+the graph's approximation to the underlying geometry: a drawing that
+faithfully represents a chosen graph still inherits that approximation, and
+when the reference surface is unknown, graph-to-layout agreement can assess
 the embedding step but cannot verify the scientific meaning of the graph.
 
-The surface limits explain one source of this separation. At the height
+The surface limits explain one source of these separations. At the height
 scale, the paraboloid loses angular separation and approaches a line metric.
 The saddle retains the separation of four height-level branches and
 approaches a tree metric. Under the stated rank condition, classical MDS
@@ -790,26 +832,11 @@ span in the tested saddle settings, although a universal raw-stress result
 has not been established. Curvature decay or a quadratic fit to the displayed
 coordinates alone cannot distinguish these distance geometries.
 
-On flexible graphs, path fidelity leaves geometric freedom: edge lengths can
-be preserved while angles change. This counterexample does not diagnose the
-dense experimental graphs. In the ambient regime, the original coordinates
-realize every target edge exactly. For the three highlighted ambient saddle
-frameworks at $n=240$, $r=64$, $k=32$, the edge-length Jacobian at the original
-coordinates has numerical rank $714=3n-6$. Its smallest nongauge singular
-values range from $0.00490$ to $0.00613$, whereas the six rigid-motion values
-are of order $10^{-15}$. This supports local infinitesimal rigidity at those
-frameworks, not global rigidity or a quantitative stability theorem
-\citep{gortler2010}. The experiments do not identify which combination of
-finite-budget optimization, conditioning and alternative global realizations
-accounts for each coordinate residual. A small average edge error also
-supplies less control than the uniform bound in Proposition~\ref{prop:path}.
-Initialization or regularization can select among configurations with similar
-path errors; their influence is part of the interpretation. Likewise, a
-decreasing objective must be read together with its scale convention. The
-profiled edge loss can fall under contraction without a change in relative
-shape. Fixed target scale removes this mechanism, but the observed path-error
-increases show that it does not ensure improvement in every graph or eliminate
-dependence on initialization.
+A decreasing objective must likewise be read with its scale convention.
+Fixed target scale removes the contraction mechanism of
+Proposition~\ref{prop:scale}, but the observed path-error increases show that
+it neither ensures improvement in every graph nor eliminates dependence on
+initialization.
 
 For biological observations, these distinctions affect how a branch, gap or
 sequence of nearby samples can be interpreted. Stability to plausible graph
@@ -838,10 +865,10 @@ differently. For both radius-study surfaces the area element in polar base coord
 $\rho\sqrt{1+4\rho^2}\,d\rho\,d\theta$. Thus surface-area sampling uses the
 radial cumulative distribution
 \[
- F_r(\rho)=\frac{(1+4\rho^2)^{3/2}-1}{(1+4r^2)^{3/2}-1},
+ \Psi_r(\rho)=\frac{(1+4\rho^2)^{3/2}-1}{(1+4r^2)^{3/2}-1},
  \qquad 0\le\rho\le r,
 \]
-with independent uniform angle; base-disk sampling uses $F_r(\rho)=\rho^2/r^2$.
+with independent uniform angle; base-disk sampling uses $\Psi_r(\rho)=\rho^2/r^2$.
 The same uniform draws are transformed at each radius. The primary NumPy
 generator seeds are $20260904+j$ for replicate $j$. The nested additional
 240 observations use seed 20261905. Corresponding surface/measure settings
@@ -855,8 +882,7 @@ continuation from smaller radii. The primary endpoint tolerance is
 $2\times10^{-9}$ in these base units; the integration relative tolerance is
 $2\times10^{-10}$. High-radius validation uses tighter shooting and independent
 collocation/integration on the saddle, and refined radial solves with adaptive
-quadrature on the paraboloid. The reported maximum concerns the selected
-validation pairs, not an error guarantee for all pairs. The bounded-saddle
+quadrature on the paraboloid. The bounded-saddle
 calibration uses a separate triangulated-surface reference, with mesh-refinement
 and smooth-geodesic boundary-value checks recorded in its original protocol.
 
@@ -896,10 +922,10 @@ kernel, denoted $\widehat f$, computed using R's \texttt{density} with
 \texttt{nrd0} bandwidth and 512 grid points from the minimum to maximum length.
 Linear interpolation evaluates the density at each edge length. Dividing by
 the mean of these values gives the initial relative weights
-$q_e=\widehat f(\ell_e)/( |E|^{-1}\sum_f\widehat f(\ell_f))$. The stiffness at
+$w_e=\widehat f(\ell_e)/( |E|^{-1}\sum_f\widehat f(\ell_f))$. The stiffness at
 continuation value $\alpha$ is
 \[
- \kappa_e(\alpha)=(1-\alpha)q_e+\alpha,
+ \kappa_e(\alpha)=(1-\alpha)w_e+\alpha,
  \qquad \alpha\in\{0,1/4,1/2,3/4,1\}.
 \]
 The implementation normalizes stiffnesses to mean one; no additional signal
@@ -912,8 +938,7 @@ and Euclidean gradient-norm stopping threshold $10^{-8}$. Accepted coordinates
 are recentered. The edge-length smoothing parameter is zero in both studies.
 These absolute stopping rules act in each study's fitting units, which is
 relevant to the contraction analysis. Stress MDS uses SMACOF tolerance
-$10^{-8}$ in both primary studies; a converged start is not necessarily a
-global minimizer. Radius-study MDS random starts use seed $8300000+1000j$,
+$10^{-8}$ in both primary studies. Radius-study MDS random starts use seed $8300000+1000j$,
 and their draw is reused across graph settings within replicate $j$.
 
 Neighbor ranks in the radius study order by distance and then vertex index;
@@ -927,9 +952,17 @@ the original validators retain this distinction. The mathematical statements
 for exact shortest paths do not require these discrepancies to be treated as
 zero.
 
+\subsection{Rendering of Figure~\ref{fig:spatial}}\label{app:rendering}
+All coordinates are centered and divided uniformly by $r^2$; fitted
+coordinates are also divided by their edge calibration factor and
+orthogonally aligned to the original observations. Each row uses common
+limits, equal spatial axes and an orthographic view. No coordinate direction
+is enlarged independently, so the narrow appearance of the original disk at
+$r=64$ reflects its horizontal radius of $1/64$ in these units.
+
 \section*{Data and code availability}
 The manuscript's figures and tables are generated from versioned exports of
-the two grip experiments. A source manifest records the exact commit and
+the two experiments, both run with the \texttt{grip} R package. A source manifest records the exact commit and
 SHA-256 hashes of source and exported files. Portable verification and rendering
 scripts accompany the manuscript. Full fitting protocols, input matrices,
 coordinates and validators remain in the experiment directories specified by

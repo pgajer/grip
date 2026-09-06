@@ -1,0 +1,8 @@
+{
+  "origin": "geodesicMDS/gmds_manuscript/build/methods-paper-style-revision-2026-09-06",
+  "status_at_import": "as reviewed; corrections follow in a separate commit",
+  "sha256": {
+    "geodesic_mds.tex": "77dac93253b759d586ff01e603473be1678edfd3abdb4cf25ed73b95bf261876",
+    "geodesic_mds.bib": "6580e95c43fbf01c2f55da598f97daf66dc6728a6076b3968ef3ff6cdd56d708"
+  }
+}
