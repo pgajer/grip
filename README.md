@@ -4,10 +4,22 @@
 # grip
 
 **grip** (Graph dRawing with Intelligent Placement) is an R package for
-multiscale graph layout. Its primary unweighted and weighted workflows
-target 2D and 3D, while opt-in weighted-GRIP, metric-MDS, and edge-KK
-workflows also support higher-dimensional embeddings. The main workflow
-is:
+multiscale graph layout.
+
+<p align="center">
+
+<img src="https://pgajer.github.io/grip/reference/figures/readme-sierpinski-triangle-level-6-trace.gif" alt="Animated multiscale layout of a level-6 Sierpinski triangle" width="450" />
+</p>
+
+<p align="center">
+
+<em>A level-6 Sierpinski triangle taking shape through multiscale
+refinement.</em>
+</p>
+
+Its primary unweighted and weighted workflows target 2D and 3D, while
+opt-in weighted-GRIP, metric-MDS, and edge-KK workflows also support
+higher-dimensional embeddings. The main workflow is:
 
 - `grip(metric = "hop")` for topology-first layouts,
 - `grip(metric = "edge_length")` when edge lengths define the graph
@@ -107,17 +119,13 @@ options.
 
 ## Gallery
 
-These animations show the multiscale refinement recorded by
+The Sierpinski animations show the multiscale refinement recorded by
 `trace.grip()`. Starting from a coarse placement, GRIP introduces
 vertices and refines their positions through the final layout.
 
 ### Sierpinski Carpet (Level 4)
 
 <img src="https://pgajer.github.io/grip/reference/figures/readme-sierpinski-carpet-level-4-trace.gif" alt="Animated multiscale layout of a level-4 Sierpinski carpet" width="600" />
-
-### Sierpinski Triangle (Level 6)
-
-<img src="https://pgajer.github.io/grip/reference/figures/readme-sierpinski-triangle-level-6-trace.gif" alt="Animated multiscale layout of a level-6 Sierpinski triangle" width="600" />
 
 ## More examples
 
