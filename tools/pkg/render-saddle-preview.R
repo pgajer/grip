@@ -41,7 +41,6 @@ if (overlay) {
   # Enlarge the standalone capture while retaining the supplement's orientation.
   root <- as.character(views[[1]]$x$rootSubscene)
   views[[1]]$x$objects[[root]]$par3d$zoom <- .55
-  titles <- "Figure S4.3C. Fitted configurations and generating saddle"
 }
 
 # ivue currently animates point/edge coordinates, not filled faces. Its player
@@ -113,7 +112,7 @@ page <- htmltools::tags$html(
     htmltools::tags$h1(if (overlay) "Fitted configurations and generating saddle" else "Saddle configurations"),
     htmltools::tags$p("Z-axis rotation · 12 seconds per revolution"),
     htmltools::tags$div(id = "figure", lapply(seq_along(views), function(j)
-      htmltools::tags$section(htmltools::tags$h2(titles[j]),
+      htmltools::tags$section(if (!overlay) htmltools::tags$h2(titles[j]),
         if (overlay) htmltools::tags$p(class = "note",
           "Blue: metric-MDS · Orange: metric-MDS + edge-KK · Gray: generating saddle"),
         views[[j]]))),
