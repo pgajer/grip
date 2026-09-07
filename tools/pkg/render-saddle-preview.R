@@ -2,14 +2,16 @@
 # Run from the repository root. Requires ivue with layer3D.axes(), camera.zup()
 # and animate.frames(), plus rgl, htmlwidgets and Pandoc. No fits are recomputed.
 options(rgl.useNULL = TRUE)
+overlay <- "--overlay-reference" %in% commandArgs(trailingOnly = TRUE)
 base <- "papers/grip-software-paper/reproducibility/precomputed"
 pilot <- readRDS(file.path(base, "two-fidelity-saddle.rds"))
 reference <- readRDS(file.path(base, "saddle-reference-diagnostics.rds"))
 cloud <- reference$clouds[[as.character(pilot$representative)]]
 Z <- cloud$aligned
 titles <- c("Original saddle", "metric-MDS", "metric-MDS + edge-KK")
-dir.create("output/readme-saddle", recursive = TRUE, showWarnings = FALSE)
-out <- normalizePath("output/readme-saddle")
+output.dir <- if (overlay) "output/s4-3c-rotation" else "output/readme-saddle"
+dir.create(output.dir, recursive = TRUE, showWarnings = FALSE)
+out <- normalizePath(output.dir)
 
 # Preserve the saved alignment, vertex colors and parameter-plane connectivity.
 colors <- colorRampPalette(c("#173D65", "#86AFC4", "#D9B18B", "#8E4921"))(100)[
@@ -33,10 +35,18 @@ views <- lapply(seq_along(Z), function(j) {
   w$elementId <- paste0("saddle-view-", j)
   w
 })
+if (overlay) {
+  source("papers/grip-software-paper/reproducibility/scripts/saddle-widgets.R")
+  views <- list(saddle_widgets(pilot, reference)$overlay_reference)
+  # Enlarge the standalone capture while retaining the supplement's orientation.
+  root <- as.character(views[[1]]$x$rootSubscene)
+  views[[1]]$x$objects[[root]]$par3d$zoom <- .55
+  titles <- "Figure S4.3C. Fitted configurations and generating saddle"
+}
 
 # ivue currently animates point/edge coordinates, not filled faces. Its player
 # supplies the single timeline; the adapter below applies one camera matrix to
-# all three intact mesh scenes on each tick (including scrubbing and reset).
+# every displayed mesh scene on each tick (including scrubbing and reset).
 fps <- 20
 count <- 240L
 angles <- (seq_len(count) - 1) * 360 / count
@@ -49,7 +59,7 @@ player.id <- timeline$x$players[[1]]
 matrices <- lapply(angles, function(a) as.vector(
   ivue::camera.zup(elevation = 20, turn = -135 + a, fov = 0, zoom = .5)$userMatrix))
 config <- jsonlite::toJSON(list(player = player.id,
-  scenes = vapply(views, `[[`, "", "elementId"), matrices = matrices),
+  scenes = I(vapply(views, `[[`, "", "elementId")), matrices = matrices),
   auto_unbox = TRUE, digits = 15)
 adapter <- paste0("(function() { const config = ", config, ";
   function connect() {
@@ -81,10 +91,10 @@ adapter <- paste0("(function() { const config = ", config, ";
 css <- paste0("
   body {margin:0; padding:30px 24px; background:white; color:#26323c;
     font:16px/1.5 system-ui,sans-serif;}
-  main {max-width:1800px; margin:auto;}
+  main {max-width:", if (overlay) 720 else 1800, "px; margin:auto;}
   h1 {font-size:25px; font-weight:600; margin:0 0 8px;}
   p {margin:0 0 20px; color:#56616b;}
-  #figure {display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); background:white;}
+  #figure {display:grid; grid-template-columns:repeat(", length(views), ",minmax(0,1fr)); background:white;}
   h2 {text-align:center; font-size:21px; font-weight:500; margin:15px 0 0;}
   .rglWebGL {max-width:100%;}
   #", timeline.id, " {position:absolute!important; width:64px!important;
@@ -100,12 +110,15 @@ page <- htmltools::tags$html(
     htmltools::tags$meta(charset = "utf-8"),
     htmltools::tags$style(htmltools::HTML(css))),
   htmltools::tags$body(htmltools::tags$main(
-    htmltools::tags$h1("Saddle configurations"),
-    htmltools::tags$p("A shared z-axis rotation · 12 seconds per revolution · common scale and triangulation"),
+    htmltools::tags$h1(if (overlay) "Fitted configurations and generating saddle" else "Saddle configurations"),
+    htmltools::tags$p("Z-axis rotation · 12 seconds per revolution"),
     htmltools::tags$div(id = "figure", lapply(seq_along(views), function(j)
-      htmltools::tags$section(htmltools::tags$h2(titles[j]), views[[j]]))),
+      htmltools::tags$section(htmltools::tags$h2(titles[j]),
+        if (overlay) htmltools::tags$p(class = "note",
+          "Blue: metric-MDS · Orange: metric-MDS + edge-KK · Gray: generating saddle"),
+        views[[j]]))),
     timeline,
-    htmltools::tags$p(class = "note", "Pause or drag the slider to inspect the same angle in all three views."),
+    htmltools::tags$p(class = "note", "Pause or drag the slider to inspect any rotation angle."),
     htmltools::tags$script(htmltools::HTML(adapter)))))
 raw <- file.path(out, "saddle-rotation-unbundled.html")
 htmltools::save_html(page, raw, libdir = "saddle-libs")

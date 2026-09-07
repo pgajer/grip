@@ -101,5 +101,6 @@ papers/grip-software-paper/build/
 man/figures/*.png
 !man/figures/readme-saddle-reference.png
 !man/figures/readme-saddle-rotation.gif
+!man/figures/readme-saddle-overlay-rotation.gif
 pkgdown/favicon/*.png
 pkgdown/favicon/*.ico

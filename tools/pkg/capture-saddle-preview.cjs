@@ -6,19 +6,21 @@ const path = require('path');
 const fs = require('fs');
 const {pathToFileURL} = require('url');
 (async () => {
-  const out = path.resolve('output/readme-saddle');
+  const overlay = process.argv.includes('--overlay-reference');
+  const count = overlay ? 1 : 3;
+  const out = path.resolve(overlay ? 'output/s4-3c-rotation' : 'output/readme-saddle');
   const browser = await chromium.launch({headless: true,
     ...(process.env.CHROMIUM_EXECUTABLE ? {executablePath: process.env.CHROMIUM_EXECUTABLE} : {}),
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']});
   try {
-    const page = await browser.newPage({viewport: {width: 1848, height: 820}});
+    const page = await browser.newPage({viewport: {width: overlay ? 768 : 1848, height: 980}});
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await page.route(/^https?:/, r => r.abort());
     await page.goto(pathToFileURL(path.join(out, 'saddle-rotation.html')).href + '?paused');
     await page.waitForFunction(() => document.body.dataset.ready === 'true');
-    await page.waitForFunction(() => [...document.querySelectorAll('#figure canvas')]
-      .length === 3 && [...document.querySelectorAll('#figure canvas')].every(c => c.width > 0));
+    await page.waitForFunction(count => [...document.querySelectorAll('#figure canvas')]
+      .length === count && [...document.querySelectorAll('#figure canvas')].every(c => c.width > 0), count);
     const figure = page.locator('#figure');
     async function frame(i) {
       await page.evaluate(i => window.saddlePreview.setFrame(i), i);
@@ -27,12 +29,12 @@ const {pathToFileURL} = require('url');
         const matrices = window.saddlePreview.scenes.map(s =>
           Array.from(s.getObj(s.scene.rootSubscene).par3d.userMatrix.getAsArray()));
         if (matrices.some(m => JSON.stringify(m) !== JSON.stringify(matrices[0])))
-          throw new Error('The three camera matrices differ');
+          throw new Error('The camera matrices differ');
       });
     }
     await frame(0);
     fs.mkdirSync('man/figures', {recursive: true});
-    await figure.screenshot({path: 'man/figures/readme-saddle-reference.png'});
+    await figure.screenshot({path: overlay ? path.join(out, 'figure-s4-3c.png') : 'man/figures/readme-saddle-reference.png'});
     for (const i of [60, 120, 180]) {
       await frame(i);
       await figure.screenshot({path: path.join(out, `quarter-${i}.png`)});
@@ -56,6 +58,6 @@ const {pathToFileURL} = require('url');
       }
     }
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('Verified three synchronized offline scenes; playback, pause, reset and scrubbing; no JavaScript errors.');
+    console.log(`Verified ${count} offline scene(s); playback, pause, reset and scrubbing; no JavaScript errors.`);
   } finally { await browser.close(); }
 })().catch(e => {console.error(e); process.exit(1);});

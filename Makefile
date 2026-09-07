@@ -77,6 +77,12 @@ readme-saddle-animation:
 	node tools/pkg/capture-saddle-preview.cjs --animation
 	Rscript tools/pkg/encode-saddle-animation.R
 
+.PHONY: saddle-overlay-animation
+saddle-overlay-animation:
+	Rscript tools/pkg/render-saddle-preview.R --overlay-reference
+	node tools/pkg/capture-saddle-preview.cjs --overlay-reference --animation
+	Rscript tools/pkg/encode-saddle-animation.R --overlay-reference
+
 readme-html: readme-assets
 	Rscript tools/pkg/render-readme.R --html
 
