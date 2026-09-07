@@ -149,11 +149,6 @@ axes](man/figures/readme-saddle-overlay-rotation.gif)](https://pgajer.github.io/
 
 [Rotate the configurations and compare surface
 overlays](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html).
-The self-contained [offline
-HTML](papers/grip-software-paper/supplement/S4-interactive-saddle.html)
-is also included with the manuscript. Fits use grip 0.2.0; additional
-reference diagnostics use development commit `b72f61d`, and
-visualization uses ivue commit `872f9d4`.
 
 **Edge-list input (2D, circle placement)**
 
