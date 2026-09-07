@@ -125,7 +125,7 @@ and metric-MDS + edge-KK using the same parameter-plane triangulation.
 Graph-path fidelity, corresponding-coordinate agreement, and surface proximity
 measure different aspects of the result.
 
-[![Three aligned saddle configurations with a common triangulation](https://pgajer.github.io/grip/reference/figures/readme-saddle-reference.png)](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html)
+[![Three aligned saddle configurations with a common triangulation and x/y/z axes](man/figures/readme-saddle-reference.png)](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html)
 
 [Rotate the configurations and compare surface overlays](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html).
 The self-contained [offline HTML](papers/grip-software-paper/supplement/S4-interactive-saddle.html)

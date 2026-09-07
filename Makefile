@@ -66,6 +66,17 @@ readme-render:
 
 readme: readme-assets readme-render
 
+# Explicit WebGL rebuild; normal README builds use the tracked PNG.
+.PHONY: readme-saddle readme-saddle-animation
+readme-saddle:
+	Rscript tools/pkg/render-saddle-preview.R
+	node tools/pkg/capture-saddle-preview.cjs
+
+readme-saddle-animation:
+	Rscript tools/pkg/render-saddle-preview.R
+	node tools/pkg/capture-saddle-preview.cjs --animation
+	Rscript tools/pkg/encode-saddle-animation.R
+
 readme-html: readme-assets
 	Rscript tools/pkg/render-readme.R --html
 

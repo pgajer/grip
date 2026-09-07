@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
 dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
-source("papers/grip-software-paper/reproducibility/scripts/saddle-preview.R")
+# The WebGL saddle snapshot is tracked; regenerate it with make readme-saddle.
+# Routine README/Pages builds do not need ivue, Chromium or Playwright.
+stopifnot(file.exists("man/figures/readme-saddle-reference.png"))
 
 if (requireNamespace("pkgload", quietly = TRUE)) {
   pkgload::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)
