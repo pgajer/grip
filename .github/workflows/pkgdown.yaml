@@ -61,6 +61,7 @@ jobs:
           mkdir -p docs/reference/figures
           cp man/figures/readme-sierpinski-*-trace.gif docs/reference/figures/
           cp man/figures/readme-saddle-reference.png docs/reference/figures/
+          cp man/figures/readme-saddle-rotation.gif docs/reference/figures/
           mkdir -p docs/supplements
           cp papers/grip-software-paper/supplement/S4-interactive-saddle.html docs/supplements/
 

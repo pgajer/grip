@@ -100,5 +100,6 @@ papers/grip-software-paper/build/
 # Generated raster assets; retain the README's explicitly rebuilt WebGL snapshot.
 man/figures/*.png
 !man/figures/readme-saddle-reference.png
+!man/figures/readme-saddle-rotation.gif
 pkgdown/favicon/*.png
 pkgdown/favicon/*.ico

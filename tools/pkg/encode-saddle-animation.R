@@ -7,4 +7,7 @@ stopifnot(all(file.exists(paths)))
 frames <- magick::image_scale(magick::image_read(paths), "1350x")
 gif <- magick::image_animate(frames, fps = 20, loop = 0, optimize = TRUE)
 magick::image_write(gif, file.path(out, "saddle-rotation.gif"))
+dir.create("man/figures", recursive = TRUE, showWarnings = FALSE)
+stopifnot(file.copy(file.path(out, "saddle-rotation.gif"),
+  "man/figures/readme-saddle-rotation.gif", overwrite = TRUE))
 message("Wrote ", file.path(out, "saddle-rotation.gif"))
