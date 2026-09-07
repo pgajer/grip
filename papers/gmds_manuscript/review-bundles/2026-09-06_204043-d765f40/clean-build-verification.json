@@ -1,0 +1,52 @@
+{
+  "checked_eastern": "2026-09-06T20:41:07.331049-04:00",
+  "paper_commit": "d765f4055224519f638f0d8ba5a1323dcdc4ad4d",
+  "artifact_hashes_verified": true,
+  "checks": [
+    {
+      "archive": "typesetting-source.zip",
+      "input_hashes_verified": 17,
+      "commands": [
+        [
+          "make",
+          "pdf"
+        ]
+      ],
+      "pdf_pages": 20,
+      "pdf_text_matches_except_build_metadata": true,
+      "regenerated_or_preserved_figures_and_tables": 11,
+      "latex_warnings": [],
+      "original_checkout_dependency_found": false,
+      "active_source_artifact_scan": "passed"
+    },
+    {
+      "archive": "evidence-reproduction.zip",
+      "input_hashes_verified": 74,
+      "commands": [
+        [
+          "make",
+          "verify"
+        ],
+        [
+          "make",
+          "pdf"
+        ],
+        [
+          "make",
+          "verify"
+        ]
+      ],
+      "pdf_pages": 20,
+      "pdf_text_matches_except_build_metadata": true,
+      "regenerated_or_preserved_figures_and_tables": 11,
+      "latex_warnings": [],
+      "original_checkout_dependency_found": false,
+      "active_source_artifact_scan": "passed"
+    }
+  ],
+  "limits": [
+    "No full experiment refit.",
+    "Internal verification is not independent scientific review.",
+    "Author approvals and submission decisions remain pending."
+  ]
+}
