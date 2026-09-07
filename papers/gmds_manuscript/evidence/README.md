@@ -32,6 +32,10 @@ Their settings must not be pooled as independent sample replications. Existing
 verification records document the original analyses; the focused manuscript's
 additional checks are recorded separately.
 
+The bounded study used grip 0.2.0.9000 and the radius study used grip 0.2.0.9001.
+Both used smacof 2.1.7. The study documentation and source manifest retain these
+distinct software versions and analysis settings.
+
 ## Additional diagnostic evidence
 
 `coordinate-components/coordinates.csv.gz` contains the 24 highlighted fits
@@ -39,8 +43,9 @@ and six corresponding truth arrays, exported from twelve pinned grip Git
 blobs. Its manifest records their source hashes and the derived export hash.
 `check_coordinate_components.py` reconstructs one global similarity alignment
 per fit, component errors without realignment, and the original ambient saddle
-edge-length Jacobian ranks. Both `make verify` and `make pdf` run this portable
-check. The rank threshold is `max(J.shape) * machine_epsilon * largest_singular_value`;
+edge-length Jacobian ranks. `make verify` runs this portable check;
+`make pdf` typesets the committed assets. The rank threshold is
+`max(J.shape) * machine_epsilon * largest_singular_value`;
 these are numerical local-rigidity diagnostics, not global-rigidity certificates.
 Explicit refresh requires R and the source repository:
 
