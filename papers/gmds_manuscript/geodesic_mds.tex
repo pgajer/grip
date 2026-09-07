@@ -3,7 +3,8 @@
 \usepackage{amsmath,amssymb,amsthm,graphicx,booktabs,microtype,array}
 \usepackage[round]{natbib}
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
-\usepackage{placeins}
+\usepackage{placeins,tikz}
+\usetikzlibrary{arrows}
 \newtheorem{proposition}{Proposition}
 \newtheorem{theorem}[proposition]{Theorem}
 \newcommand{\R}{\mathbb R}
@@ -50,54 +51,93 @@ one does not in general certify the others.
 \end{abstract}
 
 \section{Introduction}
-Data-derived graphs represent relationships in settings ranging from
-scientific collaboration networks \citep{newman2001collaboration} to structural
-brain connectivity \citep{hagmann2008core} and single-cell expression data
-\citep{wolf2019paga}. Their vertices and edges describe different scientific
-objects, but drawing any of them in Euclidean space raises a common question:
-which relationships should the coordinates preserve? Observed connections,
-similarity weights and geometric lengths have different interpretations, so a
-graph's scientific use determines which measurements its drawing must support.
+Transcriptomic, proteomic and other molecular assays describe cells and
+biological samples through measurements of thousands of features. These
+measurements provide detailed views of biological variation, but their
+interpretation requires finding how the features vary together. Shared
+patterns of molecular variation can reflect differences in biological state,
+including coordinated changes across molecular layers
+\citep{argelaguet2018mofa}. Representing these patterns with a smaller number
+of coordinates can help relate observations to one another and identify the
+features associated with their differences.
 
-For observations sampled from a curved structure, a neighborhood graph
-approximates intrinsic distances: nearby observations are joined by edges, and
-shortest paths accumulate edge lengths to estimate distances along the
-structure. Isomap constructs such a graph from nearest-neighbor or radius
-neighborhoods, computes its shortest-path distances, and applies classical
-multidimensional scaling (MDS) to obtain Euclidean coordinates
-\citep{tenenbaum2000global}. The construction involves two approximations:
-the graph approximates the intrinsic geometry, and the coordinates approximate
-the graph. An accurate embedding of the graph therefore cannot establish that
-the graph captured the geometry of interest.
+The structure of this variation need not be a single smooth surface. In
+single-cell studies, distinct populations can coexist with continuous
+transitions, and branching arrangements can reflect differentiation toward
+different cell fates \citep{wolf2019paga}. Such structure provides a basis for
+hypotheses about biological states and their relationships. Understanding
+and visualizing it requires a representation that preserves the relevant
+relationships among observations. The problem is to determine which aspects
+of this geometry a representation actually preserves.
 
-The embedding step also changes what is measured. MDS seeks coordinates whose
-endpoint separations approximate the supplied dissimilarities
-\citep{mair2022,rcmdscale}; when those dissimilarities are graph shortest-path
-distances, intrinsic path lengths become targets for Euclidean chords. This
-choice of fidelity criterion coincides with intrinsic distance preservation
-only when the target geometry has an exact Euclidean realization, as in the
-intrinsically Euclidean domains covered by Isomap's recovery result
-\citep{tenenbaum2000global}. On more general curved structures the two
-criteria separate, as they do for a Riemannian isometric embedding, which
-preserves the lengths of curves on the manifold while Euclidean chords between
-its points can be shorter \citep[Sections 1.2--1.3 and 3.2]{gorodski2022}.
-The curve-length viewpoint suggests a graph criterion of the same kind: retain
-a selected route between two vertices and compare its length before and after
-drawing, so that both measurements refer to the same sequence of edges.
+The choice of distance is central to this problem. On a curved structure,
+straight-line separation can be shorter than a route that follows the
+structure itself. Isomap \citep{tenenbaum2000global} estimates these intrinsic
+distances by connecting nearby observations in a weighted neighborhood graph
+and calculating shortest paths through its edges. It then applies classical
+multidimensional scaling (MDS) to the graph distances to obtain Euclidean
+coordinates. For observations $X$, a neighborhood graph $G$ and an embedded
+configuration $Z$, this construction has two stages: $X\to G$ approximates
+the intrinsic geometry, and $G\to Z$ represents the graph in Euclidean space.
+Each stage introduces its own approximation.
 
-Graph-geodesic multidimensional scaling (GMDS), as considered here, compares
-these retained-path lengths with their input lengths. It is a discrete,
-finite-path analogue of Riemannian curve-length preservation, and the analogy
-has limits: the graph supplies no full tangent-space metric, and path-length
-constraints need not prevent overlapping configurations, so a small path loss
-is not a certificate of isometry or geometric recovery. Because exact
-preservation of every edge length preserves every path length on the same
-graph, edge-length refinement of Kamada--Kawai type
-\citep{kamada1989algorithm}, referred to here as edge-KK, is one route to
-path agreement, although on a flexible graph exact path agreement still
-leaves the configuration free to move (Figure~\ref{fig:paths}). Whether edge
-lengths also determine the configuration up to rigid motion is the
-global-rigidity problem \citep{gortler2010}.
+\begin{center}
+\resizebox{.98\linewidth}{!}{%
+\begin{tikzpicture}[>=stealth]
+\node[align=center] (X) at (0,0) {Observations\\$X$};
+\node[align=center] (G) at (5.6,0) {Neighborhood graph\\$G$};
+\node[align=center] (Z) at (11.2,0) {Embedded coordinates\\$Z$};
+\draw[->] (X.east) -- (G.west)
+  node[midway,above=13pt,font=\small] {Graph construction}
+  node[midway,below=3pt,align=center,font=\small]
+    {Intrinsic-distance\\approximation};
+\draw[->] (G.east) -- (Z.west)
+  node[midway,above=13pt,font=\small] {Embedding}
+  node[midway,below=3pt,align=center,font=\small]
+    {Graph-distance\\agreement};
+\draw[<->] (X.south) -- (0,-1.6) -- (11.2,-1.6) -- (Z.south);
+\node[fill=white,inner sep=5pt,align=center,font=\small] at (5.6,-1.6)
+  {Coordinate recovery\\when reference coordinates are known};
+\end{tikzpicture}%
+}
+\end{center}
+
+An accurate drawing of a graph cannot establish that the graph captured the
+geometry of interest. Recovering the original coordinate configuration is
+also a separate question, shown by the lower comparison in the diagram.
+To examine these distinctions, we first need to specify what agreement
+between a graph and its drawing means.
+
+MDS represents input dissimilarities through straight-line distances between
+embedded points, although classical scaling and metric stress MDS use
+different objectives \citep{mair2022,rcmdscale}. When the inputs are graph
+shortest-path distances, lengths measured along the graph become targets for
+straight chords in the drawing. This is appropriate for recovering
+intrinsically Euclidean coordinates, as in the domains covered by Isomap's
+recovery result \citep{tenenbaum2000global}. Preserving lengths along a curved
+structure poses a different geometric requirement. A Riemannian isometric
+embedding preserves curve lengths, while straight chords between points on
+its image can be shorter \citep[Sections 1.2--1.3 and 3.2]{gorodski2022}.
+
+For a graph, the curve-length viewpoint suggests retaining an input shortest
+path and comparing its length before and after embedding. Its embedded length
+is the sum of the Euclidean lengths of its edges. Graph-geodesic multidimensional
+scaling (GMDS), as considered here, compares these retained-path lengths with
+their original graph lengths. It is a finite-path analogue of curve-length
+preservation; a graph does not supply the full tangent-space metric of a
+smooth manifold. The distinction between paths and chords therefore remains
+meaningful even when a manifold model is unavailable.
+
+Preserving paths still leaves a question about shape. Two connected segments
+can bend at their shared vertex without changing either segment length or
+the length of the route through them (Figure~\ref{fig:paths}). More generally,
+exact preservation of every edge length preserves every retained path length,
+but need not determine the coordinates. Whether edge lengths determine a
+configuration up to rigid motion is the global-rigidity problem
+\citep{gortler2010}. Edge-length refinement of Kamada--Kawai type
+\citep{kamada1989algorithm}, referred to here as edge-KK, provides a practical
+way to improve edge agreement and examine its consequences for paths and
+coordinates.
 
 \begin{figure}[tb]
 \centering\includegraphics[width=.9\linewidth]{figures/focused/paths.pdf}
@@ -107,32 +147,30 @@ endpoint chord changes with the angle. Both drawings preserve every edge length
 and every retained path length. All spatial units are equal.}\label{fig:paths}
 \end{figure}
 
-Paraboloids and saddles allow these questions to be studied against a known
-reference geometry. As the sampled domain expands, we derive uniform bounds
-showing that normalized paraboloid geodesics approach a line metric and saddle
-geodesics approach a four-branch tree metric. The tree is intrinsically
-one-dimensional, yet under an explicit sample-rank condition its classical-MDS
-approximation spans three dimensions, so the dimension of an intrinsic
-distance structure need not equal the Euclidean span of its embedding. These
-results concern particular surface limits within the broader study of
-classical MDS on metric spaces \citep{lim2024}.
+We study these relationships on paraboloids and saddles, where both intrinsic
+distances and original coordinates can be assessed. These controlled surfaces
+allow us to separate errors that are difficult to distinguish in biological
+data. One experiment compares classical and stress-MDS initializations
+followed by edge-KK on a bounded saddle. A second varies domain radius,
+neighborhood size, graph construction and target scale on both surfaces.
+Together with theoretical analysis, these comparisons test whether improved
+distance agreement is accompanied by improved recovery of the sampled
+coordinates.
 
-Two controlled studies connect these limits to achieved embeddings. The first
-compares classical and stress-MDS initializations followed by edge-KK on a
-bounded saddle; the second varies domain radius, neighborhood size, graph
-construction and target scale on both surfaces. Together they separate
-changes in endpoint and retained-path agreement from changes in coordinate
-recovery. Elementary edge-to-path bounds and least-squares scale identities
-clarify what the objectives measure; in particular, profiling the target
-scale in an unnormalized edge loss precludes positive-loss local minima
-whenever uniform contraction is admissible, and fixed-scale controls separate
-this degeneracy from improvements in relative geometry. The principal
-theoretical contributions are the surface-specific uniform bounds and the
-four-branch Gram factorization; the experiments document the effects of
-graph, initialization and scale choices without assuming a universal ordering
-of embedding methods. The analytical statements have fixed-sample
-assumptions, and the numerical comparisons concern the stated samples and
-optimization budgets.
+Uniform geodesic bounds show that, after normalization, expanding paraboloids
+approach a line metric and saddles approach a four-branch tree metric. Under
+an explicit sample-rank condition, the saddle's classical-MDS limit spans
+three Euclidean dimensions although the tree is intrinsically
+one-dimensional. These surface-specific results connect to the broader study
+of classical MDS on metric spaces \citep{lim2024}. In the experiments, edge
+refinement lowers retained-path error in all \numBoundedGraphs{} bounded-saddle
+graph settings under both initializers, without consistently lowering
+coordinate error; the radius study also contains path-error increases.
+Finally, allowing a common target scale to be fitted in an unnormalized edge
+loss lets uniform contraction lower any positive loss. Fixed-scale controls
+separate this effect from changes in shape. The findings distinguish
+agreement along paths, agreement between endpoints and coordinate recovery,
+with scale specified for each comparison.
 
 \section{Distances, objectives, and scale}
 \subsection{A fixed graph and a fixed family of routes}

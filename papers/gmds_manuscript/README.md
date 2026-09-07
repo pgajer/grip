@@ -44,6 +44,9 @@ to select another executable. Builds work from a
 clean worktree and do not require a neighboring grip checkout or private files.
 Build timestamps use DST-aware America/New_York wall time.
 
+The two-stage schematic is defined directly in the manuscript with TikZ; the
+six numbered figures use the committed PDF assets.
+
 The PDF is written to `build/geodesic_mds.pdf`. Building verifies LaTeX syntax;
 visual inspection of the resulting PDF remains necessary. The numerical scripts
 check exported byte identities, declared counts, reported paired comparisons,
