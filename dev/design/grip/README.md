@@ -2,9 +2,6 @@
 
 This directory holds non-manuscript design notes for the GRIP layout engine.
 
-Current convention:
-
-- conceptual or implementation notes live under `dev/design/grip/notes/`
-- generated historical reports that support Paper 2 or diagnostics live under `output/gkk_lgkk_paper/reports/` or `output/diagnostics/`
-
-This keeps source notes separate from rendered report output.
+Package implementation notes may remain here. Historical manuscript drafts,
+technical formulations, and paper experiment scripts are maintained in separate
+private manuscript workspaces. Package diagnostics belong in `output/diagnostics/`.

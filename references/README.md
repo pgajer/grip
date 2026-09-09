@@ -8,7 +8,8 @@ Preferred layout:
 - `references/literature/mds/`
 - `references/literature/geometric_layout/`
 
-The top-level `papers/` directory is now a legacy placeholder only.
+Manuscripts and their dedicated literature collections are maintained in private
+workspaces outside this public repository. This directory is for package references.
 
 Current status:
 

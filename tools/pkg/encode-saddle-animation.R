@@ -2,7 +2,7 @@
 # Capture the filled WebGL meshes rather than use ivue's point/edge-only GIF
 # renderer. The captures are frames from the shared ivue animation timeline.
 overlay <- "--overlay-reference" %in% commandArgs(trailingOnly = TRUE)
-out <- if (overlay) "output/s4-3c-rotation" else "output/readme-saddle"
+out <- if (overlay) "output/readme-saddle-overlay" else "output/readme-saddle"
 paths <- file.path(out, "frames", sprintf("frame-%03d.png", 0:239))
 stopifnot(all(file.exists(paths)))
 frames <- magick::image_scale(magick::image_read(paths), if (overlay) "720x" else "1350x")

@@ -1,19 +1,9 @@
-# Tools Layout
+# Package tools
 
-Benchmark and reporting scripts should be grouped by paper or shared use.
+`tools/pkg/` contains package documentation and release utilities, including
+self-contained inputs for the public README previews. Repository checks live
+at this directory's top level.
 
-Preferred layout:
-
-- `tools/benchmarks/gkk_lgkk_paper/`
-- `tools/benchmarks/geodesic_mds_paper/`
-- `tools/benchmarks/shared/`
-- `tools/reports/gkk_lgkk_paper/`
-- `tools/reports/geodesic_mds_paper/`
-- `tools/reports/rjournal_paper/`
-- `tools/figures/shared/`
-- `tools/pkg/`
-- `tools/utils/`
-
-Migration rule:
-
-- New scripts should not be added at the top level of `tools/` unless they are temporary and about to be rehomed.
+Manuscript experiments, figure builders, reports, and submission utilities
+belong inside their owning private manuscript workspace outside this repository.
+The public package must build and pass checks without those workspaces.

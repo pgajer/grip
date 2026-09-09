@@ -8,8 +8,6 @@ inputs and are maintained separately.
 
 - `grip/` — GRIP core, globalrep, cross-family experiments, insertion/refinement
 - `weighted-grip/` — weighted GRIP technical notes (MISF, caches, insertion, refinement)
-- `lgkk/` — landmark geodesic KK optimizer, bug fixes, test suites
-- `gmds/` — geodesic MDS design, compatibility, and pathology analysis
 - `graph-families/` — synthetic graph family specs, generators, geometry gallery
 - `gripui/` — Shiny app design specifications
 
@@ -22,7 +20,8 @@ inputs and are maintained separately.
 
 ## Notes
 
-- Keep reproducible generator scripts in `tools/`.
-- Keep generated HTML, PDF, image, and temporary benchmark outputs on a dedicated artifacts branch such as `codex/gmds-artifacts`, not on the merge branch.
-- Do not commit generated assets until we explicitly choose final figures.
+- Keep package documentation generators in `tools/pkg/`.
+- Manuscript studies, their scripts, and their outputs live in separate private
+  manuscript workspaces. Do not store them on public artifact branches.
+- Keep disposable package previews in `output/`.
 - When an asset is finalized for user-facing docs, move it to `man/figures/` and reference from README or vignette.

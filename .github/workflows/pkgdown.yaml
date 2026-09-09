@@ -31,6 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check public source tree
+        run: python3 tools/check-no-manuscripts.py
+
       - name: Install system dependencies for rgl and GIF rendering
         run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libmagick++-dev
 
@@ -63,8 +66,6 @@ jobs:
           cp man/figures/readme-saddle-reference.png docs/reference/figures/
           cp man/figures/readme-saddle-rotation.gif docs/reference/figures/
           cp man/figures/readme-saddle-overlay-rotation.gif docs/reference/figures/
-          mkdir -p docs/supplements
-          cp papers/grip-software-paper/supplement/S4-interactive-saddle.html docs/supplements/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

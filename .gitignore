@@ -1,4 +1,12 @@
 /doc/
+# Manuscripts are maintained outside this public package repository.
+/papers/
+/dev/papers/
+/dev/grip_paper/
+/tools/experiments/
+/tools/benchmarks/
+/tools/reports/
+/tools/figures/
 /Meta/
 .DS_Store
 README.html

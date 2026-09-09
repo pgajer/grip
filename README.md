@@ -143,19 +143,12 @@ metric-MDS, and metric-MDS + edge-KK using the same parameter-plane
 triangulation. Graph-path fidelity, corresponding-coordinate agreement,
 and surface proximity measure different aspects of the result.
 
-[![Three aligned saddle configurations rotating together around the z
-axis, with a common triangulation and x/y/z
-axes](man/figures/readme-saddle-rotation.gif)](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html)
+<img src="man/figures/readme-saddle-rotation.gif" alt="Three aligned saddle configurations rotating together around the z axis, with a common triangulation and x/y/z axes" />
 
 The overlay below compares metric-MDS (blue), metric-MDS + edge-KK
-(orange), and the generating saddle (gray), as in Figure S4.3C.
+(orange), and the generating saddle (gray).
 
-[![Figure S4.3C: the two fitted configurations and the generating saddle
-rotating around the z axis, with x/y/z
-axes](man/figures/readme-saddle-overlay-rotation.gif)](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html#fig-s4-3c)
-
-[Rotate the configurations and compare surface
-overlays](https://pgajer.github.io/grip/supplements/S4-interactive-saddle.html).
+<img src="man/figures/readme-saddle-overlay-rotation.gif" alt="The two fitted configurations and the generating saddle rotating around the z axis, with x/y/z axes" />
 
 **Edge-list input (2D, circle placement)**
 

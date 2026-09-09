@@ -477,7 +477,7 @@ gripui.gmds.paper.sync.table <- function() {
 }
 
 gripui.gmds.manuscript.source.path <- function() {
-  "dev/papers/geodesic_mds_paper/manuscript/geodesic_mds.tex"
+  getOption("grip.manuscript.source", "Not configured")
 }
 
 gripui.gmds.export.preset.choices <- function() {

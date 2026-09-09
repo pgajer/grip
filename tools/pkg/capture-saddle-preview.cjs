@@ -8,7 +8,7 @@ const {pathToFileURL} = require('url');
 (async () => {
   const overlay = process.argv.includes('--overlay-reference');
   const count = overlay ? 1 : 3;
-  const out = path.resolve(overlay ? 'output/s4-3c-rotation' : 'output/readme-saddle');
+  const out = path.resolve(overlay ? 'output/readme-saddle-overlay' : 'output/readme-saddle');
   const browser = await chromium.launch({headless: true,
     ...(process.env.CHROMIUM_EXECUTABLE ? {executablePath: process.env.CHROMIUM_EXECUTABLE} : {}),
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']});
