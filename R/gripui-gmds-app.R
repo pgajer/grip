@@ -2755,7 +2755,7 @@ gripui_gmds_app <- function(catalog = gripui.gmds.default.catalog(),
 #' @return Invisibly returns the result of [shiny::runApp()].
 #' @noRd
 #'
-#' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) && requireNamespace("later", quietly = TRUE) })
+#' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); packages <- c("shiny", "bslib", "rgl", "later", "httpuv"); if (!all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) return(FALSE); server <- tryCatch(httpuv::startServer("127.0.0.1", 0L, list(call = function(req) list(status = 200L, headers = list(), body = "ok"))), error = function(e) NULL); if (is.null(server)) return(FALSE); server$stop(); TRUE })
 #' run_gripui_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 run_gripui_gmds <- function(catalog = gripui.gmds.default.catalog(),
                             title = "GMDS Stage Explorer",

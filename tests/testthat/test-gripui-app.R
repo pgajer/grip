@@ -80,6 +80,20 @@ test_that("run_gripui can auto-stop for automated checks", {
   skip_if_not_installed("htmltools")
   skip_if_not_installed("later")
   skip_if_not_installed("rgl")
+  skip_if_not_installed("httpuv")
+
+  # Probe the same local-server implementation used by Shiny. Application
+  # errors below still fail the test; only an unavailable listener is skipped.
+  server <- tryCatch(
+    httpuv::startServer(
+      "127.0.0.1", 0L,
+      list(call = function(req)
+        list(status = 200L, headers = list(), body = "ok"))
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(server), "local TCP servers are unavailable")
+  server$stop()
 
   graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
   layouts <- data.frame(

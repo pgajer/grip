@@ -27,6 +27,7 @@ Suggests:
     igraph,
     htmltools,
     htmlwidgets,
+    httpuv,
     knitr,
     later,
     rmarkdown,
