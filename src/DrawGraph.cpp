@@ -161,13 +161,14 @@ DrawGraph::DrawGraph(const Graph &_graph,
     prevSize = 0;
         
     //computing Avg(deg(G)), maxCxty
+    unsigned long degreeSum = 0;
     for(size_tt vert = 0; vert < numOfVert; vert++)
-        AvgDeg += deg[vert];
+        degreeSum += deg[vert];
         
-    maxCxty = (unsigned long)AvgDeg;
+    maxCxty = degreeSum;
     if(maxCxty < initCxty)
         maxCxty = initCxty;
-    AvgDeg /= (float)numOfVert;
+    AvgDeg = static_cast<double>(degreeSum) / static_cast<double>(numOfVert);
         
 
     // mish is the "maximal independent set hierarchy"
@@ -598,15 +599,16 @@ coord_t DrawGraph::dist(const Point<> & p, const Point<> & q)
 //**************************************************************
 Point<> DrawGraph::rand_Point()
 {
+    const int box2SizeInt = static_cast<int>(box2Size);
     if( dim == 2 )
         return
-            Point<>((coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize, 0);
+            Point<>(static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize, 0);
     else
         return
-            Point<>((coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize,
-                    (coord_t)(graph.fast_Rand() % (int)box2Size) - boxSize);
+            Point<>(static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize,
+                    static_cast<coord_t>(graph.fast_Rand() % box2SizeInt) - boxSize);
 }
 
 Point<> DrawGraph::initial_position(const size_tt *closeVert,

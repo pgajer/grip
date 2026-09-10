@@ -336,7 +336,7 @@ private:
     size_tt *misfSize;  // filtration sizes used by the GRIP layout core
     size_tt log_2_n;    // log_2(n)
     size_tt *vertDepth; // array of depths of vertices
-    float AvgDeg;
+    double AvgDeg;
     unsigned long maxCxty;
     unsigned long initCxty;
     size_tt smallLevel;
@@ -476,9 +476,13 @@ private:
         if( x <= max )
             return maxVal;
         else if( max <= x && x <= min ){
-            double k = -log((double)minVal/maxVal)/min;
+            const double k = -std::log(static_cast<double>(minVal) /
+                                       static_cast<double>(maxVal)) /
+                             static_cast<double>(min);
             
-            return (size_tt)(ceil(maxVal * exp( -k * x )));
+            return static_cast<size_tt>(
+                std::ceil(static_cast<double>(maxVal) *
+                          std::exp(-k * static_cast<double>(x))));
         } else
             return minVal;
     }
