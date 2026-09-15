@@ -181,11 +181,13 @@ Rcpp::List grip_optimize_geodesic_mds_flat_bending_cpp(
 
     int frameCount = 1;
     for(int iter = 1; iter <= max_iter; iter++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         double iterAnchor = anchorSchedule[static_cast<size_t>(iter)], iterBend = bendSchedule[static_cast<size_t>(iter)];
         state = evaluate_state(current, cache, eps2, useAnchor ? &anchor : nullptr, iterAnchor, bendA, bendB, bendC, iterBend);
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2) break;
         double step = initial_step; bool accepted = false; std::vector<Point<>> proposal = current; BendState candidate = state;
         while(std::isfinite(step) && step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
             proposal = current;
             for(size_t i = 0; i < proposal.size(); i++) proposal[i] -= state.gradient[i] * step;
             if(recenter) recenter_points(proposal);

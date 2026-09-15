@@ -388,6 +388,8 @@ Rcpp::List grip_optimize_kernel_gram_gkk_layout_cpp(
     trace_gram_rel_rmse.push_back(state.gramRelRmse);
 
     for(int iter = 1; iter <= max_iter; iter++){
+
+        Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
         double gradNorm = std::sqrt(state.gradNorm2);
         if(!std::isfinite(gradNorm) || gradNorm <= grad_tol)
             break;
@@ -396,6 +398,7 @@ Rcpp::List grip_optimize_kernel_gram_gkk_layout_cpp(
         Rcpp::NumericMatrix candidate = Rcpp::clone(coords);
         GramState candidateState = state;
         while(std::isfinite(step) && step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
             Rcpp::NumericMatrix proposal = Rcpp::clone(coords);
             for(int i = 0; i < proposal.nrow(); i++){
                 for(int j = 0; j < proposal.ncol(); j++)

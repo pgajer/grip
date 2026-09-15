@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 // Weighted GRIP support routines
 
 #include "DrawGraph.h"
@@ -201,6 +202,7 @@ void DrawGraph::create_misf_weighted()
         double radius = weighted_misf_radius(misfLevel);
 
         while(mishSizePrevLevel > numOfInitVert && itr < mishSizePrevLevel){
+            Rcpp::checkUserInterrupt();
             size_tt vert = itr + graph.fast_Rand() % (mishSizePrevLevel - itr);
             std::swap(mish[vert], mish[itr]);
             inv[mish[vert]] = vert;
@@ -1199,6 +1201,7 @@ void DrawGraph::mish_engine_weighted()
     bool loop = true;
 
     while(loop && prevSize != csize){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         if(displayPar)
             loop = false;
 

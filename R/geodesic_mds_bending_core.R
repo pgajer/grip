@@ -1,9 +1,3 @@
-grip.geodesic.mds.energy.gradient.base <- grip.geodesic.mds.energy.gradient
-grip.geodesic.mds.score.stats.base <- grip.geodesic.mds.score.stats
-grip.geodesic.mds.evaluate.state.base <- grip.geodesic.mds.evaluate.state
-grip.score.geodesic.mds.base <- grip.score.geodesic.mds
-grip.optimize.geodesic.mds.base <- grip.optimize.geodesic.mds
-
 grip.geodesic.mds.energy.gradient <- function(coords,
                                               prepared,
                                               edge_length_epsilon = 1e-8,

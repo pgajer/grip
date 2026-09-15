@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "DrawGraphND.h"
 
 #include <algorithm>
@@ -224,6 +225,7 @@ void DrawGraphND::refine(const std::vector<EdgeND> &edges, int total_rounds)
         std::max(1.0, std::sqrt(static_cast<double>(dim_)));
 
     for(int round = 0; round < total_rounds; round++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         const double progress = static_cast<double>(round) /
             static_cast<double>(std::max(1, total_rounds - 1));
         const double cooling = 1.0 - 0.85 * progress;
@@ -259,6 +261,7 @@ void DrawGraphND::refine_trace_level(const std::vector<EdgeND> &edges,
         active[trace_order_[static_cast<std::size_t>(i)]] = 1;
 
     for(int round = 0; round < level_rounds; round++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         const double progress = static_cast<double>(round) /
             static_cast<double>(std::max(1, level_rounds - 1));
         const double cooling = 1.0 - 0.85 * progress;
@@ -412,6 +415,7 @@ void DrawGraphND::refine_legacy_weighted_level(const WeightedMisfND &misf,
 
     active_count = std::min(active_count, static_cast<int>(misf.order.size()));
     for(int round = 0; round < level_rounds; round++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         const int round_in_level = round + 1;
         const bool record_steps =
             should_record_refinement_step(level_index, misf_level, round_in_level);
@@ -1507,6 +1511,7 @@ void DrawGraphND::polish_inserted_vertex(
         return;
 
     for(int iter = 0; iter < steps; iter++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         disp_[root] = local_kk_displacement(root, anchors);
         disp_norm_[root] = disp_[root].norm();
         if(disp_norm_[root] <= 0.0 || !std::isfinite(disp_norm_[root]))

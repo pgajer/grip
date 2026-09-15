@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 // Shared support routines for the GRIP layout engine
 
 #include <algorithm>
@@ -27,7 +28,7 @@ size_tt DrawGraph::bfs_me_init_v2(size_tt root)
     
     // memory allocation for rootNbrs and nbrCounter
     size_tt *nbrCounter = new size_tt[vertDepth[root] + 1];
-    nbrs[root] = new size_tt*[vertDepth[root] + 1];
+    nbrs[root] = new size_tt*[vertDepth[root] + 1]();
     nbrsDepth[root] = vertDepth[root] + 1;
     for(size_tt i=0; i <= vertDepth[root]; i++){
         // 1 slot for vertex and 1 (the next one)
@@ -138,7 +139,7 @@ void DrawGraph::bfs_me_v4(size_tt root)
     vertDepthQueue.enqueue(currentDepth);
     
     // memory allocation for rootNbrs
-    nbrs[root] = new size_tt*[vertDepth[root]+1];
+    nbrs[root] = new size_tt*[vertDepth[root]+1]();
     nbrsDepth[root] = vertDepth[root] + 1;
     size_tt *nbrCounter = new size_tt[vertDepth[root]+1];
     for(size_tt i=0; i <= vertDepth[root]; i++){
@@ -597,6 +598,7 @@ void DrawGraph::lgkk_refine_level(size_tt activeCount,
 
     LgkkState state = evaluate_state(activePos);
     for(size_tt roundIndex = 1; roundIndex <= roundBudget; roundIndex++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
             break;
 

@@ -282,6 +282,8 @@ Rcpp::List grip_geodesic_misf_insert_vertex_cpp(Rcpp::NumericMatrix anchor_coord
     double last_step = 0.0;
 
     while(iterations < max_iter && !converged){
+
+        Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
         const double grad_norm2 = state.gradNorm2;
         if(grad_norm2 <= grad_tol * grad_tol){
             converged = true;
@@ -291,6 +293,7 @@ Rcpp::List grip_geodesic_misf_insert_vertex_cpp(Rcpp::NumericMatrix anchor_coord
         double step = initial_step;
         bool accepted = false;
         while(step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
             std::vector<double> trial = current;
             for(int j = 0; j < dim; j++)
                 trial[static_cast<size_t>(j)] -= step * state.gradient[static_cast<size_t>(j)];

@@ -22,95 +22,16 @@ grip.validate.nd.scalar.integer <- function(x,
   out
 }
 
-grip.validate.weighted.nd.graph <- function(edges = NULL,
-                                            n = NULL,
-                                            adj_list = NULL,
-                                            weight_list = NULL,
+grip.validate.weighted.nd.graph <- function(edges = NULL, n = NULL,
+                                            adj_list = NULL, weight_list = NULL,
                                             edge_weights = NULL,
                                             caller = "weighted.grip.nd") {
   grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  if (!is.null(edges) && !is.null(adj_list)) {
-    stop(sprintf("%s() accepts either edges or adj_list, not both", caller))
-  }
-
-  if (is.null(adj_list)) {
-    if (is.null(edges)) {
-      stop(sprintf("%s() requires edges or adj_list", caller))
-    }
-    edges <- as.matrix(edges)
-    if (is.null(n)) {
-      if (length(edges) == 0L) {
-        stop("n is required when edges is empty")
-      }
-      n <- max(edges)
-    }
-    n <- grip.validate.vertex.count(n)
-    built <- grip.build.adj.from.edges(
-      edges = edges,
-      n = n,
-      edge_weights = edge_weights
-    )
-    adj_list <- built$adj_list
-    weight_list <- built$weight_list
-  } else {
-    if (!is.list(adj_list)) {
-      stop("adj_list must be a list")
-    }
-    if (is.null(n)) {
-      n <- length(adj_list)
-    }
-    n <- grip.validate.vertex.count(n)
-    if (length(adj_list) != n) {
-      stop("adj_list length must equal n")
-    }
-    if (!is.null(edge_weights)) {
-      stop("edge_weights is only used with edges; provide weight_list with adj_list")
-    }
-  }
-
-  if (is.null(weight_list)) {
-    stop(sprintf("%s() requires edge weights", caller))
-  }
-  if (!is.list(weight_list)) {
-    stop("weight_list must be a list")
-  }
-  if (length(weight_list) != n) {
-    stop("weight_list length must equal n")
-  }
-
-  adj_list <- lapply(seq_len(n), function(i) {
-    nb <- adj_list[[i]]
-    if (length(nb) == 0L) return(integer(0))
-    if (!is.numeric(nb)) stop("adj_list entries must be numeric vertex ids")
-    nb <- as.integer(nb)
-    if (any(!is.finite(nb)) || any(nb < 1L | nb > n)) {
-      stop("adj_list entries must be finite 1-based vertex ids within [1, n]")
-    }
-    nb
-  })
-
-  weight_list <- lapply(seq_len(n), function(i) {
-    w <- weight_list[[i]]
-    if (length(w) == 0L) return(numeric(0))
-    if (!is.numeric(w)) stop("weight_list entries must be numeric")
-    w <- as.double(w)
-    if (length(w) != length(adj_list[[i]])) {
-      stop("weight_list entries must be parallel to adj_list entries")
-    }
-    if (any(!is.finite(w) | w <= 0)) {
-      stop("weight_list entries must be finite values > 0")
-    }
-    w
-  })
-
-  for (i in seq_len(n)) {
-    if (length(adj_list[[i]]) == 0L) next
-    keep <- adj_list[[i]] != i
-    adj_list[[i]] <- adj_list[[i]][keep]
-    weight_list[[i]] <- weight_list[[i]][keep]
-  }
-
-  list(adj_list = adj_list, weight_list = weight_list, n = n)
+  n <- grip.resolve.graph.n(n, edges, adj_list)
+  graph <- grip.validate.layout.inputs(edges, n, adj_list, weight_list,
+                                       edge_weights, dim = 2L, seed = NULL)
+  if (is.null(graph$weight_list)) stop(sprintf("%s() requires edge weights", caller))
+  graph[c("adj_list", "weight_list", "n")]
 }
 
 grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,

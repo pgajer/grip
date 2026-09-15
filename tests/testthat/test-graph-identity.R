@@ -114,3 +114,21 @@ test_that("star graph bundles cannot override another graph or carry fractional 
   graph$edge_weights <- rep(1, 3)
   expect_error(graph.riemannian.star.structure(graph, coords), "contradictory edge and adjacency")
 })
+
+test_that("all graph entry points enforce reciprocal adjacency and lengths", {
+  for (name in graph.identity.entry.points()) {
+    fun <- getExportedValue("grip", name)
+    expect_error(do.call(fun, list(adj_list = list(2L, integer()), n = 2)),
+                 "reciprocal", info = name)
+    expect_error(do.call(fun, list(adj_list = list(c(2L, 2L), 1L), n = 2)),
+                 "multiplicity", info = name)
+    expect_error(do.call(fun, list(adj_list = list(2L, 1L), weight_list = list(1, 2), n = 2)),
+                 "matching lengths", info = name)
+    expect_error(do.call(fun, list(edges = rbind(c(1, 1), c(1, 2)), n = 2)),
+                 "self-loops", info = name)
+  }
+  expect_error(grip(adj_list = list(c(1L, 2L), 1L), n = 2), "self-loops")
+  # Parallel entries must have a matching multiset, regardless of neighbor order.
+  expect_silent(grip.validate.graph.arguments(adj_list = list(c(2L,2L),c(1L,1L)),
+                                              weight_list = list(c(1,2),c(2,1))))
+})

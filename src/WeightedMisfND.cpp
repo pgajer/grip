@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "WeightedMisfND.h"
 
 #include <algorithm>
@@ -147,6 +148,7 @@ WeightedMisfND build_weighted_misf_nd(const GraphND &graph,
             const double radius = weighted_misf_radius_nd(misf_level);
 
             while(prev_size > num_init && itr < prev_size){
+                Rcpp::checkUserInterrupt();
                 const int vert =
                     itr + static_cast<int>(rng.next() % static_cast<unsigned long>(prev_size - itr));
                 std::swap(out.order[static_cast<std::size_t>(vert)],

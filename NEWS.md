@@ -1,5 +1,24 @@
 # grip 0.2.0.9001 (development version)
 
+- Static plot controls now override defaults consistently, including labels,
+  limits, aspect ratio, and orthographic vertex symbols/sizes.
+- Added `layout.coords()` for unchanged coordinate extraction and
+  `estimate.preparation()` for dense-storage lower bounds. Large dense
+  preparations warn before searches; the advisory threshold is configurable.
+- Native layout and refinement loops support cancellation at safe main-thread
+  boundaries. Interrupted construction releases its owned temporary storage.
+- Undirected adjacency now requires reciprocal entries, equal multiplicities,
+  and matching lengths. Self-loops now fail explicitly instead of being ignored
+  or treated differently across representations; remove them before calling.
+  Existing parallel-edge handling is preserved and documented in the guide.
+- Replaced bending load-order rebinding with explicit base implementations,
+  consolidated graph validation, and added a developer map. Numerical objectives
+  and defaults are unchanged.
+- Full-dependency checks require all tests to execute on Linux, Windows, and
+  macOS; a local runner isolates split-library dependencies. The comparison
+  article now identifies frozen versions and the distinction between repeated
+  timings and independent layout seeds.
+
 ## Documentation
 
 * Distinguished CRAN and development installations, including offline-vignette

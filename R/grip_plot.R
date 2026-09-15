@@ -80,6 +80,7 @@ plot.layout <- function(x,
   if (!is.matrix(coords) || !is.numeric(coords) || ncol(coords) < 2) {
     stop("x must be a numeric matrix with at least 2 columns")
   }
+  if (!is.null(edges)) grip.validate.graph.arguments(edges = edges, n = nrow(coords))
   projection <- match.arg(projection)
   d <- ncol(coords)
 

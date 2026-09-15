@@ -101,12 +101,14 @@ reference:
       - trace.legacy.grip
   - title: "Plot and project"
     contents:
+      - layout.coords
       - plot.layout
       - project.3d
   - title: "Prepare graphs and inspect multiscale structures"
     contents:
       - build.misf
       - build.weighted.misf
+      - estimate.preparation
       - prepare.edge.kk
       - prepare.graph.geodesic.mds
       - prepare.geodesic.kk

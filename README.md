@@ -302,3 +302,12 @@ algorithm:
 ## License
 
 GPL (\>= 3)
+
+## Development
+
+The [developer
+map](https://github.com/pgajer/grip/blob/main/dev/ARCHITECTURE.md)
+traces graph validation, preparation, engines, results, and displays,
+and lists source regeneration and full-dependency checks. The public
+workflow remains `grip()` → `layout.coords()` → `plot.layout()` /
+`score.layout()`.

@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 // GRIP layout engine.
 
 #include "DrawGraph.h"
@@ -23,6 +24,7 @@ void DrawGraph::mish_engine()
     bool loop = true;
     
     while( loop && prevSize != csize ){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         if(displayPar)
             loop = false;
 

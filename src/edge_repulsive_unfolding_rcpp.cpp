@@ -361,6 +361,8 @@ List grip_optimize_edge_repulsive_stage_cpp(NumericMatrix coords,
   };
 
   for (int iter = 0; iter < max_iter; ++iter) {
+
+      Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
     push_trace(iter, state, NA_REAL, true, n_frames > 0 ? n_frames - 1 : NA_INTEGER);
     if (!R_finite(state.energy) || !R_finite(state.gradient_norm) ||
         state.gradient_norm <= grad_tol) {
@@ -371,6 +373,7 @@ List grip_optimize_edge_repulsive_stage_cpp(NumericMatrix coords,
     NumericMatrix candidate = clone(Z);
     EdgeRepulsiveState candidate_state = state;
     while (R_finite(step) && step >= min_step) {
+        Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
       NumericMatrix proposal = clone(Z);
       for (int i = 0; i < proposal.nrow(); ++i) {
         for (int j = 0; j < proposal.ncol(); ++j) {
@@ -472,6 +475,8 @@ List grip_optimize_repulsive_stage_cpp(NumericMatrix coords,
   };
 
   for (int iter = 0; iter < max_iter; ++iter) {
+
+      Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
     push_trace(iter, state, NA_REAL, true, n_frames > 0 ? n_frames - 1 : NA_INTEGER);
     if (!R_finite(state.energy) || !R_finite(state.gradient_norm) ||
         state.gradient_norm <= grad_tol) {
@@ -482,6 +487,7 @@ List grip_optimize_repulsive_stage_cpp(NumericMatrix coords,
     NumericMatrix candidate = clone(Z);
     RepulsiveState candidate_state = state;
     while (R_finite(step) && step >= min_step) {
+        Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
       NumericMatrix proposal = clone(Z);
       for (int i = 0; i < proposal.nrow(); ++i) {
         for (int j = 0; j < proposal.ncol(); ++j) {

@@ -167,6 +167,34 @@ For static 3D figures, always request `projection = "ortho"` in
 columns. Score the original coordinates to assess the fitted layout; scoring
 the projection answers a different question.
 
+### A common extraction step
+
+[`layout.coords()`](`r help_url("layout.coords")`) returns the original coordinate
+matrix from a matrix, trace, MDS fit, or supported refinement result. It preserves
+vertex order, dimensions, names, and values; it does not align or project results.
+Use the same graph when scoring the extracted matrices:
+
+```{r common-extraction}
+small.edges <- edges.path(6)
+fits <- list(
+  ordinary = grip(small.edges, n = 6, dim = 2, seed = 1),
+  trace = trace.grip(small.edges, n = 6, dim = 2, seed = 1),
+  classical = classical.mds(edges = small.edges, n = 6)
+)
+matrices <- lapply(fits, layout.coords)
+vapply(matrices, function(z) score.layout(z, edges = small.edges, n = 6,
+  sample.size.stress = 15, stress.seed = 1,
+  edge.crossings = "never")$sampled.stress, numeric(1))
+# Plot any extracted matrix with the same graph:
+# plot.layout(matrices[[1]], edges = small.edges)
+```
+
+Direct `$final` and `$coords` extraction remains supported. In MDS results,
+`method`, `coords`, `diagnostics`, and `metadata` remain available; stopping
+metadata depends on the method. Prepared caches and coordinate-dependent state
+are internal/version-dependent and should be rebuilt when their contract changes.
+The accessor rejects unknown lists and ambiguous results instead of guessing a field.
+
 ## Classical scaling and metric stress MDS
 
 `classical.mds()` runs `stats::cmdscale()` on graph shortest-path distances.
@@ -233,6 +261,14 @@ weighting choices, not universal quality grades.
 | `prepare.misf.geodesic.kk()` | Multiscale independent-set filtration (MISF), level routes, and initializers. | Graph changes or changed hierarchy, tie, or initialization settings. |
 | `build.misf()` / `build.weighted.misf()` | Inspectable multiscale hierarchy, with the latter also storing weighted neighborhoods and anchors. | Changed graph, metric, seed, or construction controls. They are not a generic `prepared` argument for `grip()`. |
 
+Graph inputs must be undirected: adjacency entries have reciprocal entries with
+matching lengths and multiplicities. Self-loops are rejected; remove them before
+layout or preparation. Ordinary GRIP preserves parallel-edge multiplicity.
+Full and landmark geodesic preparations collapse parallel pairs in their canonical
+edge table; edge-only preparation rejects duplicate undirected edges. Simplify
+parallel edges explicitly before comparing these different workflows, particularly
+when their lengths differ. The validators do not silently simplify your input.
+
 Treat preparations as immutable graph-specific objects. Do not combine a
 `prepared` object with raw graph inputs (`edges`, `adj_list`, `edge_weights`,
 or `weight_list`); these calls fail rather than silently choosing a graph.
@@ -241,6 +277,24 @@ Rebuild the preparation to change the graph. Coordinate
 candidates on the same graph may change without rebuilding the graph cache;
 a state containing coordinate-dependent forces or a local-star geometry must
 be recomputed when those coordinates change.
+
+Use [`estimate.preparation()`](`r help_url("estimate.preparation")`) before a
+large graph-distance preparation:
+
+```{r preparation-estimate}
+estimate.preparation(10000, n.edges = 20000)
+```
+
+This is a lower bound for one matrix, not a peak-memory prediction. Dense
+preparations warn before graph searches when that bound exceeds 512 MiB.
+Set `options(grip.preparation.warn.bytes = ...)` to a different positive byte
+count, or `Inf` to acknowledge and suppress the advisory warning. Edge-only
+preparation has no dense distance matrix. **Landmark preparation still computes
+dense distances**; it reduces retained paths, not that storage requirement.
+
+Native construction/refinement checks for interrupts at main-thread boundaries.
+Threaded geodesic-MDS work joins its workers before raising an interrupt;
+cancellation may wait for the current evaluation and does not return a partial fit.
 
 A dense distance matrix takes roughly `8 * n^2` bytes before workspace and
 copies. Full route caches can cost much more, depending on path lengths. Use
@@ -276,8 +330,8 @@ classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
 
-This guide covers **104 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 106
+This guide covers **106 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 108
 unique exported or registered function names, not 107. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
 through their objects below. Internal helpers and the compatibility aliases
@@ -329,6 +383,7 @@ method accounting, and help targets against the current namespace.
 
 | Function | Purpose | Details |
 |---|---|---|
+| `layout.coords()` | Extract unchanged coordinates from supported result families | [Help](`r help_url("layout.coords")`) |
 | `plot.layout()` | Draw a coordinate matrix and graph edges; also the registered plot method for class layout. | [Help](`r help_url("plot.layout")`) |
 | `project.3d()` | Rotate and project the first three coordinate columns to a static two-column view. | [Help](`r help_url("project.3d")`) |
 
@@ -338,6 +393,7 @@ method accounting, and help targets against the current namespace.
 |---|---|---|
 | `build.misf()` | Build the hop-distance maximal independent-set filtration used by GRIP. | [Help](`r help_url("build.misf")`) |
 | `build.weighted.misf()` | Build weighted multiscale levels, neighborhoods, and insertion anchors. | [Help](`r help_url("build.weighted.misf")`) |
+| `estimate.preparation()` | Estimate dense storage and retained-pair bounds without preparing a graph | [Help](`r help_url("estimate.preparation")`) |
 | `prepare.edge.kk()` | Prepare edges and length targets without an all-pairs cache for experimental edge repair. | [Help](`r help_url("prepare.edge.kk")`) |
 | `prepare.graph.geodesic.mds()` | Prepare connected-graph all-pairs distances and retained geodesic routes. | [Help](`r help_url("prepare.graph.geodesic.mds")`) |
 | `prepare.geodesic.kk()` | Prepare full retained routes for experimental geodesic-KK scoring and refinement. | [Help](`r help_url("prepare.geodesic.kk")`) |

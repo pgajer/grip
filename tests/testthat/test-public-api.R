@@ -21,6 +21,8 @@ test_that("the public API matches the documented development contract", {
     "edges.sierpinski.tetrahedron",
     "edges.sierpinski.triangle",
     "edges.torus",
+    "estimate.preparation",
+    "layout.coords",
     "geodesic.kk",
     "geometry.diagnostics",
     "globalrep.grip",
@@ -106,7 +108,7 @@ test_that("the public API matches the documented development contract", {
     "weighted.grip.nd"
   ))
 
-  expect_length(expected, 104L)
+  expect_length(expected, 106L)
   expect_identical(sort(getNamespaceExports("grip")), expected)
 })
 

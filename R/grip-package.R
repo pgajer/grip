@@ -36,7 +36,8 @@
 #'
 #' @section Graph input validation:
 #' Vertex indices and counts must be finite integers within the R integer
-#' range. Supply either \code{edges}/\code{edge_weights} or
+#' range. Adjacency must be reciprocal with matching lengths and multiplicity.
+#' Self-loops are rejected; remove them explicitly. Supply either \code{edges}/\code{edge_weights} or
 #' \code{adj_list}/\code{weight_list}, not both. Functions accepting a
 #' \code{prepared} graph reject additional raw graph inputs; an explicit
 #' \code{n} must match the stored vertex count. Rebuild the preparation when

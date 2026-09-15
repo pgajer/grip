@@ -42,6 +42,7 @@ grip.metric.mds.distance.prepared <- function(edges = NULL,
   weight.list <- sorted$weight_list
   edge.matrix <- grip.edges.from.adj.list(adj.list)
   edge.targets <- grip.edge.weights.from.adj.list(adj.list, weight.list)
+  grip.preflight.preparation(validated$n, nrow(edge.matrix), "distance_matrix_only")
   dist.matrix <- do.call(rbind, lapply(seq_len(validated$n), function(source) {
     grip.graph.distances(adj.list, weight.list, source)
   }))

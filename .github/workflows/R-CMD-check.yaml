@@ -57,3 +57,5 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
+          upload-results: true
+          artifact-name: check-${{ matrix.os }}-r-${{ matrix.r }}

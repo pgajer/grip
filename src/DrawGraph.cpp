@@ -1,3 +1,5 @@
+#include <Rcpp.h>
+#include <memory>
 #include "DrawGraph.h"
 #include <algorithm>
 #include <functional>
@@ -125,6 +127,7 @@ DrawGraph::DrawGraph(const Graph &_graph,
   lgkkCacheMisfLevel(-1),
   lgkkCacheScaleL0(1.0)
 {
+    try {
     if( dim != 2 && dim != 3 )
         throw std::runtime_error("only 2D and 3D layouts are supported");
 
@@ -231,9 +234,9 @@ DrawGraph::DrawGraph(const Graph &_graph,
         itr++;
     }
 
-    nbrs = new size_tt**[numOfVert];
-    nbrsDepth = new size_tt[numOfVert];
-    metricNbrs = new std::vector<MetricNeighbor>*[numOfVert];
+    nbrs = new size_tt**[numOfVert]();
+    nbrsDepth = new size_tt[numOfVert]();
+    metricNbrs = new std::vector<MetricNeighbor>*[numOfVert]();
     metricNbrsDepth = new size_tt[numOfVert];
     for(size_tt i = 0; i < numOfVert; i++){
         nbrs[i] = nullptr;
@@ -260,6 +263,10 @@ DrawGraph::DrawGraph(const Graph &_graph,
     boxSize = (coord_t)(edge * .7 * diam);
     box2Size = 2 * boxSize + 1;
         
+    } catch (...) {
+        release_storage();
+        throw;
+    }
 }
 
 void DrawGraph::configure_trace(size_tt mode, size_tt every)
@@ -538,7 +545,9 @@ void DrawGraph::trace_finalize(size_tt activeCount, size_tt roundInLevel)
 //     destructor
 //
 //**************************************************************
-DrawGraph::~DrawGraph(){
+DrawGraph::~DrawGraph(){ release_storage(); }
+
+void DrawGraph::release_storage(){
     delete [] dispNorm;
     delete [] oldDispNorm;
     delete [] old_cos;
@@ -1120,9 +1129,7 @@ void DrawGraph::create_misf() {
     // Initialize variables for MISF construction
     size_tt depthLim = 0;
     size_tt shift = 0;
-    std::queue<size_tt> **bfsVectQueue = new std::queue<size_tt>*[numOfVert];
-    for(size_tt i = 0; i < numOfVert; i++)
-        bfsVectQueue[i] = nullptr;
+    std::vector<std::unique_ptr<std::queue<size_tt>[]>> bfsVectQueue(numOfVert);
 
     // Start with the first level of MISF - a standard independent subset of vertices of the graph
     misfLevel = 1;
@@ -1131,6 +1138,7 @@ void DrawGraph::create_misf() {
 
     size_tt itr;
     do {
+        Rcpp::checkUserInterrupt();
         // Prepare for the next level of MISF
         size_tt mishSizePrevLevel = mishSizeCurrLevel;
         mishSizeCurrLevel = 0;
@@ -1198,12 +1206,9 @@ void DrawGraph::create_misf() {
             marked[i] = -1;
         shift = (size_tt)pow(2, misfLevel-1) + 1;
         for (size_tt i = 0; i < mishSizeCurrLevel; i++) {
-            if(bfsVectQueue[mish[i]]){
-                delete [] bfsVectQueue[mish[i]];
-                bfsVectQueue[mish[i]] = nullptr;
-            }
-            bfsVectQueue[mish[i]] = new std::queue<size_tt>[depthLim-shift+1];
-            bfs_cmisf(mish[i], bfsVectQueue[mish[i]], shift, depthLim);
+            Rcpp::checkUserInterrupt();
+            bfsVectQueue[mish[i]].reset(new std::queue<size_tt>[depthLim-shift+1]);
+            bfs_cmisf(mish[i], bfsVectQueue[mish[i]].get(), shift, depthLim);
         }
         misfLevel++;
     } while (itr);
@@ -1225,12 +1230,7 @@ void DrawGraph::create_misf() {
 
     initMishHeight = misfLevel;
 
-    // Clean up
-    for (size_tt i = 0; i < numOfVert; i++){
-        if(bfsVectQueue[i])
-            delete [] bfsVectQueue[i];
-    }
-    delete [] bfsVectQueue;
+    // Queue storage is released automatically, including on interruption.
 }
 
 /**

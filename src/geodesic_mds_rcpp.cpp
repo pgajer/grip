@@ -641,6 +641,7 @@ Rcpp::List build_tie_average_shortest_path_cache_cpp_impl(
     std::vector<double> distRow(static_cast<size_t>(n));
     std::vector<std::vector<size_tt>> predecessors;
     for(int source = 0; source < n; source++){
+        Rcpp::checkUserInterrupt();
         if(pairIndicesBySource[static_cast<size_t>(source)].empty())
             continue;
 
@@ -1050,6 +1051,7 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
                                      double repulsionWeight,
                                      int requestedThreads)
 {
+    Rcpp::checkUserInterrupt();
     GeodesicMdsState state;
     state.energy = 0.0;
     state.gmdsEnergy = 0.0;
@@ -1109,6 +1111,7 @@ GeodesicMdsState evaluate_flat_state(const std::vector<Point<>> &coords,
         }
         for(size_t idx = 0; idx < workers.size(); idx++)
             workers[idx].join();
+        Rcpp::checkUserInterrupt(); // All workers joined before R is called.
 
         for(int threadIndex = 0; threadIndex < nThreads; threadIndex++){
             state.gmdsEnergy += threadEnergy[static_cast<size_t>(threadIndex)];
@@ -1304,6 +1307,7 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
     trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
             break;
 
@@ -1313,6 +1317,7 @@ Rcpp::List grip_optimize_geodesic_mds_adj_cpp(
         GeodesicMdsState candidate = state;
 
         while(std::isfinite(step) && step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
             proposal = current;
             for(size_t i = 0; i < proposal.size(); i++)
                 proposal[i] -= state.gradient[i] * step;
@@ -1484,6 +1489,7 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
     trace_smooth_weight.push_back(0.0);
 
     for(int iter = 1; iter <= max_iter; iter++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         double iterAnchorWeight = anchorSchedule[static_cast<size_t>(iter)];
         state = evaluate_state(
             current,
@@ -1501,6 +1507,7 @@ Rcpp::List grip_optimize_geodesic_mds_cache_cpp(
         GeodesicMdsState candidate = state;
 
         while(std::isfinite(step) && step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
             proposal = current;
             for(size_t i = 0; i < proposal.size(); i++)
                 proposal[i] -= state.gradient[i] * step;
@@ -1766,6 +1773,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
     trace_smooth_weight.push_back(smoothSchedule[0]);
 
     for(int iter = 1; iter <= max_iter; iter++){
+        Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
         double iterAnchorWeight = anchorSchedule[static_cast<size_t>(iter)];
         double iterSmoothWeight = smoothSchedule[static_cast<size_t>(iter)];
         double iterEdgeSpringWeight = edgeSpringSchedule[static_cast<size_t>(iter)];
@@ -1794,6 +1802,7 @@ Rcpp::List grip_optimize_geodesic_mds_flat_cpp(
         GeodesicMdsState candidate = state;
 
         while(std::isfinite(step) && step >= min_step){
+            Rcpp::checkUserInterrupt(); // Main thread; no live workers here.
             proposal = current;
             for(size_t i = 0; i < proposal.size(); i++)
                 proposal[i] -= state.gradient[i] * step;

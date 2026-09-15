@@ -95,6 +95,7 @@
   if (any(!is.finite(edges)) || any(edges != floor(edges)) || any(edges < 1L)) {
     stop("edges must contain finite positive 1-based vertex indices", call. = FALSE)
   }
+  grip.validate.graph.arguments(edges = edges)
   storage.mode(edges) <- "integer"
   edges
 }

@@ -315,36 +315,37 @@ private:
 
     Point<> center;                   // = \sum pos[vert]
     Point<> baricenter;               // center / numOfVert
-    Point<> *pos;        // positions of vertices vector
-    Point<> *disp;       // displacement vector
-    Point<> *oldDisp;    // old displacement vector
-    coord_t *dispNorm;
-    coord_t *oldDispNorm;
-    int *marked;             // array of discovered by BFS vertices
+    void release_storage();
+    Point<> *pos = nullptr;        // positions of vertices vector
+    Point<> *disp = nullptr;       // displacement vector
+    Point<> *oldDisp = nullptr;    // old displacement vector
+    coord_t *dispNorm = nullptr;
+    coord_t *oldDispNorm = nullptr;
+    int *marked = nullptr;             // array of discovered by BFS vertices
     
 
-    size_tt *deg;             // array of degrees
-    float *old_cos;
-    int *maxNorm;              // vector of maximal norms of disp
-    coord_t *heat;                   // local temperature
+    size_tt *deg = nullptr;             // array of degrees
+    float *old_cos = nullptr;
+    int *maxNorm = nullptr;              // vector of maximal norms of disp
+    coord_t *heat = nullptr;                   // local temperature
 
     //
     // variable used specifically in mish_engines
     //
-    size_tt *mish;               // maximal independent set hierarchy
-    size_tt *inv;                // "inverse" of mish
-    size_tt *misfSize;  // filtration sizes used by the GRIP layout core
+    size_tt *mish = nullptr;               // maximal independent set hierarchy
+    size_tt *inv = nullptr;                // "inverse" of mish
+    size_tt *misfSize = nullptr;  // filtration sizes used by the GRIP layout core
     size_tt log_2_n;    // log_2(n)
-    size_tt *vertDepth; // array of depths of vertices
+    size_tt *vertDepth = nullptr; // array of depths of vertices
     double AvgDeg;
     unsigned long maxCxty;
     unsigned long initCxty;
     size_tt smallLevel;
-    size_tt *nbr;       // array of num of nbrs for each level of misf
-    size_tt ***nbrs;    // storage of nbrs for corresponding levels
-    size_tt *nbrsDepth; // number of allocated levels per vertex
-    std::vector<MetricNeighbor> **metricNbrs; // weighted neighborhood caches
-    size_tt *metricNbrsDepth;
+    size_tt *nbr = nullptr;       // array of num of nbrs for each level of misf
+    size_tt ***nbrs = nullptr;    // storage of nbrs for corresponding levels
+    size_tt *nbrsDepth = nullptr; // number of allocated levels per vertex
+    std::vector<MetricNeighbor> **metricNbrs = nullptr; // weighted neighborhood caches
+    size_tt *metricNbrsDepth = nullptr;
     size_tt metricNeighborCap;
     std::vector<double> metricScratchDist;
     std::vector<uint32_t> metricScratchStamp;

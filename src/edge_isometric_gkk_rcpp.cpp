@@ -310,6 +310,8 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
         }
 
         for(int iter = 1; iter <= max_iter; iter++){
+
+            Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
             if(!std::isfinite(state.energy) || state.gradNorm2 <= gradTol2)
                 break;
 
@@ -319,6 +321,8 @@ Rcpp::List grip_optimize_edge_isometric_layout_cpp(
             EdgeState candidateState = state;
 
             while(std::isfinite(step) && step >= min_step){
+
+                Rcpp::checkUserInterrupt(); // Main-thread optimizer boundary.
                 Rcpp::NumericMatrix proposal = Rcpp::clone(coords);
                 for(int i = 0; i < proposal.nrow(); i++){
                     for(int j = 0; j < proposal.ncol(); j++)

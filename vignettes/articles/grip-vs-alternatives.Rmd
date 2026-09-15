@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Why this comparison article was rewritten
+## What is compared
 
 `grip` is no longer just an R implementation of the classical GRIP algorithm.
 The package now contains:
@@ -27,7 +27,7 @@ The package now contains:
 
 That means there are now **two different comparison questions**:
 
-1. how the current `grip` engine compares with other R layout engines on
+1. how the saved grip 0.2.0 results compare with other R layout engines on
    ordinary unweighted graphs,
 2. how geometry-aware weighted `grip` methods behave on weighted graphs, where
    plain topology is not the whole problem.
@@ -142,6 +142,29 @@ if (!nzchar(res.path)) {
 res <- readRDS(res.path)
 ```
 
+### Provenance of the saved comparison
+
+The external results were generated on **23 August 2026 with grip 0.2.0**.
+They are frozen results, not reruns of the development version serving this page.
+The [provenance record](https://github.com/pgajer/grip/blob/main/inst/extdata/vs_alternatives/BENCHMARK_PROVENANCE.md)
+and [reproduction script](https://github.com/pgajer/grip/blob/main/inst/scripts/precompute-vs-alternatives.R)
+record the settings and timing boundaries. The artifact's software versions are:
+
+```{r external-versions}
+knitr::kable(data.frame(
+  Package = names(res$benchmark_metadata$package_versions),
+  Version = unname(res$benchmark_metadata$package_versions)
+), row.names = FALSE)
+```
+
+The karate graph has **34 vertices and 78 edges**; the 12 by 12 mesh has
+**144 vertices and 264 edges**. Each table below scores a saved layout with
+hop-distance stress, scoring seeds 42, 2,000 requested stress pairs, and up to
+5,000 sampled nonedges. Exact crossings are enabled for these small graphs.
+The stress score fits a common scale; it is not the raw stress objective of
+`metric.mds()`. Preset/tuned rows are labeled separately from ordinary defaults.
+Keep the results where another method scores better when interpreting the comparison.
+
 ### Benchmark 1: Zachary karate club
 
 This is still a useful small-graph sanity check. The graph is small enough that
@@ -161,7 +184,7 @@ knitr::kable(
   karate.display,
   digits = 4,
   row.names = FALSE,
-  caption = "Karate club: unweighted comparison metrics."
+  caption = "Karate club: saved grip 0.2.0 benchmark; one seeded layout per method."
 )
 ```
 
@@ -199,7 +222,7 @@ knitr::kable(
   mesh.display,
   digits = 4,
   row.names = FALSE,
-  caption = "12x12 mesh: unweighted comparison metrics."
+  caption = "12x12 mesh: saved grip 0.2.0 benchmark; one seeded layout per method."
 )
 ```
 
@@ -215,18 +238,41 @@ plot_layout(m$layouts$grip.mesh,     m$edges, "grip mesh preset", cex = 0.5)
 ```
 
 This benchmark shows a different pattern from the karate graph: on a canonical
-structured family like a mesh, the current `grip` default is already robust and
-produces a clean uncrossed layout. The `mesh` preset still helps a bit, but it
-now acts as a modest family-specific refinement rather than a rescue from a bad
-default. At the same time, stress and KK remain very strong on a regular
+structured family like a mesh, the saved grip 0.2.0 default result
+shows a clean uncrossed layout. The saved `mesh` preset result has slightly
+lower sampled stress. These are particular seeded results, not an estimate of
+variation across layout seeds. At the same time, stress and KK remain very strong on a regular
 lattice.
+
+### Larger graph: saved HMP timing and quality
+
+The same artifact includes an unweighted symmetric-neighbor graph of HMP
+microbiome samples: **4,391 vertices and 9,067 edges**. PCA-space edge lengths
+were not supplied to any layout engine. The recorded machine was an Apple
+M4 Max with 64 GiB memory, macOS/Darwin 25.6.0, and R 4.6.1.
+
+```{r hmp-saved-results}
+knitr::kable(res$hmp$timing, digits = 3, row.names = FALSE,
+  caption = "HMP graph: elapsed seconds for saved grip 0.2.0-era runs.")
+knitr::kable(res$hmp$scores[, c("method", "sampled.stress", "edge.length.cv")],
+  digits = 4, row.names = FALSE,
+  caption = "HMP graph: hop-distance quality of the first timed layout per method.")
+```
+
+The **five timing repeats reset seed 1 before each layout call**. Their medians
+and interquartile ranges measure timing variation for that seeded setup, not
+variation across independent stochastic layouts. Timing includes only the layout
+call; graph construction, garbage collection, and scoring are excluded. Scores
+use the first repeat, seeds 42, 2,000 stress pairs, and up to 5,000 nonedges;
+exact crossings are disabled for this graph. These hardware-specific times and
+single-seed quality results do not establish general speed or accuracy rankings.
 
 ### What the unweighted track tells us
 
-The external-package benchmark is still useful, but its scope is now clear:
+The saved external-package benchmark has a limited scope:
 
 - it compares engines on ordinary unweighted graphs,
-- it is a fair way to evaluate layout quality with a shared scoring function,
+- it uses a shared scoring function on the same graph for each comparison,
 - but it does not answer the geometry-aware weighted-layout question.
 
 That second question needs a different benchmark track.
@@ -382,7 +428,9 @@ source(system.file(
 ```
 
 The weighted section of this article is generated directly inside the vignette,
-so it always reflects the current package implementation.
+so it reflects the package version used for this website build
+(`r as.character(packageVersion("grip"))`). It is separate from the frozen
+external-package results and their timing evidence.
 
 ## Session info for the bundled external results
 
