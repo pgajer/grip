@@ -114,3 +114,12 @@ test_that("run_gripui can auto-stop for automated checks", {
     )
   )
 })
+
+
+test_that("missing optional viewers fail clearly and restore graphics options", {
+  old <- options(rgl.useNULL = FALSE)
+  on.exit(options(old), add = TRUE)
+  local_mocked_bindings(gripui.has.package = function(package) package != "shiny")
+  expect_error(gripui.require.app.packages(), "optional packages.*shiny")
+  expect_false(getOption("rgl.useNULL"))
+})

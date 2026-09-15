@@ -6,10 +6,12 @@ gripui.enable.rgl.null.device <- function() {
   old
 }
 
+gripui.has.package <- function(package) requireNamespace(package, quietly = TRUE)
+
 gripui.require.app.packages <- function() {
   old <- gripui.enable.rgl.null.device()
   pkgs <- c("shiny", "bslib", "DT", "htmltools", "rgl")
-  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1L), quietly = TRUE)]
+  missing <- pkgs[!vapply(pkgs, gripui.has.package, logical(1L))]
   if (length(missing) > 0L) {
     options(rgl.useNULL = old)
     stop(

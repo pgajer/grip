@@ -11,8 +11,13 @@
 \arguments{
 \item{x}{Numeric coordinate matrix with at least two columns.}
 
-\item{...}{Additional parameters passed to the underlying \code{plot()} call
-for 2D layouts or the \pkg{rgl} 3D plotting call.}
+\item{...}{For static plots, base graphics options override defaults, including
+\code{asp}, axis labels, limits, \code{pch}, \code{cex}, and vertex
+\code{col}/\code{bg}. In an orthographic plot, symbol, size, color,
+line width and \code{type} options are passed to \code{points()}; other
+options configure the plot region. Edges use \code{edge.col}. For
+interactive plots, options go to \code{rgl::plot3d()} and follow its
+conventions (for example \code{size}, not base-graphics \code{cex}).}
 
 \item{edges}{Optional two-column matrix of edges (1-based vertex ids).}
 

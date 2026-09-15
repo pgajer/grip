@@ -15,21 +15,24 @@ permissions: read-all
 
 jobs:
   R-CMD-check:
-    runs-on: ubuntu-latest
-    name: R ${{ matrix.r }}
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} R ${{ matrix.r }}
 
     strategy:
       fail-fast: false
       matrix:
-        r:
-          - devel
-          - release
-          - oldrel-1
+        include:
+          - {os: ubuntu-latest, r: devel}
+          - {os: ubuntu-latest, r: release}
+          - {os: ubuntu-latest, r: oldrel-1}
+          - {os: windows-latest, r: release}
+          - {os: macos-latest, r: release}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       RGL_USE_NULL: true
+      GRIP_FULL_DEPENDENCIES: true
 
     steps:
       - uses: actions/checkout@v4
