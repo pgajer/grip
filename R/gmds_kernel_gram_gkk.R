@@ -86,6 +86,7 @@ graph.riemannian.star.structure <- function(graph = NULL,
                                             reliability = c("length.balance", "none"),
                                             min.angle.weight = 0,
                                             star.quantile = 0) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   X <- grip.validate.coords(X)
   reliability <- match.arg(reliability)
   grip.validate.scalar(angle.power, "angle.power", lower = 0)
@@ -93,6 +94,14 @@ graph.riemannian.star.structure <- function(graph = NULL,
   grip.validate.scalar(star.quantile, "star.quantile", lower = 0, upper = 1, open.upper = TRUE)
 
   if (!is.null(graph)) {
+    if (any(!vapply(list(prepared, edges, adj_list, weight_list, edge_weights), is.null, logical(1)))) {
+      stop("graph cannot be combined with prepared or raw graph inputs; supply one graph representation",
+           call. = FALSE)
+    }
+    if (!is.null(n) && !is.null(graph$n) &&
+        !identical(grip.validate.vertex.count(n), grip.validate.vertex.count(graph$n))) {
+      stop("n must match the graph size stored in graph", call. = FALSE)
+    }
     if (inherits(graph, "grip_geodesic_kk_prepared")) {
       prepared <- graph
     } else {
@@ -101,8 +110,20 @@ graph.riemannian.star.structure <- function(graph = NULL,
       edges <- grip.null.coalesce(graph$edges, edges)
       edge_weights <- grip.null.coalesce(graph$edge_targets, grip.null.coalesce(graph$edge_weights, edge_weights))
       n <- grip.null.coalesce(graph$n, n)
+      # Bundles may store both representations, but they must describe the
+      # same weighted graph. Preserve the adjacency ordering after checking.
+      if (!is.null(edges) && !is.null(adj_list)) {
+        from.edges <- prepare.edge.kk(edges = edges, n = n, edge_weights = edge_weights)
+        from.adj <- prepare.edge.kk(adj_list = adj_list, n = n, weight_list = weight_list)
+        if (!identical(from.edges$edges, from.adj$edges) ||
+            !identical(from.edges$edge_targets, from.adj$edge_targets)) {
+          stop("graph contains contradictory edge and adjacency representations", call. = FALSE)
+        }
+        edges <- edge_weights <- NULL
+      }
     }
   }
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   if (!is.null(prepared)) {
     prepared <- grip.validate.geodesic.mds.prepared(prepared)
     n <- prepared$n
@@ -118,14 +139,14 @@ graph.riemannian.star.structure <- function(graph = NULL,
       stop("provide graph/prepared, adj_list/weight_list, or edges/edge_weights")
     }
     if (is.null(n)) {
-      n <- max(as.integer(edges), na.rm = TRUE)
+      n <- grip.resolve.graph.n(n, edges, adj_list)
     }
     aw <- grip.graph.adjacency.from.edges(matrix(as.integer(edges), ncol = 2L), edge_weights, as.integer(n))
     adj_list <- aw$adj_list
     weight_list <- aw$weight_list
   }
 
-  n <- as.integer(grip.null.coalesce(n, length(adj_list)))
+  n <- grip.validate.vertex.count(grip.null.coalesce(n, length(adj_list)))
   if (nrow(X) != n) {
     stop("nrow(X) must match the graph vertex count")
   }
@@ -417,6 +438,7 @@ kernel.gram.gkk <- function(coords = NULL,
                                                  diagnostics = TRUE,
                                                  seed = 1L,
                                                  engine = c("cpp", "R")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   init <- match.arg(init)
   reliability <- match.arg(reliability)
   stiffness_method <- match.arg(stiffness_method)

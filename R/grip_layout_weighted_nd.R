@@ -28,6 +28,7 @@ grip.validate.weighted.nd.graph <- function(edges = NULL,
                                             weight_list = NULL,
                                             edge_weights = NULL,
                                             caller = "weighted.grip.nd") {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   if (!is.null(edges) && !is.null(adj_list)) {
     stop(sprintf("%s() accepts either edges or adj_list, not both", caller))
   }
@@ -43,7 +44,7 @@ grip.validate.weighted.nd.graph <- function(edges = NULL,
       }
       n <- max(edges)
     }
-    n <- grip.validate.nd.scalar.integer(n, "n", min = 1L)
+    n <- grip.validate.vertex.count(n)
     built <- grip.build.adj.from.edges(
       edges = edges,
       n = n,
@@ -58,7 +59,7 @@ grip.validate.weighted.nd.graph <- function(edges = NULL,
     if (is.null(n)) {
       n <- length(adj_list)
     }
-    n <- grip.validate.nd.scalar.integer(n, "n", min = 1L)
+    n <- grip.validate.vertex.count(n)
     if (length(adj_list) != n) {
       stop("adj_list length must equal n")
     }
@@ -121,6 +122,7 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
                                                     seed = 6,
                                                     length_normalization = c("median", "mean", "none"),
                                                     caller = "weighted.grip.nd") {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   length_normalization <- match.arg(length_normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   graph <- grip.validate.weighted.nd.graph(
@@ -235,6 +237,7 @@ weighted.grip.nd <- function(edges = NULL,
                                     length_normalization = c("median", "mean", "none"),
                                     disconnected = c("components", "error"),
                                     seed = 6) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   disconnected <- match.arg(disconnected)
   length_normalization <- match.arg(length_normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
@@ -424,6 +427,7 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
                                           length_normalization = c("median", "mean", "none"),
                                           seed = 6,
                                           trace.every = 1) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   length_normalization <- match.arg(length_normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   trace.every <- grip.validate.nd.scalar.integer(trace.every, "trace.every", min = 1L)
@@ -588,6 +592,7 @@ grip.build.misf.weighted.nd <- function(edges = NULL,
                                         num_nbrs = 20,
                                         length_normalization = c("median", "mean", "none"),
                                         seed = 6) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   validated <- grip.validate.weighted.nd.layout.inputs(
     edges = edges,
     n = n,

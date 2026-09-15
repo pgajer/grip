@@ -9,6 +9,12 @@
 
 ## Breaking changes
 
+* Graph-input APIs now reject fractional, nonfinite, or out-of-range vertex
+  indices and counts before conversion. Supply either `edges`/`edge_weights`
+  or `adj_list`/`weight_list`, not both. A `prepared` graph cannot be combined
+  with raw graph inputs; an explicit `n` must match its stored vertex count.
+  Previously, some of these inputs were silently truncated or ignored.
+
 * `metric.mds()` now minimizes unweighted raw distance stress using the
   optional smacof package. To retain the previous classical-scaling behavior,
   use `classical.mds()`, which also accepts the `add` and `eig` arguments.

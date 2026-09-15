@@ -33,6 +33,14 @@
 #' \href{https://pgajer.github.io/grip/}{package website} are website-only
 #' companions.
 #'
+#' @section Graph input validation:
+#' Vertex indices and counts must be finite integers within the R integer
+#' range. Supply either \code{edges}/\code{edge_weights} or
+#' \code{adj_list}/\code{weight_list}, not both. Functions accepting a
+#' \code{prepared} graph reject additional raw graph inputs; an explicit
+#' \code{n} must match the stored vertex count. Rebuild the preparation when
+#' changing topology, vertex order, or edge lengths.
+#'
 #' @section GMDS thread control:
 #' The internal compiled GMDS optimizer, also used by the GMDS exploration
 #' apps, uses at most two CPU threads. With automatic selection

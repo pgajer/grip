@@ -47,9 +47,12 @@ globalrep.grip(
 )
 }
 \arguments{
-\item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
+\item{edges}{Two-column integer matrix of edges (1-based vertex ids).
+Supply either \code{edges}/\code{edge_weights} or
+\code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+and out-of-range vertex ids are rejected before integer conversion.}
 
-\item{n}{Number of vertices.}
+\item{n}{Number of vertices, a finite positive integer.}
 
 \item{adj_list}{Adjacency list (1-based) for undirected graphs.}
 

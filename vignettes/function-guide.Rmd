@@ -97,7 +97,9 @@ Alternatively use `adj_list`, a list of length `n`: element `i` lists the
 neighbors of vertex `i`. Include both directions of each undirected edge,
 with matching lengths in a parallel `weight_list`. An isolated vertex has an
 empty neighbor vector (and empty length vector if weighted). Do not supply
-both graph representations. Preserve the same vertex ordering in graph,
+both graph representations: this is an error, as are fractional or nonfinite
+vertex indices and counts. Supply lengths with their matching representation
+(`edge_weights` with `edges`, or `weight_list` with `adj_list`). Preserve the same vertex ordering in graph,
 coordinates, labels, and references; row names do not establish correspondence.
 
 `grip()` defaults to `dim = 3`; request `dim = 2` explicitly for base 2D plots.
@@ -238,8 +240,11 @@ weighting choices, not universal quality grades.
 | `prepare.misf.geodesic.kk()` | Multiscale independent-set filtration (MISF), level routes, and initializers. | Graph changes or changed hierarchy, tie, or initialization settings. |
 | `build.misf()` / `build.weighted.misf()` | Inspectable multiscale hierarchy, with the latter also storing weighted neighborhoods and anchors. | Changed graph, metric, seed, or construction controls. They are not a generic `prepared` argument for `grip()`. |
 
-Treat preparations as immutable graph-specific objects. Supplying a prepared
-object does not automatically rebuild it to match new raw inputs. Coordinate
+Treat preparations as immutable graph-specific objects. Do not combine a
+`prepared` object with raw graph inputs (`edges`, `adj_list`, `edge_weights`,
+or `weight_list`); these calls fail rather than silently choosing a graph.
+An explicit `n` must be an integer matching the prepared vertex count.
+Rebuild the preparation to change the graph. Coordinate
 candidates on the same graph may change without rebuilding the graph cache;
 a state containing coordinate-dependent forces or a local-star geometry must
 be recomputed when those coordinates change.

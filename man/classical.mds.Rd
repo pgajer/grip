@@ -27,9 +27,12 @@ classical.mds(
 Edge-only objects from [prepare.edge.kk()] are intentionally rejected
 because classical MDS requires a graph distance matrix.}
 
-\item{edges}{Two-column edge matrix used when `prepared` is omitted.}
+\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+Supply either edges/edge_weights or adj_list/weight_list, not both.
+Raw graph inputs cannot be combined with a prepared object.}
 
-\item{n}{Number of vertices used when `prepared` is omitted.}
+\item{n}{Finite positive integer vertex count. When supplied with a prepared
+object, it must match the stored graph size.}
 
 \item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
 

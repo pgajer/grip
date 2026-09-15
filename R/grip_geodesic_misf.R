@@ -31,6 +31,7 @@ grip.resolve.misf.geodesic.prepared <- function(prepared = NULL,
                                                 top_level_max_iter = 16L,
                                                 top_level_engine = c("cpp", "r"),
                                                 seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   top_level_init <- match.arg(top_level_init)
   top_level_engine <- match.arg(top_level_engine)
   if (is.null(prepared)) {
@@ -2826,6 +2827,7 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
                                            top_level_max_iter = 16L,
                                            top_level_engine = c("cpp", "r"),
                                            seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   tie_mode <- match.arg(tie_mode)
   top_level_mode <- match.arg(top_level_mode)
   top_level_init <- match.arg(top_level_init)
@@ -2850,7 +2852,6 @@ grip.prepare.misf.geodesic.mds <- function(edges = NULL,
     tie_mode = tie_mode
   )
   misf <- build.misf(
-    edges = prepared$edges,
     n = prepared$n,
     adj_list = prepared$adj_list,
     weight_list = prepared$weight_list,
@@ -3063,6 +3064,7 @@ grip.optimize.misf.geodesic.mds <- function(prepared = NULL,
                                             return_trace = FALSE,
                                             return_frames = FALSE,
                                             seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   if (!is.null(seed)) {
     seed <- grip.validate.count(seed, "seed")
   }

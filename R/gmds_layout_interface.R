@@ -5,6 +5,7 @@ grip.gmds.require.prepared <- function(prepared = NULL,
                                        adj_list = NULL,
                                        weight_list = NULL,
                                        edge_weights = NULL) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   if (!is.null(prepared)) {
     return(grip.validate.geodesic.mds.prepared(prepared, coords = coords))
   }
@@ -22,16 +23,8 @@ grip.metric.mds.distance.prepared <- function(edges = NULL,
                                               adj_list = NULL,
                                               weight_list = NULL,
                                               edge_weights = NULL) {
-  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
-    n <- max(as.integer(edges), na.rm = TRUE)
-  }
-  if (is.null(n) && !is.null(adj_list)) {
-    n <- length(adj_list)
-  }
-  if (is.null(n) || !is.finite(n) || n <= 0L) {
-    stop("n must be provided or inferable from edges/adj_list")
-  }
-  n <- as.integer(n)
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  n <- grip.resolve.graph.n(n, edges, adj_list)
 
   validated <- grip.validate.layout.inputs(
     edges = edges,
@@ -215,8 +208,11 @@ grip.gmds.band.weights <- function(graph.distances,
 #'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
 #'   Edge-only objects from [prepare.edge.kk()] report only edge
 #'   diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.
-#' @param edges Two-column edge matrix used when `prepared` is omitted.
-#' @param n Number of vertices used when `prepared` is omitted.
+#' @param edges Two-column integer edge matrix used when `prepared` is omitted.
+#'   Supply either edges/edge_weights or adj_list/weight_list, not both.
+#'   Raw graph inputs cannot be combined with a prepared object.
+#' @param n Finite positive integer vertex count. When supplied with a prepared
+#'   object, it must match the stored graph size.
 #' @param adj_list Optional adjacency list used when `prepared` is omitted.
 #' @param weight_list Optional edge-weight list parallel to `adj_list`.
 #' @param edge_weights Optional positive edge weights parallel to `edges`.
@@ -246,6 +242,7 @@ score.gmds <- function(coords,
                                    distance_floor = 1e-8,
                                    edge_length_epsilon = 1e-8,
                                    band_quantiles = c(1 / 3, 2 / 3)) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   coords <- grip.validate.coords.nd(coords)
   scale_mode <- match.arg(scale_mode)
   grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
@@ -486,6 +483,7 @@ classical.mds <- function(prepared = NULL,
                                    distance_floor = 1e-8,
                                    edge_length_epsilon = 1e-8,
                                    band_quantiles = c(1 / 3, 2 / 3)) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   scale_mode <- match.arg(scale_mode)
   prepared <- if (is.null(prepared) && !isTRUE(diagnostics)) {
     grip.metric.mds.distance.prepared(
@@ -1019,6 +1017,7 @@ edge.kk <- function(coords = NULL,
                     diagnostics = TRUE,
                     seed = 1L,
                     engine = c("cpp", "R")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   init <- match.arg(init)
   stiffness_method <- match.arg(stiffness_method)
   stiffness_transform <- match.arg(stiffness_transform)

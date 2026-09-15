@@ -62,6 +62,7 @@ grip.resolve.misf.geodesic.kk.prepared <- function(prepared = NULL,
                                                    top_level_max_iter = 16L,
                                                    top_level_init = c("geometric", "cmdscale", "random"),
                                                    seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   top_level_pair_mode <- match.arg(top_level_pair_mode)
   top_level_init <- match.arg(top_level_init)
   if (is.null(prepared)) {
@@ -1408,6 +1409,7 @@ prepare.misf.geodesic.kk <- function(edges = NULL,
                                           top_level_max_iter = 16L,
                                           top_level_init = c("geometric", "cmdscale", "random"),
                                           seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   tie_mode <- match.arg(tie_mode)
   top_level_mode <- match.arg(top_level_mode)
   top_level_pair_mode <- match.arg(top_level_pair_mode)
@@ -1439,7 +1441,6 @@ prepare.misf.geodesic.kk <- function(edges = NULL,
     tie_mode = tie_mode
   )
   misf <- build.misf(
-    edges = prepared$edges,
     n = prepared$n,
     adj_list = prepared$adj_list,
     weight_list = prepared$weight_list,
@@ -1696,6 +1697,7 @@ misf.geodesic.kk <- function(prepared = NULL,
                                            return_trace = FALSE,
                                            return_frames = FALSE,
                                            seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   if (!is.null(seed)) {
     seed <- grip.validate.count(seed, "seed")
   }

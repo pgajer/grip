@@ -81,6 +81,7 @@ metric.mds <- function(prepared = NULL,
                        distance_floor = 1e-8,
                        edge_length_epsilon = 1e-8,
                        band_quantiles = c(1 / 3, 2 / 3)) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   if (!grip.mds.has.smacof()) {
     stop("metric.mds() requires the optional 'smacof' package; install it, ",
          "or use classical.mds() for classical scaling", call. = FALSE)

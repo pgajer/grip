@@ -1059,16 +1059,8 @@ grip.prepare.geodesic.kk.base <- function(edges = NULL,
                                           weight_list = NULL,
                                           edge_weights = NULL,
                                           caller = "prepare.geodesic.kk") {
-  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
-    n <- max(as.integer(edges), na.rm = TRUE)
-  }
-  if (is.null(n) && !is.null(adj_list)) {
-    n <- length(adj_list)
-  }
-  if (is.null(n) || !is.finite(n) || n <= 0L) {
-    stop("n must be provided or inferable from edges/adj_list")
-  }
-  n <- as.integer(n)
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  n <- grip.resolve.graph.n(n, edges, adj_list)
 
   validated <- grip.validate.layout.inputs(
     edges = edges,
@@ -1801,6 +1793,7 @@ prepare.landmark.geodesic.kk <- function(edges = NULL,
                                               edge_weights = NULL,
                                               local_nbrs = 20L,
                                               landmark_count = 8L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   local_nbrs <- grip.validate.count(local_nbrs, "local_nbrs")
   landmark_count <- grip.validate.count(landmark_count, "landmark_count")
 
@@ -1878,6 +1871,7 @@ prepare.geodesic.kk <- function(edges = NULL,
                                      weight_list = NULL,
                                      edge_weights = NULL,
                                      tie_mode = c("single", "average")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   tie_mode <- match.arg(tie_mode)
   base <- grip.prepare.geodesic.kk.base(
     edges = edges,
@@ -1978,6 +1972,7 @@ score.landmark.geodesic.kk <- function(coords,
                                             distance_floor = 1e-8,
                                             edge_length_epsilon = 1e-8,
                                             return_pair_details = FALSE) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   coords <- grip.validate.coords(coords)
   if (is.null(prepared)) {
     prepared <- prepare.landmark.geodesic.kk(
@@ -2094,6 +2089,7 @@ score.geodesic.kk <- function(coords,
                                    scale_mode = c("profiled", "user"),
                                    scale.L0 = NULL,
                                    return_pair_details = FALSE) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   coords <- grip.validate.coords(coords)
   scale_mode <- match.arg(scale_mode)
   if (is.null(prepared)) {
@@ -2207,6 +2203,7 @@ landmark.geodesic.kk <- function(coords,
                                                min_step = 1e-8,
                                                recenter = TRUE,
                                                return_trace = FALSE) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   coords <- grip.validate.coords(coords)
   if (is.null(prepared)) {
     prepared <- prepare.landmark.geodesic.kk(
@@ -2438,6 +2435,7 @@ geodesic.kk <- function(coords,
                                       return_trace = FALSE,
                                       scale_mode = c("fixed_initial", "profiled", "user"),
                                       scale.L0 = NULL) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
   coords <- grip.validate.coords(coords)
   scale_mode <- match.arg(scale_mode)
   if (is.null(prepared)) {
@@ -3514,16 +3512,8 @@ prepare.edge.kk <- function(edges = NULL,
                             adj_list = NULL,
                             weight_list = NULL,
                             edge_weights = NULL) {
-  if (is.null(n) && is.null(adj_list) && !is.null(edges)) {
-    n <- max(as.integer(edges), na.rm = TRUE)
-  }
-  if (is.null(n) && !is.null(adj_list)) {
-    n <- length(adj_list)
-  }
-  if (is.null(n) || !is.finite(n) || n <= 0L) {
-    stop("n must be provided or inferable from edges/adj_list", call. = FALSE)
-  }
-  n <- as.integer(n)
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  n <- grip.resolve.graph.n(n, edges, adj_list)
 
   validated <- grip.validate.layout.inputs(
     edges = edges,
@@ -3613,6 +3603,7 @@ prepare.graph.geodesic.mds <- function(edges = NULL,
                                             weight_list = NULL,
                                             edge_weights = NULL,
                                             tie_mode = c("single", "average")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   tie_mode <- match.arg(tie_mode)
   base <- grip.prepare.geodesic.kk.base(
     edges = edges,
@@ -5229,6 +5220,7 @@ score.layout <- function(coords,
                          nonedge.seed = 1L,
                          edge.crossings = c("auto", "always", "never"),
                          edge.crossings.max.edges = 1000L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   coords <- grip.validate.coords(coords)
   edge.crossings <- match.arg(edge.crossings)
   if (is.null(n)) {
@@ -5378,6 +5370,7 @@ compare.layouts <- function(edges = NULL,
                             score.weights = grip.default.compare.score.weights(),
                             return.layouts = FALSE,
                             disconnected = c("components", "error")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   candidates.missing <- missing(candidates)
   edge.crossings <- match.arg(edge.crossings)
   disconnected <- match.arg(disconnected)

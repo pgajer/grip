@@ -180,6 +180,7 @@ grip.validate.weighted.layout.inputs <- function(edges = NULL,
                                                  seed = 6,
                                                  length_normalization = c("median", "mean", "none"),
                                                  caller = "globalrep.weighted.grip") {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   length_normalization <- match.arg(length_normalization)
   validated <- grip.validate.layout.inputs(
     edges = edges,
@@ -251,6 +252,7 @@ build.weighted.misf <- function(edges = NULL,
                                      num_nbrs = 20,
                                      length_normalization = c("median", "mean", "none"),
                                      seed = 6) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   validated <- grip.validate.weighted.layout.inputs(
     edges = edges,
     n = n,
@@ -350,6 +352,7 @@ globalrep.weighted.grip <- function(edges = NULL,
                                            tinit_factor = 6,
                                            seed = 6,
                                            disconnected = c("components", "error")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -622,6 +625,7 @@ grip.trace.edge.length <- function(edges = NULL,
                                        diagnostic_sample_size_stress = 500L,
                                        diagnostic_nonedge_seed = 1L,
                                        diagnostic_stress_seed = 1L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)

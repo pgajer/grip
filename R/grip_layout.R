@@ -1,8 +1,10 @@
 grip.build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
+  n <- grip.validate.vertex.count(n)
   edges <- as.matrix(edges)
   if (!is.numeric(edges) || ncol(edges) != 2) {
     stop("edges must be a two-column integer matrix of 1-based vertex ids")
   }
+  grip.validate.vertex.ids(edges, "edges", n)
   edges <- matrix(as.integer(edges), ncol = 2)
   if (any(!is.finite(edges))) {
     stop("edges must contain finite integer vertex ids")
@@ -692,14 +694,11 @@ grip.validate.layout.inputs <- function(edges = NULL,
                                         dim = 3,
                                         placement = "barycenter",
                                         seed = 6) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   if (!is.null(adj_list)) {
     if (!is.list(adj_list)) stop("adj_list must be a list of integer vectors")
     if (is.null(n)) n <- length(adj_list)
-    if (!is.numeric(n) || length(n) != 1L) {
-      stop("n must be a single numeric value")
-    }
-    n <- as.integer(n)
-    if (n <= 0L) stop("n must be positive")
+    n <- grip.validate.vertex.count(n)
     if (length(adj_list) != n) {
       stop("adj_list length must match n")
     }
@@ -741,11 +740,7 @@ grip.validate.layout.inputs <- function(edges = NULL,
     if (is.null(edges)) {
       stop("provide either edges or adj_list/weight_list")
     }
-    if (!is.numeric(n) || length(n) != 1L) {
-      stop("n must be a single numeric value")
-    }
-    n <- as.integer(n)
-    if (n <= 0L) stop("n must be positive")
+    n <- grip.validate.vertex.count(n)
     if (!is.null(edge_weights)) {
       if (length(edge_weights) != nrow(edges)) {
         stop("edge_weights length must match number of edges")
@@ -932,6 +927,7 @@ globalrep.grip <- function(edges = NULL,
                                   tinit_factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -1148,7 +1144,10 @@ globalrep.grip <- function(edges = NULL,
 #' tapers \code{final_rounds} on larger graphs.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
-#' @param n Number of vertices.
+#'   Supply either \code{edges}/\code{edge_weights} or
+#'   \code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+#'   and out-of-range vertex ids are rejected before integer conversion.
+#' @param n Number of vertices, a finite positive integer.
 #' @param adj_list Adjacency list (1-based) for undirected graphs.
 #' @param weight_list Parallel list of edge lengths for \code{adj_list}.
 #'   The edge-length-metric engine requires it; in the hop-metric engine,
@@ -1391,6 +1390,7 @@ grip <- function(edges = NULL,
                         metric = c("hop", "edge_length"),
                         metric_neighbor_cap = NULL,
                         length_normalization = c("median", "mean", "none")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
   length_normalization_missing <- missing(length_normalization)
   metric <- match.arg(metric)
@@ -1421,7 +1421,10 @@ grip <- function(edges = NULL,
 #' pre-global-repulsion behavior.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
-#' @param n Number of vertices.
+#'   Supply either \code{edges}/\code{edge_weights} or
+#'   \code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+#'   and out-of-range vertex ids are rejected before integer conversion.
+#' @param n Number of vertices, a finite positive integer.
 #' @param adj_list Adjacency list (1-based) for undirected graphs.
 #' @param weight_list Optional parallel list of edge weights (edge lengths).
 #'   If NULL, all edges are treated as weight 1. All weights must be finite
@@ -1493,6 +1496,7 @@ legacy.grip <- function(edges = NULL,
                                tinit_factor = 6,
                                seed = 6,
                                disconnected = c("components", "error")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -1720,6 +1724,7 @@ grip.trace.hop <- function(edges = NULL,
                               diagnostic_sample_size_stress = 500L,
                               diagnostic_nonedge_seed = 1L,
                               diagnostic_stress_seed = 1L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)
@@ -2045,6 +2050,7 @@ trace.grip <- function(edges = NULL,
                        metric = c("hop", "edge_length"),
                        metric_neighbor_cap = NULL,
                        length_normalization = c("median", "mean", "none")) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
   length_normalization_missing <- missing(length_normalization)
   metric <- match.arg(metric)
@@ -2113,6 +2119,7 @@ trace.legacy.grip <- function(edges = NULL,
                                      seed = 6,
                                      trace = c("round", "level"),
                                      trace.every = 1) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
   final_rounds_missing <- missing(final_rounds)

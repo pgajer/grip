@@ -76,6 +76,7 @@ build.misf <- function(edges = NULL,
                             num_init = 24L,
                             num_nbrs = 20L,
                             seed = 6L) {
+  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
