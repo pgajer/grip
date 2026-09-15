@@ -97,42 +97,42 @@ matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{sampled.rectangle.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the undirected iKNN edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: normalized positive 3D chord lengths on the
-    retained iKNN edges,
-  \item \code{raw_edge_weights}: the unnormalized 3D chord lengths before
-    \code{normalize},
-  \item \code{iknn_witness_edge_weights}: raw iKNN witness weights based on
-    common-neighbor distances, retained for diagnostics,
-  \item \code{coords_surface}: the sampled 3D embedding,
-  \item \code{coords_param}: the sampled planar rectangle coordinates,
-  \item \code{coords_param_unit}: the centered unit-rectangle coordinates
-    used for the surface lift,
-  \item \code{weight_scale}: normalization constant applied to the raw edge
-    weights,
-  \item \code{family}: always \code{"sampled.rectangle"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{graph_space}: the coordinate system used for iKNN graph
-    construction,
-  \item \code{k}: the iKNN neighborhood size,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the undirected iKNN edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: normalized positive 3D chord lengths on the
+retained iKNN edges,
+\item \code{raw_edge_weights}: the unnormalized 3D chord lengths before
+\code{normalize},
+\item \code{iknn_witness_edge_weights}: raw iKNN witness weights based on
+common-neighbor distances, retained for diagnostics,
+\item \code{coords_surface}: the sampled 3D embedding,
+\item \code{coords_param}: the sampled planar rectangle coordinates,
+\item \code{coords_param_unit}: the centered unit-rectangle coordinates
+used for the surface lift,
+\item \code{weight_scale}: normalization constant applied to the raw edge
+weights,
+\item \code{family}: always \code{"sampled.rectangle"},
+\item \code{surface}: the chosen surface name,
+\item \code{graph_space}: the coordinate system used for iKNN graph
+construction,
+\item \code{k}: the iKNN neighborhood size,
+\item \code{label}: a human-readable family label.
 }
 
 \code{sampled.rectangle.surface.graphs()} returns a list with components:
 \itemize{
-  \item \code{graphs}: named list of single-\code{k} graph bundles,
-  \item \code{k}: integer vector of retained \code{k} values,
-  \item \code{k_statistics}: per-\code{k} edge-count summary,
-  \item \code{coords_surface}: the shared sampled 3D embedding,
-  \item \code{coords_param}: the shared sampled planar coordinates,
-  \item \code{coords_param_unit}: the centered unit-rectangle coordinates
-    used for the surface lift,
-  \item \code{family}: always \code{"sampled.rectangle"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{graph_space}: the coordinate system used for iKNN graph
-    construction,
-  \item \code{label}: a human-readable family label.
+\item \code{graphs}: named list of single-\code{k} graph bundles,
+\item \code{k}: integer vector of retained \code{k} values,
+\item \code{k_statistics}: per-\code{k} edge-count summary,
+\item \code{coords_surface}: the shared sampled 3D embedding,
+\item \code{coords_param}: the shared sampled planar coordinates,
+\item \code{coords_param_unit}: the centered unit-rectangle coordinates
+used for the surface lift,
+\item \code{family}: always \code{"sampled.rectangle"},
+\item \code{surface}: the chosen surface name,
+\item \code{graph_space}: the coordinate system used for iKNN graph
+construction,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
@@ -149,11 +149,11 @@ present, while the returned edge lengths are taken from the 3D endpoint
 distances in the lifted embedding so that the graph metric reflects the
 chosen surface geometry.
 
-The `coords_param` component contains the sampled planar coordinates.
-The `coords_surface` component contains the corresponding 3D
-embedding. `sampled.rectangle.surface.graph()` returns a single weighted
+The \code{coords_param} component contains the sampled planar coordinates.
+The \code{coords_surface} component contains the corresponding 3D
+embedding. \code{sampled.rectangle.surface.graph()} returns a single weighted
 iKNN graph for one \code{k} value, while
-`sampled.rectangle.surface.graphs()` reuses the same sample and embedding
+\code{sampled.rectangle.surface.graphs()} reuses the same sample and embedding
 across a sequence of \code{k} values.
 }
 \examples{

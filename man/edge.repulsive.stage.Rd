@@ -32,37 +32,37 @@ edge.repulsive.stage(
 )
 }
 \arguments{
-\item{coords}{Numeric `n` by `dim` coordinate matrix.}
+\item{coords}{Numeric \code{n} by \code{dim} coordinate matrix.}
 
 \item{edges}{Integer or numeric matrix with two columns containing 1-based
 graph edge endpoints.}
 
 \item{edge.lengths}{Numeric vector of target edge lengths, parallel to
-`edges`.}
+\code{edges}.}
 
 \item{edge.weights}{Optional non-negative edge weights. Defaults to one.}
 
 \item{lambda}{Repulsion strength.}
 
-\item{edge.family}{Edge potential family, either `"quadratic"` or
-`"upper_barrier"`.}
+\item{edge.family}{Edge potential family, either \code{"quadratic"} or
+\code{"upper_barrier"}.}
 
 \item{eps.plus}{Upper-barrier slack parameter.}
 
-\item{beta}{Upper-barrier strength. When `beta <= 0`, the edge potential is
+\item{beta}{Upper-barrier strength. When \code{beta <= 0}, the edge potential is
 quadratic.}
 
 \item{pair.index}{Optional two-column matrix of 1-based vertex pairs for the
-repulsion term. If `NULL` and `lambda > 0`, all unordered pairs are used.}
+repulsion term. If \code{NULL} and \code{lambda > 0}, all unordered pairs are used.}
 
-\item{pair.weights}{Optional pair weights, parallel to `pair.index`.}
+\item{pair.weights}{Optional pair weights, parallel to \code{pair.index}.}
 
-\item{repulsion.family}{Repulsion potential family, either `"log"` or
-`"inverse_power"`.}
+\item{repulsion.family}{Repulsion potential family, either \code{"log"} or
+\code{"inverse_power"}.}
 
 \item{repulsion.delta}{Small positive softening parameter for pair distances.}
 
-\item{repulsion.power}{Power used by the `"inverse_power"` repulsion.}
+\item{repulsion.power}{Power used by the \code{"inverse_power"} repulsion.}
 
 \item{max.iter}{Maximum number of gradient-descent iterations.}
 
@@ -84,16 +84,16 @@ repulsion term. If `NULL` and `lambda > 0`, all unordered pairs are used.}
 Frame 0 is the starting coordinate matrix and later frames are accepted
 updates.}
 
-\item{engine}{Backend engine. `"cpp"` is the default; `"R"` uses the
+\item{engine}{Backend engine. \code{"cpp"} is the default; \code{"R"} uses the
 reference implementation.}
 }
 \value{
-A list with `coords`, final `state`, a data-frame `trace`, and,
-  when requested, a list of coordinate `frames`.
+A list with \code{coords}, final \code{state}, a data-frame \code{trace}, and,
+when requested, a list of coordinate \code{frames}.
 }
 \description{
-`edge.repulsive.stage()` performs one gradient-descent stage
-for the objective evaluated by `edge.repulsive.state()`. It uses Armijo
+\code{edge.repulsive.stage()} performs one gradient-descent stage
+for the objective evaluated by \code{edge.repulsive.state()}. It uses Armijo
 backtracking, optionally recenters coordinates after each proposal, and
 returns the final coordinates plus a per-iteration trace.
 }

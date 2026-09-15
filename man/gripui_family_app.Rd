@@ -11,14 +11,14 @@ gripui_family_app(
 )
 }
 \arguments{
-\item{catalog}{Family catalog, usually `gripui_graph_family_catalog()`.}
+\item{catalog}{Family catalog, usually \code{gripui_graph_family_catalog()}.}
 
 \item{title}{Application title.}
 
 \item{subtitle}{Optional subtitle shown in the sidebar.}
 }
 \value{
-A `shiny.appobj`.
+A \code{shiny.appobj}.
 }
 \description{
 Build the graph-family geometry explorer Shiny application

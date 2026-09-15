@@ -1556,6 +1556,7 @@ gripui.family.server <- function(catalog) {
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
 #' app <- gripui_family_app()
 #' inherits(app, "shiny.appobj")
+#' @md
 gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
                               title = "Graph Family Geometry Explorer",
                               subtitle = "Interactive geometry browser for synthetic benchmark families.") {
@@ -1586,6 +1587,7 @@ gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); packages <- c("shiny", "bslib", "rgl", "later", "httpuv"); if (!all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) return(FALSE); server <- tryCatch(httpuv::startServer("127.0.0.1", 0L, list(call = function(req) list(status = 200L, headers = list(), body = "ok"))), error = function(e) NULL); if (is.null(server)) return(FALSE); server$stop(); TRUE })
 #' run_gripui_family(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
+#' @md
 run_gripui_family <- function(catalog = gripui_graph_family_catalog(),
                               title = "Graph Family Geometry Explorer",
                               subtitle = "Interactive geometry browser for synthetic benchmark families.",

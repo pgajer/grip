@@ -107,7 +107,7 @@ asymmetry. Here a binary tree has three levels below the root (15 vertices).
 It has no generating reference coordinates; a graph-distance diagnostic is
 therefore the appropriate first score.
 
-```{r weighted-tree}
+```{r weighted-tree, fig.alt="A branching tree drawn using intrinsic positive edge lengths; its connectivity and edge-length variation are visible."}
 tree <- kary.tree.weighted.graph(
   k = 2, depth = 3, depth_decay = 0.8,
   branch_spread = 0.25, normalize = "none"
@@ -153,7 +153,7 @@ carpet.coords <- grip(carpet$edges, n = carpet$n,
                       metric = "hop", dim = 2, preset = "carpet", seed = 22)
 ```
 
-```{r masked-grid-plot, fig.width=8, fig.height=4}
+```{r masked-grid-plot, fig.width=8, fig.height=4, fig.alt="Reference grid and GRIP drawing of a recursive carpet with holes, shown side by side."}
 op <- par(mfrow = c(1, 2), mar = c(3, 3, 2, 1))
 plot.layout(carpet$coords_param, edges = carpet$edges, pch = 16, cex = 0.5,
             main = "Generating grid")
@@ -232,7 +232,7 @@ radius. Similarity alignment removes overall size differences, so it does
 not establish recovery of absolute length scale. Use `alignment = "rigid"`
 when scale must count as error.
 
-```{r surface-projections, fig.width=9, fig.height=3.6}
+```{r surface-projections, fig.width=9, fig.height=3.6, fig.alt="Static projections of the reference surface and the hop- and edge-length-metric layouts, aligned for comparison."}
 op <- par(mfrow = c(1, 3), mar = c(1, 1, 2, 1))
 plot.layout(surface$coords_surface, edges = surface$edges,
             projection = "ortho", main = "Reference")

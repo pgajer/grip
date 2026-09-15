@@ -20,44 +20,44 @@ graph.riemannian.star.structure(
 )
 }
 \arguments{
-\item{graph}{Optional graph/prepared object containing `adj_list` and
-`weight_list`, or `edges`/`edge_targets` when it is a prepared GMDS graph.}
+\item{graph}{Optional graph/prepared object containing \code{adj_list} and
+\code{weight_list}, or \code{edges}/\code{edge_targets} when it is a prepared GMDS graph.}
 
 \item{X}{Numeric matrix used to estimate local target angles.}
 
-\item{prepared}{Optional prepared GMDS object. Used when `graph` is omitted.}
+\item{prepared}{Optional prepared GMDS object. Used when \code{graph} is omitted.}
 
-\item{edges, n, edge_weights}{Optional edge representation used when `graph`
-and `prepared` are omitted.}
+\item{edges, n, edge_weights}{Optional edge representation used when \code{graph}
+and \code{prepared} are omitted.}
 
 \item{adj_list, weight_list}{Optional adjacency-list representation.}
 
-\item{angle.power}{Non-negative exponent `q` in the antipodal kernel.}
+\item{angle.power}{Non-negative exponent \code{q} in the antipodal kernel.}
 
-\item{reliability}{Reliability weighting rule. `"length.balance"` multiplies
-by `min(w_1, w_2) / max(w_1, w_2)`; `"none"` uses one.}
+\item{reliability}{Reliability weighting rule. \code{"length.balance"} multiplies
+by \code{min(w_1, w_2) / max(w_1, w_2)}; \code{"none"} uses one.}
 
 \item{min.angle.weight}{Pairs with final angle weight at or below this value
 are omitted from the returned table.}
 
-\item{star.quantile}{Optional quantile in `[0, 1)`. When positive, retain
+\item{star.quantile}{Optional quantile in \verb{[0, 1)}. When positive, retain
 only star pairs whose angle weight is at least this empirical quantile
-after applying `min.angle.weight`.}
+after applying \code{min.angle.weight}.}
 }
 \value{
-A list of class `"grip_riemannian_star"` with the star-pair table and
-  construction metadata.
+A list of class \code{"grip_riemannian_star"} with the star-pair table and
+construction metadata.
 }
 \description{
-`graph.riemannian.star.structure()` builds the local star-pair table used by
-kernel Gram-gKK. For each center vertex `u`, it considers unordered neighbor
-pairs `(v, v')` in the graph star and stores the target edge lengths, target
+\code{graph.riemannian.star.structure()} builds the local star-pair table used by
+kernel Gram-gKK. For each center vertex \code{u}, it considers unordered neighbor
+pairs \verb{(v, v')} in the graph star and stores the target edge lengths, target
 cosine angle, and kernel weight
 \deqn{
   r_u(v,v')\left(\frac{1-\cos\alpha_u(v,v')}{2}\right)^q.
 }
 In the first implementation, target angles are estimated from the ambient
-coordinates `X`. The optimizer is intentionally agnostic to where those
+coordinates \code{X}. The optimizer is intentionally agnostic to where those
 cosines came from, so later graph constructors can attach a different
 Riemannian source without changing the layout backend.
 }

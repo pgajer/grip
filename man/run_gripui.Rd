@@ -2,7 +2,7 @@
 % Please edit documentation in R/gripui-app.R
 \name{run_gripui}
 \alias{run_gripui}
-\title{Run the `gripui` Shiny application}
+\title{Run the \code{gripui} Shiny application}
 \usage{
 run_gripui(
   project,
@@ -14,24 +14,24 @@ run_gripui(
 )
 }
 \arguments{
-\item{project}{A `gripui_project`.}
+\item{project}{A \code{gripui_project}.}
 
-\item{host}{Host passed to `shiny::runApp()`.}
+\item{host}{Host passed to \code{shiny::runApp()}.}
 
-\item{port}{Port passed to `shiny::runApp()`.}
+\item{port}{Port passed to \code{shiny::runApp()}.}
 
 \item{launch.browser}{Whether to launch a browser.}
 
 \item{auto.stop.after}{Optional delay, in seconds, after which the app stops
 itself. This is mainly useful for automated examples and tests.}
 
-\item{...}{Additional arguments passed to `shiny::runApp()`.}
+\item{...}{Additional arguments passed to \code{shiny::runApp()}.}
 }
 \value{
-Invisibly returns the result of `shiny::runApp()`.
+Invisibly returns the result of \code{shiny::runApp()}.
 }
 \description{
-Run the `gripui` Shiny application
+Run the \code{gripui} Shiny application
 }
 \examples{
 \dontshow{if (local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); packages <- c("shiny", "bslib", "DT", "htmltools", "rgl", "later", "httpuv"); if (!all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) return(FALSE); server <- tryCatch(httpuv::startServer("127.0.0.1", 0L, list(call = function(req) list(status = 200L, headers = list(), body = "ok"))), error = function(e) NULL); if (is.null(server)) return(FALSE); server$stop(); TRUE })) withAutoprint(\{ # examplesIf}

@@ -1391,6 +1391,7 @@ grip.geodesic.misf.kk.build.stage.trace <- function(prepared,
 #' )
 #' prepared$top_level_vertices
 #' @export
+#' @md
 prepare.misf.geodesic.kk <- function(edges = NULL,
                                           n = NULL,
                                           adj_list = NULL,
@@ -1645,6 +1646,7 @@ prepare.misf.geodesic.kk <- function(edges = NULL,
 #'   score summary.
 #'
 #' @export
+#' @md
 misf.geodesic.kk <- function(prepared = NULL,
                                            edges = NULL,
                                            n = NULL,
@@ -2233,6 +2235,7 @@ misf.geodesic.kk <- function(prepared = NULL,
 #'   available.
 #'
 #' @export
+#' @md
 score.misf.geodesic.kk <- function(fit = NULL,
                                         coords = NULL,
                                         prepared = NULL,

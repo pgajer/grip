@@ -15,7 +15,12 @@
 The input object, invisibly.
 }
 \description{
-Reports the method, coordinate dimensions, and available diagnostic scores.
+Reports the fitted objective, available stopping information, coordinate
+dimensions, and separately labeled graph diagnostics. Missing convergence
+metadata is reported as such; finite coordinates do not imply convergence.
+Printing never recomputes diagnostics. Raw metric-MDS stress has squared
+input-distance units. The displayed graph RMSE values are divided by the
+root mean squared target distance and are dimensionless.
 Extract \code{x$coords} to plot or score the coordinates.
 }
 \seealso{

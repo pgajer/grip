@@ -23,13 +23,13 @@ ids).}
 
 \item{adj_list}{Optional adjacency list (1-based integer vectors).}
 
-\item{weight_list}{Optional positive edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional positive edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive vector parallel to `edges`.}
+\item{edge_weights}{Optional positive vector parallel to \code{edges}.}
 
 \item{num_init}{Target top-level active-set size used by the current GRIP
 MISF builder. The returned highest MISF level has size at most
-`min(num_init, n)`.}
+\code{min(num_init, n)}.}
 
 \item{num_nbrs}{Retained local neighborhood budget per MISF level, matching
 the current GRIP refinement schedule metadata.}
@@ -37,23 +37,23 @@ the current GRIP refinement schedule metadata.}
 \item{seed}{Optional integer seed passed to the current GRIP graph RNG.}
 }
 \value{
-An object of class `"grip_misf"` containing:
+An object of class \code{"grip_misf"} containing:
 \describe{
-  \item{levels}{Named list `V0, V1, ...` of nested vertex sets (1-based).}
-  \item{vertex_depth}{Integer vector giving the highest MISF level containing
-  each vertex.}
-  \item{mish_order}{The internal GRIP MISF order (1-based vertex ids).}
-  \item{misf_size}{Sizes of the nested levels.}
-  \item{num_nbrs_schedule}{Per-level retained neighborhood counts used by the
-  current GRIP engine.}
-  \item{misf_height}{Highest MISF level index.}
-  \item{top_level_size}{Size of the highest MISF level.}
+\item{levels}{Named list \verb{V0, V1, ...} of nested vertex sets (1-based).}
+\item{vertex_depth}{Integer vector giving the highest MISF level containing
+each vertex.}
+\item{mish_order}{The internal GRIP MISF order (1-based vertex ids).}
+\item{misf_size}{Sizes of the nested levels.}
+\item{num_nbrs_schedule}{Per-level retained neighborhood counts used by the
+current GRIP engine.}
+\item{misf_height}{Highest MISF level index.}
+\item{top_level_size}{Size of the highest MISF level.}
 }
 }
 \description{
-`build.misf()` exposes the maximal independent set filtration already
+\code{build.misf()} exposes the maximal independent set filtration already
 constructed internally by the GRIP layout engine. The result is graph-first:
-you can supply either an edge list plus `n`, or an adjacency/weight-list
+you can supply either an edge list plus \code{n}, or an adjacency/weight-list
 pair.
 }
 \details{

@@ -18,37 +18,37 @@ repulsive.state(
 )
 }
 \arguments{
-\item{coords}{Numeric `n` by `dim` coordinate matrix.}
+\item{coords}{Numeric \code{n} by \code{dim} coordinate matrix.}
 
 \item{lambda}{Repulsion strength. The returned total energy is
-`lambda * repel.energy`; the gradient is scaled by `lambda`.}
+\code{lambda * repel.energy}; the gradient is scaled by \code{lambda}.}
 
 \item{pair.index}{Optional two-column matrix of 1-based vertex pairs. If
-`NULL` and `lambda > 0`, all unordered pairs are used.}
+\code{NULL} and \code{lambda > 0}, all unordered pairs are used.}
 
 \item{pair.weights}{Optional non-negative pair weights parallel to
-`pair.index`.}
+\code{pair.index}.}
 
-\item{repulsion.family}{Repulsion potential family, either `"log"` or
-`"inverse_power"`.}
+\item{repulsion.family}{Repulsion potential family, either \code{"log"} or
+\code{"inverse_power"}.}
 
 \item{repulsion.delta}{Small positive softening parameter for pair distances.}
 
-\item{repulsion.power}{Power used by the `"inverse_power"` repulsion.}
+\item{repulsion.power}{Power used by the \code{"inverse_power"} repulsion.}
 
 \item{distance.eps}{Small positive distance floor used in derivatives.}
 
-\item{engine}{Backend engine. `"cpp"` is the default; `"R"` uses the
+\item{engine}{Backend engine. \code{"cpp"} is the default; \code{"R"} uses the
 reference implementation.}
 }
 \value{
 A list containing energy, unscaled repulsion energy, gradient,
-  gradient norm, and embedded pair lengths.
+gradient norm, and embedded pair lengths.
 }
 \description{
-`repulsive.state()` evaluates only the repulsion term used by the
+\code{repulsive.state()} evaluates only the repulsion term used by the
 experimental GMDS repulsive-unfolding operators. Unlike
-[edge.repulsive.state()], this function has no graph-edge term and does
+\code{\link[=edge.repulsive.state]{edge.repulsive.state()}}, this function has no graph-edge term and does
 not require placeholder edges or edge lengths.
 }
 \examples{

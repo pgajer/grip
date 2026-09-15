@@ -2,12 +2,12 @@
 % Please edit documentation in R/gripui-project.R
 \name{gripui_project_from_dir}
 \alias{gripui_project_from_dir}
-\title{Create a `gripui_project` from a directory of saved artifacts}
+\title{Create a \code{gripui_project} from a directory of saved artifacts}
 \usage{
 gripui_project_from_dir(root, graph = NULL, title = NULL, subtitle = NULL)
 }
 \arguments{
-\item{root}{Directory containing either a normalized `gripui` bundle or a
+\item{root}{Directory containing either a normalized \code{gripui} bundle or a
 saved search output tree such as the current HMP/U01 layout-selection
 outputs. The normalized bundle format is the preferred long-term producer
 contract; support for HMP-style run tables and manifests is a compatibility
@@ -20,10 +20,10 @@ adapter for older outputs.}
 \item{subtitle}{Optional subtitle.}
 }
 \value{
-A `gripui_project`.
+A \code{gripui_project}.
 }
 \description{
-Create a `gripui_project` from a directory of saved artifacts
+Create a \code{gripui_project} from a directory of saved artifacts
 }
 \examples{
 root <- tempfile("gripui-bundle-")

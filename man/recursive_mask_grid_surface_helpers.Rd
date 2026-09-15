@@ -48,20 +48,20 @@ numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{recursive.mask.grid.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the occupied-cell masked-grid edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the 2D parameter coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"recursive.mask.grid"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{level}: the recursion depth,
-  \item \code{mask}: the logical keep-mask,
-  \item \code{mask_size}: the side length of the mask,
-  \item \code{side}: the side length of the fully refined grid,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the occupied-cell masked-grid edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D surface embedding,
+\item \code{coords_param}: the 2D parameter coordinates,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"recursive.mask.grid"},
+\item \code{surface}: the chosen surface name,
+\item \code{level}: the recursion depth,
+\item \code{mask}: the logical keep-mask,
+\item \code{mask_size}: the side length of the mask,
+\item \code{side}: the side length of the fully refined grid,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
@@ -77,9 +77,9 @@ The \code{mask} is interpreted in standard matrix display orientation: rows
 run from top to bottom and columns run from left to right. Non-zero entries
 are retained at each recursive subdivision step.
 
-The `coords_surface` component contains the 3D coordinates of the
+The \code{coords_surface} component contains the 3D coordinates of the
 occupied cells in the same vertex order as \code{edges}.
-`recursive.mask.grid.surface.graph()` returns a reusable weighted-graph
+\code{recursive.mask.grid.surface.graph()} returns a reusable weighted-graph
 bundle containing the masked-grid edges, induced edge weights, the 3D
 surface coordinates, and the 2D parameter coordinates of the occupied cells.
 }

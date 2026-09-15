@@ -31,6 +31,7 @@
 #' x <- rbind(c(0, 0), c(1, 0), c(0, 1))
 #' score.coordinates(x + 2, x)$rmse
 #' score.coordinates(2 * x, x, alignment = "similarity")$scale
+#' @md
 score.coordinates <- function(coords, reference,
                               alignment = c("rigid", "none", "similarity"),
                               allow_reflection = TRUE) {
@@ -133,6 +134,7 @@ score.coordinates <- function(coords, reference,
 #' x <- rbind(c(0, 0, 0), c(1, 0, 0), c(0, 1, 0))
 #' f <- matrix(1:3, nrow = 1)
 #' score.surface(x, f, x, f, sample_size = 100)$rms
+#' @md
 score.surface <- function(coords, triangles, reference_coords, reference_triangles,
                           sample_size = 5000L, seed = 1L) {
   grip.validate.scalar(sample_size, "sample_size", lower = 2, upper = 1e7)

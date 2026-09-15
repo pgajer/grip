@@ -2,6 +2,14 @@
 
 ## Documentation
 
+* Distinguished CRAN and development installations, including offline-vignette
+  building, and added a development notice and direct quick-start navigation.
+* Repaired Markdown function links in help and made package help lead to a
+  small runnable workflow and the existing installed guides.
+* Connected the visual introduction to showcase recipes and a rendered first
+  example. Website animations now start with still previews and explicit
+  playback controls; guide figures have alternative text.
+
 * Added two installed vignettes: a task-oriented function guide with checked
   export and method coverage, and synthetic graph-family layout examples.
   Linked them from the package overview, README, and website navigation;
@@ -24,6 +32,10 @@
   behavior. Both functions still use classical scaling by default.
 
 ## New features
+
+* Layout printing shows the fitted objective, available termination and start
+  information, and separately labeled graph diagnostics without recomputing
+  them. The score help explains normalization, units, and unavailable values.
 
 * `metric.mds()` supports multiple starts and reports stress and convergence
   diagnostics, with coordinates returned in the input distance units.

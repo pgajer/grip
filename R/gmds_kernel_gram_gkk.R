@@ -74,6 +74,7 @@ grip.graph.adjacency.from.edges <- function(edges, edge_weights, n) {
 #' @return A list of class `"grip_riemannian_star"` with the star-pair table and
 #'   construction metadata.
 #' @export
+#' @md
 graph.riemannian.star.structure <- function(graph = NULL,
                                             X,
                                             prepared = NULL,
@@ -398,6 +399,7 @@ grip.kernel.gram.score <- function(coords,
 #'
 #' @return A `"grip_gmds_layout"` object with method `"kernel_gram_gkk"`.
 #' @export
+#' @md
 kernel.gram.gkk <- function(coords = NULL,
                                                  prepared = NULL,
                                                  edges = NULL,

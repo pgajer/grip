@@ -326,6 +326,7 @@ grip.optimize.edge.repulsive.stage.R <- function(coords,
 #' @return A list containing energy, unscaled repulsion energy, gradient,
 #'   gradient norm, and embedded pair lengths.
 #' @export
+#' @md
 repulsive.state <- function(coords,
                                  lambda = 1,
                                  pair.index = NULL,
@@ -391,6 +392,7 @@ repulsive.state <- function(coords,
 #' @return A list with `coords`, final `state`, a data-frame `trace`, and,
 #'   when requested, a list of coordinate `frames`.
 #' @export
+#' @md
 repulsive.stage <- function(coords,
                                           lambda = 1,
                                           pair.index = NULL,
@@ -547,6 +549,7 @@ repulsive.stage <- function(coords,
 #'   gradient, gradient norm, feasibility flag, embedded edge lengths, relative
 #'   edge lengths, edge residuals, and number of upper-barrier wall violations.
 #' @export
+#' @md
 edge.repulsive.state <- function(coords,
                                       edges,
                                       edge.lengths,
@@ -642,6 +645,7 @@ edge.repulsive.state <- function(coords,
 #' @return A list with `coords`, final `state`, a data-frame `trace`, and,
 #'   when requested, a list of coordinate `frames`.
 #' @export
+#' @md
 edge.repulsive.stage <- function(coords,
                                                edges,
                                                edge.lengths,

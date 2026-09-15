@@ -114,10 +114,10 @@ exactly against all currently active vertices instead of being sampled.}
 
 \item{final_anchor_factor}{Non-negative multiplier for an anchor term that
 pulls the final FR stage back toward the pre-final full-graph layout.
-`0` disables the anchor and preserves the current behavior.}
+\code{0} disables the anchor and preserves the current behavior.}
 
-\item{final_move_scale_after_first}{Scalar in `[0, 1]` applied to the final
-FR displacement after the first finest-level round. Values below `1`
+\item{final_move_scale_after_first}{Scalar in \verb{[0, 1]} applied to the final
+FR displacement after the first finest-level round. Values below \code{1}
 damp later full-graph movement while keeping the first FR round unchanged.}
 
 \item{final_mode}{Final full-graph refinement mode. \code{"fr"} keeps the
@@ -231,7 +231,7 @@ edge length by their median, \code{"mean"} divides by their mean, and
 supply this argument with \code{metric = "hop"}.}
 }
 \value{
-A numeric matrix with `n` rows and `dim` columns.
+A numeric matrix with \code{n} rows and \code{dim} columns.
 }
 \description{
 This is the primary layout API. It uses the quality-first multiscale GRIP
@@ -280,6 +280,13 @@ For \code{edges} input, provide one value per row through
 vertex \code{i} to \code{adj_list[[i]][j]}. For an undirected graph, the
 adjacency and length entries should be symmetric.
 }
+\section{Workflow guides}{
+
+Start with \code{vignette("function-guide", package = "grip")}
+to choose a layout, diagnostic, or reference comparison. List installed
+guides with \code{vignette(package = "grip")}.
+}
+
 \examples{
 edges <- edges.mesh(4, 4)
 coords <- grip(edges, n = max(edges), dim = 2,

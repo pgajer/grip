@@ -98,4 +98,5 @@
 #' @aliases grip.params.from.summary
 #' @aliases grip.score.layout
 #' @aliases grip.compare.layouts
+#' @md
 NULL

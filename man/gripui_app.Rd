@@ -2,18 +2,18 @@
 % Please edit documentation in R/gripui-app.R
 \name{gripui_app}
 \alias{gripui_app}
-\title{Build the `gripui` Shiny application}
+\title{Build the \code{gripui} Shiny application}
 \usage{
 gripui_app(project)
 }
 \arguments{
-\item{project}{A `gripui_project`.}
+\item{project}{A \code{gripui_project}.}
 }
 \value{
-A `shiny.appobj`.
+A \code{shiny.appobj}.
 }
 \description{
-Build the `gripui` Shiny application
+Build the \code{gripui} Shiny application
 }
 \examples{
 \dontshow{if (local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })) withAutoprint(\{ # examplesIf}

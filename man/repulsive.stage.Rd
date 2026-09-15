@@ -26,23 +26,23 @@ repulsive.stage(
 )
 }
 \arguments{
-\item{coords}{Numeric `n` by `dim` coordinate matrix.}
+\item{coords}{Numeric \code{n} by \code{dim} coordinate matrix.}
 
 \item{lambda}{Repulsion strength. The returned total energy is
-`lambda * repel.energy`; the gradient is scaled by `lambda`.}
+\code{lambda * repel.energy}; the gradient is scaled by \code{lambda}.}
 
 \item{pair.index}{Optional two-column matrix of 1-based vertex pairs. If
-`NULL` and `lambda > 0`, all unordered pairs are used.}
+\code{NULL} and \code{lambda > 0}, all unordered pairs are used.}
 
 \item{pair.weights}{Optional non-negative pair weights parallel to
-`pair.index`.}
+\code{pair.index}.}
 
-\item{repulsion.family}{Repulsion potential family, either `"log"` or
-`"inverse_power"`.}
+\item{repulsion.family}{Repulsion potential family, either \code{"log"} or
+\code{"inverse_power"}.}
 
 \item{repulsion.delta}{Small positive softening parameter for pair distances.}
 
-\item{repulsion.power}{Power used by the `"inverse_power"` repulsion.}
+\item{repulsion.power}{Power used by the \code{"inverse_power"} repulsion.}
 
 \item{max.iter}{Maximum number of gradient-descent iterations.}
 
@@ -64,16 +64,16 @@ repulsive.stage(
 Frame 0 is the starting coordinate matrix and later frames are accepted
 updates.}
 
-\item{engine}{Backend engine. `"cpp"` is the default; `"R"` uses the
+\item{engine}{Backend engine. \code{"cpp"} is the default; \code{"R"} uses the
 reference implementation.}
 }
 \value{
-A list with `coords`, final `state`, a data-frame `trace`, and,
-  when requested, a list of coordinate `frames`.
+A list with \code{coords}, final \code{state}, a data-frame \code{trace}, and,
+when requested, a list of coordinate \code{frames}.
 }
 \description{
-`repulsive.stage()` performs a gradient-descent stage for the
-pure repulsion objective evaluated by [repulsive.state()]. It is intended
+\code{repulsive.stage()} performs a gradient-descent stage for the
+pure repulsion objective evaluated by \code{\link[=repulsive.state]{repulsive.state()}}. It is intended
 for GMDS experiments that need to inspect repulsion separately from
 edge-length repair.
 }

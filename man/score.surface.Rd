@@ -27,9 +27,9 @@ at least two. Increase this to assess Monte Carlo convergence.}
 streams are used for the two directions; the caller's RNG state is restored.}
 }
 \value{
-A list with `rms`, `forward_rms`, `reverse_rms`, `forward_mean`,
-  `reverse_mean`, `rms_mc_se`, surface areas, zero-area face counts,
-  `sample_size`, and `seed`. Forward means coords to reference.
+A list with \code{rms}, \code{forward_rms}, \code{reverse_rms}, \code{forward_mean},
+\code{reverse_mean}, \code{rms_mc_se}, surface areas, zero-area face counts,
+\code{sample_size}, and \code{seed}. Forward means coords to reference.
 }
 \description{
 Compares already aligned surfaces using closest points on triangles, not
@@ -37,16 +37,16 @@ nearest vertices. No registration, rescaling, or triangulation is performed.
 }
 \details{
 For surfaces A and B, squared symmetric RMS is one half of the sum
-  of the area-normalized integrals of squared closest-point distance in the
-  two directions. Each direction has equal weight regardless of total area.
-  The returned score has coordinate-distance units. The Monte Carlo standard
-  error uses a delta-method approximation; it does not quantify mesh
-  discretization error, alignment uncertainty, or between-cloud variability.
-  Zero observed error gives a standard error of zero, not a proof of identity.
-  Samples are uniform over triangle area, so overlapping faces count with
-  multiplicity. Self-intersections are not repaired or detected. Zero-area
-  faces have no sampling mass but remain distance targets. A surface with
-  no positive-area faces is rejected. No Hausdorff maximum is estimated.
+of the area-normalized integrals of squared closest-point distance in the
+two directions. Each direction has equal weight regardless of total area.
+The returned score has coordinate-distance units. The Monte Carlo standard
+error uses a delta-method approximation; it does not quantify mesh
+discretization error, alignment uncertainty, or between-cloud variability.
+Zero observed error gives a standard error of zero, not a proof of identity.
+Samples are uniform over triangle area, so overlapping faces count with
+multiplicity. Self-intersections are not repaired or detected. Zero-area
+faces have no sampling mass but remain distance targets. A surface with
+no positive-area faces is rejected. No Hausdorff maximum is estimated.
 }
 \examples{
 x <- rbind(c(0, 0, 0), c(1, 0, 0), c(0, 1, 0))

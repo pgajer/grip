@@ -34,4 +34,5 @@
 #' data(hmp.gc)
 #' length(hmp.gc$adj_list)
 #' hmp.gc$graph_info[c("assay", "graph_constructor", "selected_k")]
+#' @md
 hmp.gc <- NULL

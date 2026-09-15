@@ -47,22 +47,22 @@ matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{occupied.mesh.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the occupied-cell mesh edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the 2D parameter coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"occupied.mesh"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{connectivity}: the chosen occupied-mesh connectivity rule,
-  \item \code{keep}: the logical occupancy matrix,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the occupied-cell mesh edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D surface embedding,
+\item \code{coords_param}: the 2D parameter coordinates,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"occupied.mesh"},
+\item \code{surface}: the chosen surface name,
+\item \code{connectivity}: the chosen occupied-mesh connectivity rule,
+\item \code{keep}: the logical occupancy matrix,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
-`occupied.mesh.surface.graph()` builds a finite occupied-grid graph on the
+\code{occupied.mesh.surface.graph()} builds a finite occupied-grid graph on the
 retained cells of a rectangular occupancy matrix and lifts those cells into
 \eqn{\mathbb{R}^3} using the same
 \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used

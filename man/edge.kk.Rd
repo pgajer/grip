@@ -41,51 +41,51 @@ edge.kk(
 )
 }
 \arguments{
-\item{coords}{Optional starting coordinates. If omitted, `init` is used.}
+\item{coords}{Optional starting coordinates. If omitted, \code{init} is used.}
 
-\item{prepared}{Optional object returned by [prepare.edge.kk()],
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
-Edge-only objects from [prepare.edge.kk()] report only edge
+\item{prepared}{Optional object returned by \code{\link[=prepare.edge.kk]{prepare.edge.kk()}},
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}} or \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.
+Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} report only edge
 diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
-\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+\item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
+\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to `edges`.}
+\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted. `"classical_mds"`
-(the default) uses [classical.mds()]. `"metric_mds"` uses stress-minimizing
-[metric.mds()] and requires the optional smacof package. Both require an
+\item{init}{Starting layout used when \code{coords} is omitted. \code{"classical_mds"}
+(the default) uses \code{\link[=classical.mds]{classical.mds()}}. \code{"metric_mds"} uses stress-minimizing
+\code{\link[=metric.mds]{metric.mds()}} and requires the optional smacof package. Both require an
 all-pairs prepared object.
-`"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
+\code{"weighted_grip"} runs \code{\link[=grip]{grip()}} with \code{metric = "edge_length"} on the
 graph edges first, and
-`"random"` uses centered Gaussian coordinates.}
+\code{"random"} uses centered Gaussian coordinates.}
 
 \item{weighted.grip.args}{Named list of additional tuning arguments passed
-to [grip()] when `init = "weighted_grip"`. Graph inputs, `dim`, `seed`,
-and `metric` are supplied by `edge.kk()` and may not be repeated here.}
+to \code{\link[=grip]{grip()}} when \code{init = "weighted_grip"}. Graph inputs, \code{dim}, \code{seed},
+and \code{metric} are supplied by \code{edge.kk()} and may not be repeated here.}
 
-\item{stiffness_method, stiffness_transform, density_mix_schedule, bandwidth, density_n}{Parameters passed to [edge.length.density.stiffness()].}
+\item{stiffness_method, stiffness_transform, density_mix_schedule, bandwidth, density_n}{Parameters passed to \code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}}.}
 
 \item{distance_power, stiffness_floor, stiffness_ceiling}{Additional stiffness
 constructor parameters.}
 
-\item{scale_mode}{Scale policy for edge targets. `"profiled"` analytically
-refits `s` at every state evaluation, `"identity"` fixes `s = 1`,
-`"fixed_initial"` fits `s` once at the first continuation stage, and
-`"user"` uses `scale`.}
+\item{scale_mode}{Scale policy for edge targets. \code{"profiled"} analytically
+refits \code{s} at every state evaluation, \code{"identity"} fixes \code{s = 1},
+\code{"fixed_initial"} fits \code{s} once at the first continuation stage, and
+\code{"user"} uses \code{scale}.}
 
-\item{scale}{User scale for `scale_mode = "user"`.}
+\item{scale}{User scale for \code{scale_mode = "user"}.}
 
 \item{max_iter}{Maximum iterations per continuation stage.}
 
@@ -96,25 +96,25 @@ controls.}
 
 \item{distance_floor}{Positive floor for relative residuals.}
 
-\item{recenter}{If `TRUE`, recenter the layout after accepted steps.}
+\item{recenter}{If \code{TRUE}, recenter the layout after accepted steps.}
 
-\item{return_trace}{If `TRUE`, keep per-iteration trace rows and coordinate
-frames. If `FALSE`, omit those payloads while retaining compact stage
-summaries in `metadata$stage_summaries`.}
+\item{return_trace}{If \code{TRUE}, keep per-iteration trace rows and coordinate
+frames. If \code{FALSE}, omit those payloads while retaining compact stage
+summaries in \code{metadata$stage_summaries}.}
 
-\item{diagnostics}{If `TRUE`, attach the common GMDS diagnostic panel.}
+\item{diagnostics}{If \code{TRUE}, attach the common GMDS diagnostic panel.}
 
-\item{seed}{Random seed used for `init = "weighted_grip"` and
-`init = "random"`.}
+\item{seed}{Random seed used for \code{init = "weighted_grip"} and
+\code{init = "random"}.}
 
-\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the
-edge-stress loop; `"R"` uses the reference implementation.}
+\item{engine}{Optimizer engine. \code{"cpp"} uses the Rcpp backend for the
+edge-stress loop; \code{"R"} uses the reference implementation.}
 }
 \value{
-A `"grip_gmds_layout"` object with method `"edge_kk"`.
+A \code{"grip_gmds_layout"} object with method \code{"edge_kk"}.
 }
 \description{
-`edge.kk()` is the edge-restricted Kamada--Kawai local repair operator for
+\code{edge.kk()} is the edge-restricted Kamada--Kawai local repair operator for
 the experimental GMDS layout program. Earlier notes called this operator
 edge-gKK or edge-isometric GMDS; edge-KK is the preferred name because the
 objective is restricted to graph edges rather than all graph-geodesic pairs.
@@ -124,17 +124,17 @@ It minimizes weighted edge-length stress
   \left(\|z_i-z_j\|_2 - s w_{ij}\right)^2
 }
 using deterministic gradient descent with Armijo backtracking. The default
-`density_mix_schedule` runs a continuation from density-weighted stiffnesses
+\code{density_mix_schedule} runs a continuation from density-weighted stiffnesses
 toward uniform stiffnesses.
 }
 \details{
-For scalable repair from an existing layout, pass `coords` or an edge-only
-object from [prepare.edge.kk()]. When raw graph inputs are supplied,
-`edge.kk()` uses edge-only preparation whenever `coords` are supplied or
-`init` is `"weighted_grip"` or `"random"`. Use `init = "weighted_grip"` for a scalable
-weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
+For scalable repair from an existing layout, pass \code{coords} or an edge-only
+object from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}}. When raw graph inputs are supplied,
+\code{edge.kk()} uses edge-only preparation whenever \code{coords} are supplied or
+\code{init} is \code{"weighted_grip"} or \code{"random"}. Use \code{init = "weighted_grip"} for a scalable
+weighted-GRIP warm start followed by edge-KK polish. If \code{coords} is omitted
 and either MDS initializer is requested, use an all-pairs prepared object from
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}} or \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}} instead.
 }
 \examples{
 cycle_edges <- edges.cycle(6)

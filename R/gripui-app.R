@@ -17,6 +17,7 @@
 #' project <- gripui_project(graph = graph, layouts = layouts, title = "Toy project")
 #' app <- gripui_app(project)
 #' inherits(app, "shiny.appobj")
+#' @md
 gripui_app <- function(project) {
   gripui_validate_project(project)
   old <- gripui.require.app.packages()
@@ -57,6 +58,7 @@ gripui_app <- function(project) {
 #'   quiet = TRUE,
 #'   auto.stop.after = 0.1
 #' )
+#' @md
 run_gripui <- function(project,
                        host = "127.0.0.1",
                        port = getOption("shiny.port"),

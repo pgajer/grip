@@ -112,6 +112,7 @@ gripui.normalize.layouts.df <- function(layouts) {
 #' )
 #' project <- gripui_project(graph = graph, layouts = layouts, title = "Path graph")
 #' project$meta$title
+#' @md
 gripui_project <- function(graph = NULL,
                            layouts,
                            title = NULL,
@@ -160,6 +161,7 @@ gripui_project <- function(graph = NULL,
 #' )
 #' project <- gripui_project(graph = NULL, layouts = layouts, title = "Validation example")
 #' gripui_validate_project(project)
+#' @md
 gripui_validate_project <- function(project) {
   if (!is.list(project)) {
     stop("project must be a list")
@@ -231,6 +233,7 @@ gripui_validate_project <- function(project) {
 #' )
 #' project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
 #' nrow(project$layouts)
+#' @md
 gripui_project_from_compare <- function(compare_obj,
                                         graph = NULL,
                                         vertex_data = NULL,
@@ -455,6 +458,7 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
 #'
 #' project <- gripui_project_from_dir(root, title = "My project")
 #' project$layouts$availability
+#' @md
 gripui_project_from_dir <- function(root,
                                     graph = NULL,
                                     title = NULL,

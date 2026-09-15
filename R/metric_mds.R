@@ -64,6 +64,10 @@ grip.mds.has.smacof <- function() {
 #' @seealso [classical.mds()], [edge.kk()], [smacof::mds()]
 #' @md
 #' @export
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 metric.mds <- function(prepared = NULL,
                        edges = NULL,
                        n = NULL,

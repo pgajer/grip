@@ -24,57 +24,57 @@ edge.repulsive.state(
 )
 }
 \arguments{
-\item{coords}{Numeric `n` by `dim` coordinate matrix.}
+\item{coords}{Numeric \code{n} by \code{dim} coordinate matrix.}
 
 \item{edges}{Integer or numeric matrix with two columns containing 1-based
 graph edge endpoints.}
 
 \item{edge.lengths}{Numeric vector of target edge lengths, parallel to
-`edges`.}
+\code{edges}.}
 
 \item{edge.weights}{Optional non-negative edge weights. Defaults to one.}
 
-\item{edge.family}{Edge potential family, either `"quadratic"` or
-`"upper_barrier"`.}
+\item{edge.family}{Edge potential family, either \code{"quadratic"} or
+\code{"upper_barrier"}.}
 
 \item{eps.plus}{Upper-barrier slack parameter.}
 
-\item{beta}{Upper-barrier strength. When `beta <= 0`, the edge potential is
+\item{beta}{Upper-barrier strength. When \code{beta <= 0}, the edge potential is
 quadratic.}
 
 \item{lambda}{Repulsion strength.}
 
 \item{pair.index}{Optional two-column matrix of 1-based vertex pairs for the
-repulsion term. If `NULL` and `lambda > 0`, all unordered pairs are used.}
+repulsion term. If \code{NULL} and \code{lambda > 0}, all unordered pairs are used.}
 
-\item{pair.weights}{Optional pair weights, parallel to `pair.index`.}
+\item{pair.weights}{Optional pair weights, parallel to \code{pair.index}.}
 
-\item{repulsion.family}{Repulsion potential family, either `"log"` or
-`"inverse_power"`.}
+\item{repulsion.family}{Repulsion potential family, either \code{"log"} or
+\code{"inverse_power"}.}
 
 \item{repulsion.delta}{Small positive softening parameter for pair distances.}
 
-\item{repulsion.power}{Power used by the `"inverse_power"` repulsion.}
+\item{repulsion.power}{Power used by the \code{"inverse_power"} repulsion.}
 
 \item{distance.eps}{Small positive distance floor used in derivatives.}
 
-\item{engine}{Backend engine. `"cpp"` is the default; `"R"` uses the
+\item{engine}{Backend engine. \code{"cpp"} is the default; \code{"R"} uses the
 reference implementation.}
 }
 \value{
 A list containing total energy, edge and repulsion energies,
-  gradient, gradient norm, feasibility flag, embedded edge lengths, relative
-  edge lengths, edge residuals, and number of upper-barrier wall violations.
+gradient, gradient norm, feasibility flag, embedded edge lengths, relative
+edge lengths, edge residuals, and number of upper-barrier wall violations.
 }
 \description{
-`edge.repulsive.state()` evaluates an experimental GMDS objective that
+\code{edge.repulsive.state()} evaluates an experimental GMDS objective that
 combines an edge-isometric term with a configurable repulsion term. The edge
 term penalizes deviation of embedded edge lengths from graph edge lengths.
 The repulsion term can be evaluated on all vertex pairs or on a selected pair
 set.
 }
 \details{
-The default `engine = "cpp"` uses the compiled backend. `engine = "R"` keeps
+The default \code{engine = "cpp"} uses the compiled backend. \code{engine = "R"} keeps
 a reference implementation available for diagnostics and regression tests.
 }
 \examples{

@@ -28,18 +28,18 @@ metric.mds(
 \item{prepared}{An all-pairs prepared graph object containing
 \code{distance_matrix}. Edge-only preparations are not supported.}
 
-\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+\item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
+\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to `edges`.}
+\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{dim}{Target embedding dimension. Values greater than 3 are supported
 for GMDS and edge-KK workflows.}
@@ -116,6 +116,13 @@ Supplied starts may have coincident points but must not be wholly collapsed.
 The implementation uses dense all-pairs matrices; edge-only refinement with
 \code{\link[=edge.kk]{edge.kk()}} is preferable when that preparation is too large.
 }
+\section{Workflow guides}{
+
+Start with \code{vignette("function-guide", package = "grip")}
+to choose a layout, diagnostic, or reference comparison. List installed
+guides with \code{vignette(package = "grip")}.
+}
+
 \examples{
 if (requireNamespace("smacof", quietly = TRUE)) {
   prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/gripui-project.R
 \name{gripui_project}
 \alias{gripui_project}
-\title{Create a normalized `gripui` project object}
+\title{Create a normalized \code{gripui} project object}
 \usage{
 gripui_project(
   graph = NULL,
@@ -14,9 +14,9 @@ gripui_project(
 }
 \arguments{
 \item{graph}{Optional graph object used by layout viewers. This may be a
-single list containing fields such as `adj_list`, `weight_list`,
-`vertex_data`, and `graph_info`, a named list of such graph objects for
-multi-stage projects, or `NULL` when only catalog exploration is needed.}
+single list containing fields such as \code{adj_list}, \code{weight_list},
+\code{vertex_data}, and \code{graph_info}, a named list of such graph objects for
+multi-stage projects, or \code{NULL} when only catalog exploration is needed.}
 
 \item{layouts}{Data frame with one row per realized layout.}
 
@@ -27,10 +27,10 @@ multi-stage projects, or `NULL` when only catalog exploration is needed.}
 \item{notes}{Optional notes string.}
 }
 \value{
-An object of class `gripui_project`.
+An object of class \code{gripui_project}.
 }
 \description{
-Create a normalized `gripui` project object
+Create a normalized \code{gripui} project object
 }
 \examples{
 graph <- list(adj_list = list(2L, c(1L, 3L), c(2L, 4L), 3L))

@@ -15,18 +15,18 @@ score.coordinates(
 \item{coords, reference}{Numeric matrices of identical dimensions, with rows
 in the same observation order. Row names do not trigger reordering.}
 
-\item{alignment}{One of `"rigid"` (translation and orthogonal transformation),
-`"none"`, or `"similarity"` (also fit a nonnegative uniform scale).}
+\item{alignment}{One of \code{"rigid"} (translation and orthogonal transformation),
+\code{"none"}, or \code{"similarity"} (also fit a nonnegative uniform scale).}
 
 \item{allow_reflection}{Allow a reflection in the fitted orthogonal matrix.}
 }
 \value{
-A list with `rmse`, `relative_rmse`, `coords` (aligned coordinates),
-  `rotation`, `translation`, `scale`, `alignment`, and `reference_radius`.
-  RMSE is the square root of the mean squared Euclidean vertex displacement,
-  not the mean over individual coordinate entries. Relative RMSE divides it
-  by the reference RMS radius about its centroid; it is NA for zero radius.
-  The transformation is `scale * coords %*% rotation + translation`.
+A list with \code{rmse}, \code{relative_rmse}, \code{coords} (aligned coordinates),
+\code{rotation}, \code{translation}, \code{scale}, \code{alignment}, and \code{reference_radius}.
+RMSE is the square root of the mean squared Euclidean vertex displacement,
+not the mean over individual coordinate entries. Relative RMSE divides it
+by the reference RMS radius about its centroid; it is NA for zero radius.
+The transformation is \code{scale * coords \%*\% rotation + translation}.
 }
 \description{
 Measures recovery of known coordinates, not preservation of graph distances.
@@ -34,10 +34,10 @@ Existing layout stability and Figure 7 diagnostics are not changed.
 }
 \details{
 A rigid fit preserves all distances. A similarity fit removes
-  uniform scale as well. No vertex correspondence is estimated. A collapsed
-  source is allowed for rigid alignment but has no identifiable similarity
-  scale and is rejected for similarity alignment. Nonunique rotations in
-  rank-deficient configurations can have the same minimum error.
+uniform scale as well. No vertex correspondence is estimated. A collapsed
+source is allowed for rigid alignment but has no identifiable similarity
+scale and is rejected for similarity alignment. Nonunique rotations in
+rank-deficient configurations can have the same minimum error.
 }
 \examples{
 x <- rbind(c(0, 0), c(1, 0), c(0, 1))

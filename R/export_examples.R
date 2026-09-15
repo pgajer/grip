@@ -425,6 +425,9 @@ NULL
 #' coords <- cbind(cos(theta), sin(theta))
 #' prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)
 #' score <- score.gmds(coords, prepared = prepared)
+#' score[, c("scale.mode", "edge.rel.rmse", "gmds.stress", "metric.chord.stress")]
+#' # These dimensionless errors assess edges, retained paths, and chords;
+#' # they do not measure agreement with reference coordinates.
 NULL
 
 #' @name score.landmark.geodesic.kk

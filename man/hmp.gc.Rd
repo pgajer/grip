@@ -7,21 +7,21 @@
 \format{
 A named list with components:
 \describe{
-  \item{adj_list}{Adjacency list with 1-based integer neighbor indices.}
-  \item{weight_list}{Parallel list of Euclidean edge lengths in the
-  ten-component PCA representation.}
-  \item{vertex_data}{Data frame with one row per HMP sample and columns for
-  sample identifier, HMP project, sequencing platform and phase, CST and
-  subCST annotations, and retained-read diagnostics.}
-  \item{graph_info}{Named list recording the cohort filter, representation,
-  graph constructor, selected `k`, and graph dimensions.}
+\item{adj_list}{Adjacency list with 1-based integer neighbor indices.}
+\item{weight_list}{Parallel list of Euclidean edge lengths in the
+ten-component PCA representation.}
+\item{vertex_data}{Data frame with one row per HMP sample and columns for
+sample identifier, HMP project, sequencing platform and phase, CST and
+subCST annotations, and retained-read diagnostics.}
+\item{graph_info}{Named list recording the cohort filter, representation,
+graph constructor, selected \code{k}, and graph dimensions.}
 }
 }
 \source{
 Derived from Illumina 16S rRNA amplicon profiles from the Ravel-led
-  UMB-HMP longitudinal vaginal cohort. Exact graph edges, sample metadata,
-  feature screening results, and provenance are distributed under
-  `inst/extdata/hmp_gc/`.
+UMB-HMP longitudinal vaginal cohort. Exact graph edges, sample metadata,
+feature screening results, and provenance are distributed under
+\verb{inst/extdata/hmp_gc/}.
 }
 \usage{
 hmp.gc
@@ -36,7 +36,7 @@ the related U01 cohort, and legacy 454 runs are excluded before preprocessing.
 \details{
 Taxonomic count features detected in at least one percent of the retained
 HMP samples are converted to relative abundance and represented by ten
-principal components. A symmetric `k = 3` nearest-neighbor graph is built in
+principal components. A symmetric \code{k = 3} nearest-neighbor graph is built in
 that representation, and the largest connected component is retained.
 }
 \examples{

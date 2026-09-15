@@ -28,34 +28,34 @@ prepare.misf.geodesic.kk(
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with `adj_list`, defaults to
-`length(adj_list)`. If omitted with `edges`, defaults to `max(edges)`.}
+\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
+\code{length(adj_list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
 
 \item{adj_list}{Adjacency list (1-based) for an undirected graph.}
 
 \item{weight_list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to `edges`.}
+\item{edge_weights}{Optional positive edge-weight vector parallel to \code{edges}.}
 
 \item{tie_mode}{Shortest-path aggregation mode inherited from
-[prepare.geodesic.kk()].}
+\code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.}
 
-\item{num_init}{Target top-level active-set size passed to `build.misf`.}
+\item{num_init}{Target top-level active-set size passed to \code{build.misf}.}
 
 \item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
-`build.misf`.}
+\code{build.misf}.}
 
-\item{dim}{Target embedding dimension (`2` or `3`) for the multiscale solve.}
+\item{dim}{Target embedding dimension (\code{2} or \code{3}) for the multiscale solve.}
 
-\item{top_level_mode}{Either `"solve"` or `"skip"`. When set to `"solve"`,
+\item{top_level_mode}{Either \code{"solve"} or \code{"skip"}. When set to \code{"solve"},
 the coarsest admissible MISF level is optimized immediately and stored in
-`prepared$top_level_fit`.}
+\code{prepared$top_level_fit}.}
 
-\item{top_level_pair_mode}{Pair policy for the top MISF level: `"auto"`,
-`"full"`, or `"landmark"`.}
+\item{top_level_pair_mode}{Pair policy for the top MISF level: \code{"auto"},
+\code{"full"}, or \code{"landmark"}.}
 
 \item{top_level_full_limit}{Active-set size threshold used when
-`top_level_pair_mode = "auto"`.}
+\code{top_level_pair_mode = "auto"}.}
 
 \item{top_level_local_nbrs}{Number of nearest graph-metric neighbors retained
 per vertex in the sparse top-level LGKK cache.}
@@ -68,19 +68,19 @@ MISF-GKK solve.}
 
 \item{top_level_max_iter}{Top-level iteration budget.}
 
-\item{top_level_init}{Top-level initializer (`"geometric"`, `"cmdscale"`, or
-`"random"`).}
+\item{top_level_init}{Top-level initializer (\code{"geometric"}, \code{"cmdscale"}, or
+\code{"random"}).}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
 \value{
-An object of class `"grip_misf_gkk_prepared"` layered on top of the
-  full geodesic-KK prepared structure, with added MISF metadata, top-level
-  coarse-graph caches, and stored default controls for the MISF-GKK
-  optimizer.
+An object of class \code{"grip_misf_gkk_prepared"} layered on top of the
+full geodesic-KK prepared structure, with added MISF metadata, top-level
+coarse-graph caches, and stored default controls for the MISF-GKK
+optimizer.
 }
 \description{
-`prepare.misf.geodesic.kk()` builds the prepared state for a MISF-based
+\code{prepare.misf.geodesic.kk()} builds the prepared state for a MISF-based
 geodesic-KK pipeline by layering the maximal independent set filtration
 (MISF) on top of the existing full geodesic-KK cache. The prepared object
 stores the graph metadata, the coarsest admissible top-level graph, the

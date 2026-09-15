@@ -84,7 +84,7 @@ repulsion strength; \code{0} disables that repulsive term.}
 and packs them into one coordinate matrix; \code{"error"} stops with an error.}
 }
 \value{
-A numeric matrix with `n` rows and `dim` columns.
+A numeric matrix with \code{n} rows and \code{dim} columns.
 }
 \description{
 This function preserves the original local-force wrapper and historical

@@ -2183,6 +2183,7 @@ score.geodesic.kk <- function(coords,
 #' @return A list with \code{coords}, \code{trace}, \code{frames},
 #'   \code{prepared}, and \code{score}.
 #' @export
+#' @md
 landmark.geodesic.kk <- function(coords,
                                                prepared = NULL,
                                                edges = NULL,
@@ -2415,6 +2416,7 @@ landmark.geodesic.kk <- function(coords,
 #' @return A list with \code{coords}, \code{trace}, \code{frames},
 #'   \code{prepared}, and \code{score}.
 #' @export
+#' @md
 geodesic.kk <- function(coords,
                                       prepared = NULL,
                                       edges = NULL,
@@ -3597,6 +3599,7 @@ prepare.edge.kk <- function(edges = NULL,
 #' @return A prepared object with class \code{"grip_gmds_prepared"} layered on
 #'   top of the existing full geodesic path-cache structure.
 #' @export
+#' @md
 prepare.graph.geodesic.mds <- function(edges = NULL,
                                             n = NULL,
                                             adj_list = NULL,
@@ -5207,6 +5210,10 @@ grip.compare.summary <- function(runs, layouts.by.candidate, score.weights) {
 #' coords <- grip(edges, n = 25, dim = 2, preset = "mesh", seed = 1)
 #' score.layout(coords, edges = edges, n = 25)
 #' @export
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 score.layout <- function(coords,
                          edges = NULL,
                          n = NULL,

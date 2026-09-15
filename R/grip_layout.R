@@ -888,6 +888,7 @@ grip.validate.layout.inputs <- function(edges = NULL,
 #'                                 seed = 1)
 #' round(coords, 3)
 #' @export
+#' @md
 globalrep.grip <- function(edges = NULL,
                                   n = NULL,
                                   adj_list = NULL,
@@ -1348,6 +1349,11 @@ globalrep.grip <- function(edges = NULL,
 #'   rounds = 4, final_rounds = 4, num_init = 3, seed = 1
 #' )
 #' @export
+#' @md
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 grip <- function(edges = NULL,
                         n = NULL,
                         adj_list = NULL,
@@ -1478,6 +1484,7 @@ grip <- function(edges = NULL,
 #'                              seed = 1)
 #' round(coords, 3)
 #' @export
+#' @md
 legacy.grip <- function(edges = NULL,
                                n = NULL,
                                adj_list = NULL,
@@ -2001,6 +2008,10 @@ grip.trace.hop <- function(edges = NULL,
 #' )
 #' tr$meta
 #' @export
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 trace.grip <- function(edges = NULL,
                        n = NULL,
                        adj_list = NULL,

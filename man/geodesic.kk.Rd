@@ -56,7 +56,7 @@ embedded edge length.}
 
 \item{initial_step}{Initial line-search step size.}
 
-\item{step_shrink}{Multiplicative shrink factor in `(0, 1)` for backtracking.}
+\item{step_shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
 
 \item{armijo_factor}{Non-negative Armijo decrease constant.}
 
@@ -78,7 +78,7 @@ accepted intermediate coordinate frames.}
 }
 \value{
 A list with \code{coords}, \code{trace}, \code{frames},
-  \code{prepared}, and \code{score}.
+\code{prepared}, and \code{score}.
 }
 \description{
 \code{geodesic.kk()} applies a deterministic gradient-descent

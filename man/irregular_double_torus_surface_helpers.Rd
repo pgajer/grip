@@ -70,25 +70,25 @@ numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 \code{irregular.double.torus.surface.graph()} returns a list with
 components:
 \itemize{
-  \item \code{edges}: the irregular double-torus edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D embedding,
-  \item \code{coords_param}: the canonical 3D double-torus coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"irregular.double.torus"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{slices}: number of non-pole slices,
-  \item \code{slice_sizes}: vertex counts in each slice,
-  \item \code{slice_components}: number of cyclic components in each slice,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the irregular double-torus edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D embedding,
+\item \code{coords_param}: the canonical 3D double-torus coordinates,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"irregular.double.torus"},
+\item \code{surface}: the chosen surface name,
+\item \code{slices}: number of non-pole slices,
+\item \code{slice_sizes}: vertex counts in each slice,
+\item \code{slice_components}: number of cyclic components in each slice,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
 Convenience helpers that build a closed genus-2 surface from a
 deterministically irregular slice family whose cyclic cross-sections follow a
-`1 -> 3 -> 1` loop transition between two poles. This gives a non-lattice,
+\code{1 -> 3 -> 1} loop transition between two poles. This gives a non-lattice,
 point-sampled double-torus graph together with either the canonical 3D
 embedding or simple bulged, twisted, and wavy deformations of that geometry.
 }

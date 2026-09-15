@@ -226,8 +226,49 @@ grip.gmds.band.weights <- function(graph.distances,
 #' @param band_quantiles Two quantiles splitting graph distances into short,
 #'   mid, and long bands.
 #'
-#' @return A one-row data frame with the common diagnostic columns.
+#' @return A one-row data frame. Lower residual errors indicate closer agreement
+#'   with the stated targets; no single column certifies geometric recovery.
+#' @section Diagnostic columns:
+#' A chord is the straight-line distance between two coordinates. A retained
+#' path adds embedded edge lengths along a route stored in the preparation.
+#' These can disagree on a folded graph. The diagnostic targets use the stored
+#' route convention and can differ slightly from strict shortest distances
+#' near ties. Compare candidates with the same graph, preparation, and scale policy.
+#'
+#' - `n.vertices`, `n.edges`, `n.pairs`: graph size and numbers of stored edges
+#'   and retained pairs (before exclusion of invalid or near-zero targets).
+#' - `scale.mode`: the requested scale policy. `edge.scale`, `gmds.scale`, and
+#'   `metric.chord.scale` multiply edge, path, and chord targets separately.
+#' - `edge.rel.rmse`, `gmds.stress`, `metric.chord.stress`: root sum squared
+#'   residual divided by root sum squared scaled target, a dimensionless error.
+#'   This is not the mean of squared pairwise relative errors and is not the
+#'   raw stress minimized by [metric.mds()].
+#' - `edge.rmse`, `gmds.rmse`, `metric.chord.rmse`: root mean squared residual
+#'   in drawn-coordinate units against the scaled targets.
+#' - `edge.mean.abs.error`, `gmds.mean.abs.error`: mean absolute residual in
+#'   drawn-coordinate units. The corresponding `mean.rel.abs.error` columns
+#'   (also available for `metric.chord`) average absolute residual/target ratios.
+#' - `edge.signed.bias`, `gmds.signed.bias`: mean residual/target ratio;
+#'   positive values indicate lengths greater than their scaled targets.
+#' - `gmds.short.stress`, `gmds.mid.stress`, `gmds.long.stress` and their
+#'   `signed.bias` counterparts: the path statistics restricted to bands defined
+#'   by `band_quantiles`; ties at a boundary belong to the lower band.
+#' - `shortcut.fraction`: fraction of evaluated retained paths more than 5%
+#'   shorter than their scaled target, between zero and one.
+#' - `spread.score`: RMS chord length divided by RMS unscaled graph target;
+#'   it changes with drawing scale and is not a universal quality grade.
+#'
+#' Residual summaries exclude nonfinite values, nonpositive weights, and targets
+#' no larger than `distance_floor`. Unavailable summaries are `NA`, including
+#' path/chord diagnostics for edge-only preparations. No reference alignment
+#' is performed. Use [score.coordinates()] or [score.surface()] for reference
+#' agreement, keeping their alignment and units explicit.
 #' @export
+#' @md
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 score.gmds <- function(coords,
                                    prepared = NULL,
                                    edges = NULL,
@@ -425,7 +466,12 @@ gmds.result <- function(coords,
 
 #' Print a geodesic-MDS layout summary
 #'
-#' Reports the method, coordinate dimensions, and available diagnostic scores.
+#' Reports the fitted objective, available stopping information, coordinate
+#' dimensions, and separately labeled graph diagnostics. Missing convergence
+#' metadata is reported as such; finite coordinates do not imply convergence.
+#' Printing never recomputes diagnostics. Raw metric-MDS stress has squared
+#' input-distance units. The displayed graph RMSE values are divided by the
+#' root mean squared target distance and are dimensionless.
 #' Extract \code{x$coords} to plot or score the coordinates.
 #' @param x A \code{grip_gmds_layout} object.
 #' @param ... Unused additional arguments.
@@ -433,18 +479,53 @@ gmds.result <- function(coords,
 #' @seealso \code{\link{classical.mds}}, \code{\link{metric.mds}}
 #' @export
 print.grip_gmds_layout <- function(x, ...) {
+  number <- function(value) format(value, digits = 6, trim = TRUE)
   cat("<grip_gmds_layout>\n")
   cat("  method:", x$method, "\n")
-  cat("  vertices:", nrow(x$coords), "\n")
-  cat("  dimension:", ncol(x$coords), "\n")
-  if (!is.null(x$diagnostics) && nrow(x$diagnostics) > 0L) {
-    if ("edge.rel.rmse" %in% names(x$diagnostics)) {
-      cat("  edge.rel.rmse:", format(x$diagnostics$edge.rel.rmse[[1L]], digits = 4), "\n")
-    }
-    if ("gmds.stress" %in% names(x$diagnostics)) {
-      cat("  gmds.stress:", format(x$diagnostics$gmds.stress[[1L]], digits = 4), "\n")
-    }
+  cat("  vertices:", nrow(x$coords), " | dimensions:", ncol(x$coords), "\n")
+  meta <- x$metadata
+  objective.name <- if (is.null(meta$objective)) {
+    if (identical(x$method, "edge_kk")) "edge-KK energy" else "not reported"
+  } else meta$objective
+  objective <- switch(objective.name,
+    raw_distance_stress = "raw distance stress (squared input-distance units)",
+    classical_strain = "classical strain (direct classical scaling)",
+    objective.name)
+  cat("  objective:", objective, "\n")
+  if (!is.null(meta$raw_stress)) cat("  raw stress:", number(meta$raw_stress), "\n")
+  if (!is.null(meta$converged)) {
+    cat("  converged:", if (isTRUE(meta$converged)) "yes" else "no", "\n")
+  } else {
+    cat("  convergence:", if (identical(x$method, "classical_mds"))
+      "not applicable (direct scaling)" else "not reported", "\n")
   }
+  if (!is.null(meta$termination)) cat("  termination:", meta$termination, "\n")
+  if (!is.null(meta$selected_start)) {
+    cat("  selected start:", meta$selected_start)
+    if (is.data.frame(meta$starts)) cat(" of ", nrow(meta$starts), sep = "")
+    cat("\n")
+  }
+  diag <- x$diagnostics
+  if (is.data.frame(diag) && nrow(diag) > 0L) {
+    cat("  graph diagnostics")
+    if ("scale.mode" %in% names(diag)) cat(" (scale policy: ", diag$scale.mode[[1L]], ")", sep = "")
+    cat(":\n")
+    if (all(c("n.edges", "n.pairs") %in% names(diag))) {
+      cat("    edges:", diag$n.edges[[1L]], " | retained pairs:", diag$n.pairs[[1L]], "\n")
+    }
+    labels <- c(edge.rel.rmse = "edge target-normalized RMSE",
+                gmds.stress = "retained-path target-normalized RMSE",
+                metric.chord.stress = "chord target-normalized RMSE")
+    for (name in intersect(names(labels), names(diag))) {
+      value <- diag[[name]][[1L]]
+      cat("   ", labels[[name]], ": ",
+          if (is.finite(value)) number(value) else "unavailable", "\n", sep = "")
+    }
+  } else {
+    cat("  graph diagnostics: not computed\n")
+  }
+  cat("  extract coordinates: x$coords; diagnostics: x$diagnostics\n")
+  if (!is.null(meta$starts)) cat("  inspect starts: x$metadata$starts\n")
   invisible(x)
 }
 
@@ -469,6 +550,11 @@ print.grip_gmds_layout <- function(x, ...) {
 #'
 #' @return A `"grip_gmds_layout"` object.
 #' @export
+#' @md
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
 classical.mds <- function(prepared = NULL,
                                    edges = NULL,
                                    n = NULL,
@@ -596,6 +682,7 @@ grip.apply.stiffness.transform <- function(x, transform) {
 #' @return A list with `stiffness`, raw signal diagnostics, estimated mode, and
 #'   clipping/normalization metadata.
 #' @export
+#' @md
 edge.length.density.stiffness <- function(edge_weights,
                                                method = c("density", "uniform", "distance_power"),
                                                mix = 0,
@@ -984,6 +1071,7 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #'
 #' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
 #' @export
+#' @md
 edge.kk <- function(coords = NULL,
                     prepared = NULL,
                     edges = NULL,

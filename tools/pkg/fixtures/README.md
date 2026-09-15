@@ -8,3 +8,8 @@ study summaries, or fitting caches.
 Run `make readme-saddle`, `make readme-saddle-animation`, or
 `make saddle-overlay-animation` from the package root to rebuild the previews.
 These commands require no manuscript repository and do not rerun fits.
+
+The [manifest](saddle-preview.json) records the fixture checksum and known display
+structure. Fitting settings and solver provenance are unavailable in this
+fixture; its historical method labels do not identify the current metric-MDS
+implementation. The website recipe distinguishes replay from fitting.

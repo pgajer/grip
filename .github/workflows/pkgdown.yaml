@@ -53,6 +53,9 @@ jobs:
             any::png
           needs: website
 
+      - name: Generate showcase assets
+        run: make readme-assets
+
       - name: Build pkgdown site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = TRUE)
         shell: Rscript {0}
@@ -60,9 +63,10 @@ jobs:
       # Publish generated GIFs with Pages; the README embeds these stable URLs.
       - name: Generate and stage gallery animations
         run: |
-          make readme-assets
           mkdir -p docs/reference/figures
           cp man/figures/readme-sierpinski-*-trace.gif docs/reference/figures/
+          cp man/figures/*-poster.png docs/reference/figures/
+          cp man/figures/readme-traces-provenance.txt docs/reference/figures/
           cp man/figures/readme-saddle-reference.png docs/reference/figures/
           cp man/figures/readme-saddle-rotation.gif docs/reference/figures/
           cp man/figures/readme-saddle-overlay-rotation.gif docs/reference/figures/

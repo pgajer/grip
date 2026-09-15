@@ -68,6 +68,7 @@ grip.complete.vertex_depth.from.levels <- function(levels, n) {
 #' misf$misf_size
 #' misf$levels[[1L]]
 #' @export
+#' @md
 build.misf <- function(edges = NULL,
                             n = NULL,
                             adj_list = NULL,

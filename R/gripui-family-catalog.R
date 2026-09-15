@@ -472,6 +472,7 @@
 #' catalog <- gripui_graph_family_catalog()
 #' names(catalog)
 #' catalog$mesh$function_name
+#' @md
 gripui_graph_family_catalog <- function() {
   graph_impl <- "R/graph_helpers.R"
 

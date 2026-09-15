@@ -7,6 +7,10 @@ if (!requireNamespace("rmarkdown", quietly = TRUE)) {
 if (!file.exists("README.Rmd")) {
   stop("README.Rmd was not found in the current working directory.")
 }
+if (!requireNamespace("pkgload", quietly = TRUE)) {
+  stop("Package 'pkgload' is required to render examples against this checkout.")
+}
+pkgload::load_all(".", quiet = TRUE, export_all = FALSE, helpers = FALSE)
 
 args <- commandArgs(trailingOnly = TRUE)
 render_html <- "--html" %in% args || "--all" %in% args

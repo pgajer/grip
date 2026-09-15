@@ -82,21 +82,21 @@ numeric matrix with columns \code{x}, \code{y}, and \code{z}.
 
 \code{irregular.rectangle.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the undirected rectangular-mesh edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the irregular 2D parameter coordinates,
-  \item \code{coords_regular_param}: the underlying regular 2D parameter
-    coordinates used to define the boundary-vanishing warp,
-  \item \code{row_breaks}: per-row parameter coordinates in row order,
-  \item \code{col_breaks}: per-column parameter coordinates in column order,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"irregular.rectangle"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{connectivity}: the chosen mesh connectivity rule,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the undirected rectangular-mesh edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D surface embedding,
+\item \code{coords_param}: the irregular 2D parameter coordinates,
+\item \code{coords_regular_param}: the underlying regular 2D parameter
+coordinates used to define the boundary-vanishing warp,
+\item \code{row_breaks}: per-row parameter coordinates in row order,
+\item \code{col_breaks}: per-column parameter coordinates in column order,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"irregular.rectangle"},
+\item \code{surface}: the chosen surface name,
+\item \code{connectivity}: the chosen mesh connectivity rule,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
@@ -106,11 +106,11 @@ resulting family stays simply connected and rectangular in topology while
 breaking the strongest row/column symmetries of the lattice.
 }
 \details{
-The `coords_param` component contains the irregular planar parameter
+The \code{coords_param} component contains the irregular planar parameter
 coordinates.
-The `coords_surface` component lifts those coordinates into
+The \code{coords_surface} component lifts those coordinates into
 \eqn{\mathbb{R}^3}.
-`irregular.rectangle.surface.graph()` returns a reusable weighted-graph
+\code{irregular.rectangle.surface.graph()} returns a reusable weighted-graph
 bundle with the induced Euclidean edge lengths.
 }
 \examples{

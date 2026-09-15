@@ -56,7 +56,7 @@ least 1.}
 }
 \value{
 A two-column integer matrix of undirected edges. Vertex labels are
-  consecutive integers starting at 1.
+consecutive integers starting at 1.
 }
 \description{
 Convenience helpers that build small undirected graph families as two-column
@@ -67,7 +67,7 @@ helpers are meant for examples, experiments, and reproducible tests.
 The exported generators cover primitive paths, cycles, regular meshes,
 cylinders, tori, cubes, trees, and the standard Sierpinski families.
 Specialized weighted benchmark families are exposed through complete
-`*.surface.graph()` and `*.solid.graph()` bundles instead of separate
+\verb{*.surface.graph()} and \verb{*.solid.graph()} bundles instead of separate
 edge-list and embedding functions. \code{\link{edges.sierpinski.triangle}()}
 builds the 2-simplex family,
 \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,

@@ -52,9 +52,9 @@ Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
 classic \eqn{3 \times 3} carpet mask with the center cell removed.
 }
 \details{
-The `coords_surface` component contains the 3D coordinates of the
+The \code{coords_surface} component contains the 3D coordinates of the
 occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
-`sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
+\code{sierpinski.carpet.surface.graph()} returns a reusable weighted-graph bundle
 for the named Sierpinski carpet family.
 }
 \examples{

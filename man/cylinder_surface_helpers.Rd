@@ -50,16 +50,16 @@ with columns \code{x}, \code{y}, and \code{z}.
 
 \code{cylinder.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the undirected cylindrical-grid edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the 2D unwrapped parameter coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"cylinder"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the undirected cylindrical-grid edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D surface embedding,
+\item \code{coords_param}: the 2D unwrapped parameter coordinates,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"cylinder"},
+\item \code{surface}: the chosen surface name,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
@@ -70,8 +70,8 @@ graph topology is cylindrical but the intended metric comes from a curved or
 spatially varying 3D realization.
 }
 \details{
-The `coords_surface` component contains the 3D coordinates of the embedded
-cylindrical grid. `cylinder.surface.graph()` returns a reusable weighted-graph
+The \code{coords_surface} component contains the 3D coordinates of the embedded
+cylindrical grid. \code{cylinder.surface.graph()} returns a reusable weighted-graph
 bundle containing the cylinder edges, induced edge weights, the 3D surface
 coordinates, and a 2D unwrapped parameterization.
 }

@@ -23,36 +23,36 @@ classical.mds(
 }
 \arguments{
 \item{prepared}{Optional all-pairs prepared object returned by
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
-Edge-only objects from [prepare.edge.kk()] are intentionally rejected
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}} or \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.
+Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} are intentionally rejected
 because classical MDS requires a graph distance matrix.}
 
-\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+\item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
+\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to `edges`.}
+\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{dim}{Target embedding dimension. Values greater than 3 are supported
 for GMDS and edge-KK workflows.}
 
-\item{add, eig}{Passed to `stats::cmdscale()`.}
+\item{add, eig}{Passed to \code{stats::cmdscale()}.}
 
-\item{diagnostics}{If `TRUE`, attach the common GMDS diagnostic panel. If
-`FALSE` and raw graph inputs are supplied, `classical.mds()` uses a
+\item{diagnostics}{If \code{TRUE}, attach the common GMDS diagnostic panel. If
+\code{FALSE} and raw graph inputs are supplied, \code{classical.mds()} uses a
 distance-matrix-only preparation path and does not build the full
 all-pairs path cache.}
 
 \item{scale_mode}{Scale policy for edge, path, and chord targets:
-`"profiled"` fits one scalar for each diagnostic family, `"identity"`
-uses scale one, and `"user"` uses the corresponding supplied scale.}
+\code{"profiled"} fits one scalar for each diagnostic family, \code{"identity"}
+uses scale one, and \code{"user"} uses the corresponding supplied scale.}
 
 \item{distance_floor}{Positive floor for relative residuals.}
 
@@ -62,13 +62,20 @@ uses scale one, and `"user"` uses the corresponding supplied scale.}
 mid, and long bands.}
 }
 \value{
-A `"grip_gmds_layout"` object.
+A \code{"grip_gmds_layout"} object.
 }
 \description{
-`classical.mds()` computes the classical-MDS baseline using
-`stats::cmdscale()` on the graph shortest-path distance matrix and returns a
-common `"grip_gmds_layout"` result.
+\code{classical.mds()} computes the classical-MDS baseline using
+\code{stats::cmdscale()} on the graph shortest-path distance matrix and returns a
+common \code{"grip_gmds_layout"} result.
 }
+\section{Workflow guides}{
+
+Start with \code{vignette("function-guide", package = "grip")}
+to choose a layout, diagnostic, or reference comparison. List installed
+guides with \code{vignette(package = "grip")}.
+}
+
 \examples{
 cycle_edges <- edges.cycle(6)
 prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/gripui-project.R
 \name{gripui_validate_project}
 \alias{gripui_validate_project}
-\title{Validate a `gripui_project`}
+\title{Validate a \code{gripui_project}}
 \usage{
 gripui_validate_project(project)
 }
@@ -10,10 +10,10 @@ gripui_validate_project(project)
 \item{project}{Object to validate.}
 }
 \value{
-Invisibly returns `TRUE` when validation succeeds.
+Invisibly returns \code{TRUE} when validation succeeds.
 }
 \description{
-Validate a `gripui_project`
+Validate a \code{gripui_project}
 }
 \examples{
 layouts <- data.frame(

@@ -2,7 +2,7 @@
 % Please edit documentation in R/gripui-project.R
 \name{gripui_project_from_compare}
 \alias{gripui_project_from_compare}
-\title{Convert `compare.layouts()` output into a `gripui_project`}
+\title{Convert \code{compare.layouts()} output into a \code{gripui_project}}
 \usage{
 gripui_project_from_compare(
   compare_obj,
@@ -13,22 +13,22 @@ gripui_project_from_compare(
 )
 }
 \arguments{
-\item{compare_obj}{Result of `compare.layouts()`.}
+\item{compare_obj}{Result of \code{compare.layouts()}.}
 
 \item{graph}{Optional graph object, named graph list, or path to a graph RDS.
-Defaults to `NULL` when only catalog exploration is needed.}
+Defaults to \code{NULL} when only catalog exploration is needed.}
 
-\item{vertex_data}{Optional vertex metadata added to `graph`.}
+\item{vertex_data}{Optional vertex metadata added to \code{graph}.}
 
-\item{graph_info}{Optional graph-level metadata added to `graph`.}
+\item{graph_info}{Optional graph-level metadata added to \code{graph}.}
 
 \item{title}{Optional project title.}
 }
 \value{
-A `gripui_project`.
+A \code{gripui_project}.
 }
 \description{
-Convert `compare.layouts()` output into a `gripui_project`
+Convert \code{compare.layouts()} output into a \code{gripui_project}
 }
 \examples{
 edges <- edges.path(5)

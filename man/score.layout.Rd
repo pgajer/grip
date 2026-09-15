@@ -79,6 +79,13 @@ divided by the median embedded edge length. Cluster separation is the mean
 pairwise distance between group centroids divided by the mean within-group
 radius.
 }
+\section{Workflow guides}{
+
+Start with \code{vignette("function-guide", package = "grip")}
+to choose a layout, diagnostic, or reference comparison. List installed
+guides with \code{vignette(package = "grip")}.
+}
+
 \examples{
 edges <- edges.mesh(5, 5)
 coords <- grip(edges, n = 25, dim = 2, preset = "mesh", seed = 1)

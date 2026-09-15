@@ -34,7 +34,7 @@ shortest paths between the pair.}
 }
 \value{
 A prepared object with class \code{"grip_gmds_prepared"} layered on
-  top of the existing full geodesic path-cache structure.
+top of the existing full geodesic path-cache structure.
 }
 \description{
 \code{prepare.graph.geodesic.mds()} prepares the full all-pairs chosen
@@ -49,11 +49,11 @@ an adjacency-list representation. The returned object stores the all-pairs
 graph distances, the chosen shortest-path family, and the flattened edge-path
 cache reused by the GMDS scorer and optimizer.
 
-The all-pairs `distance_matrix` contains symmetric strict graph
-  distances. Retained-route lengths in `pair_graph_distance` follow the
-  deterministic near-tie path convention and can differ slightly from these
-  targets. Route selection and path diagnostics are not changed by this
-  distinction.
+The all-pairs \code{distance_matrix} contains symmetric strict graph
+distances. Retained-route lengths in \code{pair_graph_distance} follow the
+deterministic near-tie path convention and can differ slightly from these
+targets. Route selection and path diagnostics are not changed by this
+distinction.
 }
 \examples{
 cycle_edges <- edges.cycle(6)

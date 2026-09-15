@@ -3237,6 +3237,7 @@ mask.tetrahedron.corner.missing <- function(
 #' }
 #'
 #' @name occupied_mesh_surface_helpers
+#' @md
 NULL
 
 # @rdname occupied_mesh_surface_helpers
@@ -4378,6 +4379,7 @@ keep.asymmetric.notches <- function(h,
 #' @param level Recursion depth for the Sierpinski graph families. Must be at
 #'   least 1.
 #' @name graph_generators
+#' @md
 NULL
 
 #' @describeIn graph_generators Path graph on \code{n} vertices.
@@ -4500,6 +4502,7 @@ edges.occupied.mesh <- function(keep,
 #' }
 #'
 #' @name mesh_surface_helpers
+#' @md
 NULL
 
 # @rdname mesh_surface_helpers
@@ -4673,6 +4676,7 @@ mesh.surface.graph <- function(h,
 #' }
 #'
 #' @name irregular_rectangle_surface_helpers
+#' @md
 NULL
 
 # @rdname irregular_rectangle_surface_helpers
@@ -4943,6 +4947,7 @@ irregular.rectangle.surface.graph <- function(h,
 #' }
 #'
 #' @name sampled_rectangle_surface_helpers
+#' @md
 NULL
 
 # @rdname sampled_rectangle_surface_helpers
@@ -5223,6 +5228,7 @@ sampled.rectangle.surface.graphs <- function(n,
 #' }
 #'
 #' @name cylinder_surface_helpers
+#' @md
 NULL
 
 # @rdname cylinder_surface_helpers
@@ -5387,6 +5393,7 @@ cylinder.surface.graph <- function(h,
 #' }
 #'
 #' @name torus_surface_helpers
+#' @md
 NULL
 
 # @rdname torus_surface_helpers
@@ -5796,6 +5803,7 @@ irregular.torus.surface.graph <- function(
 #' }
 #'
 #' @name irregular_double_torus_surface_helpers
+#' @md
 NULL
 
 # @rdname irregular_double_torus_surface_helpers
@@ -6314,6 +6322,7 @@ irregular.shell.solid.graph <- function(
 #' }
 #'
 #' @name sphere_surface_helpers
+#' @md
 NULL
 
 # @rdname sphere_surface_helpers
@@ -8581,6 +8590,7 @@ recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic()
 #' }
 #'
 #' @name recursive_mask_grid_surface_helpers
+#' @md
 NULL
 
 # @rdname recursive_mask_grid_surface_helpers
@@ -8705,6 +8715,7 @@ recursive.mask.grid.surface.graph <- function(mask,
 #' \code{"sierpinski.carpet"} and a family-specific class and label.
 #'
 #' @name sierpinski_carpet_surface_helpers
+#' @md
 NULL
 
 # @rdname sierpinski_carpet_surface_helpers
@@ -8780,6 +8791,7 @@ sierpinski.carpet.surface.graph <- function(level = 2,
 #' \code{"vicsek"} and a family-specific class and label.
 #'
 #' @name vicsek_surface_helpers
+#' @md
 NULL
 
 # @rdname vicsek_surface_helpers

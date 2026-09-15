@@ -48,59 +48,59 @@ kernel.gram.gkk(
 )
 }
 \arguments{
-\item{coords}{Optional starting coordinates. If omitted, `init` is used.}
+\item{coords}{Optional starting coordinates. If omitted, \code{init} is used.}
 
-\item{prepared}{Optional object returned by [prepare.edge.kk()],
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
-Edge-only objects from [prepare.edge.kk()] report only edge
+\item{prepared}{Optional object returned by \code{\link[=prepare.edge.kk]{prepare.edge.kk()}},
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}} or \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.
+Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} report only edge
 diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
-\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+\item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
+\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to `edges`.}
+\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
 
-\item{X}{Optional ambient/source coordinates used to build `star` when `star`
+\item{X}{Optional ambient/source coordinates used to build \code{star} when \code{star}
 is omitted.}
 
-\item{star}{Optional object from [graph.riemannian.star.structure()].}
+\item{star}{Optional object from \code{\link[=graph.riemannian.star.structure]{graph.riemannian.star.structure()}}.}
 
 \item{dim}{Target embedding dimension.}
 
-\item{init}{Starting layout used when `coords` is omitted. `"classical_mds"`
-uses classical scaling (the default), `"metric_mds"` uses stress MDS
-through smacof, both from an all-pairs prepared object; `"random"`
+\item{init}{Starting layout used when \code{coords} is omitted. \code{"classical_mds"}
+uses classical scaling (the default), \code{"metric_mds"} uses stress MDS
+through smacof, both from an all-pairs prepared object; \code{"random"}
 uses centered Gaussian coordinates.}
 
 \item{angle.power, reliability, min.angle.weight}{Passed to
-[graph.riemannian.star.structure()] when `star` is omitted.}
+\code{\link[=graph.riemannian.star.structure]{graph.riemannian.star.structure()}} when \code{star} is omitted.}
 
 \item{star.quantile}{Optional quantile filter passed to
-[graph.riemannian.star.structure()] when `star` is omitted.}
+\code{\link[=graph.riemannian.star.structure]{graph.riemannian.star.structure()}} when \code{star} is omitted.}
 
 \item{lambda.edge, lambda.gram}{Non-negative weights for the diagonal
 edge-length and off-diagonal Gram penalties.}
 
-\item{stiffness_method, stiffness_transform, density_mix, bandwidth, density_n}{Parameters passed to [edge.length.density.stiffness()] to construct
+\item{stiffness_method, stiffness_transform, density_mix, bandwidth, density_n}{Parameters passed to \code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}} to construct
 edge-length stiffnesses for the diagonal edge term.}
 
 \item{distance_power, stiffness_floor, stiffness_ceiling}{Additional stiffness
 constructor parameters.}
 
-\item{scale_mode}{Scale policy for edge targets. `"profiled"` analytically
-refits `s` at every state evaluation, `"identity"` fixes `s = 1`,
-`"fixed_initial"` fits `s` once at the first continuation stage, and
-`"user"` uses `scale`.}
+\item{scale_mode}{Scale policy for edge targets. \code{"profiled"} analytically
+refits \code{s} at every state evaluation, \code{"identity"} fixes \code{s = 1},
+\code{"fixed_initial"} fits \code{s} once at the first continuation stage, and
+\code{"user"} uses \code{scale}.}
 
-\item{scale}{User scale for `scale_mode = "user"`.}
+\item{scale}{User scale for \code{scale_mode = "user"}.}
 
 \item{max_iter}{Maximum iterations per continuation stage.}
 
@@ -111,23 +111,23 @@ controls.}
 
 \item{distance_floor}{Positive floor for relative residuals.}
 
-\item{recenter}{If `TRUE`, recenter the layout after accepted steps.}
+\item{recenter}{If \code{TRUE}, recenter the layout after accepted steps.}
 
-\item{return_trace}{If `TRUE`, keep per-iteration trace rows and coordinate
+\item{return_trace}{If \code{TRUE}, keep per-iteration trace rows and coordinate
 frames.}
 
-\item{diagnostics}{If `TRUE`, attach the common GMDS diagnostic panel.}
+\item{diagnostics}{If \code{TRUE}, attach the common GMDS diagnostic panel.}
 
-\item{seed}{Random seed used only for `init = "random"`.}
+\item{seed}{Random seed used only for \code{init = "random"}.}
 
-\item{engine}{Optimizer engine. `"cpp"` uses the Rcpp backend for the
-edge-stress loop; `"R"` uses the reference implementation.}
+\item{engine}{Optimizer engine. \code{"cpp"} uses the Rcpp backend for the
+edge-stress loop; \code{"R"} uses the reference implementation.}
 }
 \value{
-A `"grip_gmds_layout"` object with method `"kernel_gram_gkk"`.
+A \code{"grip_gmds_layout"} object with method \code{"kernel_gram_gkk"}.
 }
 \description{
-`kernel.gram.gkk()` extends edge-only gKK with a local
+\code{kernel.gram.gkk()} extends edge-only gKK with a local
 Riemannian star penalty. The off-diagonal Gram term preserves target inner
 products between pairs of incident edge directions:
 \deqn{
@@ -136,8 +136,8 @@ products between pairs of incident edge directions:
   \langle z_v-z_u,z_{v'}-z_u\rangle
   - s^2 w_{uv}w_{uv'}\cos\alpha_u(v,v')\right)^2.
 }
-The star weights are built by [graph.riemannian.star.structure()], usually
-with an antipodal kernel controlled by `angle.power`.
+The star weights are built by \code{\link[=graph.riemannian.star.structure]{graph.riemannian.star.structure()}}, usually
+with an antipodal kernel controlled by \code{angle.power}.
 }
 \examples{
 cycle_edges <- edges.cycle(6)

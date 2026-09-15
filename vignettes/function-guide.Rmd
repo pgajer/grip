@@ -33,13 +33,6 @@ geometry, or how a drawing compares with a known reference? Start with that
 question. `grip()` computes a drawing; scoring, tracing, and graph-family
 helpers support different decisions around that drawing.
 
-This guide covers **104 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 106
-unique exported or registered function names, not 107. The catalog gives each
-export exactly one row. Methods selected by R's generic functions are explained
-through their objects below. Internal helpers and the compatibility aliases
-retired in 0.2.0 are not public entry points.
-
 ## Choose a starting point
 
 | Your question | Entry point | Follow-up |
@@ -65,7 +58,7 @@ Euclidean separation in the drawing matches shortest-path hop counts after
 fitting a common scale. Zero means perfect agreement on the evaluated pairs;
 it does not certify that every geometric feature or unsampled pair is correct.
 
-```{r first-layout}
+```{r first-layout, fig.alt="A 20-vertex rectangular mesh drawn with the mesh preset, showing its rows and columns."}
 library(grip)
 edges <- edges.mesh(4, 5)
 coords <- grip(edges, n = 20, dim = 2, preset = "mesh", seed = 11)
@@ -282,6 +275,13 @@ choice or defaults to `"geometric"`. Its `"cmdscale"` spelling still means
 classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
+
+This guide covers **104 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 106
+unique exported or registered function names, not 107. The catalog gives each
+export exactly one row. Methods selected by R's generic functions are explained
+through their objects below. Internal helpers and the compatibility aliases
+retired in 0.2.0 are not public entry points.
 
 Each row below is one explicit export. **Help** opens the detailed help page;
 in an offline R session use `help("function.name", package = "grip")`.

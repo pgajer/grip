@@ -39,8 +39,8 @@ Used only when \code{surface = "ripple"}.}
 
 \item{y_scale}{Positive vertical scaling of the parameter domain.}
 
-\item{connectivity}{Mesh neighborhood rule. `"orthogonal"` keeps the
-four-neighbor grid; `"diagonal"` also adds both diagonals of every unit
+\item{connectivity}{Mesh neighborhood rule. \code{"orthogonal"} keeps the
+four-neighbor grid; \code{"diagonal"} also adds both diagonals of every unit
 square.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -52,17 +52,17 @@ columns \code{x}, \code{y}, and \code{z}.
 
 \code{mesh.surface.graph()} returns a list with components:
 \itemize{
-  \item \code{edges}: the undirected mesh edges,
-  \item \code{n}: number of vertices,
-  \item \code{edge_weights}: induced positive edge lengths,
-  \item \code{coords_surface}: the 3D surface embedding,
-  \item \code{coords_param}: the 2D parameter-grid coordinates,
-  \item \code{weight_scale}: the normalization constant applied to the raw
-    edge lengths,
-  \item \code{family}: always \code{"mesh"},
-  \item \code{surface}: the chosen surface name,
-  \item \code{connectivity}: the chosen mesh connectivity rule,
-  \item \code{label}: a human-readable family label.
+\item \code{edges}: the undirected mesh edges,
+\item \code{n}: number of vertices,
+\item \code{edge_weights}: induced positive edge lengths,
+\item \code{coords_surface}: the 3D surface embedding,
+\item \code{coords_param}: the 2D parameter-grid coordinates,
+\item \code{weight_scale}: the normalization constant applied to the raw
+edge lengths,
+\item \code{family}: always \code{"mesh"},
+\item \code{surface}: the chosen surface name,
+\item \code{connectivity}: the chosen mesh connectivity rule,
+\item \code{label}: a human-readable family label.
 }
 }
 \description{
@@ -73,8 +73,8 @@ topology is a plain mesh but the intended metric comes from a curved ambient
 geometry.
 }
 \details{
-The `coords_surface` component contains the 3D coordinates of the lifted grid.
-`mesh.surface.graph()` returns a reusable weighted-graph bundle containing the
+The \code{coords_surface} component contains the 3D coordinates of the lifted grid.
+\code{mesh.surface.graph()} returns a reusable weighted-graph bundle containing the
 mesh edges, induced edge weights, the 3D surface coordinates, and the 2D
 parameter coordinates.
 }

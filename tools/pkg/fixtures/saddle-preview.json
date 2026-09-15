@@ -1,0 +1,22 @@
+{
+  "artifact": "saddle-preview.rds",
+  "sha256": "d166428c0db0f4d9885705b1af541fdab08678e2b4d5d30ba57919bac099f068",
+  "role": "Frozen display fixture; rendering does not rerun fits",
+  "vertices": 1000,
+  "triangles": 1977,
+  "stored_labels": [
+    "Original saddle",
+    "Metric MDS",
+    "MDS + edge-KK"
+  ],
+  "fitting_provenance": {
+    "solver_version": null,
+    "objective": null,
+    "initialization": null,
+    "seed": null,
+    "termination": null,
+    "alignment_transform": null
+  },
+  "interpretation": "Historical method labels do not establish use of the current metric.mds solver. This fixture supports shape inspection and replay, not a current solver comparison.",
+  "render_recipe": "tools/pkg/render-saddle-preview.R; make readme-saddle-animation; make saddle-overlay-animation"
+}

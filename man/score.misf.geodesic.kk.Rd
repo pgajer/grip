@@ -19,11 +19,11 @@ score.misf.geodesic.kk(
 )
 }
 \arguments{
-\item{fit}{Optional fit from [misf.geodesic.kk()].}
+\item{fit}{Optional fit from \code{\link[=misf.geodesic.kk]{misf.geodesic.kk()}}.}
 
-\item{coords}{Optional coordinate matrix used when `fit` is omitted.}
+\item{coords}{Optional coordinate matrix used when \code{fit} is omitted.}
 
-\item{prepared}{Optional MISF-GKK prepared object used when `fit` is omitted.}
+\item{prepared}{Optional MISF-GKK prepared object used when \code{fit} is omitted.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
@@ -33,11 +33,11 @@ score.misf.geodesic.kk(
 \item{edge_length_epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{score_pair_mode}{Requested scoring pair policy: `"full"`,
-`"landmark"`, or `"auto"`.}
+\item{score_pair_mode}{Requested scoring pair policy: \code{"full"},
+\code{"landmark"}, or \code{"auto"}.}
 
 \item{score_full_limit}{Active-set size threshold used when
-`score_pair_mode = "auto"`.}
+\code{score_pair_mode = "auto"}.}
 
 \item{score_local_nbrs}{Sparse local-neighborhood size used for
 landmark-based scoring.}
@@ -45,18 +45,18 @@ landmark-based scoring.}
 \item{score_landmark_count}{Sparse landmark count used for landmark-based
 scoring.}
 
-\item{return_trace}{If `TRUE`, attach any trace tables stored inside `fit`.}
+\item{return_trace}{If \code{TRUE}, attach any trace tables stored inside \code{fit}.}
 }
 \value{
 A one-row data frame with final MISF-GKK summary fields and either
-  full-GKK or landmark-GKK score columns, depending on the resolved scoring
-  policy. If `return_trace = TRUE`, trace list-columns are attached when
-  available.
+full-GKK or landmark-GKK score columns, depending on the resolved scoring
+policy. If \code{return_trace = TRUE}, trace list-columns are attached when
+available.
 }
 \description{
-`score.misf.geodesic.kk()` summarizes external coordinates against a
+\code{score.misf.geodesic.kk()} summarizes external coordinates against a
 MISF-GKK prepared object using either the exact full geodesic-KK scorer or
-the sparse landmark geodesic-KK scorer, depending on `score_pair_mode`. When
+the sparse landmark geodesic-KK scorer, depending on \code{score_pair_mode}. When
 a full MISF-GKK fit is supplied, the function also carries over the
 multiscale stage metadata and any trace tables retained by the optimizer.
 }

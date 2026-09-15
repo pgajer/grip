@@ -65,24 +65,24 @@ geodesic-KK prepared object or a MISF-GKK prepared object.}
 
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with `adj_list`, defaults to
-`length(adj_list)`. If omitted with `edges`, defaults to `max(edges)`.}
+\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
+\code{length(adj_list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
 
 \item{adj_list}{Adjacency list (1-based) for an undirected graph.}
 
 \item{weight_list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to `edges`.}
+\item{edge_weights}{Optional positive edge-weight vector parallel to \code{edges}.}
 
 \item{tie_mode}{Shortest-path aggregation mode inherited from
-[prepare.geodesic.kk()].}
+\code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.}
 
-\item{num_init}{Target top-level active-set size passed to `build.misf`.}
+\item{num_init}{Target top-level active-set size passed to \code{build.misf}.}
 
 \item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
-`build.misf`.}
+\code{build.misf}.}
 
-\item{dim}{Target embedding dimension (`2` or `3`) for the multiscale solve.}
+\item{dim}{Target embedding dimension (\code{2} or \code{3}) for the multiscale solve.}
 
 \item{top_level_pair_mode}{Optional override for the top-level pair policy.}
 
@@ -168,7 +168,7 @@ embedded edge length.}
 
 \item{initial_step}{Initial line-search step size.}
 
-\item{step_shrink}{Multiplicative shrink factor in `(0, 1)` for backtracking.}
+\item{step_shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
 
 \item{armijo_factor}{Non-negative Armijo decrease constant.}
 
@@ -176,22 +176,22 @@ embedded edge length.}
 
 \item{min_step}{Positive minimum accepted line-search step before giving up.}
 
-\item{recenter}{If `TRUE`, recenter accepted proposals to zero mean after
+\item{recenter}{If \code{TRUE}, recenter accepted proposals to zero mean after
 each accepted step.}
 
-\item{return_trace}{If `TRUE`, retain detailed stage traces.}
+\item{return_trace}{If \code{TRUE}, retain detailed stage traces.}
 
-\item{return_frames}{If `TRUE`, retain intermediate coordinate frames.}
+\item{return_frames}{If \code{TRUE}, retain intermediate coordinate frames.}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
 \value{
-A list with `coords`, `prepared`, the per-stage multiscale results,
-  the stage trace, optional trace/frame details, timing, and the final MISF
-  score summary.
+A list with \code{coords}, \code{prepared}, the per-stage multiscale results,
+the stage trace, optional trace/frame details, timing, and the final MISF
+score summary.
 }
 \description{
-`misf.geodesic.kk()` runs a multiscale MISF-based geodesic-KK
+\code{misf.geodesic.kk()} runs a multiscale MISF-based geodesic-KK
 pipeline. It solves the top MISF graph with either full GKK or sparse LGKK,
 inserts lower-level vertices with the existing MISF placement helpers, refines
 each active MISF level under a GKK/LGKK objective, and finishes with a final

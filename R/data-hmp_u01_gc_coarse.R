@@ -36,4 +36,5 @@
 #' data(hmp.u01.gc.coarse)
 #' length(hmp.u01.gc.coarse$adj_list)
 #' head(hmp.u01.gc.coarse$vertex_data[, c("vertex_id", "size", "cst", "subcst")])
+#' @md
 hmp.u01.gc.coarse <- NULL

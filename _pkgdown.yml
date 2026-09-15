@@ -4,6 +4,12 @@ template:
   bootstrap: 5
   light-switch: true
   includes:
+    before_body: |
+      <aside class="grip-version-note" aria-label="Documentation version">
+        <strong>Development documentation (0.2.0.9001).</strong>
+        For the released package, use the <a href="https://cran.r-project.org/web/packages/grip/index.html">CRAN manual and vignettes</a>.
+        In CRAN 0.2.0, <code>metric.mds()</code> performs classical scaling; this development version minimizes raw distance stress.
+      </aside>
     in_header: |
       <link rel="icon" type="image/svg+xml" sizes="any" href="https://pgajer.github.io/grip/favicon.svg">
   bslib:
@@ -33,7 +39,7 @@ navbar:
   components:
     intro:
       text: Get started
-      href: index.html
+      href: articles/grip-examples.html
     articles:
       text: Articles
       menu:
@@ -56,6 +62,8 @@ navbar:
         - text: "Comparing with Alternatives"
           href: articles/grip-vs-alternatives.html
         - text: "---"
+        - text: Showcase recipes
+          href: articles/showcase-recipes.html
         - text: Gallery
           href: articles/gallery.html
     changelog:

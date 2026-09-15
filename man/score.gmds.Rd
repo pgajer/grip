@@ -24,30 +24,30 @@ score.gmds(
 \arguments{
 \item{coords}{Numeric coordinate matrix.}
 
-\item{prepared}{Optional object returned by [prepare.edge.kk()],
-[prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
-Edge-only objects from [prepare.edge.kk()] report only edge
+\item{prepared}{Optional object returned by \code{\link[=prepare.edge.kk]{prepare.edge.kk()}},
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}} or \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.
+Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} report only edge
 diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
-\item{edges}{Two-column integer edge matrix used when `prepared` is omitted.
+\item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when `prepared` is omitted.}
+\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to `adj_list`.}
+\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to `edges`.}
+\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{scale_mode}{Scale policy for edge, path, and chord targets:
-`"profiled"` fits one scalar for each diagnostic family, `"identity"`
-uses scale one, and `"user"` uses the corresponding supplied scale.}
+\code{"profiled"} fits one scalar for each diagnostic family, \code{"identity"}
+uses scale one, and \code{"user"} uses the corresponding supplied scale.}
 
 \item{edge_scale, path_scale, chord_scale}{Optional user scales used when
-`scale_mode = "user"`.}
+\code{scale_mode = "user"}.}
 
 \item{distance_floor}{Positive floor for relative residuals.}
 
@@ -57,19 +57,69 @@ uses scale one, and `"user"` uses the corresponding supplied scale.}
 mid, and long bands.}
 }
 \value{
-A one-row data frame with the common diagnostic columns.
+A one-row data frame. Lower residual errors indicate closer agreement
+with the stated targets; no single column certifies geometric recovery.
 }
 \description{
-`score.gmds()` provides a common diagnostic panel for GMDS-oriented
+\code{score.gmds()} provides a common diagnostic panel for GMDS-oriented
 layouts. It summarizes edge-length fidelity, fixed-path geodesic
 stress, short/mid/long geodesic bands, ordinary metric-MDS chord stress, and
 simple spread/shortcut diagnostics for any coordinate matrix on a prepared
 graph.
 }
+\section{Diagnostic columns}{
+
+A chord is the straight-line distance between two coordinates. A retained
+path adds embedded edge lengths along a route stored in the preparation.
+These can disagree on a folded graph. The diagnostic targets use the stored
+route convention and can differ slightly from strict shortest distances
+near ties. Compare candidates with the same graph, preparation, and scale policy.
+\itemize{
+\item \code{n.vertices}, \code{n.edges}, \code{n.pairs}: graph size and numbers of stored edges
+and retained pairs (before exclusion of invalid or near-zero targets).
+\item \code{scale.mode}: the requested scale policy. \code{edge.scale}, \code{gmds.scale}, and
+\code{metric.chord.scale} multiply edge, path, and chord targets separately.
+\item \code{edge.rel.rmse}, \code{gmds.stress}, \code{metric.chord.stress}: root sum squared
+residual divided by root sum squared scaled target, a dimensionless error.
+This is not the mean of squared pairwise relative errors and is not the
+raw stress minimized by \code{\link[=metric.mds]{metric.mds()}}.
+\item \code{edge.rmse}, \code{gmds.rmse}, \code{metric.chord.rmse}: root mean squared residual
+in drawn-coordinate units against the scaled targets.
+\item \code{edge.mean.abs.error}, \code{gmds.mean.abs.error}: mean absolute residual in
+drawn-coordinate units. The corresponding \code{mean.rel.abs.error} columns
+(also available for \code{metric.chord}) average absolute residual/target ratios.
+\item \code{edge.signed.bias}, \code{gmds.signed.bias}: mean residual/target ratio;
+positive values indicate lengths greater than their scaled targets.
+\item \code{gmds.short.stress}, \code{gmds.mid.stress}, \code{gmds.long.stress} and their
+\code{signed.bias} counterparts: the path statistics restricted to bands defined
+by \code{band_quantiles}; ties at a boundary belong to the lower band.
+\item \code{shortcut.fraction}: fraction of evaluated retained paths more than 5\%
+shorter than their scaled target, between zero and one.
+\item \code{spread.score}: RMS chord length divided by RMS unscaled graph target;
+it changes with drawing scale and is not a universal quality grade.
+}
+
+Residual summaries exclude nonfinite values, nonpositive weights, and targets
+no larger than \code{distance_floor}. Unavailable summaries are \code{NA}, including
+path/chord diagnostics for edge-only preparations. No reference alignment
+is performed. Use \code{\link[=score.coordinates]{score.coordinates()}} or \code{\link[=score.surface]{score.surface()}} for reference
+agreement, keeping their alignment and units explicit.
+}
+
+\section{Workflow guides}{
+
+Start with \code{vignette("function-guide", package = "grip")}
+to choose a layout, diagnostic, or reference comparison. List installed
+guides with \code{vignette(package = "grip")}.
+}
+
 \examples{
 cycle_edges <- edges.cycle(6)
 theta <- seq(0, 2 * pi, length.out = 7)[-7]
 coords <- cbind(cos(theta), sin(theta))
 prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)
 score <- score.gmds(coords, prepared = prepared)
+score[, c("scale.mode", "edge.rel.rmse", "gmds.stress", "metric.chord.stress")]
+# These dimensionless errors assess edges, retained paths, and chords;
+# they do not measure agreement with reference coordinates.
 }

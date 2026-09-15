@@ -10,7 +10,7 @@ gripui_graph_family_catalog()
 A named list of family descriptors.
 }
 \description{
-The catalog is a registry used by `gripui_family_app()` to populate its
+The catalog is a registry used by \code{gripui_family_app()} to populate its
 family selector, presets, parameter controls, builder calls, and source
 references.
 }

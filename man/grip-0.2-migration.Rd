@@ -50,58 +50,60 @@ The canonical replacements are listed below.
 }
 \section{Removed aliases}{
 
-- `grip.layout()` -> [grip()]
-- `grip.layout.globalrep()` -> [globalrep.grip()]
-- `grip.layout.globalrep.weighted()` -> [globalrep.weighted.grip()]
-- `grip.layout.legacy()` -> [legacy.grip()]
-- `grip.layout.trace()` -> [trace.grip()]
-- `grip.layout.trace.legacy()` -> [trace.legacy.grip()]
-- `grip.layout.trace.weighted()` -> `trace.grip(metric = "edge_length")`
-- `grip.layout.weighted()` -> `grip(metric = "edge_length")`
-- `grip.layout.weighted.nd()` -> [weighted.grip.nd()]
-- `grip.plot()` -> [plot.layout()]
-- `grip.project.3d()` -> [project.3d()]
-- `grip.metric.mds.layout()` -> [classical.mds()] (classical scaling)
-- `grip.optimize.kernel.gram.gkk.layout()` -> [kernel.gram.gkk()]
-- `grip.score.gmds.layout()` -> [score.gmds()]
-- `grip.gmds.layout.result()` -> `gmds.result()` (now internal)
-- `grip.edge.length.density.stiffness()` ->
-  [edge.length.density.stiffness()]
-- `grip.prepare.landmark.geodesic.kk()` ->
-  [prepare.landmark.geodesic.kk()]
-- `grip.prepare.geodesic.kk()` -> [prepare.geodesic.kk()]
-- `grip.prepare.graph.geodesic.mds()` ->
-  [prepare.graph.geodesic.mds()]
-- `grip.prepare.misf.geodesic.kk()` -> [prepare.misf.geodesic.kk()]
-- `grip.prepare.edge.kk()` -> [prepare.edge.kk()]
-- `grip.score.landmark.geodesic.kk()` -> [score.landmark.geodesic.kk()]
-- `grip.score.geodesic.kk()` -> [score.geodesic.kk()]
-- `grip.score.misf.geodesic.kk()` -> [score.misf.geodesic.kk()]
-- `grip.optimize.landmark.geodesic.kk()` -> [landmark.geodesic.kk()]
-- `grip.optimize.geodesic.kk()` -> [geodesic.kk()]
-- `grip.optimize.misf.geodesic.kk()` -> [misf.geodesic.kk()]
-- `grip.optimize.edge.kk.layout()` -> [edge.kk()]
-- `grip.optimize.edge.gkk.layout()` -> [edge.kk()]
-- `grip.optimize.edge.isometric.layout()` -> [edge.kk()]
-- `grip.optimize.edge.repulsive.stage()` -> [edge.repulsive.stage()]
-- `grip.optimize.repulsive.stage()` -> [repulsive.stage()]
-- `grip.edge.repulsive.state()` -> [edge.repulsive.state()]
-- `grip.repulsive.state()` -> [repulsive.state()]
-- `grip.build.misf.weighted()` -> [build.weighted.misf()]
-- `grip.build.misf()` -> [build.misf()]
-- `grip.geometry.diagnostics()` -> [geometry.diagnostics()]
-- `grip.params.from.summary()` -> [params.from.summary()]
-- `grip.score.layout()` -> [score.layout()]
-- `grip.compare.layouts()` -> [compare.layouts()]
+\itemize{
+\item \code{grip.layout()} -> \code{\link[=grip]{grip()}}
+\item \code{grip.layout.globalrep()} -> \code{\link[=globalrep.grip]{globalrep.grip()}}
+\item \code{grip.layout.globalrep.weighted()} -> \code{\link[=globalrep.weighted.grip]{globalrep.weighted.grip()}}
+\item \code{grip.layout.legacy()} -> \code{\link[=legacy.grip]{legacy.grip()}}
+\item \code{grip.layout.trace()} -> \code{\link[=trace.grip]{trace.grip()}}
+\item \code{grip.layout.trace.legacy()} -> \code{\link[=trace.legacy.grip]{trace.legacy.grip()}}
+\item \code{grip.layout.trace.weighted()} -> \code{trace.grip(metric = "edge_length")}
+\item \code{grip.layout.weighted()} -> \code{grip(metric = "edge_length")}
+\item \code{grip.layout.weighted.nd()} -> \code{\link[=weighted.grip.nd]{weighted.grip.nd()}}
+\item \code{grip.plot()} -> \code{\link[=plot.layout]{plot.layout()}}
+\item \code{grip.project.3d()} -> \code{\link[=project.3d]{project.3d()}}
+\item \code{grip.metric.mds.layout()} -> \code{\link[=classical.mds]{classical.mds()}} (classical scaling)
+\item \code{grip.optimize.kernel.gram.gkk.layout()} -> \code{\link[=kernel.gram.gkk]{kernel.gram.gkk()}}
+\item \code{grip.score.gmds.layout()} -> \code{\link[=score.gmds]{score.gmds()}}
+\item \code{grip.gmds.layout.result()} -> \code{gmds.result()} (now internal)
+\item \code{grip.edge.length.density.stiffness()} ->
+\code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}}
+\item \code{grip.prepare.landmark.geodesic.kk()} ->
+\code{\link[=prepare.landmark.geodesic.kk]{prepare.landmark.geodesic.kk()}}
+\item \code{grip.prepare.geodesic.kk()} -> \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}
+\item \code{grip.prepare.graph.geodesic.mds()} ->
+\code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}}
+\item \code{grip.prepare.misf.geodesic.kk()} -> \code{\link[=prepare.misf.geodesic.kk]{prepare.misf.geodesic.kk()}}
+\item \code{grip.prepare.edge.kk()} -> \code{\link[=prepare.edge.kk]{prepare.edge.kk()}}
+\item \code{grip.score.landmark.geodesic.kk()} -> \code{\link[=score.landmark.geodesic.kk]{score.landmark.geodesic.kk()}}
+\item \code{grip.score.geodesic.kk()} -> \code{\link[=score.geodesic.kk]{score.geodesic.kk()}}
+\item \code{grip.score.misf.geodesic.kk()} -> \code{\link[=score.misf.geodesic.kk]{score.misf.geodesic.kk()}}
+\item \code{grip.optimize.landmark.geodesic.kk()} -> \code{\link[=landmark.geodesic.kk]{landmark.geodesic.kk()}}
+\item \code{grip.optimize.geodesic.kk()} -> \code{\link[=geodesic.kk]{geodesic.kk()}}
+\item \code{grip.optimize.misf.geodesic.kk()} -> \code{\link[=misf.geodesic.kk]{misf.geodesic.kk()}}
+\item \code{grip.optimize.edge.kk.layout()} -> \code{\link[=edge.kk]{edge.kk()}}
+\item \code{grip.optimize.edge.gkk.layout()} -> \code{\link[=edge.kk]{edge.kk()}}
+\item \code{grip.optimize.edge.isometric.layout()} -> \code{\link[=edge.kk]{edge.kk()}}
+\item \code{grip.optimize.edge.repulsive.stage()} -> \code{\link[=edge.repulsive.stage]{edge.repulsive.stage()}}
+\item \code{grip.optimize.repulsive.stage()} -> \code{\link[=repulsive.stage]{repulsive.stage()}}
+\item \code{grip.edge.repulsive.state()} -> \code{\link[=edge.repulsive.state]{edge.repulsive.state()}}
+\item \code{grip.repulsive.state()} -> \code{\link[=repulsive.state]{repulsive.state()}}
+\item \code{grip.build.misf.weighted()} -> \code{\link[=build.weighted.misf]{build.weighted.misf()}}
+\item \code{grip.build.misf()} -> \code{\link[=build.misf]{build.misf()}}
+\item \code{grip.geometry.diagnostics()} -> \code{\link[=geometry.diagnostics]{geometry.diagnostics()}}
+\item \code{grip.params.from.summary()} -> \code{\link[=params.from.summary]{params.from.summary()}}
+\item \code{grip.score.layout()} -> \code{\link[=score.layout]{score.layout()}}
+\item \code{grip.compare.layouts()} -> \code{\link[=compare.layouts]{compare.layouts()}}
+}
 }
 
 \section{Graph-family helpers}{
 
-Complete `*.surface.graph()` and `*.solid.graph()` constructors remain
-public and return reusable bundles. Use the bundle's `edges`,
-`coords_surface`, and `coords_param` components instead of the former
+Complete \verb{*.surface.graph()} and \verb{*.solid.graph()} constructors remain
+public and return reusable bundles. Use the bundle's \code{edges},
+\code{coords_surface}, and \code{coords_param} components instead of the former
 specialized edge-list, standalone embedding, and parameter-coordinate
-exports. Primitive generators such as [edges.path()], [edges.cycle()],
-[edges.mesh()], and [edges.cube()] remain public.
+exports. Primitive generators such as \code{\link[=edges.path]{edges.path()}}, \code{\link[=edges.cycle]{edges.cycle()}},
+\code{\link[=edges.mesh]{edges.mesh()}}, and \code{\link[=edges.cube]{edges.cube()}} remain public.
 }
 

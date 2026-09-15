@@ -53,9 +53,9 @@ neighbors. This produces a mesh-derived fractal family with strong
 bottlenecks while remaining orthogonally connected at every level.
 }
 \details{
-The `coords_surface` component contains the 3D coordinates of the occupied
+The \code{coords_surface} component contains the 3D coordinates of the occupied
 cells in the same vertex order as \code{edges}.
-`vicsek.surface.graph()` returns a reusable weighted-graph bundle for the
+\code{vicsek.surface.graph()} returns a reusable weighted-graph bundle for the
 named Vicsek family.
 }
 \examples{

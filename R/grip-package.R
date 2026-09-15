@@ -2,36 +2,37 @@
 #'
 #' Fast multiscale graph layouts in 2D and 3D.
 #'
-#' The recommended workflow is \code{\link{grip}()} with
-#' \code{metric = "hop"} for topology-first layouts or
-#' \code{metric = "edge_length"} when positive edge lengths define the graph
-#' metric. The package also
-#' provides \code{\link{score.layout}()} and
-#' \code{\link{compare.layouts}()} for real-data layout selection,
-#' \code{\link{trace.grip}()} for multiscale diagnostics under either metric,
-#' and advanced public experimental geodesic-KK helpers such as
-#' \code{\link{prepare.edge.kk}()},
-#' \code{\link{prepare.geodesic.kk}()},
-#' \code{\link{score.geodesic.kk}()},
-#' \code{\link{prepare.landmark.geodesic.kk}()}, and
-#' \code{\link{score.landmark.geodesic.kk}()} for weighted-layout
-#' evaluation and refinement. Convenience graph generators such as
-#' \code{\link{edges.path}()}, \code{\link{edges.sierpinski.triangle}()},
-#' and \code{\link{edges.sierpinski.tetrahedron}()}, quick plotting via
-#' \code{\link{plot.layout}()}, and optional Shiny explorers round out the
-#' package.
+#' Use \code{\link{grip}()} to draw a graph, then
+#' \code{\link{score.layout}()} to assess the result.
 #'
-#' @section Finding documentation:
-#' Start with \code{vignette("function-guide", package = "grip")} for a
-#' task-oriented catalog, and
-#' \code{vignette("synthetic-graph-families", package = "grip")} for
-#' reproducible graph examples and reference-coordinate comparisons.
-#' The other installed vignettes cover getting started, weighted layouts,
-#' real-data selection, and tracing. List all six with
-#' \code{vignette(package = "grip")}.
-#' The gallery, comparison, and interactive-explorer articles on the
-#' \href{https://pgajer.github.io/grip/}{package website} are website-only
-#' companions.
+#' @section Start here:
+#' Open \code{vignette("grip-examples", package = "grip")} for a small
+#' complete workflow, or \code{vignette("function-guide", package = "grip")}
+#' to choose functions by task. The example below draws a 20-vertex mesh and
+#' prints sampled graph-distance stress: zero means perfect agreement on the
+#' sampled pairs after fitting a common scale, not a certificate for every pair.
+#'
+#' Use \code{metric = "hop"} for connectivity or
+#' \code{metric = "edge_length"} when positive lengths define the graph
+#' metric. See \code{vignette("weighted-grip-intro", package = "grip")}.
+#'
+#' @section Find the next workflow:
+#' \describe{
+#'   \item{Choose settings and seeds}{\code{vignette("grip-real-data", package = "grip")}.}
+#'   \item{Trace the construction}{\code{vignette("grip-trace-and-diagnostics", package = "grip")}.}
+#'   \item{Construct graph examples}{\code{vignette("synthetic-graph-families", package = "grip")}.}
+#' }
+#' List available guides with \code{vignette(package = "grip")}.
+#' Development installations from GitHub include these guides only when built
+#' with \code{build_vignettes = TRUE}. The
+#' \href{https://pgajer.github.io/grip/}{website} also provides rendered guides,
+#' a gallery, and website-only comparison and explorer articles. Check
+#' \code{packageVersion("grip")} when using development documentation.
+#'
+#' @section Advanced refinement:
+#' The public experimental edge-KK and geodesic-KK helpers provide
+#' weighted-layout evaluation and refinement. Choose these through the
+#' function guide after trying the main layout, scoring, and tracing workflows.
 #'
 #' @section Graph input validation:
 #' Vertex indices and counts must be finite integers within the R integer
@@ -51,6 +52,15 @@
 #' values fall back to hardware-based selection. The R optimization engine is
 #' serial. This setting is not a package-wide control for GRIP layouts or for
 #' third-party numerical libraries.
+#'
+#' @examples
+#' edges <- edges.mesh(4, 5)
+#' coords <- grip(edges, n = 20, dim = 2, preset = "mesh", seed = 11)
+#' plot.layout(coords, edges = edges, pch = 16, main = "A 4 by 5 mesh")
+#' quality <- score.layout(coords, edges = edges, n = 20,
+#'                         sample.size.stress = 200, stress.seed = 11,
+#'                         edge.crossings = "never")
+#' quality[, c("sampled.stress", "edge.length.cv")]
 #'
 #' @references
 #' Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
