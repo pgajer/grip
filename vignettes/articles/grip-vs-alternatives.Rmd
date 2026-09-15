@@ -2,6 +2,10 @@
 title: "Comparing grip with Alternative Layout Engines"
 ---
 
+This website-only article complements the installed
+[function guide](function-guide.html) and
+[synthetic graph examples](synthetic-graph-families.html).
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -60,7 +64,8 @@ score_layout <- function(coords, edges, n,
 }
 ```
 
-For weighted geometry-aware graphs, the package also provides a stronger metric:
+For weighted geometry-aware graphs, the package also provides retained-path
+diagnostics that answer a different question from sampled chord stress:
 
 - `prepare.geodesic.kk()`
 - `score.geodesic.kk()`

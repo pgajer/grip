@@ -21,6 +21,18 @@
 #' \code{\link{plot.layout}()}, and optional Shiny explorers round out the
 #' package.
 #'
+#' @section Finding documentation:
+#' Start with \code{vignette("function-guide", package = "grip")} for a
+#' task-oriented catalog, and
+#' \code{vignette("synthetic-graph-families", package = "grip")} for
+#' reproducible graph examples and reference-coordinate comparisons.
+#' The other installed vignettes cover getting started, weighted layouts,
+#' real-data selection, and tracing. List all six with
+#' \code{vignette(package = "grip")}.
+#' The gallery, comparison, and interactive-explorer articles on the
+#' \href{https://pgajer.github.io/grip/}{package website} are website-only
+#' companions.
+#'
 #' @section GMDS thread control:
 #' The internal compiled GMDS optimizer, also used by the GMDS exploration
 #' apps, uses at most two CPU threads. With automatic selection

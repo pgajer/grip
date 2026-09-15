@@ -1,5 +1,12 @@
 # grip 0.2.0.9001 (development version)
 
+## Documentation
+
+* Added two installed vignettes: a task-oriented function guide with checked
+  export and method coverage, and synthetic graph-family layout examples.
+  Linked them from the package overview, README, and website navigation;
+  clarified metric, reference-scoring, and projection choices in related guides.
+
 ## Breaking changes
 
 * `metric.mds()` now minimizes unweighted raw distance stress using the

@@ -120,8 +120,9 @@ That same pattern scales to real graphs:
 
 ## What if the graph is weighted?
 
-If a graph has edge weights but those weights are mostly metadata, a
-topology-first `grip()` run can still be a useful baseline. When the
+If edge values are only metadata, omit them for an unweighted baseline.
+Supplying `edge_weights` even with `metric = "hop"` changes adjacent-edge
+force targets; those values must be positive lengths, not strengths. When the
 edge lengths represent geometry that the layout should preserve, the default
 path changes:
 
@@ -149,6 +150,14 @@ Switch to the other guides when the task changes:
   you want app-based exploration.
 
 ## Where to go next
+
+For an API map, see [Finding your way around grip](function-guide.html).
+For reproducible bundles and reference scoring, see
+[Synthetic graph families and layout examples](synthetic-graph-families.html).
+Both are installed vignettes; the broader gallery and interactive explorer
+are website-only articles.
+
+
 
 - `Weighted Graph Layouts with grip` covers weighted solving, geodesic scoring,
   and 2D-versus-3D decisions.

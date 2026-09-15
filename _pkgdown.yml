@@ -37,6 +37,10 @@ navbar:
     articles:
       text: Articles
       menu:
+        - text: Function Guide
+          href: articles/function-guide.html
+        - text: Synthetic Graph Examples
+          href: articles/synthetic-graph-families.html
         - text: Getting Started
           href: articles/grip-examples.html
         - text: Weighted Layouts
@@ -63,96 +67,73 @@ navbar:
       aria-label: GitHub
 
 reference:
-  - title: Layout computation
-    desc: Compute graph layouts using the multiscale GRIP algorithm.
+  - title: "Compute layouts"
     contents:
       - grip
+      - weighted.grip.nd
+      - classical.mds
+      - metric.mds
       - globalrep.grip
+      - globalrep.weighted.grip
       - legacy.grip
-      - trace.grip
-      - trace.legacy.grip
-
-  - title: Quality metrics
-    desc: Score and compare layouts across seeds and parameter settings.
+  - title: "Select and compare candidates"
+    contents:
+      - compare.layouts
+      - params.from.summary
+  - title: "Score graph distances or reference geometry"
     contents:
       - score.layout
+      - score.gmds
       - score.coordinates
       - score.surface
       - geometry.diagnostics
-      - compare.layouts
-      - params.from.summary
-
-  - title: Landmark geodesic KK
-    desc: Prepare, score, and optimize layouts with the sparse landmark-geodesic KK objective.
+  - title: "Trace multiscale layouts"
     contents:
-      - prepare.landmark.geodesic.kk
-      - score.landmark.geodesic.kk
-      - landmark.geodesic.kk
-
-  - title: Weighted layout computation
-    desc: Compute geometry-aware layouts and multiscale filtrations for weighted graphs.
+      - trace.grip
+      - trace.legacy.grip
+  - title: "Plot and project"
     contents:
-      - weighted.grip.nd
-      - globalrep.weighted.grip
+      - plot.layout
+      - project.3d
+  - title: "Prepare graphs and inspect multiscale structures"
+    contents:
       - build.misf
       - build.weighted.misf
-
-  - title: Geodesic MDS and edge optimization
-    desc: Score, initialize, and polish weighted layouts with GMDS-oriented objectives.
-    contents:
-      - score.gmds
-      - classical.mds
-      - metric.mds
-      - prepare.graph.geodesic.mds
-      - edge.length.density.stiffness
       - prepare.edge.kk
+      - prepare.graph.geodesic.mds
+      - prepare.geodesic.kk
+      - prepare.landmark.geodesic.kk
+      - prepare.misf.geodesic.kk
+  - title: "Experimental refinement and state diagnostics"
+    contents:
       - edge.kk
+      - edge.length.density.stiffness
+      - geodesic.kk
+      - score.geodesic.kk
+      - landmark.geodesic.kk
+      - score.landmark.geodesic.kk
+      - misf.geodesic.kk
+      - score.misf.geodesic.kk
       - edge.repulsive.state
       - edge.repulsive.stage
       - repulsive.state
       - repulsive.stage
       - graph.riemannian.star.structure
       - kernel.gram.gkk
-
-  - title: Full geodesic KK
-    desc: Prepare, score, and optimize layouts under the full geodesic Kamada-Kawai objective.
+  - title: "Synthetic graphs: primitive edge generators"
     contents:
-      - prepare.geodesic.kk
-      - score.geodesic.kk
-      - geodesic.kk
-
-  - title: MISF Geodesic KK
-    desc: Prepare, score, and optimize multiscale geodesic-KK layouts using MISF hierarchies.
+      - graph_generators
+  - title: "Synthetic graphs: configurable keep masks"
     contents:
-      - prepare.misf.geodesic.kk
-      - score.misf.geodesic.kk
-      - misf.geodesic.kk
-
-  - title: Visualization
-    desc: Plot layouts in 2D and 3D.
-    contents:
-      - plot.layout
-      - project.3d
-
-  - title: Graph generators
-    desc: Build common graph families as edge-list matrices.
-    contents:
-      - edges.mesh
-      - edges.cycle
-      - edges.path
-      - edges.cube
-      - edges.cylinder
-      - edges.torus
-      - edges.kary.tree
-      - edges.sierpinski.triangle
-      - edges.sierpinski.tetrahedron
-      - edges.sierpinski.carpet
-
-  - title: Surface family helpers
-    desc: Helper topics for weighted surface, solid, occupied-mesh, and tree graph families.
+      - perforated_grid_helpers
+      - mask_pattern_helpers
+      - cube_mask_pattern_helpers
+      - triangle_mask_helpers
+      - tetrahedron_mask_helpers
+  - title: "Synthetic graphs: complete surface and solid bundles"
     contents:
       - mesh_surface_helpers
-      - sampled_rectangle_surface_helpers
+      - occupied_mesh_surface_helpers
       - cylinder_surface_helpers
       - sphere_surface_helpers
       - torus_surface_helpers
@@ -167,48 +148,41 @@ reference:
       - triangulated_annulus_surface_helpers
       - triangulated_pair_of_pants_surface_helpers
       - triangulated_polyhedron_surface_helpers
-      - occupied_mesh_surface_helpers
-      - perforated_grid_helpers
+      - sampled_rectangle_surface_helpers
       - kary_tree_weighted_graph_helpers
-
-  - title: Recursive and fractal family helpers
-    desc: Helper topics for recursive masks, porous families, and self-similar graph generators.
+  - title: "Synthetic graphs: complete recursive bundles"
     contents:
-      - mask_pattern_helpers
-      - cube_mask_pattern_helpers
-      - triangle_mask_helpers
-      - tetrahedron_mask_helpers
       - recursive_mask_grid_surface_helpers
       - recursive_cube_mask_surface_helpers
       - recursive_triangle_mask_surface_helpers
       - recursive_tetrahedron_mask_surface_helpers
-      - porous_cube_surface_helpers
       - sierpinski_carpet_surface_helpers
       - sierpinski_triangle_surface_helpers
       - sierpinski_tetrahedron_surface_helpers
       - menger_sponge_surface_helpers
       - vicsek_surface_helpers
-
-  - title: Interactive explorer
-    desc: Shiny-based layout browser for interactive exploration.
+      - porous_cube_surface_helpers
+  - title: "Interactive exploration"
     contents:
-      - gripui_app
-      - run_gripui
       - gripui_project
       - gripui_project_from_compare
       - gripui_project_from_dir
       - gripui_validate_project
+      - gripui_app
+      - run_gripui
+      - gripui_graph_family_catalog
       - gripui_family_app
       - run_gripui_family
-      - gripui_graph_family_catalog
 
+  - title: Object methods
+    contents:
+      - print.grip_gmds_layout
+      - print.grip_misf
   - title: Data
-    desc: Bundled datasets for examples and vignettes.
     contents:
       - hmp.gc
       - hmp.u01.gc.coarse
-
-  - title: Package
+  - title: Package and migration
     contents:
       - grip-package
       - grip-0.2-migration

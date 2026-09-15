@@ -141,15 +141,19 @@ plot.layout.triptych(
     coords.weighted
   ),
   edges = surface.mesh$edges,
-  titles = c("Target geometry", "Combinatorial GRIP", "Weighted GRIP"),
+  titles = c("Reference geometry", "Combinatorial GRIP", "Weighted GRIP"),
   projection = "ortho",
   vertex.cols = c("#666666", "black", "#1F3B73")
 )
 ```
 
-The important pattern is not that one method always wins on every graph. It is
-that weighted GRIP is solving a different problem: it tries to respect the
-graph's edge-length geometry, not only its combinatorial adjacency structure.
+Here the hop fit omits lengths, while the edge-length fit receives them;
+this changes both the metric and adjacent-edge targets. Topology, vertex order,
+dimension, preset, and seed are fixed. Both are scored with the same weighted
+preparation and default scale policy. The reported errors compare lengths
+accumulated along retained graph paths, not direct recovery of the reference
+coordinates. This single example is illustrative; see the synthetic-family
+vignette for a comparison that supplies the same lengths to both fit modes.
 
 ## 2D versus 3D on the same weighted graph
 
@@ -229,8 +233,9 @@ plot.layout(
 )
 ```
 
-This is why the weighted benchmark work in `grip` treats 3D as the primary
-track and 2D as an informative limitation track.
+Choose the fitting dimension for the graph and the intended use. This surface
+has a 3D reference; a 2D drawing remains useful for display, but changes the
+constraints on the fitted geometry.
 
 ## Weighted presets
 
@@ -347,6 +352,14 @@ it is often worth comparing:
 - and the KK->GKK or KK->LGKK baselines.
 
 ## Where to go next
+
+For an API map, see [Finding your way around grip](function-guide.html).
+For reproducible bundles and reference scoring, see
+[Synthetic graph families and layout examples](synthetic-graph-families.html).
+Both are installed vignettes; the broader gallery and interactive explorer
+are website-only articles.
+
+
 
 - `Getting Started with grip` shows how the weighted API fits into the broader
   package.

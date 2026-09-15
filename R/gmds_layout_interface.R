@@ -426,6 +426,14 @@ gmds.result <- function(coords,
   out
 }
 
+#' Print a geodesic-MDS layout summary
+#'
+#' Reports the method, coordinate dimensions, and available diagnostic scores.
+#' Extract \code{x$coords} to plot or score the coordinates.
+#' @param x A \code{grip_gmds_layout} object.
+#' @param ... Unused additional arguments.
+#' @return The input object, invisibly.
+#' @seealso \code{\link{classical.mds}}, \code{\link{metric.mds}}
 #' @export
 print.grip_gmds_layout <- function(x, ...) {
   cat("<grip_gmds_layout>\n")

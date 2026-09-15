@@ -99,3 +99,12 @@ winbuilder-release: build
 
 winbuilder-devel: build
 	Rscript tools/pkg/check-win-builder.R devel
+
+.PHONY: audit-api-guide vignette-previews
+audit-api-guide:
+	Rscript tools/pkg/audit-api-guide.R
+
+vignette-previews: audit-api-guide
+	Rscript tools/pkg/render-vignette-previews.R
+
+check check-clean check-fast: audit-api-guide

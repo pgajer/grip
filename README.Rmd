@@ -183,8 +183,15 @@ cmp$summary[, c("candidate", "score.composite", "sampled.stress.mean")]
 
 ## Documentation
 
-The package ships with four core vignettes:
+The package ships with six vignettes, available through
+`vignette(package = "grip")`:
 
+- **Finding your way around grip**
+  --- a task-oriented function catalog, metric and score choices, and detailed help.
+  Open with `vignette("function-guide", package = "grip")`.
+- **Synthetic graph families and layout examples**
+  --- reproducible graph bundles, static drawings, and reference-coordinate comparisons.
+  Open with `vignette("synthetic-graph-families", package = "grip")`.
 - **Getting Started with grip** --- the shortest path through the default
   unweighted workflow, with guidance on when to switch to weighted, trace, or
   comparison workflows.

@@ -128,6 +128,13 @@ build.misf <- function(edges = NULL,
   out
 }
 
+#' Print a multiscale hierarchy summary
+#'
+#' Summarizes the vertices and levels of a hop-distance MISF hierarchy.
+#' @param x A \code{grip_misf} object from \code{\link{build.misf}}.
+#' @param ... Unused additional arguments.
+#' @return The input object, invisibly.
+#' @seealso \code{\link{build.misf}}
 #' @export
 print.grip_misf <- function(x, ...) {
   cat("<grip_misf>\n")

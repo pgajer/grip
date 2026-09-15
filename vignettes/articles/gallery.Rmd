@@ -2,6 +2,10 @@
 title: "Synthetic Graph Families and Geometries"
 ---
 
+This website-only article complements the installed
+[function guide](function-guide.html) and
+[synthetic graph examples](synthetic-graph-families.html).
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
