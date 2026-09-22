@@ -36,20 +36,31 @@ have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
 ## What is being compared?
 
 `metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
-Its default `backend = "sgd"` uses native stochastic gradient descent (SGD).
+Its default `backend = "sgd"` uses native stochastic gradient descent (SGD),
+based on [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+with the default learning-rate schedule following
+[Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641).
+SGD visits pairs of points in a randomly shuffled order, moving each pair
+closer together or farther apart to better match its target distance. These
+changes take effect immediately, and the learning-rate schedule reduces the
+size of the adjustments as fitting proceeds.
+
 The alternative `backend = "smacof"` uses the optional **smacof** package
-(Mair, Groenen and de Leeuw, 2022).
+([Mair, Groenen and de Leeuw, 2022](https://doi.org/10.18637/jss.v102.i10)).
+SMACOF combines information from all pairs before updating the entire
+configuration at once. Each update is designed to reduce total stress;
+an individual SGD adjustment need not reduce total stress, even though it
+improves the distance for the pair being adjusted.
 Both minimize the same uniformly weighted raw distance stress:
 
 \[
 S(Z) = \sum_{i<j} \bigl(\lVert z_i-z_j\rVert-d_{ij}\bigr)^2.
 \]
 
-The pair updates follow Zheng, Pawar and Goodman (2018), and the default
-hybrid learning-rate schedule follows Hangan, Kobourov and Miller (2026).
-These papers and the SMACOF reference are listed in the [references](#references). This is a comparison
-of these implementations and settings on small synthetic examples, not a
-claim that either optimizer always wins or recovers intrinsic geometry.
+This is a comparison of these implementations and settings on small synthetic
+examples. For a more extensive comparison of SGD and SMACOF across 18 benchmark
+datasets, see [Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641),
+who compare their SGD solver with scikit-learn's SMACOF implementation.
 
 The figure labels and plots use **normalized error**,
 \(\sqrt{S(Z)/\sum_{i<j}d_{ij}^2}\). Lower is better; zero means exact agreement
