@@ -80,8 +80,7 @@ Construct a saddle over \([-1,1]^2\), with
 \(z=0.8(x^2-y^2)\). This is a two-dimensional surface embedded in 3D.
 To compare ambient distances, represent the cloud as a complete graph with
 Euclidean edge lengths. The triangle inequality then makes graph shortest-path
-distances equal to the original Euclidean distances. This uses public APIs;
-no internal prepared object is modified.
+distances equal to the original Euclidean distances.
 
 ```{r saddle-example}
 library(grip)
@@ -308,72 +307,23 @@ for (kind in kinds) {
 }
 ```
 
-## Interpretation and limitations
-
-Compare the two backends within the same dataset and target definition.
-Movement down and left in a trade-off plot means lower error in less time.
-Overlapping ranges indicate sensitivity to the starting coordinates; five
-starts are a descriptive sample, not a statistical performance guarantee.
-The figures show a predetermined start, so their ranking can differ from the
-median ranking. Neither reaching the schedule limit nor low stress certifies
-a global optimum.
-
-Ambient targets on the plane and quadforms admit an exact realization at the
-chosen dimension. Classical MDS therefore offers a near-zero-error reference
-on these examples; iterative optimization is not necessary merely to embed
-an already known Euclidean cloud. The graph-path cases pose a different
-problem and may retain positive error even at an optimum. Their generating
-surfaces are useful visual references, not the distance objective itself.
-
-This experiment extends the earlier implementation pilot with quadratic
-surfaces and public-API fixture preparation. It is a new run, not a relabeling
-of those earlier measurements. There is no retinal dataset here, no continuous
-surface-geodesic accuracy claim, and no evidence about large-data scaling.
-Both backends currently require dense all-pairs distance storage. The SGD
-implementation also retains quadratic pair storage and visits every pair in
-each pass.
-
 ## Reproduce the experiment
 
-Vignette builds execute the small example and render saved results; they do
-not run the 420-fit timing experiment. From a source checkout, install the
-candidate package into a separate library, then run:
+Building this vignette runs the small example and displays saved results for
+the larger comparison. To repeat all 420 fits, install the R packages **callr**
+and **smacof**, then run these commands in the grip source folder:
 
 ```sh
-R CMD INSTALL --preclean --library=/path/to/candidate-library . > candidate-install.log 2>&1
-Rscript tools/pkg/build-metric-mds-comparison.R fresh-results /path/to/candidate-library candidate-install.log
+mkdir -p ../comparison-library
+R CMD INSTALL --preclean --library=../comparison-library . > ../comparison-install.log 2>&1
+Rscript tools/pkg/build-metric-mds-comparison.R ../fresh-results ../comparison-library ../comparison-install.log
 ```
 
-The explicit benchmark command additionally needs **callr**. The install log
-must show a fresh optimized compilation; the runner rejects reused objects
-and `-O0` builds. The bundled timing run used a fresh `-O2` build. An earlier
-420-fit attempt reused unoptimized development objects; it is retained as a
-separate diagnostic run and is excluded from the figures and timing tables.
-Dataset, start and fitting settings were unchanged for the optimized rerun.
-The runner refuses to overwrite an earlier output directory. It saves the protocol first, progress
-after each fit, every outcome and warning, all returned coordinates, and a
-final compressed bundle. The repository's
-`tools/pkg/render-metric-mds-comparison.R` and
-`tools/pkg/capture-metric-mds-comparison.cjs` reproduce the saved `ivue` images.
-The installed recipe is `scripts/metric-mds-comparison.R`; the published
-bundle is `extdata/metric-mds-comparison/benchmark.rds`.
-
-```{r provenance}
-knitr::kable(data.frame(Package = names(bundle$protocol$package_versions),
-  Version = unname(bundle$protocol$package_versions)), row.names = FALSE)
-cat(bundle$protocol$R, '\n', bundle$protocol$platform, '\n')
-cat('Recorded:', bundle$protocol$recorded_utc, '\n')
-cat('Total experiment wall seconds:', bundle$protocol$total_wall_seconds, '\n')
-```
-
-Source-file fingerprints, the source commit, machine/OS information, settings
-and timing definitions are retained in `bundle$protocol`. File fingerprints
-also identify the new scripts that were not yet committed when this run began.
-To inspect unavailable runs or warnings without dropping them:
-
-```{r inspect-outcomes, eval=FALSE}
-rows[rows$status != 'ok' | nzchar(rows$warnings), ]
-```
+The script saves the timings, fitted coordinates, and any errors in
+`fresh-results`, beside the grip source folder. Choose a new results folder
+for each run. Instructions for
+recreating the figures are in the
+[reproduction guide](https://github.com/pgajer/grip/blob/main/tools/README.md#metric-mds-comparison-vignette).
 
 ## References
 

@@ -27,7 +27,7 @@ Timing is platform-specific; these small examples do not establish large-data sc
 
 The published measurements use a clean optimized (`-O2`) installation. The
 previous unoptimized attempt remains a separate private diagnostic record and
-is disclosed in the vignette and protocol; it is not mixed into these results.
+is disclosed in the saved protocol; it is not mixed into these results.
 Execution-time source fingerprints are retained. The protocol also stores the
 exact fitting/fixture function source; subsequent script changes improve plots
 and dependency preflight checks without changing those numerical functions.
