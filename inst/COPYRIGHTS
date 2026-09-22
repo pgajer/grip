@@ -1,4 +1,4 @@
-Third-party notices for the optional metric-MDS SGD backend
+Third-party notices for the metric-MDS SGD backend
 
 The pair-update algorithm and schedules in src/metric_mds_sgd.cpp and
 R/metric_mds_sgd.R are adapted from the following reference implementations.

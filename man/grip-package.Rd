@@ -107,4 +107,11 @@ Authors:
   \item Pawel Gajer \email{pgajer@gmail.com}
 }
 
+Other contributors:
+\itemize{
+  \item Jonathan Zheng (Author and copyright holder of MIT-licensed s_gd2 code adapted for the metric-MDS SGD backend) [contributor, copyright holder]
+  \item Daniel Hangan (Author of the SGD-MDS implementation in his scikit-learn fork adapted for the metric-MDS SGD backend) [contributor]
+  \item The scikit-learn developers (Copyright holders of BSD-3-Clause code adapted from Daniel Hangan's scikit-learn fork for the metric-MDS SGD backend) [copyright holder]
+}
+
 }

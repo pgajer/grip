@@ -79,6 +79,15 @@ coordinates. In particular, the historical "Metric MDS" label does not
 establish that this display used the current stress-minimizing `metric.mds()`.
 Use it to inspect the saved shapes, not to compare current solver accuracy.
 
+In the current development version (0.2.0.9001), `metric.mds()` defaults to
+`backend = "sgd"`, using native stochastic gradient descent. The pair updates
+follow Zheng, Pawar and Goodman (2018), and the default hybrid learning-rate
+schedule follows Hangan, Kobourov and Miller (2026); see the
+[SGD references](#sgd-references). Select `backend = "smacof"` explicitly to use
+the optional **smacof** optimizer. Neither backend can be inferred from the
+saved saddle labels. For a new fit using the default backend, see the
+[Getting Started example](grip-examples.html#a-metric-mds-baseline).
+
 <img src="../reference/figures/readme-saddle-overlay-poster.png" alt="Overlay of the saved fitted configurations in blue and orange with the generating saddle in gray." width="720" data-grip-animation="../reference/figures/readme-saddle-overlay-rotation.gif" data-grip-motion-label="saddle overlay rotation" />
 
 Both animations rotate fixed, already aligned coordinates around the vertical
@@ -110,3 +119,12 @@ For a fully executable current-method example with known graph/reference
 semantics, use the [synthetic graph guide](synthetic-graph-families.html).
 Graph-path error, straight-line-distance error, and reference agreement answer
 different questions; see [Choose a score](function-guide.html#choose-a-score).
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

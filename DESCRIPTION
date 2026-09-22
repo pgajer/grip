@@ -3,7 +3,13 @@ Type: Package
 Title: Graph Drawing with Intelligent Placement (GRIP)
 Version: 0.2.0.9001
 Authors@R:
-    person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre"))
+    c(person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre")),
+      person("Jonathan", "Zheng", role = c("ctb", "cph"),
+             comment = "Author and copyright holder of MIT-licensed s_gd2 code adapted for the metric-MDS SGD backend"),
+      person("Daniel", "Hangan", role = "ctb",
+             comment = "Author of the SGD-MDS implementation in his scikit-learn fork adapted for the metric-MDS SGD backend"),
+      person("The scikit-learn developers", role = "cph",
+             comment = "Copyright holders of BSD-3-Clause code adapted from Daniel Hangan's scikit-learn fork for the metric-MDS SGD backend"))
 Description: Implements GRIP multiscale graph layout with a unified choice
     between hop-count and geometry-aware edge-length graph metrics in 2D and
     3D. Provides layout scoring, candidate

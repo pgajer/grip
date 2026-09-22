@@ -165,6 +165,16 @@ The stress score fits a common scale; it is not the raw stress objective of
 `metric.mds()`. Preset/tuned rows are labeled separately from ordinary defaults.
 Keep the results where another method scores better when interpreting the comparison.
 
+In the current development version (0.2.0.9001), `metric.mds()` uses native
+stochastic gradient descent by default (`backend = "sgd"`); the optional
+**smacof** optimizer requires `backend = "smacof"`. SGD pair updates follow
+Zheng, Pawar and Goodman (2018), with the default hybrid learning-rate schedule
+from Hangan, Kobourov and Miller (2026); see the
+[SGD references](#sgd-references). The frozen results below do not evaluate
+this new default or compare the two metric-MDS backends. The
+[function guide](function-guide.html#classical-scaling-and-metric-stress-mds)
+provides executable examples of both backends.
+
 ### Benchmark 1: Zachary karate club
 
 This is still a useful small-graph sanity check. The graph is small enough that
@@ -437,3 +447,12 @@ external-package results and their timing evidence.
 ```{r session-info-precomputed}
 res$session_info
 ```
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

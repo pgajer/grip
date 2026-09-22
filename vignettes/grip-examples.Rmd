@@ -32,6 +32,7 @@ to:
 
 - compute a first unweighted layout,
 - score it,
+- fit a metric multidimensional scaling (MDS) baseline,
 - compare a few plausible candidates,
 - and decide when to switch to the specialist guides.
 
@@ -83,6 +84,45 @@ For small and medium unweighted graphs, that is often all you need:
 - choose `dim = 2` or `dim = 3`,
 - optionally start from a preset,
 - and score or compare a few candidate settings if the graph is important.
+
+## A metric MDS baseline
+
+In this development version (0.2.0.9001), `metric.mds()` uses
+`backend = "sgd"` by default. This native stochastic gradient descent (SGD)
+backend minimizes the sum of squared differences between Euclidean distances
+in the layout and graph shortest-path distances, giving every vertex pair
+equal weight. Its pair updates follow Zheng, Pawar and Goodman (2018), and its
+default hybrid learning-rate schedule follows Hangan, Kobourov and Miller
+(2026); see the [SGD references](#sgd-references).
+
+This example fits the same 25-vertex mesh. Omitting `backend` selects SGD;
+`seed` makes the stochastic run reproducible. We explicitly limit the example
+to 30 passes over all vertex pairs. The function's `max_iter` default is 1000;
+30 is a short trial budget, not a convergence criterion. SGD reports
+`iteration_limit` when its schedule ends. We suppress that expected warning
+here and display the termination status instead.
+
+```{r metric-mds-default}
+mesh.mds <- suppressWarnings(metric.mds(
+  edges = mesh.edges, n = 25, dim = 2,
+  init = "random", max_iter = 30, seed = 1
+))
+mesh.mds$metadata$engine       # "sgd": the default backend
+mesh.mds$metadata$termination  # "iteration_limit": not certified convergence
+mesh.mds$metadata$raw_stress
+```
+
+SGD requires no additional backend package. Its learning-rate and checkpoint
+settings are provisional calibration choices. For an alternative optimizer,
+install **smacof** and explicitly request `metric.mds(backend = "smacof", ...)`.
+The two backends optimize the same raw distance-stress objective, but their
+iterations represent different amounts of work. The `eps` stopping tolerance
+applies only to SMACOF and must be omitted for SGD.
+
+In grip versions through 0.2.0, `metric.mds()` performed classical scaling.
+Use `classical.mds()` to retain that earlier behavior. The
+[function guide](function-guide.html#classical-scaling-and-metric-stress-mds)
+explains the distinction, multiple starts, and optional edge-KK refinement.
 
 ## Compare a few plausible candidates
 
@@ -169,3 +209,12 @@ are website-only articles.
   package's Shiny tools.
 - `Synthetic Graph Families and Geometries` is a website article about the
   benchmark and geometry library.
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

@@ -206,7 +206,10 @@ are controls of this classical method.
 
 `metric.mds()` minimizes unweighted raw distance stress,
 \(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through native stochastic gradient descent (SGD) by default,
-or optional **smacof** selected with `backend = "smacof"`.
+with `backend = "sgd"`, or optional **smacof** selected with
+`backend = "smacof"`. The SGD pair updates follow Zheng, Pawar and Goodman
+(2018); the default hybrid learning-rate schedule follows Hangan, Kobourov and
+Miller (2026). Both papers are listed in the [SGD references](#sgd-references).
 Edge lengths determine the shortest-path targets, not pairwise stiffnesses.
 Returned coordinates are rescaled to the input distance units. Multiple starts
 can help with local optima; iteration limits do not certify convergence or a
@@ -233,13 +236,17 @@ if (requireNamespace("smacof", quietly = TRUE)) {
 
 The default SGD backend requires no additional runtime package. Its learning-rate and
 checkpoint defaults are provisional calibration choices. A pass visits every
-unordered pair; 30 passes are an initial trial budget, not a convergence rule.
+unordered pair. The function's `max_iter` default is 1000; the 30 passes
+requested below are an initial trial budget, not a convergence rule.
+Schedule completion emits an iteration-limit warning; the example suppresses
+that expected warning and displays the termination status instead.
 The `eps` argument belongs to SMACOF and must be omitted for SGD. Inspect the
 checkpoint history and compare repeated starts before drawing conclusions.
 
 ```{r mds-sgd}
 sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
-  backend = "sgd", init = "random", max_iter = 30, seed = 11))
+  init = "random", max_iter = 30, seed = 11))
+sgd$metadata$engine  # Omitting backend selects "sgd".
 sgd$metadata$termination  # Schedule exhausted, not a convergence certificate.
 sgd$metadata$target_normalized_rmse
 sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
@@ -367,7 +374,7 @@ method accounting, and help targets against the current namespace.
 | `grip()` | Compute a multiscale layout using hop counts or positive edge lengths. | [Help](`r help_url("grip")`) |
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
-| `metric.mds()` | Minimize raw distance stress with SMACOF or native SGD and multiple starts. | [Help](`r help_url("metric.mds")`) |
+| `metric.mds()` | Minimize raw distance stress with native SGD (default) or SMACOF and multiple starts. | [Help](`r help_url("metric.mds")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
 | `legacy.grip()` | Reproduce the legacy GRIP profile for historical comparisons. | [Help](`r help_url("legacy.grip")`) |
@@ -545,3 +552,12 @@ between overview, examples, and detailed help found in the
 [Hmisc documentation](https://hbiostat.org/r/hmisc/) and its
 [package overview](https://raw.githubusercontent.com/harrelfe/Hmisc/master/man/Overview.Rd).
 The groups here follow graph-layout tasks specific to grip.
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).
