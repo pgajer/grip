@@ -36,14 +36,20 @@
 
 ## Breaking changes
 
+* `metric.mds()` now selects native SGD by default. Request
+  `backend = "smacof"` to preserve a previous SMACOF analysis, including calls
+  that supply `eps`. Explicit `init = "metric_mds"` in `edge.kk()` and
+  `kernel.gram.gkk()` follows the new default; their own default initializer
+  remains classical MDS. The iteration budget and stopping rules are unchanged.
+
 * Graph-input APIs now reject fractional, nonfinite, or out-of-range vertex
   indices and counts before conversion. Supply either `edges`/`edge_weights`
   or `adj_list`/`weight_list`, not both. A `prepared` graph cannot be combined
   with raw graph inputs; an explicit `n` must match its stored vertex count.
   Previously, some of these inputs were silently truncated or ignored.
 
-* `metric.mds()` now minimizes unweighted raw distance stress using the
-  optional smacof package. To retain the previous classical-scaling behavior,
+* `metric.mds()` now minimizes unweighted raw distance stress using native SGD
+  or the optional smacof package. To retain the previous classical-scaling behavior,
   use `classical.mds()`, which also accepts the `add` and `eig` arguments.
   See `help("grip-mds-migration")` for migration instructions.
 * In `edge.kk()` and `kernel.gram.gkk()`, `init = "metric_mds"` now requests
@@ -51,6 +57,13 @@
   behavior. Both functions still use classical scaling by default.
 
 ## New features
+
+* Added the native `metric.mds(backend = "sgd")` backend for uniform
+  all-pairs stress and made it the default. SGD records reproducible seeds,
+  checkpoint stress, pair-update counts, and failed starts, and reports schedule
+  completion without claiming convergence. Its tuning defaults are provisional.
+  No Python runtime is required. Use `coords = fit$coords` to pass an SGD result
+  to `edge.kk()`.
 
 * Layout printing shows the fitted objective, available termination and start
   information, and separately labeled graph diagnostics without recomputing

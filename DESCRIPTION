@@ -13,6 +13,7 @@ Description: Implements GRIP multiscale graph layout with a unified choice
     <doi:10.7155/jgaa.00052> and Gajer, Goodrich and Kobourov (2004)
     <doi:10.1016/j.comgeo.2004.03.014>.
 License: GPL (>= 3)
+Copyright: file inst/COPYRIGHTS
 URL: https://pgajer.github.io/grip/, https://github.com/pgajer/grip
 BugReports: https://github.com/pgajer/grip/issues
 Encoding: UTF-8
@@ -34,7 +35,8 @@ Suggests:
     rgl,
     shiny,
     smacof (>= 2.1-7),
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
 LinkingTo: Rcpp
 SystemRequirements: C++17
 Config/testthat/edition: 3

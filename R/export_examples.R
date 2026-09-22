@@ -293,11 +293,10 @@ NULL
 #' @name metric.mds
 #' @rdname metric.mds
 #' @examples
-#' if (requireNamespace("smacof", quietly = TRUE)) {
-#'   prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
-#'   fit <- metric.mds(prepared = prepared, dim = 2)
-#'   fit$metadata$raw_stress
-#' }
+#' prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
+#' fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max_iter = 30))
+#' fit$metadata$raw_stress
+#' fit$metadata$termination # Schedule completion is not a convergence certificate.
 NULL
 
 #' @name misf.geodesic.kk

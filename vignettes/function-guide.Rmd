@@ -205,7 +205,8 @@ Non-Euclidean graph distances can yield negative eigenvalues; `add` and `eig`
 are controls of this classical method.
 
 `metric.mds()` minimizes unweighted raw distance stress,
-\(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through optional **smacof**.
+\(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through native stochastic gradient descent (SGD) by default,
+or optional **smacof** selected with `backend = "smacof"`.
 Edge lengths determine the shortest-path targets, not pairwise stiffnesses.
 Returned coordinates are rescaled to the input distance units. Multiple starts
 can help with local optima; iteration limits do not certify convergence or a
@@ -222,12 +223,27 @@ prepared <- prepare.graph.geodesic.mds(edges.cycle(8), n = 8)
 classical <- classical.mds(prepared = prepared, dim = 2)
 print(classical)
 if (requireNamespace("smacof", quietly = TRUE)) {
-  metric <- metric.mds(prepared = prepared, dim = 2, n_init = 2,
+  metric <- metric.mds(prepared = prepared, dim = 2, backend = "smacof", n_init = 2,
                        max_iter = 100, seed = 11)
   metric$metadata$raw_stress
 } else {
-  message("Install smacof for metric stress MDS; the classical example still runs.")
+  message("Install smacof for this optional-backend comparison; the SGD example below needs no extra backend.")
 }
+```
+
+The default SGD backend requires no additional runtime package. Its learning-rate and
+checkpoint defaults are provisional calibration choices. A pass visits every
+unordered pair; 30 passes are an initial trial budget, not a convergence rule.
+The `eps` argument belongs to SMACOF and must be omitted for SGD. Inspect the
+checkpoint history and compare repeated starts before drawing conclusions.
+
+```{r mds-sgd}
+sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
+  backend = "sgd", init = "random", max_iter = 30, seed = 11))
+sgd$metadata$termination  # Schedule exhausted, not a convergence certificate.
+sgd$metadata$target_normalized_rmse
+sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
+# Use edge.kk(prepared = prepared, coords = sgd$coords, dim = 3) to refine it.
 ```
 
 ## Choose a score
@@ -320,7 +336,8 @@ edge-only preparation. The weighted-GRIP initializer uses the 2D/3D `grip()`
 interface; supply higher-dimensional coordinates directly for edge repair.
 `kernel.gram.gkk()` accepts `"classical_mds"` (default), `"metric_mds"`, or
 `"random"`, or supplied coordinates. Both methods now interpret
-`"metric_mds"` as stress minimization requiring smacof.
+`"metric_mds"` as stress minimization through native SGD. To use SMACOF,
+fit `metric.mds(backend = "smacof", ...)` first and supply its coordinates.
 
 `geodesic.kk()` and `landmark.geodesic.kk()` require starting coordinates.
 MISF preparation uses `top_level_init = "geometric"`, `"cmdscale"`, or
@@ -350,7 +367,7 @@ method accounting, and help targets against the current namespace.
 | `grip()` | Compute a multiscale layout using hop counts or positive edge lengths. | [Help](`r help_url("grip")`) |
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
-| `metric.mds()` | Minimize raw distance stress with optional smacof and multiple starts. | [Help](`r help_url("metric.mds")`) |
+| `metric.mds()` | Minimize raw distance stress with SMACOF or native SGD and multiple starts. | [Help](`r help_url("metric.mds")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
 | `legacy.grip()` | Reproduce the legacy GRIP profile for historical comparisons. | [Help](`r help_url("legacy.grip")`) |

@@ -77,7 +77,8 @@ Vignette building is off by default in
 [remotes](https://remotes.r-lib.org/reference/install_github.html).
 The no-build route does not include the six offline guides. Optional viewers
 and numerical backends are needed only for workflows that use them; for
-example, install `smacof` to run the development `metric.mds()` method.
+example, install `smacof` to use `metric.mds(backend = "smacof")`. The default
+native SGD backend does not require an additional runtime package.
 
 ## Quick start
 
@@ -122,7 +123,8 @@ explains graph conventions, score meanings, and the next workflow.
   `weighted.grip.nd()`, with higher-dimensional metric-MDS and edge-KK
   workflows available through `classical.mds()`, `metric.mds()`, and `edge.kk()`.
   `classical.mds()` uses classical scaling; `metric.mds()` minimizes raw distance
-  stress through the optional **smacof** package. In versions through 0.2.0,
+  stress through native SGD by default, with **smacof** available through
+  `backend = "smacof"`. In versions through 0.2.0,
   `metric.mds()` performed classical scaling: use `classical.mds()` to preserve
   that behavior. Edge-KK defaults to `init = "classical_mds"`; explicit
   `init = "metric_mds"` now requests stress minimization.

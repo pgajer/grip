@@ -737,6 +737,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_sgd_mds_cpp
+Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle);
+RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type start(startSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type targets(targetsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type rates(ratesSEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< int >::type checkpoint_every(checkpoint_everySEXP);
+    Rcpp::traits::input_parameter< double >::type max_workspace_bytes(max_workspace_bytesSEXP);
+    Rcpp::traits::input_parameter< bool >::type shuffle(shuffleSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_mds_cpp(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_surface_distances_cpp
 Rcpp::NumericVector grip_surface_distances_cpp(Rcpp::NumericMatrix points, Rcpp::NumericMatrix vertices, Rcpp::IntegerMatrix triangles);
 RcppExport SEXP _grip_grip_surface_distances_cpp(SEXP pointsSEXP, SEXP verticesSEXP, SEXP trianglesSEXP) {
@@ -778,6 +795,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
+    {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 7},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
     {NULL, NULL, 0}
 };

@@ -2,7 +2,7 @@
 #'
 #' In grip through version 0.2.0, `metric.mds()` used `stats::cmdscale()`.
 #' From version 0.2.0.9000, that algorithm is named [classical.mds()], and
-#' [metric.mds()] is a ratio-SMACOF wrapper that minimizes raw distance stress.
+#' [metric.mds()] minimizes raw distance stress, using native SGD by default.
 #' This is an intentional behavioral change rather than a deprecated alias.
 #'
 #' @section Preserve an existing analysis:
@@ -16,13 +16,30 @@
 #' Renaming a call does not require recomputing those fits.
 #'
 #' @section Request stress minimization:
-#' Install the optional smacof package and use `metric.mds(...)` or
-#' `edge.kk(init = "metric_mds", ...)`. For control over multiple starts and
-#' tolerances, call `metric.mds()` first and pass its coordinates to `edge.kk()`.
+#' Use `metric.mds(...)` or `edge.kk(init = "metric_mds", ...)` to use the
+#' default native SGD backend. For control over multiple starts and budgets,
+#' call `metric.mds()` first and pass `coords = fit$coords` to `edge.kk()`.
 #' Check `metadata$starts`, `metadata$termination`, and the independently
-#' calculated stress diagnostics. SMACOF is a local optimizer; an iteration
-#' limit or a finite result does not certify an optimum. No fallback to
-#' classical MDS is made when smacof is unavailable.
+#' calculated stress diagnostics. Both backends are local optimizers; an
+#' iteration limit or a finite result does not certify an optimum.
+#'
+#' @section Preserve a previous SMACOF analysis:
+#' Install the optional smacof package and explicitly request
+#' `metric.mds(backend = "smacof", ...)`. The `eps` tolerance belongs to that
+#' backend and must not be supplied to SGD. To retain a SMACOF initializer in
+#' a refinement workflow, compute it explicitly and pass its coordinates to
+#' `edge.kk()` or `kernel.gram.gkk()`. No automatic backend fallback is made.
+#'
+#' @section Native SGD backend:
+#' `metric.mds(backend = "sgd", max_iter = 30, ...)` explicitly selects the
+#' default backend with a short trial budget, without requiring smacof.
+#' SGD uses the same uniform pair weights and shortest-path targets. Its controls
+#' remain provisional calibration choices, and `max_iter` counts complete pair
+#' passes. Schedule completion is reported as `iteration_limit`, not convergence.
+#' Inspect per-start records and `metadata$sgd` checkpoint histories. Selecting
+#' `init = "metric_mds"` in refinement methods follows the default SGD backend;
+#' their default `init = "classical_mds"` is unchanged. A different optimizer
+#' cannot repair inaccurate graph distances.
 #'
 #' @section Reproducibility:
 #' Raw stress is measured against the original graph-distance units after

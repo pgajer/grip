@@ -45,6 +45,8 @@ output/*
 !output/*/
 output/*/*
 !output/*/README.md
+# Local SGD validation and benchmark evidence, including its generated index.
+/output/sgd-mds/
 tmp/
 dev/blog/
 dev/notes/

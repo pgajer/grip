@@ -377,7 +377,8 @@ grip.kernel.gram.score <- function(coords,
 #' @inheritParams edge.kk
 #' @param init Starting layout used when `coords` is omitted. `"classical_mds"`
 #'   uses classical scaling (the default), `"metric_mds"` uses stress MDS
-#'   through smacof, both from an all-pairs prepared object; `"random"`
+#'   through the default native SGD backend, both from an all-pairs prepared
+#'   object; `"random"`
 #'   uses centered Gaussian coordinates.
 #' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
 #'   frames.

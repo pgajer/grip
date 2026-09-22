@@ -77,7 +77,8 @@ is omitted.}
 
 \item{init}{Starting layout used when \code{coords} is omitted. \code{"classical_mds"}
 uses classical scaling (the default), \code{"metric_mds"} uses stress MDS
-through smacof, both from an all-pairs prepared object; \code{"random"}
+through the default native SGD backend, both from an all-pairs prepared
+object; \code{"random"}
 uses centered Gaussian coordinates.}
 
 \item{angle.power, reliability, min.angle.weight}{Passed to

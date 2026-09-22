@@ -2,7 +2,7 @@
 % Please edit documentation in R/export_examples.R, R/metric_mds.R
 \name{metric.mds}
 \alias{metric.mds}
-\title{Metric stress MDS using SMACOF}
+\title{Metric stress MDS using stochastic gradient descent or SMACOF}
 \usage{
 metric.mds(
   prepared = NULL,
@@ -21,7 +21,9 @@ metric.mds(
   scale_mode = c("profiled", "identity"),
   distance_floor = 1e-08,
   edge_length_epsilon = 1e-08,
-  band_quantiles = c(1/3, 2/3)
+  band_quantiles = c(1/3, 2/3),
+  backend = c("sgd", "smacof"),
+  sgd_control = list()
 )
 }
 \arguments{
@@ -49,9 +51,12 @@ matrix with \code{n} rows and \code{dim} columns in input-distance units.}
 
 \item{n_init}{Positive integer number of starts, including the first start.}
 
-\item{max_iter}{Positive integer iteration limit for each SMACOF run.}
+\item{max_iter}{Positive integer iteration limit per start. For SGD, the
+number of complete passes over all unordered pairs. The retained default
+is 1000; explicitly request 30 for a short initial SGD trial.}
 
-\item{eps}{Positive tolerance for the backend's change in normalized stress.}
+\item{eps}{Positive SMACOF tolerance for the change in normalized stress.
+Do not supply this argument for SGD, which runs its prescribed schedule.}
 
 \item{seed}{Integer random seed, or \code{NULL} to use the current RNG stream.
 With a non-NULL seed, random starts do not change the caller's RNG state.}
@@ -70,17 +75,35 @@ coordinates separately. This argument never changes the fitted coordinates.}
 
 \item{band_quantiles}{Two quantiles splitting graph distances into short,
 mid, and long bands.}
+
+\item{backend}{\code{"sgd"} (default) or \code{"smacof"}. No automatic fallback occurs.}
+
+\item{sgd_control}{Named list used only with \code{backend = "sgd"}:
+\code{scheduler} (\code{"hybrid"} or \code{"exponential"}), \code{learning_rate} (0.5),
+\code{final_rate} (0.01), \code{switch_ratio} (0.4), \code{checkpoint_every} (1), and
+\code{max_workspace_bytes} (256 MiB). These defaults are provisional calibration
+choices. Rates must be positive with \code{final_rate <= learning_rate};
+\code{switch_ratio} is between zero and one inclusive. The memory allowance covers native workspace,
+not the R input matrices or total process memory.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.
 \code{metadata} records the objective, backend/version, achieved raw stress,
 target-normalized RMSE, both Stress-1 conventions, selected start,
 coordinate scale multiplier, and per-start losses and stopping information.
+SGD adds per-start elapsed seconds (native fitting including scoring),
+native seeds, pair-update counts, best epochs, and checkpoint histories in
+\code{metadata$sgd}. Histories use RMS-normalized target-distance units and include
+both raw and scale-profiled stress; the public diagnostics use original
+units. SGD reports \code{iteration_limit} and \code{converged = FALSE} when its
+schedule finishes, including when an earlier checkpoint is returned.
 }
 \description{
 \code{metric.mds()} minimizes unweighted raw distance stress on a graph's
-all-pairs shortest-path distances using \code{smacof::mds(type = "ratio")}.
-It requires the optional \pkg{smacof} package. Before version 0.2.0.9000,
+all-pairs shortest-path distances using native stochastic gradient descent
+(SGD, the default) or \code{smacof::mds(type = "ratio")}.
+Only the SMACOF backend requires the optional \pkg{smacof} package.
+Before version 0.2.0.9000,
 this name performed classical scaling; use \code{\link[=classical.mds]{classical.mds()}} to retain that
 behavior. The \code{add} and \code{eig} arguments belong to \code{classical.mds()} only.
 }
@@ -116,6 +139,28 @@ Supplied starts may have coincident points but must not be wholly collapsed.
 The implementation uses dense all-pairs matrices; edge-only refinement with
 \code{\link[=edge.kk]{edge.kk()}} is preferable when that preparation is too large.
 }
+\section{SGD behavior}{
+
+Every pass visits all unordered pairs in shuffled order. Symmetric clipped
+updates follow Zheng et al. (2018); the hybrid exponential/harmonic schedule
+follows Hangan et al. (2026). The terminal epoch is always scored. The best
+independently scored checkpoint, including initialization, is retained using
+scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
+The R wrapper independently rescales and recomputes its returned stress.
+The exponential schedule's final rate is its boundary value after the planned
+passes, not its last applied rate. The hybrid schedule switches after
+\code{floor(switch_ratio * max_iter)} passes, at one tenth the initial rate
+(or the initial rate if the switch is immediate). Its harmonic segment
+approaches \code{final_rate} at the boundary only when the switch rate exceeds
+\code{final_rate}; otherwise that segment stays constant at the switch rate.
+With \code{switch_ratio = 1}, no harmonic segment occurs and \code{final_rate} is unused.
+Coincident points with positive target distance are separated along a seeded
+direction; zero targets are not floored. Without such collisions, updates
+preserve a deficient initial affine span. Use full-dimensional random starts
+to examine this sensitivity. This backend retains quadratic pair storage and
+work per pass. It does not validate the supplied graph distances.
+}
+
 \section{Workflow guides}{
 
 Start with \code{vignette("function-guide", package = "grip")}
@@ -124,11 +169,24 @@ guides with \code{vignette(package = "grip")}.
 }
 
 \examples{
-if (requireNamespace("smacof", quietly = TRUE)) {
-  prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
-  fit <- metric.mds(prepared = prepared, dim = 2)
-  fit$metadata$raw_stress
+prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
+fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max_iter = 30))
+fit$metadata$raw_stress
+fit$metadata$termination # Schedule completion is not a convergence certificate.
+# Schedule completion is reported explicitly, not as convergence.
+fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
+  dim = 3, init = "random", backend = "sgd", max_iter = 30,
+  diagnostics = FALSE))
+fit$metadata$engine
+fit$metadata$target_normalized_rmse
 }
+\references{
+Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+Graph Drawing by Stochastic Gradient Descent.
+\doi{10.1109/TVCG.2018.2859997}.
+Hangan, D., Kobourov, S. and Miller, J. (2026).
+Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+Optimization. \url{https://arxiv.org/abs/2605.00641}.
 }
 \seealso{
 \code{\link[=classical.mds]{classical.mds()}}, \code{\link[=edge.kk]{edge.kk()}}, \code{\link[smacof:mds]{smacof::mds()}}
