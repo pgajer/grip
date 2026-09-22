@@ -8,7 +8,6 @@ inputs and are maintained separately.
 
 - `grip/` — GRIP core, globalrep, cross-family experiments, insertion/refinement
 - `weighted-grip/` — weighted GRIP technical notes (MISF, caches, insertion, refinement)
-- `graph-families/` — synthetic graph family specs, generators, geometry gallery
 - `gripui/` — Shiny app design specifications
 
 ## Output directories
@@ -19,6 +18,11 @@ inputs and are maintained separately.
 - `tmp/` — transient benchmark run artifacts
 
 ## Notes
+
+- Historical graph-family catalogs, development galleries and benchmark-selection
+  notebooks are maintained in the separate manuscript workspace. Current public
+  examples are in `vignettes/articles/gallery.Rmd`; function contracts are in
+  package help. Public builds must not read private historical documents.
 
 - Keep package documentation generators in `tools/pkg/`.
 - Manuscript studies, their scripts, and their outputs live in separate private

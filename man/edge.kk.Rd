@@ -65,7 +65,7 @@ object, it must match the stored graph size.}
 
 \item{init}{Starting layout used when \code{coords} is omitted. \code{"classical_mds"}
 (the default) uses \code{\link[=classical.mds]{classical.mds()}}. \code{"metric_mds"} uses stress-minimizing
-\code{\link[=metric.mds]{metric.mds()}} and requires the optional smacof package. Both require an
+\code{\link[=metric.mds]{metric.mds()}} with its default native SGD backend. Both require an
 all-pairs prepared object.
 \code{"weighted_grip"} runs \code{\link[=grip]{grip()}} with \code{metric = "edge_length"} on the
 graph edges first, and

@@ -1040,7 +1040,7 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param dim Target embedding dimension.
 #' @param init Starting layout used when `coords` is omitted. `"classical_mds"`
 #'   (the default) uses [classical.mds()]. `"metric_mds"` uses stress-minimizing
-#'   [metric.mds()] and requires the optional smacof package. Both require an
+#'   [metric.mds()] with its default native SGD backend. Both require an
 #'   all-pairs prepared object.
 #'   `"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
 #'   graph edges first, and

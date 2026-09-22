@@ -2,11 +2,13 @@ grip.mds.has.smacof <- function() {
   requireNamespace("smacof", quietly = TRUE)
 }
 
-#' Metric stress MDS using SMACOF
+#' Metric stress MDS using stochastic gradient descent or SMACOF
 #'
 #' `metric.mds()` minimizes unweighted raw distance stress on a graph's
-#' all-pairs shortest-path distances using `smacof::mds(type = "ratio")`.
-#' It requires the optional \pkg{smacof} package. Before version 0.2.0.9000,
+#' all-pairs shortest-path distances using native stochastic gradient descent
+#' (SGD, the default) or `smacof::mds(type = "ratio")`.
+#' Only the SMACOF backend requires the optional \pkg{smacof} package.
+#' Before version 0.2.0.9000,
 #' this name performed classical scaling; use [classical.mds()] to retain that
 #' behavior. The `add` and `eig` arguments belong to `classical.mds()` only.
 #'
@@ -53,14 +55,63 @@ grip.mds.has.smacof <- function() {
 #' @param init `"classical"` (default), `"random"`, or a finite numeric
 #'   matrix with `n` rows and `dim` columns in input-distance units.
 #' @param n_init Positive integer number of starts, including the first start.
-#' @param max_iter Positive integer iteration limit for each SMACOF run.
-#' @param eps Positive tolerance for the backend's change in normalized stress.
+#' @param max_iter Positive integer iteration limit per start. For SGD, the
+#'   number of complete passes over all unordered pairs. The retained default
+#'   is 1000; explicitly request 30 for a short initial SGD trial.
+#' @param eps Positive SMACOF tolerance for the change in normalized stress.
+#'   Do not supply this argument for SGD, which runs its prescribed schedule.
 #' @param seed Integer random seed, or `NULL` to use the current RNG stream.
 #'   With a non-NULL seed, random starts do not change the caller's RNG state.
+#' @param backend `"sgd"` (default) or `"smacof"`. No automatic fallback occurs.
+#' @param sgd_control Named list used only with `backend = "sgd"`:
+#'   `scheduler` (`"hybrid"` or `"exponential"`), `learning_rate` (0.5),
+#'   `final_rate` (0.01), `switch_ratio` (0.4), `checkpoint_every` (1), and
+#'   `max_workspace_bytes` (256 MiB). These defaults are provisional calibration
+#'   choices. Rates must be positive with `final_rate <= learning_rate`;
+#'   `switch_ratio` is between zero and one inclusive. The memory allowance covers native workspace,
+#'   not the R input matrices or total process memory.
 #' @return A `"grip_gmds_layout"` object with method `"metric_mds"`.
 #'   `metadata` records the objective, backend/version, achieved raw stress,
 #'   target-normalized RMSE, both Stress-1 conventions, selected start,
 #'   coordinate scale multiplier, and per-start losses and stopping information.
+#'   SGD adds per-start elapsed seconds (native fitting including scoring),
+#'   native seeds, pair-update counts, best epochs, and checkpoint histories in
+#'   `metadata$sgd`. Histories use RMS-normalized target-distance units and include
+#'   both raw and scale-profiled stress; the public diagnostics use original
+#'   units. SGD reports `iteration_limit` and `converged = FALSE` when its
+#'   schedule finishes, including when an earlier checkpoint is returned.
+#' @section SGD behavior:
+#' Every pass visits all unordered pairs in shuffled order. Symmetric clipped
+#' updates follow Zheng et al. (2018); the hybrid exponential/harmonic schedule
+#' follows Hangan et al. (2026). The terminal epoch is always scored. The best
+#' independently scored checkpoint, including initialization, is retained using
+#' scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
+#' The R wrapper independently rescales and recomputes its returned stress.
+#' The exponential schedule's final rate is its boundary value after the planned
+#' passes, not its last applied rate. The hybrid schedule switches after
+#' `floor(switch_ratio * max_iter)` passes, at one tenth the initial rate
+#' (or the initial rate if the switch is immediate). Its harmonic segment
+#' approaches `final_rate` at the boundary only when the switch rate exceeds
+#' `final_rate`; otherwise that segment stays constant at the switch rate.
+#' With `switch_ratio = 1`, no harmonic segment occurs and `final_rate` is unused.
+#' Coincident points with positive target distance are separated along a seeded
+#' direction; zero targets are not floored. Without such collisions, updates
+#' preserve a deficient initial affine span. Use full-dimensional random starts
+#' to examine this sensitivity. This backend retains quadratic pair storage and
+#' work per pass. It does not validate the supplied graph distances.
+#' @references Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+#'   Graph Drawing by Stochastic Gradient Descent.
+#'   \doi{10.1109/TVCG.2018.2859997}.
+#'   Hangan, D., Kobourov, S. and Miller, J. (2026).
+#'   Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+#'   Optimization. <https://arxiv.org/abs/2605.00641>.
+#' @examples
+#' # Schedule completion is reported explicitly, not as convergence.
+#' fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
+#'   dim = 3, init = "random", backend = "sgd", max_iter = 30,
+#'   diagnostics = FALSE))
+#' fit$metadata$engine
+#' fit$metadata$target_normalized_rmse
 #' @seealso [classical.mds()], [edge.kk()], [smacof::mds()]
 #' @md
 #' @export
@@ -84,13 +135,22 @@ metric.mds <- function(prepared = NULL,
                        scale_mode = c("profiled", "identity"),
                        distance_floor = 1e-8,
                        edge_length_epsilon = 1e-8,
-                       band_quantiles = c(1 / 3, 2 / 3)) {
+                       band_quantiles = c(1 / 3, 2 / 3),
+                       backend = c("sgd", "smacof"),
+                       sgd_control = list()) {
   grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
-  if (!grip.mds.has.smacof()) {
+  backend <- match.arg(backend)
+  if (backend == "sgd" && !missing(eps)) {
+    stop("eps is a SMACOF tolerance; SGD uses max_iter and sgd_control", call. = FALSE)
+  }
+  if (backend == "smacof" && length(sgd_control)) {
+    stop("sgd_control requires backend = 'sgd'", call. = FALSE)
+  }
+  if (backend == "smacof" && !grip.mds.has.smacof()) {
     stop("metric.mds() requires the optional 'smacof' package; install it, ",
          "or use classical.mds() for classical scaling", call. = FALSE)
   }
-  if (utils::packageVersion("smacof") < "2.1-7") {
+  if (backend == "smacof" && utils::packageVersion("smacof") < "2.1-7") {
     stop("metric.mds() requires smacof >= 2.1-7", call. = FALSE)
   }
   scale_mode <- match.arg(scale_mode)
@@ -102,6 +162,10 @@ metric.mds <- function(prepared = NULL,
     }
   }
   if (dim < 2L) stop("dim must be at least 2", call. = FALSE)
+  if (backend == "sgd") {
+    sgd_control <- grip.mds.sgd.control(sgd_control, max_iter)
+    rates <- grip.mds.sgd.rates(sgd_control, max_iter)
+  }
   grip.validate.scalar(eps, "eps", lower = 0, open.lower = TRUE)
   if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
     stop("diagnostics must be TRUE or FALSE", call. = FALSE)
@@ -155,7 +219,7 @@ metric.mds <- function(prepared = NULL,
                              diagnostics = FALSE)$coords
     }
   }
-  if (!is.null(seed) && (n_init > 1L || identical(init.name, "random"))) {
+  if (!is.null(seed) && (backend == "sgd" || n_init > 1L || identical(init.name, "random"))) {
     had.seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     old.seed <- if (had.seed) get(".Random.seed", envir = .GlobalEnv) else NULL
     on.exit({
@@ -179,26 +243,32 @@ metric.mds <- function(prepared = NULL,
   best <- NULL
   best.loss <- Inf
   records <- vector("list", n_init)
+  sgd.records <- vector("list", n_init)
   for (run in seq_len(n_init)) {
     start <- if (run == 1L && !is.null(first)) first else
       matrix(stats::rnorm(prepared$n * dim), nrow = prepared$n, ncol = dim)
     start <- rescale(start)
     notices <- character()
+    if (backend == "sgd") native.seed <- sample.int(.Machine$integer.max, 1L)
+    if (backend == "sgd") fit.started <- proc.time()[["elapsed"]]
     fit <- tryCatch(withCallingHandlers(
-      smacof::mds(delta.normalized, ndim = dim, type = "ratio",
+      if (backend == "sgd") {
+        grip.mds.sgd.fit(start$coords, target.normalized, rates, sgd_control, native.seed)
+      } else smacof::mds(delta.normalized, ndim = dim, type = "ratio",
                   init = start$coords, itmax = max_iter, eps = eps,
                   principal = FALSE, verbose = FALSE),
       warning = function(w) {
         notices <<- c(notices, conditionMessage(w))
         invokeRestart("muffleWarning")
       }), error = function(e) e)
+    if (backend == "sgd") fit.elapsed <- proc.time()[["elapsed"]] - fit.started
     failed <- inherits(fit, "error")
     result <- if (failed) fit else tryCatch(rescale(fit$conf), error = function(e) e)
     failed <- inherits(result, "error")
     rejected <- !failed && result$loss > start$loss + 1e-10 * max(1, start$loss)
     if (rejected) result <- start
     reason <- if (failed) "backend_error" else if (rejected) "rejected_increase" else
-      if (fit$niter >= max_iter) "iteration_limit" else "stress_tolerance"
+      if (backend == "sgd" || fit$niter >= max_iter) "iteration_limit" else "stress_tolerance"
     records[[run]] <- data.frame(
       start = run, initialization = if (run == 1L) init.name else "random",
       initial_raw_stress = start$loss * target.rms^2,
@@ -210,6 +280,14 @@ metric.mds <- function(prepared = NULL,
       warnings = paste(unique(notices), collapse = " | "),
       error = if (failed) conditionMessage(result) else "",
       stringsAsFactors = FALSE)
+    if (backend == "sgd") {
+      records[[run]]$elapsed_seconds <- fit.elapsed
+      records[[run]]$native_seed <- native.seed
+      records[[run]]$pair_updates <- if (inherits(fit, "error")) NA_real_ else fit$pair_updates
+      records[[run]]$best_epoch <- if (inherits(fit, "error")) NA_integer_ else fit$best_epoch
+      sgd.records[[run]] <- if (inherits(fit, "error")) list(error = conditionMessage(fit)) else
+        list(trace = fit$trace, workspace_bytes = fit$workspace_bytes)
+    }
     if (!failed && result$loss < best.loss) {
       best <- result
       best.loss <- result$loss
@@ -218,7 +296,7 @@ metric.mds <- function(prepared = NULL,
   }
   runs <- do.call(rbind, records)
   if (is.null(best)) {
-    stop("All SMACOF starts failed: ", paste(unique(runs$error), collapse = " | "),
+    stop("All ", toupper(backend), " starts failed: ", paste(unique(runs$error), collapse = " | "),
          call. = FALSE)
   }
   if (!runs$converged[selected]) {
@@ -231,10 +309,10 @@ metric.mds <- function(prepared = NULL,
   diag <- if (diagnostics) score.gmds(coords = coords, prepared = prepared,
     scale_mode = scale_mode, distance_floor = distance_floor,
     edge_length_epsilon = edge_length_epsilon, band_quantiles = band_quantiles) else NULL
-  gmds.result(coords = coords, method = "metric_mds", prepared = prepared,
+  output <- gmds.result(coords = coords, method = "metric_mds", prepared = prepared,
     trace = NULL, diagnostics = diag, metadata = list(
-      engine = "smacof", grip_version = as.character(getNamespaceVersion("grip")),
-      backend_version = as.character(utils::packageVersion("smacof")),
+      engine = backend, grip_version = as.character(getNamespaceVersion("grip")),
+      backend_version = if (backend == "smacof") as.character(utils::packageVersion("smacof")) else "grip-sgd-mds-v1",
       objective = "raw_distance_stress", pair_weights = "uniform", type = "ratio",
       input_rms_distance = target.rms, coordinate_scale = best$multiplier * target.rms,
       raw_stress = best.loss * target.rms^2,
@@ -245,4 +323,11 @@ metric.mds <- function(prepared = NULL,
       termination = runs$termination[selected], starts = runs,
       settings = list(init = init.name, n_init = n_init, max_iter = max_iter, eps = eps,
                       seed = seed, dimension = dim)))
+  if (backend == "sgd") {
+    output$metadata$settings$eps <- NULL
+    output$metadata$settings$sgd_control <- sgd_control
+    output$metadata$sgd <- sgd.records
+    output$metadata$settings$randomization <- "R per-start seed; mt19937_64 rejection-sampled Fisher-Yates"
+  }
+  output
 }

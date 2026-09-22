@@ -10,7 +10,8 @@ paths = subprocess.check_output(
     cwd=root,
 ).decode().split("\0")
 private_roots = ("papers/", "dev/papers/", "dev/grip_paper/", "tools/experiments/",
-                 "tools/benchmarks/", "tools/reports/", "tools/figures/")
+                 "tools/benchmarks/", "tools/reports/", "tools/figures/",
+                 "dev/manual/", "dev/design/graph-families/", "dev/release/0.1.2/")
 # Missing files are unstaged removals during migration; a clean checkout has none.
 bad = sorted({p for p in paths if p.startswith(private_roots) and (root / p).exists()})
 if bad:

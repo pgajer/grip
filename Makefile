@@ -91,6 +91,10 @@ repo-hygiene:
 	@tools/check-dev-source-only.sh
 	@Rscript tools/check-release-content.R
 
+.PHONY: test-release-content
+test-release-content:
+	@python3 tools/tests/test-release-content.py
+
 rchk:
 	@tools/check_rchk.sh
 

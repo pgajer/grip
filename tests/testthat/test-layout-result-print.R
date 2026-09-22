@@ -1,5 +1,4 @@
 test_that("saved metric results retain objective and stopping information when printed", {
-  skip_if_not_installed("smacof")
   expect_warning(fit <- metric.mds(edges = edges.cycle(6), n = 6,
                                    init = "random", max_iter = 1,
                                    diagnostics = FALSE), "iteration_limit")
