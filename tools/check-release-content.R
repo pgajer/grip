@@ -1,16 +1,20 @@
 #!/usr/bin/env Rscript
-# Repository-only checks: installed-data privacy and design-catalog API status.
+# Repository-only checks: public API documentation and installed-data privacy.
 stopifnot(file.exists("DESCRIPTION"), file.exists("NAMESPACE"))
 public <- sub("^export\\((.*)\\)$", "\\1",
               grep("^export\\(", readLines("NAMESPACE"), value = TRUE))
-catalog <- readLines("dev/design/graph-families/graph_families_generated_in_thread_2026-03-31.md")
-rows <- grep("^\\| `", catalog, value = TRUE)
-for (row in rows) {
-  name <- sub("^\\| `([^`]+)`.*", "\\1", row)
-  expected <- if (name %in% public) "exported" else "internal"
-  if (!endsWith(row, paste0("| ", expected, " |"))) {
-    stop("Graph-family catalog API status does not match NAMESPACE: ", name)
-  }
+rd_files <- list.files("man", pattern = "\\.Rd$", full.names = TRUE)
+if (!length(public) || !length(rd_files)) {
+  stop("Public exports and package Rd documentation must both be present.")
+}
+aliases <- unique(unlist(lapply(rd_files, function(file) {
+  rd <- tools::parse_Rd(file)
+  nodes <- Filter(function(node) identical(attr(node, "Rd_tag"), "\\alias"), rd)
+  vapply(nodes, function(node) paste(unlist(node), collapse = ""), character(1))
+}), use.names = FALSE))
+missing <- setdiff(public, aliases)
+if (length(missing)) {
+  stop("Public exports lack package Rd aliases: ", paste(missing, collapse = ", "))
 }
 
 inspect_paths <- function(x, location) {
@@ -43,4 +47,4 @@ for (file in setdiff(text_files, c("AGENTS.md", "tools/check-release-content.R")
     stop("Public content refers to private working material: ", file)
   }
 }
-cat(length(rows), "catalog entries match NAMESPACE; serialized data and private-reference checks passed.\n")
+cat(length(public), "public exports have Rd documentation; serialized data and private-reference checks passed.\n")

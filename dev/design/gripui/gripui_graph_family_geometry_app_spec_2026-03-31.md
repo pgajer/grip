@@ -503,10 +503,11 @@ Useful compare presets:
 
 The app should contain an in-app gallery sourced from a fixed list of presets.
 
-This gallery should mirror the generated R Markdown/HTML gallery:
-
-- [graph_geometry_gallery_2026-03-31.Rmd](https://github.com/pgajer/grip/blob/main/dev/design/graph_geometry_gallery_2026-03-31.Rmd)
-- [graph_geometry_gallery_2026-03-31.html](https://github.com/pgajer/grip/blob/main/dev/design/graph_geometry_gallery_2026-03-31.html)
+The original March 2026 development-helper gallery is retained with historical
+scientific notes outside the package. It is not a public build input. Use the
+[public gallery source](../../../vignettes/articles/gallery.Rmd) for maintained
+installed-API examples; it is not a one-for-one replacement for the historical
+development-helper collection.
 
 Recommendation:
 

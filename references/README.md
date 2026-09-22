@@ -1,17 +1,6 @@
 # References Layout
 
-Downloaded literature and reference PDFs belong here.
-
-Preferred layout:
-
-- `references/literature/graph_drawing/`
-- `references/literature/mds/`
-- `references/literature/geometric_layout/`
-
-Manuscripts and their dedicated literature collections are maintained in private
-workspaces outside this public repository. This directory is for package references.
-
-Current status:
-
-- The graph-drawing reference PDFs were migrated into `references/literature/graph_drawing/` on 2026-04-03.
-- Add new literature directly under the appropriate `references/literature/...` topic directory.
+Public bibliographic metadata may live here. Downloaded literature PDFs and
+manuscript reference collections are maintained outside the public package, in
+the separate manuscript workspace. They are not package or website build inputs.
+Package help and vignettes retain the citations needed by package users.

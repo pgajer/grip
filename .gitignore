@@ -7,6 +7,10 @@
 /tools/benchmarks/
 /tools/reports/
 /tools/figures/
+/dev/manual/
+/dev/design/graph-families/
+/dev/release/0.1.2/
+/references/literature/
 /Meta/
 .DS_Store
 README.html
