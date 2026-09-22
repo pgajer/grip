@@ -46,7 +46,7 @@ helpers support different decisions around that drawing.
 | How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Synthetic graph families](synthetic-graph-families.html) |
 | How do I browse many saved results? | `gripui_project()` and `run_gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
 
-The six linked package vignettes are installed with grip. The
+The seven linked package vignettes are installed with grip. The
 [gallery](https://pgajer.github.io/grip/articles/gallery.html),
 [comparison article](https://pgajer.github.io/grip/articles/grip-vs-alternatives.html),
 and interactive explorer are website-only articles.
@@ -252,6 +252,9 @@ sgd$metadata$target_normalized_rmse
 sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
 # Use edge.kk(prepared = prepared, coords = sgd$coords, dim = 3) to refine it.
 ```
+
+For matched-start stress and timing comparisons, quadratic surfaces, and
+interactive 3D overlays, see [Comparing SGD and SMACOF](metric-mds-backends.html).
 
 ## Choose a score
 

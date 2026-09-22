@@ -1,0 +1,379 @@
+---
+title: "Comparing SGD and SMACOF for metric MDS"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Comparing SGD and SMACOF for metric MDS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1000px; }
+table { width: 100%; }
+.rglWebGL { max-width: 100%; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', fig.width = 9,
+                     fig.height = 4, out.width = '100%')
+library(grip)
+recipe <- system.file('scripts', 'metric-mds-comparison.R', package = 'grip')
+source(recipe, local = TRUE)
+bundle <- readRDS(system.file('extdata', 'metric-mds-comparison', 'benchmark.rds', package = 'grip'))
+rows <- comparison_rows(bundle)
+last <- rows[rows$budget == 100L & rows$status == 'ok', ]
+paired <- merge(last[last$backend == 'sgd', c('case','seed','error')],
+                last[last$backend == 'smacof', c('case','seed','error')],
+                by = c('case','seed'), suffixes = c('.sgd','.smacof'))
+have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
+  requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
+  all(c('plot3D.groups','color.scale.groups','layer3D.mesh','layer3D.edges','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
+  'limits' %in% names(formals(ivue::plot3D.plain))
+```
+
+## What is being compared?
+
+`metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
+Its default `backend = "sgd"` uses native stochastic gradient descent (SGD).
+The alternative `backend = "smacof"` uses the optional **smacof** package
+(Mair, Groenen and de Leeuw, 2022).
+Both minimize the same uniformly weighted raw distance stress:
+
+\[
+S(Z) = \sum_{i<j} \bigl(\lVert z_i-z_j\rVert-d_{ij}\bigr)^2.
+\]
+
+The pair updates follow Zheng, Pawar and Goodman (2018), and the default
+hybrid learning-rate schedule follows Hangan, Kobourov and Miller (2026).
+These papers and the SMACOF reference are listed in the [references](#references). This is a comparison
+of these implementations and settings on small synthetic examples, not a
+claim that either optimizer always wins or recovers intrinsic geometry.
+
+The figure labels and plots use **normalized error**,
+\(\sqrt{S(Z)/\sum_{i<j}d_{ij}^2}\). Lower is better; zero means exact agreement
+with the target distances. Within a dataset, its ranking is identical to raw
+stress. Raw stress is also reported. We recompute both from the returned
+coordinates, rather than compare differently normalized backend reports.
+
+The precomputed experiment uses 14 datasets, five paired starts, three
+allowances, and two backends: **420 planned fits**. Every example is displayed
+below, including both cloud sizes. Except for the planar control, all fits
+and interactive views are three-dimensional. The plane is fitted and plotted
+in two dimensions.
+
+## A small, executable example
+
+Construct a saddle over \([-1,1]^2\), with
+\(z=0.8(x^2-y^2)\). This is a two-dimensional surface embedded in 3D.
+To compare ambient distances, represent the cloud as a complete graph with
+Euclidean edge lengths. The triangle inequality then makes graph shortest-path
+distances equal to the original Euclidean distances. This uses public APIs;
+no internal prepared object is modified.
+
+```{r saddle-example}
+library(grip)
+source(system.file('scripts', 'metric-mds-comparison.R', package = 'grip'), local = TRUE)
+grid <- seq(-1, 1, length.out = 5)
+uv <- as.matrix(expand.grid(x = grid, y = grid))
+X <- cbind(uv, z = .8 * (uv[, 1]^2 - uv[, 2]^2))
+edges <- t(combn(nrow(X), 2))
+lengths <- sqrt(rowSums((X[edges[, 1], ] - X[edges[, 2], ])^2))
+prepared <- prepare.graph.geodesic.mds(edges = edges, n = nrow(X),
+                                      edge_weights = lengths)
+start <- withr::with_seed(11, matrix(rnorm(nrow(X) * 3), nrow(X), 3))
+# Schedule completion emits an iteration-limit warning, not convergence.
+sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
+  init = start, n_init = 1, max_iter = 30, seed = 11, diagnostics = FALSE))
+sgd$metadata$engine  # "sgd": backend omitted deliberately
+sgd$metadata$termination
+smacof.fit <- NULL
+if (requireNamespace('smacof', quietly = TRUE)) {
+  smacof.fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
+    init = start, n_init = 1, max_iter = 30, seed = 11,
+    backend = 'smacof', eps = 1e-8, diagnostics = FALSE))
+  rbind(SGD = comparison_score(sgd$coords, prepared$distance_matrix),
+        SMACOF = comparison_score(smacof.fit$coords, prepared$distance_matrix))
+}
+```
+
+This introductory 25-point fit is separate from the timing experiment.
+Its coordinates are also shown: the timing labels below belong only to the
+saved experiment, not to this run during document generation.
+
+```{r small-example-view, fig.cap="The executable 25-point saddle example: gray reference, blue SGD, orange SMACOF (when available). Both fits use the same starting coordinates and 30 passes/iterations."}
+small.case <- comparison_cases(5L)[['saddle-25']]
+small.fits <- list(sgd = list(coords = sgd$coords),
+  smacof = list(coords = if (!is.null(smacof.fit)) smacof.fit$coords else NULL))
+if (have.ivue) {
+  comparison_view(small.case, small.fits)
+} else {
+  # A 3D projection of this run; precomputed experiment images below use ivue.
+  Z <- cbind(small.case$X[,1], small.case$X[,2], small.case$X[,3])
+  Zs <- comparison_align(sgd$coords, Z)
+  view <- function(A) cbind(.8*A[,1] - .6*A[,2], .3*A[,1] + .4*A[,2] + .866*A[,3])
+  all <- rbind(Z, Zs)
+  colors <- rep(c('gray55','#1769AA'), each = nrow(Z))
+  if (!is.null(small.fits$smacof$coords)) {
+    all <- rbind(all, comparison_align(small.fits$smacof$coords, Z))
+    colors <- c(colors, rep('#D66A19', nrow(Z)))
+  }
+  plot(view(all), asp = 1, pch = 16, col = colors,
+       xlab = '3D projection: horizontal', ylab = '3D projection: vertical')
+}
+```
+
+`max_iter` defaults to 1000; 30 is an explicit short trial allowance.
+One SGD pass visits all unordered pairs. One SMACOF iteration is a different
+operation, so equal iteration counts are not equal work. SGD's schedule ends
+with `iteration_limit`, even when it returns an earlier, better checkpoint.
+SMACOF may stop earlier using `eps`; this tolerance must not be passed to SGD.
+The learning-rate defaults are provisional calibration choices.
+
+## Datasets and timing protocol
+
+The plane, paraboloid and saddle use regular 8-by-8 and 12-by-12 grids on
+\([-1,1]^2\), giving 64 and 144 vertices. Their lifts are, respectively,
+\(z=0\), \(z=0.8(x^2+y^2)\), and \(z=0.8(x^2-y^2)\).
+The Gaussian clouds have three independent standard-normal coordinates with
+fixed seeds. The spatial graph follows a helix
+\((\cos t,\sin t,t/\pi)\), \(0\leq t\leq3\pi\), with edges between consecutive
+vertices and between vertices seven indices apart. Every graph edge is
+weighted by its Euclidean length in the generating coordinates.
+
+For the paraboloid and saddle, two target definitions are compared:
+
+- **Ambient Euclidean:** all straight-line distances in the generating 3D
+  cloud, represented by a complete weighted graph. An exact 3D realization
+  exists; classical MDS provides a useful numerical check.
+- **Local graph paths:** shortest paths on the grid with horizontal, vertical,
+  and both diagonal connections. These are exact distances for that finite
+  graph, **not exact geodesic distances on the continuous quadform**. They
+  depend on sampling and allowed directions. Small graph-distance stress need
+  not reconstruct the generating surface.
+
+The helix uses local graph-path targets. Its generating coordinates are a
+reference drawing, not a guaranteed exact realization of all graph distances.
+The reference mesh on each quadform connects corresponding sampled vertices;
+it is a display aid, not a geodesic or surface-recovery certificate.
+
+For every dataset, both backends receive the **same saved starting-coordinate
+recipe**, for seeds 1–5, and `n_init = 1`. Each allowance of 10, 30 or 100
+starts a separate fit from those coordinates. SGD uses the hybrid schedule
+with initial rate 0.5, boundary rate 0.01, switch fraction 0.4, and scoring after
+every pass; SMACOF uses `eps = 1e-8`. Backend order alternates between paired
+blocks. No setting was chosen from the observed winners.
+
+Elapsed fitting time includes the wrapper, target normalization, optimization,
+and checkpoint scoring. Shared graph preparation, process startup, namespace
+loading, independent final scoring, alignment, and rendering are excluded.
+The two namespaces are loaded before timing either backend. Each fit runs in
+an isolated process with a 30-second allowance; the full experiment has a
+1,800-second allowance. Errors and timeouts remain in the result table and
+are not replaced by successful reruns. These are provisional workload limits.
+
+The plots show median time and median normalized error across five starts,
+with horizontal and vertical interquartile ranges. Numeric labels identify
+the allowances. **Each marker is a separate restarted experiment, not a
+checkpoint on one optimization trajectory.** There is no retrospective
+best-of-three selection. Values below 0.001 seconds or error below \(10^{-12}\)
+are clipped only for logarithmic plotting; the tables retain measured values.
+
+```{r run-status}
+knitr::kable(as.data.frame(table(Backend = rows$backend, Status = rows$status)),
+             col.names = c('Backend','Outcome','Fits'))
+knitr::kable(do.call(rbind, lapply(split(rows, rows$backend), function(z) {
+  data.frame(Backend = z$backend[1], Fits = nrow(z),
+    `Successful fits` = sum(z$status == 'ok'),
+    `Total fit seconds` = sum(z$seconds, na.rm = TRUE),
+    `Total worker seconds` = sum(z$worker_seconds), check.names = FALSE)
+})), row.names = FALSE, digits = 3)
+```
+
+At the largest allowance (100 passes/iterations), SGD has lower normalized
+error in **`r sum(paired$error.sgd < paired$error.smacof - 1e-10)` of
+`r nrow(paired)` completed pairs**, and SMACOF in
+**`r sum(paired$error.smacof < paired$error.sgd - 1e-10)`**; differences no larger
+than \(10^{-10}\) count as ties. This compares a specified iteration allowance,
+not equal elapsed time. Across all three allowances, total recorded fitting
+time is **`r sprintf('%.3f', sum(rows$seconds[rows$backend == 'sgd'], na.rm = TRUE))`
+seconds for SGD** and **`r sprintf('%.3f', sum(rows$seconds[rows$backend == 'smacof'], na.rm = TRUE))`
+for SMACOF**. These examples favor SGD's achieved accuracy but do not establish
+a universal speed advantage. Use the per-example plots to examine the trade-off.
+
+An `ok` outcome means a fit returned usable coordinates; it does not mean
+convergence. Figure tables below report the actual pass/iteration count and
+termination reason. Worker time includes startup and communication and is
+reported separately.
+For a forcibly stopped worker, fitting time may be unavailable; summing
+recorded fitting time alone would then understate total effort.
+Timing is machine-dependent, especially for these small examples. This run
+used a shared workstation without CPU isolation; short timings are sensitive
+to background activity and timer resolution.
+
+## How to read the embedding figures
+
+**Gray is the generating reference; blue is SGD; orange is SMACOF.** Each
+saved experiment figure shows seed 1 and allowance 100, selected in advance
+and identically for both backends. It is not the best seed or the fit nearest
+the median. A failed selected run stays unavailable. Figure tables report
+that exact run's error, raw stress and fitting time, as well as a separately
+computed classical-MDS reference.
+
+For overlays we center each fit, then apply an orthogonal rotation/reflection
+to match corresponding reference vertices. **No rescaling is performed for
+alignment.** The reported scores use original returned coordinates. These
+operations preserve all fitted distances; shared axes retain the input units.
+Blue and orange graph segments show the same edges in each embedding. Dense
+complete graphs are shown as clouds, avoiding thousands of overlapping edges.
+
+Side-by-side panels first show the reference and each backend separately, with
+common limits, camera and scale. The overlay below them shows their agreement.
+With a current `ivue` (including mesh layers and shared view limits) and `rgl`
+available, drag to rotate and scroll to zoom. Otherwise,
+the figures use saved images of these same `ivue` views. The plane uses 2D
+panels. To inspect just one configuration, recreate a view with `show` set to
+`"reference"`, `"sgd"`, or `"smacof"`:
+
+```{r individual-view, eval=FALSE}
+bundle <- readRDS(system.file('extdata', 'metric-mds-comparison',
+                              'benchmark.rds', package = 'grip'))
+case <- bundle$cases[['saddle_graph-144']]
+fits <- comparison_representative(bundle, case$id)
+comparison_view(case, fits, show = 'sgd')
+comparison_view(case, fits, show = 'smacof')
+comparison_view(case, fits, show = 'overlay')
+```
+
+`ivue` is optional and is available from
+[its source repository](https://github.com/pgajer/ivue). Its public
+`plot3D.groups()`, `layer3D.mesh()`, `layer3D.edges()`, `layer3D.axes()`
+and `camera.zup()` methods
+build these views. It does not fit or modify the embeddings. Set
+`options(grip.vignette.interactive = FALSE)` before rendering to use the saved
+images even when ivue is installed. Overlapping colors may hide very close
+fits; the single-method views above help inspect them separately.
+
+```{r experiment-figures, results='asis', echo=FALSE}
+kinds <- c('gaussian','plane','paraboloid','saddle','paraboloid_graph','saddle_graph','helix_graph')
+for (kind in kinds) {
+  ids <- paste(kind, c(64,144), sep = '-')
+  case <- bundle$cases[[ids[1]]]
+  cat('\n\n## ', case$label, ': ', case$target, '\n\n', sep = '')
+  child <- c(
+    sprintf('```{r tradeoff-%s, echo=FALSE, fig.cap="Separate schedules: median normalized error versus median fitting time; bars show the interquartile ranges over five starts. Labels are pass/iteration allowances."}', kind),
+    sprintf('comparison_tradeoff(bundle, c("%s", "%s"))', ids[1], ids[2]), '```')
+  cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+  for (id in ids) {
+    child <- c(sprintf('### %s points', bundle$cases[[id]]$n),
+      sprintf('```{r table-%s, echo=FALSE}', id),
+      sprintf('case <- bundle$cases[["%s"]]', id),
+      'fits <- comparison_representative(bundle, case$id)',
+      'reference <- comparison_score(case$X[,seq_len(case$dimension),drop=FALSE], case$distances)',
+      'classical <- bundle$baseline[[case$id]]',
+      'tab <- data.frame(Method = c("Generating reference", "Classical MDS", "SGD", "SMACOF"),',
+      '  Raw_stress = c(reference[["raw_stress"]], classical$score[["raw_stress"]], fits$sgd$row$raw_stress, fits$smacof$row$raw_stress),',
+      '  Normalized_error = c(reference[["error"]], classical$score[["error"]], fits$sgd$row$error, fits$smacof$row$error),',
+      '  Fit_seconds = c(NA, classical$seconds, fits$sgd$row$seconds, fits$smacof$row$seconds),',
+      '  Iterations = c(NA, NA, fits$sgd$row$iterations, fits$smacof$row$iterations),',
+      '  Termination = c("Reference only", "Spectral reference", if (fits$sgd$row$status == "ok") fits$sgd$row$termination else fits$sgd$row$status, if (fits$smacof$row$status == "ok") fits$smacof$row$termination else fits$smacof$row$status))',
+      'tab$Raw_stress <- format(tab$Raw_stress, scientific = TRUE, digits = 4)',
+      'tab$Normalized_error <- format(tab$Normalized_error, scientific = TRUE, digits = 4)',
+      'knitr::kable(tab, digits = 3, col.names = c("Method", "Raw stress", "Normalized error", "Fit seconds", "Passes/iterations", "Termination"))', '```',
+      sprintf('```{r embedding-%s, echo=FALSE, fig.height=3.5, fig.cap="Fixed seed 1, allowance 100. Gray: generating reference; blue: SGD; orange: SMACOF. The table above reports the exact displayed fits. Alignment preserves scale."}', id),
+      'if (case$dimension != 2L) knitr::include_graphics(system.file("extdata", "metric-mds-comparison", paste0(case$id, "-panels.png"), package = "grip"))',
+      '```',
+      sprintf('```{r overlay-%s, echo=FALSE, fig.height=3.5}', id),
+      'if (case$dimension == 2L) {',
+      '  comparison_planar(case, fits)',
+      '} else if (have.ivue) {',
+      '  comparison_view(case, fits)',
+      '} else {',
+      '  knitr::include_graphics(system.file("extdata", "metric-mds-comparison", paste0(case$id, ".png"), package = "grip"))',
+      '}', '```')
+    cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+  }
+}
+```
+
+## Interpretation and limitations
+
+Compare the two backends within the same dataset and target definition.
+Movement down and left in a trade-off plot means lower error in less time.
+Overlapping ranges indicate sensitivity to the starting coordinates; five
+starts are a descriptive sample, not a statistical performance guarantee.
+The figures show a predetermined start, so their ranking can differ from the
+median ranking. Neither reaching the schedule limit nor low stress certifies
+a global optimum.
+
+Ambient targets on the plane and quadforms admit an exact realization at the
+chosen dimension. Classical MDS therefore offers a near-zero-error reference
+on these examples; iterative optimization is not necessary merely to embed
+an already known Euclidean cloud. The graph-path cases pose a different
+problem and may retain positive error even at an optimum. Their generating
+surfaces are useful visual references, not the distance objective itself.
+
+This experiment extends the earlier implementation pilot with quadratic
+surfaces and public-API fixture preparation. It is a new run, not a relabeling
+of those earlier measurements. There is no retinal dataset here, no continuous
+surface-geodesic accuracy claim, and no evidence about large-data scaling.
+Both backends currently require dense all-pairs distance storage. The SGD
+implementation also retains quadratic pair storage and visits every pair in
+each pass.
+
+## Reproduce the experiment
+
+Vignette builds execute the small example and render saved results; they do
+not run the 420-fit timing experiment. From a source checkout, install the
+candidate package into a separate library, then run:
+
+```sh
+R CMD INSTALL --preclean --library=/path/to/candidate-library . > candidate-install.log 2>&1
+Rscript tools/pkg/build-metric-mds-comparison.R fresh-results /path/to/candidate-library candidate-install.log
+```
+
+The explicit benchmark command additionally needs **callr**. The install log
+must show a fresh optimized compilation; the runner rejects reused objects
+and `-O0` builds. The bundled timing run used a fresh `-O2` build. An earlier
+420-fit attempt reused unoptimized development objects; it is retained as a
+separate diagnostic run and is excluded from the figures and timing tables.
+Dataset, start and fitting settings were unchanged for the optimized rerun.
+The runner refuses to overwrite an earlier output directory. It saves the protocol first, progress
+after each fit, every outcome and warning, all returned coordinates, and a
+final compressed bundle. The repository's
+`tools/pkg/render-metric-mds-comparison.R` and
+`tools/pkg/capture-metric-mds-comparison.cjs` reproduce the saved `ivue` images.
+The installed recipe is `scripts/metric-mds-comparison.R`; the published
+bundle is `extdata/metric-mds-comparison/benchmark.rds`.
+
+```{r provenance}
+knitr::kable(data.frame(Package = names(bundle$protocol$package_versions),
+  Version = unname(bundle$protocol$package_versions)), row.names = FALSE)
+cat(bundle$protocol$R, '\n', bundle$protocol$platform, '\n')
+cat('Recorded:', bundle$protocol$recorded_utc, '\n')
+cat('Total experiment wall seconds:', bundle$protocol$total_wall_seconds, '\n')
+```
+
+Source-file fingerprints, the source commit, machine/OS information, settings
+and timing definitions are retained in `bundle$protocol`. File fingerprints
+also identify the new scripts that were not yet committed when this run began.
+To inspect unavailable runs or warnings without dropping them:
+
+```{r inspect-outcomes, eval=FALSE}
+rows[rows$status != 'ok' | nzchar(rows$warnings), ]
+```
+
+## References
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).
+
+- Mair, P., Groenen, P. J. F. and de Leeuw, J. (2022).
+  *More on Multidimensional Scaling and Unfolding in R: smacof Version 2*.
+  Journal of Statistical Software, 102(10).
+  [doi:10.18637/jss.v102.i10](https://doi.org/10.18637/jss.v102.i10).

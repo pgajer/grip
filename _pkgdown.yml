@@ -45,6 +45,8 @@ navbar:
       menu:
         - text: Function Guide
           href: articles/function-guide.html
+        - text: "Comparing SGD and SMACOF"
+          href: articles/metric-mds-backends.html
         - text: Synthetic Graph Examples
           href: articles/synthetic-graph-families.html
         - text: Getting Started

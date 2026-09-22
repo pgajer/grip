@@ -123,6 +123,8 @@ In grip versions through 0.2.0, `metric.mds()` performed classical scaling.
 Use `classical.mds()` to retain that earlier behavior. The
 [function guide](function-guide.html#classical-scaling-and-metric-stress-mds)
 explains the distinction, multiple starts, and optional edge-KK refinement.
+For stress and timing comparisons with interactive quadratic-surface views,
+see [Comparing SGD and SMACOF](metric-mds-backends.html).
 
 ## Compare a few plausible candidates
 

@@ -43,6 +43,8 @@ Suggests:
     smacof (>= 2.1-7),
     testthat (>= 3.0.0),
     withr
+Enhances: ivue (>= 0.1.0)
+Config/Needs/website: pgajer/ivue@4bc38526c334441e29fa761382d06aad67a25dcb
 LinkingTo: Rcpp
 SystemRequirements: C++17
 Config/testthat/edition: 3
