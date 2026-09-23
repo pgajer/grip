@@ -120,9 +120,21 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
     width = width, height = height, legend.width = 180,
     description = if (controls) paste(graph$label,
       'Gray: generating coordinates (when available); blue: MDS; orange: MDS + edge-KK.') else NULL)
+  widget$sizingPolicy$browser$fill <- FALSE
   if (!controls) return(widget)
   htmlwidgets::onRender(widget, "function(el, x, data) {
     var scene = el.rglinstance, root = scene.scene.rootSubscene;
+    // Keep the WebGL buffer and displayed canvas within the widget dimensions.
+    if (el.gripResize) el.gripResize.disconnect();
+    function fitCanvas() {
+      var scene = el.rglinstance, width = el.clientWidth, height = el.clientHeight;
+      if (width > 0 && height > 0 && (scene.canvas.width !== width || scene.canvas.height !== height)) {
+        el.width = width; el.height = height; scene.resize(el); scene.drawScene();
+      }
+    }
+    el.gripResize = new ResizeObserver(fitCanvas);
+    el.gripResize.observe(el); el.gripResize.observe(el.querySelector('canvas'));
+    fitCanvas();
     el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
     var legend = el.querySelector('.ivue-legend');
     if (legend) legend.style.width = 'max-content';
@@ -132,10 +144,10 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
         return node.tagName === 'DIV' && node.textContent.trim().startsWith(data.labels[name] + ' (');
       });
     });
-    var panel = document.createElement('details');
-    panel.className = 'ivue-tools'; panel.open = true;
-    var summary = document.createElement('summary'); summary.textContent = 'View controls';
-    panel.appendChild(summary);
+    var panel = document.createElement('div');
+    panel.className = 'ivue-tools';
+    panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', 'Layout controls');
+    panel.style.border = '0'; panel.style.maxHeight = 'none'; panel.style.overflow = 'visible';
     var label = document.createElement('label'); label.textContent = 'Layout: ';
     var select = document.createElement('select');
     select.className = 'grip-layout-selector'; select.style.font = 'inherit';
@@ -163,7 +175,12 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
     ['pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function(event) {
       panel.addEventListener(event, function(e) { e.stopPropagation(); });
     });
-    el.appendChild(panel); update();
+    // Keep controls below the canvas so they cannot cover the graph.
+    panel.style.position = 'static'; panel.style.boxSizing = 'border-box';
+    panel.style.width = el.style.width; panel.style.maxWidth = '100%';
+    panel.style.margin = '0 auto 8px';
+    if (el.gripControls) el.gripControls.remove();
+    el.gripControls = panel; el.after(panel); update();
   }", data = list(ids = object.ids, labels = as.list(labels[names]),
     initial = if (all(c('mds', 'refined') %in% names)) 'both' else
       if ('mds' %in% names) 'mds' else if ('refined' %in% names) 'refined' else 'both'))

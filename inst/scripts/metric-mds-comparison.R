@@ -167,9 +167,41 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
+  widget$sizingPolicy$browser$fill <- FALSE
   htmlwidgets::onRender(widget, "function(el) {
+    // Keep the WebGL buffer and displayed canvas within the widget dimensions.
+    if (el.gripResize) el.gripResize.disconnect();
+    function fitCanvas() {
+      var scene = el.rglinstance, width = el.clientWidth, height = el.clientHeight;
+      if (width > 0 && height > 0 && (scene.canvas.width !== width || scene.canvas.height !== height)) {
+        el.width = width; el.height = height; scene.resize(el); scene.drawScene();
+      }
+    }
+    el.gripResize = new ResizeObserver(fitCanvas);
+    el.gripResize.observe(el); el.gripResize.observe(el.querySelector('canvas'));
+    fitCanvas();
     el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
     el.querySelectorAll('.ivue-legend').forEach(function(node) { node.style.width = 'max-content'; });
+    var oldPanel = el.querySelector('.ivue-tools');
+    if (oldPanel) {
+      var toolbar = document.createElement('div'); toolbar.className = 'ivue-tools';
+      toolbar.setAttribute('role', 'group'); toolbar.setAttribute('aria-label', '3D view controls');
+      toolbar.style.border = '0'; toolbar.style.maxHeight = 'none'; toolbar.style.overflow = 'visible';
+      Array.from(oldPanel.children).forEach(function(child) {
+        if (child.tagName !== 'SUMMARY') toolbar.appendChild(child);
+      });
+      var hint = toolbar.querySelector('p');
+      if (hint) { hint.textContent = 'Drag to rotate; scroll to zoom.'; hint.style.margin = '2px 0'; }
+      ['pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function(event) {
+        toolbar.addEventListener(event, function(e) { e.stopPropagation(); });
+      });
+      toolbar.style.position = 'static'; toolbar.style.boxSizing = 'border-box';
+      toolbar.style.width = el.style.width; toolbar.style.maxWidth = '100%';
+      toolbar.style.margin = '0 auto 8px';
+      oldPanel.remove();
+      if (el.gripControls) el.gripControls.remove();
+      el.gripControls = toolbar; el.after(toolbar);
+    }
   }")
 }
 

@@ -21,6 +21,9 @@
 
 ## Documentation
 
+* Interactive vignette figures now show their controls continuously, without
+  a collapsible "View controls" panel.
+
 * Vignette legends now expand to fit their entries. Clarified the gallery
   Procrustes alignment and verified it with known transformations and the
   saved saddle layouts.

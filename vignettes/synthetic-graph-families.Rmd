@@ -100,7 +100,7 @@ Generating coordinates show where a geometric graph came from, but need not
 realize its graph shortest-path distances as straight-line separations.
 
 Each graph has an interactive 3D view made with
-[ivue](https://github.com/pgajer/ivue). Under **View controls**, choose
+[ivue](https://github.com/pgajer/ivue). Use the visible layout selector to choose
 **metric-MDS**, **metric-MDS + edge-KK**, or **both**. Gray generating coordinates
 remain visible where available. Drag to rotate and scroll to zoom.
 Without a compatible ivue installation, the vignette shows saved images with

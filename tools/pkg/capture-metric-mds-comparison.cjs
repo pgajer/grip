@@ -43,6 +43,14 @@ const {pathToFileURL} = require('url');
           return range.getClientRects().length > 1;
         }).map(node => node.textContent));
       if (wrappedLabels.length) throw new Error(`Wrapped legend entries: ${file}: ${wrappedLabels.join(', ')}`);
+      if (await page.locator('details.ivue-tools, .ivue-tools summary').count())
+        throw new Error(`Collapsible view controls remain: ${file}`);
+      for (const control of await page.locator('.ivue-tools button, .ivue-tools select').all()) {
+        if (!(await control.isVisible())) throw new Error(`Hidden view control: ${file}`);
+      }
+      const overlaps = await page.locator('.rglWebGL').evaluateAll(nodes => nodes.some(el =>
+        el.gripControls && el.gripControls.getBoundingClientRect().top < el.querySelector('canvas').getBoundingClientRect().bottom - 1));
+      if (overlaps) throw new Error(`Controls cover the canvas: ${file}`);
       const selector = page.locator('.grip-layout-selector');
       const hasSelector = await selector.count();
       if (hasSelector) {
@@ -73,6 +81,18 @@ const {pathToFileURL} = require('url');
           if (state.camera !== initial.camera || state.geometry !== initial.geometry)
             throw new Error(`Switching layouts changed camera or coordinates: ${file}`);
         }
+      }
+      if (!hasSelector && await page.locator('.ivue-tools button').count()) {
+        const cameraState = () => page.evaluate(() => {
+          const s = document.querySelector('.rglWebGL').rglinstance;
+          const p = s.getObj(s.scene.rootSubscene).par3d;
+          return JSON.stringify({matrix: p.userMatrix.getAsArray(), zoom: p.zoom});
+        });
+        const initial = await cameraState();
+        await page.getByRole('button', {name: 'Rotate right', exact: true}).click();
+        if (await cameraState() === initial) throw new Error(`Rotation button failed: ${file}`);
+        await page.getByRole('button', {name: 'Reset view', exact: true}).click();
+        if (await cameraState() !== initial) throw new Error(`Reset button failed: ${file}`);
       }
       const output = path.join(destination, file.replace(/\.html$/, '.png'));
       await page.evaluate(() => window.scrollTo(0, 0));
