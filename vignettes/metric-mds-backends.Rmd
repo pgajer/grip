@@ -417,7 +417,9 @@ The run returned coordinates for **`r sum(weighting.rows$status == 'ok')` of
 convergence. Tables give medians across all five starts and then the scores of
 the exact displayed runs. The figures use the preselected seed 1. All four
 layouts and the gray generating reference share the same camera and scale;
-Procrustes alignment uses corresponding vertices without resizing.
+the saddle uses the surface-shape alignment described above for all four
+backend/weighting combinations. The other examples use vertex-based Procrustes
+alignment. Neither alignment resizes or deforms the layouts.
 
 In this run, inverse-squared weighting lowered median relative error in
 **`r sum(weighting.pairs$relative_error.inverse < weighting.pairs$relative_error.uniform)`
@@ -429,6 +431,9 @@ The figures show how that change in priorities alters each layout.
 for (id in names(weighting.bundle$cases)) {
   case <- weighting.bundle$cases[[id]]
   fits <- comparison_weighting_fits(weighting.bundle,id)
+  surface.required <- grepl('^saddle', id)
+  surface <- if (surface.required && requireNamespace('FNN', quietly=TRUE))
+    comparison.surface.example(case, fits) else NULL
   cat('\n\n### ',case$label,': uniform versus inverse-squared weights\n\n',sep='')
   med <- weighting.summary[weighting.summary$case==id,]
   med$backend <- toupper(med$backend)
@@ -447,7 +452,10 @@ for (id in names(weighting.bundle$cases)) {
     col.names=c('Backend','Weighting','Uniform error','Relative error','Fit seconds','Termination','Status')),sep='\n')
   child <- c(
     sprintf('```{r weighting-overlay-%s, echo=FALSE}',id),
-    'if (have.ivue) { comparison_view(case,fits,weighting=TRUE) } else {',
+    'if (surface.required) {',
+    '  if (!is.null(surface) && have.ivue) comparison_view(case,fits,weighting=TRUE, surface.alignments=surface$registrations)',
+    '  else cat("The surface-aligned view requires FNN and interactive rendering with ivue and rgl.")',
+    '} else if (have.ivue) { comparison_view(case,fits,weighting=TRUE) } else {',
     sprintf('knitr::include_graphics(system.file("extdata","metric-mds-weighting","%s.png",package="grip"))',id),'}','```')
   cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
 }

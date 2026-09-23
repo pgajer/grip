@@ -218,7 +218,9 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (!is.null(description)) description else if (controls && !is.null(surface.alignments))
       paste(case$label, case$n, 'points. Surface-shape alignment; scale unchanged.',
-        'Gray: reference; blue: SGD; orange: SMACOF.') else if (controls && weighting) paste(case$label, case$n,
+        if (weighting) paste('Gray: reference; blue/green: SGD with uniform/inverse-squared weights;',
+          'orange/purple: SMACOF with uniform/inverse-squared weights.') else
+          'Gray: reference; blue: SGD; orange: SMACOF.') else if (controls && weighting) paste(case$label, case$n,
       'vertices. Gray: reference; blue/green: SGD with uniform/inverse-squared weights;',
       'orange/purple: SMACOF with uniform/inverse-squared weights. Alignment preserves scale.') else if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
