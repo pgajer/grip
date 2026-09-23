@@ -178,15 +178,15 @@ gripui.graph.edges <- function(graph) {
   grip.edges.from.adj.list(graph$adj_list)
 }
 
-gripui.vertex.color.values <- function(graph, n, color_by) {
+gripui.vertex.color.values <- function(graph, n, color.by) {
   if (is.null(graph) || is.null(graph$vertex_data) ||
-      !is.character(color_by) || length(color_by) != 1L ||
-      !nzchar(color_by) || identical(color_by, "plain") ||
-      !(color_by %in% names(graph$vertex_data))) {
+      !is.character(color.by) || length(color.by) != 1L ||
+      !nzchar(color.by) || identical(color.by, "plain") ||
+      !(color.by %in% names(graph$vertex_data))) {
     return(rep("#1f3b73", n))
   }
 
-  vals <- graph$vertex_data[[color_by]]
+  vals <- graph$vertex_data[[color.by]]
   if (length(vals) != n) {
     return(rep("#1f3b73", n))
   }
@@ -224,15 +224,15 @@ gripui.valid.coord.rows <- function(coords) {
 
 gripui.render.layout.plot2d <- function(coords,
                                         graph = NULL,
-                                        color_by = "plain",
-                                        show_edges = TRUE) {
+                                        color.by = "plain",
+                                        show.edges = TRUE) {
   keep <- gripui.valid.coord.rows(coords)
   if (!any(keep)) {
     graphics::plot.new()
     graphics::title("No finite coordinates available")
     return(invisible(NULL))
   }
-  cols <- gripui.vertex.color.values(graph, nrow(coords), color_by = color_by)
+  cols <- gripui.vertex.color.values(graph, nrow(coords), color.by = color.by)
   xx <- coords[, 1L]
   yy <- coords[, 2L]
 
@@ -252,7 +252,7 @@ gripui.render.layout.plot2d <- function(coords,
   )
 
   edges <- gripui.graph.edges(graph)
-  if (isTRUE(show_edges) && !is.null(edges) && nrow(edges) > 0L) {
+  if (isTRUE(show.edges) && !is.null(edges) && nrow(edges) > 0L) {
     good.edges <- keep[edges[, 1L]] & keep[edges[, 2L]]
     edges <- edges[good.edges, , drop = FALSE]
     if (nrow(edges) > 0L) {
@@ -272,8 +272,8 @@ gripui.render.layout.plot2d <- function(coords,
 
 gripui.render.rglwidget <- function(coords,
                                     graph = NULL,
-                                    color_by = "plain",
-                                    show_edges = TRUE) {
+                                    color.by = "plain",
+                                    show.edges = TRUE) {
   old <- gripui.enable.rgl.null.device()
   on.exit(options(rgl.useNULL = old), add = TRUE)
 
@@ -285,7 +285,7 @@ gripui.render.rglwidget <- function(coords,
   rgl::light3d()
 
   keep <- gripui.valid.coord.rows(coords)
-  cols <- gripui.vertex.color.values(graph, nrow(coords), color_by = color_by)
+  cols <- gripui.vertex.color.values(graph, nrow(coords), color.by = color.by)
   if (any(keep)) {
     rgl::points3d(
       coords[keep, 1L],
@@ -297,7 +297,7 @@ gripui.render.rglwidget <- function(coords,
   }
 
   edges <- gripui.graph.edges(graph)
-  if (isTRUE(show_edges) && !is.null(edges) && nrow(edges) > 0L) {
+  if (isTRUE(show.edges) && !is.null(edges) && nrow(edges) > 0L) {
     good.edges <- keep[edges[, 1L]] & keep[edges[, 2L]]
     edges <- edges[good.edges, , drop = FALSE]
     if (nrow(edges) > 0L) {

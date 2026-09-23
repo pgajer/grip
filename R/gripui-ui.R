@@ -1,4 +1,4 @@
-gripui_ui <- function() {
+gripui.ui <- function() {
   css.path <- system.file("app/www/gripui.css", package = "grip")
   theme <- bslib::bs_theme(
     version = 5,

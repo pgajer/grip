@@ -11,76 +11,76 @@
 keep.periodic.holes(
   h,
   w = h,
-  hole_period = 4,
-  hole_height = 1,
-  hole_width = hole_height,
-  row_offset = 2,
-  col_offset = 2
+  hole.period = 4,
+  hole.height = 1,
+  hole.width = hole.height,
+  row.offset = 2,
+  col.offset = 2
 )
 
 keep.staggered.windows(
   h,
   w = h,
-  window_height = 1,
-  window_width = 2,
-  row_period = 4,
-  col_period = 5,
-  row_offset = 2,
-  col_offset = 2
+  window.height = 1,
+  window.width = 2,
+  row.period = 4,
+  col.period = 5,
+  row.offset = 2,
+  col.offset = 2
 )
 
 keep.slit.channels(
   h,
   w = h,
   orientation = c("vertical", "horizontal"),
-  slit_period = 5,
-  slit_width = 1,
-  bridge_spacing = 4,
-  bridge_size = 1,
+  slit.period = 5,
+  slit.width = 1,
+  bridge.spacing = 4,
+  bridge.size = 1,
   offset = 2
 )
 
-keep.asymmetric.notches(h, w = h, notch_depth = 3, notch_width = 2)
+keep.asymmetric.notches(h, w = h, notch.depth = 3, notch.width = 2)
 }
 \arguments{
 \item{h}{Number of rows.}
 
 \item{w}{Number of columns. Defaults to \code{h}.}
 
-\item{hole_period}{Spacing between periodic holes.}
+\item{hole.period}{Spacing between periodic holes.}
 
-\item{hole_height}{Height of each removed rectangular hole.}
+\item{hole.height}{Height of each removed rectangular hole.}
 
-\item{hole_width}{Width of each removed rectangular hole.}
+\item{hole.width}{Width of each removed rectangular hole.}
 
-\item{row_offset}{Starting row index for the first removed block.}
+\item{row.offset}{Starting row index for the first removed block.}
 
-\item{col_offset}{Starting column index for the first removed block.}
+\item{col.offset}{Starting column index for the first removed block.}
 
-\item{window_height}{Height of each staggered removed window.}
+\item{window.height}{Height of each staggered removed window.}
 
-\item{window_width}{Width of each staggered removed window.}
+\item{window.width}{Width of each staggered removed window.}
 
-\item{row_period}{Vertical spacing between staggered window bands.}
+\item{row.period}{Vertical spacing between staggered window bands.}
 
-\item{col_period}{Horizontal spacing between staggered windows within a band.}
+\item{col.period}{Horizontal spacing between staggered windows within a band.}
 
 \item{orientation}{Whether slit channels run \code{"vertical"} or
 \code{"horizontal"}.}
 
-\item{slit_period}{Spacing between repeated slit channels.}
+\item{slit.period}{Spacing between repeated slit channels.}
 
-\item{slit_width}{Width of each slit channel.}
+\item{slit.width}{Width of each slit channel.}
 
-\item{bridge_spacing}{Spacing between preserved bridge segments.}
+\item{bridge.spacing}{Spacing between preserved bridge segments.}
 
-\item{bridge_size}{Size of each preserved bridge segment along a slit.}
+\item{bridge.size}{Size of each preserved bridge segment along a slit.}
 
 \item{offset}{Starting row or column index for the first slit channel.}
 
-\item{notch_depth}{Depth of each asymmetric notch cut from a boundary.}
+\item{notch.depth}{Depth of each asymmetric notch cut from a boundary.}
 
-\item{notch_width}{Width of the notched opening along that boundary.}
+\item{notch.width}{Width of the notched opening along that boundary.}
 }
 \value{
 A logical occupancy matrix whose \code{TRUE} entries represent
@@ -92,8 +92,8 @@ channels. These matrices can be passed to
 \code{\link{occupied.mesh.surface.graph}()}.
 }
 \examples{
-notches <- keep.asymmetric.notches(7, 8, notch_depth = 2, notch_width = 2)
-holes <- keep.periodic.holes(7, 8, hole_period = 3)
-slits <- keep.slit.channels(7, 8, slit_period = 3)
-windows <- keep.staggered.windows(7, 8, row_period = 3, col_period = 4)
+notches <- keep.asymmetric.notches(7, 8, notch.depth = 2, notch.width = 2)
+holes <- keep.periodic.holes(7, 8, hole.period = 3)
+slits <- keep.slit.channels(7, 8, slit.period = 3)
+windows <- keep.staggered.windows(7, 8, row.period = 3, col.period = 4)
 }

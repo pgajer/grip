@@ -68,13 +68,13 @@ test_that("schedule values have explicit boundary and small-budget conventions",
   expect_equal(grip.mds.sgd.rates(control, 10), .5 * (.01/.5)^((0:9)/10))
   control$scheduler <- "hybrid"
   expect_equal(grip.mds.sgd.rates(control, 1), .5)
-  control$switch_ratio <- 0
+  control$switch.ratio <- 0
   expect_equal(grip.mds.sgd.rates(control, 2), c(.5, .5/(1+49/2)))
-  control$switch_ratio <- 1
+  control$switch.ratio <- 1
   expect_equal(grip.mds.sgd.rates(control, 2), .5 * 10^(-c(0,1)/2))
-  control$final_rate <- .4
+  control$final.rate <- .4
   expect_equal(grip.mds.sgd.rates(control, 2), .5 * 10^(-c(0,1)/2))
-  control$switch_ratio <- .4
+  control$switch.ratio <- .4
   expect_equal(grip.mds.sgd.rates(control, 10)[5:10], rep(.05,6))
 })
 
@@ -134,16 +134,16 @@ test_that("workspace and native input checks fail before unsafe allocation", {
 })
 
 test_that("SGD is the default and controls reject backend ambiguity", {
-  args <- list(edges = edges.cycle(5), n = 5, diagnostics = FALSE, max_iter = 2)
+  args <- list(edges = edges.cycle(5), n = 5, diagnostics = FALSE, max.iter = 2)
   expect_error(do.call(metric.mds, c(args, list(backend="sgd", eps=1e-8))), "SMACOF tolerance")
-  expect_error(do.call(metric.mds, c(args, list(backend="smacof", sgd_control=list(learning_rate=.5)))), "requires")
+  expect_error(do.call(metric.mds, c(args, list(backend="smacof", sgd.control=list(learning.rate=.5)))), "requires")
   for (bad in list(list(unknown=1), list(1), list(scheduler="bad"),
-                  list(final_rate=1), list(checkpoint_every=1.5),
-                  list(learning_rate=NA_real_), list(switch_ratio=2),
-                  list(learning_rate=.5, learning_rate=.4), list(final_rate=NULL))) {
-    expect_error(do.call(metric.mds, c(args, list(backend="sgd", sgd_control=bad))))
+                  list(final.rate=1), list(checkpoint.every=1.5),
+                  list(learning.rate=NA_real_), list(switch.ratio=2),
+                  list(learning.rate=.5, learning.rate=.4), list(final.rate=NULL))) {
+    expect_error(do.call(metric.mds, c(args, list(backend="sgd", sgd.control=bad))))
   }
-  expect_error(grip.mds.sgd.control(list(max_workspace_bytes=1), 10), "rate vector")
+  expect_error(grip.mds.sgd.control(list(max.workspace.bytes=1), 10), "rate vector")
   a <- suppressWarnings(do.call(metric.mds, args))
   b <- suppressWarnings(do.call(metric.mds, c(args, list(backend="sgd"))))
   expect_identical(a$metadata$engine, "sgd")
@@ -157,10 +157,10 @@ test_that("SGD recovers exact Euclidean distances and improves imperfect starts"
   truth <- rbind(c(0,0,0), c(1,0,0), c(0,2,0), c(0,0,3), c(1,1,1))
   p <- prepare.graph.geodesic.mds(edges.cycle(5), n=5)
   p$distance_matrix <- as.matrix(dist(truth))
-  exact <- sgd_call(prepared=p, dim=3, init=truth, max_iter=30, diagnostics=FALSE)
+  exact <- sgd_call(prepared=p, dim=3, init=truth, max.iter=30, diagnostics=FALSE)
   expect_equal(as.matrix(dist(exact$coords)), p$distance_matrix, tolerance=1e-10)
   random <- sgd_call(prepared=p, dim=3, init="random", seed=41,
-                     max_iter=200, diagnostics=FALSE)
+                     max.iter=200, diagnostics=FALSE)
   expect_lt(random$metadata$raw_stress, random$metadata$starts$initial_raw_stress / 10)
   expect_lt(random$metadata$target_normalized_rmse, .02)
   expect_equal(random$metadata$raw_stress,
@@ -172,9 +172,9 @@ test_that("SGD recovers exact Euclidean distances and improves imperfect starts"
 test_that("distance units and all supported dimensions are respected", {
   for (dimension in 2:4) {
     a <- sgd_call(edges=edges.cycle(7), n=7, dim=dimension,
-                  edge_weights=rep(1,7), init="random", max_iter=10, diagnostics=FALSE)
+                  edge.weights=rep(1,7), init="random", max.iter=10, diagnostics=FALSE)
     b <- sgd_call(edges=edges.cycle(7), n=7, dim=dimension,
-                  edge_weights=rep(1e5,7), init="random", max_iter=10, diagnostics=FALSE)
+                  edge.weights=rep(1e5,7), init="random", max.iter=10, diagnostics=FALSE)
     expect_equal(b$coords / 1e5, a$coords, tolerance=1e-10)
     expect_equal(b$metadata$raw_stress / 1e10, a$metadata$raw_stress, tolerance=1e-10)
     expect_equal(ncol(a$coords), dimension)
@@ -184,17 +184,17 @@ test_that("distance units and all supported dimensions are respected", {
 test_that("rank-deficient supplied starts are not silently perturbed", {
   p <- prepare.graph.geodesic.mds(edges.cycle(6), n=6)
   start <- cbind(cos((1:6)*pi/3), sin((1:6)*pi/3), 0)
-  fit <- sgd_call(prepared=p, dim=3, init=start, max_iter=10, diagnostics=FALSE)
+  fit <- sgd_call(prepared=p, dim=3, init=start, max.iter=10, diagnostics=FALSE)
   expect_equal(fit$coords[,3], rep(0,6))
 })
 
 test_that("SGD multiple starts preserve RNG and keep reproducible histories", {
   set.seed(129); before <- .Random.seed
-  a <- sgd_call(edges=edges.cycle(7), n=7, dim=3, init="random", n_init=3,
-                seed=5, max_iter=10, diagnostics=FALSE)
+  a <- sgd_call(edges=edges.cycle(7), n=7, dim=3, init="random", n.init=3,
+                seed=5, max.iter=10, diagnostics=FALSE)
   expect_identical(.Random.seed, before)
-  b <- sgd_call(edges=edges.cycle(7), n=7, dim=3, init="random", n_init=3,
-                seed=5, max_iter=10, diagnostics=FALSE)
+  b <- sgd_call(edges=edges.cycle(7), n=7, dim=3, init="random", n.init=3,
+                seed=5, max.iter=10, diagnostics=FALSE)
   expect_equal(a$coords, b$coords)
   expect_equal(a$metadata$sgd, b$metadata$sgd)
   expect_equal(a$metadata$starts$native_seed, b$metadata$starts$native_seed)
@@ -208,20 +208,20 @@ test_that("seed scope includes supplied starts, absent RNG, and errors", {
   if (exists(".Random.seed", envir=.GlobalEnv)) rm(".Random.seed", envir=.GlobalEnv)
   p <- prepare.graph.geodesic.mds(edges.cycle(5), n=5)
   start <- cbind(1:5, c(0,1,0,-1,2))
-  fit <- sgd_call(prepared=p, init=start, max_iter=3, diagnostics=FALSE)
+  fit <- sgd_call(prepared=p, init=start, max.iter=3, diagnostics=FALSE)
   expect_false(exists(".Random.seed", envir=.GlobalEnv))
-  expect_error(sgd_call(prepared=p, init=start, max_iter=3, diagnostics=FALSE,
-                       sgd_control=list(max_workspace_bytes=30)), "All SGD starts failed")
+  expect_error(sgd_call(prepared=p, init=start, max.iter=3, diagnostics=FALSE,
+                       sgd.control=list(max.workspace.bytes=30)), "All SGD starts failed")
   expect_false(exists(".Random.seed", envir=.GlobalEnv))
   set.seed(88); before <- .Random.seed
-  sgd_call(prepared=p, init=start, max_iter=3, seed=NULL, diagnostics=FALSE)
+  sgd_call(prepared=p, init=start, max.iter=3, seed=NULL, diagnostics=FALSE)
   expect_false(identical(.Random.seed,before))
 })
 
 test_that("SGD works without SMACOF and reports schedule completion honestly", {
   testthat::local_mocked_bindings(grip.mds.has.smacof=function() FALSE)
   expect_warning(fit <- metric.mds(edges=edges.cycle(5), n=5,
-                                   max_iter=1, diagnostics=FALSE), "iteration_limit")
+                                   max.iter=1, diagnostics=FALSE), "iteration_limit")
   expect_false(fit$metadata$converged)
   expect_identical(fit$metadata$termination, "iteration_limit")
   expect_equal(fit$metadata$sgd[[1]]$trace$epoch, c(0,1))
@@ -236,13 +236,13 @@ test_that("one failed SGD start does not erase other starts or hide failure", {
     if (count==1L) stop("controlled SGD error")
     original(...)
   })
-  a <- sgd_call(edges=edges.cycle(6), n=6, n_init=2, max_iter=4, diagnostics=FALSE)
+  a <- sgd_call(edges=edges.cycle(6), n=6, n.init=2, max.iter=4, diagnostics=FALSE)
   expect_equal(a$metadata$selected_start, 2)
   expect_equal(a$metadata$starts$termination[1], "backend_error")
   expect_match(a$metadata$starts$error[1], "controlled SGD error")
   expect_match(a$metadata$sgd[[1]]$error, "controlled SGD error")
   count <- 0L
-  expect_error(sgd_call(edges=edges.cycle(6), n=6, max_iter=4, diagnostics=FALSE),
+  expect_error(sgd_call(edges=edges.cycle(6), n=6, max.iter=4, diagnostics=FALSE),
                "All SGD starts failed")
 })
 
@@ -252,17 +252,17 @@ test_that("interrupts propagate rather than masquerading as numerical failures",
                               class=c("interrupt","condition")))
     stop("interrupt was swallowed")
   })
-  caught <- tryCatch(sgd_call(edges=edges.cycle(6),n=6,max_iter=2,diagnostics=FALSE),
+  caught <- tryCatch(sgd_call(edges=edges.cycle(6),n=6,max.iter=2,diagnostics=FALSE),
                     interrupt=function(e) "interrupted")
   expect_identical(caught, "interrupted")
 })
 
 test_that("SGD preserves diagnostics and integrates by explicit edge-KK coordinates", {
   p <- prepare.graph.geodesic.mds(edges.cycle(6),n=6)
-  a <- sgd_call(prepared=p,dim=3,max_iter=5)
+  a <- sgd_call(prepared=p,dim=3,max.iter=5)
   expect_s3_class(a,"grip_gmds_layout")
   expect_true(is.data.frame(a$diagnostics))
-  refined <- edge.kk(prepared=p,dim=3,coords=a$coords,max_iter=0,diagnostics=FALSE)
+  refined <- edge.kk(prepared=p,dim=3,coords=a$coords,max.iter=0,diagnostics=FALSE)
   expect_equal(as.matrix(dist(refined$coords)),as.matrix(dist(a$coords)),tolerance=1e-8)
 })
 
@@ -270,12 +270,12 @@ test_that("SGD uses common invalid-input and duplicate-observation policies", {
   p <- prepare.graph.geodesic.mds(edges.cycle(5),n=5)
   for (bad in c(NA_real_,Inf,-1)) {
     q <- p; q$distance_matrix[1,2] <- q$distance_matrix[2,1] <- bad
-    expect_error(sgd_call(prepared=q,max_iter=2), "finite, symmetric")
+    expect_error(sgd_call(prepared=q,max.iter=2), "finite, symmetric")
   }
-  expect_error(sgd_call(prepared=p,init=matrix(0,5,2),max_iter=2), "collapsed")
-  expect_error(sgd_call(edges=rbind(c(1,2),c(3,4)),n=4,max_iter=2,diagnostics=FALSE), "connected")
+  expect_error(sgd_call(prepared=p,init=matrix(0,5,2),max.iter=2), "collapsed")
+  expect_error(sgd_call(edges=rbind(c(1,2),c(3,4)),n=4,max.iter=2,diagnostics=FALSE), "connected")
   x <- rbind(c(0,0),c(0,0),c(1,0),c(0,1),c(1,1))
   p$distance_matrix <- as.matrix(dist(x))
-  fit <- sgd_call(prepared=p,init=x,max_iter=5,diagnostics=FALSE)
+  fit <- sgd_call(prepared=p,init=x,max.iter=5,diagnostics=FALSE)
   expect_equal(as.matrix(dist(fit$coords)),p$distance_matrix,tolerance=1e-10)
 })

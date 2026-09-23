@@ -8,54 +8,54 @@ misf.geodesic.kk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  tie_mode = NULL,
-  num_init = 24L,
-  num_nbrs = 20L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  tie.mode = NULL,
+  num.init = 24L,
+  num.nbrs = 20L,
   dim = NULL,
-  top_level_pair_mode = NULL,
-  top_level_full_limit = NULL,
-  top_level_local_nbrs = NULL,
-  top_level_landmark_count = NULL,
-  top_level_restarts = NULL,
-  top_level_max_iter = NULL,
-  top_level_init = NULL,
-  insertion_anchor_policy = NULL,
-  insertion_anchor_count = NULL,
-  insertion_anchor_weight_mode = NULL,
-  insertion_max_iter = NULL,
-  insertion_mode = NULL,
-  insertion_layout_k = NULL,
-  insertion_weighted_preset = NULL,
-  insertion_grip_args = NULL,
-  insertion_weighted_args = NULL,
-  insertion_fr_niter = NULL,
-  refinement_pair_mode = NULL,
-  refinement_full_limit = NULL,
-  refinement_local_nbrs = NULL,
-  refinement_landmark_count = NULL,
-  refinement_anchor_weight = NULL,
-  refinement_anchor_weight_end = NULL,
-  refinement_continuation = NULL,
-  refinement_max_iter = NULL,
-  final_pair_mode = NULL,
-  final_full_limit = NULL,
-  final_local_nbrs = NULL,
-  final_landmark_count = NULL,
-  final_max_iter = NULL,
+  top.level.pair.mode = NULL,
+  top.level.full.limit = NULL,
+  top.level.local.nbrs = NULL,
+  top.level.landmark.count = NULL,
+  top.level.restarts = NULL,
+  top.level.max.iter = NULL,
+  top.level.init = NULL,
+  insertion.anchor.policy = NULL,
+  insertion.anchor.count = NULL,
+  insertion.anchor.weight.mode = NULL,
+  insertion.max.iter = NULL,
+  insertion.mode = NULL,
+  insertion.layout.k = NULL,
+  insertion.weighted.preset = NULL,
+  insertion.grip.args = NULL,
+  insertion.weighted.args = NULL,
+  insertion.fr.niter = NULL,
+  refinement.pair.mode = NULL,
+  refinement.full.limit = NULL,
+  refinement.local.nbrs = NULL,
+  refinement.landmark.count = NULL,
+  refinement.anchor.weight = NULL,
+  refinement.anchor.weight.end = NULL,
+  refinement.continuation = NULL,
+  refinement.max.iter = NULL,
+  final.pair.mode = NULL,
+  final.full.limit = NULL,
+  final.local.nbrs = NULL,
+  final.landmark.count = NULL,
+  final.max.iter = NULL,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  initial_step = 1,
-  step_shrink = 0.5,
-  armijo_factor = 1e-04,
-  grad_tol = 1e-08,
-  min_step = 1e-08,
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  initial.step = 1,
+  step.shrink = 0.5,
+  armijo.factor = 1e-04,
+  grad.tol = 1e-08,
+  min.step = 1e-08,
   recenter = TRUE,
-  return_trace = FALSE,
-  return_frames = FALSE,
+  return.trace = FALSE,
+  return.frames = FALSE,
   seed = 6L
 )
 }
@@ -65,123 +65,123 @@ geodesic-KK prepared object or a MISF-GKK prepared object.}
 
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to \code{edges}.}
+\item{edge.weights}{Optional positive edge-weight vector parallel to \code{edges}.}
 
-\item{tie_mode}{Shortest-path aggregation mode inherited from
+\item{tie.mode}{Shortest-path aggregation mode inherited from
 \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.}
 
-\item{num_init}{Target top-level active-set size passed to \code{build.misf}.}
+\item{num.init}{Target top-level active-set size passed to \code{build.misf}.}
 
-\item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
+\item{num.nbrs}{Per-level local-neighborhood schedule metadata passed to
 \code{build.misf}.}
 
 \item{dim}{Target embedding dimension (\code{2} or \code{3}) for the multiscale solve.}
 
-\item{top_level_pair_mode}{Optional override for the top-level pair policy.}
+\item{top.level.pair.mode}{Optional override for the top-level pair policy.}
 
-\item{top_level_full_limit}{Optional override for the top-level exact/sparse
+\item{top.level.full.limit}{Optional override for the top-level exact/sparse
 threshold.}
 
-\item{top_level_local_nbrs}{Optional override for the sparse top-level local
+\item{top.level.local.nbrs}{Optional override for the sparse top-level local
 neighborhood size.}
 
-\item{top_level_landmark_count}{Optional override for the sparse top-level
+\item{top.level.landmark.count}{Optional override for the sparse top-level
 landmark count.}
 
-\item{top_level_restarts}{Number of top-level restarts used by the coarse
+\item{top.level.restarts}{Number of top-level restarts used by the coarse
 MISF-GKK solve.}
 
-\item{top_level_max_iter}{Top-level iteration budget.}
+\item{top.level.max.iter}{Top-level iteration budget.}
 
-\item{top_level_init}{Optional override for the top-level initializer.}
+\item{top.level.init}{Optional override for the top-level initializer.}
 
-\item{insertion_anchor_policy}{Optional insertion anchor policy.}
+\item{insertion.anchor.policy}{Optional insertion anchor policy.}
 
-\item{insertion_anchor_count}{Optional insertion anchor count.}
+\item{insertion.anchor.count}{Optional insertion anchor count.}
 
-\item{insertion_anchor_weight_mode}{Optional insertion anchor weighting mode.}
+\item{insertion.anchor.weight.mode}{Optional insertion anchor weighting mode.}
 
-\item{insertion_max_iter}{Optional per-vertex insertion iteration budget.}
+\item{insertion.max.iter}{Optional per-vertex insertion iteration budget.}
 
-\item{insertion_mode}{Optional insertion warm-start mode.}
+\item{insertion.mode}{Optional insertion warm-start mode.}
 
-\item{insertion_layout_k}{Optional active-level layout graph size used by
+\item{insertion.layout.k}{Optional active-level layout graph size used by
 layout-based insertion modes.}
 
-\item{insertion_weighted_preset}{Optional preset passed to weighted GRIP
+\item{insertion.weighted.preset}{Optional preset passed to weighted GRIP
 insertion.}
 
-\item{insertion_grip_args}{Optional named list of extra arguments passed to
+\item{insertion.grip.args}{Optional named list of extra arguments passed to
 combinatorial GRIP insertion.}
 
-\item{insertion_weighted_args}{Optional named list of extra arguments for
+\item{insertion.weighted.args}{Optional named list of extra arguments for
 weighted GRIP insertion.}
 
-\item{insertion_fr_niter}{Optional FR iteration budget for FR-based
+\item{insertion.fr.niter}{Optional FR iteration budget for FR-based
 insertion.}
 
-\item{refinement_pair_mode}{Optional active-level pair policy.}
+\item{refinement.pair.mode}{Optional active-level pair policy.}
 
-\item{refinement_full_limit}{Optional active-level exact/sparse threshold.}
+\item{refinement.full.limit}{Optional active-level exact/sparse threshold.}
 
-\item{refinement_local_nbrs}{Optional active-level sparse local neighborhood
+\item{refinement.local.nbrs}{Optional active-level sparse local neighborhood
 size.}
 
-\item{refinement_landmark_count}{Optional active-level sparse landmark count.}
+\item{refinement.landmark.count}{Optional active-level sparse landmark count.}
 
-\item{refinement_anchor_weight}{Optional initial anchor weight used to pin
+\item{refinement.anchor.weight}{Optional initial anchor weight used to pin
 inactive and coarser-level vertices during KK refinement.}
 
-\item{refinement_anchor_weight_end}{Optional final anchor weight used at the
+\item{refinement.anchor.weight.end}{Optional final anchor weight used at the
 end of the active-level continuation schedule.}
 
-\item{refinement_continuation}{Optional continuation schedule used for the
+\item{refinement.continuation}{Optional continuation schedule used for the
 active-level anchor penalty.}
 
-\item{refinement_max_iter}{Optional active-level refinement iteration budget.}
+\item{refinement.max.iter}{Optional active-level refinement iteration budget.}
 
-\item{final_pair_mode}{Optional final full-graph pair policy.}
+\item{final.pair.mode}{Optional final full-graph pair policy.}
 
-\item{final_full_limit}{Optional final full-graph exact/sparse threshold.}
+\item{final.full.limit}{Optional final full-graph exact/sparse threshold.}
 
-\item{final_local_nbrs}{Optional final full-graph sparse local neighborhood
+\item{final.local.nbrs}{Optional final full-graph sparse local neighborhood
 size.}
 
-\item{final_landmark_count}{Optional final full-graph sparse landmark count.}
+\item{final.landmark.count}{Optional final full-graph sparse landmark count.}
 
-\item{final_max_iter}{Optional final polish iteration budget.}
+\item{final.max.iter}{Optional final polish iteration budget.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{initial_step}{Initial line-search step size.}
+\item{initial.step}{Initial line-search step size.}
 
-\item{step_shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
+\item{step.shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
 
-\item{armijo_factor}{Non-negative Armijo decrease constant.}
+\item{armijo.factor}{Non-negative Armijo decrease constant.}
 
-\item{grad_tol}{Non-negative stopping tolerance on the gradient norm.}
+\item{grad.tol}{Non-negative stopping tolerance on the gradient norm.}
 
-\item{min_step}{Positive minimum accepted line-search step before giving up.}
+\item{min.step}{Positive minimum accepted line-search step before giving up.}
 
 \item{recenter}{If \code{TRUE}, recenter accepted proposals to zero mean after
 each accepted step.}
 
-\item{return_trace}{If \code{TRUE}, retain detailed stage traces.}
+\item{return.trace}{If \code{TRUE}, retain detailed stage traces.}
 
-\item{return_frames}{If \code{TRUE}, retain intermediate coordinate frames.}
+\item{return.frames}{If \code{TRUE}, retain intermediate coordinate frames.}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
 }
@@ -200,12 +200,12 @@ full-graph polish.
 \examples{
 mesh_edges <- edges.mesh(4, 4)
 fit <- misf.geodesic.kk(
-  edges = mesh_edges, n = 16, num_init = 4, dim = 2,
-  top_level_restarts = 2, top_level_max_iter = 3,
-  insertion_mode = "geodesic", insertion_max_iter = 6,
-  refinement_pair_mode = "auto", refinement_full_limit = 4,
-  refinement_max_iter = 3, final_pair_mode = "landmark",
-  final_full_limit = 4, final_max_iter = 3,
-  return_trace = TRUE, seed = 1
+  edges = mesh_edges, n = 16, num.init = 4, dim = 2,
+  top.level.restarts = 2, top.level.max.iter = 3,
+  insertion.mode = "geodesic", insertion.max.iter = 6,
+  refinement.pair.mode = "auto", refinement.full.limit = 4,
+  refinement.max.iter = 3, final.pair.mode = "landmark",
+  final.full.limit = 4, final.max.iter = 3,
+  return.trace = TRUE, seed = 1
 )
 }

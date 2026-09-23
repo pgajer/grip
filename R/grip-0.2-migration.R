@@ -52,7 +52,7 @@
 #' @section Graph-family helpers:
 #' Complete `*.surface.graph()` and `*.solid.graph()` constructors remain
 #' public and return reusable bundles. Use the bundle's `edges`,
-#' `coords_surface`, and `coords_param` components instead of the former
+#' `coords.surface`, and `coords.param` components instead of the former
 #' specialized edge-list, standalone embedding, and parameter-coordinate
 #' exports. Primitive generators such as [edges.path()], [edges.cycle()],
 #' [edges.mesh()], and [edges.cube()] remain public.

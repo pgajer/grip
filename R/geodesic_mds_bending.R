@@ -31,29 +31,29 @@ grip.rectangular.grid.bending.stencils <- function(h, w) {
   out
 }
 
-grip.validate.bending.stencils <- function(bending_stencils,
+grip.validate.bending.stencils <- function(bending.stencils,
                                            n = NULL) {
-  if (is.null(bending_stencils)) {
+  if (is.null(bending.stencils)) {
     return(NULL)
   }
-  if (!is.matrix(bending_stencils) || ncol(bending_stencils) != 3L) {
-    stop("bending_stencils must be NULL or a three-column integer matrix")
+  if (!is.matrix(bending.stencils) || ncol(bending.stencils) != 3L) {
+    stop("bending.stencils must be NULL or a three-column integer matrix")
   }
-  out <- matrix(as.integer(bending_stencils), ncol = 3L)
+  out <- matrix(as.integer(bending.stencils), ncol = 3L)
   if (nrow(out) == 0L) {
     return(out)
   }
   if (any(!is.finite(out))) {
-    stop("bending_stencils must contain only finite vertex ids")
+    stop("bending.stencils must contain only finite vertex ids")
   }
   if (!is.null(n) && any(out < 1L | out > as.integer(n))) {
-    stop("bending_stencils must contain 1-based vertex ids within [1, nrow(coords)]")
+    stop("bending.stencils must contain 1-based vertex ids within [1, nrow(coords)]")
   }
   out
 }
 
-grip.flatten.bending.stencils.zero.based <- function(bending_stencils) {
-  stencils <- grip.validate.bending.stencils(bending_stencils)
+grip.flatten.bending.stencils.zero.based <- function(bending.stencils) {
+  stencils <- grip.validate.bending.stencils(bending.stencils)
   if (is.null(stencils) || nrow(stencils) == 0L) {
     return(list(
       flat_bend_a = integer(),

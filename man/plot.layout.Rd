@@ -56,8 +56,8 @@ For 3D layouts, the behaviour depends on the \code{projection} argument:
 edges <- cbind(1:5, 2:6)
 coords <- grip(edges, n = 6, dim = 2,
                       placement = "barycenter",
-                      rounds = 5, final_rounds = 5,
-                      num_init = 3, num_nbrs = 4,
+                      rounds = 5, final.rounds = 5,
+                      num.init = 3, num.nbrs = 4,
                       seed = 1)
 plot.layout(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
 }

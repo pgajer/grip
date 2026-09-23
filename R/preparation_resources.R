@@ -4,9 +4,9 @@
 #' This arithmetic-only helper does not construct a graph or allocate its cache.
 #' @param n Number of vertices.
 #' @param n.edges Number of undirected edges, or NA if unknown.
-#' @param pair_mode Preparation mode: full paths, landmark paths, distances only,
+#' @param pair.mode Preparation mode: full paths, landmark paths, distances only,
 #'   or edges only.
-#' @param local_nbrs,landmark_count Counts used by landmark preparation.
+#' @param local.nbrs,landmark.count Counts used by landmark preparation.
 #' @return A one-row data frame containing graph counts, pair mode, a pair-count
 #'   upper bound, and the dense-distance storage lower bound in bytes and GiB.
 #' @details One dense double matrix needs `8 * n^2` bytes. Full and landmark
@@ -26,33 +26,33 @@
 #'   raised on the main thread. Cancellation does not return a partial fit.
 #' @examples
 #' estimate.preparation(10000, n.edges = 20000)
-#' estimate.preparation(10000, n.edges = 20000, pair_mode = "edge_only")
+#' estimate.preparation(10000, n.edges = 20000, pair.mode = "edge_only")
 #' @seealso [prepare.graph.geodesic.mds()], [prepare.landmark.geodesic.kk()]
 #' @md
 #' @export
 estimate.preparation <- function(n, n.edges = NA_integer_,
-                                 pair_mode = c("all_pairs", "landmark_sparse",
+                                 pair.mode = c("all_pairs", "landmark_sparse",
                                                "distance_matrix_only", "edge_only"),
-                                 local_nbrs = 20L, landmark_count = 8L) {
+                                 local.nbrs = 20L, landmark.count = 8L) {
   n <- grip.validate.vertex.count(n)
   if (!(length(n.edges) == 1L && is.na(n.edges))) {
     n.edges <- grip.validate.resource.count(n.edges, "n.edges")
   }
-  pair_mode <- match.arg(pair_mode)
-  local_nbrs <- grip.validate.resource.count(local_nbrs, "local_nbrs")
-  landmark_count <- grip.validate.resource.count(landmark_count, "landmark_count")
+  pair.mode <- match.arg(pair.mode)
+  local.nbrs <- grip.validate.resource.count(local.nbrs, "local.nbrs")
+  landmark.count <- grip.validate.resource.count(landmark.count, "landmark.count")
   all.pairs <- as.double(n) * (n - 1) / 2
-  pairs <- switch(pair_mode, all_pairs = all.pairs,
-                  landmark_sparse = min(all.pairs, as.double(n) * (as.double(local_nbrs) + landmark_count)),
+  pairs <- switch(pair.mode, all_pairs = all.pairs,
+                  landmark_sparse = min(all.pairs, as.double(n) * (as.double(local.nbrs) + landmark.count)),
                   distance_matrix_only = 0, edge_only = 0)
-  bytes <- if (pair_mode == "edge_only") 0 else 8 * as.double(n)^2
-  data.frame(n.vertices = n, n.edges = n.edges, pair.mode = pair_mode,
+  bytes <- if (pair.mode == "edge_only") 0 else 8 * as.double(n)^2
+  data.frame(n.vertices = n, n.edges = n.edges, pair.mode = pair.mode,
              pair.count.upper.bound = pairs, dense.distance.bytes.lower.bound = bytes,
              dense.distance.GiB.lower.bound = bytes / 1024^3)
 }
 
-grip.preflight.preparation <- function(n, n.edges = NA_integer_, pair_mode = "all_pairs") {
-  estimate <- estimate.preparation(n, n.edges, pair_mode)
+grip.preflight.preparation <- function(n, n.edges = NA_integer_, pair.mode = "all_pairs") {
+  estimate <- estimate.preparation(n, n.edges, pair.mode)
   budget <- getOption("grip.preparation.warn.bytes", 512 * 1024^2)
   if (!is.numeric(budget) || length(budget) != 1L || is.na(budget) || budget <= 0) {
     stop("option grip.preparation.warn.bytes must be a positive byte count or Inf")
@@ -63,7 +63,7 @@ grip.preflight.preparation <- function(n, n.edges = NA_integer_, pair_mode = "al
       "Consider prepare.edge.kk() for edge-only constraints or grip() for ordinary layouts. ",
       "Landmark preparation still uses dense distances. Inspect estimate.preparation(); ",
       "set options(grip.preparation.warn.bytes = Inf) to acknowledge this allocation."),
-      pair_mode, n, as.character(n.edges), estimate$dense.distance.GiB.lower.bound), call. = FALSE)
+      pair.mode, n, as.character(n.edges), estimate$dense.distance.GiB.lower.bound), call. = FALSE)
   }
   invisible(estimate)
 }

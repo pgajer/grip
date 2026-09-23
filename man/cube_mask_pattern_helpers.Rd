@@ -9,36 +9,36 @@
 \usage{
 mask.cube.periodic.tunnels(
   side = 5,
-  tunnel_width = 1,
-  tunnel_period = 2,
-  tunnel_offset = 2
+  tunnel.width = 1,
+  tunnel.period = 2,
+  tunnel.offset = 2
 )
 
 mask.cube.asymmetric.cavities(
   side = 5,
-  cavity_size = 2,
-  pocket_size = max(1L, cavity_size - 1L)
+  cavity.size = 2,
+  pocket.size = max(1L, cavity.size - 1L)
 )
 
-mask.cube.channel.network(side = 5, channel_width = 1, branch_offset = 2)
+mask.cube.channel.network(side = 5, channel.width = 1, branch.offset = 2)
 }
 \arguments{
 \item{side}{Side length of the cubic keep-array.}
 
-\item{tunnel_width}{Width of each removed tunnel band.}
+\item{tunnel.width}{Width of each removed tunnel band.}
 
-\item{tunnel_period}{Spacing between successive tunnel bands.}
+\item{tunnel.period}{Spacing between successive tunnel bands.}
 
-\item{tunnel_offset}{Starting index of the first tunnel band.}
+\item{tunnel.offset}{Starting index of the first tunnel band.}
 
-\item{cavity_size}{Side length of the larger interior cavity block.}
+\item{cavity.size}{Side length of the larger interior cavity block.}
 
-\item{pocket_size}{Side length of the smaller secondary cavity block.}
+\item{pocket.size}{Side length of the smaller secondary cavity block.}
 
-\item{channel_width}{Width of each removed channel in the channel-network
+\item{channel.width}{Width of each removed channel in the channel-network
 family.}
 
-\item{branch_offset}{Interior offset of the extra branch channel in
+\item{branch.offset}{Interior offset of the extra branch channel in
 \code{mask.cube.channel.network()}.}
 }
 \value{
@@ -58,12 +58,12 @@ to right, and the third from front to back.
 }
 \examples{
 cavities <- mask.cube.asymmetric.cavities(
-  side = 5, cavity_size = 1, pocket_size = 1
+  side = 5, cavity.size = 1, pocket.size = 1
 )
 channels <- mask.cube.channel.network(
-  side = 5, channel_width = 1, branch_offset = 2
+  side = 5, channel.width = 1, branch.offset = 2
 )
 tunnels <- mask.cube.periodic.tunnels(
-  side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 1
+  side = 5, tunnel.width = 1, tunnel.period = 2, tunnel.offset = 1
 )
 }

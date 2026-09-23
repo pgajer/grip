@@ -22,7 +22,7 @@ build_sierpinski_carpet <- function(level) {
   side <- 3L^level
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
 
-  keep_cell <- function(x, y) {
+  keep.cell <- function(x, y) {
     while (x > 0L || y > 0L) {
       if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
         return(FALSE)
@@ -33,7 +33,7 @@ build_sierpinski_carpet <- function(level) {
     TRUE
   }
 
-  keep <- mapply(keep_cell, grid$x, grid$y)
+  keep <- mapply(keep.cell, grid$x, grid$y)
   cells <- grid[keep, , drop = FALSE]
   coords <- cbind(
     x = cells$x + 0.5,
@@ -73,7 +73,7 @@ build_sierpinski_carpet <- function(level) {
 build_sierpinski_triangle <- function(level) {
   stopifnot(level >= 0)
 
-  merge_nodes <- function(edges, from, to) {
+  merge.nodes <- function(edges, from, to) {
     edges[edges == from] <- to
     edges
   }
@@ -113,9 +113,9 @@ build_sierpinski_triangle <- function(level) {
     R <- right$corners + off1
     T <- top$corners + off2
 
-    edges <- merge_nodes(edges, R[1], L[2])
-    edges <- merge_nodes(edges, T[1], L[3])
-    edges <- merge_nodes(edges, T[2], R[3])
+    edges <- merge.nodes(edges, R[1], L[2])
+    edges <- merge.nodes(edges, T[1], L[3])
+    edges <- merge.nodes(edges, T[2], R[3])
 
     ids <- sort(unique(c(edges)))
     map <- seq_along(ids)

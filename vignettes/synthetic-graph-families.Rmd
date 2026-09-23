@@ -45,23 +45,23 @@ This small example creates a weighted tree, draws it in 3D, and refines its
 edge lengths. The gallery uses this same recipe for every graph.
 
 ```{r small-example}
-g <- kary.tree.weighted.graph(k = 2, depth = 5, depth_decay = .85,
-                            branch_spread = .2, normalize = 'none')
+g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
+                            branch.spread = .2, normalize = 'none')
 prepared <- prepare.graph.geodesic.mds(
-  edges = g$edges, n = g$n, edge_weights = g$edge_weights)
+  edges = g$edges, n = g$n, edge.weights = g$edge_weights)
 mds <- suppressWarnings(metric.mds(
   prepared = prepared, dim = 3, init = 'random',
-  n_init = 3, max_iter = 80, seed = 2026, diagnostics = FALSE))
+  n.init = 3, max.iter = 80, seed = 2026, diagnostics = FALSE))
 refined <- edge.kk(
   coords = mds$coords, prepared = prepared, dim = 3,
-  stiffness_method = 'uniform', density_mix_schedule = 1,
-  scale_mode = 'identity', max_iter = 100,
-  return_trace = FALSE, diagnostics = FALSE)
+  stiffness.method = 'uniform', density.mix.schedule = 1,
+  scale.mode = 'identity', max.iter = 100,
+  return.trace = FALSE, diagnostics = FALSE)
 ```
 
 MDS tries to fit shortest-path distances between **all pairs of vertices**.
 Edge-KK adjusts the drawing to fit **directly connected vertices**. Here every
-edge has equal influence during refinement, and `scale_mode = "identity"`
+edge has equal influence during refinement, and `scale.mode = "identity"`
 keeps its target length fixed. An improvement in edge lengths can come with a
 worse fit to distances between more widely separated vertices.
 

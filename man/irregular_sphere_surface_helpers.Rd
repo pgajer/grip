@@ -7,15 +7,15 @@
 \usage{
 irregular.sphere.surface.graph(
   bands = 6,
-  equator_count = 28,
-  count_irregularity = 0.2,
-  lat_irregularity = 0.35,
-  phase_twist = 0.35,
+  equator.count = 28,
+  count.irregularity = 0.2,
+  lat.irregularity = 0.35,
+  phase.twist = 0.35,
   surface = c("standard", "ellipsoid", "wavy"),
   radius = 1,
   amplitude = 0.2,
-  freq_theta = 3,
-  freq_lat = 2,
+  freq.theta = 3,
+  freq.lat = 2,
   twist = 0.25,
   normalize = c("median", "mean", "none")
 )
@@ -23,15 +23,15 @@ irregular.sphere.surface.graph(
 \arguments{
 \item{bands}{Number of non-pole latitude bands.}
 
-\item{equator_count}{Approximate number of vertices near the equator.}
+\item{equator.count}{Approximate number of vertices near the equator.}
 
-\item{count_irregularity}{Irregularity level for per-band sample counts.
+\item{count.irregularity}{Irregularity level for per-band sample counts.
 Must lie in \code{[0, 1)}.}
 
-\item{lat_irregularity}{Irregularity level for latitude-band spacing. Must
+\item{lat.irregularity}{Irregularity level for latitude-band spacing. Must
 lie in \code{[0, 1]}.}
 
-\item{phase_twist}{Finite angular phase offset used to desynchronize
+\item{phase.twist}{Finite angular phase offset used to desynchronize
 neighboring latitude bands.}
 
 \item{surface}{Sphere geometry family. One of \code{"standard"},
@@ -42,10 +42,10 @@ neighboring latitude bands.}
 \item{amplitude}{Finite deformation amplitude. For \code{"ellipsoid"},
 positive values make the shape oblate and negative values make it prolate.}
 
-\item{freq_theta}{Positive longitudinal frequency used only when
+\item{freq.theta}{Positive longitudinal frequency used only when
 \code{surface = "wavy"}.}
 
-\item{freq_lat}{Positive latitudinal frequency used only when
+\item{freq.lat}{Positive latitudinal frequency used only when
 \code{surface = "wavy"}.}
 
 \item{twist}{Finite longitude twist applied smoothly by latitude.}
@@ -80,5 +80,5 @@ locally triangulated graph, and then realize that graph in \eqn{\mathbb{R}^3}
 using either a standard sphere, an ellipsoid, or a wavy radial modulation.
 }
 \examples{
-sphere <- irregular.sphere.surface.graph(bands = 3, equator_count = 12)
+sphere <- irregular.sphere.surface.graph(bands = 3, equator.count = 12)
 }

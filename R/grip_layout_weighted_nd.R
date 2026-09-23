@@ -1,9 +1,9 @@
 grip.validate.nd.scalar.integer <- function(x,
                                             name,
                                             min = NULL,
-                                            allow_null = FALSE) {
+                                            allow.null = FALSE) {
   if (is.null(x)) {
-    if (allow_null) return(NULL)
+    if (allow.null) return(NULL)
     stop(sprintf("%s must be supplied", name))
   }
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
@@ -23,41 +23,41 @@ grip.validate.nd.scalar.integer <- function(x,
 }
 
 grip.validate.weighted.nd.graph <- function(edges = NULL, n = NULL,
-                                            adj_list = NULL, weight_list = NULL,
-                                            edge_weights = NULL,
+                                            adj.list = NULL, weight.list = NULL,
+                                            edge.weights = NULL,
                                             caller = "weighted.grip.nd") {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  n <- grip.resolve.graph.n(n, edges, adj_list)
-  graph <- grip.validate.layout.inputs(edges, n, adj_list, weight_list,
-                                       edge_weights, dim = 2L, seed = NULL)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  n <- grip.resolve.graph.n(n, edges, adj.list)
+  graph <- grip.validate.layout.inputs(edges, n, adj.list, weight.list,
+                                       edge.weights, dim = 2L, seed = NULL)
   if (is.null(graph$weight_list)) stop(sprintf("%s() requires edge weights", caller))
   graph[c("adj_list", "weight_list", "n")]
 }
 
 grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
                                                     n = NULL,
-                                                    adj_list = NULL,
-                                                    weight_list = NULL,
-                                                    edge_weights = NULL,
+                                                    adj.list = NULL,
+                                                    weight.list = NULL,
+                                                    edge.weights = NULL,
                                                     dim = 3,
                                                     seed = 6,
-                                                    length_normalization = c("median", "mean", "none"),
+                                                    length.normalization = c("median", "mean", "none"),
                                                     caller = "weighted.grip.nd") {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  length_normalization <- match.arg(length_normalization)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  length.normalization <- match.arg(length.normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   graph <- grip.validate.weighted.nd.graph(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     caller = caller
   )
 
-  normalized <- grip.normalize.weight_list(
-    weight_list = graph$weight_list,
-    mode = length_normalization
+  normalized <- grip.normalize.weight.list(
+    weight.list = graph$weight_list,
+    mode = length.normalization
   )
 
   if (!is.null(seed)) {
@@ -71,7 +71,7 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
     dim = dim,
     seed = seed,
     weight_scale = normalized$scale,
-    length_normalization = length_normalization
+    length_normalization = length.normalization
   )
 }
 
@@ -84,9 +84,9 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
 #' @param n Number of vertices.
-#' @param adj_list Adjacency list (1-based) for an undirected graph.
-#' @param weight_list Parallel list of strictly positive edge lengths.
-#' @param edge_weights Optional vector of edge lengths for \code{edges}.
+#' @param adj.list Adjacency list (1-based) for an undirected graph.
+#' @param weight.list Parallel list of strictly positive edge lengths.
+#' @param edge.weights Optional vector of edge lengths for \code{edges}.
 #' @param dim Embedding dimension. Must be at least 2.
 #' @param preset Optional weighted layout preset: \code{"carpet"},
 #'   \code{"mesh"}, \code{"cylinder"}, \code{"torus"}, \code{"sphere"},
@@ -95,34 +95,34 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 #'   only available for \code{dim = 2}; higher dimensions use
 #'   \code{"barycenter"}.
 #' @param rounds Number of weighted refinement rounds before the final phase.
-#' @param final_rounds Number of final weighted refinement rounds.
-#' @param num_init Coarsest-level size control. Defaults to at least
+#' @param final.rounds Number of final weighted refinement rounds.
+#' @param num.init Coarsest-level size control. Defaults to at least
 #'   \code{dim + 1}.
-#' @param num_nbrs Local-neighborhood control used by the ND backend.
+#' @param num.nbrs Local-neighborhood control used by the ND backend.
 #' @param r Movement-rate parameter in \code{[0, 1]}.
 #' @param s Repulsion scale parameter.
-#' @param repulsion_factor Non-edge repulsion multiplier.
-#' @param tinit_factor Initial spread multiplier.
-#' @param final_move_scale_after_first Final-stage FR displacement multiplier
+#' @param repulsion.factor Non-edge repulsion multiplier.
+#' @param tinit.factor Initial spread multiplier.
+#' @param final.move.scale.after.first Final-stage FR displacement multiplier
 #'   applied after the first final round. Must be in \code{[0, 1]}.
-#' @param final_mode Final refinement mode: \code{"fr"} or
+#' @param final.mode Final refinement mode: \code{"fr"} or
 #'   \code{"kk_repulse"}.
-#' @param metric_neighbor_cap Optional cap on the number of settled Dijkstra
+#' @param metric.neighbor.cap Optional cap on the number of settled Dijkstra
 #'   vertices used when building weighted neighborhood caches for inserted
 #'   vertices. \code{NULL} keeps the exact weighted neighborhood search.
-#' @param insertion_anchor_count Number of already placed anchor vertices used
+#' @param insertion.anchor.count Number of already placed anchor vertices used
 #'   when inserting non-final MISF levels.
-#' @param insertion_anchor_scope Anchor eligibility rule:
+#' @param insertion.anchor.scope Anchor eligibility rule:
 #'   \code{"any_higher"} or \code{"prev_misf"}.
-#' @param insertion_anchor_strategy Anchor selection rule:
+#' @param insertion.anchor.strategy Anchor selection rule:
 #'   \code{"first"}, \code{"distance_band"}, \code{"balanced_band"}, or
 #'   \code{"spread_prev"}.
-#' @param level0_insertion_mode Level-0 insertion placement override:
+#' @param level0.insertion.mode Level-0 insertion placement override:
 #'   \code{"inherit"}, \code{"barycenter"}, or \code{"least_squares"}.
-#' @param level0_anchor_count Number of anchors used during level-0 insertion.
-#' @param level0_local_kk_steps Number of local weighted-KK polish steps used
+#' @param level0.anchor.count Number of anchors used during level-0 insertion.
+#' @param level0.local.kk.steps Number of local weighted-KK polish steps used
 #'   immediately after level-0 insertion.
-#' @param length_normalization Global edge-length normalization:
+#' @param length.normalization Global edge-length normalization:
 #'   \code{"median"} (default), \code{"mean"}, or \code{"none"}.
 #' @param disconnected How to handle disconnected graphs:
 #'   \code{"components"} lays out each component separately and packs them;
@@ -132,35 +132,35 @@ grip.validate.weighted.nd.layout.inputs <- function(edges = NULL,
 #' @export
 weighted.grip.nd <- function(edges = NULL,
                                     n = NULL,
-                                    adj_list = NULL,
-                                    weight_list = NULL,
-                                    edge_weights = NULL,
+                                    adj.list = NULL,
+                                    weight.list = NULL,
+                                    edge.weights = NULL,
                                     dim = 3,
                                     preset = NULL,
                                     placement = c("barycenter", "circle"),
                                     rounds = 160,
-                                    final_rounds = 256,
-                                    num_init = NULL,
-                                    num_nbrs = 24,
+                                    final.rounds = 256,
+                                    num.init = NULL,
+                                    num.nbrs = 24,
                                     r = 0.03,
                                     s = 6.0,
-                                    repulsion_factor = 1.5,
-                                    tinit_factor = 2,
-                                    final_move_scale_after_first = 1,
-                                    final_mode = c("fr", "kk_repulse"),
-                                    metric_neighbor_cap = NULL,
-                                    insertion_anchor_count = 3,
-                                    insertion_anchor_scope = c("any_higher", "prev_misf"),
-                                    insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                                    level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                                    level0_anchor_count = insertion_anchor_count,
-                                    level0_local_kk_steps = 3,
-                                    length_normalization = c("median", "mean", "none"),
+                                    repulsion.factor = 1.5,
+                                    tinit.factor = 2,
+                                    final.move.scale.after.first = 1,
+                                    final.mode = c("fr", "kk_repulse"),
+                                    metric.neighbor.cap = NULL,
+                                    insertion.anchor.count = 3,
+                                    insertion.anchor.scope = c("any_higher", "prev_misf"),
+                                    insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                                    level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                                    level0.anchor.count = insertion.anchor.count,
+                                    level0.local.kk.steps = 3,
+                                    length.normalization = c("median", "mean", "none"),
                                     disconnected = c("components", "error"),
                                     seed = 6) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   disconnected <- match.arg(disconnected)
-  length_normalization <- match.arg(length_normalization)
+  length.normalization <- match.arg(length.normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   preset <- grip.normalize.weighted.preset(
     preset,
@@ -170,21 +170,21 @@ weighted.grip.nd <- function(edges = NULL,
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = missing(placement),
+    placement.missing = missing(placement),
     rounds = rounds,
-    rounds_missing = missing(rounds),
-    final_rounds = final_rounds,
-    final_rounds_missing = missing(final_rounds),
-    num_init = if (is.null(num_init)) max(24L, as.integer(dim) + 1L) else num_init,
-    num_init_missing = is.null(num_init),
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = missing(num_nbrs),
+    rounds.missing = missing(rounds),
+    final.rounds = final.rounds,
+    final.rounds.missing = missing(final.rounds),
+    num.init = if (is.null(num.init)) max(24L, as.integer(dim) + 1L) else num.init,
+    num.init.missing = is.null(num.init),
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = missing(num.nbrs),
     r = r,
-    r_missing = missing(r),
+    r.missing = missing(r),
     s = s,
-    s_missing = missing(s),
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = missing(repulsion_factor)
+    s.missing = missing(s),
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = missing(repulsion.factor)
   )
 
   if (identical(preset, "tree") && missing(placement) &&
@@ -195,40 +195,40 @@ weighted.grip.nd <- function(edges = NULL,
   if (identical(placement, "circle") && dim != 2L) {
     stop("placement = 'circle' requires dim = 2")
   }
-  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
-  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
-  level0_insertion_mode <- match.arg(level0_insertion_mode)
-  final_mode <- match.arg(final_mode)
+  insertion.anchor.scope <- match.arg(insertion.anchor.scope)
+  insertion.anchor.strategy <- match.arg(insertion.anchor.strategy)
+  level0.insertion.mode <- match.arg(level0.insertion.mode)
+  final.mode <- match.arg(final.mode)
 
   validated <- grip.validate.weighted.nd.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     seed = seed,
-    length_normalization = length_normalization,
+    length.normalization = length.normalization,
     caller = "weighted.grip.nd"
   )
 
   rounds <- grip.validate.nd.scalar.integer(resolved$rounds, "rounds", min = 0L)
-  final_rounds <- grip.validate.nd.scalar.integer(resolved$final_rounds, "final_rounds", min = 0L)
-  num_init <- grip.validate.nd.scalar.integer(resolved$num_init, "num_init", min = validated$dim + 1L)
-  num_nbrs <- grip.validate.nd.scalar.integer(resolved$num_nbrs, "num_nbrs", min = 1L)
-  tinit_factor <- grip.validate.nd.scalar.integer(tinit_factor, "tinit_factor", min = 1L)
-  metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
-    metric_neighbor_cap = metric_neighbor_cap,
+  final.rounds <- grip.validate.nd.scalar.integer(resolved$final_rounds, "final.rounds", min = 0L)
+  num.init <- grip.validate.nd.scalar.integer(resolved$num_init, "num.init", min = validated$dim + 1L)
+  num.nbrs <- grip.validate.nd.scalar.integer(resolved$num_nbrs, "num.nbrs", min = 1L)
+  tinit.factor <- grip.validate.nd.scalar.integer(tinit.factor, "tinit.factor", min = 1L)
+  metric.neighbor.cap <- grip.validate.weighted.metric.search.inputs(
+    metric.neighbor.cap = metric.neighbor.cap,
     caller = "weighted.grip.nd"
   )
-  insertion_anchor_count <- grip.validate.nd.scalar.integer(
-    insertion_anchor_count, "insertion_anchor_count", min = 1L
+  insertion.anchor.count <- grip.validate.nd.scalar.integer(
+    insertion.anchor.count, "insertion.anchor.count", min = 1L
   )
-  level0_anchor_count <- grip.validate.nd.scalar.integer(
-    level0_anchor_count, "level0_anchor_count", min = 1L
+  level0.anchor.count <- grip.validate.nd.scalar.integer(
+    level0.anchor.count, "level0.anchor.count", min = 1L
   )
-  level0_local_kk_steps <- grip.validate.nd.scalar.integer(
-    level0_local_kk_steps, "level0_local_kk_steps", min = 0L
+  level0.local.kk.steps <- grip.validate.nd.scalar.integer(
+    level0.local.kk.steps, "level0.local.kk.steps", min = 0L
   )
   if (!is.numeric(r) || length(r) != 1L || !is.finite(r) || r < 0 || r > 1) {
     stop("r must be finite and in [0, 1]")
@@ -236,27 +236,27 @@ weighted.grip.nd <- function(edges = NULL,
   if (!is.numeric(s) || length(s) != 1L || !is.finite(s) || s < 0) {
     stop("s must be finite and >= 0")
   }
-  if (!is.numeric(repulsion_factor) || length(repulsion_factor) != 1L ||
-      !is.finite(repulsion_factor) || repulsion_factor < 0) {
-    stop("repulsion_factor must be finite and >= 0")
+  if (!is.numeric(repulsion.factor) || length(repulsion.factor) != 1L ||
+      !is.finite(repulsion.factor) || repulsion.factor < 0) {
+    stop("repulsion.factor must be finite and >= 0")
   }
-  if (!is.numeric(final_move_scale_after_first) ||
-      length(final_move_scale_after_first) != 1L ||
-      !is.finite(final_move_scale_after_first) ||
-      final_move_scale_after_first < 0 ||
-      final_move_scale_after_first > 1) {
-    stop("final_move_scale_after_first must be in [0, 1]")
+  if (!is.numeric(final.move.scale.after.first) ||
+      length(final.move.scale.after.first) != 1L ||
+      !is.finite(final.move.scale.after.first) ||
+      final.move.scale.after.first < 0 ||
+      final.move.scale.after.first > 1) {
+    stop("final.move.scale.after.first must be in [0, 1]")
   }
 
   comp <- grip.connected.components(
-    adj_list = validated$adj_list,
+    adj.list = validated$adj_list,
     n = validated$n
   )
   if (length(unique(comp)) > 1L && identical(disconnected, "error")) {
     stop("graph must be connected; set disconnected = 'components' to layout components separately")
   }
 
-  layout_one <- function(adj, weights, nn) {
+  layout.one <- function(adj, weights, nn) {
     z <- grip_layout_weighted_nd_adj_cpp(
       adj,
       weights,
@@ -264,22 +264,22 @@ weighted.grip.nd <- function(edges = NULL,
       validated$dim,
       placement,
       rounds,
-      final_rounds,
-      num_init,
-      num_nbrs,
+      final.rounds,
+      num.init,
+      num.nbrs,
       as.double(r),
       as.double(s),
-      as.double(repulsion_factor),
-      tinit_factor,
-      as.double(final_move_scale_after_first),
-      final_mode,
-      if (is.null(metric_neighbor_cap)) 0L else metric_neighbor_cap,
-      insertion_anchor_count,
-      insertion_anchor_scope,
-      insertion_anchor_strategy,
-      level0_insertion_mode,
-      level0_anchor_count,
-      level0_local_kk_steps,
+      as.double(repulsion.factor),
+      tinit.factor,
+      as.double(final.move.scale.after.first),
+      final.mode,
+      if (is.null(metric.neighbor.cap)) 0L else metric.neighbor.cap,
+      insertion.anchor.count,
+      insertion.anchor.scope,
+      insertion.anchor.strategy,
+      level0.insertion.mode,
+      level0.anchor.count,
+      level0.local.kk.steps,
       validated$seed
     )
     colnames(z) <- paste0("Dim", seq_len(validated$dim))
@@ -287,7 +287,7 @@ weighted.grip.nd <- function(edges = NULL,
   }
 
   if (length(unique(comp)) == 1L) {
-    return(layout_one(
+    return(layout.one(
       validated$adj_list,
       validated$weight_list,
       validated$n
@@ -299,12 +299,12 @@ weighted.grip.nd <- function(edges = NULL,
   for (i in seq_along(comp.ids)) {
     vertices <- which(comp == comp.ids[[i]])
     sub <- grip.induce.subgraph(
-      adj_list = validated$adj_list,
-      weight_list = validated$weight_list,
+      adj.list = validated$adj_list,
+      weight.list = validated$weight_list,
       vertices = vertices,
       n = validated$n
     )
-    layouts[[i]] <- layout_one(
+    layouts[[i]] <- layout.one(
       sub$adj_list,
       sub$weight_list,
       length(vertices)
@@ -322,34 +322,34 @@ weighted.grip.nd <- function(edges = NULL,
 
 grip.layout.weighted.nd.trace <- function(edges = NULL,
                                           n = NULL,
-                                          adj_list = NULL,
-                                          weight_list = NULL,
-                                          edge_weights = NULL,
+                                          adj.list = NULL,
+                                          weight.list = NULL,
+                                          edge.weights = NULL,
                                           dim = 3,
                                           preset = NULL,
                                           placement = c("barycenter", "circle"),
                                           rounds = 160,
-                                          final_rounds = 256,
-                                          num_init = NULL,
-                                          num_nbrs = 24,
+                                          final.rounds = 256,
+                                          num.init = NULL,
+                                          num.nbrs = 24,
                                           r = 0.03,
                                           s = 6.0,
-                                          repulsion_factor = 1.5,
-                                          tinit_factor = 2,
-                                          final_move_scale_after_first = 1,
-                                          final_mode = c("fr", "kk_repulse"),
-                                          metric_neighbor_cap = NULL,
-                                          insertion_anchor_count = 3,
-                                          insertion_anchor_scope = c("any_higher", "prev_misf"),
-                                          insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                                          level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                                          level0_anchor_count = insertion_anchor_count,
-                                          level0_local_kk_steps = 3,
-                                          length_normalization = c("median", "mean", "none"),
+                                          repulsion.factor = 1.5,
+                                          tinit.factor = 2,
+                                          final.move.scale.after.first = 1,
+                                          final.mode = c("fr", "kk_repulse"),
+                                          metric.neighbor.cap = NULL,
+                                          insertion.anchor.count = 3,
+                                          insertion.anchor.scope = c("any_higher", "prev_misf"),
+                                          insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                                          level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                                          level0.anchor.count = insertion.anchor.count,
+                                          level0.local.kk.steps = 3,
+                                          length.normalization = c("median", "mean", "none"),
                                           seed = 6,
                                           trace.every = 1) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  length_normalization <- match.arg(length_normalization)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  length.normalization <- match.arg(length.normalization)
   dim <- grip.validate.nd.scalar.integer(dim, "dim", min = 2L)
   trace.every <- grip.validate.nd.scalar.integer(trace.every, "trace.every", min = 1L)
   preset <- grip.normalize.weighted.preset(
@@ -360,21 +360,21 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = missing(placement),
+    placement.missing = missing(placement),
     rounds = rounds,
-    rounds_missing = missing(rounds),
-    final_rounds = final_rounds,
-    final_rounds_missing = missing(final_rounds),
-    num_init = if (is.null(num_init)) max(24L, as.integer(dim) + 1L) else num_init,
-    num_init_missing = is.null(num_init),
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = missing(num_nbrs),
+    rounds.missing = missing(rounds),
+    final.rounds = final.rounds,
+    final.rounds.missing = missing(final.rounds),
+    num.init = if (is.null(num.init)) max(24L, as.integer(dim) + 1L) else num.init,
+    num.init.missing = is.null(num.init),
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = missing(num.nbrs),
     r = r,
-    r_missing = missing(r),
+    r.missing = missing(r),
     s = s,
-    s_missing = missing(s),
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = missing(repulsion_factor)
+    s.missing = missing(s),
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = missing(repulsion.factor)
   )
 
   if (identical(preset, "tree") && missing(placement) &&
@@ -385,40 +385,40 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
   if (identical(placement, "circle") && dim != 2L) {
     stop("placement = 'circle' requires dim = 2")
   }
-  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
-  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
-  level0_insertion_mode <- match.arg(level0_insertion_mode)
-  final_mode <- match.arg(final_mode)
+  insertion.anchor.scope <- match.arg(insertion.anchor.scope)
+  insertion.anchor.strategy <- match.arg(insertion.anchor.strategy)
+  level0.insertion.mode <- match.arg(level0.insertion.mode)
+  final.mode <- match.arg(final.mode)
 
   validated <- grip.validate.weighted.nd.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     seed = seed,
-    length_normalization = length_normalization,
+    length.normalization = length.normalization,
     caller = "grip.layout.weighted.nd.trace"
   )
 
   rounds <- grip.validate.nd.scalar.integer(resolved$rounds, "rounds", min = 0L)
-  final_rounds <- grip.validate.nd.scalar.integer(resolved$final_rounds, "final_rounds", min = 0L)
-  num_init <- grip.validate.nd.scalar.integer(resolved$num_init, "num_init", min = validated$dim + 1L)
-  num_nbrs <- grip.validate.nd.scalar.integer(resolved$num_nbrs, "num_nbrs", min = 1L)
-  tinit_factor <- grip.validate.nd.scalar.integer(tinit_factor, "tinit_factor", min = 1L)
-  metric_neighbor_cap <- grip.validate.weighted.metric.search.inputs(
-    metric_neighbor_cap = metric_neighbor_cap,
+  final.rounds <- grip.validate.nd.scalar.integer(resolved$final_rounds, "final.rounds", min = 0L)
+  num.init <- grip.validate.nd.scalar.integer(resolved$num_init, "num.init", min = validated$dim + 1L)
+  num.nbrs <- grip.validate.nd.scalar.integer(resolved$num_nbrs, "num.nbrs", min = 1L)
+  tinit.factor <- grip.validate.nd.scalar.integer(tinit.factor, "tinit.factor", min = 1L)
+  metric.neighbor.cap <- grip.validate.weighted.metric.search.inputs(
+    metric.neighbor.cap = metric.neighbor.cap,
     caller = "grip.layout.weighted.nd.trace"
   )
-  insertion_anchor_count <- grip.validate.nd.scalar.integer(
-    insertion_anchor_count, "insertion_anchor_count", min = 1L
+  insertion.anchor.count <- grip.validate.nd.scalar.integer(
+    insertion.anchor.count, "insertion.anchor.count", min = 1L
   )
-  level0_anchor_count <- grip.validate.nd.scalar.integer(
-    level0_anchor_count, "level0_anchor_count", min = 1L
+  level0.anchor.count <- grip.validate.nd.scalar.integer(
+    level0.anchor.count, "level0.anchor.count", min = 1L
   )
-  level0_local_kk_steps <- grip.validate.nd.scalar.integer(
-    level0_local_kk_steps, "level0_local_kk_steps", min = 0L
+  level0.local.kk.steps <- grip.validate.nd.scalar.integer(
+    level0.local.kk.steps, "level0.local.kk.steps", min = 0L
   )
   if (!is.numeric(r) || length(r) != 1L || !is.finite(r) || r < 0 || r > 1) {
     stop("r must be finite and in [0, 1]")
@@ -426,20 +426,20 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
   if (!is.numeric(s) || length(s) != 1L || !is.finite(s) || s < 0) {
     stop("s must be finite and >= 0")
   }
-  if (!is.numeric(repulsion_factor) || length(repulsion_factor) != 1L ||
-      !is.finite(repulsion_factor) || repulsion_factor < 0) {
-    stop("repulsion_factor must be finite and >= 0")
+  if (!is.numeric(repulsion.factor) || length(repulsion.factor) != 1L ||
+      !is.finite(repulsion.factor) || repulsion.factor < 0) {
+    stop("repulsion.factor must be finite and >= 0")
   }
-  if (!is.numeric(final_move_scale_after_first) ||
-      length(final_move_scale_after_first) != 1L ||
-      !is.finite(final_move_scale_after_first) ||
-      final_move_scale_after_first < 0 ||
-      final_move_scale_after_first > 1) {
-    stop("final_move_scale_after_first must be in [0, 1]")
+  if (!is.numeric(final.move.scale.after.first) ||
+      length(final.move.scale.after.first) != 1L ||
+      !is.finite(final.move.scale.after.first) ||
+      final.move.scale.after.first < 0 ||
+      final.move.scale.after.first > 1) {
+    stop("final.move.scale.after.first must be in [0, 1]")
   }
 
   comp <- grip.connected.components(
-    adj_list = validated$adj_list,
+    adj.list = validated$adj_list,
     n = validated$n
   )
   if (length(unique(comp)) > 1L) {
@@ -453,22 +453,22 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
     validated$dim,
     placement,
     rounds,
-    final_rounds,
-    num_init,
-    num_nbrs,
+    final.rounds,
+    num.init,
+    num.nbrs,
     as.double(r),
     as.double(s),
-    as.double(repulsion_factor),
-    tinit_factor,
-    as.double(final_move_scale_after_first),
-    final_mode,
-    if (is.null(metric_neighbor_cap)) 0L else metric_neighbor_cap,
-    insertion_anchor_count,
-    insertion_anchor_scope,
-    insertion_anchor_strategy,
-    level0_insertion_mode,
-    level0_anchor_count,
-    level0_local_kk_steps,
+    as.double(repulsion.factor),
+    tinit.factor,
+    as.double(final.move.scale.after.first),
+    final.mode,
+    if (is.null(metric.neighbor.cap)) 0L else metric.neighbor.cap,
+    insertion.anchor.count,
+    insertion.anchor.scope,
+    insertion.anchor.strategy,
+    level0.insertion.mode,
+    level0.anchor.count,
+    level0.local.kk.steps,
     validated$seed,
     trace.every,
     FALSE,
@@ -506,34 +506,34 @@ grip.layout.weighted.nd.trace <- function(edges = NULL,
 
 grip.build.misf.weighted.nd <- function(edges = NULL,
                                         n = NULL,
-                                        adj_list = NULL,
-                                        weight_list = NULL,
-                                        edge_weights = NULL,
-                                        num_init = 24,
-                                        num_nbrs = 20,
-                                        length_normalization = c("median", "mean", "none"),
+                                        adj.list = NULL,
+                                        weight.list = NULL,
+                                        edge.weights = NULL,
+                                        num.init = 24,
+                                        num.nbrs = 20,
+                                        length.normalization = c("median", "mean", "none"),
                                         seed = 6) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   validated <- grip.validate.weighted.nd.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = 2,
     seed = seed,
-    length_normalization = length_normalization,
+    length.normalization = length.normalization,
     caller = "grip.build.misf.weighted.nd"
   )
-  num_init <- grip.validate.nd.scalar.integer(num_init, "num_init", min = 1L)
-  num_nbrs <- grip.validate.nd.scalar.integer(num_nbrs, "num_nbrs", min = 1L)
+  num.init <- grip.validate.nd.scalar.integer(num.init, "num.init", min = 1L)
+  num.nbrs <- grip.validate.nd.scalar.integer(num.nbrs, "num.nbrs", min = 1L)
 
   out <- grip_build_weighted_misf_nd_adj_cpp(
     adj_list = validated$adj_list,
     weight_list = validated$weight_list,
     n = validated$n,
-    num_init = as.integer(num_init),
-    num_nbrs = as.integer(num_nbrs),
+    num_init = as.integer(num.init),
+    num_nbrs = as.integer(num.nbrs),
     seed = validated$seed
   )
   out$levels <- lapply(out$levels, as.integer)

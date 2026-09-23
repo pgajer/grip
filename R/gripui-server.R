@@ -1,4 +1,4 @@
-gripui_server <- function(project) {
+gripui.server <- function(project) {
   function(input, output, session) {
     catalog <- project$layouts
     selected.layout.id <- shiny::reactiveVal(
@@ -138,7 +138,7 @@ gripui_server <- function(project) {
         return(NULL)
       }
       tryCatch(
-        gripui_load_layout_coords(project, row),
+        gripui.load.layout.coords(project, row),
         error = function(e) NULL
       )
     })
@@ -343,14 +343,14 @@ gripui_server <- function(project) {
       coords <- selected.coords()
       shiny::validate(shiny::need(is.matrix(coords) && ncol(coords) >= 2L, "No 2D coordinates available"))
       graph <- if (isTRUE(input$show_edges)) selected.graph() else NULL
-      gripui.render.layout.plot2d(coords, graph = graph, color_by = input$viewer_color_by)
+      gripui.render.layout.plot2d(coords, graph = graph, color.by = input$viewer_color_by)
     })
 
     output$layout_view_3d <- rgl::renderRglwidget({
       coords <- selected.coords()
       shiny::validate(shiny::need(is.matrix(coords) && ncol(coords) >= 3L, "No 3D coordinates available"))
       graph <- if (isTRUE(input$show_edges)) selected.graph() else NULL
-      gripui.render.rglwidget(coords, graph = graph, color_by = input$viewer_color_by)
+      gripui.render.rglwidget(coords, graph = graph, color.by = input$viewer_color_by)
     })
 
     output$layout_artifact_image <- shiny::renderImage({

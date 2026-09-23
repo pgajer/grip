@@ -10,46 +10,46 @@
 cube.periodic.tunnels.surface.graph(
   level = 2,
   side = 5,
-  tunnel_width = 1,
-  tunnel_period = 2,
-  tunnel_offset = 2,
+  tunnel.width = 1,
+  tunnel.period = 2,
+  tunnel.offset = 2,
   surface = c("standard", "bulged", "twisted", "wavy"),
   amplitude = 0.2,
   freq = 2,
   twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1,
+  x.scale = 1,
+  y.scale = 1,
+  z.scale = 1,
   normalize = c("median", "mean", "none")
 )
 
 cube.asymmetric.cavities.surface.graph(
   level = 2,
   side = 5,
-  cavity_size = 2,
-  pocket_size = max(1L, cavity_size - 1L),
+  cavity.size = 2,
+  pocket.size = max(1L, cavity.size - 1L),
   surface = c("standard", "bulged", "twisted", "wavy"),
   amplitude = 0.2,
   freq = 2,
   twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1,
+  x.scale = 1,
+  y.scale = 1,
+  z.scale = 1,
   normalize = c("median", "mean", "none")
 )
 
 cube.channel.network.surface.graph(
   level = 2,
   side = 5,
-  channel_width = 1,
-  branch_offset = 2,
+  channel.width = 1,
+  branch.offset = 2,
   surface = c("standard", "bulged", "twisted", "wavy"),
   amplitude = 0.2,
   freq = 2,
   twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1,
+  x.scale = 1,
+  y.scale = 1,
+  z.scale = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -58,11 +58,11 @@ cube.channel.network.surface.graph(
 
 \item{side}{Side length of the base cubic keep-array.}
 
-\item{tunnel_width}{Width of each removed tunnel band.}
+\item{tunnel.width}{Width of each removed tunnel band.}
 
-\item{tunnel_period}{Spacing between successive tunnel bands.}
+\item{tunnel.period}{Spacing between successive tunnel bands.}
 
-\item{tunnel_offset}{Starting index of the first tunnel band.}
+\item{tunnel.offset}{Starting index of the first tunnel band.}
 
 \item{surface}{Cube-mask geometry family. One of \code{"standard"},
 \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.}
@@ -75,26 +75,26 @@ cube.channel.network.surface.graph(
 \item{twist}{Finite twist strength used only when
 \code{surface = "twisted"}.}
 
-\item{x_scale}{Positive horizontal scaling applied to the canonical cube
+\item{x.scale}{Positive horizontal scaling applied to the canonical cube
 coordinates.}
 
-\item{y_scale}{Positive vertical scaling applied to the canonical cube
+\item{y.scale}{Positive vertical scaling applied to the canonical cube
 coordinates.}
 
-\item{z_scale}{Positive depth scaling applied to the canonical cube
+\item{z.scale}{Positive depth scaling applied to the canonical cube
 coordinates.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
 
-\item{cavity_size}{Side length of the larger interior cavity block.}
+\item{cavity.size}{Side length of the larger interior cavity block.}
 
-\item{pocket_size}{Side length of the smaller secondary cavity block.}
+\item{pocket.size}{Side length of the smaller secondary cavity block.}
 
-\item{channel_width}{Width of each removed channel in the channel-network
+\item{channel.width}{Width of each removed channel in the channel-network
 family.}
 
-\item{branch_offset}{Interior offset of the extra branch channel in the
+\item{branch.offset}{Interior offset of the extra branch channel in the
 channel-network family.}
 }
 \value{
@@ -114,13 +114,13 @@ generic cube-mask helpers.
 }
 \examples{
 asymmetric <- cube.asymmetric.cavities.surface.graph(
-  level = 1, side = 5, cavity_size = 1, pocket_size = 1
+  level = 1, side = 5, cavity.size = 1, pocket.size = 1
 )
 channels <- cube.channel.network.surface.graph(
-  level = 1, side = 5, channel_width = 1, branch_offset = 2
+  level = 1, side = 5, channel.width = 1, branch.offset = 2
 )
 tunnels <- cube.periodic.tunnels.surface.graph(
-  level = 1, side = 5, tunnel_width = 1,
-  tunnel_period = 2, tunnel_offset = 1
+  level = 1, side = 5, tunnel.width = 1,
+  tunnel.period = 2, tunnel.offset = 1
 )
 }

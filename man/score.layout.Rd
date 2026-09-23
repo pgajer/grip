@@ -8,9 +8,9 @@ score.layout(
   coords,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   clusters = NULL,
   sample.size.stress = 2000L,
   sample.size.nonedge = 5000L,
@@ -25,15 +25,15 @@ score.layout(
 
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to
 \code{nrow(coords)}.}
 
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
+\item{adj.list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
 \item{clusters}{Optional cluster or community labels of length

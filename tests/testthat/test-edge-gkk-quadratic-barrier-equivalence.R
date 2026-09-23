@@ -71,10 +71,10 @@ check_edge_gkk_barrier_parity <- function(fixture, distance.eps = 1e-10) {
   gkk <- grip:::grip.edge.isometric.energy.gradient(
     coords = fixture$coords,
     edges = fixture$edges,
-    edge_weights = fixture$ell,
+    edge.weights = fixture$ell,
     stiffness = fixture$k,
     scale = 1,
-    edge_length_epsilon = distance.eps
+    edge.length.epsilon = distance.eps
   )
   barrier <- edge.repulsive.state(
     coords = fixture$coords,
@@ -134,10 +134,10 @@ test_that("ell-squared conversion is necessary for non-unit edge lengths", {
   gkk <- grip:::grip.edge.isometric.energy.gradient(
     coords = fixture$coords,
     edges = fixture$edges,
-    edge_weights = fixture$ell,
+    edge.weights = fixture$ell,
     stiffness = fixture$k,
     scale = 1,
-    edge_length_epsilon = 1e-10
+    edge.length.epsilon = 1e-10
   )
   relative.weight.barrier <- edge.repulsive.state(
     coords = fixture$coords,

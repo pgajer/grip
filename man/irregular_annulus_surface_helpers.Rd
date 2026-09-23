@@ -7,16 +7,16 @@
 \usage{
 irregular.annulus.surface.graph(
   rings = 6,
-  outer_count = 28,
-  outer_radius = 1,
-  inner_radius = 0.45,
-  count_irregularity = 0.2,
-  radial_irregularity = 0.35,
-  phase_twist = 0.35,
+  outer.count = 28,
+  outer.radius = 1,
+  inner.radius = 0.45,
+  count.irregularity = 0.2,
+  radial.irregularity = 0.35,
+  phase.twist = 0.35,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1,
+  freq.u = 1,
+  freq.v = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -24,19 +24,19 @@ irregular.annulus.surface.graph(
 \item{rings}{Number of concentric sample rings, including the inner and
 outer boundary cycles.}
 
-\item{outer_count}{Approximate number of vertices on the outer boundary.}
+\item{outer.count}{Approximate number of vertices on the outer boundary.}
 
-\item{outer_radius}{Positive outer annulus radius.}
+\item{outer.radius}{Positive outer annulus radius.}
 
-\item{inner_radius}{Positive inner annulus radius.}
+\item{inner.radius}{Positive inner annulus radius.}
 
-\item{count_irregularity}{Irregularity level for the per-ring sample counts.
+\item{count.irregularity}{Irregularity level for the per-ring sample counts.
 Must lie in \code{[0, 1)}.}
 
-\item{radial_irregularity}{Irregularity level for within-ring radial
+\item{radial.irregularity}{Irregularity level for within-ring radial
 perturbations. Must lie in \code{[0, 1]}.}
 
-\item{phase_twist}{Finite angular phase offset used to desynchronize
+\item{phase.twist}{Finite angular phase offset used to desynchronize
 neighboring rings.}
 
 \item{surface}{Geometry family used for the 3D lift. One of \code{"flat"},
@@ -45,10 +45,10 @@ neighboring rings.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the first planar coordinate. Used
+\item{freq.u}{Positive ripple frequency in the first planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the second planar coordinate. Used
+\item{freq.v}{Positive ripple frequency in the second planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -82,5 +82,5 @@ planar parameterization into \eqn{\mathbb{R}^3}. This provides a non-lattice
 annulus family with boundary and nonuniform local valence.
 }
 \examples{
-annulus <- irregular.annulus.surface.graph(rings = 3, outer_count = 12)
+annulus <- irregular.annulus.surface.graph(rings = 3, outer.count = 12)
 }

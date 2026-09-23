@@ -3,9 +3,9 @@
 ## Scope and compatibility
 
 `metric.mds(backend = "sgd")` minimizes all-pairs raw distance stress, with uniform weighting by default
-or `pair_weights = "inverse_squared"` for the Zheng et al. graph objective. `backend = "sgd"` is the default; explicitly select
+or `pair.weights = "inverse_squared"` for the Zheng et al. graph objective. `backend = "sgd"` is the default; explicitly select
 `backend = "smacof"` to reproduce a previous SMACOF analysis. The arguments
-`backend`, `sgd_control`, and `pair_weights` are appended to the public signature. Inputs,
+`backend`, `sgd.control`, and `pair.weights` are appended to the public signature. Inputs,
 distance normalization, initialization, output units, diagnostic definitions,
 and multiple-start selection retain the existing contract. There is no Python
 runtime dependency, automatic fallback, custom weight matrix, sparse surrogate,
@@ -69,7 +69,7 @@ are not silently perturbed. Wholly collapsed public starts remain invalid.
 
 Schedules use zero-based epoch t and planned epoch count T. Exponential:
 `eta(t) = eta0 * (eta_final/eta0)^(t/T)`. Hybrid uses
-`tau = floor(switch_ratio*T)` and `eta_mid = eta0/10`: exponential decay from
+`tau = floor(switch.ratio*T)` and `eta_mid = eta0/10`: exponential decay from
 eta0 toward eta_mid for t < tau, followed by
 `eta_mid / (1 + b*(t-tau))`, where
 `b = (eta_mid/eta_final - 1)/(T-tau)` when eta_mid > eta_final, and zero
@@ -77,14 +77,14 @@ otherwise. If tau is zero, eta_mid is eta0. These are the pinned reference's
 indexing conventions: for exponential decay, and for an active hybrid harmonic
 segment with eta_mid > eta_final, eta_final is the planned boundary value at
 t=T, not necessarily the last applied value. If eta_mid <= eta_final, the
-harmonic segment stays constant at eta_mid instead. If switch_ratio=1 there
+harmonic segment stays constant at eta_mid instead. If switch.ratio=1 there
 is no harmonic segment and eta_final does not affect the schedule. Only
 positive, nonincreasing schedules are
 accepted (eta_final <= eta0).
 
 Provisional calibration choices: hybrid schedule, eta0=0.5, eta_final=0.01,
-switch_ratio=0.4, checkpoint_every=1, maximum native workspace 256 MiB.
-The public `max_iter` retains its existing default of 1000; explicitly request
+switch.ratio=0.4, checkpoint.every=1, maximum native workspace 256 MiB.
+The public `max.iter` retains its existing default of 1000; explicitly request
 30 for an initial short SGD trial. An epoch is not a SMACOF iteration.
 `eps` belongs to SMACOF; an explicitly supplied `eps` with SGD is rejected.
 SGD performs its prescribed schedule and reports `iteration_limit`, never a

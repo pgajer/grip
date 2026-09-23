@@ -9,22 +9,22 @@ landmark.geodesic.kk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  local_nbrs = 20L,
-  landmark_count = 8L,
-  max_iter = 16L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  local.nbrs = 20L,
+  landmark.count = 8L,
+  max.iter = 16L,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  initial_step = 1,
-  step_shrink = 0.5,
-  armijo_factor = 1e-04,
-  grad_tol = 1e-08,
-  min_step = 1e-08,
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  initial.step = 1,
+  step.shrink = 0.5,
+  armijo.factor = 1e-04,
+  grad.tol = 1e-08,
+  min.step = 1e-08,
   recenter = TRUE,
-  return_trace = FALSE
+  return.trace = FALSE
 )
 }
 \arguments{
@@ -37,43 +37,43 @@ landmark.geodesic.kk(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{local_nbrs}{Number of nearest graph-metric neighbors retained per
+\item{local.nbrs}{Number of nearest graph-metric neighbors retained per
 vertex when \code{prepared} is not supplied.}
 
-\item{landmark_count}{Number of farthest-point landmarks retained per vertex
+\item{landmark.count}{Number of farthest-point landmarks retained per vertex
 when \code{prepared} is not supplied.}
 
-\item{max_iter}{Maximum number of gradient-descent iterations.}
+\item{max.iter}{Maximum number of gradient-descent iterations.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{initial_step}{Initial line-search step size.}
+\item{initial.step}{Initial line-search step size.}
 
-\item{step_shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
+\item{step.shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
 
-\item{armijo_factor}{Non-negative Armijo decrease constant.}
+\item{armijo.factor}{Non-negative Armijo decrease constant.}
 
-\item{grad_tol}{Non-negative stopping tolerance on the gradient norm.}
+\item{grad.tol}{Non-negative stopping tolerance on the gradient norm.}
 
-\item{min_step}{Positive minimum accepted line-search step before giving up.}
+\item{min.step}{Positive minimum accepted line-search step before giving up.}
 
 \item{recenter}{If \code{TRUE}, recenter the layout to zero mean after each
 accepted step.}
 
-\item{return_trace}{If \code{TRUE}, include per-iteration diagnostics and the
+\item{return.trace}{If \code{TRUE}, include per-iteration diagnostics and the
 accepted intermediate coordinate frames.}
 }
 \value{
@@ -97,7 +97,7 @@ cycle_edges <- edges.cycle(6)
 theta <- seq(0, 2 * pi, length.out = 7)[-7]
 initial <- cbind(cos(theta), sin(theta))
 prepared <- prepare.landmark.geodesic.kk(
-  cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+  cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 )
-fit <- landmark.geodesic.kk(initial, prepared = prepared, max_iter = 1)
+fit <- landmark.geodesic.kk(initial, prepared = prepared, max.iter = 1)
 }

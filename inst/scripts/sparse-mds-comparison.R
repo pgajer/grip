@@ -21,18 +21,18 @@ sparse_comparison_fit <- function(case, method, seed, epochs=100L) {
   start <- withr::with_seed(1000L+seed,matrix(runif(case$n*3),case$n,3))
   began <- proc.time()[['elapsed']]
   if (method=='full') {
-    fit <- grip::metric.mds(edges=case$edges,n=case$n,edge_weights=case$weights,
-      dim=3,init=start,seed=seed,max_iter=epochs,backend='sgd',
-      pair_weights='inverse_squared',diagnostics=FALSE)
+    fit <- grip::metric.mds(edges=case$edges,n=case$n,edge.weights=case$weights,
+      dim=3,init=start,seed=seed,max.iter=epochs,backend='sgd',
+      pair.weights='inverse_squared',diagnostics=FALSE)
     prep <- NA_real_; fitting <- NA_real_
   } else if (method=='grip') {
-    fit <- grip::grip(edges=case$edges,n=case$n,edge_weights=case$weights,dim=3,
-      metric='edge_length',length_normalization='none',seed=seed,disconnected='error')
+    fit <- grip::grip(edges=case$edges,n=case$n,edge.weights=case$weights,dim=3,
+      metric='edge_length',length.normalization='none',seed=seed,disconnected='error')
     prep <- NA_real_; fitting <- NA_real_
   } else {
     h <- as.integer(sub('sparse','',method))
-    fit <- grip::metric.mds(approximation="sparse",edges=case$edges,n=case$n,edge_weights=case$weights,
-      dim=3,init=start,seed=seed,max_iter=epochs,sparse_control=list(n_pivots=h))
+    fit <- grip::metric.mds(approximation="sparse",edges=case$edges,n=case$n,edge.weights=case$weights,
+      dim=3,init=start,seed=seed,max.iter=epochs,sparse.control=list(n.pivots=h))
     prep <- fit$metadata$preparation_seconds; fitting <- fit$metadata$fitting_seconds
   }
   seconds <- proc.time()[['elapsed']]-began

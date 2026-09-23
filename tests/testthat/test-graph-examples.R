@@ -54,3 +54,12 @@ test_that('Procrustes alignment recovers known rotations, reflections and transl
     expect_equal(as.vector(dist(aligned)), as.vector(dist(transformed)), tolerance = 1e-12)
   }
 })
+
+test_that('gallery recipes preserve the saved graph field names', {
+  env <- new.env()
+  sys.source(system.file('scripts', 'graph-examples.R', package = 'grip'), env)
+  for (g in env$graph_example_cases()) {
+    expect_length(g$edge_weights, nrow(g$edges))
+    expect_true(all(is.finite(g$edge_weights) & g$edge_weights > 0))
+  }
+})

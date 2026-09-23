@@ -7,11 +7,11 @@
 build.misf(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  num_init = 24L,
-  num_nbrs = 20L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  num.init = 24L,
+  num.nbrs = 20L,
   seed = 6L
 )
 }
@@ -21,17 +21,17 @@ ids).}
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Optional adjacency list (1-based integer vectors).}
+\item{adj.list}{Optional adjacency list (1-based integer vectors).}
 
-\item{weight_list}{Optional positive edge-weight list parallel to \code{adj_list}.}
+\item{weight.list}{Optional positive edge-weight list parallel to \code{adj.list}.}
 
-\item{edge_weights}{Optional positive vector parallel to \code{edges}.}
+\item{edge.weights}{Optional positive vector parallel to \code{edges}.}
 
-\item{num_init}{Target top-level active-set size used by the current GRIP
+\item{num.init}{Target top-level active-set size used by the current GRIP
 MISF builder. The returned highest MISF level has size at most
-\code{min(num_init, n)}.}
+\code{min(num.init, n)}.}
 
-\item{num_nbrs}{Retained local neighborhood budget per MISF level, matching
+\item{num.nbrs}{Retained local neighborhood budget per MISF level, matching
 the current GRIP refinement schedule metadata.}
 
 \item{seed}{Optional integer seed passed to the current GRIP graph RNG.}
@@ -65,7 +65,7 @@ shortest-path distances.
 }
 \examples{
 edges <- edges.mesh(4, 4)
-misf <- build.misf(edges = edges, n = 16, num_init = 6, seed = 1)
+misf <- build.misf(edges = edges, n = 16, num.init = 6, seed = 1)
 misf$misf_size
 misf$levels[[1L]]
 }

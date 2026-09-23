@@ -187,7 +187,7 @@ argument you pass overrides the preset value.
   and need geodesic-aware scoring or polish; these are advanced public
   experimental tools rather than the default starting point.
 
-The historical argument names `edge_weights` and `weight_list` represent
+The historical argument names `edge.weights` and `weight.list` represent
 positive edge **lengths**, not connection strengths. With
 `metric = "hop"`, supplied lengths set adjacent-edge force targets while
 standard GRIP hierarchy and neighborhood searches still count hops. With
@@ -226,10 +226,10 @@ plot.layout(coords, edges, pch = 16, cex = 0.7)
 **Edge-length-metric adjacency list (geometry-aware)**
 
 ``` r
-adj_list <- list(c(2), c(1, 3), c(2, 4), c(3))
-weight_list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
+adj.list <- list(c(2), c(1, 3), c(2, 4), c(3))
+weight.list <- list(c(1.0), c(1.0, 2.0), c(2.0, 1.5), c(1.5))
 coords <- grip(
-  adj_list = adj_list, weight_list = weight_list,
+  adj.list = adj.list, weight.list = weight.list,
   metric = "edge_length", n = 4, dim = 2, seed = 12
 )
 plot.layout(coords)

@@ -9,4 +9,4 @@ if (!requireNamespace("grip", quietly = TRUE)) {
   stop("The 'grip' package must be installed or loadable to run this app.", call. = FALSE)
 }
 
-grip::run_gripui_paraboloid_gmds()
+grip::run.gripui.paraboloid.gmds()

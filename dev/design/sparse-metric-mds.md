@@ -8,9 +8,9 @@ unexported `.sparse.metric.mds()` before dense preparation. `approximation =
 preserved. Both modes default to `dim = 2`. Only omitted sparse arguments take
 mode-specific defaults: random initialization, inverse-squared weighting,
 30 epochs, and diagnostics disabled. Sparse mode rejects SMACOF, classical
-starts, uniform weights, `n_init != 1`, non-NULL prepared objects, enabled dense
+starts, uniform weights, `n.init != 1`, non-NULL prepared objects, enabled dense
 diagnostics, and explicitly supplied dense diagnostic controls. Pivot controls
-are a strictly named `sparse_control` list (`n_pivots`, `pivots`); nonempty sparse
+are a strictly named `sparse.control` list (`n.pivots`, `pivots`); nonempty sparse
 controls are rejected in full mode. Both results use method `metric_mds` and
 record `metadata$engine` and `metadata$approximation`.
 
@@ -30,7 +30,7 @@ explicit mt19937_64 sampling, not upstream randomkit.
 ## Preparation and deterministic choices
 
 Default 200 pivots, capped at n; explicit distinct 1-based `pivots` override
-sampling (an explicitly supplied contradictory `n_pivots` is rejected).
+sampling (an explicitly supplied contradictory `n.pivots` is rejected).
 First random pivot is uniform. Subsequent choices are proportional to distance
 to the nearest selected pivot (not squared distance), excluding selected
 vertices. Accumulate in vertex-index order, using a half-open uniform variate.

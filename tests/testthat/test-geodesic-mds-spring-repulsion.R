@@ -16,11 +16,11 @@ test_that("prepared geodesic objects retain graph edge targets and repulsion cac
 
   cached <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
-    repulsion_weight = 0.2,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.5,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    repulsion.weight = 0.2,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.5,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
 
   expect_equal(cached$graph_edge_target, rep(1, 3))
@@ -36,11 +36,11 @@ test_that("repulsion pair selection is deterministic and matches the flattened c
   prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   cached <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
-    repulsion_weight = 0.2,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.5,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    repulsion.weight = 0.2,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.5,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
 
   expect_equal(
@@ -68,7 +68,7 @@ test_that("edge spring energy gradient matches finite differences", {
   analytic <- grip:::grip.geodesic.mds.edge.spring.stats(
     coords = coords,
     prepared = prepared,
-    edge_spring_weight = weight
+    edge.spring.weight = weight
   )
 
   numeric <- finite_difference_gradient(function(vec) {
@@ -76,7 +76,7 @@ test_that("edge spring energy gradient matches finite differences", {
     grip:::grip.geodesic.mds.edge.spring.stats(
       coords = pts,
       prepared = prepared,
-      edge_spring_weight = weight
+      edge.spring.weight = weight
     )$energy
   }, as.double(coords))
 
@@ -87,11 +87,11 @@ test_that("graph-aware repulsion energy gradient matches finite differences", {
   prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   prepared <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
-    repulsion_weight = 0.9,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.8,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    repulsion.weight = 0.9,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.8,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
   coords <- rbind(
     c(0.0, 0.0),
@@ -104,7 +104,7 @@ test_that("graph-aware repulsion energy gradient matches finite differences", {
   analytic <- grip:::grip.geodesic.mds.repulsion.stats(
     coords = coords,
     prepared = prepared,
-    repulsion_weight = weight
+    repulsion.weight = weight
   )
 
   numeric <- finite_difference_gradient(function(vec) {
@@ -112,7 +112,7 @@ test_that("graph-aware repulsion energy gradient matches finite differences", {
     grip:::grip.geodesic.mds.repulsion.stats(
       coords = pts,
       prepared = prepared,
-      repulsion_weight = weight
+      repulsion.weight = weight
     )$energy
   }, as.double(coords))
 
@@ -124,11 +124,11 @@ test_that("compiled repulsion stats match the R implementation exactly on a dete
   prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   prepared <- grip:::grip.geodesic.mds.ensure.graph.term.cache(
     prepared = prepared,
-    repulsion_weight = 0.9,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.8,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    repulsion.weight = 0.9,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.8,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
   coords <- rbind(
     c(0.0, 0.0),
@@ -141,7 +141,7 @@ test_that("compiled repulsion stats match the R implementation exactly on a dete
   r.stats <- grip:::grip.geodesic.mds.repulsion.stats(
     coords = coords,
     prepared = prepared,
-    repulsion_weight = weight
+    repulsion.weight = weight
   )
   cpp.stats <- grip:::grip_geodesic_mds_flat_repulsion_stats_cpp(
     repulsion_u = prepared$flat_repulsion_u,
@@ -170,12 +170,12 @@ test_that("geodesic MDS scoring reports spring and repulsion contributions", {
   score <- grip.score.geodesic.mds(
     coords = coords,
     prepared = prepared,
-    edge_spring_weight = 0.25,
-    repulsion_weight = 0.5,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.7,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    edge.spring.weight = 0.25,
+    repulsion.weight = 0.5,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.7,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
 
   expect_true(score$edge.spring.energy[[1L]] > 0)
@@ -202,20 +202,20 @@ test_that("compiled optimizer matches the R engine for spring-repulsion GMDS", {
   )
   score.args <- list(
     prepared = prepared,
-    edge_spring_weight = 0.1,
-    repulsion_weight = 0.4,
-    repulsion_quantile = 0,
-    repulsion_scale = 0.6,
-    repulsion_cap_quantile = 1,
-    repulsion_hop_min = 2L
+    edge.spring.weight = 0.1,
+    repulsion.weight = 0.4,
+    repulsion.quantile = 0,
+    repulsion.scale = 0.6,
+    repulsion.cap.quantile = 1,
+    repulsion.hop.min = 2L
   )
   opt.args <- c(
     score.args,
     list(
-    initial_step = 0.5,
-    max_iter = 6L,
-    return_trace = TRUE,
-    n_threads = 1L
+    initial.step = 0.5,
+    max.iter = 6L,
+    return.trace = TRUE,
+    n.threads = 1L
     )
   )
 

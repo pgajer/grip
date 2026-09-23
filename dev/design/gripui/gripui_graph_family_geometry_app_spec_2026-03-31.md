@@ -26,7 +26,7 @@ Provide a Shiny app that allows a user to:
 
 Recommended exported API:
 
-- `gripui_family_app(catalog = gripui_graph_family_catalog(), title = "Graph Family Geometry Explorer")`
+- `gripui.family.app(catalog = gripui.graph.family.catalog(), title = "Graph Family Geometry Explorer")`
 - `run_gripui_family_app(...)`
 
 Recommended positioning:
@@ -169,7 +169,7 @@ The app should be driven by a registry, not by hard-coded conditional UI logic s
 
 Recommended internal constructor:
 
-- `gripui_graph_family_catalog()`
+- `gripui.graph.family.catalog()`
 
 This should return a list of family descriptors, one per UI-selectable family.
 
@@ -198,7 +198,7 @@ Each family descriptor should include:
 - `output_adapter`
   - function that normalizes builder output into a standard app payload
 - `supports_param_view`
-  - whether a useful `coords_param` view exists
+  - whether a useful `coords.param` view exists
 - `supports_weight_hist`
   - whether edge weights are meaningful to display
 - `tags`
@@ -210,13 +210,13 @@ Every family should be normalized into a common payload object:
 
 ```r
 list(
-  family_id = "irregular.torus",
+  family.id = "irregular.torus",
   family_label = "Irregular torus",
   edges = <integer matrix>,
   n = <integer>,
-  edge_weights = <numeric vector or NULL>,
-  coords_surface = <numeric matrix or NULL>,
-  coords_param = <numeric matrix or NULL>,
+  edge.weights = <numeric vector or NULL>,
+  coords.surface = <numeric matrix or NULL>,
+  coords.param = <numeric matrix or NULL>,
   coords_display = <numeric matrix>,
   label = <character>,
   note = <character or NULL>,
@@ -235,7 +235,7 @@ list(
 Rules:
 
 - `coords_display` is the matrix used by the 3D viewer.
-- for most families, `coords_display = coords_surface`
+- for most families, `coords_display = coords.surface`
 - for `kary.tree.weighted.graph()`, `coords_display` must be a synthetic 3D embedding derived from the tree topology and edge weights
 
 ## 6. Dynamic parameter system
@@ -268,7 +268,7 @@ Each parameter spec should include:
 - `help`
 - `group`
   - such as `Topology`, `Geometry`, `Weights`, `Mask`, `Rendering`
-- `visible_if`
+- `visible.if`
   - function of current parameter state
 - `validate`
   - validator function returning `NULL` or an error string
@@ -292,11 +292,11 @@ Recommended groups:
 
 Examples:
 
-- `freq_u` and `freq_v` should be shown only when the chosen `surface` uses them meaningfully
+- `freq.u` and `freq.v` should be shown only when the chosen `surface` uses them meaningfully
 - `twist` should be shown only for families/surfaces that expose twist
 - `normalize` should be hidden in pure-embedding preview mode if the user is viewing only coordinates
-- `depth_factors` should be shown only if `depth_rule == "custom"`
-- `branch_factors` should be shown only if `branch_rule == "custom"`
+- `depth.factors` should be shown only if `depth.rule == "custom"`
+- `branch.factors` should be shown only if `branch.rule == "custom"`
 - mask editors should appear only for generic recursive families
 
 ## 7. Specialized editors for non-scalar parameters
@@ -439,13 +439,13 @@ Recommended changes:
 
 Recommended helper:
 
-- `gripui.render.geometry.rglwidget(payload, color_by = "z", show_edges = TRUE, show_vertices = TRUE, edge_color_by = "weight")`
+- `gripui.render.geometry.rglwidget(payload, color.by = "z", show.edges = TRUE, show_vertices = TRUE, edge_color_by = "weight")`
 
 ### 8.2 Secondary view
 
 Show one of:
 
-- `coords_param` scatter plot when available
+- `coords.param` scatter plot when available
 - 2D slice view for volumetric families
 - occupancy/mask preview for recursive mask families
 - schematic tree view for intrinsic weighted trees
@@ -473,7 +473,7 @@ Recommended cards:
 - `Geometry summary`
   - bounding box
   - dimensionality
-  - whether `coords_param` exists
+  - whether `coords.param` exists
 - `Reproducible code`
   - exact call used to create the current object
 
@@ -550,7 +550,7 @@ Direct reuse candidates:
 
 - `gripui.enable.rgl.null.device()`
 - `gripui.require.app.packages()`
-- theme choices from `gripui_ui()`
+- theme choices from `gripui.ui()`
 - rendering patterns from `gripui.render.rglwidget()`
 
 Possible refactor:
@@ -596,7 +596,7 @@ The app should cache built graph payloads by a hash of:
 
 Recommended cache key:
 
-- `digest::digest(list(family_id, params))`
+- `digest::digest(list(family.id, params))`
 
 Cache target:
 
@@ -615,10 +615,10 @@ Examples:
 - recursion depth too high for current memory budget
 - custom mask is empty
 - custom mask is disconnected
-- `inner_radius >= outer_radius`
+- `inner.radius >= outer.radius`
 - `layers < 2` for shell families
-- `length(depth_factors) < depth`
-- `length(branch_factors) != k`
+- `length(depth.factors) < depth`
+- `length(branch.factors) != k`
 
 Recommended UI behavior:
 

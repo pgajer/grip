@@ -7,59 +7,59 @@
 globalrep.grip(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 3,
   placement = c("barycenter", "circle"),
   preset = NULL,
   rounds = 160,
-  final_rounds = 384,
-  num_init = 24,
-  num_nbrs = 20,
+  final.rounds = 384,
+  num.init = 24,
+  num.nbrs = 20,
   r = 0.03,
   s = 7.5,
-  repulsion_factor = 2.5,
-  coarse_repulsion_factor = 1.5,
-  coarse_repulsion_sample = 16,
-  coarse_repulsion_exact_below = 64,
-  final_anchor_factor = 0,
-  final_move_scale_after_first = 1,
-  final_mode = c("fr", "kk_repulse"),
-  insertion_anchor_count = 3,
-  insertion_anchor_scope = c("any_higher", "prev_misf"),
-  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-  level0_anchor_count = insertion_anchor_count,
-  level0_local_kk_steps = 3,
-  lgkk_polish_rounds = 0L,
-  lgkk_multiscale_rounds = 0L,
-  lgkk_rounds_coarse = NULL,
-  lgkk_rounds_pre_final = NULL,
-  lgkk_rounds_final = NULL,
-  lgkk_local_nbrs = 20L,
-  lgkk_landmark_count = 8L,
-  lgkk_multiscale_scope = c("all", "coarse"),
-  lgkk_active_limit = 4096L,
-  tinit_factor = 6,
+  repulsion.factor = 2.5,
+  coarse.repulsion.factor = 1.5,
+  coarse.repulsion.sample = 16,
+  coarse.repulsion.exact.below = 64,
+  final.anchor.factor = 0,
+  final.move.scale.after.first = 1,
+  final.mode = c("fr", "kk_repulse"),
+  insertion.anchor.count = 3,
+  insertion.anchor.scope = c("any_higher", "prev_misf"),
+  insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+  level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+  level0.anchor.count = insertion.anchor.count,
+  level0.local.kk.steps = 3,
+  lgkk.polish.rounds = 0L,
+  lgkk.multiscale.rounds = 0L,
+  lgkk.rounds.coarse = NULL,
+  lgkk.rounds.pre.final = NULL,
+  lgkk.rounds.final = NULL,
+  lgkk.local.nbrs = 20L,
+  lgkk.landmark.count = 8L,
+  lgkk.multiscale.scope = c("all", "coarse"),
+  lgkk.active.limit = 4096L,
+  tinit.factor = 6,
   seed = 6,
   disconnected = c("components", "error")
 )
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).
-Supply either \code{edges}/\code{edge_weights} or
-\code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+Supply either \code{edges}/\code{edge.weights} or
+\code{adj.list}/\code{weight.list}, not both. Fractional, nonfinite,
 and out-of-range vertex ids are rejected before integer conversion.}
 
 \item{n}{Number of vertices, a finite positive integer.}
 
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
+\item{adj.list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of positive edge lengths for
-\code{adj_list}. \code{NULL} treats every edge as length 1.}
+\item{weight.list}{Optional parallel list of positive edge lengths for
+\code{adj.list}. \code{NULL} treats every edge as length 1.}
 
-\item{edge_weights}{Optional positive edge lengths for \code{edges}, in row
+\item{edge.weights}{Optional positive edge lengths for \code{edges}, in row
 order. \code{NULL} treats every edge as length 1.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
@@ -79,11 +79,11 @@ explicitly.}
 
 \item{rounds}{Initial rounds for refinement.}
 
-\item{final_rounds}{Final rounds for refinement.}
+\item{final.rounds}{Final rounds for refinement.}
 
-\item{num_init}{Number of initial vertices in the coarsest level.}
+\item{num.init}{Number of initial vertices in the coarsest level.}
 
-\item{num_nbrs}{Maximum number of graph-distance neighbors retained for local
+\item{num.nbrs}{Maximum number of graph-distance neighbors retained for local
 refinement at each filtration level.}
 
 \item{r}{Main local temperature adaptation rate in \code{[0, 1]}.}
@@ -91,46 +91,46 @@ refinement at each filtration level.}
 \item{s}{Non-negative boost factor applied when successive displacements have
 a consistent direction.}
 
-\item{repulsion_factor}{Non-negative multiplier applied to GRIP's
+\item{repulsion.factor}{Non-negative multiplier applied to GRIP's
 finest-level repulsive force scale.}
 
-\item{coarse_repulsion_factor}{Non-negative multiplier applied to the extra
+\item{coarse.repulsion.factor}{Non-negative multiplier applied to the extra
 coarse-level active-set repulsion term. \code{0} disables that extra term;
 when the remaining tuning arguments also match
 \code{\link{legacy.grip}()}, the result matches the legacy
 layout behavior.}
 
-\item{coarse_repulsion_sample}{Positive integer sample size used to
+\item{coarse.repulsion.sample}{Positive integer sample size used to
 approximate active-set-wide repulsion on larger coarse levels.}
 
-\item{coarse_repulsion_exact_below}{Positive integer threshold. When the
+\item{coarse.repulsion.exact.below}{Positive integer threshold. When the
 active set size is at most this value, the coarse repulsion is computed
 exactly against all currently active vertices instead of being sampled.}
 
-\item{final_anchor_factor}{Non-negative multiplier for an anchor term that
+\item{final.anchor.factor}{Non-negative multiplier for an anchor term that
 pulls the final FR stage back toward the pre-final full-graph layout.
 \code{0} disables the anchor and preserves the current behavior.}
 
-\item{final_move_scale_after_first}{Scalar in \verb{[0, 1]} applied to the final
+\item{final.move.scale.after.first}{Scalar in \verb{[0, 1]} applied to the final
 FR displacement after the first finest-level round. Values below \code{1}
 damp later full-graph movement while keeping the first FR round unchanged.}
 
-\item{final_mode}{Final full-graph refinement mode. \code{"fr"} keeps the
+\item{final.mode}{Final full-graph refinement mode. \code{"fr"} keeps the
 current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 KK-style local distance-matching update with explicit active-set
 repulsion instead of the final FR phase.}
 
-\item{insertion_anchor_count}{Positive integer number of anchor vertices used
+\item{insertion.anchor.count}{Positive integer number of anchor vertices used
 during multiscale insertion on non-initial MISF refinement levels. This is
 the closest current implementation to a global \code{K_mish} parameter.}
 
-\item{insertion_anchor_scope}{Anchor-eligibility rule used during multiscale
+\item{insertion.anchor.scope}{Anchor-eligibility rule used during multiscale
 insertion. \code{"any_higher"} matches the historical GRIP behavior and
 allows anchors from any already placed higher MISF level.
 \code{"prev_misf"} restricts anchors to the immediately previous MISF
 level only.}
 
-\item{insertion_anchor_strategy}{Anchor-selection rule used during
+\item{insertion.anchor.strategy}{Anchor-selection rule used during
 multiscale insertion. \code{"first"} keeps the historical
 first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
 until the \code{K_mish}-th anchor distance band is exhausted, then places
@@ -139,64 +139,64 @@ the new vertex from that less order-sensitive anchor pool.
 selects a subset whose centroid stays centered in the candidate cloud while
 remaining geometrically spread out. \code{"spread_prev"} is a
 symmetry-oriented band strategy intended to be paired with
-\code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+\code{insertion.anchor.scope = "prev_misf"}; it selects anchors with broad
 angular and geometric coverage before placement.}
 
-\item{level0_insertion_mode}{Level-0 insertion placement override used only
+\item{level0.insertion.mode}{Level-0 insertion placement override used only
 when the finest filtration level is first populated. \code{"inherit"}
 keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
 circle heuristic at level 0 and uses barycentric anchor placement.
 \code{"least_squares"} uses a multi-anchor least-squares distance fit at
 level 0 before any local micro-polish.}
 
-\item{level0_anchor_count}{Positive integer number of already placed anchors
+\item{level0.anchor.count}{Positive integer number of already placed anchors
 to collect for level-0 insertion experiments. By default this inherits
-\code{insertion_anchor_count}. The legacy behavior uses 3.}
+\code{insertion.anchor.count}. The legacy behavior uses 3.}
 
-\item{level0_local_kk_steps}{Non-negative integer number of tiny local KK
+\item{level0.local.kk.steps}{Non-negative integer number of tiny local KK
 micro-polish steps applied immediately after each level-0 insertion. The
 legacy behavior uses 3.}
 
-\item{lgkk_polish_rounds}{Non-negative integer number of experimental
+\item{lgkk.polish.rounds}{Non-negative integer number of experimental
 landmark-geodesic KK polish iterations applied after the main GRIP solve.
 \code{0} disables the polish.}
 
-\item{lgkk_multiscale_rounds}{Non-negative integer number of compiled
+\item{lgkk.multiscale.rounds}{Non-negative integer number of compiled
 landmark-geodesic KK refinement rounds applied inside the multiscale solver
 after each eligible MISF level completes its standard GRIP rounds.
 This legacy shared budget is used as a fallback when any of the more
 specific per-stage budgets below are left \code{NULL}.}
 
-\item{lgkk_rounds_coarse}{Optional non-negative integer number of compiled
+\item{lgkk.rounds.coarse}{Optional non-negative integer number of compiled
 LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
-When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.}
+When \code{NULL}, this falls back to \code{lgkk.multiscale.rounds}.}
 
-\item{lgkk_rounds_pre_final}{Optional non-negative integer number of compiled
+\item{lgkk.rounds.pre.final}{Optional non-negative integer number of compiled
 LGKK rounds applied on the last coarse level just before the full graph is
 opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
-\code{lgkk_multiscale_rounds}.}
+\code{lgkk.multiscale.rounds}.}
 
-\item{lgkk_rounds_final}{Optional non-negative integer number of compiled
+\item{lgkk.rounds.final}{Optional non-negative integer number of compiled
 LGKK rounds applied after the full graph level completes its standard GRIP
 rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
-\code{lgkk_multiscale_rounds}.}
+\code{lgkk.multiscale.rounds}.}
 
-\item{lgkk_local_nbrs}{Number of nearest graph-metric neighbors retained per
+\item{lgkk.local.nbrs}{Number of nearest graph-metric neighbors retained per
 vertex in the LGKK sparse local set when either LGKK stage is enabled.}
 
-\item{lgkk_landmark_count}{Number of farthest-point landmarks retained per
+\item{lgkk.landmark.count}{Number of farthest-point landmarks retained per
 vertex in the LGKK sparse long-range set when either LGKK stage is
 enabled.}
 
-\item{lgkk_multiscale_scope}{Scope for the compiled multiscale LGKK stage.
+\item{lgkk.multiscale.scope}{Scope for the compiled multiscale LGKK stage.
 \code{"all"} applies it after every eligible MISF level, including the
 final full-graph level. \code{"coarse"} applies it only on coarse levels.}
 
-\item{lgkk_active_limit}{Positive integer upper bound on the active-set size
+\item{lgkk.active.limit}{Positive integer upper bound on the active-set size
 for compiled multiscale LGKK cache construction. Levels larger than this
 skip the multiscale LGKK stage.}
 
-\item{tinit_factor}{Initial temperature factor.}
+\item{tinit.factor}{Initial temperature factor.}
 
 \item{seed}{Optional RNG seed for reproducibility. If NULL, uses current time.}
 
@@ -212,17 +212,17 @@ A numeric matrix with \code{n} rows and \code{dim} columns.
 This compatibility entry point is equivalent to
 \code{\link{grip}(..., metric = "hop")}. It keeps the old
 global-repulsion name available while using the same quality-first
-multiscale GRIP engine and adaptive \code{final_rounds} schedule as the
+multiscale GRIP engine and adaptive \code{final.rounds} schedule as the
 primary layout API.
 }
 \examples{
 edges <- edges.mesh(4, 4)
 coords <- globalrep.grip(edges, n = max(edges), dim = 2,
-                                rounds = 8, final_rounds = 8,
-                                num_init = 6, num_nbrs = 8,
-                                coarse_repulsion_factor = 0.2,
-                                coarse_repulsion_sample = 8,
-                                coarse_repulsion_exact_below = 32,
+                                rounds = 8, final.rounds = 8,
+                                num.init = 6, num.nbrs = 8,
+                                coarse.repulsion.factor = 0.2,
+                                coarse.repulsion.sample = 8,
+                                coarse.repulsion.exact.below = 32,
                                 seed = 1)
 round(coords, 3)
 }

@@ -9,9 +9,9 @@ kernel.gram.gkk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   X = NULL,
   star = NULL,
   dim = 2L,
@@ -22,26 +22,26 @@ kernel.gram.gkk(
   star.quantile = 0,
   lambda.edge = 1,
   lambda.gram = 1,
-  stiffness_method = c("density", "uniform", "distance_power"),
-  stiffness_transform = c("identity", "sqrt", "log"),
-  density_mix = 1,
+  stiffness.method = c("density", "uniform", "distance_power"),
+  stiffness.transform = c("identity", "sqrt", "log"),
+  density.mix = 1,
   bandwidth = NULL,
-  density_n = 512L,
-  distance_power = 0,
-  stiffness_floor = 0,
-  stiffness_ceiling = Inf,
-  scale_mode = c("profiled", "identity", "user"),
+  density.n = 512L,
+  distance.power = 0,
+  stiffness.floor = 0,
+  stiffness.ceiling = Inf,
+  scale.mode = c("profiled", "identity", "user"),
   scale = NULL,
-  max_iter = 50L,
-  initial_step = 0.1,
-  step_shrink = 0.5,
-  armijo_factor = 1e-04,
-  grad_tol = 1e-08,
-  min_step = 1e-08,
-  edge_length_epsilon = 1e-08,
-  distance_floor = 1e-08,
+  max.iter = 50L,
+  initial.step = 0.1,
+  step.shrink = 0.5,
+  armijo.factor = 1e-04,
+  grad.tol = 1e-08,
+  min.step = 1e-08,
+  edge.length.epsilon = 1e-08,
+  distance.floor = 1e-08,
   recenter = TRUE,
-  return_trace = TRUE,
+  return.trace = TRUE,
   diagnostics = TRUE,
   seed = 1L,
   engine = c("cpp", "R")
@@ -56,17 +56,17 @@ Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} report 
 diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.}
 
 \item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
-Supply either edges/edge_weights or adj_list/weight_list, not both.
+Supply either edges/edge.weights or adj.list/weight.list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
+\item{adj.list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
+\item{weight.list}{Optional edge-weight list parallel to \code{adj.list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
+\item{edge.weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{X}{Optional ambient/source coordinates used to build \code{star} when \code{star}
 is omitted.}
@@ -90,31 +90,31 @@ uses centered Gaussian coordinates.}
 \item{lambda.edge, lambda.gram}{Non-negative weights for the diagonal
 edge-length and off-diagonal Gram penalties.}
 
-\item{stiffness_method, stiffness_transform, density_mix, bandwidth, density_n}{Parameters passed to \code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}} to construct
+\item{stiffness.method, stiffness.transform, density.mix, bandwidth, density.n}{Parameters passed to \code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}} to construct
 edge-length stiffnesses for the diagonal edge term.}
 
-\item{distance_power, stiffness_floor, stiffness_ceiling}{Additional stiffness
+\item{distance.power, stiffness.floor, stiffness.ceiling}{Additional stiffness
 constructor parameters.}
 
-\item{scale_mode}{Scale policy for edge targets. \code{"profiled"} analytically
+\item{scale.mode}{Scale policy for edge targets. \code{"profiled"} analytically
 refits \code{s} at every state evaluation, \code{"identity"} fixes \code{s = 1},
 \code{"fixed_initial"} fits \code{s} once at the first continuation stage, and
 \code{"user"} uses \code{scale}.}
 
-\item{scale}{User scale for \code{scale_mode = "user"}.}
+\item{scale}{User scale for \code{scale.mode = "user"}.}
 
-\item{max_iter}{Maximum iterations per continuation stage.}
+\item{max.iter}{Maximum iterations per continuation stage.}
 
-\item{initial_step, step_shrink, armijo_factor, grad_tol, min_step}{Line-search
+\item{initial.step, step.shrink, armijo.factor, grad.tol, min.step}{Line-search
 controls.}
 
-\item{edge_length_epsilon}{Small stabilizer for fixed-path embedded lengths.}
+\item{edge.length.epsilon}{Small stabilizer for fixed-path embedded lengths.}
 
-\item{distance_floor}{Positive floor for relative residuals.}
+\item{distance.floor}{Positive floor for relative residuals.}
 
 \item{recenter}{If \code{TRUE}, recenter the layout after accepted steps.}
 
-\item{return_trace}{If \code{TRUE}, keep per-iteration trace rows and coordinate
+\item{return.trace}{If \code{TRUE}, keep per-iteration trace rows and coordinate
 frames.}
 
 \item{diagnostics}{If \code{TRUE}, attach the common GMDS diagnostic panel.}
@@ -147,6 +147,6 @@ initial <- cbind(cos(theta), sin(theta))
 prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)
 fit <- kernel.gram.gkk(
   coords = initial, prepared = prepared, X = initial,
-  max_iter = 1, density_n = 32, engine = "R"
+  max.iter = 1, density.n = 32, engine = "R"
 )
 }

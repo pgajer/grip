@@ -91,13 +91,13 @@ In this development version (0.2.0.9001), `metric.mds()` uses
 `backend = "sgd"` by default. This native stochastic gradient descent (SGD)
 backend minimizes the sum of squared differences between Euclidean distances
 in the layout and graph shortest-path distances, giving every vertex pair
-equal weight by default (`pair_weights = "uniform"`). Its pair updates follow Zheng, Pawar and Goodman (2018), and its
+equal weight by default (`pair.weights = "uniform"`). Its pair updates follow Zheng, Pawar and Goodman (2018), and its
 default hybrid learning-rate schedule follows Hangan, Kobourov and Miller
 (2026); see the [SGD references](#sgd-references).
 
 This example fits the same 25-vertex mesh. Omitting `backend` selects SGD;
 `seed` makes the stochastic run reproducible. We explicitly limit the example
-to 30 passes over all vertex pairs. The function's `max_iter` default is 1000;
+to 30 passes over all vertex pairs. The function's `max.iter` default is 1000;
 30 is a short trial budget, not a convergence criterion. SGD reports
 `iteration_limit` when its schedule ends. We suppress that expected warning
 here and display the termination status instead.
@@ -105,7 +105,7 @@ here and display the termination status instead.
 ```{r metric-mds-default}
 mesh.mds <- suppressWarnings(metric.mds(
   edges = mesh.edges, n = 25, dim = 2,
-  init = "random", max_iter = 30, seed = 1
+  init = "random", max.iter = 30, seed = 1
 ))
 mesh.mds$metadata$engine       # "sgd": the default backend
 mesh.mds$metadata$termination  # "iteration_limit": not certified convergence
@@ -118,7 +118,7 @@ install **smacof** and explicitly request `metric.mds(backend = "smacof", ...)`.
 The two backends optimize the same raw distance-stress objective, but their
 iterations represent different amounts of work. The `eps` stopping tolerance
 applies only to SMACOF and must be omitted for SGD. Both backends also support
-`pair_weights = "inverse_squared"`, which uses Zheng et al.'s weighting to
+`pair.weights = "inverse_squared"`, which uses Zheng et al.'s weighting to
 minimize squared relative distance errors. See the
 [weighting examples](metric-mds-backends.html#the-effect-of-stress-weighting)
 for the resulting 3D layouts.
@@ -167,7 +167,7 @@ That same pattern scales to real graphs:
 ## What if the graph is weighted?
 
 If edge values are only metadata, omit them for an unweighted baseline.
-Supplying `edge_weights` even with `metric = "hop"` changes adjacent-edge
+Supplying `edge.weights` even with `metric = "hop"` changes adjacent-edge
 force targets; those values must be positive lengths, not strengths. When the
 edge lengths represent geometry that the layout should preserve, the default
 path changes:
@@ -192,7 +192,7 @@ Switch to the other guides when the task changes:
   inspect how a solve evolves,
 - use GKK/LGKK only after you already have weighted candidate layouts and need
   advanced experimental geodesic-aware scoring or polish,
-- use `run_gripui()` or `run_gripui_family()` in an interactive R session when
+- use `run.gripui()` or `run.gripui.family()` in an interactive R session when
   you want app-based exploration.
 
 ## Where to go next

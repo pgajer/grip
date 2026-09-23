@@ -50,8 +50,8 @@ function guide after trying the main layout, scoring, and tracing workflows.
 
 Vertex indices and counts must be finite integers within the R integer
 range. Adjacency must be reciprocal with matching lengths and multiplicity.
-Self-loops are rejected; remove them explicitly. Supply either \code{edges}/\code{edge_weights} or
-\code{adj_list}/\code{weight_list}, not both. Functions accepting a
+Self-loops are rejected; remove them explicitly. Supply either \code{edges}/\code{edge.weights} or
+\code{adj.list}/\code{weight.list}, not both. Functions accepting a
 \code{prepared} graph reject additional raw graph inputs; an explicit
 \code{n} must match the stored vertex count. Rebuild the preparation when
 changing topology, vertex order, or edge lengths.
@@ -61,9 +61,9 @@ changing topology, vertex order, or edge lengths.
 
 The internal compiled GMDS optimizer, also used by the GMDS exploration
 apps, uses at most two CPU threads. With automatic selection
-(\code{n_threads = 0}), \env{GRIP_GMDS_THREADS} can be set to \code{1} or
+(\code{n.threads = 0}), \env{GRIP_GMDS_THREADS} can be set to \code{1} or
 \code{2} to choose the thread count before hardware concurrency is consulted.
-An explicit positive \code{n_threads} overrides the environment variable;
+An explicit positive \code{n.threads} overrides the environment variable;
 values above two are capped at two. Non-positive or nonnumeric environment
 values fall back to hardware-based selection. The R optimization engine is
 serial. This setting is not a package-wide control for GRIP layouts or for

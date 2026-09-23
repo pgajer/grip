@@ -29,7 +29,7 @@ if (mode == "prepare") {
       i <- seq_len(n)
       edges <- rbind(cbind(i,i%%n+1L),cbind(i,(i+6L)%%n+1L))
       weights <- 1 + .3 * sin(seq_len(nrow(edges)))^2
-      p <- grip:::grip.metric.mds.distance.prepared(edges=edges,n=n,edge_weights=weights)
+      p <- grip:::grip.metric.mds.distance.prepared(edges=edges,n=n,edge.weights=weights)
     } else {
       set.seed(701+n)
       truth <- matrix(rnorm(n*3),n,3)
@@ -71,8 +71,8 @@ if (mode == "prepare") {
   warnings <- character()
   started <- Sys.time()
   result <- tryCatch(withCallingHandlers(metric.mds(prepared=input$prepared,
-      dim=input$dimension,init=input$start,seed=input$seed,n_init=1,
-      backend=backend,max_iter=budget,diagnostics=FALSE),
+      dim=input$dimension,init=input$start,seed=input$seed,n.init=1,
+      backend=backend,max.iter=budget,diagnostics=FALSE),
     warning=function(w) {warnings <<- c(warnings,conditionMessage(w)); invokeRestart("muffleWarning")}),
     error=function(e) e)
   elapsed <- as.numeric(difftime(Sys.time(),started,units="secs"))

@@ -7,7 +7,7 @@ test_that("paraboloid slice runs on regular and irregular meshes", {
     normalize = "median"
   )
   irregular <- occupied.mesh.surface.graph(
-    keep = keep.asymmetric.notches(6, 6, notch_depth = 2, notch_width = 1),
+    keep = keep.asymmetric.notches(6, 6, notch.depth = 2, notch.width = 1),
     surface = "paraboloid",
     amplitude = 0.25,
     connectivity = "orthogonal",
@@ -20,8 +20,8 @@ test_that("paraboloid slice runs on regular and irregular meshes", {
     prepared <- prepare.graph.geodesic.mds(
       edges = bundle$edges,
       n = bundle$n,
-      edge_weights = bundle$edge_weights,
-      tie_mode = "average"
+      edge.weights = bundle$edge_weights,
+      tie.mode = "average"
     )
 
     cmd <- grip:::grip.classical.mds.embedding(prepared, dim = 3L, eig = TRUE)
@@ -29,28 +29,28 @@ test_that("paraboloid slice runs on regular and irregular meshes", {
       coords = cmd$coords,
       prepared = prepared,
       engine = "cpp",
-      max_iter = 4L,
-      n_threads = 1L,
-      return_trace = TRUE
+      max.iter = 4L,
+      n.threads = 1L,
+      return.trace = TRUE
     )
     misf_fit <- grip.optimize.misf.geodesic.mds(
       prepared = prepared,
       dim = 3L,
-      top_level_restarts = 2L,
-      top_level_max_iter = 3L,
-      insertion_max_iter = 24L,
-      refinement_local_nbrs = 4L,
-      refinement_landmark_count = 2L,
-      refinement_pair_mode = "sparse",
-      refinement_anchor_weight = 0.05,
-      refinement_anchor_weight_end = 0.01,
-      refinement_continuation = "linear",
-      refinement_max_iter = 3L,
-      refinement_engine = "cpp",
-      final_polish_max_iter = 3L,
-      final_polish_engine = "cpp",
-      n_threads = 1L,
-      return_trace = TRUE,
+      top.level.restarts = 2L,
+      top.level.max.iter = 3L,
+      insertion.max.iter = 24L,
+      refinement.local.nbrs = 4L,
+      refinement.landmark.count = 2L,
+      refinement.pair.mode = "sparse",
+      refinement.anchor.weight = 0.05,
+      refinement.anchor.weight.end = 0.01,
+      refinement.continuation = "linear",
+      refinement.max.iter = 3L,
+      refinement.engine = "cpp",
+      final.polish.max.iter = 3L,
+      final.polish.engine = "cpp",
+      n.threads = 1L,
+      return.trace = TRUE,
       seed = 31L
     )
 

@@ -10,17 +10,17 @@ irregular.rectangle.surface.graph(
   w = h,
   surface = c("flat", "saddle", "paraboloid", "ripple"),
   amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1,
-  row_irregularity = 0.2,
-  col_irregularity = 0.2,
-  row_phase = 0.35,
-  col_phase = 0.65,
-  interior_warp = 0.08,
+  freq.u = 1,
+  freq.v = 1,
+  x.scale = 1,
+  y.scale = 1,
+  row.irregularity = 0.2,
+  col.irregularity = 0.2,
+  row.phase = 0.35,
+  col.phase = 0.65,
+  interior.warp = 0.08,
   shear = 0,
-  min_step_ratio = 0.3,
+  min.step.ratio = 0.3,
   connectivity = c("orthogonal", "diagonal"),
   normalize = c("median", "mean", "none")
 )
@@ -36,35 +36,35 @@ irregular.rectangle.surface.graph(
 \item{amplitude}{Finite numeric amplitude controlling the non-flat
 displacement.}
 
-\item{freq_u}{Positive ripple frequency in the horizontal parameter
+\item{freq.u}{Positive ripple frequency in the horizontal parameter
 direction. Used only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the vertical parameter direction.
+\item{freq.v}{Positive ripple frequency in the vertical parameter direction.
 Used only when \code{surface = "ripple"}.}
 
-\item{x_scale}{Positive horizontal scaling of the parameter domain.}
+\item{x.scale}{Positive horizontal scaling of the parameter domain.}
 
-\item{y_scale}{Positive vertical scaling of the parameter domain.}
+\item{y.scale}{Positive vertical scaling of the parameter domain.}
 
-\item{row_irregularity}{Irregularity level for the row spacing. Must lie in
+\item{row.irregularity}{Irregularity level for the row spacing. Must lie in
 \code{[0, 1]}.}
 
-\item{col_irregularity}{Irregularity level for the column spacing. Must lie
+\item{col.irregularity}{Irregularity level for the column spacing. Must lie
 in \code{[0, 1]}.}
 
-\item{row_phase}{Finite phase shift for the deterministic row-spacing
+\item{row.phase}{Finite phase shift for the deterministic row-spacing
 perturbation.}
 
-\item{col_phase}{Finite phase shift for the deterministic column-spacing
+\item{col.phase}{Finite phase shift for the deterministic column-spacing
 perturbation.}
 
-\item{interior_warp}{Non-negative interior warp strength. Must lie in
+\item{interior.warp}{Non-negative interior warp strength. Must lie in
 \code{[0, 1]}. The warp vanishes on the boundary.}
 
 \item{shear}{Finite affine shear applied after the boundary-vanishing warp.
 Larger values can force a validation error if the mesh cells invert.}
 
-\item{min_step_ratio}{Positive lower bound for the perturbed row and column
+\item{min.step.ratio}{Positive lower bound for the perturbed row and column
 interval lengths, expressed relative to the unperturbed interval scale.
 Must lie in \code{(0, 1]}.}
 
@@ -106,9 +106,9 @@ resulting family stays simply connected and rectangular in topology while
 breaking the strongest row/column symmetries of the lattice.
 }
 \details{
-The \code{coords_param} component contains the irregular planar parameter
+The \code{coords.param} component contains the irregular planar parameter
 coordinates.
-The \code{coords_surface} component lifts those coordinates into
+The \code{coords.surface} component lifts those coordinates into
 \eqn{\mathbb{R}^3}.
 \code{irregular.rectangle.surface.graph()} returns a reusable weighted-graph
 bundle with the induced Euclidean edge lengths.

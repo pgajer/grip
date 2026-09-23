@@ -3,7 +3,7 @@ gripui.normalize.graph.input <- function(graph) {
     return(NULL)
   }
   if (is.character(graph) && length(graph) == 1L && !is.na(graph)) {
-    return(gripui_read_graph_rds(graph))
+    return(gripui.read.graph.rds(graph))
   }
   if (gripui.is.graph.object(graph)) {
     return(graph)
@@ -110,10 +110,10 @@ gripui.normalize.layouts.df <- function(layouts) {
 #'   status = "ok",
 #'   stringsAsFactors = FALSE
 #' )
-#' project <- gripui_project(graph = graph, layouts = layouts, title = "Path graph")
+#' project <- gripui.project(graph = graph, layouts = layouts, title = "Path graph")
 #' project$meta$title
 #' @md
-gripui_project <- function(graph = NULL,
+gripui.project <- function(graph = NULL,
                            layouts,
                            title = NULL,
                            subtitle = NULL,
@@ -140,7 +140,7 @@ gripui_project <- function(graph = NULL,
     )
   )
   class(out) <- "gripui_project"
-  gripui_validate_project(out)
+  gripui.validate.project(out)
   out
 }
 
@@ -159,10 +159,10 @@ gripui_project <- function(graph = NULL,
 #'   status = "ok",
 #'   stringsAsFactors = FALSE
 #' )
-#' project <- gripui_project(graph = NULL, layouts = layouts, title = "Validation example")
-#' gripui_validate_project(project)
+#' project <- gripui.project(graph = NULL, layouts = layouts, title = "Validation example")
+#' gripui.validate.project(project)
 #' @md
-gripui_validate_project <- function(project) {
+gripui.validate.project <- function(project) {
   if (!is.list(project)) {
     stop("project must be a list")
   }
@@ -209,11 +209,11 @@ gripui_validate_project <- function(project) {
 
 #' Convert `compare.layouts()` output into a `gripui_project`
 #'
-#' @param compare_obj Result of `compare.layouts()`.
+#' @param compare.obj Result of `compare.layouts()`.
 #' @param graph Optional graph object, named graph list, or path to a graph RDS.
 #'   Defaults to `NULL` when only catalog exploration is needed.
-#' @param vertex_data Optional vertex metadata added to `graph`.
-#' @param graph_info Optional graph-level metadata added to `graph`.
+#' @param vertex.data Optional vertex metadata added to `graph`.
+#' @param graph.info Optional graph-level metadata added to `graph`.
 #' @param title Optional project title.
 #'
 #' @return A `gripui_project`.
@@ -231,37 +231,37 @@ gripui_validate_project <- function(project) {
 #' graph <- list(
 #'   adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), 4L)
 #' )
-#' project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
+#' project <- gripui.project.from.compare(cmp, graph = graph, title = "Path compare")
 #' nrow(project$layouts)
 #' @md
-gripui_project_from_compare <- function(compare_obj,
+gripui.project.from.compare <- function(compare.obj,
                                         graph = NULL,
-                                        vertex_data = NULL,
-                                        graph_info = NULL,
+                                        vertex.data = NULL,
+                                        graph.info = NULL,
                                         title = NULL) {
-  if (!is.list(compare_obj) || !is.data.frame(compare_obj$runs)) {
-    stop("compare_obj must be a result from compare.layouts()")
+  if (!is.list(compare.obj) || !is.data.frame(compare.obj$runs)) {
+    stop("compare.obj must be a result from compare.layouts()")
   }
   graph <- gripui.normalize.graph.input(graph)
   if (is.null(graph)) {
     graph <- list()
   }
   if (gripui.is.graph.object(graph)) {
-    if (!is.null(vertex_data)) {
-      graph$vertex_data <- vertex_data
+    if (!is.null(vertex.data)) {
+      graph$vertex_data <- vertex.data
     }
-    if (!is.null(graph_info)) {
-      graph$graph_info <- graph_info
+    if (!is.null(graph.info)) {
+      graph$graph_info <- graph.info
     }
   }
 
   layouts <- gripui.build.catalog.from.runs(
-    runs = compare_obj$runs,
+    runs = compare.obj$runs,
     stage = "compare",
-    graph_id = "graph"
+    graph.id = "graph"
   )
-  layouts <- gripui.attach.compare.layouts(layouts, compare_obj$layouts)
-  gripui_project(
+  layouts <- gripui.attach.compare.layouts(layouts, compare.obj$layouts)
+  gripui.project(
     graph = graph,
     layouts = layouts,
     title = if (is.null(title)) "Layout comparison" else title
@@ -292,11 +292,11 @@ gripui.build.bundle.project <- function(root, graph, title, subtitle) {
   if (is.null(graph)) {
     graph.path <- file.path(root, "graph", "graph.rds")
     if (file.exists(graph.path)) {
-      graph <- gripui_read_graph_rds(graph.path)
+      graph <- gripui.read.graph.rds(graph.path)
     }
   }
 
-  gripui_project(
+  gripui.project(
     graph = graph,
     layouts = layouts,
     title = if (is.null(title)) basename(root) else title,
@@ -337,7 +337,7 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
       runs = gripui.read.tsv(coarse.path),
       stage = "coarse_stage",
       root = root,
-      graph_id = "coarse"
+      graph.id = "coarse"
     )
   }
 
@@ -347,7 +347,7 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
       runs = gripui.read.tsv(full1.path),
       stage = "full_stage1",
       root = root,
-      graph_id = "full"
+      graph.id = "full"
     )
   }
 
@@ -357,9 +357,9 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
       runs = gripui.read.tsv(full2.path),
       stage = "full_stage2",
       root = root,
-      graph_id = "full",
+      graph.id = "full",
       manifest = gripui.read.optional.tsv(file.path(root, "top_layout_visual_manifest.tsv")),
-      manifest_by = c("candidate", "seed"),
+      manifest.by = c("candidate", "seed"),
       html.preference = c("plain_html", "cst_html")
     )
   }
@@ -370,12 +370,12 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
       runs = gripui.read.tsv(file.path(repulsion.root, "repulsion_sweep_runs.tsv")),
       stage = "repulsion_sweep",
       root = repulsion.root,
-      graph_id = "full",
+      graph.id = "full",
       manifest = gripui.read.optional.tsv(file.path(repulsion.root, "repulsion_sweep_visual_manifest.tsv")),
-      manifest_by = c("repulsion_factor", "seed"),
+      manifest.by = c("repulsion_factor", "seed"),
       html.preference = c("cst_html"),
       gif.preference = character(0L),
-      default_color_view = "cst"
+      default.color.view = "cst"
     )
   }
 
@@ -392,7 +392,7 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
     notes <- gripui.read.optional.text(file.path(repulsion.root, "repulsion_sweep_summary.md"))
   }
 
-  gripui_project(
+  gripui.project(
     graph = graph,
     layouts = layouts,
     title = if (is.null(title)) basename(root) else title,
@@ -456,10 +456,10 @@ gripui.build.hmp.project <- function(root, graph, title, subtitle) {
 #'   col.names = TRUE
 #' )
 #'
-#' project <- gripui_project_from_dir(root, title = "My project")
+#' project <- gripui.project.from.dir(root, title = "My project")
 #' project$layouts$availability
 #' @md
-gripui_project_from_dir <- function(root,
+gripui.project.from.dir <- function(root,
                                     graph = NULL,
                                     title = NULL,
                                     subtitle = NULL) {

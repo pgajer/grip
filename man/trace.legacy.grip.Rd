@@ -7,20 +7,20 @@
 trace.legacy.grip(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 3,
   placement = c("barycenter", "circle"),
   preset = NULL,
   rounds = 20,
-  final_rounds = 25,
-  num_init = 36,
-  num_nbrs = 10,
+  final.rounds = 25,
+  num.init = 36,
+  num.nbrs = 10,
   r = 0.15,
   s = 3,
-  repulsion_factor = 1,
-  tinit_factor = 6,
+  repulsion.factor = 1,
+  tinit.factor = 6,
   seed = 6,
   trace = c("round", "level"),
   trace.every = 1
@@ -28,19 +28,19 @@ trace.legacy.grip(
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).
-Supply either \code{edges}/\code{edge_weights} or
-\code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+Supply either \code{edges}/\code{edge.weights} or
+\code{adj.list}/\code{weight.list}, not both. Fractional, nonfinite,
 and out-of-range vertex ids are rejected before integer conversion.}
 
 \item{n}{Number of vertices, a finite positive integer.}
 
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
+\item{adj.list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of edge weights (edge lengths).
+\item{weight.list}{Optional parallel list of edge weights (edge lengths).
 If NULL, all edges are treated as weight 1. All weights must be finite
 and strictly positive.}
 
-\item{edge_weights}{Optional vector of edge weights for \code{edges}. All
+\item{edge.weights}{Optional vector of edge weights for \code{edges}. All
 weights must be finite and strictly positive.}
 
 \item{dim}{Layout dimension (2 or 3). Default is 3.}
@@ -60,11 +60,11 @@ explicitly.}
 
 \item{rounds}{Initial rounds for refinement.}
 
-\item{final_rounds}{Final rounds for refinement.}
+\item{final.rounds}{Final rounds for refinement.}
 
-\item{num_init}{Number of initial vertices in the coarsest level.}
+\item{num.init}{Number of initial vertices in the coarsest level.}
 
-\item{num_nbrs}{Maximum number of graph-distance neighbors retained for local
+\item{num.nbrs}{Maximum number of graph-distance neighbors retained for local
 refinement at each filtration level.}
 
 \item{r}{Main local temperature adaptation rate in \code{[0, 1]}.}
@@ -72,11 +72,11 @@ refinement at each filtration level.}
 \item{s}{Non-negative boost factor applied when successive displacements have
 a consistent direction.}
 
-\item{repulsion_factor}{Non-negative multiplier applied to GRIP's
+\item{repulsion.factor}{Non-negative multiplier applied to GRIP's
 finest-level repulsive force scale. \code{1} keeps the historical
 repulsion strength; \code{0} disables that repulsive term.}
 
-\item{tinit_factor}{Initial temperature factor.}
+\item{tinit.factor}{Initial temperature factor.}
 
 \item{seed}{Optional RNG seed for reproducibility. If NULL, uses current time.}
 
@@ -104,8 +104,8 @@ Compute a trace for the legacy GRIP layout
 edges <- cbind(1:5, 2:6)
 tr <- trace.legacy.grip(edges, n = 6, dim = 2,
                                placement = "barycenter",
-                               rounds = 3, final_rounds = 2,
-                               num_init = 3, num_nbrs = 4,
+                               rounds = 3, final.rounds = 2,
+                               num.init = 3, num.nbrs = 4,
                                trace = "level",
                                trace.every = 1,
                                seed = 1)

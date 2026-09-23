@@ -16,9 +16,9 @@ sampled.rectangle.surface.graph(
   seed = NULL,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  graph_space = c("surface", "param"),
+  freq.u = 1,
+  freq.v = 1,
+  graph.space = c("surface", "param"),
   max.path.edge.ratio.deviation.thld = 0.1,
   path.edge.ratio.percentile = 0.5,
   threshold.percentile = 0,
@@ -35,9 +35,9 @@ sampled.rectangle.surface.graphs(
   seed = NULL,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  graph_space = c("surface", "param"),
+  freq.u = 1,
+  freq.v = 1,
+  graph.space = c("surface", "param"),
   max.path.edge.ratio.deviation.thld = 0.1,
   path.edge.ratio.percentile = 0.5,
   threshold.percentile = 0,
@@ -66,13 +66,13 @@ neighborhood sizes (graph sequence).}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the horizontal rectangle
+\item{freq.u}{Positive ripple frequency in the horizontal rectangle
 direction. Used only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the vertical rectangle direction.
+\item{freq.v}{Positive ripple frequency in the vertical rectangle direction.
 Used only when \code{surface = "ripple"}.}
 
-\item{graph_space}{Coordinate system used to build the iKNN graph and its raw
+\item{graph.space}{Coordinate system used to build the iKNN graph and its raw
 edge weights. \code{"surface"} uses the 3D embedding and
 \code{"param"} uses the sampled planar coordinates.}
 
@@ -149,8 +149,8 @@ present, while the returned edge lengths are taken from the 3D endpoint
 distances in the lifted embedding so that the graph metric reflects the
 chosen surface geometry.
 
-The \code{coords_param} component contains the sampled planar coordinates.
-The \code{coords_surface} component contains the corresponding 3D
+The \code{coords.param} component contains the sampled planar coordinates.
+The \code{coords.surface} component contains the corresponding 3D
 embedding. \code{sampled.rectangle.surface.graph()} returns a single weighted
 iKNN graph for one \code{k} value, while
 \code{sampled.rectangle.surface.graphs()} reuses the same sample and embedding

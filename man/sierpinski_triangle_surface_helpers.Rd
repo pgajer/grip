@@ -9,10 +9,10 @@ sierpinski.triangle.surface.graph(
   level = 2,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1,
+  freq.u = 1,
+  freq.v = 1,
+  x.scale = 1,
+  y.scale = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -25,16 +25,16 @@ sierpinski.triangle.surface.graph(
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the first canonical triangle
+\item{freq.u}{Positive ripple frequency in the first canonical triangle
 coordinate. Used only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the second canonical triangle
+\item{freq.v}{Positive ripple frequency in the second canonical triangle
 coordinate. Used only when \code{surface = "ripple"}.}
 
-\item{x_scale}{Positive horizontal scaling applied to the canonical
+\item{x.scale}{Positive horizontal scaling applied to the canonical
 triangle coordinates.}
 
-\item{y_scale}{Positive vertical scaling applied to the canonical triangle
+\item{y.scale}{Positive vertical scaling applied to the canonical triangle
 coordinates.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of

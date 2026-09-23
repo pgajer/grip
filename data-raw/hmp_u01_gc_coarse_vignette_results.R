@@ -18,8 +18,8 @@ weight_list <- hmp.u01.gc.coarse$weight_list
 n <- length(adj_list)
 
 preset_cmp <- compare.layouts(
-  adj_list = adj_list,
-  weight_list = weight_list,
+  adj.list = adj_list,
+  weight.list = weight_list,
   n = n,
   dim = 3L,
   candidates = c("default", "tree", "torus"),
@@ -31,20 +31,20 @@ preset_cmp <- compare.layouts(
 )
 
 local_search_cmp <- compare.layouts(
-  adj_list = adj_list,
-  weight_list = weight_list,
+  adj.list = adj_list,
+  weight.list = weight_list,
   n = n,
   dim = 3L,
   search = list(
     candidate.prefix = "hmp.local",
     placement = "barycenter",
     rounds = 192L,
-    final_rounds = c(224L, 288L),
-    num_init = 30L,
-    num_nbrs = 10L,
+    final.rounds = c(224L, 288L),
+    num.init = 30L,
+    num.nbrs = 10L,
     r = 0.10,
     s = 2.0,
-    repulsion_factor = c(0.75, 1.25)
+    repulsion.factor = c(0.75, 1.25)
   ),
   clusters = vertex_data$cst,
   seeds = 1L,

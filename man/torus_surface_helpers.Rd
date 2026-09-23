@@ -9,11 +9,11 @@ torus.surface.graph(
   h,
   w = h,
   surface = c("standard", "pinched", "wavy"),
-  major_radius = 2,
-  minor_radius = 0.75,
+  major.radius = 2,
+  minor.radius = 0.75,
   amplitude = 0.2,
-  freq_major = 2,
-  freq_minor = 1,
+  freq.major = 2,
+  freq.minor = 1,
   twist = 0.25,
   normalize = c("median", "mean", "none")
 )
@@ -27,19 +27,19 @@ torus.surface.graph(
 \item{surface}{Torus surface family. One of \code{"standard"},
 \code{"pinched"}, or \code{"wavy"}.}
 
-\item{major_radius}{Positive distance from the torus center to the center of
+\item{major.radius}{Positive distance from the torus center to the center of
 the tube.}
 
-\item{minor_radius}{Positive baseline radius of the torus tube. The local
-tube radius must remain strictly smaller than \code{major_radius}
+\item{minor.radius}{Positive baseline radius of the torus tube. The local
+tube radius must remain strictly smaller than \code{major.radius}
 everywhere.}
 
 \item{amplitude}{Finite numeric deformation amplitude.}
 
-\item{freq_major}{Positive angular frequency around the major cycle, used by
+\item{freq.major}{Positive angular frequency around the major cycle, used by
 \code{"wavy"} and the periodic twist.}
 
-\item{freq_minor}{Positive angular frequency around the minor cycle, used by
+\item{freq.minor}{Positive angular frequency around the minor cycle, used by
 \code{"wavy"}.}
 
 \item{twist}{Finite phase twist applied periodically to the minor angle as a
@@ -74,7 +74,7 @@ graph topology is toroidal but the intended metric comes from a curved or
 spatially varying 3D realization.
 }
 \details{
-The \code{coords_surface} component contains the 3D coordinates of the embedded
+The \code{coords.surface} component contains the 3D coordinates of the embedded
 toroidal grid. \code{torus.surface.graph()} returns a reusable weighted-graph
 bundle containing the torus edges, induced edge weights, the 3D surface
 coordinates, and a 2D unwrapped parameterization.

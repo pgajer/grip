@@ -101,7 +101,7 @@ The canonical replacements are listed below.
 
 Complete \verb{*.surface.graph()} and \verb{*.solid.graph()} constructors remain
 public and return reusable bundles. Use the bundle's \code{edges},
-\code{coords_surface}, and \code{coords_param} components instead of the former
+\code{coords.surface}, and \code{coords.param} components instead of the former
 specialized edge-list, standalone embedding, and parameter-coordinate
 exports. Primitive generators such as \code{\link[=edges.path]{edges.path()}}, \code{\link[=edges.cycle]{edges.cycle()}},
 \code{\link[=edges.mesh]{edges.mesh()}}, and \code{\link[=edges.cube]{edges.cube()}} remain public.

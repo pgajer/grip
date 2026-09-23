@@ -8,7 +8,7 @@
 \alias{mask.asymmetric.holes}
 \title{Mask pattern helpers for recursive grid families}
 \usage{
-mask.cross(k = 5, arm_width = 1)
+mask.cross(k = 5, arm.width = 1)
 
 mask.border(k = 5, thickness = 1)
 
@@ -18,12 +18,12 @@ mask.corner(
   corner = c("top_left", "top_right", "bottom_left", "bottom_right")
 )
 
-mask.asymmetric.holes(k = 5, hole_size = 1)
+mask.asymmetric.holes(k = 5, hole.size = 1)
 }
 \arguments{
 \item{k}{Mask side length.}
 
-\item{arm_width}{Width of the retained cross arms.}
+\item{arm.width}{Width of the retained cross arms.}
 
 \item{thickness}{Border thickness for \code{mask.border()}.}
 
@@ -32,7 +32,7 @@ mask.asymmetric.holes(k = 5, hole_size = 1)
 
 \item{corner}{Which corner to retain in \code{mask.corner()}.}
 
-\item{hole_size}{Side length of each removed interior hole block for
+\item{hole.size}{Side length of each removed interior hole block for
 \code{mask.asymmetric.holes()}.}
 }
 \value{
@@ -49,8 +49,8 @@ The returned masks use standard matrix display orientation: rows run from top
 to bottom and columns run from left to right.
 }
 \examples{
-asymmetric <- mask.asymmetric.holes(k = 5, hole_size = 1)
+asymmetric <- mask.asymmetric.holes(k = 5, hole.size = 1)
 border <- mask.border(k = 5, thickness = 1)
 corner <- mask.corner(k = 5, width = 2, corner = "top_left")
-cross <- mask.cross(k = 5, arm_width = 1)
+cross <- mask.cross(k = 5, arm.width = 1)
 }

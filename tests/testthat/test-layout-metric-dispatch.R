@@ -10,9 +10,9 @@ metric.dispatch.layout.args <- function() {
     n = 8,
     dim = 2,
     rounds = 3,
-    final_rounds = 3,
-    num_init = 4,
-    num_nbrs = 4,
+    final.rounds = 3,
+    num.init = 4,
+    num.nbrs = 4,
     seed = 19
   )
 }
@@ -46,7 +46,7 @@ test_that("new metric arguments do not shift the existing positional API", {
 test_that("grip dispatches edge-length metric to the weighted backend", {
   graph <- metric.dispatch.fixture()
   args <- c(
-    list(edges = graph$edges, edge_weights = graph$edge_lengths),
+    list(edges = graph$edges, edge.weights = graph$edge_lengths),
     metric.dispatch.layout.args()
   )
 
@@ -65,7 +65,7 @@ test_that("metric-specific arguments are validated at the unified interface", {
       graph$edges,
       n = 8,
       metric = "hop",
-      metric_neighbor_cap = 20
+      metric.neighbor.cap = 20
     ),
     "metric_neighbor_cap is only available"
   )
@@ -74,13 +74,13 @@ test_that("metric-specific arguments are validated at the unified interface", {
       graph$edges,
       n = 8,
       metric = "hop",
-      length_normalization = "none"
+      length.normalization = "none"
     ),
     "length_normalization is only available"
   )
   expect_error(
     grip(graph$edges, n = 8, metric = "edge_length"),
-    "requires edge weights|edge_weights is required|weight_list is required"
+    "requires edge weights|edge.weights is required|weight.list is required"
   )
   expect_error(
     grip(graph$edges, n = 8, metric = "unknown"),
@@ -91,7 +91,7 @@ test_that("metric-specific arguments are validated at the unified interface", {
 test_that("trace.grip mirrors layout metric dispatch", {
   graph <- metric.dispatch.fixture()
   args <- c(
-    list(edges = graph$edges, edge_weights = graph$edge_lengths),
+    list(edges = graph$edges, edge.weights = graph$edge_lengths),
     metric.dispatch.layout.args(),
     list(trace = "level", diagnostics = "none")
   )

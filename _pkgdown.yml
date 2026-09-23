@@ -178,15 +178,15 @@ reference:
       - porous_cube_surface_helpers
   - title: "Interactive exploration"
     contents:
-      - gripui_project
-      - gripui_project_from_compare
-      - gripui_project_from_dir
-      - gripui_validate_project
-      - gripui_app
-      - run_gripui
-      - gripui_graph_family_catalog
-      - gripui_family_app
-      - run_gripui_family
+      - gripui.project
+      - gripui.project.from.compare
+      - gripui.project.from.dir
+      - gripui.validate.project
+      - gripui.app
+      - run.gripui
+      - gripui.graph.family.catalog
+      - gripui.family.app
+      - run.gripui.family
 
   - title: Object methods
     contents:

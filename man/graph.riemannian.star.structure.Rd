@@ -10,9 +10,9 @@ graph.riemannian.star.structure(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   angle.power = 4,
   reliability = c("length.balance", "none"),
   min.angle.weight = 0,
@@ -20,17 +20,17 @@ graph.riemannian.star.structure(
 )
 }
 \arguments{
-\item{graph}{Optional graph/prepared object containing \code{adj_list} and
-\code{weight_list}, or \code{edges}/\code{edge_targets} when it is a prepared GMDS graph.}
+\item{graph}{Optional graph/prepared object containing \code{adj.list} and
+\code{weight.list}, or \code{edges}/\code{edge_targets} when it is a prepared GMDS graph.}
 
 \item{X}{Numeric matrix used to estimate local target angles.}
 
 \item{prepared}{Optional prepared GMDS object. Used when \code{graph} is omitted.}
 
-\item{edges, n, edge_weights}{Optional edge representation used when \code{graph}
+\item{edges, n, edge.weights}{Optional edge representation used when \code{graph}
 and \code{prepared} are omitted.}
 
-\item{adj_list, weight_list}{Optional adjacency-list representation.}
+\item{adj.list, weight.list}{Optional adjacency-list representation.}
 
 \item{angle.power}{Non-negative exponent \code{q} in the antipodal kernel.}
 

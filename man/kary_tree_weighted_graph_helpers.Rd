@@ -8,13 +8,13 @@
 kary.tree.weighted.graph(
   k = 2,
   depth = 2,
-  base_length = 1,
-  depth_rule = c("geometric", "constant", "custom"),
-  depth_decay = 0.85,
-  depth_factors = NULL,
-  branch_rule = c("linear", "uniform", "custom"),
-  branch_spread = 0.3,
-  branch_factors = NULL,
+  base.length = 1,
+  depth.rule = c("geometric", "constant", "custom"),
+  depth.decay = 0.85,
+  depth.factors = NULL,
+  branch.rule = c("linear", "uniform", "custom"),
+  branch.spread = 0.3,
+  branch.factors = NULL,
   normalize = c("median", "mean", "none")
 )
 }
@@ -23,26 +23,26 @@ kary.tree.weighted.graph(
 
 \item{depth}{Number of levels below the root. May be \code{0}.}
 
-\item{base_length}{Positive global edge-length multiplier before
+\item{base.length}{Positive global edge-length multiplier before
 normalization.}
 
-\item{depth_rule}{Rule used to build the per-depth multipliers. One of
+\item{depth.rule}{Rule used to build the per-depth multipliers. One of
 \code{"geometric"}, \code{"constant"}, or \code{"custom"}.}
 
-\item{depth_decay}{Positive decay factor used when
-\code{depth_rule = "geometric"}.}
+\item{depth.decay}{Positive decay factor used when
+\code{depth.rule = "geometric"}.}
 
-\item{depth_factors}{Positive custom depth multipliers. Used only when
-\code{depth_rule = "custom"}. Must have length \code{1} or \code{depth}.}
+\item{depth.factors}{Positive custom depth multipliers. Used only when
+\code{depth.rule = "custom"}. Must have length \code{1} or \code{depth}.}
 
-\item{branch_rule}{Rule used to build the per-child-slot multipliers. One of
+\item{branch.rule}{Rule used to build the per-child-slot multipliers. One of
 \code{"linear"}, \code{"uniform"}, or \code{"custom"}.}
 
-\item{branch_spread}{Non-negative spread used when
-\code{branch_rule = "linear"}.}
+\item{branch.spread}{Non-negative spread used when
+\code{branch.rule = "linear"}.}
 
-\item{branch_factors}{Positive custom branch multipliers. Used only when
-\code{branch_rule = "custom"}. Must have length \code{1} or \code{k}.}
+\item{branch.factors}{Positive custom branch multipliers. Used only when
+\code{branch.rule = "custom"}. Must have length \code{1} or \code{k}.}
 
 \item{normalize}{Normalization applied to the raw intrinsic edge lengths.
 One of \code{"median"}, \code{"mean"}, or \code{"none"}.}

@@ -7,12 +7,12 @@
 \usage{
 triangulated.annulus.surface.graph(
   resolution = 12,
-  outer_radius = 1,
-  inner_radius = 0.45,
+  outer.radius = 1,
+  inner.radius = 0.45,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1,
+  freq.u = 1,
+  freq.v = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -20,10 +20,10 @@ triangulated.annulus.surface.graph(
 \item{resolution}{Positive lattice-resolution control. Larger values produce
 finer triangulations.}
 
-\item{outer_radius}{Positive outer annulus radius.}
+\item{outer.radius}{Positive outer annulus radius.}
 
-\item{inner_radius}{Positive inner annulus radius. Must be strictly smaller
-than \code{outer_radius}.}
+\item{inner.radius}{Positive inner annulus radius. Must be strictly smaller
+than \code{outer.radius}.}
 
 \item{surface}{Geometry family used for the 3D lift. One of \code{"flat"},
 \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
@@ -31,10 +31,10 @@ than \code{outer_radius}.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the first planar coordinate. Used
+\item{freq.u}{Positive ripple frequency in the first planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the second planar coordinate. Used
+\item{freq.v}{Positive ripple frequency in the second planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -67,7 +67,7 @@ making it a useful complement to the closed triangulated-polyhedron
 families.
 }
 \details{
-The \code{coords_surface} component is the 3D coordinates
+The \code{coords.surface} component is the 3D coordinates
 of the clipped lattice vertices in the same vertex order as
 \code{edges}. \code{triangulated.annulus.surface.graph()}
 returns a reusable weighted-graph bundle with the annulus edges, induced edge

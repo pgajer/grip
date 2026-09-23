@@ -3,61 +3,61 @@ grip.score.geodesic.mds <- function(coords,
                                     data = NULL,
                                     k = NULL,
                                     connect = c("mst", "error"),
-                                    tie_mode = c("single", "average"),
-                                    edge_length_epsilon = 1e-8,
-                                    anchor_coords = NULL,
-                                    anchor_weight = 0,
-                                    anchor_vertex_weight = NULL,
-                                    smoothness_weight = 0,
-                                    edge_spring_weight = 0,
-                                    repulsion_weight = 0,
-                                    repulsion_quantile = 0.60,
-                                    repulsion_scale = 0.20,
-                                    repulsion_cap_quantile = 0.90,
-                                    repulsion_hop_min = 3L,
-                                    bending_stencils = NULL,
-                                    bending_weight = 0,
-                                    return_pair_details = FALSE) {
+                                    tie.mode = c("single", "average"),
+                                    edge.length.epsilon = 1e-8,
+                                    anchor.coords = NULL,
+                                    anchor.weight = 0,
+                                    anchor.vertex.weight = NULL,
+                                    smoothness.weight = 0,
+                                    edge.spring.weight = 0,
+                                    repulsion.weight = 0,
+                                    repulsion.quantile = 0.60,
+                                    repulsion.scale = 0.20,
+                                    repulsion.cap.quantile = 0.90,
+                                    repulsion.hop.min = 3L,
+                                    bending.stencils = NULL,
+                                    bending.weight = 0,
+                                    return.pair.details = FALSE) {
   coords <- grip.validate.coords(coords)
-  tie_mode <- match.arg(tie_mode)
+  tie.mode <- match.arg(tie.mode)
   if (is.null(prepared)) {
     prepared <- grip.prepare.geodesic.mds(
       data = data,
       k = k,
       connect = connect,
-      tie_mode = tie_mode
+      tie.mode = tie.mode
     )
   }
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
   bend.stencils <- grip.validate.bending.stencils(
-    bending_stencils,
+    bending.stencils,
     n = nrow(coords)
   )
-  anchor.coords <- if (is.null(anchor_coords)) NULL else {
+  anchor.coords <- if (is.null(anchor.coords)) NULL else {
     grip.geodesic.mds.resolve.anchor(
-      anchor_mode = "user",
+      anchor.mode = "user",
       coords = coords,
       prepared = prepared,
-      anchor_coords = anchor_coords,
+      anchor.coords = anchor.coords,
       recenter = FALSE
     )
   }
   stats <- grip.geodesic.mds.score.stats(
     coords = coords,
     prepared = prepared,
-    edge_length_epsilon = edge_length_epsilon,
-    anchor_coords = anchor.coords,
-    anchor_weight = anchor_weight,
-    anchor_vertex_weight = anchor_vertex_weight,
-    smoothness_weight = smoothness_weight,
-    edge_spring_weight = edge_spring_weight,
-    repulsion_weight = repulsion_weight,
-    repulsion_quantile = repulsion_quantile,
-    repulsion_scale = repulsion_scale,
-    repulsion_cap_quantile = repulsion_cap_quantile,
-    repulsion_hop_min = repulsion_hop_min,
-    bending_stencils = bend.stencils,
-    bending_weight = bending_weight
+    edge.length.epsilon = edge.length.epsilon,
+    anchor.coords = anchor.coords,
+    anchor.weight = anchor.weight,
+    anchor.vertex.weight = anchor.vertex.weight,
+    smoothness.weight = smoothness.weight,
+    edge.spring.weight = edge.spring.weight,
+    repulsion.weight = repulsion.weight,
+    repulsion.quantile = repulsion.quantile,
+    repulsion.scale = repulsion.scale,
+    repulsion.cap.quantile = repulsion.cap.quantile,
+    repulsion.hop.min = repulsion.hop.min,
+    bending.stencils = bend.stencils,
+    bending.weight = bending.weight
   )
   out <- data.frame(
     n = prepared$n, n.pairs = stats$n.pairs, gmds.energy = stats$energy,
@@ -83,7 +83,7 @@ grip.score.geodesic.mds <- function(coords,
     tie.mode = if (!is.null(prepared$tie_mode)) prepared$tie_mode else "single",
     stringsAsFactors = FALSE
   )
-  if (isTRUE(return_pair_details)) {
+  if (isTRUE(return.pair.details)) {
     out$pair.details <- list(grip.geodesic.mds.pair.details(prepared, stats))
   }
   out

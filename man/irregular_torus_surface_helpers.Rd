@@ -6,49 +6,49 @@
 \title{Weighted irregular torus surface helpers}
 \usage{
 irregular.torus.surface.graph(
-  major_rings = 8,
-  tube_count = 16,
-  count_irregularity = 0.2,
-  major_irregularity = 0.25,
-  phase_twist = 0.35,
+  major.rings = 8,
+  tube.count = 16,
+  count.irregularity = 0.2,
+  major.irregularity = 0.25,
+  phase.twist = 0.35,
   surface = c("standard", "pinched", "wavy"),
-  major_radius = 2,
-  minor_radius = 0.75,
+  major.radius = 2,
+  minor.radius = 0.75,
   amplitude = 0.2,
-  freq_major = 2,
-  freq_minor = 1,
+  freq.major = 2,
+  freq.minor = 1,
   twist = 0.25,
   normalize = c("median", "mean", "none")
 )
 }
 \arguments{
-\item{major_rings}{Number of cyclic major rings around the torus.}
+\item{major.rings}{Number of cyclic major rings around the torus.}
 
-\item{tube_count}{Approximate number of vertices around each minor cycle.}
+\item{tube.count}{Approximate number of vertices around each minor cycle.}
 
-\item{count_irregularity}{Irregularity level for the per-ring sample counts.
+\item{count.irregularity}{Irregularity level for the per-ring sample counts.
 Must lie in \code{[0, 1)}.}
 
-\item{major_irregularity}{Irregularity level for the major-angle ring
+\item{major.irregularity}{Irregularity level for the major-angle ring
 spacing. Must lie in \code{[0, 1]}.}
 
-\item{phase_twist}{Finite phase offset used to desynchronize neighboring
+\item{phase.twist}{Finite phase offset used to desynchronize neighboring
 minor cycles.}
 
 \item{surface}{Torus geometry family. One of \code{"standard"},
 \code{"pinched"}, or \code{"wavy"}.}
 
-\item{major_radius}{Positive distance from the torus center to the center of
+\item{major.radius}{Positive distance from the torus center to the center of
 the tube.}
 
-\item{minor_radius}{Positive baseline radius of the torus tube.}
+\item{minor.radius}{Positive baseline radius of the torus tube.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_major}{Positive angular frequency around the major cycle, used by
+\item{freq.major}{Positive angular frequency around the major cycle, used by
 \code{"wavy"} and the periodic twist.}
 
-\item{freq_minor}{Positive angular frequency around the minor cycle, used by
+\item{freq.minor}{Positive angular frequency around the minor cycle, used by
 \code{"wavy"}.}
 
 \item{twist}{Finite phase twist applied periodically to the minor angle as a
@@ -84,5 +84,5 @@ locally triangulated toroidal graph, and then realize that graph in
 \eqn{\mathbb{R}^3} using either a standard, pinched, or wavy tube geometry.
 }
 \examples{
-torus <- irregular.torus.surface.graph(major_rings = 4, tube_count = 8)
+torus <- irregular.torus.surface.graph(major.rings = 4, tube.count = 8)
 }

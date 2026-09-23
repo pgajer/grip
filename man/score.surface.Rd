@@ -7,20 +7,20 @@
 score.surface(
   coords,
   triangles,
-  reference_coords,
-  reference_triangles,
-  sample_size = 5000L,
+  reference.coords,
+  reference.triangles,
+  sample.size = 5000L,
   seed = 1L
 )
 }
 \arguments{
-\item{coords, reference_coords}{Numeric three-column vertex matrices.}
+\item{coords, reference.coords}{Numeric three-column vertex matrices.}
 
-\item{triangles, reference_triangles}{Three-column matrices of one-based
+\item{triangles, reference.triangles}{Three-column matrices of one-based
 triangle indices into the corresponding vertex matrix. Open surfaces and
 different triangulations are supported. Duplicate faces are rejected.}
 
-\item{sample_size}{Number of independent area-uniform samples per surface,
+\item{sample.size}{Number of independent area-uniform samples per surface,
 at least two. Increase this to assess Monte Carlo convergence.}
 
 \item{seed}{Nonnegative integer seed, at most 2147483646. Separate fixed
@@ -51,5 +51,5 @@ no positive-area faces is rejected. No Hausdorff maximum is estimated.
 \examples{
 x <- rbind(c(0, 0, 0), c(1, 0, 0), c(0, 1, 0))
 f <- matrix(1:3, nrow = 1)
-score.surface(x, f, x, f, sample_size = 100)$rms
+score.surface(x, f, x, f, sample.size = 100)$rms
 }

@@ -3,8 +3,8 @@ graph_example_cases <- function() {
   data <- new.env()
   utils::data('zheng.graphs', package = 'grip', envir = data)
   generated <- list(
-    tree = grip::kary.tree.weighted.graph(k = 2, depth = 5, depth_decay = .85,
-                                         branch_spread = .2, normalize = 'none'),
+    tree = grip::kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
+                                         branch.spread = .2, normalize = 'none'),
     carpet = grip::recursive.mask.grid.surface.graph(grip::mask.border(3), level = 2,
                 surface = 'saddle', amplitude = .5, normalize = 'none'),
     saddle = grip::mesh.surface.graph(10, 10, surface = 'saddle', connectivity = 'diagonal', normalize = 'none'),
@@ -39,7 +39,7 @@ graph_example_scores <- function(coords, graph, distances) {
 
 graph_example_fit <- function(graph, seed = 2026L) {
   prepared <- grip::prepare.graph.geodesic.mds(edges = graph$edges, n = graph$n,
-                                               edge_weights = graph$edge_weights)
+                                               edge.weights = graph$edge_weights)
   stopifnot(all(is.finite(prepared$distance_matrix)))
   records <- list(); warnings <- character()
   capture <- function(expr) withCallingHandlers(expr, warning = function(w) {
@@ -47,14 +47,14 @@ graph_example_fit <- function(graph, seed = 2026L) {
   })
   started <- proc.time()[['elapsed']]
   mds <- capture(grip::metric.mds(prepared = prepared, dim = 3, init = 'random',
-    n_init = 3, max_iter = 80, seed = seed, diagnostics = FALSE))
+    n.init = 3, max.iter = 80, seed = seed, diagnostics = FALSE))
   records$mds <- list(coords = mds$coords, metadata = mds$metadata,
     seconds = proc.time()[['elapsed']] - started, warnings = warnings,
     scores = graph_example_scores(mds$coords, graph, prepared$distance_matrix))
   warnings <- character(); started <- proc.time()[['elapsed']]
   refined <- tryCatch(capture(grip::edge.kk(coords = mds$coords, prepared = prepared,
-    dim = 3, stiffness_method = 'uniform', density_mix_schedule = 1,
-    scale_mode = 'identity', max_iter = 100, return_trace = FALSE, diagnostics = FALSE)),
+    dim = 3, stiffness.method = 'uniform', density.mix.schedule = 1,
+    scale.mode = 'identity', max.iter = 100, return.trace = FALSE, diagnostics = FALSE)),
     error = function(e) e)
   if (inherits(refined, 'error')) {
     records$refined <- list(error = conditionMessage(refined), warnings = warnings)

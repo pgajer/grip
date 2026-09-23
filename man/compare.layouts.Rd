@@ -7,9 +7,9 @@
 compare.layouts(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 2,
   candidates = c("default"),
   search = NULL,
@@ -29,11 +29,11 @@ compare.layouts(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
+\item{adj.list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
 \item{dim}{Layout dimension (2 or 3).}
@@ -43,12 +43,12 @@ compare.layouts(
 specifications. Each list element may be \code{NULL} (use defaults), a
 single preset name, or a named list of \code{\link{grip}()}
 tuning arguments such as \code{preset}, \code{placement},
-\code{rounds}, or \code{repulsion_factor}.}
+\code{rounds}, or \code{repulsion.factor}.}
 
 \item{search}{Optional named list describing a grid search over layout
 settings. Any of \code{preset}, \code{placement}, \code{rounds},
-\code{final_rounds}, \code{num_init}, \code{num_nbrs}, \code{r},
-\code{s}, \code{repulsion_factor}, and \code{tinit_factor} may be supplied
+\code{final.rounds}, \code{num.init}, \code{num.nbrs}, \code{r},
+\code{s}, \code{repulsion.factor}, and \code{tinit.factor} may be supplied
 as vectors. All combinations are expanded into candidates. Special fields
 \code{candidate.prefix} and \code{include.base} control candidate naming
 and whether the all-first-values setting is guaranteed to appear.}
@@ -115,7 +115,7 @@ search.cmp <- compare.layouts(
   search = list(
     candidate.prefix = "path.search",
     rounds = c(4L, 6L),
-    final_rounds = c(4L, 6L)
+    final.rounds = c(4L, 6L)
   ),
   seeds = 1L
 )

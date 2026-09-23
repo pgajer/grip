@@ -43,5 +43,6 @@ params.from.summary <- function(summary.row) {
   if (!is.na(row$preset[[1L]]) && nzchar(row$preset[[1L]])) {
     out$preset <- row$preset[[1L]]
   }
+  names(out) <- gsub("_", ".", names(out), fixed = TRUE)
   out
 }

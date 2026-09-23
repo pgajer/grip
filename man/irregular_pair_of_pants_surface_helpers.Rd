@@ -7,18 +7,18 @@
 \usage{
 irregular.pair.of.pants.surface.graph(
   slices = 11,
-  outer_count = 28,
-  outer_radius = 1.1,
-  hole_radius = 0.24,
-  hole_offset = 0.38,
-  hole_height = 0.18,
-  count_irregularity = 0.2,
-  vertical_irregularity = 0.35,
-  phase_twist = 0.35,
+  outer.count = 28,
+  outer.radius = 1.1,
+  hole.radius = 0.24,
+  hole.offset = 0.38,
+  hole.height = 0.18,
+  count.irregularity = 0.2,
+  vertical.irregularity = 0.35,
+  phase.twist = 0.35,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1,
+  freq.u = 1,
+  freq.v = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -26,23 +26,23 @@ irregular.pair.of.pants.surface.graph(
 \item{slices}{Number of horizontal sample slices through the pair-of-pants
 domain.}
 
-\item{outer_count}{Approximate number of vertices across the widest slices.}
+\item{outer.count}{Approximate number of vertices across the widest slices.}
 
-\item{outer_radius}{Positive outer boundary radius.}
+\item{outer.radius}{Positive outer boundary radius.}
 
-\item{hole_radius}{Positive radius of each interior hole.}
+\item{hole.radius}{Positive radius of each interior hole.}
 
-\item{hole_offset}{Positive horizontal offset of the two hole centers.}
+\item{hole.offset}{Positive horizontal offset of the two hole centers.}
 
-\item{hole_height}{Shared vertical coordinate of the two hole centers.}
+\item{hole.height}{Shared vertical coordinate of the two hole centers.}
 
-\item{count_irregularity}{Irregularity level for the per-slice sample counts.
+\item{count.irregularity}{Irregularity level for the per-slice sample counts.
 Must lie in \code{[0, 1)}.}
 
-\item{vertical_irregularity}{Irregularity level for slice spacing. Must lie
+\item{vertical.irregularity}{Irregularity level for slice spacing. Must lie
 in \code{[0, 1]}.}
 
-\item{phase_twist}{Finite phase offset used to desynchronize neighboring
+\item{phase.twist}{Finite phase offset used to desynchronize neighboring
 slice samples.}
 
 \item{surface}{Geometry family used for the 3D lift. One of \code{"flat"},
@@ -51,10 +51,10 @@ slice samples.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the first planar coordinate. Used
+\item{freq.u}{Positive ripple frequency in the first planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the second planar coordinate. Used
+\item{freq.v}{Positive ripple frequency in the second planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -93,6 +93,6 @@ families as the triangulated annulus and irregular annulus helpers.
 }
 \examples{
 pair_of_pants <- irregular.pair.of.pants.surface.graph(
-  slices = 5, outer_count = 12
+  slices = 5, outer.count = 12
 )
 }

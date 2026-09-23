@@ -9,7 +9,7 @@ grip.validate.misf.count <- function(x, name, lower = 1L) {
   x
 }
 
-grip.complete.vertex_depth.from.levels <- function(levels, n) {
+grip.complete.vertex.depth.from.levels <- function(levels, n) {
   depth <- integer(n)
   if (!length(levels)) {
     return(depth)
@@ -39,13 +39,13 @@ grip.complete.vertex_depth.from.levels <- function(levels, n) {
 #' @param edges Two-column integer matrix of undirected edges (1-based vertex
 #'   ids).
 #' @param n Number of vertices.
-#' @param adj_list Optional adjacency list (1-based integer vectors).
-#' @param weight_list Optional positive edge-weight list parallel to `adj_list`.
-#' @param edge_weights Optional positive vector parallel to `edges`.
-#' @param num_init Target top-level active-set size used by the current GRIP
+#' @param adj.list Optional adjacency list (1-based integer vectors).
+#' @param weight.list Optional positive edge-weight list parallel to `adj.list`.
+#' @param edge.weights Optional positive vector parallel to `edges`.
+#' @param num.init Target top-level active-set size used by the current GRIP
 #'   MISF builder. The returned highest MISF level has size at most
-#'   `min(num_init, n)`.
-#' @param num_nbrs Retained local neighborhood budget per MISF level, matching
+#'   `min(num.init, n)`.
+#' @param num.nbrs Retained local neighborhood budget per MISF level, matching
 #'   the current GRIP refinement schedule metadata.
 #' @param seed Optional integer seed passed to the current GRIP graph RNG.
 #'
@@ -64,32 +64,32 @@ grip.complete.vertex_depth.from.levels <- function(levels, n) {
 #'
 #' @examples
 #' edges <- edges.mesh(4, 4)
-#' misf <- build.misf(edges = edges, n = 16, num_init = 6, seed = 1)
+#' misf <- build.misf(edges = edges, n = 16, num.init = 6, seed = 1)
 #' misf$misf_size
 #' misf$levels[[1L]]
 #' @export
 #' @md
 build.misf <- function(edges = NULL,
                             n = NULL,
-                            adj_list = NULL,
-                            weight_list = NULL,
-                            edge_weights = NULL,
-                            num_init = 24L,
-                            num_nbrs = 20L,
+                            adj.list = NULL,
+                            weight.list = NULL,
+                            edge.weights = NULL,
+                            num.init = 24L,
+                            num.nbrs = 20L,
                             seed = 6L) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = 2L,
     placement = "barycenter",
     seed = seed
   )
-  num_init <- grip.validate.misf.count(num_init, "num_init", lower = 1L)
-  num_nbrs <- grip.validate.misf.count(num_nbrs, "num_nbrs", lower = 1L)
+  num.init <- grip.validate.misf.count(num.init, "num.init", lower = 1L)
+  num.nbrs <- grip.validate.misf.count(num.nbrs, "num.nbrs", lower = 1L)
   if (!is.null(validated$seed)) {
     seed <- as.integer(validated$seed)
   }
@@ -98,15 +98,15 @@ build.misf <- function(edges = NULL,
     adj_list = validated$adj_list,
     weight_list = validated$weight_list,
     n = validated$n,
-    num_init = num_init,
-    num_nbrs = num_nbrs,
+    num_init = num.init,
+    num_nbrs = num.nbrs,
     seed = seed
   )
 
   levels <- lapply(raw$levels, as.integer)
   names(levels) <- names(raw$levels)
   vertex.depth <- as.integer(raw$vertex_depth)
-  completed.depth <- grip.complete.vertex_depth.from.levels(levels, validated$n)
+  completed.depth <- grip.complete.vertex.depth.from.levels(levels, validated$n)
   if (length(vertex.depth) == length(completed.depth)) {
     vertex.depth <- pmax(vertex.depth, completed.depth)
   } else {
@@ -122,8 +122,8 @@ build.misf <- function(edges = NULL,
     misf_height = as.integer(raw$misf_height),
     top_level_size = as.integer(raw$top_level_size),
     n = validated$n,
-    num_init = as.integer(min(num_init, validated$n)),
-    num_nbrs = num_nbrs,
+    num_init = as.integer(min(num.init, validated$n)),
+    num_nbrs = num.nbrs,
     seed = if (is.null(seed)) NULL else as.integer(seed)
   )
   class(out) <- "grip_misf"

@@ -7,27 +7,27 @@
 prepare.graph.geodesic.mds(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  tie_mode = c("single", "average")
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  tie.mode = c("single", "average")
 )
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to
 \code{max(edges)}.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{tie_mode}{Shortest-path aggregation mode. \code{"single"} uses one
+\item{tie.mode}{Shortest-path aggregation mode. \code{"single"} uses one
 deterministic chosen shortest path per pair. \code{"average"} replaces
 each tied shortest-path family by the exact uniform average over all
 shortest paths between the pair.}
@@ -49,7 +49,7 @@ an adjacency-list representation. The returned object stores the all-pairs
 graph distances, the chosen shortest-path family, and the flattened edge-path
 cache reused by the GMDS scorer and optimizer.
 
-The all-pairs \code{distance_matrix} contains symmetric strict graph
+The all-pairs \code{distance.matrix} contains symmetric strict graph
 distances. Retained-route lengths in \code{pair_graph_distance} follow the
 deterministic near-tie path convention and can differ slightly from these
 targets. Route selection and path diagnostics are not changed by this

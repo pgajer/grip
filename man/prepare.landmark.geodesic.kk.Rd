@@ -7,31 +7,31 @@
 prepare.landmark.geodesic.kk(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  local_nbrs = 20L,
-  landmark_count = 8L
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  local.nbrs = 20L,
+  landmark.count = 8L
 )
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to
 \code{max(edges)}.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{local_nbrs}{Number of nearest graph-metric neighbors retained per
+\item{local.nbrs}{Number of nearest graph-metric neighbors retained per
 vertex.}
 
-\item{landmark_count}{Number of farthest-point landmarks retained per vertex.}
+\item{landmark.count}{Number of farthest-point landmarks retained per vertex.}
 }
 \value{
 A list with the sparse pair set, graph distances, chosen paths, and
@@ -47,13 +47,13 @@ for experiments where many layouts of the same graph are compared.
 \details{
 The sparse set follows the implementation choice recorded in
 \code{landmark\_geodesic\_kk\_spec\_2026-03-30.tex}: each vertex contributes
-its \code{local_nbrs} nearest active vertices in graph distance and its
-\code{landmark_count} farthest-point landmarks, both selected
+its \code{local.nbrs} nearest active vertices in graph distance and its
+\code{landmark.count} farthest-point landmarks, both selected
 deterministically.
 }
 \examples{
 cycle_edges <- edges.cycle(6)
 prepared <- prepare.landmark.geodesic.kk(
-  cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+  cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 )
 }

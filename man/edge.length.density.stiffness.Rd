@@ -5,37 +5,37 @@
 \title{Construct edge-length stiffnesses for edge-isometric GMDS layouts}
 \usage{
 edge.length.density.stiffness(
-  edge_weights,
+  edge.weights,
   method = c("density", "uniform", "distance_power"),
   mix = 0,
   bandwidth = NULL,
-  density_n = 512L,
+  density.n = 512L,
   transform = c("identity", "sqrt", "log"),
-  distance_power = 0,
-  stiffness_floor = 0,
-  stiffness_ceiling = Inf
+  distance.power = 0,
+  stiffness.floor = 0,
+  stiffness.ceiling = Inf
 )
 }
 \arguments{
-\item{edge_weights}{Positive numeric edge lengths.}
+\item{edge.weights}{Positive numeric edge lengths.}
 
 \item{method}{Stiffness rule. \code{"density"} estimates an empirical density,
 \code{"uniform"} returns equal stiffnesses, and \code{"distance_power"} uses
-\code{(w / median(w))^distance_power}.}
+\code{(w / median(w))^distance.power}.}
 
 \item{mix}{Continuation parameter in \verb{[0, 1]}. \code{0} uses the selected method;
 \code{1} returns uniform stiffness.}
 
 \item{bandwidth}{Optional bandwidth passed to \code{stats::density()}.}
 
-\item{density_n}{Number of evaluation points for \code{stats::density()}.}
+\item{density.n}{Number of evaluation points for \code{stats::density()}.}
 
 \item{transform}{Optional transformation of the raw density/power signal
 before mixing and normalization.}
 
-\item{distance_power}{Exponent for \code{method = "distance_power"}.}
+\item{distance.power}{Exponent for \code{method = "distance_power"}.}
 
-\item{stiffness_floor, stiffness_ceiling}{Optional clipping bounds applied
+\item{stiffness.floor, stiffness.ceiling}{Optional clipping bounds applied
 before the final mean-one normalization.}
 }
 \value{
@@ -51,6 +51,6 @@ a continuation path from that density-weighted signal to uniform stiffness.
 }
 \examples{
 stiffness <- edge.length.density.stiffness(
-  c(0.8, 0.9, 1, 1.1, 1.2, 1.3), density_n = 32
+  c(0.8, 0.9, 1, 1.1, 1.2, 1.3), density.n = 32
 )
 }

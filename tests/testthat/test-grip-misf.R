@@ -40,8 +40,8 @@ misf_level_min_hop <- function(levels, edges, n) {
 test_that("build.misf returns nested deterministic levels on a mesh", {
   edges <- edges.mesh(4, 4)
 
-  misf1 <- build.misf(edges = edges, n = 16L, num_init = 6L, num_nbrs = 8L, seed = 11L)
-  misf2 <- build.misf(edges = edges, n = 16L, num_init = 6L, num_nbrs = 8L, seed = 11L)
+  misf1 <- build.misf(edges = edges, n = 16L, num.init = 6L, num.nbrs = 8L, seed = 11L)
+  misf2 <- build.misf(edges = edges, n = 16L, num.init = 6L, num.nbrs = 8L, seed = 11L)
 
   expect_s3_class(misf1, "grip_misf")
   expect_identical(misf1$levels, misf2$levels)
@@ -72,8 +72,8 @@ test_that("build.misf preserves the MIS hop bound on every returned level", {
   misf <- build.misf(
     edges = edges,
     n = 144L,
-    num_init = 24L,
-    num_nbrs = 20L,
+    num.init = 24L,
+    num.nbrs = 20L,
     seed = 12L
   )
 
@@ -88,7 +88,7 @@ test_that("build.misf preserves the MIS hop bound on every returned level", {
 test_that("build.misf handles small graphs with a single MISF level", {
   edges <- edges.path(5L)
 
-  misf <- build.misf(edges = edges, n = 5L, num_init = 8L, num_nbrs = 4L, seed = 3L)
+  misf <- build.misf(edges = edges, n = 5L, num.init = 8L, num.nbrs = 4L, seed = 3L)
 
   expect_equal(length(misf$levels), 1L)
   expect_equal(misf$misf_height, 0L)
@@ -107,29 +107,29 @@ test_that("build.misf accepts weighted graph input and matches adj-list mode", {
     2L, 5L
   ), byrow = TRUE, ncol = 2L)
   edge.weights <- c(1, 2, 3, 4, 5)
-  built <- grip:::grip.build.adj.from.edges(edges, n = 5L, edge_weights = edge.weights)
+  built <- grip:::grip.build.adj.from.edges(edges, n = 5L, edge.weights = edge.weights)
 
   misf.edges <- build.misf(
     edges = edges,
     n = 5L,
-    edge_weights = edge.weights,
-    num_init = 3L,
-    num_nbrs = 4L,
+    edge.weights = edge.weights,
+    num.init = 3L,
+    num.nbrs = 4L,
     seed = 7L
   )
   misf.adj <- build.misf(
-    adj_list = built$adj_list,
-    weight_list = built$weight_list,
+    adj.list = built$adj_list,
+    weight.list = built$weight_list,
     n = 5L,
-    num_init = 3L,
-    num_nbrs = 4L,
+    num.init = 3L,
+    num.nbrs = 4L,
     seed = 7L
   )
   misf.unweighted <- build.misf(
     edges = edges,
     n = 5L,
-    num_init = 3L,
-    num_nbrs = 4L,
+    num.init = 3L,
+    num.nbrs = 4L,
     seed = 7L
   )
 

@@ -14,18 +14,18 @@
 #'   status = "ok",
 #'   stringsAsFactors = FALSE
 #' )
-#' project <- gripui_project(graph = graph, layouts = layouts, title = "Toy project")
-#' app <- gripui_app(project)
+#' project <- gripui.project(graph = graph, layouts = layouts, title = "Toy project")
+#' app <- gripui.app(project)
 #' inherits(app, "shiny.appobj")
 #' @md
-gripui_app <- function(project) {
-  gripui_validate_project(project)
+gripui.app <- function(project) {
+  gripui.validate.project(project)
   old <- gripui.require.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
 
   shiny::shinyApp(
-    ui = gripui_ui(),
-    server = gripui_server(project)
+    ui = gripui.ui(),
+    server = gripui.server(project)
   )
 }
 
@@ -51,21 +51,21 @@ gripui_app <- function(project) {
 #'   status = "ok",
 #'   stringsAsFactors = FALSE
 #' )
-#' project <- gripui_project(graph = graph, layouts = layouts, title = "Toy project")
-#' run_gripui(
+#' project <- gripui.project(graph = graph, layouts = layouts, title = "Toy project")
+#' run.gripui(
 #'   project,
 #'   launch.browser = FALSE,
 #'   quiet = TRUE,
 #'   auto.stop.after = 0.1
 #' )
 #' @md
-run_gripui <- function(project,
+run.gripui <- function(project,
                        host = "127.0.0.1",
                        port = getOption("shiny.port"),
                        launch.browser = interactive(),
                        auto.stop.after = NULL,
                        ...) {
-  app <- gripui_app(project)
+  app <- gripui.app(project)
 
   if (!is.null(auto.stop.after)) {
     if (!requireNamespace("later", quietly = TRUE)) {

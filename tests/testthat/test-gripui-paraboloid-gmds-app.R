@@ -1,15 +1,15 @@
 test_that("gripui paraboloid GMDS payload computes expected outputs", {
   skip_if_not_installed("rgl")
 
-  compute_payload <- getFromNamespace("gripui.paraboloid.gmds.compute.payload", "grip")
-  payload <- compute_payload(
+  compute.payload <- getFromNamespace("gripui.paraboloid.gmds.compute.payload", "grip")
+  payload <- compute.payload(
     side = 4L,
     amplitude = 0.25,
-    lambda_anchor = 0.10,
-    lambda_edge = 0.20,
-    lambda_repulsion = 0.30,
-    max_iter = 1L,
-    n_threads = 0L
+    lambda.anchor = 0.10,
+    lambda.edge = 0.20,
+    lambda.repulsion = 0.30,
+    max.iter = 1L,
+    n.threads = 0L
   )
 
   expect_true(is.list(payload))
@@ -33,6 +33,6 @@ test_that("gripui paraboloid GMDS app builds", {
   options(rgl.useNULL = TRUE)
   on.exit(options(rgl.useNULL = old), add = TRUE)
 
-  app <- gripui_paraboloid_gmds_app()
+  app <- gripui.paraboloid.gmds.app()
   expect_s3_class(app, "shiny.appobj")
 })

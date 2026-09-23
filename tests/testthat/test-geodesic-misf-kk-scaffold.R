@@ -4,9 +4,9 @@ test_that("MISF-GKK prepare returns a layered prepared object", {
   prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
-    tie_mode = "average",
-    num_init = 4L,
-    top_level_mode = "skip",
+    tie.mode = "average",
+    num.init = 4L,
+    top.level.mode = "skip",
     seed = 1L
   )
 
@@ -24,10 +24,10 @@ test_that("MISF-GKK prepare can solve the top MISF level immediately", {
   prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
-    num_init = 4L,
-    top_level_mode = "solve",
-    top_level_restarts = 2L,
-    top_level_max_iter = 3L,
+    num.init = 4L,
+    top.level.mode = "solve",
+    top.level.restarts = 2L,
+    top.level.max.iter = 3L,
     seed = 1L
   )
 
@@ -42,8 +42,8 @@ test_that("MISF-GKK scorer summarizes external coordinates against the prepared 
   prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
-    num_init = 4L,
-    top_level_mode = "skip",
+    num.init = 4L,
+    top.level.mode = "skip",
     seed = 1L
   )
   coords <- matrix(runif(32L), nrow = 16L, ncol = 2L)
@@ -51,7 +51,7 @@ test_that("MISF-GKK scorer summarizes external coordinates against the prepared 
   score <- score.misf.geodesic.kk(
     coords = coords,
     prepared = prepared,
-    return_trace = TRUE
+    return.trace = TRUE
   )
 
   expect_true(is.data.frame(score))
@@ -72,8 +72,8 @@ test_that("MISF-GKK scorer supports landmark scoring mode", {
   prepared <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 16L,
-    num_init = 4L,
-    top_level_mode = "skip",
+    num.init = 4L,
+    top.level.mode = "skip",
     seed = 1L
   )
   coords <- matrix(runif(32L), nrow = 16L, ncol = 2L)
@@ -81,10 +81,10 @@ test_that("MISF-GKK scorer supports landmark scoring mode", {
   score <- score.misf.geodesic.kk(
     coords = coords,
     prepared = prepared,
-    score_pair_mode = "landmark",
-    score_full_limit = 4L,
-    score_local_nbrs = 4L,
-    score_landmark_count = 2L
+    score.pair.mode = "landmark",
+    score.full.limit = 4L,
+    score.local.nbrs = 4L,
+    score.landmark.count = 2L
   )
 
   expect_equal(score$final.score.mode[[1L]], "landmark")
@@ -98,19 +98,19 @@ test_that("MISF-GKK optimizer returns a multistage fit with traces", {
   fit <- misf.geodesic.kk(
     edges = edges,
     n = 16L,
-    num_init = 4L,
+    num.init = 4L,
     dim = 2L,
-    top_level_restarts = 2L,
-    top_level_max_iter = 3L,
-    insertion_mode = "geodesic",
-    insertion_max_iter = 6L,
-    refinement_pair_mode = "auto",
-    refinement_full_limit = 4L,
-    refinement_max_iter = 3L,
-    final_pair_mode = "landmark",
-    final_full_limit = 4L,
-    final_max_iter = 3L,
-    return_trace = TRUE,
+    top.level.restarts = 2L,
+    top.level.max.iter = 3L,
+    insertion.mode = "geodesic",
+    insertion.max.iter = 6L,
+    refinement.pair.mode = "auto",
+    refinement.full.limit = 4L,
+    refinement.max.iter = 3L,
+    final.pair.mode = "landmark",
+    final.full.limit = 4L,
+    final.max.iter = 3L,
+    return.trace = TRUE,
     seed = 1L
   )
 

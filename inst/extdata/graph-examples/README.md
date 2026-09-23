@@ -7,7 +7,7 @@ The PNG files show ivue views of the same saved coordinates.
 
 Every graph uses three random MDS starts, seed 2026, and 80 SGD passes per start;
 the lowest-stress start is selected by metric.mds(). Edge-KK starts from that
-layout with uniform stiffness, fixed target lengths (scale_mode = "identity"),
+layout with uniform stiffness, fixed target lengths (scale.mode = "identity"),
 and up to 100 iterations. These are illustration choices, not tuned settings.
 Both graph-distance and edge-length errors are independently recomputed from
 returned coordinates. Timings exclude shared graph preparation. Alignment
@@ -26,5 +26,5 @@ separate and is not mixed into this gallery.
 Reproduction scripts are documented in tools/README.md. Raw logs, intermediate
 attempts and browser checks are development records, not installed data.
 SuiteSparse sources and CC BY 4.0 attribution are in ../zheng-graphs/PROVENANCE.md
-and in each corresponding graph's graph_info field. The original matrices and
+and in each corresponding graph's graph.info field. The original matrices and
 Les Miserables character labels are archived in that directory.

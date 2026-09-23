@@ -7,68 +7,68 @@
 prepare.misf.geodesic.kk(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  tie_mode = c("single", "average"),
-  num_init = 24L,
-  num_nbrs = 20L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  tie.mode = c("single", "average"),
+  num.init = 24L,
+  num.nbrs = 20L,
   dim = 2L,
-  top_level_mode = c("solve", "skip"),
-  top_level_pair_mode = c("auto", "full", "landmark"),
-  top_level_full_limit = 512L,
-  top_level_local_nbrs = 20L,
-  top_level_landmark_count = 8L,
-  top_level_restarts = 8L,
-  top_level_max_iter = 16L,
-  top_level_init = c("geometric", "cmdscale", "random"),
+  top.level.mode = c("solve", "skip"),
+  top.level.pair.mode = c("auto", "full", "landmark"),
+  top.level.full.limit = 512L,
+  top.level.local.nbrs = 20L,
+  top.level.landmark.count = 8L,
+  top.level.restarts = 8L,
+  top.level.max.iter = 16L,
+  top.level.init = c("geometric", "cmdscale", "random"),
   seed = 6L
 )
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to \code{max(edges)}.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to \code{edges}.}
+\item{edge.weights}{Optional positive edge-weight vector parallel to \code{edges}.}
 
-\item{tie_mode}{Shortest-path aggregation mode inherited from
+\item{tie.mode}{Shortest-path aggregation mode inherited from
 \code{\link[=prepare.geodesic.kk]{prepare.geodesic.kk()}}.}
 
-\item{num_init}{Target top-level active-set size passed to \code{build.misf}.}
+\item{num.init}{Target top-level active-set size passed to \code{build.misf}.}
 
-\item{num_nbrs}{Per-level local-neighborhood schedule metadata passed to
+\item{num.nbrs}{Per-level local-neighborhood schedule metadata passed to
 \code{build.misf}.}
 
 \item{dim}{Target embedding dimension (\code{2} or \code{3}) for the multiscale solve.}
 
-\item{top_level_mode}{Either \code{"solve"} or \code{"skip"}. When set to \code{"solve"},
+\item{top.level.mode}{Either \code{"solve"} or \code{"skip"}. When set to \code{"solve"},
 the coarsest admissible MISF level is optimized immediately and stored in
 \code{prepared$top_level_fit}.}
 
-\item{top_level_pair_mode}{Pair policy for the top MISF level: \code{"auto"},
+\item{top.level.pair.mode}{Pair policy for the top MISF level: \code{"auto"},
 \code{"full"}, or \code{"landmark"}.}
 
-\item{top_level_full_limit}{Active-set size threshold used when
-\code{top_level_pair_mode = "auto"}.}
+\item{top.level.full.limit}{Active-set size threshold used when
+\code{top.level.pair.mode = "auto"}.}
 
-\item{top_level_local_nbrs}{Number of nearest graph-metric neighbors retained
+\item{top.level.local.nbrs}{Number of nearest graph-metric neighbors retained
 per vertex in the sparse top-level LGKK cache.}
 
-\item{top_level_landmark_count}{Number of farthest-point landmarks retained
+\item{top.level.landmark.count}{Number of farthest-point landmarks retained
 per vertex in the sparse top-level LGKK cache.}
 
-\item{top_level_restarts}{Number of top-level restarts used by the coarse
+\item{top.level.restarts}{Number of top-level restarts used by the coarse
 MISF-GKK solve.}
 
-\item{top_level_max_iter}{Top-level iteration budget.}
+\item{top.level.max.iter}{Top-level iteration budget.}
 
-\item{top_level_init}{Top-level initializer (\code{"geometric"}, \code{"cmdscale"}, or
+\item{top.level.init}{Top-level initializer (\code{"geometric"}, \code{"cmdscale"}, or
 \code{"random"}).}
 
 \item{seed}{Optional integer seed reused for MISF extraction.}
@@ -92,9 +92,9 @@ edges <- edges.mesh(4, 4)
 prepared <- prepare.misf.geodesic.kk(
   edges = edges,
   n = 16,
-  tie_mode = "average",
-  num_init = 4,
-  top_level_mode = "skip",
+  tie.mode = "average",
+  num.init = 4,
+  top.level.mode = "skip",
   seed = 1
 )
 prepared$top_level_vertices

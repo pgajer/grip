@@ -210,12 +210,12 @@ gripui.default.graph.id <- function(stage) {
 gripui.build.catalog.from.runs <- function(runs,
                                            stage,
                                            root = NULL,
-                                           graph_id = NULL,
+                                           graph.id = NULL,
                                            manifest = NULL,
-                                           manifest_by = c("candidate", "seed"),
+                                           manifest.by = c("candidate", "seed"),
                                            html.preference = c("plain_html", "cst_html"),
                                            gif.preference = c("plain_gif", "cst_gif"),
-                                           default_color_view = "plain") {
+                                           default.color.view = "plain") {
   if (!is.data.frame(runs)) {
     stop("runs must be a data.frame")
   }
@@ -227,7 +227,7 @@ gripui.build.catalog.from.runs <- function(runs,
   out <- runs
   out$stage <- rep(as.character(stage), nrow(out))
   if (!("graph_id" %in% names(out))) {
-    gid <- if (is.null(graph_id)) gripui.default.graph.id(stage) else as.character(graph_id)
+    gid <- if (is.null(graph.id)) gripui.default.graph.id(stage) else as.character(graph.id)
     out$graph_id <- rep(gid, nrow(out))
   }
   out$layout_id <- mapply(
@@ -237,14 +237,14 @@ gripui.build.catalog.from.runs <- function(runs,
     seed = out$seed,
     USE.NAMES = FALSE
   )
-  out$color_view_default <- rep(default_color_view, nrow(out))
+  out$color_view_default <- rep(default.color.view, nrow(out))
   out <- gripui.resolve.catalog.paths(out, root = if (is.null(root)) getwd() else root)
 
   if (!is.null(manifest)) {
     out <- gripui.attach.artifact.manifest(
       catalog = out,
       manifest = manifest,
-      by.cols = manifest_by,
+      by.cols = manifest.by,
       root = if (is.null(root)) getwd() else root,
       html.preference = html.preference,
       gif.preference = gif.preference

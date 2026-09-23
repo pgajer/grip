@@ -62,7 +62,7 @@ for (id in names(cases)) {
   case <- cases[[id]]
   cat('Preparing', id, '\n'); flush.console()
   begin <- proc.time()[['elapsed']]
-  prepared <- grip::prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge_weights = case$weights)
+  prepared <- grip::prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge.weights = case$weights)
   bundle$cases[[id]]$preparation_seconds <- proc.time()[['elapsed']] - begin
   D <- prepared$distance_matrix
   bundle$cases[[id]]$distances <- D

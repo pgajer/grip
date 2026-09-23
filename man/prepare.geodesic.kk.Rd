@@ -7,27 +7,27 @@
 prepare.geodesic.kk(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  tie_mode = c("single", "average")
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  tie.mode = c("single", "average")
 )
 }
 \arguments{
 \item{edges}{Two-column integer matrix of edges (1-based vertex ids).}
 
-\item{n}{Number of vertices. If omitted with \code{adj_list}, defaults to
-\code{length(adj_list)}. If omitted with \code{edges}, defaults to
+\item{n}{Number of vertices. If omitted with \code{adj.list}, defaults to
+\code{length(adj.list)}. If omitted with \code{edges}, defaults to
 \code{max(edges)}.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{tie_mode}{Shortest-path aggregation mode. \code{"single"} uses one
+\item{tie.mode}{Shortest-path aggregation mode. \code{"single"} uses one
 deterministic chosen shortest path per pair. \code{"average"} replaces
 each tied shortest-path family by the exact uniform average over all
 shortest paths between the pair.}
@@ -43,9 +43,9 @@ objective repeatedly on the same connected graph.
 }
 \details{
 For each unordered vertex pair, the prepared object stores either one
-deterministic chosen graph shortest path (\code{tie_mode = "single"}) or the
+deterministic chosen graph shortest path (\code{tie.mode = "single"}) or the
 exact uniform average over all tied shortest paths
-(\code{tie_mode = "average"}), together with the graph distance and the
+(\code{tie.mode = "average"}), together with the graph distance and the
 corresponding cached edge realization. This is the full all-pairs analogue of
 the sparse landmark cache used by
 \code{\link{prepare.landmark.geodesic.kk}()}.

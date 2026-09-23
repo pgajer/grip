@@ -57,16 +57,16 @@ The following code uses the saved saddle graph from this comparison:
 examples <- readRDS(system.file('extdata', 'sparse-mds-comparison',
                                'benchmark.rds', package='grip'))
 g <- examples$cases[['saddle_graph-64']]
-fit <- metric.mds(edges=g$edges, n=g$n, edge_weights=g$weights,
+fit <- metric.mds(edges=g$edges, n=g$n, edge.weights=g$weights,
                   dim=3, approximation="sparse", backend="sgd",
-                  sparse_control=list(n_pivots=16), max_iter=100, seed=1)
+                  sparse.control=list(n.pivots=16), max.iter=100, seed=1)
 plot.layout(layout.coords(fit), edges=g$edges)
 fit$metadata$sparse$pivots
 ```
 
 The default is 200 pivots (or all vertices for smaller graphs) and 30 epochs.
-These are **provisional calibration choices**. Use `sparse_control=list(n_pivots=100)` to explore the
-quality–cost tradeoff, or `sparse_control=list(pivots=c(1,20,40))` to choose
+These are **provisional calibration choices**. Use `sparse.control=list(n.pivots=100)` to explore the
+quality–cost tradeoff, or `sparse.control=list(pivots=c(1,20,40))` to choose
 the representatives explicitly. The graph must be connected and its lengths
 positive. Disconnected graphs produce an error; no connecting edges are added.
 
@@ -75,8 +75,8 @@ Full MDS remains the default and supports SGD and SMACOF. Sparse MDS currently
 supports only SGD. Both modes default to two dimensions; request `dim=3` for
 3D layouts, as above.
 
-When omitted, sparse settings are `init="random"`, `pair_weights="inverse_squared"`,
-`max_iter=30`, and `diagnostics=FALSE`. Sparse mode accepts a supplied coordinate
+When omitted, sparse settings are `init="random"`, `pair.weights="inverse_squared"`,
+`max.iter=30`, and `diagnostics=FALSE`. Sparse mode accepts a supplied coordinate
 matrix, but rejects classical initialization, uniform weighting, multiple
 starts, prepared objects, and dense diagnostic controls. Supply raw edges or
 adjacency lists. These errors prevent an unexpected full distance calculation.
@@ -101,7 +101,7 @@ saddle with 4,096 vertices. It compares:
 
 - Full SGD with inverse-squared stress weights.
 - Sparse SGD with 8 and 32 pivots on the smaller examples, and 32, 128 and 200 on the larger saddle.
-- Weighted GRIP, using `metric='edge_length'`, `length_normalization='none'`, and its default layout settings.
+- Weighted GRIP, using `metric='edge_length'`, `length.normalization='none'`, and its default layout settings.
 
 There are three runs of each setting, with seeds 1–3. Both SGD methods use the
 same supplied random coordinate matrix, the default hybrid learning-rate

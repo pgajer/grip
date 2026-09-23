@@ -9,13 +9,13 @@ score.misf.geodesic.kk(
   coords = NULL,
   prepared = NULL,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  score_pair_mode = c("full", "landmark", "auto"),
-  score_full_limit = 2048L,
-  score_local_nbrs = 20L,
-  score_landmark_count = 8L,
-  return_trace = FALSE
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  score.pair.mode = c("full", "landmark", "auto"),
+  score.full.limit = 2048L,
+  score.local.nbrs = 20L,
+  score.landmark.count = 8L,
+  return.trace = FALSE
 )
 }
 \arguments{
@@ -27,44 +27,44 @@ score.misf.geodesic.kk(
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{score_pair_mode}{Requested scoring pair policy: \code{"full"},
+\item{score.pair.mode}{Requested scoring pair policy: \code{"full"},
 \code{"landmark"}, or \code{"auto"}.}
 
-\item{score_full_limit}{Active-set size threshold used when
-\code{score_pair_mode = "auto"}.}
+\item{score.full.limit}{Active-set size threshold used when
+\code{score.pair.mode = "auto"}.}
 
-\item{score_local_nbrs}{Sparse local-neighborhood size used for
+\item{score.local.nbrs}{Sparse local-neighborhood size used for
 landmark-based scoring.}
 
-\item{score_landmark_count}{Sparse landmark count used for landmark-based
+\item{score.landmark.count}{Sparse landmark count used for landmark-based
 scoring.}
 
-\item{return_trace}{If \code{TRUE}, attach any trace tables stored inside \code{fit}.}
+\item{return.trace}{If \code{TRUE}, attach any trace tables stored inside \code{fit}.}
 }
 \value{
 A one-row data frame with final MISF-GKK summary fields and either
 full-GKK or landmark-GKK score columns, depending on the resolved scoring
-policy. If \code{return_trace = TRUE}, trace list-columns are attached when
+policy. If \code{return.trace = TRUE}, trace list-columns are attached when
 available.
 }
 \description{
 \code{score.misf.geodesic.kk()} summarizes external coordinates against a
 MISF-GKK prepared object using either the exact full geodesic-KK scorer or
-the sparse landmark geodesic-KK scorer, depending on \code{score_pair_mode}. When
+the sparse landmark geodesic-KK scorer, depending on \code{score.pair.mode}. When
 a full MISF-GKK fit is supplied, the function also carries over the
 multiscale stage metadata and any trace tables retained by the optimizer.
 }
 \examples{
 mesh_edges <- edges.mesh(4, 4)
 prepared <- prepare.misf.geodesic.kk(
-  mesh_edges, n = 16, num_init = 4,
-  top_level_mode = "skip", seed = 1
+  mesh_edges, n = 16, num.init = 4,
+  top.level.mode = "skip", seed = 1
 )
 coords <- matrix(seq_len(32), nrow = 16, ncol = 2)
 score <- score.misf.geodesic.kk(coords = coords, prepared = prepared)

@@ -21,7 +21,7 @@ gripui.require.family.app.packages <- function() {
   if (length(missing) > 0L) {
     options(rgl.useNULL = old)
     stop(
-      "gripui_family_app requires optional packages that are not installed: ",
+      "gripui.family.app requires optional packages that are not installed: ",
       paste(missing, collapse = ", "),
       call. = FALSE
     )
@@ -67,7 +67,7 @@ gripui.family.preset.choices <- function(desc) {
   c(choices, stats::setNames(names(desc$presets), labels))
 }
 
-gripui.family.input_id <- function(id) {
+gripui.family.input.id <- function(id) {
   paste0("family_param_", id)
 }
 
@@ -78,7 +78,7 @@ gripui.family.numeric.vector.text <- function(x) {
   paste(format(as.numeric(x), trim = TRUE, digits = 6), collapse = ", ")
 }
 
-gripui.family.value_or_default <- function(x, default) {
+gripui.family.value.or.default <- function(x, default) {
   if (is.null(x) || length(x) == 0L || all(is.na(x))) {
     return(default)
   }
@@ -101,12 +101,12 @@ gripui.family.seed.spec <- function(desc) {
   gripui.family.param.spec(desc, "seed")
 }
 
-gripui.family.resample.seed <- function(current_seed = NULL, max_seed = 1000000L) {
-  max_seed <- max(as.integer(gripui.family.value_or_default(max_seed, 1000000L)), 0L)
-  modulus <- as.numeric(max_seed) + 1
+gripui.family.resample.seed <- function(current.seed = NULL, max.seed = 1000000L) {
+  max.seed <- max(as.integer(gripui.family.value.or.default(max.seed, 1000000L)), 0L)
+  modulus <- as.numeric(max.seed) + 1
   now_ms <- floor(as.numeric(Sys.time()) * 1000)
   seed <- as.integer(now_ms %% modulus)
-  if (!is.null(current_seed) && !is.na(current_seed) && identical(seed, as.integer(current_seed)) && max_seed > 0L) {
+  if (!is.null(current.seed) && !is.na(current.seed) && identical(seed, as.integer(current.seed)) && max.seed > 0L) {
     seed <- as.integer((as.numeric(seed) + 1) %% modulus)
   }
   seed
@@ -152,8 +152,8 @@ gripui.family.timestamp.tz <- function(x, default = Sys.timezone()) {
   }
 }
 
-gripui.family.as.posixct <- function(x, default_tz = Sys.timezone()) {
-  as.POSIXct(x, tz = gripui.family.timestamp.tz(x, default = default_tz))
+gripui.family.as.posixct <- function(x, default.tz = Sys.timezone()) {
+  as.POSIXct(x, tz = gripui.family.timestamp.tz(x, default = default.tz))
 }
 
 gripui.family.save.stub <- function(payload, timestamp = Sys.time()) {
@@ -190,7 +190,7 @@ gripui.family.unique.save.path <- function(path) {
   }
 }
 
-gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
+gripui.family.save.bundle <- function(payload, path, saved.at = Sys.time()) {
   save_dir <- dirname(path)
   if (!dir.exists(save_dir)) {
     dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
@@ -207,7 +207,7 @@ gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
     category = payload$category,
     values = payload$values,
     rendered_at = payload$rendered_at,
-    saved_at = gripui.family.as.posixct(saved_at),
+    saved_at = gripui.family.as.posixct(saved.at),
     code = payload$code,
     payload = payload,
     session = list(
@@ -219,8 +219,8 @@ gripui.family.save.bundle <- function(payload, path, saved_at = Sys.time()) {
   invisible(path)
 }
 
-gripui.family.saved.bundle.files <- function(family_id, root = getwd()) {
-  dir <- file.path(root, "tmp", "gripui-family-graphs", family_id)
+gripui.family.saved.bundle.files <- function(family.id, root = getwd()) {
+  dir <- file.path(root, "tmp", "gripui-family-graphs", family.id)
   if (!dir.exists(dir)) {
     return(character(0L))
   }
@@ -303,11 +303,11 @@ gripui.family.saved.bundle.raw <- function(bundle) {
   raw
 }
 
-gripui.family.sample.reuse.values <- function(current_values, saved_values) {
-  out <- current_values
+gripui.family.sample.reuse.values <- function(current.values, saved.values) {
+  out <- current.values
   fixed_ids <- c("n", "xmin", "xmax", "ymin", "ymax", "seed")
-  for (id in intersect(fixed_ids, names(saved_values))) {
-    out[[id]] <- saved_values[[id]]
+  for (id in intersect(fixed_ids, names(saved.values))) {
+    out[[id]] <- saved.values[[id]]
   }
   out
 }
@@ -316,7 +316,7 @@ gripui.family.payload.from.raw <- function(desc, values, raw) {
   display <- gripui.family.display.coords(raw)
   display_coords <- display$coords
   plot_coords <- gripui.family.plot.coords(raw, display_coords)
-  graph_obj <- grip.build.adj.from.edges(raw$edges, n = raw$n, edge_weights = raw$edge_weights)
+  graph_obj <- grip.build.adj.from.edges(raw$edges, n = raw$n, edge.weights = raw$edge_weights)
   graph_obj$vertex_data <- gripui.family.vertex.data(raw, graph_obj, display_coords, plot_coords)
   code <- if (is.function(desc$code)) {
     desc$code(values)
@@ -347,7 +347,7 @@ gripui.family.update.param.inputs <- function(session, desc, values) {
     if (!spec$id %in% names(values)) {
       next
     }
-    input_id <- gripui.family.input_id(spec$id)
+    input_id <- gripui.family.input.id(spec$id)
     value <- values[[spec$id]]
     switch(
       spec$type,
@@ -362,13 +362,13 @@ gripui.family.update.param.inputs <- function(session, desc, values) {
   invisible(values)
 }
 
-gripui.family.sampled.rectangle.raw.from.bundle <- function(desc, current_values, bundle, mode) {
+gripui.family.sampled.rectangle.raw.from.bundle <- function(desc, current.values, bundle, mode) {
   saved_values <- gripui.family.saved.bundle.values(bundle)
   saved_raw <- gripui.family.saved.bundle.raw(bundle)
   if (!identical(desc$id, "sampled_rectangle")) {
     stop("Sample reuse is currently supported only for the sampled rectangle family.", call. = FALSE)
   }
-  values <- gripui.family.sample.reuse.values(current_values, saved_values)
+  values <- gripui.family.sample.reuse.values(current.values, saved_values)
   if (identical(mode, "sample_topology")) {
     topology_ids <- c(
       "k",
@@ -387,12 +387,12 @@ gripui.family.sampled.rectangle.raw.from.bundle <- function(desc, current_values
       graph = saved_raw,
       surface = values$surface,
       amplitude = values$amplitude,
-      freq_u = values$freq_u,
-      freq_v = values$freq_v,
+      freq.u = values$freq_u,
+      freq.v = values$freq_v,
       normalize = values$normalize
     ),
     sample_rebuild = .sampled.rectangle.surface.graph.from.coords(
-      coords_param = saved_raw$coords_param,
+      coords.param = saved_raw$coords_param,
       k = values$k,
       xmin = values$xmin,
       xmax = values$xmax,
@@ -401,9 +401,9 @@ gripui.family.sampled.rectangle.raw.from.bundle <- function(desc, current_values
       seed = values$seed,
       surface = values$surface,
       amplitude = values$amplitude,
-      freq_u = values$freq_u,
-      freq_v = values$freq_v,
-      graph_space = values$graph_space,
+      freq.u = values$freq_u,
+      freq.v = values$freq_v,
+      graph.space = values$graph_space,
       max.path.edge.ratio.deviation.thld = values$max.path.edge.ratio.deviation.thld,
       path.edge.ratio.percentile = values$path.edge.ratio.percentile,
       threshold.percentile = values$threshold.percentile,
@@ -431,7 +431,7 @@ gripui.family.visible.condition <- function(spec) {
   }
   pieces <- vapply(names(vis), function(id) {
     values <- vis[[id]]
-    input_name <- gripui.family.input_id(id)
+    input_name <- gripui.family.input.id(id)
     options <- vapply(values, function(val) {
       sprintf("input['%s'] == %s", input_name, gripui.family.js.value(val))
     }, character(1L))
@@ -441,7 +441,7 @@ gripui.family.visible.condition <- function(spec) {
 }
 
 gripui.family.param.control <- function(spec, value) {
-  input_id <- gripui.family.input_id(spec$id)
+  input_id <- gripui.family.input.id(spec$id)
   widget <- switch(
     spec$type,
     integer = shiny::numericInput(
@@ -508,18 +508,18 @@ gripui.family.param.ui <- function(desc, values) {
   }))
 }
 
-gripui.family.collect.values <- function(desc, input, preset_id = "default") {
-  defaults <- .gripui.family.merge.values(desc, preset_id = preset_id)
+gripui.family.collect.values <- function(desc, input, preset.id = "default") {
+  defaults <- .gripui.family.merge.values(desc, preset.id = preset.id)
   out <- defaults
   for (spec in desc$params) {
-    raw <- input[[gripui.family.input_id(spec$id)]]
+    raw <- input[[gripui.family.input.id(spec$id)]]
     value <- if (is.null(raw)) spec$default else spec$coerce(raw)
     out[[spec$id]] <- value
   }
   out
 }
 
-gripui.family.as_matrix <- function(x) {
+gripui.family.as.matrix <- function(x) {
   if (is.null(x)) {
     return(NULL)
   }
@@ -528,39 +528,39 @@ gripui.family.as_matrix <- function(x) {
   out
 }
 
-gripui.family.pad_coords <- function(coords, target_cols = 3L, colnames_out = c("x", "y", "z")) {
-  coords <- gripui.family.as_matrix(coords)
+gripui.family.pad.coords <- function(coords, target.cols = 3L, colnames.out = c("x", "y", "z")) {
+  coords <- gripui.family.as.matrix(coords)
   if (is.null(coords)) {
     return(NULL)
   }
-  if (ncol(coords) < target_cols) {
-    coords <- cbind(coords, matrix(0, nrow(coords), target_cols - ncol(coords)))
+  if (ncol(coords) < target.cols) {
+    coords <- cbind(coords, matrix(0, nrow(coords), target.cols - ncol(coords)))
   }
-  coords <- coords[, seq_len(target_cols), drop = FALSE]
-  colnames(coords) <- colnames_out[seq_len(target_cols)]
+  coords <- coords[, seq_len(target.cols), drop = FALSE]
+  colnames(coords) <- colnames.out[seq_len(target.cols)]
   coords
 }
 
-gripui.family.tree.leaf_order <- function(parent) {
+gripui.family.tree.leaf.order <- function(parent) {
   children <- split(seq_along(parent), parent)
   children <- children[names(children) != "0"]
 
   order <- numeric(length(parent))
   next_leaf <- 1
 
-  assign_order <- function(node) {
+  assign.order <- function(node) {
     kids <- children[[as.character(node)]]
     if (is.null(kids) || length(kids) == 0L) {
       order[[node]] <<- next_leaf
       next_leaf <<- next_leaf + 1
       return(order[[node]])
     }
-    child_vals <- vapply(kids, assign_order, numeric(1L))
+    child_vals <- vapply(kids, assign.order, numeric(1L))
     order[[node]] <<- mean(child_vals)
     order[[node]]
   }
 
-  assign_order(1L)
+  assign.order(1L)
   order
 }
 
@@ -571,7 +571,7 @@ gripui.family.tree.display.coords <- function(raw) {
     return(cbind(seq_len(n), rep(0, n), rep(0, n)))
   }
   depth <- as.integer(raw$vertex_depth)
-  leaf_order <- gripui.family.tree.leaf_order(parent)
+  leaf_order <- gripui.family.tree.leaf.order(parent)
   edge_table <- raw$edge_table
 
   root_dist <- numeric(n)
@@ -600,7 +600,7 @@ gripui.family.tree.display.coords <- function(raw) {
 }
 
 gripui.family.display.coords <- function(raw) {
-  coords <- gripui.family.pad_coords(raw$coords_surface, target_cols = 3L)
+  coords <- gripui.family.pad.coords(raw$coords_surface, target.cols = 3L)
   note <- NULL
   if (!is.null(coords)) {
     return(list(coords = coords, note = note))
@@ -613,33 +613,33 @@ gripui.family.display.coords <- function(raw) {
   list(coords = coords, note = note)
 }
 
-gripui.family.plot.coords <- function(raw, display_coords) {
+gripui.family.plot.coords <- function(raw, display.coords) {
   coords <- raw$coords_param
   if (is.null(coords)) {
-    coords <- display_coords
+    coords <- display.coords
   }
-  gripui.family.pad_coords(coords, target_cols = 2L, colnames_out = c("x", "y"))
+  gripui.family.pad.coords(coords, target.cols = 2L, colnames.out = c("x", "y"))
 }
 
-gripui.family.vertex.data <- function(raw, graph_obj, display_coords, plot_coords) {
-  degree <- vapply(graph_obj$adj_list, length, integer(1L))
+gripui.family.vertex.data <- function(raw, graph.obj, display.coords, plot.coords) {
+  degree <- vapply(graph.obj$adj_list, length, integer(1L))
   out <- data.frame(
-    x = display_coords[, 1L],
-    y = display_coords[, 2L],
-    z = display_coords[, 3L],
-    plot_x = plot_coords[, 1L],
-    plot_y = plot_coords[, 2L],
+    x = display.coords[, 1L],
+    y = display.coords[, 2L],
+    z = display.coords[, 3L],
+    plot_x = plot.coords[, 1L],
+    plot_y = plot.coords[, 2L],
     degree = degree,
     stringsAsFactors = FALSE
   )
   if (!is.null(raw$coords_surface)) {
-    surface <- gripui.family.pad_coords(raw$coords_surface, target_cols = 3L)
+    surface <- gripui.family.pad.coords(raw$coords_surface, target.cols = 3L)
     out$surface_x <- surface[, 1L]
     out$surface_y <- surface[, 2L]
     out$surface_z <- surface[, 3L]
   }
   if (!is.null(raw$coords_param)) {
-    param <- gripui.family.as_matrix(raw$coords_param)
+    param <- gripui.family.as.matrix(raw$coords_param)
     for (j in seq_len(ncol(param))) {
       out[[paste0("param_", j)]] <- param[, j]
     }
@@ -723,15 +723,15 @@ gripui.family.default.color <- function(choices) {
   unname(choices[[1L]])
 }
 
-gripui.family.compare.family.input_id <- function(idx) {
+gripui.family.compare.family.input.id <- function(idx) {
   sprintf("compare_family_%d", idx)
 }
 
-gripui.family.compare.preset.input_id <- function(idx) {
+gripui.family.compare.preset.input.id <- function(idx) {
   sprintf("compare_preset_%d", idx)
 }
 
-gripui.family.compare.plot.output_id <- function(idx) {
+gripui.family.compare.plot.output.id <- function(idx) {
   sprintf("compare_viewer_2d_%d", idx)
 }
 
@@ -747,7 +747,7 @@ gripui.family.compare.preferred.ids <- function(catalog) {
   unique(c(preferred[preferred %in% names(catalog)], names(catalog)))
 }
 
-gripui.family.compare.default.family_id <- function(catalog, idx = 1L) {
+gripui.family.compare.default.family.id <- function(catalog, idx = 1L) {
   ids <- gripui.family.compare.preferred.ids(catalog)
   ids[[((idx - 1L) %% length(ids)) + 1L]]
 }
@@ -760,26 +760,26 @@ gripui.family.compare.default.preset <- function(desc, rank = 1L) {
 gripui.family.compare.slot.selection <- function(idx,
                                                  input,
                                                  catalog,
-                                                 current_family_id,
-                                                 lock_family = FALSE,
-                                                 include_current = TRUE) {
-  if (isTRUE(include_current) && idx == 1L) {
+                                                 current.family.id,
+                                                 lock.family = FALSE,
+                                                 include.current = TRUE) {
+  if (isTRUE(include.current) && idx == 1L) {
     return(list(source = "current", slot = idx))
   }
 
-  family_id <- if (isTRUE(lock_family)) {
-    current_family_id
+  family_id <- if (isTRUE(lock.family)) {
+    current.family.id
   } else {
-    raw <- input[[gripui.family.compare.family.input_id(idx)]]
+    raw <- input[[gripui.family.compare.family.input.id(idx)]]
     if (is.null(raw) || !raw %in% names(catalog)) {
-      gripui.family.compare.default.family_id(catalog, idx = idx)
+      gripui.family.compare.default.family.id(catalog, idx = idx)
     } else {
       raw
     }
   }
 
   desc <- catalog[[family_id]]
-  preset_raw <- input[[gripui.family.compare.preset.input_id(idx)]]
+  preset_raw <- input[[gripui.family.compare.preset.input.id(idx)]]
   preset_id <- if (is.null(preset_raw) || !preset_raw %in% c("default", names(desc$presets))) {
     gripui.family.compare.default.preset(desc, rank = idx)
   } else {
@@ -797,21 +797,21 @@ gripui.family.compare.slot.selection <- function(idx,
 gripui.family.compare.slot.ui <- function(idx,
                                           input,
                                           catalog,
-                                          current_family_id,
-                                          include_current = TRUE,
-                                          lock_family = FALSE,
-                                          current_desc = NULL) {
+                                          current.family.id,
+                                          include.current = TRUE,
+                                          lock.family = FALSE,
+                                          current.desc = NULL) {
   selection <- gripui.family.compare.slot.selection(
     idx = idx,
     input = input,
     catalog = catalog,
-    current_family_id = current_family_id,
-    lock_family = lock_family,
-    include_current = include_current
+    current.family.id = current.family.id,
+    lock.family = lock.family,
+    include.current = include.current
   )
 
   if (identical(selection$source, "current")) {
-    label <- if (is.null(current_desc)) "Current explore controls" else current_desc$label
+    label <- if (is.null(current.desc)) "Current explore controls" else current.desc$label
     return(
       shiny::tags$div(
         class = "gripui-family-group",
@@ -831,21 +831,21 @@ gripui.family.compare.slot.ui <- function(idx,
   shiny::tags$div(
     class = "gripui-family-group",
     shiny::tags$h5(style = "margin-top:0.8rem;", sprintf("Variant %d", idx)),
-    if (isTRUE(lock_family)) {
+    if (isTRUE(lock.family)) {
       shiny::tags$p(
         class = "gripui-selection-status",
-        sprintf("Family locked to %s.", catalog[[current_family_id]]$label)
+        sprintf("Family locked to %s.", catalog[[current.family.id]]$label)
       )
     } else {
       shiny::selectInput(
-        inputId = gripui.family.compare.family.input_id(idx),
+        inputId = gripui.family.compare.family.input.id(idx),
         label = "Family",
         choices = family_choices,
         selected = selection$family_id
       )
     },
     shiny::selectInput(
-      inputId = gripui.family.compare.preset.input_id(idx),
+      inputId = gripui.family.compare.preset.input.id(idx),
       label = "Preset",
       choices = gripui.family.preset.choices(desc),
       selected = selection$preset_id
@@ -1058,11 +1058,11 @@ gripui.family.server <- function(catalog) {
 
     output$family_param_panel <- shiny::renderUI({
       desc <- current_desc()
-      values <- .gripui.family.merge.values(desc, preset_id = input$family_preset)
+      values <- .gripui.family.merge.values(desc, preset.id = input$family_preset)
       gripui.family.param.ui(desc, values)
     })
 
-    build_payload <- function(values) {
+    build.payload <- function(values) {
       desc <- current_desc()
       result <- tryCatch(
         gripui.family.build.payload(desc, values),
@@ -1081,14 +1081,14 @@ gripui.family.server <- function(catalog) {
 
     shiny::observeEvent(list(input$family_id, input$family_preset), {
       desc <- current_desc()
-      values <- .gripui.family.merge.values(desc, preset_id = input$family_preset)
-      build_payload(values)
+      values <- .gripui.family.merge.values(desc, preset.id = input$family_preset)
+      build.payload(values)
     }, ignoreInit = FALSE)
 
     shiny::observeEvent(input$render_family_geometry, {
       desc <- current_desc()
-      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
-      build_payload(values)
+      values <- gripui.family.collect.values(desc, input, preset.id = input$family_preset)
+      build.payload(values)
     })
 
     output$family_stochastic_actions <- shiny::renderUI({
@@ -1155,18 +1155,18 @@ gripui.family.server <- function(catalog) {
 
     shiny::observeEvent(input$resample_family_graph, {
       desc <- current_desc()
-      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+      values <- gripui.family.collect.values(desc, input, preset.id = input$family_preset)
       seed_spec <- gripui.family.seed.spec(desc)
       seed_label <- NULL
       if (!is.null(seed_spec)) {
         values$seed <- seed_spec$coerce(gripui.family.resample.seed(
-          current_seed = values$seed,
-          max_seed = seed_spec$max
+          current.seed = values$seed,
+          max.seed = seed_spec$max
         ))
-        shiny::updateNumericInput(session, gripui.family.input_id(seed_spec$id), value = values$seed)
+        shiny::updateNumericInput(session, gripui.family.input.id(seed_spec$id), value = values$seed)
         seed_label <- as.character(values$seed)
       }
-      result <- build_payload(values)
+      result <- build.payload(values)
       if (!is.null(result)) {
         shiny::showNotification(
           if (!is.null(seed_label)) {
@@ -1202,20 +1202,20 @@ gripui.family.server <- function(catalog) {
     shiny::observeEvent(input$load_family_graph, {
       desc <- current_desc()
       path <- input$family_saved_bundle
-      mode <- gripui.family.value_or_default(input$family_saved_load_mode, "exact")
+      mode <- gripui.family.value.or.default(input$family_saved_load_mode, "exact")
       result <- tryCatch({
         bundle <- gripui.family.read.saved.bundle(path)
         bundle_values <- gripui.family.saved.bundle.values(bundle)
-        if (!identical(gripui.family.value_or_default(bundle$family_id, bundle$payload$family_id), desc$id)) {
+        if (!identical(gripui.family.value.or.default(bundle$family_id, bundle$payload$family_id), desc$id)) {
           stop("The selected saved graph belongs to a different family.", call. = FALSE)
         }
         built <- if (identical(mode, "exact")) {
           list(values = bundle_values, raw = gripui.family.saved.bundle.raw(bundle))
         } else {
-          current_values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+          current_values <- gripui.family.collect.values(desc, input, preset.id = input$family_preset)
           gripui.family.sampled.rectangle.raw.from.bundle(
             desc = desc,
-            current_values = current_values,
+            current.values = current_values,
             bundle = bundle,
             mode = mode
           )
@@ -1257,7 +1257,7 @@ gripui.family.server <- function(catalog) {
     })
 
     output$compare_control_panel <- shiny::renderUI({
-      count <- min(max(as.integer(gripui.family.value_or_default(input$compare_panel_count, 3L)), 2L), 4L)
+      count <- min(max(as.integer(gripui.family.value.or.default(input$compare_panel_count, 3L)), 2L), 4L)
       include_current <- isTRUE(input$compare_include_current)
       lock_family <- isTRUE(input$compare_lock_family)
       current_family_id <- if (!is.null(input$family_id) && input$family_id %in% names(catalog)) {
@@ -1271,17 +1271,17 @@ gripui.family.server <- function(catalog) {
           idx = idx,
           input = input,
           catalog = catalog,
-          current_family_id = current_family_id,
-          include_current = include_current,
-          lock_family = lock_family,
-          current_desc = current_desc()
+          current.family.id = current_family_id,
+          include.current = include_current,
+          lock.family = lock_family,
+          current.desc = current_desc()
         )
       }))
     })
 
-    build_current_compare_payload <- function() {
+    build.current.compare.payload <- function() {
       desc <- current_desc()
-      values <- gripui.family.collect.values(desc, input, preset_id = input$family_preset)
+      values <- gripui.family.collect.values(desc, input, preset.id = input$family_preset)
       payload <- gripui.family.build.payload(desc, values)
       payload$compare_slot <- 1L
       payload$compare_label <- "Current"
@@ -1289,8 +1289,8 @@ gripui.family.server <- function(catalog) {
       payload
     }
 
-    build_compare_payloads <- function() {
-      count <- min(max(as.integer(gripui.family.value_or_default(input$compare_panel_count, 3L)), 2L), 4L)
+    build.compare.payloads <- function() {
+      count <- min(max(as.integer(gripui.family.value.or.default(input$compare_panel_count, 3L)), 2L), 4L)
       include_current <- isTRUE(input$compare_include_current)
       lock_family <- isTRUE(input$compare_lock_family)
       current_family_id <- if (!is.null(input$family_id) && input$family_id %in% names(catalog)) {
@@ -1304,19 +1304,19 @@ gripui.family.server <- function(catalog) {
           idx = idx,
           input = input,
           catalog = catalog,
-          current_family_id = current_family_id,
-          lock_family = lock_family,
-          include_current = include_current
+          current.family.id = current_family_id,
+          lock.family = lock_family,
+          include.current = include_current
         )
 
         if (identical(selection$source, "current")) {
-          payload <- build_current_compare_payload()
+          payload <- build.current.compare.payload()
           payload$compare_slot <- idx
           return(payload)
         }
 
         desc <- catalog[[selection$family_id]]
-        values <- .gripui.family.merge.values(desc, preset_id = selection$preset_id)
+        values <- .gripui.family.merge.values(desc, preset.id = selection$preset_id)
         payload <- gripui.family.build.payload(desc, values)
         payload$compare_slot <- idx
         payload$compare_label <- sprintf("Variant %d", idx)
@@ -1350,7 +1350,7 @@ gripui.family.server <- function(catalog) {
         input$compare_lock_family
       ),
       {
-        result <- tryCatch(build_compare_payloads(), error = function(e) e)
+        result <- tryCatch(build.compare.payloads(), error = function(e) e)
         if (inherits(result, "error")) {
           compare_error_state(conditionMessage(result))
         }
@@ -1359,7 +1359,7 @@ gripui.family.server <- function(catalog) {
     )
 
     shiny::observeEvent(input$render_family_compare, {
-      result <- tryCatch(build_compare_payloads(), error = function(e) e)
+      result <- tryCatch(build.compare.payloads(), error = function(e) e)
       if (inherits(result, "error")) {
         compare_error_state(conditionMessage(result))
         shiny::showNotification(conditionMessage(result), type = "error")
@@ -1415,8 +1415,8 @@ gripui.family.server <- function(catalog) {
         gripui.render.rglwidget(
           payload$coords_display,
           graph = payload$graph,
-          color_by = input$viewer_color_by,
-          show_edges = isTRUE(input$show_edges)
+          color.by = input$viewer_color_by,
+          show.edges = isTRUE(input$show_edges)
         ),
         if (!is.null(payload$note) && nzchar(payload$note)) {
           shiny::tags$p(style = "margin-top:0.9rem;color:#6b7280;", payload$note)
@@ -1434,15 +1434,15 @@ gripui.family.server <- function(catalog) {
       gripui.render.layout.plot2d(
         payload$coords_plot,
         graph = payload$graph,
-        color_by = input$viewer_color_by,
-        show_edges = isTRUE(input$show_edges)
+        color.by = input$viewer_color_by,
+        show.edges = isTRUE(input$show_edges)
       )
     })
 
     for (idx in seq_len(4L)) {
       local({
         i <- idx
-        output[[gripui.family.compare.plot.output_id(i)]] <- shiny::renderPlot({
+        output[[gripui.family.compare.plot.output.id(i)]] <- shiny::renderPlot({
           payloads <- compare_payloads_state()
           if (is.null(payloads) || length(payloads) < i || is.null(payloads[[i]])) {
             graphics::plot.new()
@@ -1454,8 +1454,8 @@ gripui.family.server <- function(catalog) {
           gripui.render.layout.plot2d(
             payload$coords_plot,
             graph = payload$graph,
-            color_by = input$compare_color_by,
-            show_edges = isTRUE(input$compare_show_edges)
+            color.by = input$compare_color_by,
+            show.edges = isTRUE(input$compare_show_edges)
           )
         })
       })
@@ -1483,10 +1483,10 @@ gripui.family.server <- function(catalog) {
           gripui.render.rglwidget(
             payload$coords_display,
             graph = payload$graph,
-            color_by = input$compare_color_by,
-            show_edges = isTRUE(input$compare_show_edges)
+            color.by = input$compare_color_by,
+            show.edges = isTRUE(input$compare_show_edges)
           ),
-          shiny::plotOutput(gripui.family.compare.plot.output_id(idx), height = 220),
+          shiny::plotOutput(gripui.family.compare.plot.output.id(idx), height = 220),
           if (!is.null(payload$note) && nzchar(payload$note)) {
             shiny::tags$p(style = "margin-top:0.9rem;color:#6b7280;", payload$note)
           }
@@ -1546,7 +1546,7 @@ gripui.family.server <- function(catalog) {
 
 #' Build the graph-family geometry explorer Shiny application
 #'
-#' @param catalog Family catalog, usually `gripui_graph_family_catalog()`.
+#' @param catalog Family catalog, usually `gripui.graph.family.catalog()`.
 #' @param title Application title.
 #' @param subtitle Optional subtitle shown in the sidebar.
 #'
@@ -1554,10 +1554,10 @@ gripui.family.server <- function(catalog) {
 #' @export
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
-#' app <- gripui_family_app()
+#' app <- gripui.family.app()
 #' inherits(app, "shiny.appobj")
 #' @md
-gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
+gripui.family.app <- function(catalog = gripui.graph.family.catalog(),
                               title = "Graph Family Geometry Explorer",
                               subtitle = "Interactive geometry browser for synthetic benchmark families.") {
   gripui.family.validate.catalog(catalog)
@@ -1572,7 +1572,7 @@ gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
 
 #' Run the graph-family geometry explorer Shiny application
 #'
-#' @param catalog Family catalog, usually `gripui_graph_family_catalog()`.
+#' @param catalog Family catalog, usually `gripui.graph.family.catalog()`.
 #' @param title Application title.
 #' @param subtitle Optional subtitle shown in the sidebar.
 #' @param host Host passed to `shiny::runApp()`.
@@ -1586,9 +1586,9 @@ gripui_family_app <- function(catalog = gripui_graph_family_catalog(),
 #' @export
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); packages <- c("shiny", "bslib", "rgl", "later", "httpuv"); if (!all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) return(FALSE); server <- tryCatch(httpuv::startServer("127.0.0.1", 0L, list(call = function(req) list(status = 200L, headers = list(), body = "ok"))), error = function(e) NULL); if (is.null(server)) return(FALSE); server$stop(); TRUE })
-#' run_gripui_family(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
+#' run.gripui.family(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
 #' @md
-run_gripui_family <- function(catalog = gripui_graph_family_catalog(),
+run.gripui.family <- function(catalog = gripui.graph.family.catalog(),
                               title = "Graph Family Geometry Explorer",
                               subtitle = "Interactive geometry browser for synthetic benchmark families.",
                               host = "127.0.0.1",
@@ -1596,7 +1596,7 @@ run_gripui_family <- function(catalog = gripui_graph_family_catalog(),
                               launch.browser = interactive(),
                               auto.stop.after = NULL,
                               ...) {
-  app <- gripui_family_app(catalog = catalog, title = title, subtitle = subtitle)
+  app <- gripui.family.app(catalog = catalog, title = title, subtitle = subtitle)
 
   if (!is.null(auto.stop.after)) {
     if (!requireNamespace("later", quietly = TRUE)) {

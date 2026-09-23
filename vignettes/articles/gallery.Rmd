@@ -124,7 +124,7 @@ mesh.graph <- mesh.surface.graph(
 mesh.coords <- grip(metric = "edge_length",
   mesh.graph$edges,
   n = mesh.graph$n,
-  edge_weights = mesh.graph$edge_weights,
+  edge.weights = mesh.graph$edge_weights,
   dim = 3,
   preset = "mesh",
   seed = 1
@@ -162,7 +162,7 @@ Wrapped lattices extend the same idea to periodic topologies such as a torus.
 torus.graph <- torus.surface.graph(
   5, 6,
   surface = "pinched",
-  minor_radius = 0.33,
+  minor.radius = 0.33,
   amplitude = 0.18,
   twist = 0.18
 )
@@ -170,7 +170,7 @@ torus.graph <- torus.surface.graph(
 torus.coords <- grip(metric = "edge_length",
   torus.graph$edges,
   n = torus.graph$n,
-  edge_weights = torus.graph$edge_weights,
+  edge.weights = torus.graph$edge_weights,
   dim = 3,
   preset = "torus",
   seed = 2
@@ -216,7 +216,7 @@ vicsek.graph <- vicsek.surface.graph(
 vicsek.coords <- grip(metric = "edge_length",
   vicsek.graph$edges,
   n = vicsek.graph$n,
-  edge_weights = vicsek.graph$edge_weights,
+  edge.weights = vicsek.graph$edge_weights,
   dim = 3,
   preset = "carpet",
   seed = 3
@@ -246,8 +246,8 @@ surfaces.
 ```{r annulus-family}
 annulus.graph <- irregular.annulus.surface.graph(
   rings = 5,
-  outer_count = 24,
-  inner_radius = 0.42,
+  outer.count = 24,
+  inner.radius = 0.42,
   surface = "folded",
   amplitude = 0.2
 )
@@ -255,7 +255,7 @@ annulus.graph <- irregular.annulus.surface.graph(
 annulus.coords <- grip(metric = "edge_length",
   annulus.graph$edges,
   n = annulus.graph$n,
-  edge_weights = annulus.graph$edge_weights,
+  edge.weights = annulus.graph$edge_weights,
   dim = 3,
   preset = "irregular",
   seed = 4
@@ -293,7 +293,7 @@ cube.graph <- cube.channel.network.surface.graph(
 cube.coords <- grip(metric = "edge_length",
   cube.graph$edges,
   n = cube.graph$n,
-  edge_weights = cube.graph$edge_weights,
+  edge.weights = cube.graph$edge_weights,
   dim = 3,
   preset = "irregular",
   seed = 5
@@ -333,16 +333,16 @@ from branch-depth and branch-position rules.
 tree.graph <- kary.tree.weighted.graph(
   k = 2,
   depth = 4,
-  depth_rule = "geometric",
-  depth_decay = 0.82,
-  branch_rule = "linear",
-  branch_spread = 0.25
+  depth.rule = "geometric",
+  depth.decay = 0.82,
+  branch.rule = "linear",
+  branch.spread = 0.25
 )
 
 tree.coords <- grip(metric = "edge_length",
   tree.graph$edges,
   n = tree.graph$n,
-  edge_weights = tree.graph$edge_weights,
+  edge.weights = tree.graph$edge_weights,
   dim = 2,
   preset = "tree",
   seed = 6
@@ -390,4 +390,4 @@ The family collection now serves three roles:
 - `Weighted Graph Layouts with grip` explains how to use these family bundles
   with the weighted sister API.
 - `Interactive Exploration with gripui` shows how to browse the larger family
-  registry through `run_gripui_family()`.
+  registry through `run.gripui.family()`.

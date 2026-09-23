@@ -2,7 +2,7 @@ test_that("GMDS layout result constructor preserves common shape", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 2, 1)
+    edge.weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
   diagnostics <- score.gmds(coords, prepared = prepared)
@@ -33,13 +33,13 @@ test_that("common diagnostics are exact on a weighted path realization", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 2, 1)
+    edge.weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
   diagnostics <- score.gmds(
     coords = coords,
     prepared = prepared,
-    scale_mode = "identity"
+    scale.mode = "identity"
   )
 
   expect_lt(diagnostics$edge.rel.rmse[[1L]], 1e-8)
@@ -73,7 +73,7 @@ test_that("flat path-length diagnostics handle tie-averaged path coefficients", 
   prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = 4L,
-    tie_mode = "average"
+    tie.mode = "average"
   )
   coords <- rbind(
     c(0, 0),
@@ -91,7 +91,7 @@ test_that("classical MDS baseline returns common GMDS layout result", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
-    edge_weights = rep(1, 4L)
+    edge.weights = rep(1, 4L)
   )
   layout <- classical.mds(prepared = prepared, dim = 2L)
 
@@ -135,18 +135,18 @@ test_that("profiled diagnostics factor out global scale", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 2, 1)
+    edge.weights = c(1, 2, 1)
   )
   coords <- 3 * cbind(c(0, 1, 3, 4), 0)
   profiled <- score.gmds(
     coords = coords,
     prepared = prepared,
-    scale_mode = "profiled"
+    scale.mode = "profiled"
   )
   identity <- score.gmds(
     coords = coords,
     prepared = prepared,
-    scale_mode = "identity"
+    scale.mode = "identity"
   )
 
   expect_lt(profiled$edge.rel.rmse[[1L]], 1e-8)

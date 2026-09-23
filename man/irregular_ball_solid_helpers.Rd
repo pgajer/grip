@@ -9,13 +9,13 @@ irregular.ball.solid.graph(
   base = c("tetrahedron", "octahedron", "icosahedron"),
   level = 1,
   layers = 3,
-  outer_radius = 1,
-  radial_irregularity = 0.25,
-  layer_twist = 0.35,
+  outer.radius = 1,
+  radial.irregularity = 0.25,
+  layer.twist = 0.35,
   surface = c("standard", "bulged", "twisted", "wavy"),
   amplitude = 0.2,
-  freq_theta = 2,
-  freq_phi = 2,
+  freq.theta = 2,
+  freq.phi = 2,
   twist = 0.6,
   normalize = c("median", "mean", "none")
 )
@@ -28,12 +28,12 @@ irregular.ball.solid.graph(
 
 \item{layers}{Number of non-center radial layers.}
 
-\item{outer_radius}{Positive outer radius of the ball.}
+\item{outer.radius}{Positive outer radius of the ball.}
 
-\item{radial_irregularity}{Irregularity level for the radial layer spacing.
+\item{radial.irregularity}{Irregularity level for the radial layer spacing.
 Must lie in \code{[0, 1]}.}
 
-\item{layer_twist}{Finite z-axis twist applied smoothly across radial
+\item{layer.twist}{Finite z-axis twist applied smoothly across radial
 layers.}
 
 \item{surface}{Solid geometry family. One of \code{"standard"},
@@ -41,10 +41,10 @@ layers.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_theta}{Positive azimuthal modulation frequency used only when
+\item{freq.theta}{Positive azimuthal modulation frequency used only when
 \code{surface = "wavy"}.}
 
-\item{freq_phi}{Positive polar modulation frequency used only when
+\item{freq.phi}{Positive polar modulation frequency used only when
 \code{surface = "wavy"}.}
 
 \item{twist}{Finite twist strength used only when

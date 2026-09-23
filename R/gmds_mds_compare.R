@@ -70,10 +70,10 @@ grip.classical.mds.embedding <- function(prepared,
 
 grip.classical.mds.score.stats <- function(coords,
                                            prepared,
-                                           distance_floor = 1e-8) {
+                                           distance.floor = 1e-8) {
   coords <- grip.validate.coords.nd(coords)
   prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
-  grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(distance.floor, "distance.floor", lower = 0, open.lower = TRUE)
 
   g <- as.double(prepared$pair_graph_distance)
   if (length(g) == 0L) {
@@ -97,7 +97,7 @@ grip.classical.mds.score.stats <- function(coords,
   diffs <- coords[pair.matrix[, 1L], , drop = FALSE] - coords[pair.matrix[, 2L], , drop = FALSE]
   d <- sqrt(rowSums(diffs^2))
   resid <- d - g
-  rel.resid <- resid / pmax(g, distance_floor)
+  rel.resid <- resid / pmax(g, distance.floor)
   raw.stress <- sum(resid^2)
   denom <- sum(g^2)
 

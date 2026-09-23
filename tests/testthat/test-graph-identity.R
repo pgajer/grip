@@ -1,10 +1,12 @@
 graph.identity.entry.points <- function(prepared = FALSE) {
   exports <- getNamespaceExports("grip")
-  required <- c("edges", "n", "adj_list", "weight_list", "edge_weights")
+  required <- c("edges", "n", "adj.list", "weight.list", "edge.weights")
   if (prepared) required <- c(required, "prepared")
-  exports[vapply(exports, function(name) {
+  entry.points <- exports[vapply(exports, function(name) {
     all(required %in% names(formals(getExportedValue("grip", name))))
   }, logical(1))]
+  expect_gt(length(entry.points), 0L)
+  entry.points
 }
 
 test_that("public graph entry points reject fractional identity before dispatch", {
@@ -18,7 +20,7 @@ test_that("public graph entry points reject fractional identity before dispatch"
       expect_error(do.call(fun, list(edges = cbind(1:2, 2:3), n = n)),
                    "n must be a single finite positive integer", info = name)
     }
-    expect_error(do.call(fun, list(adj_list = list(2.5, c(1, 3), 2), n = 3)),
+    expect_error(do.call(fun, list(adj.list = list(2.5, c(1, 3), 2), n = 3)),
                  "adj_list\\[\\[1\\]\\]\\[1\\].*integer vertex id", info = name)
   }
 })
@@ -28,12 +30,12 @@ test_that("public graph entry points reject competing representations and mispla
   adj <- list(2L, c(1L, 3L), 2L)
   for (name in graph.identity.entry.points()) {
     fun <- getExportedValue("grip", name)
-    expect_error(do.call(fun, list(edges = edges, adj_list = adj, n = 3)),
-                 "either edges or adj_list, not both", info = name)
-    expect_error(do.call(fun, list(edges = edges, weight_list = list(1, c(1, 1), 1), n = 3)),
-                 "weight_list requires adj_list", info = name)
-    expect_error(do.call(fun, list(adj_list = adj, edge_weights = c(1, 1), n = 3)),
-                 "edge_weights requires edges", info = name)
+    expect_error(do.call(fun, list(edges = edges, adj.list = adj, n = 3)),
+                 "either edges or adj.list, not both", info = name)
+    expect_error(do.call(fun, list(edges = edges, weight.list = list(1, c(1, 1), 1), n = 3)),
+                 "weight.list requires adj.list", info = name)
+    expect_error(do.call(fun, list(adj.list = adj, edge.weights = c(1, 1), n = 3)),
+                 "edge.weights requires edges", info = name)
   }
 })
 
@@ -54,8 +56,8 @@ test_that("prepared graphs reject raw graph inputs and contradictory counts", {
   prepared <- prepare.graph.geodesic.mds(edges, n = 3)
   for (name in graph.identity.entry.points(prepared = TRUE)) {
     fun <- getExportedValue("grip", name)
-    for (raw in list(list(edges = edges), list(adj_list = list(2, c(1, 3), 2)),
-                     list(edge_weights = c(1, 1)), list(weight_list = list(1, c(1, 1), 1)))) {
+    for (raw in list(list(edges = edges), list(adj.list = list(2, c(1, 3), 2)),
+                     list(edge.weights = c(1, 1)), list(weight.list = list(1, c(1, 1), 1)))) {
       expect_error(do.call(fun, c(list(prepared = prepared), raw)),
                    "prepared cannot be combined", info = name)
     }
@@ -75,10 +77,10 @@ test_that("valid numeric ids retain graph order, isolates, and layout behavior",
   edges <- cbind(1:2, 2:3)
   numeric.edges <- matrix(as.double(edges), ncol = 2)
   adj <- list(2L, c(1L, 3L), 2L, integer())
-  args <- list(n = 4, dim = 2, rounds = 3, final_rounds = 3, seed = 19)
+  args <- list(n = 4, dim = 2, rounds = 3, final.rounds = 3, seed = 19)
   expect_warning(from.edges <- do.call(grip, c(list(edges = edges), args)), "2 connected components")
   expect_warning(from.numeric <- do.call(grip, c(list(edges = numeric.edges), args)), "2 connected components")
-  expect_warning(from.adj <- do.call(grip, c(list(adj_list = adj), args)), "2 connected components")
+  expect_warning(from.adj <- do.call(grip, c(list(adj.list = adj), args)), "2 connected components")
   expect_identical(from.numeric, from.edges)
   expect_identical(from.adj, from.edges)
   expect_equal(dim(from.edges), c(4, 2))
@@ -86,8 +88,8 @@ test_that("valid numeric ids retain graph order, isolates, and layout behavior",
   expect_warning(empty <- grip(matrix(integer(), ncol = 2), n = 2, dim = 2), "2 connected components")
   expect_equal(dim(empty), c(2, 2))
 
-  weighted <- list(n = 4, edge_weights = c(1, 2), dim = 2, seed = 19,
-                   rounds = 3, final_rounds = 3, metric = "edge_length")
+  weighted <- list(n = 4, edge.weights = c(1, 2), dim = 2, seed = 19,
+                   rounds = 3, final.rounds = 3, metric = "edge_length")
   expect_warning(weighted.numeric <- do.call(grip, c(list(edges = numeric.edges), weighted)), "2 connected components")
   expect_warning(weighted.integer <- do.call(grip, c(list(edges = edges), weighted)), "2 connected components")
   expect_identical(weighted.numeric, weighted.integer)
@@ -99,7 +101,7 @@ test_that("valid numeric ids retain graph order, isolates, and layout behavior",
 test_that("star graph bundles cannot override another graph or carry fractional ids", {
   edges <- cbind(1:2, 2:3)
   coords <- cbind(0:2, 0)
-  graph <- list(n = 3, edges = edges, edge_weights = c(1, 1))
+  graph <- list(n = 3, edges = edges, edge.weights = c(1, 1))
   expect_error(graph.riemannian.star.structure(graph, coords, edges = edges),
                "graph cannot be combined")
   expect_error(graph.riemannian.star.structure(graph, coords, n = 3.5), "n must")
@@ -118,17 +120,17 @@ test_that("star graph bundles cannot override another graph or carry fractional 
 test_that("all graph entry points enforce reciprocal adjacency and lengths", {
   for (name in graph.identity.entry.points()) {
     fun <- getExportedValue("grip", name)
-    expect_error(do.call(fun, list(adj_list = list(2L, integer()), n = 2)),
+    expect_error(do.call(fun, list(adj.list = list(2L, integer()), n = 2)),
                  "reciprocal", info = name)
-    expect_error(do.call(fun, list(adj_list = list(c(2L, 2L), 1L), n = 2)),
+    expect_error(do.call(fun, list(adj.list = list(c(2L, 2L), 1L), n = 2)),
                  "multiplicity", info = name)
-    expect_error(do.call(fun, list(adj_list = list(2L, 1L), weight_list = list(1, 2), n = 2)),
+    expect_error(do.call(fun, list(adj.list = list(2L, 1L), weight.list = list(1, 2), n = 2)),
                  "matching lengths", info = name)
     expect_error(do.call(fun, list(edges = rbind(c(1, 1), c(1, 2)), n = 2)),
                  "self-loops", info = name)
   }
-  expect_error(grip(adj_list = list(c(1L, 2L), 1L), n = 2), "self-loops")
+  expect_error(grip(adj.list = list(c(1L, 2L), 1L), n = 2), "self-loops")
   # Parallel entries must have a matching multiset, regardless of neighbor order.
-  expect_silent(grip.validate.graph.arguments(adj_list = list(c(2L,2L),c(1L,1L)),
-                                              weight_list = list(c(1,2),c(2,1))))
+  expect_silent(grip.validate.graph.arguments(adj.list = list(c(2L,2L),c(1L,1L)),
+                                              weight.list = list(c(1,2),c(2,1))))
 })

@@ -12,9 +12,9 @@ recursive.cube.mask.surface.graph(
   amplitude = 0.2,
   freq = 2,
   twist = 0.6,
-  x_scale = 1,
-  y_scale = 1,
-  z_scale = 1,
+  x.scale = 1,
+  y.scale = 1,
+  z.scale = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -35,13 +35,13 @@ retained at each recursive step.}
 \item{twist}{Finite twist strength used only when
 \code{surface = "twisted"}.}
 
-\item{x_scale}{Positive horizontal scaling applied to the canonical cube
+\item{x.scale}{Positive horizontal scaling applied to the canonical cube
 coordinates.}
 
-\item{y_scale}{Positive vertical scaling applied to the canonical cube
+\item{y.scale}{Positive vertical scaling applied to the canonical cube
 coordinates.}
 
-\item{z_scale}{Positive depth scaling applied to the canonical cube
+\item{z.scale}{Positive depth scaling applied to the canonical cube
 coordinates.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -84,7 +84,7 @@ Non-zero entries are retained at each recursive step.
 }
 \examples{
 mask <- mask.cube.channel.network(
-  side = 5, channel_width = 1, branch_offset = 2
+  side = 5, channel.width = 1, branch.offset = 2
 )
 cube <- recursive.cube.mask.surface.graph(mask, level = 1)
 }

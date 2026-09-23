@@ -8,7 +8,7 @@
                                  step = NULL,
                                  choices = NULL,
                                  help = NULL,
-                                 visible_if = NULL,
+                                 visible.if = NULL,
                                  advanced = FALSE,
                                  coerce = NULL,
                                  validate = NULL) {
@@ -23,7 +23,7 @@
     step = step,
     choices = choices,
     help = help,
-    visible_if = visible_if,
+    visible_if = visible.if,
     advanced = advanced,
     coerce = coerce,
     validate = validate
@@ -99,7 +99,7 @@
   as.numeric(pieces)
 }
 
-.gripui.family.param.numeric_vector <- function(id, label, default = numeric(), ...) {
+.gripui.family.param.numeric.vector <- function(id, label, default = numeric(), ...) {
   .gripui.family.param(
     id = id,
     label = label,
@@ -113,7 +113,7 @@
 .gripui.family.desc <- function(id,
                                 label,
                                 category,
-                                function_name,
+                                function.name,
                                 summary,
                                 params,
                                 builder,
@@ -128,7 +128,7 @@
     id = id,
     label = label,
     category = category,
-    function_name = function_name,
+    function_name = function.name,
     summary = summary,
     params = params,
     builder = builder,
@@ -142,10 +142,10 @@
 .gripui.family.simple.desc <- function(id,
                                        label,
                                        category,
-                                       function_name,
+                                       function.name,
                                        summary,
                                        params,
-                                       arg_ids = NULL,
+                                       arg.ids = NULL,
                                        presets = NULL,
                                        implementation = "R/graph_helpers.R",
                                        stochastic = FALSE) {
@@ -153,20 +153,20 @@
     id = id,
     label = label,
     category = category,
-    function_name = function_name,
+    function.name = function.name,
     summary = summary,
     params = params,
     presets = presets,
     implementation = implementation,
     stochastic = stochastic,
     builder = function(p) {
-      args <- if (is.null(arg_ids)) p else p[arg_ids]
-      builder_fun <- get(function_name, mode = "function")
-      do.call(builder_fun, args)
+      args <- if (is.null(arg.ids)) p else p[arg.ids]
+      builder_fun <- get(function.name, mode = "function")
+      .grip.invoke(builder_fun, args)
     },
     code = function(p) {
-      args <- if (is.null(arg_ids)) p else p[arg_ids]
-      .gripui.family.call.code(function_name, args)
+      args <- if (is.null(arg.ids)) p else p[arg.ids]
+      .gripui.family.call.code(function.name, args)
     }
   )
 }
@@ -177,25 +177,25 @@
   out
 }
 
-.gripui.family.preset.values <- function(desc, preset_id = "default") {
-  if (is.null(preset_id) || !nzchar(preset_id) || identical(preset_id, "default")) {
+.gripui.family.preset.values <- function(desc, preset.id = "default") {
+  if (is.null(preset.id) || !nzchar(preset.id) || identical(preset.id, "default")) {
     return(list())
   }
-  if (!preset_id %in% names(desc$presets)) {
+  if (!preset.id %in% names(desc$presets)) {
     return(list())
   }
-  desc$presets[[preset_id]]
+  desc$presets[[preset.id]]
 }
 
-.gripui.family.merge.values <- function(desc, preset_id = "default", current = list()) {
+.gripui.family.merge.values <- function(desc, preset.id = "default", current = list()) {
   defaults <- .gripui.family.param.defaults(desc)
-  preset <- .gripui.family.preset.values(desc, preset_id = preset_id)
+  preset <- .gripui.family.preset.values(desc, preset.id = preset.id)
   utils::modifyList(utils::modifyList(defaults, preset), current)
 }
 
-.gripui.family.call.code <- function(fun_name, args) {
+.gripui.family.call.code <- function(fun.name, args) {
   if (length(args) == 0L) {
-    return(sprintf("%s()", fun_name))
+    return(sprintf("%s()", fun.name))
   }
   pieces <- mapply(
     function(nm, val) sprintf("%s = %s", nm, paste(deparse(val), collapse = " ")),
@@ -204,13 +204,13 @@
     SIMPLIFY = TRUE,
     USE.NAMES = FALSE
   )
-  sprintf("%s(%s)", fun_name, paste(pieces, collapse = ", "))
+  sprintf("%s(%s)", fun.name, paste(pieces, collapse = ", "))
 }
 
-.gripui.family.call.code.parts <- function(fun_name, parts) {
+.gripui.family.call.code.parts <- function(fun.name, parts) {
   sprintf(
     "%s(%s)",
-    fun_name,
+    fun.name,
     paste(sprintf("%s = %s", names(parts), unname(parts)), collapse = ", ")
   )
 }
@@ -231,10 +231,10 @@
   }
   switch(
     p$mask_kind,
-    cross = mask.cross(k = p$k, arm_width = p$arm_width),
+    cross = mask.cross(k = p$k, arm.width = p$arm_width),
     border = mask.border(k = p$k, thickness = p$thickness),
     corner = mask.corner(k = p$k, width = p$width, corner = p$corner),
-    asymmetric_holes = mask.asymmetric.holes(k = p$k, hole_size = p$hole_size),
+    asymmetric_holes = mask.asymmetric.holes(k = p$k, hole.size = p$hole_size),
     stop("Unsupported square mask kind: ", p$mask_kind, call. = FALSE)
   )
 }
@@ -260,37 +260,37 @@
     periodic_holes = keep.periodic.holes(
       h = p$h,
       w = p$w,
-      hole_period = p$hole_period,
-      hole_height = p$hole_height,
-      hole_width = p$hole_width,
-      row_offset = p$row_offset,
-      col_offset = p$col_offset
+      hole.period = p$hole_period,
+      hole.height = p$hole_height,
+      hole.width = p$hole_width,
+      row.offset = p$row_offset,
+      col.offset = p$col_offset
     ),
     staggered_windows = keep.staggered.windows(
       h = p$h,
       w = p$w,
-      window_height = p$window_height,
-      window_width = p$window_width,
-      row_period = p$row_period,
-      col_period = p$col_period,
-      row_offset = p$row_offset,
-      col_offset = p$col_offset
+      window.height = p$window_height,
+      window.width = p$window_width,
+      row.period = p$row_period,
+      col.period = p$col_period,
+      row.offset = p$row_offset,
+      col.offset = p$col_offset
     ),
     slit_channels = keep.slit.channels(
       h = p$h,
       w = p$w,
       orientation = p$orientation,
-      slit_period = p$slit_period,
-      slit_width = p$slit_width,
-      bridge_spacing = p$bridge_spacing,
-      bridge_size = p$bridge_size,
+      slit.period = p$slit_period,
+      slit.width = p$slit_width,
+      bridge.spacing = p$bridge_spacing,
+      bridge.size = p$bridge_size,
       offset = p$offset
     ),
     asymmetric_notches = keep.asymmetric.notches(
       h = p$h,
       w = p$w,
-      notch_depth = p$notch_depth,
-      notch_width = p$notch_width
+      notch.depth = p$notch_depth,
+      notch.width = p$notch_width
     ),
     stop("Unsupported occupied mesh pattern: ", p$pattern, call. = FALSE)
   )
@@ -372,19 +372,19 @@
     menger = .menger.sponge.mask(),
     periodic_tunnels = mask.cube.periodic.tunnels(
       side = p$side,
-      tunnel_width = p$tunnel_width,
-      tunnel_period = p$tunnel_period,
-      tunnel_offset = p$tunnel_offset
+      tunnel.width = p$tunnel_width,
+      tunnel.period = p$tunnel_period,
+      tunnel.offset = p$tunnel_offset
     ),
     asymmetric_cavities = mask.cube.asymmetric.cavities(
       side = p$side,
-      cavity_size = p$cavity_size,
-      pocket_size = p$pocket_size
+      cavity.size = p$cavity_size,
+      pocket.size = p$pocket_size
     ),
     channel_network = mask.cube.channel.network(
       side = p$side,
-      channel_width = p$channel_width,
-      branch_offset = p$branch_offset
+      channel.width = p$channel_width,
+      branch.offset = p$branch_offset
     ),
     stop("Unsupported cube mask kind: ", p$mask_kind, call. = FALSE)
   )
@@ -412,18 +412,18 @@
   )
 }
 
-.gripui.family.surface2d.params <- function(surface_choices,
-                                            amplitude_default = 0.75,
-                                            freq_u_default = 1L,
-                                            freq_v_default = 1L,
-                                            include_scales = TRUE) {
+.gripui.family.surface2d.params <- function(surface.choices,
+                                            amplitude.default = 0.75,
+                                            freq.u.default = 1L,
+                                            freq.v.default = 1L,
+                                            include.scales = TRUE) {
   out <- list(
-    .gripui.family.param.choice("surface", "Surface", surface_choices[[1L]], surface_choices, group = "Geometry"),
-    .gripui.family.param.double("amplitude", "Amplitude", amplitude_default, 0, 2, 0.05, group = "Geometry"),
-    .gripui.family.param.int("freq_u", "Frequency u", freq_u_default, 1L, 8L, group = "Geometry"),
-    .gripui.family.param.int("freq_v", "Frequency v", freq_v_default, 1L, 8L, group = "Geometry")
+    .gripui.family.param.choice("surface", "Surface", surface.choices[[1L]], surface.choices, group = "Geometry"),
+    .gripui.family.param.double("amplitude", "Amplitude", amplitude.default, 0, 2, 0.05, group = "Geometry"),
+    .gripui.family.param.int("freq_u", "Frequency u", freq.u.default, 1L, 8L, group = "Geometry"),
+    .gripui.family.param.int("freq_v", "Frequency v", freq.v.default, 1L, 8L, group = "Geometry")
   )
-  if (isTRUE(include_scales)) {
+  if (isTRUE(include.scales)) {
     out <- c(
       out,
       list(
@@ -435,18 +435,18 @@
   c(out, list(.gripui.family.normalize.param()))
 }
 
-.gripui.family.surface3d.params <- function(surface_choices,
-                                            amplitude_default = 0.2,
-                                            freq_default = 2L,
-                                            twist_default = 0.6,
-                                            include_xyz_scales = FALSE) {
+.gripui.family.surface3d.params <- function(surface.choices,
+                                            amplitude.default = 0.2,
+                                            freq.default = 2L,
+                                            twist.default = 0.6,
+                                            include.xyz.scales = FALSE) {
   out <- list(
-    .gripui.family.param.choice("surface", "Surface", surface_choices[[1L]], surface_choices, group = "Geometry"),
-    .gripui.family.param.double("amplitude", "Amplitude", amplitude_default, 0, 1.5, 0.05, group = "Geometry"),
-    .gripui.family.param.int("freq", "Frequency", freq_default, 1L, 8L, group = "Geometry"),
-    .gripui.family.param.double("twist", "Twist", twist_default, 0, 2, 0.05, group = "Geometry")
+    .gripui.family.param.choice("surface", "Surface", surface.choices[[1L]], surface.choices, group = "Geometry"),
+    .gripui.family.param.double("amplitude", "Amplitude", amplitude.default, 0, 1.5, 0.05, group = "Geometry"),
+    .gripui.family.param.int("freq", "Frequency", freq.default, 1L, 8L, group = "Geometry"),
+    .gripui.family.param.double("twist", "Twist", twist.default, 0, 2, 0.05, group = "Geometry")
   )
-  if (isTRUE(include_xyz_scales)) {
+  if (isTRUE(include.xyz.scales)) {
     out <- c(
       out,
       list(
@@ -461,7 +461,7 @@
 
 #' Catalog of graph families for the geometry explorer app
 #'
-#' The catalog is a registry used by `gripui_family_app()` to populate its
+#' The catalog is a registry used by `gripui.family.app()` to populate its
 #' family selector, presets, parameter controls, builder calls, and source
 #' references.
 #'
@@ -469,11 +469,11 @@
 #' @export
 #'
 #' @examples
-#' catalog <- gripui_graph_family_catalog()
+#' catalog <- gripui.graph.family.catalog()
 #' names(catalog)
 #' catalog$mesh$function_name
 #' @md
-gripui_graph_family_catalog <- function() {
+gripui.graph.family.catalog <- function() {
   graph_impl <- "R/graph_helpers.R"
 
   list(
@@ -481,10 +481,10 @@ gripui_graph_family_catalog <- function() {
       id = "mesh",
       label = "Mesh surface",
       category = "Regular lifted lattices",
-      function_name = "mesh.surface.graph",
+      function.name = "mesh.surface.graph",
       summary = "Regular rectangular mesh lifted into a smooth 3D surface.",
       implementation = graph_impl,
-      arg_ids = c("h", "w", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
+      arg.ids = c("h", "w", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("h", "Height", 6L, 2L, 24L),
@@ -501,10 +501,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_rectangle",
       label = "Irregular rectangle surface",
       category = "Irregular lifted lattices",
-      function_name = "irregular.rectangle.surface.graph",
+      function.name = "irregular.rectangle.surface.graph",
       summary = "Simply connected rectangular mesh with deterministic irregular planar spacing and smooth lifted-surface geometry.",
       implementation = graph_impl,
-      arg_ids = c(
+      arg.ids = c(
         "h", "w", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale",
         "row_irregularity", "col_irregularity", "row_phase", "col_phase",
         "interior_warp", "shear", "min_step_ratio", "connectivity", "normalize"
@@ -574,7 +574,7 @@ gripui_graph_family_catalog <- function() {
         ),
         .gripui.family.surface2d.params(
           c("paraboloid", "saddle", "ripple", "flat"),
-          amplitude_default = 0.75
+          amplitude.default = 0.75
         )
       ),
       presets = list(
@@ -592,11 +592,11 @@ gripui_graph_family_catalog <- function() {
       id = "sampled_rectangle",
       label = "Sampled rectangle iKNN surface",
       category = "Sampled lifted surfaces",
-      function_name = "sampled.rectangle.surface.graph",
+      function.name = "sampled.rectangle.surface.graph",
       summary = "Uniformly sampled rectangle lifted into 3D, with topology built from an exact iKNN graph on the sampled points.",
       implementation = graph_impl,
       stochastic = TRUE,
-      arg_ids = c(
+      arg.ids = c(
         "n", "k", "xmin", "xmax", "ymin", "ymax", "seed",
         "surface", "amplitude", "freq_u", "freq_v",
         "graph_space", "normalize"
@@ -621,8 +621,8 @@ gripui_graph_family_catalog <- function() {
         ),
         .gripui.family.surface2d.params(
           c("flat", "saddle", "paraboloid", "ripple", "folded"),
-          amplitude_default = 0.75,
-          include_scales = FALSE
+          amplitude.default = 0.75,
+          include.scales = FALSE
         )
       ),
       presets = list(
@@ -636,10 +636,10 @@ gripui_graph_family_catalog <- function() {
       id = "cylinder",
       label = "Cylinder surface",
       category = "Regular lifted lattices",
-      function_name = "cylinder.surface.graph",
+      function.name = "cylinder.surface.graph",
       summary = "Wrapped cylindrical grid with barrel, hourglass, or wavy radial profiles.",
       implementation = graph_impl,
-      arg_ids = c("h", "w", "surface", "radius", "height", "amplitude", "freq_theta", "freq_z", "twist", "normalize"),
+      arg.ids = c("h", "w", "surface", "radius", "height", "amplitude", "freq_theta", "freq_z", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("h", "Axial samples", 7L, 2L, 24L),
         .gripui.family.param.int("w", "Wrapped samples", 14L, 3L, 48L),
@@ -661,10 +661,10 @@ gripui_graph_family_catalog <- function() {
       id = "torus",
       label = "Torus surface",
       category = "Regular lifted lattices",
-      function_name = "torus.surface.graph",
+      function.name = "torus.surface.graph",
       summary = "Wrapped toroidal grid with standard, pinched, or wavy tube geometry.",
       implementation = graph_impl,
-      arg_ids = c("h", "w", "surface", "major_radius", "minor_radius", "amplitude", "freq_major", "freq_minor", "twist", "normalize"),
+      arg.ids = c("h", "w", "surface", "major_radius", "minor_radius", "amplitude", "freq_major", "freq_minor", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("h", "Major-ring samples", 8L, 3L, 24L),
         .gripui.family.param.int("w", "Tube samples", 14L, 3L, 48L),
@@ -686,10 +686,10 @@ gripui_graph_family_catalog <- function() {
       id = "sphere",
       label = "Sphere surface",
       category = "Regular lifted lattices",
-      function_name = "sphere.surface.graph",
+      function.name = "sphere.surface.graph",
       summary = "Regular spherical surface family with ellipsoid and wavy variants.",
       implementation = graph_impl,
-      arg_ids = c("h", "w", "surface", "radius", "amplitude", "freq_theta", "freq_lat", "twist", "normalize"),
+      arg.ids = c("h", "w", "surface", "radius", "amplitude", "freq_theta", "freq_lat", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("h", "Latitude bands", 7L, 3L, 24L),
         .gripui.family.param.int("w", "Band samples", 14L, 3L, 48L),
@@ -710,24 +710,24 @@ gripui_graph_family_catalog <- function() {
       id = "recursive_mask_grid",
       label = "Recursive square-mask grid",
       category = "Recursive square masks",
-      function_name = "recursive.mask.grid.surface.graph",
+      function.name = "recursive.mask.grid.surface.graph",
       summary = "Generic recursive square-mask family for carpet-like and asymmetric grid fractals.",
       implementation = graph_impl,
       params = c(
         list(
           .gripui.family.param.choice("mask_kind", "Mask pattern", "cross", c("cross", "border", "corner", "asymmetric_holes")),
           .gripui.family.param.int("k", "Mask side", 5L, 3L, 11L),
-          .gripui.family.param.int("arm_width", "Arm width", 1L, 1L, 4L, visible_if = list(mask_kind = "cross")),
-          .gripui.family.param.int("thickness", "Border thickness", 1L, 1L, 4L, visible_if = list(mask_kind = "border")),
-          .gripui.family.param.int("width", "Corner width", 2L, 1L, 5L, visible_if = list(mask_kind = "corner")),
+          .gripui.family.param.int("arm_width", "Arm width", 1L, 1L, 4L, visible.if = list(mask_kind = "cross")),
+          .gripui.family.param.int("thickness", "Border thickness", 1L, 1L, 4L, visible.if = list(mask_kind = "border")),
+          .gripui.family.param.int("width", "Corner width", 2L, 1L, 5L, visible.if = list(mask_kind = "corner")),
           .gripui.family.param.choice(
             "corner",
             "Corner",
             "top_left",
             c("top_left", "top_right", "bottom_left", "bottom_right"),
-            visible_if = list(mask_kind = "corner")
+            visible.if = list(mask_kind = "corner")
           ),
-          .gripui.family.param.int("hole_size", "Hole size", 1L, 1L, 3L, visible_if = list(mask_kind = "asymmetric_holes")),
+          .gripui.family.param.int("hole_size", "Hole size", 1L, 1L, 3L, visible.if = list(mask_kind = "asymmetric_holes")),
           .gripui.family.param.int("level", "Recursion level", 2L, 1L, 4L)
         ),
         .gripui.family.surface2d.params(c("saddle", "paraboloid", "ripple"))
@@ -749,7 +749,7 @@ gripui_graph_family_catalog <- function() {
           y_scale = p$y_scale,
           normalize = p$normalize
         )
-        do.call(recursive.mask.grid.surface.graph, args)
+        .grip.invoke(recursive.mask.grid.surface.graph, args)
       },
       code = function(p) {
         .gripui.family.call.code.parts("recursive.mask.grid.surface.graph", c(
@@ -769,10 +769,10 @@ gripui_graph_family_catalog <- function() {
       id = "sierpinski_carpet",
       label = "Sierpinski carpet",
       category = "Recursive square masks",
-      function_name = "sierpinski.carpet.surface.graph",
+      function.name = "sierpinski.carpet.surface.graph",
       summary = "Classic recursive carpet derived from the square-mask grid family.",
       implementation = graph_impl,
-      arg_ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
+      arg.ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
       params = c(
         list(.gripui.family.param.int("level", "Recursion level", 2L, 1L, 4L)),
         .gripui.family.surface2d.params(c("saddle", "paraboloid", "ripple"))
@@ -786,10 +786,10 @@ gripui_graph_family_catalog <- function() {
       id = "vicsek",
       label = "Vicsek fractal",
       category = "Recursive square masks",
-      function_name = "vicsek.surface.graph",
+      function.name = "vicsek.surface.graph",
       summary = "Recursive cross-mask grid family with strong axial bottlenecks.",
       implementation = graph_impl,
-      arg_ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
+      arg.ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
       params = c(
         list(.gripui.family.param.int("level", "Recursion level", 2L, 1L, 4L)),
         .gripui.family.surface2d.params(c("saddle", "paraboloid", "ripple"))
@@ -802,7 +802,7 @@ gripui_graph_family_catalog <- function() {
       id = "occupied_mesh",
       label = "Perforated occupied mesh",
       category = "Recursive square masks",
-      function_name = "occupied.mesh.surface.graph",
+      function.name = "occupied.mesh.surface.graph",
       summary = "Finite perforated mesh family built from deterministic keep-pattern constructors.",
       implementation = graph_impl,
       params = c(
@@ -815,23 +815,23 @@ gripui_graph_family_catalog <- function() {
           ),
           .gripui.family.param.int("h", "Height", 12L, 4L, 48L),
           .gripui.family.param.int("w", "Width", 14L, 4L, 48L),
-          .gripui.family.param.int("hole_period", "Hole period", 4L, 2L, 10L, visible_if = list(pattern = "periodic_holes")),
-          .gripui.family.param.int("hole_height", "Hole height", 1L, 1L, 6L, visible_if = list(pattern = "periodic_holes")),
-          .gripui.family.param.int("hole_width", "Hole width", 1L, 1L, 6L, visible_if = list(pattern = "periodic_holes")),
-          .gripui.family.param.int("row_offset", "Row offset", 2L, 1L, 10L, visible_if = list(pattern = c("periodic_holes", "staggered_windows"))),
-          .gripui.family.param.int("col_offset", "Column offset", 2L, 1L, 10L, visible_if = list(pattern = c("periodic_holes", "staggered_windows"))),
-          .gripui.family.param.int("window_height", "Window height", 1L, 1L, 6L, visible_if = list(pattern = "staggered_windows")),
-          .gripui.family.param.int("window_width", "Window width", 2L, 1L, 8L, visible_if = list(pattern = "staggered_windows")),
-          .gripui.family.param.int("row_period", "Row period", 4L, 2L, 10L, visible_if = list(pattern = "staggered_windows")),
-          .gripui.family.param.int("col_period", "Column period", 5L, 2L, 10L, visible_if = list(pattern = "staggered_windows")),
-          .gripui.family.param.choice("orientation", "Slit orientation", "vertical", c("vertical", "horizontal"), visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("slit_period", "Slit period", 5L, 2L, 10L, visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("slit_width", "Slit width", 1L, 1L, 4L, visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("bridge_spacing", "Bridge spacing", 4L, 2L, 10L, visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("bridge_size", "Bridge size", 1L, 1L, 4L, visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("offset", "Slit offset", 2L, 1L, 10L, visible_if = list(pattern = "slit_channels")),
-          .gripui.family.param.int("notch_depth", "Notch depth", 3L, 1L, 10L, visible_if = list(pattern = "asymmetric_notches")),
-          .gripui.family.param.int("notch_width", "Notch width", 2L, 1L, 10L, visible_if = list(pattern = "asymmetric_notches"))
+          .gripui.family.param.int("hole_period", "Hole period", 4L, 2L, 10L, visible.if = list(pattern = "periodic_holes")),
+          .gripui.family.param.int("hole_height", "Hole height", 1L, 1L, 6L, visible.if = list(pattern = "periodic_holes")),
+          .gripui.family.param.int("hole_width", "Hole width", 1L, 1L, 6L, visible.if = list(pattern = "periodic_holes")),
+          .gripui.family.param.int("row_offset", "Row offset", 2L, 1L, 10L, visible.if = list(pattern = c("periodic_holes", "staggered_windows"))),
+          .gripui.family.param.int("col_offset", "Column offset", 2L, 1L, 10L, visible.if = list(pattern = c("periodic_holes", "staggered_windows"))),
+          .gripui.family.param.int("window_height", "Window height", 1L, 1L, 6L, visible.if = list(pattern = "staggered_windows")),
+          .gripui.family.param.int("window_width", "Window width", 2L, 1L, 8L, visible.if = list(pattern = "staggered_windows")),
+          .gripui.family.param.int("row_period", "Row period", 4L, 2L, 10L, visible.if = list(pattern = "staggered_windows")),
+          .gripui.family.param.int("col_period", "Column period", 5L, 2L, 10L, visible.if = list(pattern = "staggered_windows")),
+          .gripui.family.param.choice("orientation", "Slit orientation", "vertical", c("vertical", "horizontal"), visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("slit_period", "Slit period", 5L, 2L, 10L, visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("slit_width", "Slit width", 1L, 1L, 4L, visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("bridge_spacing", "Bridge spacing", 4L, 2L, 10L, visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("bridge_size", "Bridge size", 1L, 1L, 4L, visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("offset", "Slit offset", 2L, 1L, 10L, visible.if = list(pattern = "slit_channels")),
+          .gripui.family.param.int("notch_depth", "Notch depth", 3L, 1L, 10L, visible.if = list(pattern = "asymmetric_notches")),
+          .gripui.family.param.int("notch_width", "Notch width", 2L, 1L, 10L, visible.if = list(pattern = "asymmetric_notches"))
         ),
         .gripui.family.surface2d.params(c("saddle", "paraboloid", "ripple"))
       ),
@@ -851,7 +851,7 @@ gripui_graph_family_catalog <- function() {
           y_scale = p$y_scale,
           normalize = p$normalize
         )
-        do.call(occupied.mesh.surface.graph, args)
+        .grip.invoke(occupied.mesh.surface.graph, args)
       },
       code = function(p) {
         .gripui.family.call.code.parts("occupied.mesh.surface.graph", c(
@@ -870,13 +870,13 @@ gripui_graph_family_catalog <- function() {
       id = "recursive_triangle_mask",
       label = "Recursive triangle mask",
       category = "Recursive triangle masks",
-      function_name = "recursive.triangle.mask.surface.graph",
+      function.name = "recursive.triangle.mask.surface.graph",
       summary = "Generic recursive triangle-mask family covering classic and bridge gaskets.",
       implementation = graph_impl,
       params = c(
         list(
           .gripui.family.param.choice("mask_kind", "Mask pattern", "classic", c("classic", "bridge")),
-          .gripui.family.param.choice("missing", "Bridge omission", "top", c("top", "left", "right"), visible_if = list(mask_kind = "bridge")),
+          .gripui.family.param.choice("missing", "Bridge omission", "top", c("top", "left", "right"), visible.if = list(mask_kind = "bridge")),
           .gripui.family.param.int("level", "Recursion level", 2L, 1L, 5L)
         ),
         .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"))
@@ -898,7 +898,7 @@ gripui_graph_family_catalog <- function() {
           y_scale = p$y_scale,
           normalize = p$normalize
         )
-        do.call(recursive.triangle.mask.surface.graph, args)
+        .grip.invoke(recursive.triangle.mask.surface.graph, args)
       },
       code = function(p) {
         .gripui.family.call.code.parts("recursive.triangle.mask.surface.graph", c(
@@ -918,10 +918,10 @@ gripui_graph_family_catalog <- function() {
       id = "sierpinski_triangle",
       label = "Sierpinski triangle",
       category = "Recursive triangle masks",
-      function_name = "sierpinski.triangle.surface.graph",
+      function.name = "sierpinski.triangle.surface.graph",
       summary = "Classic Sierpinski triangle with flat and lifted surface variants.",
       implementation = graph_impl,
-      arg_ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
+      arg.ids = c("level", "surface", "amplitude", "freq_u", "freq_v", "x_scale", "y_scale", "normalize"),
       params = c(
         list(.gripui.family.param.int("level", "Recursion level", 2L, 1L, 5L)),
         .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"))
@@ -935,7 +935,7 @@ gripui_graph_family_catalog <- function() {
       id = "recursive_tetrahedron_mask",
       label = "Recursive tetrahedron mask",
       category = "Recursive tetrahedron masks",
-      function_name = "recursive.tetrahedron.mask.surface.graph",
+      function.name = "recursive.tetrahedron.mask.surface.graph",
       summary = "Corner-mask tetrahedral gasket family, including asymmetric omissions.",
       implementation = graph_impl,
       params = c(
@@ -946,11 +946,11 @@ gripui_graph_family_catalog <- function() {
             "Omit corner",
             "apex",
             c("apex", "base_left", "base_right", "base_back"),
-            visible_if = list(mask_kind = "corner_missing")
+            visible.if = list(mask_kind = "corner_missing")
           ),
           .gripui.family.param.int("level", "Recursion level", 2L, 1L, 4L)
         ),
-        .gripui.family.surface3d.params(c("standard", "squashed", "twisted", "wavy"), amplitude_default = 0.3)
+        .gripui.family.surface3d.params(c("standard", "squashed", "twisted", "wavy"), amplitude.default = 0.3)
       ),
       presets = list(
         apex_missing = list(mask_kind = "corner_missing", omit = "apex"),
@@ -966,7 +966,7 @@ gripui_graph_family_catalog <- function() {
           twist = p$twist,
           normalize = p$normalize
         )
-        do.call(recursive.tetrahedron.mask.surface.graph, args)
+        .grip.invoke(recursive.tetrahedron.mask.surface.graph, args)
       },
       code = function(p) {
         .gripui.family.call.code.parts("recursive.tetrahedron.mask.surface.graph", c(
@@ -984,13 +984,13 @@ gripui_graph_family_catalog <- function() {
       id = "sierpinski_tetrahedron",
       label = "Sierpinski tetrahedron",
       category = "Recursive tetrahedron masks",
-      function_name = "sierpinski.tetrahedron.surface.graph",
+      function.name = "sierpinski.tetrahedron.surface.graph",
       summary = "Classic tetrahedral gasket with squashed, twisted, and wavy variants.",
       implementation = graph_impl,
-      arg_ids = c("level", "surface", "amplitude", "freq", "twist", "normalize"),
+      arg.ids = c("level", "surface", "amplitude", "freq", "twist", "normalize"),
       params = c(
         list(.gripui.family.param.int("level", "Recursion level", 2L, 1L, 4L)),
-        .gripui.family.surface3d.params(c("standard", "squashed", "twisted", "wavy"), amplitude_default = 0.3)
+        .gripui.family.surface3d.params(c("standard", "squashed", "twisted", "wavy"), amplitude.default = 0.3)
       ),
       presets = list(
         twisted = list(surface = "twisted"),
@@ -1001,7 +1001,7 @@ gripui_graph_family_catalog <- function() {
       id = "recursive_cube_mask",
       label = "Recursive cube mask",
       category = "Recursive cube masks",
-      function_name = "recursive.cube.mask.surface.graph",
+      function.name = "recursive.cube.mask.surface.graph",
       summary = "Generic recursive cube-mask family spanning Menger and porous-cube style masks.",
       implementation = graph_impl,
       params = c(
@@ -1013,16 +1013,16 @@ gripui_graph_family_catalog <- function() {
             c("menger", "periodic_tunnels", "asymmetric_cavities", "channel_network")
           ),
           .gripui.family.param.int("level", "Recursion level", 1L, 1L, 3L),
-          .gripui.family.param.int("side", "Mask side", 5L, 3L, 9L, visible_if = list(mask_kind = c("periodic_tunnels", "asymmetric_cavities", "channel_network"))),
-          .gripui.family.param.int("tunnel_width", "Tunnel width", 1L, 1L, 3L, visible_if = list(mask_kind = "periodic_tunnels")),
-          .gripui.family.param.int("tunnel_period", "Tunnel period", 2L, 2L, 6L, visible_if = list(mask_kind = "periodic_tunnels")),
-          .gripui.family.param.int("tunnel_offset", "Tunnel offset", 2L, 1L, 6L, visible_if = list(mask_kind = "periodic_tunnels")),
-          .gripui.family.param.int("cavity_size", "Cavity size", 2L, 1L, 4L, visible_if = list(mask_kind = "asymmetric_cavities")),
-          .gripui.family.param.int("pocket_size", "Pocket size", 1L, 1L, 4L, visible_if = list(mask_kind = "asymmetric_cavities")),
-          .gripui.family.param.int("channel_width", "Channel width", 1L, 1L, 3L, visible_if = list(mask_kind = "channel_network")),
-          .gripui.family.param.int("branch_offset", "Branch offset", 2L, 1L, 6L, visible_if = list(mask_kind = "channel_network"))
+          .gripui.family.param.int("side", "Mask side", 5L, 3L, 9L, visible.if = list(mask_kind = c("periodic_tunnels", "asymmetric_cavities", "channel_network"))),
+          .gripui.family.param.int("tunnel_width", "Tunnel width", 1L, 1L, 3L, visible.if = list(mask_kind = "periodic_tunnels")),
+          .gripui.family.param.int("tunnel_period", "Tunnel period", 2L, 2L, 6L, visible.if = list(mask_kind = "periodic_tunnels")),
+          .gripui.family.param.int("tunnel_offset", "Tunnel offset", 2L, 1L, 6L, visible.if = list(mask_kind = "periodic_tunnels")),
+          .gripui.family.param.int("cavity_size", "Cavity size", 2L, 1L, 4L, visible.if = list(mask_kind = "asymmetric_cavities")),
+          .gripui.family.param.int("pocket_size", "Pocket size", 1L, 1L, 4L, visible.if = list(mask_kind = "asymmetric_cavities")),
+          .gripui.family.param.int("channel_width", "Channel width", 1L, 1L, 3L, visible.if = list(mask_kind = "channel_network")),
+          .gripui.family.param.int("branch_offset", "Branch offset", 2L, 1L, 6L, visible.if = list(mask_kind = "channel_network"))
         ),
-        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include_xyz_scales = TRUE)
+        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include.xyz.scales = TRUE)
       ),
       presets = list(
         tunnels = list(mask_kind = "periodic_tunnels"),
@@ -1043,7 +1043,7 @@ gripui_graph_family_catalog <- function() {
           z_scale = p$z_scale,
           normalize = p$normalize
         )
-        do.call(recursive.cube.mask.surface.graph, args)
+        .grip.invoke(recursive.cube.mask.surface.graph, args)
       },
       code = function(p) {
         .gripui.family.call.code.parts("recursive.cube.mask.surface.graph", c(
@@ -1064,13 +1064,13 @@ gripui_graph_family_catalog <- function() {
       id = "menger_sponge",
       label = "Menger sponge",
       category = "Recursive cube masks",
-      function_name = "menger.sponge.surface.graph",
+      function.name = "menger.sponge.surface.graph",
       summary = "Classic cubical recursive porous family.",
       implementation = graph_impl,
-      arg_ids = c("level", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
+      arg.ids = c("level", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
       params = c(
         list(.gripui.family.param.int("level", "Recursion level", 2L, 1L, 3L)),
-        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include_xyz_scales = TRUE)
+        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include.xyz.scales = TRUE)
       ),
       presets = list(
         bulged = list(surface = "bulged"),
@@ -1081,10 +1081,10 @@ gripui_graph_family_catalog <- function() {
       id = "cube_periodic_tunnels",
       label = "Cube periodic tunnels",
       category = "Recursive cube masks",
-      function_name = "cube.periodic.tunnels.surface.graph",
+      function.name = "cube.periodic.tunnels.surface.graph",
       summary = "Recursive cube family with periodic tunnel drilling.",
       implementation = graph_impl,
-      arg_ids = c("level", "side", "tunnel_width", "tunnel_period", "tunnel_offset", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
+      arg.ids = c("level", "side", "tunnel_width", "tunnel_period", "tunnel_offset", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("level", "Recursion level", 1L, 1L, 3L),
@@ -1093,7 +1093,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.int("tunnel_period", "Tunnel period", 2L, 2L, 6L),
           .gripui.family.param.int("tunnel_offset", "Tunnel offset", 2L, 1L, 6L)
         ),
-        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include_xyz_scales = TRUE)
+        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include.xyz.scales = TRUE)
       ),
       presets = list(
         bulged = list(surface = "bulged"),
@@ -1104,10 +1104,10 @@ gripui_graph_family_catalog <- function() {
       id = "cube_asymmetric_cavities",
       label = "Cube asymmetric cavities",
       category = "Recursive cube masks",
-      function_name = "cube.asymmetric.cavities.surface.graph",
+      function.name = "cube.asymmetric.cavities.surface.graph",
       summary = "Recursive cubical family with asymmetric interior cavities and pockets.",
       implementation = graph_impl,
-      arg_ids = c("level", "side", "cavity_size", "pocket_size", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
+      arg.ids = c("level", "side", "cavity_size", "pocket_size", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("level", "Recursion level", 1L, 1L, 3L),
@@ -1115,7 +1115,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.int("cavity_size", "Cavity size", 2L, 1L, 4L),
           .gripui.family.param.int("pocket_size", "Pocket size", 1L, 1L, 4L)
         ),
-        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include_xyz_scales = TRUE)
+        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include.xyz.scales = TRUE)
       ),
       presets = list(
         twisted = list(surface = "twisted"),
@@ -1126,10 +1126,10 @@ gripui_graph_family_catalog <- function() {
       id = "cube_channel_network",
       label = "Cube channel network",
       category = "Recursive cube masks",
-      function_name = "cube.channel.network.surface.graph",
+      function.name = "cube.channel.network.surface.graph",
       summary = "Recursive cubical family with branching channel networks.",
       implementation = graph_impl,
-      arg_ids = c("level", "side", "channel_width", "branch_offset", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
+      arg.ids = c("level", "side", "channel_width", "branch_offset", "surface", "amplitude", "freq", "twist", "x_scale", "y_scale", "z_scale", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("level", "Recursion level", 1L, 1L, 3L),
@@ -1137,7 +1137,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.int("channel_width", "Channel width", 1L, 1L, 3L),
           .gripui.family.param.int("branch_offset", "Branch offset", 2L, 1L, 6L)
         ),
-        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include_xyz_scales = TRUE)
+        .gripui.family.surface3d.params(c("standard", "bulged", "twisted", "wavy"), include.xyz.scales = TRUE)
       ),
       presets = list(
         wavy = list(surface = "wavy"),
@@ -1148,16 +1148,16 @@ gripui_graph_family_catalog <- function() {
       id = "triangulated_polyhedron",
       label = "Triangulated polyhedron",
       category = "Triangulated manifolds",
-      function_name = "triangulated.polyhedron.surface.graph",
+      function.name = "triangulated.polyhedron.surface.graph",
       summary = "Closed triangulated manifold from subdivided tetrahedron, octahedron, or icosahedron bases.",
       implementation = graph_impl,
-      arg_ids = c("base", "level", "surface", "amplitude", "freq", "twist", "normalize"),
+      arg.ids = c("base", "level", "surface", "amplitude", "freq", "twist", "normalize"),
       params = c(
         list(
           .gripui.family.param.choice("base", "Base polyhedron", "icosahedron", c("tetrahedron", "octahedron", "icosahedron")),
           .gripui.family.param.int("level", "Subdivision level", 1L, 0L, 3L)
         ),
-        .gripui.family.surface3d.params(c("standard", "inflated", "twisted", "wavy"), amplitude_default = 0.25)
+        .gripui.family.surface3d.params(c("standard", "inflated", "twisted", "wavy"), amplitude.default = 0.25)
       ),
       presets = list(
         octahedron = list(base = "octahedron"),
@@ -1168,17 +1168,17 @@ gripui_graph_family_catalog <- function() {
       id = "triangulated_annulus",
       label = "Triangulated annulus",
       category = "Triangulated manifolds",
-      function_name = "triangulated.annulus.surface.graph",
+      function.name = "triangulated.annulus.surface.graph",
       summary = "Boundary triangulated annulus built from a clipped triangular lattice.",
       implementation = graph_impl,
-      arg_ids = c("resolution", "outer_radius", "inner_radius", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
+      arg.ids = c("resolution", "outer_radius", "inner_radius", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("resolution", "Resolution", 12L, 4L, 36L),
           .gripui.family.param.double("outer_radius", "Outer radius", 1, 0.2, 4, 0.05),
           .gripui.family.param.double("inner_radius", "Inner radius", 0.45, 0.05, 2.5, 0.05)
         ),
-        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude_default = 0.6, include_scales = FALSE)
+        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude.default = 0.6, include.scales = FALSE)
       ),
       presets = list(
         folded = list(surface = "folded"),
@@ -1189,10 +1189,10 @@ gripui_graph_family_catalog <- function() {
       id = "triangulated_pair_of_pants",
       label = "Triangulated pair of pants",
       category = "Triangulated manifolds",
-      function_name = "triangulated.pair.of.pants.surface.graph",
+      function.name = "triangulated.pair.of.pants.surface.graph",
       summary = "Boundary triangulated pair-of-pants family built from a clipped triangular lattice.",
       implementation = graph_impl,
-      arg_ids = c("resolution", "outer_radius", "hole_radius", "hole_offset", "hole_height", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
+      arg.ids = c("resolution", "outer_radius", "hole_radius", "hole_offset", "hole_height", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("resolution", "Resolution", 12L, 4L, 36L),
@@ -1201,7 +1201,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.double("hole_offset", "Hole offset", 0.38, 0.05, 1.5, 0.02),
           .gripui.family.param.double("hole_height", "Hole height", 0.18, 0.01, 1, 0.02)
         ),
-        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude_default = 0.6, include_scales = FALSE)
+        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude.default = 0.6, include.scales = FALSE)
       ),
       presets = list(
         folded = list(surface = "folded"),
@@ -1212,10 +1212,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_annulus",
       label = "Irregular annulus",
       category = "Irregular manifolds",
-      function_name = "irregular.annulus.surface.graph",
+      function.name = "irregular.annulus.surface.graph",
       summary = "Point-sampled annulus with irregular counts, spacing, and phases.",
       implementation = graph_impl,
-      arg_ids = c("rings", "outer_count", "outer_radius", "inner_radius", "count_irregularity", "radial_irregularity", "phase_twist", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
+      arg.ids = c("rings", "outer_count", "outer_radius", "inner_radius", "count_irregularity", "radial_irregularity", "phase_twist", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("rings", "Rings", 6L, 3L, 18L),
@@ -1226,7 +1226,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.double("radial_irregularity", "Radial irregularity", 0.35, 0, 1, 0.05),
           .gripui.family.param.double("phase_twist", "Phase twist", 0.35, 0, 1.5, 0.05)
         ),
-        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude_default = 0.6, include_scales = FALSE)
+        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude.default = 0.6, include.scales = FALSE)
       ),
       presets = list(
         folded = list(surface = "folded"),
@@ -1237,10 +1237,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_sphere",
       label = "Irregular sphere",
       category = "Irregular manifolds",
-      function_name = "irregular.sphere.surface.graph",
+      function.name = "irregular.sphere.surface.graph",
       summary = "Point-sampled sphere with irregular band densities and phases.",
       implementation = graph_impl,
-      arg_ids = c("bands", "equator_count", "count_irregularity", "lat_irregularity", "phase_twist", "surface", "radius", "amplitude", "freq_theta", "freq_lat", "twist", "normalize"),
+      arg.ids = c("bands", "equator_count", "count_irregularity", "lat_irregularity", "phase_twist", "surface", "radius", "amplitude", "freq_theta", "freq_lat", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("bands", "Bands", 6L, 3L, 18L),
         .gripui.family.param.int("equator_count", "Equator count", 28L, 8L, 80L),
@@ -1264,10 +1264,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_pair_of_pants",
       label = "Irregular pair of pants",
       category = "Irregular manifolds",
-      function_name = "irregular.pair.of.pants.surface.graph",
+      function.name = "irregular.pair.of.pants.surface.graph",
       summary = "Point-sampled pair-of-pants family with slice irregularity and phase twist.",
       implementation = graph_impl,
-      arg_ids = c("slices", "outer_count", "outer_radius", "hole_radius", "hole_offset", "hole_height", "count_irregularity", "vertical_irregularity", "phase_twist", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
+      arg.ids = c("slices", "outer_count", "outer_radius", "hole_radius", "hole_offset", "hole_height", "count_irregularity", "vertical_irregularity", "phase_twist", "surface", "amplitude", "freq_u", "freq_v", "normalize"),
       params = c(
         list(
           .gripui.family.param.int("slices", "Slices", 11L, 5L, 24L),
@@ -1280,7 +1280,7 @@ gripui_graph_family_catalog <- function() {
           .gripui.family.param.double("vertical_irregularity", "Vertical irregularity", 0.35, 0, 1, 0.05),
           .gripui.family.param.double("phase_twist", "Phase twist", 0.35, 0, 1.5, 0.05)
         ),
-        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude_default = 0.6, include_scales = FALSE)
+        .gripui.family.surface2d.params(c("flat", "saddle", "paraboloid", "ripple", "folded"), amplitude.default = 0.6, include.scales = FALSE)
       ),
       presets = list(
         folded = list(surface = "folded"),
@@ -1291,10 +1291,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_torus",
       label = "Irregular torus",
       category = "Irregular manifolds",
-      function_name = "irregular.torus.surface.graph",
+      function.name = "irregular.torus.surface.graph",
       summary = "Point-sampled torus with irregular major-ring counts and phases.",
       implementation = graph_impl,
-      arg_ids = c("major_rings", "tube_count", "count_irregularity", "major_irregularity", "phase_twist", "surface", "major_radius", "minor_radius", "amplitude", "freq_major", "freq_minor", "twist", "normalize"),
+      arg.ids = c("major_rings", "tube_count", "count_irregularity", "major_irregularity", "phase_twist", "surface", "major_radius", "minor_radius", "amplitude", "freq_major", "freq_minor", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("major_rings", "Major rings", 8L, 4L, 24L),
         .gripui.family.param.int("tube_count", "Tube count", 16L, 6L, 64L),
@@ -1319,10 +1319,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_double_torus",
       label = "Irregular double torus",
       category = "Irregular manifolds",
-      function_name = "irregular.double.torus.surface.graph",
+      function.name = "irregular.double.torus.surface.graph",
       summary = "Closed genus-2 point-sampled surface with irregular slice and tube structure.",
       implementation = graph_impl,
-      arg_ids = c("slices", "tube_count", "branch_length", "branch_offset", "tube_radius", "transition_width", "count_irregularity", "axial_irregularity", "phase_twist", "surface", "amplitude", "freq_x", "freq_theta", "twist", "normalize"),
+      arg.ids = c("slices", "tube_count", "branch_length", "branch_offset", "tube_radius", "transition_width", "count_irregularity", "axial_irregularity", "phase_twist", "surface", "amplitude", "freq_x", "freq_theta", "twist", "normalize"),
       params = list(
         .gripui.family.param.int("slices", "Slices", 11L, 5L, 24L),
         .gripui.family.param.int("tube_count", "Tube count", 14L, 6L, 64L),
@@ -1349,10 +1349,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_ball",
       label = "Irregular ball solid",
       category = "Volumetric solids",
-      function_name = "irregular.ball.solid.graph",
+      function.name = "irregular.ball.solid.graph",
       summary = "Tetrahedralized volumetric ball built from nested subdivided polyhedral shells.",
       implementation = graph_impl,
-      arg_ids = c("base", "level", "layers", "outer_radius", "radial_irregularity", "layer_twist", "surface", "amplitude", "freq_theta", "freq_phi", "twist", "normalize"),
+      arg.ids = c("base", "level", "layers", "outer_radius", "radial_irregularity", "layer_twist", "surface", "amplitude", "freq_theta", "freq_phi", "twist", "normalize"),
       params = list(
         .gripui.family.param.choice("base", "Base polyhedron", "icosahedron", c("tetrahedron", "octahedron", "icosahedron")),
         .gripui.family.param.int("level", "Subdivision level", 1L, 0L, 2L),
@@ -1376,10 +1376,10 @@ gripui_graph_family_catalog <- function() {
       id = "irregular_shell",
       label = "Irregular shell solid",
       category = "Volumetric solids",
-      function_name = "irregular.shell.solid.graph",
+      function.name = "irregular.shell.solid.graph",
       summary = "Tetrahedralized hollow shell built from nested subdivided polyhedral shells.",
       implementation = graph_impl,
-      arg_ids = c("base", "level", "layers", "inner_radius", "outer_radius", "radial_irregularity", "layer_twist", "surface", "amplitude", "freq_theta", "freq_phi", "twist", "normalize"),
+      arg.ids = c("base", "level", "layers", "inner_radius", "outer_radius", "radial_irregularity", "layer_twist", "surface", "amplitude", "freq_theta", "freq_phi", "twist", "normalize"),
       params = list(
         .gripui.family.param.choice("base", "Base polyhedron", "icosahedron", c("tetrahedron", "octahedron", "icosahedron")),
         .gripui.family.param.int("level", "Subdivision level", 1L, 0L, 2L),
@@ -1404,7 +1404,7 @@ gripui_graph_family_catalog <- function() {
       id = "kary_tree",
       label = "Intrinsic weighted k-ary tree",
       category = "Intrinsic trees",
-      function_name = "kary.tree.weighted.graph",
+      function.name = "kary.tree.weighted.graph",
       summary = "Tree family with intrinsic edge lengths controlled directly by depth and branch rules.",
       implementation = graph_impl,
       params = list(
@@ -1412,21 +1412,21 @@ gripui_graph_family_catalog <- function() {
         .gripui.family.param.int("depth", "Depth", 3L, 1L, 7L),
         .gripui.family.param.double("base_length", "Base length", 1, 0.1, 4, 0.05),
         .gripui.family.param.choice("depth_rule", "Depth rule", "geometric", c("geometric", "constant", "custom")),
-        .gripui.family.param.double("depth_decay", "Depth decay", 0.85, 0.1, 1.5, 0.05, visible_if = list(depth_rule = "geometric")),
-        .gripui.family.param.numeric_vector(
+        .gripui.family.param.double("depth_decay", "Depth decay", 0.85, 0.1, 1.5, 0.05, visible.if = list(depth_rule = "geometric")),
+        .gripui.family.param.numeric.vector(
           "depth_factors",
           "Depth factors",
           default = numeric(),
-          visible_if = list(depth_rule = "custom"),
+          visible.if = list(depth_rule = "custom"),
           help = "Comma-separated values, one per edge depth."
         ),
         .gripui.family.param.choice("branch_rule", "Branch rule", "linear", c("linear", "uniform", "custom")),
-        .gripui.family.param.double("branch_spread", "Branch spread", 0.3, 0, 2, 0.05, visible_if = list(branch_rule = "linear")),
-        .gripui.family.param.numeric_vector(
+        .gripui.family.param.double("branch_spread", "Branch spread", 0.3, 0, 2, 0.05, visible.if = list(branch_rule = "linear")),
+        .gripui.family.param.numeric.vector(
           "branch_factors",
           "Branch factors",
           default = numeric(),
-          visible_if = list(branch_rule = "custom"),
+          visible.if = list(branch_rule = "custom"),
           help = "Comma-separated values, one per child slot."
         ),
         .gripui.family.normalize.param()
@@ -1451,7 +1451,7 @@ gripui_graph_family_catalog <- function() {
           branch_factors = p$branch_factors,
           normalize = p$normalize
         )
-        do.call(kary.tree.weighted.graph, args)
+        .grip.invoke(kary.tree.weighted.graph, args)
       },
       code = function(p) {
         p$depth_factors <- if (length(p$depth_factors) == 0L) NULL else p$depth_factors

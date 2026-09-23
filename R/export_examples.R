@@ -9,8 +9,8 @@
 #' cycle_edges <- edges.cycle(6)
 #' cycle_lengths <- seq(0.8, 1.3, length.out = nrow(cycle_edges))
 #' levels <- build.weighted.misf(
-#'   edges = cycle_edges, n = 6, edge_weights = cycle_lengths,
-#'   num_init = 3, num_nbrs = 2, seed = 1
+#'   edges = cycle_edges, n = 6, edge.weights = cycle_lengths,
+#'   num.init = 3, num.nbrs = 2, seed = 1
 #' )
 NULL
 
@@ -18,14 +18,14 @@ NULL
 #' @rdname porous_cube_surface_helpers
 #' @examples
 #' asymmetric <- cube.asymmetric.cavities.surface.graph(
-#'   level = 1, side = 5, cavity_size = 1, pocket_size = 1
+#'   level = 1, side = 5, cavity.size = 1, pocket.size = 1
 #' )
 #' channels <- cube.channel.network.surface.graph(
-#'   level = 1, side = 5, channel_width = 1, branch_offset = 2
+#'   level = 1, side = 5, channel.width = 1, branch.offset = 2
 #' )
 #' tunnels <- cube.periodic.tunnels.surface.graph(
-#'   level = 1, side = 5, tunnel_width = 1,
-#'   tunnel_period = 2, tunnel_offset = 1
+#'   level = 1, side = 5, tunnel.width = 1,
+#'   tunnel.period = 2, tunnel.offset = 1
 #' )
 NULL
 
@@ -44,7 +44,7 @@ NULL
 #' prepared <- prepare.edge.kk(cycle_edges, n = 6)
 #' fit <- edge.kk(
 #'   coords = initial, prepared = prepared,
-#'   max_iter = 1, density_n = 32, engine = "R"
+#'   max.iter = 1, density.n = 32, engine = "R"
 #' )
 NULL
 
@@ -52,7 +52,7 @@ NULL
 #' @rdname edge.length.density.stiffness
 #' @examples
 #' stiffness <- edge.length.density.stiffness(
-#'   c(0.8, 0.9, 1, 1.1, 1.2, 1.3), density_n = 32
+#'   c(0.8, 0.9, 1, 1.1, 1.2, 1.3), density.n = 32
 #' )
 NULL
 
@@ -100,7 +100,7 @@ NULL
 #' theta <- seq(0, 2 * pi, length.out = 7)[-7]
 #' initial <- cbind(cos(theta), sin(theta))
 #' prepared <- prepare.geodesic.kk(cycle_edges, n = 6)
-#' fit <- geodesic.kk(initial, prepared = prepared, max_iter = 1)
+#' fit <- geodesic.kk(initial, prepared = prepared, max.iter = 1)
 NULL
 
 #' @name geometry.diagnostics
@@ -121,9 +121,9 @@ NULL
 #' cycle_edges <- edges.cycle(6)
 #' cycle_lengths <- seq(0.8, 1.3, length.out = nrow(cycle_edges))
 #' layout <- globalrep.weighted.grip(
-#'   edges = cycle_edges, n = 6, edge_weights = cycle_lengths,
-#'   dim = 2, rounds = 1, final_rounds = 1,
-#'   num_init = 3, num_nbrs = 2, seed = 1
+#'   edges = cycle_edges, n = 6, edge.weights = cycle_lengths,
+#'   dim = 2, rounds = 1, final.rounds = 1,
+#'   num.init = 3, num.nbrs = 2, seed = 1
 #' )
 NULL
 
@@ -140,7 +140,7 @@ NULL
 #' @name irregular_annulus_surface_helpers
 #' @rdname irregular_annulus_surface_helpers
 #' @examples
-#' annulus <- irregular.annulus.surface.graph(rings = 3, outer_count = 12)
+#' annulus <- irregular.annulus.surface.graph(rings = 3, outer.count = 12)
 NULL
 
 #' @name irregular_ball_solid_helpers
@@ -155,7 +155,7 @@ NULL
 #' @rdname irregular_double_torus_surface_helpers
 #' @examples
 #' double_torus <- irregular.double.torus.surface.graph(
-#'   slices = 7, tube_count = 8
+#'   slices = 7, tube.count = 8
 #' )
 NULL
 
@@ -163,7 +163,7 @@ NULL
 #' @rdname irregular_pair_of_pants_surface_helpers
 #' @examples
 #' pair_of_pants <- irregular.pair.of.pants.surface.graph(
-#'   slices = 5, outer_count = 12
+#'   slices = 5, outer.count = 12
 #' )
 NULL
 
@@ -184,13 +184,13 @@ NULL
 #' @name irregular_sphere_surface_helpers
 #' @rdname irregular_sphere_surface_helpers
 #' @examples
-#' sphere <- irregular.sphere.surface.graph(bands = 3, equator_count = 12)
+#' sphere <- irregular.sphere.surface.graph(bands = 3, equator.count = 12)
 NULL
 
 #' @name irregular_torus_surface_helpers
 #' @rdname irregular_torus_surface_helpers
 #' @examples
-#' torus <- irregular.torus.surface.graph(major_rings = 4, tube_count = 8)
+#' torus <- irregular.torus.surface.graph(major.rings = 4, tube.count = 8)
 NULL
 
 #' @name kary_tree_weighted_graph_helpers
@@ -202,10 +202,10 @@ NULL
 #' @name perforated_grid_helpers
 #' @rdname perforated_grid_helpers
 #' @examples
-#' notches <- keep.asymmetric.notches(7, 8, notch_depth = 2, notch_width = 2)
-#' holes <- keep.periodic.holes(7, 8, hole_period = 3)
-#' slits <- keep.slit.channels(7, 8, slit_period = 3)
-#' windows <- keep.staggered.windows(7, 8, row_period = 3, col_period = 4)
+#' notches <- keep.asymmetric.notches(7, 8, notch.depth = 2, notch.width = 2)
+#' holes <- keep.periodic.holes(7, 8, hole.period = 3)
+#' slits <- keep.slit.channels(7, 8, slit.period = 3)
+#' windows <- keep.staggered.windows(7, 8, row.period = 3, col.period = 4)
 NULL
 
 #' @name kernel.gram.gkk
@@ -217,7 +217,7 @@ NULL
 #' prepared <- prepare.graph.geodesic.mds(cycle_edges, n = 6)
 #' fit <- kernel.gram.gkk(
 #'   coords = initial, prepared = prepared, X = initial,
-#'   max_iter = 1, density_n = 32, engine = "R"
+#'   max.iter = 1, density.n = 32, engine = "R"
 #' )
 NULL
 
@@ -228,31 +228,31 @@ NULL
 #' theta <- seq(0, 2 * pi, length.out = 7)[-7]
 #' initial <- cbind(cos(theta), sin(theta))
 #' prepared <- prepare.landmark.geodesic.kk(
-#'   cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+#'   cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 #' )
-#' fit <- landmark.geodesic.kk(initial, prepared = prepared, max_iter = 1)
+#' fit <- landmark.geodesic.kk(initial, prepared = prepared, max.iter = 1)
 NULL
 
 #' @name mask_pattern_helpers
 #' @rdname mask_pattern_helpers
 #' @examples
-#' asymmetric <- mask.asymmetric.holes(k = 5, hole_size = 1)
+#' asymmetric <- mask.asymmetric.holes(k = 5, hole.size = 1)
 #' border <- mask.border(k = 5, thickness = 1)
 #' corner <- mask.corner(k = 5, width = 2, corner = "top_left")
-#' cross <- mask.cross(k = 5, arm_width = 1)
+#' cross <- mask.cross(k = 5, arm.width = 1)
 NULL
 
 #' @name cube_mask_pattern_helpers
 #' @rdname cube_mask_pattern_helpers
 #' @examples
 #' cavities <- mask.cube.asymmetric.cavities(
-#'   side = 5, cavity_size = 1, pocket_size = 1
+#'   side = 5, cavity.size = 1, pocket.size = 1
 #' )
 #' channels <- mask.cube.channel.network(
-#'   side = 5, channel_width = 1, branch_offset = 2
+#'   side = 5, channel.width = 1, branch.offset = 2
 #' )
 #' tunnels <- mask.cube.periodic.tunnels(
-#'   side = 5, tunnel_width = 1, tunnel_period = 2, tunnel_offset = 1
+#'   side = 5, tunnel.width = 1, tunnel.period = 2, tunnel.offset = 1
 #' )
 NULL
 
@@ -294,7 +294,7 @@ NULL
 #' @rdname metric.mds
 #' @examples
 #' prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
-#' fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max_iter = 30))
+#' fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max.iter = 30))
 #' fit$metadata$raw_stress
 #' fit$metadata$termination # Schedule completion is not a convergence certificate.
 NULL
@@ -304,13 +304,13 @@ NULL
 #' @examples
 #' mesh_edges <- edges.mesh(4, 4)
 #' fit <- misf.geodesic.kk(
-#'   edges = mesh_edges, n = 16, num_init = 4, dim = 2,
-#'   top_level_restarts = 2, top_level_max_iter = 3,
-#'   insertion_mode = "geodesic", insertion_max_iter = 6,
-#'   refinement_pair_mode = "auto", refinement_full_limit = 4,
-#'   refinement_max_iter = 3, final_pair_mode = "landmark",
-#'   final_full_limit = 4, final_max_iter = 3,
-#'   return_trace = TRUE, seed = 1
+#'   edges = mesh_edges, n = 16, num.init = 4, dim = 2,
+#'   top.level.restarts = 2, top.level.max.iter = 3,
+#'   insertion.mode = "geodesic", insertion.max.iter = 6,
+#'   refinement.pair.mode = "auto", refinement.full.limit = 4,
+#'   refinement.max.iter = 3, final.pair.mode = "landmark",
+#'   final.full.limit = 4, final.max.iter = 3,
+#'   return.trace = TRUE, seed = 1
 #' )
 NULL
 
@@ -348,7 +348,7 @@ NULL
 #' @examples
 #' cycle_edges <- edges.cycle(6)
 #' prepared <- prepare.landmark.geodesic.kk(
-#'   cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+#'   cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 #' )
 NULL
 
@@ -356,7 +356,7 @@ NULL
 #' @rdname recursive_cube_mask_surface_helpers
 #' @examples
 #' mask <- mask.cube.channel.network(
-#'   side = 5, channel_width = 1, branch_offset = 2
+#'   side = 5, channel.width = 1, branch.offset = 2
 #' )
 #' cube <- recursive.cube.mask.surface.graph(mask, level = 1)
 NULL
@@ -436,7 +436,7 @@ NULL
 #' theta <- seq(0, 2 * pi, length.out = 7)[-7]
 #' coords <- cbind(cos(theta), sin(theta))
 #' prepared <- prepare.landmark.geodesic.kk(
-#'   cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+#'   cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 #' )
 #' score <- score.landmark.geodesic.kk(coords, prepared = prepared)
 NULL
@@ -446,8 +446,8 @@ NULL
 #' @examples
 #' mesh_edges <- edges.mesh(4, 4)
 #' prepared <- prepare.misf.geodesic.kk(
-#'   mesh_edges, n = 16, num_init = 4,
-#'   top_level_mode = "skip", seed = 1
+#'   mesh_edges, n = 16, num.init = 4,
+#'   top.level.mode = "skip", seed = 1
 #' )
 #' coords <- matrix(seq_len(32), nrow = 16, ncol = 2)
 #' score <- score.misf.geodesic.kk(coords = coords, prepared = prepared)
@@ -515,8 +515,8 @@ NULL
 #' cycle_edges <- edges.cycle(6)
 #' cycle_lengths <- seq(0.8, 1.3, length.out = nrow(cycle_edges))
 #' layout <- weighted.grip.nd(
-#'   edges = cycle_edges, n = 6, edge_weights = cycle_lengths,
-#'   dim = 4, rounds = 1, final_rounds = 1,
-#'   num_init = 5, num_nbrs = 2, seed = 1
+#'   edges = cycle_edges, n = 6, edge.weights = cycle_lengths,
+#'   dim = 4, rounds = 1, final.rounds = 1,
+#'   num.init = 5, num.nbrs = 2, seed = 1
 #' )
 NULL

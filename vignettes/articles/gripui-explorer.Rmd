@@ -29,16 +29,16 @@ gripui_available <- all(vapply(
 For the first public release, `grip` documents two supported Shiny-based
 exploration workflows:
 
-1. the original **project explorer**, launched with `run_gripui()`, for
+1. the original **project explorer**, launched with `run.gripui()`, for
    browsing realized layout catalogs;
-2. the **graph-family geometry explorer**, launched with `run_gripui_family()`,
+2. the **graph-family geometry explorer**, launched with `run.gripui.family()`,
    for interactively generating and viewing synthetic graph families.
 
 They solve different problems:
 
-- use `run_gripui()` when you already have layout results and want to compare,
+- use `run.gripui()` when you already have layout results and want to compare,
   filter, and inspect them;
-- use `run_gripui_family()` when you want to browse the package's synthetic
+- use `run.gripui.family()` when you want to browse the package's synthetic
   graph-geometry library and its parameter space.
 
 ```{r}
@@ -68,7 +68,7 @@ usual workflow is:
 
 ### Building a project from `compare.layouts()`
 
-The shortest path is `gripui_project_from_compare()`.
+The shortest path is `gripui.project.from.compare()`.
 
 ```{r compare-example}
 edges <- edges.mesh(5, 5)
@@ -83,7 +83,7 @@ cmp <- compare.layouts(
     tuned = list(
       preset = "mesh",
       rounds = 48L,
-      final_rounds = 96L
+      final.rounds = 96L
     )
   ),
   seeds = 1:2,
@@ -105,7 +105,7 @@ for (i in seq_len(nrow(edges))) {
 }
 graph <- list(adj_list = lapply(adj, function(x) sort(unique(as.integer(x)))))
 
-project <- gripui_project_from_compare(
+project <- gripui.project.from.compare(
   cmp,
   graph = graph,
   title = "5x5 mesh comparison"
@@ -119,7 +119,7 @@ knitr::kable(project$layouts[, c(
 
 ### Building a project by hand
 
-When the layouts come from another source, use `gripui_project()` directly.
+When the layouts come from another source, use `gripui.project()` directly.
 
 ```{r manual-project}
 layouts_df <- data.frame(
@@ -131,7 +131,7 @@ layouts_df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-manual_project <- gripui_project(
+manual_project <- gripui.project(
   graph = NULL,
   layouts = layouts_df,
   title = "Manual example"
@@ -144,33 +144,33 @@ manual_project$meta$title
 
 Two helpers round out the project workflow:
 
-- `gripui_validate_project()` checks structure and consistency,
-- `gripui_project_from_dir()` assembles a project from saved artifacts on disk.
+- `gripui.validate.project()` checks structure and consistency,
+- `gripui.project.from.dir()` assembles a project from saved artifacts on disk.
 
 ```{r validate-project}
-gripui_validate_project(project)
+gripui.validate.project(project)
 ```
 
 ```r
 # Not run: requires a saved output directory
-project <- gripui_project_from_dir(
+project <- gripui.project.from.dir(
   root = "/path/to/saved/outputs",
   title = "My saved search"
 )
-run_gripui(project)
+run.gripui(project)
 ```
 
 ### Launching the project explorer
 
-`gripui_app()` builds the app object, while `run_gripui()` launches it.
+`gripui.app()` builds the app object, while `run.gripui()` launches it.
 
 ```{r app-objects, eval=gripui_available}
-project.app <- gripui_app(project)
+project.app <- gripui.app(project)
 inherits(project.app, "shiny.appobj")
 ```
 
 ```r
-run_gripui(project)
+run.gripui(project)
 ```
 
 The project explorer is the right tool when you want:
@@ -191,9 +191,9 @@ support the package's testing and benchmark workflows.
 
 Its main entry points are:
 
-- `gripui_graph_family_catalog()`
-- `gripui_family_app()`
-- `run_gripui_family()`
+- `gripui.graph.family.catalog()`
+- `gripui.family.app()`
+- `run.gripui.family()`
 
 ### The family catalog
 
@@ -202,7 +202,7 @@ Each descriptor records the family name, category, presets, parameter controls,
 builder call, and source references.
 
 ```{r family-catalog}
-catalog <- gripui_graph_family_catalog()
+catalog <- gripui.graph.family.catalog()
 
 length(catalog)
 head(names(catalog))
@@ -225,12 +225,12 @@ which graph families belong in a paper, test, or demo.
 ### Launching the family explorer
 
 ```{r family-app, eval=gripui_available}
-family.app <- gripui_family_app()
+family.app <- gripui.family.app()
 inherits(family.app, "shiny.appobj")
 ```
 
 ```r
-run_gripui_family()
+run.gripui.family()
 ```
 
 The geometry explorer includes:
@@ -243,13 +243,13 @@ The geometry explorer includes:
 
 ## Which app should you use?
 
-Use `run_gripui()` when:
+Use `run.gripui()` when:
 
 - you already have layout results,
 - you want to compare candidates or saved searches,
 - you care about score tables and layout catalogs.
 
-Use `run_gripui_family()` when:
+Use `run.gripui.family()` when:
 
 - you want to inspect the synthetic family collection,
 - you are choosing benchmark families,
@@ -260,9 +260,9 @@ Use `run_gripui_family()` when:
 
 - The apps are optional-package features, so they are best launched in an
   interactive R session rather than inside a scripted report.
-- `run_gripui_family()` is self-contained because it builds its own synthetic
+- `run.gripui.family()` is self-contained because it builds its own synthetic
   examples from the family catalog.
-- `run_gripui()` is best thought of as a viewer for a prepared `gripui_project`.
+- `run.gripui()` is best thought of as a viewer for a prepared `gripui.project`.
 
 ## Where to go next
 

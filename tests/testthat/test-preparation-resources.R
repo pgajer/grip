@@ -2,9 +2,9 @@ test_that("estimates distinguish dense distances from sparse retained routes", {
   full <- estimate.preparation(10000, 20000)
   expect_equal(full$dense.distance.bytes.lower.bound, 800000000)
   expect_equal(full$pair.count.upper.bound, 49995000)
-  expect_equal(estimate.preparation(10000, pair_mode = "landmark_sparse")$dense.distance.bytes.lower.bound,
+  expect_equal(estimate.preparation(10000, pair.mode = "landmark_sparse")$dense.distance.bytes.lower.bound,
                full$dense.distance.bytes.lower.bound)
-  expect_equal(estimate.preparation(10000, pair_mode = "edge_only")$dense.distance.bytes.lower.bound, 0)
+  expect_equal(estimate.preparation(10000, pair.mode = "edge_only")$dense.distance.bytes.lower.bound, 0)
   expect_gt(as.numeric(object.size(matrix(0, 10, 10))),
             estimate.preparation(10)$dense.distance.bytes.lower.bound)
   expect_error(estimate.preparation(4.5), "integer")

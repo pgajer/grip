@@ -14,7 +14,7 @@
 #'   in the same observation order. Row names do not trigger reordering.
 #' @param alignment One of `"rigid"` (translation and orthogonal transformation),
 #'   `"none"`, or `"similarity"` (also fit a nonnegative uniform scale).
-#' @param allow_reflection Allow a reflection in the fitted orthogonal matrix.
+#' @param allow.reflection Allow a reflection in the fitted orthogonal matrix.
 #' @return A list with `rmse`, `relative_rmse`, `coords` (aligned coordinates),
 #'   `rotation`, `translation`, `scale`, `alignment`, and `reference_radius`.
 #'   RMSE is the square root of the mean squared Euclidean vertex displacement,
@@ -34,12 +34,12 @@
 #' @md
 score.coordinates <- function(coords, reference,
                               alignment = c("rigid", "none", "similarity"),
-                              allow_reflection = TRUE) {
+                              allow.reflection = TRUE) {
   coords <- .reference.coords(coords, "coords")
   reference <- .reference.coords(reference, "reference")
   if (!identical(dim(coords), dim(reference))) stop("Coordinate dimensions must agree")
-  if (!is.logical(allow_reflection) || length(allow_reflection) != 1L || is.na(allow_reflection))
-    stop("allow_reflection must be TRUE or FALSE")
+  if (!is.logical(allow.reflection) || length(allow.reflection) != 1L || is.na(allow.reflection))
+    stop("allow.reflection must be TRUE or FALSE")
   alignment <- match.arg(alignment)
   d <- ncol(coords); rotation <- diag(d); translation <- rep(0, d); scale <- 1
   center <- colMeans(reference)
@@ -53,7 +53,7 @@ score.coordinates <- function(coords, reference,
     if (a > 0 && b > 0) {
       sv <- svd(crossprod(source / a, target / b))
       signs <- rep(1, d)
-      if (!allow_reflection && det(sv$u %*% t(sv$v)) < 0) signs[d] <- -1
+      if (!allow.reflection && det(sv$u %*% t(sv$v)) < 0) signs[d] <- -1
       rotation <- sv$u %*% diag(signs, d) %*% t(sv$v)
       if (alignment == "similarity")
         scale <- max(0, sum(sv$d * signs)) / sum((source / a)^2) * (b / a)
@@ -107,11 +107,11 @@ score.coordinates <- function(coords, reference,
 #'
 #' Compares already aligned surfaces using closest points on triangles, not
 #' nearest vertices. No registration, rescaling, or triangulation is performed.
-#' @param coords,reference_coords Numeric three-column vertex matrices.
-#' @param triangles,reference_triangles Three-column matrices of one-based
+#' @param coords,reference.coords Numeric three-column vertex matrices.
+#' @param triangles,reference.triangles Three-column matrices of one-based
 #'   triangle indices into the corresponding vertex matrix. Open surfaces and
 #'   different triangulations are supported. Duplicate faces are rejected.
-#' @param sample_size Number of independent area-uniform samples per surface,
+#' @param sample.size Number of independent area-uniform samples per surface,
 #'   at least two. Increase this to assess Monte Carlo convergence.
 #' @param seed Nonnegative integer seed, at most 2147483646. Separate fixed
 #'   streams are used for the two directions; the caller's RNG state is restored.
@@ -133,15 +133,15 @@ score.coordinates <- function(coords, reference,
 #' @examples
 #' x <- rbind(c(0, 0, 0), c(1, 0, 0), c(0, 1, 0))
 #' f <- matrix(1:3, nrow = 1)
-#' score.surface(x, f, x, f, sample_size = 100)$rms
+#' score.surface(x, f, x, f, sample.size = 100)$rms
 #' @md
-score.surface <- function(coords, triangles, reference_coords, reference_triangles,
-                          sample_size = 5000L, seed = 1L) {
-  grip.validate.scalar(sample_size, "sample_size", lower = 2, upper = 1e7)
+score.surface <- function(coords, triangles, reference.coords, reference.triangles,
+                          sample.size = 5000L, seed = 1L) {
+  grip.validate.scalar(sample.size, "sample.size", lower = 2, upper = 1e7)
   grip.validate.scalar(seed, "seed", lower = 0, upper = 2147483646)
-  if (sample_size != floor(sample_size) || seed != floor(seed)) stop("sample_size and seed must be integers")
+  if (sample.size != floor(sample.size) || seed != floor(seed)) stop("sample.size and seed must be integers")
   source <- .reference.mesh(coords, triangles, "coords")
-  target <- .reference.mesh(reference_coords, reference_triangles, "reference_coords")
+  target <- .reference.mesh(reference.coords, reference.triangles, "reference.coords")
   old.kind <- RNGkind()
   has.seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   if (has.seed) old.seed <- get(".Random.seed", envir = .GlobalEnv)
@@ -152,18 +152,18 @@ score.surface <- function(coords, triangles, reference_coords, reference_triangl
   })
   RNGkind("Mersenne-Twister", "Inversion")
   set.seed(seed)
-  p <- .reference.sample(source, sample_size)
+  p <- .reference.sample(source, sample.size)
   set.seed(seed + 1L)
-  q <- .reference.sample(target, sample_size)
+  q <- .reference.sample(target, sample.size)
   forward <- grip_surface_distances_cpp(p, target$coords, target$triangles)
   reverse <- grip_surface_distances_cpp(q, source$coords, source$triangles)
   rms <- sqrt((mean(forward^2) + mean(reverse^2)) / 2)
   if (!is.finite(rms)) stop("Surface distances exceed the supported numerical range")
-  se2 <- sqrt((stats::var(forward^2) + stats::var(reverse^2)) / (4 * sample_size))
+  se2 <- sqrt((stats::var(forward^2) + stats::var(reverse^2)) / (4 * sample.size))
   list(rms = rms, forward_rms = sqrt(mean(forward^2)), reverse_rms = sqrt(mean(reverse^2)),
        forward_mean = mean(forward), reverse_mean = mean(reverse),
        rms_mc_se = if (rms > 0) se2 / (2*rms) else 0,
        area = sum(source$areas), reference_area = sum(target$areas),
        zero_area_faces = sum(source$areas == 0), reference_zero_area_faces = sum(target$areas == 0),
-       sample_size = sample_size, seed = seed)
+       sample_size = sample.size, seed = seed)
 }

@@ -4,10 +4,10 @@ test_that("MISF-GMDS preparation carries the coarse level induced graph", {
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 16L,
-    tie_mode = "average",
-    num_init = 4L,
-    num_nbrs = 6L,
-    top_level_mode = "skip",
+    tie.mode = "average",
+    num.init = 4L,
+    num.nbrs = 6L,
+    top.level.mode = "skip",
     seed = 9L
   )
 
@@ -38,14 +38,14 @@ test_that("top-level MISF-GMDS solve improves over its random restart family", {
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 16L,
-    tie_mode = "average",
-    num_init = 4L,
-    num_nbrs = 6L,
+    tie.mode = "average",
+    num.init = 4L,
+    num.nbrs = 6L,
     dim = 2L,
-    top_level_mode = "solve",
-    top_level_restarts = 3L,
-    top_level_max_iter = 4L,
-    top_level_engine = "cpp",
+    top.level.mode = "solve",
+    top.level.restarts = 3L,
+    top.level.max.iter = 4L,
+    top.level.engine = "cpp",
     seed = 11L
   )
 
@@ -67,18 +67,18 @@ test_that("top-level MISF-GMDS solve improves over its random restart family", {
   expect_true(all(is.finite(fit$coords_full[prepared$top_level_vertices, , drop = FALSE])))
 })
 
-test_that("grip.geodesic.misf.induced_level_graph accepts explicit level selection", {
+test_that("grip.geodesic.misf.induced.level.graph accepts explicit level selection", {
   edges <- edges.mesh(5, 5)
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 25L,
-    num_init = 5L,
-    num_nbrs = 8L,
-    top_level_mode = "skip",
+    num.init = 5L,
+    num.nbrs = 8L,
+    top.level.mode = "skip",
     seed = 5L
   )
 
-  coarse.level1 <- grip:::grip.geodesic.misf.induced_level_graph(prepared, level = 1L)
+  coarse.level1 <- grip:::grip.geodesic.misf.induced.level.graph(prepared, level = 1L)
   level.vertices <- prepared$misf$levels[[2L]]
 
   expect_equal(coarse.level1$level, 1L)
@@ -122,14 +122,14 @@ test_that("MISF anchor selection is deterministic and previous-level restricted"
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
-    num_init = 5L,
-    num_nbrs = 8L,
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
+    num.init = 5L,
+    num.nbrs = 8L,
     dim = 3L,
-    top_level_mode = "solve",
-    top_level_restarts = 2L,
-    top_level_max_iter = 2L,
+    top.level.mode = "solve",
+    top.level.restarts = 2L,
+    top.level.max.iter = 2L,
     seed = 4L
   )
   coords <- prepared$top_level_fit$coords_full
@@ -141,32 +141,32 @@ test_that("MISF anchor selection is deterministic and previous-level restricted"
     coords = coords,
     vertex = vertex,
     level = level,
-    anchor_policy = "prev_level_first",
-    anchor_count = 4L
+    anchor.policy = "prev_level_first",
+    anchor.count = 4L
   )
   first2 <- grip:::grip.geodesic.misf.select.anchors(
     prepared = prepared,
     coords = coords,
     vertex = vertex,
     level = level,
-    anchor_policy = "prev_level_first",
-    anchor_count = 4L
+    anchor.policy = "prev_level_first",
+    anchor.count = 4L
   )
   spread1 <- grip:::grip.geodesic.misf.select.anchors(
     prepared = prepared,
     coords = coords,
     vertex = vertex,
     level = level,
-    anchor_policy = "prev_level_spread",
-    anchor_count = 4L
+    anchor.policy = "prev_level_spread",
+    anchor.count = 4L
   )
   spread2 <- grip:::grip.geodesic.misf.select.anchors(
     prepared = prepared,
     coords = coords,
     vertex = vertex,
     level = level,
-    anchor_policy = "prev_level_spread",
-    anchor_count = 4L
+    anchor.policy = "prev_level_spread",
+    anchor.count = 4L
   )
   prev.level <- prepared$misf$levels[[level + 2L]]
 
@@ -185,7 +185,7 @@ test_that("MISF level insertion yields finite layouts on regular and irregular p
     normalize = "median"
   )
   irregular <- occupied.mesh.surface.graph(
-    keep = keep.asymmetric.notches(6, 6, notch_depth = 2, notch_width = 1),
+    keep = keep.asymmetric.notches(6, 6, notch.depth = 2, notch.width = 1),
     surface = "paraboloid",
     amplitude = 0.25,
     connectivity = "orthogonal",
@@ -198,20 +198,20 @@ test_that("MISF level insertion yields finite layouts on regular and irregular p
     prepared <- grip.prepare.misf.geodesic.mds(
       edges = bundle$edges,
       n = bundle$n,
-      edge_weights = bundle$edge_weights,
-      tie_mode = "average",
-      num_init = 6L,
-      num_nbrs = 8L,
+      edge.weights = bundle$edge_weights,
+      tie.mode = "average",
+      num.init = 6L,
+      num.nbrs = 8L,
       dim = 3L,
-      top_level_mode = "solve",
-      top_level_restarts = 2L,
-      top_level_max_iter = 3L,
+      top.level.mode = "solve",
+      top.level.restarts = 2L,
+      top.level.max.iter = 3L,
       seed = 8L
     )
     inserted <- grip:::grip.geodesic.misf.insert.all.levels(
       prepared = prepared,
-      anchor_policy = "prev_level_spread",
-      max_iter = 40L
+      anchor.policy = "prev_level_spread",
+      max.iter = 40L
     )
 
     expect_equal(dim(inserted$coords), c(bundle$n, 3L), info = case.name)
@@ -231,14 +231,14 @@ test_that("layout-based MISF level placement keeps higher-level anchors fixed", 
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
-    num_nbrs = 8L,
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
+    num.nbrs = 8L,
     dim = 3L,
-    top_level_mode = "solve",
-    top_level_restarts = 2L,
-    top_level_max_iter = 3L,
+    top.level.mode = "solve",
+    top.level.restarts = 2L,
+    top.level.max.iter = 3L,
     seed = 10L
   )
   coords <- prepared$top_level_fit$coords_full
@@ -253,24 +253,24 @@ test_that("layout-based MISF level placement keeps higher-level anchors fixed", 
       coords = coords,
       level = level,
       method = method,
-      weighted_preset = "mesh",
-      grip_args = list(
+      weighted.preset = "mesh",
+      grip.args = list(
         placement = "barycenter",
         rounds = 32L,
-        final_rounds = 48L,
-        num_init = 6L,
-        num_nbrs = 8L,
+        final.rounds = 48L,
+        num.init = 6L,
+        num.nbrs = 8L,
         r = 0.08,
         s = 5.5,
-        repulsion_factor = 1.2
+        repulsion.factor = 1.2
       ),
-      weighted_args = list(
+      weighted.args = list(
         rounds = 48L,
-        final_rounds = 64L,
-        num_init = 6L,
-        num_nbrs = 8L
+        final.rounds = 64L,
+        num.init = 6L,
+        num.nbrs = 8L
       ),
-      fr_niter = 200L,
+      fr.niter = 200L,
       seed = 19L
     )
 
@@ -295,22 +295,22 @@ test_that("MISF sparse level-pair builder respects the active level", {
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
-    num_nbrs = 8L,
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
+    num.nbrs = 8L,
     dim = 3L,
-    top_level_mode = "solve",
-    top_level_restarts = 2L,
-    top_level_max_iter = 3L,
+    top.level.mode = "solve",
+    top.level.restarts = 2L,
+    top.level.max.iter = 3L,
     seed = 3L
   )
   built <- grip:::grip.geodesic.misf.build.level.pairs(
     prepared = prepared,
     level = 1L,
-    local_nbrs = 3L,
-    landmark_count = 2L,
-    pair_mode = "sparse"
+    local.nbrs = 3L,
+    landmark.count = 2L,
+    pair.mode = "sparse"
   )
 
   expect_equal(built$active_vertices, prepared$misf$levels[[2L]])
@@ -331,42 +331,42 @@ test_that("MISF sparse refinement lowers active-level energy and final polish lo
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
-    num_nbrs = 8L,
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
+    num.nbrs = 8L,
     dim = 3L,
-    top_level_mode = "solve",
-    top_level_restarts = 2L,
-    top_level_max_iter = 3L,
+    top.level.mode = "solve",
+    top.level.restarts = 2L,
+    top.level.max.iter = 3L,
     seed = 12L
   )
   inserted <- grip:::grip.geodesic.misf.insert.all.levels(
     prepared = prepared,
-    anchor_policy = "prev_level_spread",
-    max_iter = 40L
+    anchor.policy = "prev_level_spread",
+    max.iter = 40L
   )
   before.global <- grip.score.geodesic.mds(inserted$coords, prepared = prepared)
   refined <- grip:::grip.geodesic.misf.refine.level(
     prepared = prepared,
     coords = inserted$coords,
     level = 0L,
-    local_nbrs = 4L,
-    landmark_count = 2L,
-    pair_mode = "sparse",
-    anchor_weight = 0.05,
-    max_iter = 4L,
+    local.nbrs = 4L,
+    landmark.count = 2L,
+    pair.mode = "sparse",
+    anchor.weight = 0.05,
+    max.iter = 4L,
     engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE
+    n.threads = 1L,
+    return.trace = TRUE
   )
   polished <- grip:::grip.geodesic.misf.final.polish(
     prepared = prepared,
     coords = refined$coords,
-    max_iter = 4L,
+    max.iter = 4L,
     engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE
+    n.threads = 1L,
+    return.trace = TRUE
   )
 
   expect_lte(refined$after$gmds.energy[[1L]], refined$before$gmds.energy[[1L]] + 1e-8)
@@ -382,26 +382,26 @@ test_that("high-level MISF-GMDS optimizer runs from a graph-first prepared objec
   graph.prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = 16L,
-    tie_mode = "average"
+    tie.mode = "average"
   )
 
   fit <- grip.optimize.misf.geodesic.mds(
     prepared = graph.prepared,
-    num_init = 4L,
-    num_nbrs = 6L,
+    num.init = 4L,
+    num.nbrs = 6L,
     dim = 2L,
-    top_level_restarts = 2L,
-    top_level_max_iter = 2L,
-    insertion_max_iter = 24L,
-    refinement_local_nbrs = 3L,
-    refinement_landmark_count = 2L,
-    refinement_max_iter = 2L,
-    refinement_engine = "cpp",
-    final_polish_max_iter = 2L,
-    final_polish_engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE,
-    return_frames = TRUE,
+    top.level.restarts = 2L,
+    top.level.max.iter = 2L,
+    insertion.max.iter = 24L,
+    refinement.local.nbrs = 3L,
+    refinement.landmark.count = 2L,
+    refinement.max.iter = 2L,
+    refinement.engine = "cpp",
+    final.polish.max.iter = 2L,
+    final.polish.engine = "cpp",
+    n.threads = 1L,
+    return.trace = TRUE,
+    return.frames = TRUE,
     seed = 21L
   )
 
@@ -433,23 +433,23 @@ test_that("high-level MISF-GMDS optimizer supports weighted-KK lower-level place
   fit <- grip.optimize.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
-    num_nbrs = 8L,
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
+    num.nbrs = 8L,
     dim = 3L,
-    top_level_restarts = 2L,
-    top_level_max_iter = 2L,
-    insertion_mode = "weighted_kk",
-    insertion_layout_k = 4L,
-    refinement_local_nbrs = 3L,
-    refinement_landmark_count = 2L,
-    refinement_max_iter = 2L,
-    refinement_engine = "cpp",
-    final_polish_max_iter = 2L,
-    final_polish_engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE,
+    top.level.restarts = 2L,
+    top.level.max.iter = 2L,
+    insertion.mode = "weighted_kk",
+    insertion.layout.k = 4L,
+    refinement.local.nbrs = 3L,
+    refinement.landmark.count = 2L,
+    refinement.max.iter = 2L,
+    refinement.engine = "cpp",
+    final.polish.max.iter = 2L,
+    final.polish.engine = "cpp",
+    n.threads = 1L,
+    return.trace = TRUE,
     seed = 31L
   )
 
@@ -468,29 +468,29 @@ test_that("MISF-GMDS scorer summarizes fits and direct coords consistently", {
   graph.prepared <- prepare.graph.geodesic.mds(
     edges = edges,
     n = 16L,
-    tie_mode = "average"
+    tie.mode = "average"
   )
 
   fit <- grip.optimize.misf.geodesic.mds(
     prepared = graph.prepared,
-    num_init = 4L,
-    num_nbrs = 6L,
+    num.init = 4L,
+    num.nbrs = 6L,
     dim = 2L,
-    top_level_restarts = 2L,
-    top_level_max_iter = 2L,
-    insertion_max_iter = 24L,
-    refinement_local_nbrs = 3L,
-    refinement_landmark_count = 2L,
-    refinement_max_iter = 2L,
-    refinement_engine = "cpp",
-    final_polish_max_iter = 2L,
-    final_polish_engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE,
+    top.level.restarts = 2L,
+    top.level.max.iter = 2L,
+    insertion.max.iter = 24L,
+    refinement.local.nbrs = 3L,
+    refinement.landmark.count = 2L,
+    refinement.max.iter = 2L,
+    refinement.engine = "cpp",
+    final.polish.max.iter = 2L,
+    final.polish.engine = "cpp",
+    n.threads = 1L,
+    return.trace = TRUE,
     seed = 22L
   )
 
-  score.fit <- grip.score.misf.geodesic.mds(fit = fit, return_trace = TRUE)
+  score.fit <- grip.score.misf.geodesic.mds(fit = fit, return.trace = TRUE)
   score.direct <- grip.score.misf.geodesic.mds(
     coords = fit$coords,
     prepared = fit$prepared

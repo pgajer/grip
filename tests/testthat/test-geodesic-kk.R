@@ -2,7 +2,7 @@ build_test_sierpinski_carpet_gkk <- function(level) {
   side <- 3L^level
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
 
-  keep_cell <- function(x, y) {
+  keep.cell <- function(x, y) {
     while (x > 0L || y > 0L) {
       if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
         return(FALSE)
@@ -13,7 +13,7 @@ build_test_sierpinski_carpet_gkk <- function(level) {
     TRUE
   }
 
-  keep <- mapply(keep_cell, grid$x, grid$y)
+  keep <- mapply(keep.cell, grid$x, grid$y)
   cells <- grid[keep, , drop = FALSE]
   coords <- cbind(
     x = cells$x + 0.5,
@@ -54,13 +54,13 @@ test_that("full geodesic KK scoring is exact on a weighted path realization", {
   prepared <- prepare.geodesic.kk(
     edges = edges,
     n = 3L,
-    edge_weights = c(1, 2)
+    edge.weights = c(1, 2)
   )
   score <- score.geodesic.kk(coords, prepared = prepared)
   score.user <- score.geodesic.kk(
     coords,
     prepared = prepared,
-    scale_mode = "user",
+    scale.mode = "user",
     scale.L0 = 1
   )
 
@@ -136,19 +136,19 @@ test_that("full geodesic KK optimizer decreases the fixed-initial objective", {
   before <- score.geodesic.kk(
     perturbed,
     prepared = prepared,
-    scale_mode = "user",
+    scale.mode = "user",
     scale.L0 = initial.scale
   )
   opt <- geodesic.kk(
     coords = perturbed,
     prepared = prepared,
-    max_iter = 8L,
-    return_trace = TRUE
+    max.iter = 8L,
+    return.trace = TRUE
   )
   after <- score.geodesic.kk(
     opt$coords,
     prepared = prepared,
-    scale_mode = "user",
+    scale.mode = "user",
     scale.L0 = initial.scale
   )
 

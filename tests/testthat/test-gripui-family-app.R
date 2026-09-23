@@ -1,5 +1,5 @@
 test_that("graph family catalog covers the implemented explorer families", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
 
   expected <- c(
     "mesh",
@@ -39,7 +39,7 @@ test_that("graph family catalog covers the implemented explorer families", {
 })
 
 test_that("default catalog families build normalized payloads", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
 
   for (id in names(catalog)) {
     desc <- catalog[[id]]
@@ -56,7 +56,7 @@ test_that("default catalog families build normalized payloads", {
 })
 
 test_that("generic family code paths show helper calls without quoting them", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   ids <- c(
     "recursive_mask_grid",
     "occupied_mesh",
@@ -75,7 +75,7 @@ test_that("generic family code paths show helper calls without quoting them", {
 })
 
 test_that("compare helpers build shared color choices and summaries", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
 
   desc1 <- catalog$mesh
   desc2 <- catalog$kary_tree
@@ -102,7 +102,7 @@ test_that("compare helpers build shared color choices and summaries", {
 })
 
 test_that("compare slot selection uses current slot and valid preset fallbacks", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   mock_input <- list(
     compare_family_2 = "mesh",
     compare_preset_2 = "not_a_real_preset"
@@ -112,17 +112,17 @@ test_that("compare slot selection uses current slot and valid preset fallbacks",
     idx = 1L,
     input = mock_input,
     catalog = catalog,
-    current_family_id = "mesh",
-    include_current = TRUE,
-    lock_family = FALSE
+    current.family.id = "mesh",
+    include.current = TRUE,
+    lock.family = FALSE
   )
   fallback <- grip:::gripui.family.compare.slot.selection(
     idx = 2L,
     input = mock_input,
     catalog = catalog,
-    current_family_id = "mesh",
-    include_current = TRUE,
-    lock_family = FALSE
+    current.family.id = "mesh",
+    include.current = TRUE,
+    lock.family = FALSE
   )
 
   expect_identical(current$source, "current")
@@ -131,7 +131,7 @@ test_that("compare slot selection uses current slot and valid preset fallbacks",
 })
 
 test_that("initial explore state keeps family and category aligned", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   initial <- grip:::gripui.family.initial.explore.state(catalog)
 
   expect_identical(initial$family_id, "mesh")
@@ -140,7 +140,7 @@ test_that("initial explore state keeps family and category aligned", {
 })
 
 test_that("sampled rectangle family is marked stochastic", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
 
   expect_true(grip:::gripui.family.is.stochastic(catalog$sampled_rectangle))
   expect_false(grip:::gripui.family.is.stochastic(catalog$mesh))
@@ -148,9 +148,9 @@ test_that("sampled rectangle family is marked stochastic", {
 })
 
 test_that("resample seed helper always returns a valid nonnegative integer", {
-  seed <- grip:::gripui.family.resample.seed(current_seed = 1L, max_seed = 1000000L)
-  repeated <- grip:::gripui.family.resample.seed(current_seed = seed, max_seed = 1000000L)
-  zero_seed <- grip:::gripui.family.resample.seed(current_seed = 0L, max_seed = 0L)
+  seed <- grip:::gripui.family.resample.seed(current.seed = 1L, max.seed = 1000000L)
+  repeated <- grip:::gripui.family.resample.seed(current.seed = seed, max.seed = 1000000L)
+  zero_seed <- grip:::gripui.family.resample.seed(current.seed = 0L, max.seed = 0L)
 
   expect_true(is.integer(seed))
   expect_length(seed, 1L)
@@ -165,7 +165,7 @@ test_that("resample seed helper always returns a valid nonnegative integer", {
 })
 
 test_that("family save helpers create readable paths and complete bundles", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   desc <- catalog$sampled_rectangle
   values <- grip:::.gripui.family.param.defaults(desc)
   payload <- grip:::gripui.family.build.payload(desc, values)
@@ -174,7 +174,7 @@ test_that("family save helpers create readable paths and complete bundles", {
   stamp <- as.POSIXct("2026-04-06 12:34:56", tz = "America/New_York")
 
   path <- grip:::gripui.family.save.path(payload, root = root, timestamp = stamp)
-  saved <- grip:::gripui.family.save.bundle(payload, path, saved_at = stamp)
+  saved <- grip:::gripui.family.save.bundle(payload, path, saved.at = stamp)
   bundle <- readRDS(path)
   unique_path <- grip:::gripui.family.unique.save.path(path)
 
@@ -192,7 +192,7 @@ test_that("family save helpers create readable paths and complete bundles", {
 })
 
 test_that("saved bundle helpers list files newest-first and expose load modes", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   desc <- catalog$sampled_rectangle
   payload <- grip:::gripui.family.build.payload(desc, grip:::.gripui.family.param.defaults(desc))
   root <- tempfile("gripui-family-bundles-")
@@ -227,11 +227,11 @@ test_that("saved bundle helpers list files newest-first and expose load modes", 
 })
 
 test_that("sample-topology loads keep saved topology controls while reusing the sample", {
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   desc <- catalog$sampled_rectangle
   saved_values <- grip:::.gripui.family.param.defaults(desc)
   bundle <- list(
-    family_id = desc$id,
+    family.id = desc$id,
     values = saved_values,
     payload = list(
       raw = desc$builder(saved_values)
@@ -244,7 +244,7 @@ test_that("sample-topology loads keep saved topology controls while reusing the 
 
   loaded <- grip:::gripui.family.sampled.rectangle.raw.from.bundle(
     desc = desc,
-    current_values = current_values,
+    current.values = current_values,
     bundle = bundle,
     mode = "sample_topology"
   )
@@ -264,6 +264,6 @@ test_that("family explorer app constructs when optional packages are available",
   skip_if_not_installed("bslib")
   skip_if_not_installed("rgl")
 
-  app <- gripui_family_app()
+  app <- gripui.family.app()
   expect_s3_class(app, "shiny.appobj")
 })

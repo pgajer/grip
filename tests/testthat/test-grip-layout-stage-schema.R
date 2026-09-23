@@ -7,9 +7,9 @@ test_that("trace.grip exposes the canonical MISF stage schema", {
     dim = 3L,
     placement = "barycenter",
     rounds = 2L,
-    final_rounds = 2L,
-    num_init = 6L,
-    num_nbrs = 8L,
+    final.rounds = 2L,
+    num.init = 6L,
+    num.nbrs = 8L,
     trace = "round",
     trace.every = 1L,
     seed = 77L

@@ -7,30 +7,30 @@
 weighted.grip.nd(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 3,
   preset = NULL,
   placement = c("barycenter", "circle"),
   rounds = 160,
-  final_rounds = 256,
-  num_init = NULL,
-  num_nbrs = 24,
+  final.rounds = 256,
+  num.init = NULL,
+  num.nbrs = 24,
   r = 0.03,
   s = 6,
-  repulsion_factor = 1.5,
-  tinit_factor = 2,
-  final_move_scale_after_first = 1,
-  final_mode = c("fr", "kk_repulse"),
-  metric_neighbor_cap = NULL,
-  insertion_anchor_count = 3,
-  insertion_anchor_scope = c("any_higher", "prev_misf"),
-  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-  level0_anchor_count = insertion_anchor_count,
-  level0_local_kk_steps = 3,
-  length_normalization = c("median", "mean", "none"),
+  repulsion.factor = 1.5,
+  tinit.factor = 2,
+  final.move.scale.after.first = 1,
+  final.mode = c("fr", "kk_repulse"),
+  metric.neighbor.cap = NULL,
+  insertion.anchor.count = 3,
+  insertion.anchor.scope = c("any_higher", "prev_misf"),
+  insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+  level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+  level0.anchor.count = insertion.anchor.count,
+  level0.local.kk.steps = 3,
+  length.normalization = c("median", "mean", "none"),
   disconnected = c("components", "error"),
   seed = 6
 )
@@ -40,11 +40,11 @@ weighted.grip.nd(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Parallel list of strictly positive edge lengths.}
+\item{weight.list}{Parallel list of strictly positive edge lengths.}
 
-\item{edge_weights}{Optional vector of edge lengths for \code{edges}.}
+\item{edge.weights}{Optional vector of edge lengths for \code{edges}.}
 
 \item{dim}{Embedding dimension. Must be at least 2.}
 
@@ -58,50 +58,50 @@ only available for \code{dim = 2}; higher dimensions use
 
 \item{rounds}{Number of weighted refinement rounds before the final phase.}
 
-\item{final_rounds}{Number of final weighted refinement rounds.}
+\item{final.rounds}{Number of final weighted refinement rounds.}
 
-\item{num_init}{Coarsest-level size control. Defaults to at least
+\item{num.init}{Coarsest-level size control. Defaults to at least
 \code{dim + 1}.}
 
-\item{num_nbrs}{Local-neighborhood control used by the ND backend.}
+\item{num.nbrs}{Local-neighborhood control used by the ND backend.}
 
 \item{r}{Movement-rate parameter in \code{[0, 1]}.}
 
 \item{s}{Repulsion scale parameter.}
 
-\item{repulsion_factor}{Non-edge repulsion multiplier.}
+\item{repulsion.factor}{Non-edge repulsion multiplier.}
 
-\item{tinit_factor}{Initial spread multiplier.}
+\item{tinit.factor}{Initial spread multiplier.}
 
-\item{final_move_scale_after_first}{Final-stage FR displacement multiplier
+\item{final.move.scale.after.first}{Final-stage FR displacement multiplier
 applied after the first final round. Must be in \code{[0, 1]}.}
 
-\item{final_mode}{Final refinement mode: \code{"fr"} or
+\item{final.mode}{Final refinement mode: \code{"fr"} or
 \code{"kk_repulse"}.}
 
-\item{metric_neighbor_cap}{Optional cap on the number of settled Dijkstra
+\item{metric.neighbor.cap}{Optional cap on the number of settled Dijkstra
 vertices used when building weighted neighborhood caches for inserted
 vertices. \code{NULL} keeps the exact weighted neighborhood search.}
 
-\item{insertion_anchor_count}{Number of already placed anchor vertices used
+\item{insertion.anchor.count}{Number of already placed anchor vertices used
 when inserting non-final MISF levels.}
 
-\item{insertion_anchor_scope}{Anchor eligibility rule:
+\item{insertion.anchor.scope}{Anchor eligibility rule:
 \code{"any_higher"} or \code{"prev_misf"}.}
 
-\item{insertion_anchor_strategy}{Anchor selection rule:
+\item{insertion.anchor.strategy}{Anchor selection rule:
 \code{"first"}, \code{"distance_band"}, \code{"balanced_band"}, or
 \code{"spread_prev"}.}
 
-\item{level0_insertion_mode}{Level-0 insertion placement override:
+\item{level0.insertion.mode}{Level-0 insertion placement override:
 \code{"inherit"}, \code{"barycenter"}, or \code{"least_squares"}.}
 
-\item{level0_anchor_count}{Number of anchors used during level-0 insertion.}
+\item{level0.anchor.count}{Number of anchors used during level-0 insertion.}
 
-\item{level0_local_kk_steps}{Number of local weighted-KK polish steps used
+\item{level0.local.kk.steps}{Number of local weighted-KK polish steps used
 immediately after level-0 insertion.}
 
-\item{length_normalization}{Global edge-length normalization:
+\item{length.normalization}{Global edge-length normalization:
 \code{"median"} (default), \code{"mean"}, or \code{"none"}.}
 
 \item{disconnected}{How to handle disconnected graphs:
@@ -123,8 +123,8 @@ their dimensionality checks are unchanged.
 cycle_edges <- edges.cycle(6)
 cycle_lengths <- seq(0.8, 1.3, length.out = nrow(cycle_edges))
 layout <- weighted.grip.nd(
-  edges = cycle_edges, n = 6, edge_weights = cycle_lengths,
-  dim = 4, rounds = 1, final_rounds = 1,
-  num_init = 5, num_nbrs = 2, seed = 1
+  edges = cycle_edges, n = 6, edge.weights = cycle_lengths,
+  dim = 4, rounds = 1, final.rounds = 1,
+  num.init = 5, num.nbrs = 2, seed = 1
 )
 }

@@ -31,8 +31,8 @@ test_that("edge-length stiffness clipping is respected after normalization", {
   stiff <- edge.length.density.stiffness(
     weights,
     method = "density",
-    stiffness_floor = 0.5,
-    stiffness_ceiling = 1.5
+    stiffness.floor = 0.5,
+    stiffness.ceiling = 1.5
   )
 
   expect_equal(mean(stiff$stiffness), 1, tolerance = 1e-12)
@@ -46,7 +46,7 @@ test_that("edge-only edge-KK preparation avoids all-pairs caches", {
   prepared <- prepare.edge.kk(
     edges = edges,
     n = 4L,
-    edge_weights = edge.weights
+    edge.weights = edge.weights
   )
 
   expect_s3_class(prepared, "grip_edge_kk_prepared")
@@ -70,15 +70,15 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
   prepared <- prepare.edge.kk(
     edges = edges,
     n = 4L,
-    edge_weights = edge.weights
+    edge.weights = edge.weights
   )
   init <- grip(metric = "edge_length",
     edges = edges,
     n = 4L,
-    edge_weights = edge.weights,
+    edge.weights = edge.weights,
     dim = 3L,
     rounds = 4L,
-    final_rounds = 4L,
+    final.rounds = 4L,
     seed = 11L
   )
   before <- score.gmds(init, prepared = prepared)
@@ -86,10 +86,10 @@ test_that("edge-only prepared objects support weighted-GRIP to edge-KK repair", 
     coords = init,
     prepared = prepared,
     dim = 3L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "profiled",
-    max_iter = 4L,
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "profiled",
+    max.iter = 4L,
     diagnostics = TRUE,
     engine = "cpp"
   )
@@ -109,14 +109,14 @@ test_that("edge-KK weighted-GRIP initialization uses edge-only preparation", {
   prepared <- prepare.edge.kk(
     edges = edges,
     n = 4L,
-    edge_weights = edge.weights
+    edge.weights = edge.weights
   )
-  weighted.args <- list(rounds = 4L, final_rounds = 4L, num_init = 3L)
+  weighted.args <- list(rounds = 4L, final.rounds = 4L, num.init = 3L)
   init <- do.call(grip, c(
     list(
       edges = prepared$edges,
       n = prepared$n,
-      edge_weights = prepared$edge_targets,
+      edge.weights = prepared$edge_targets,
       dim = 3L,
       seed = 11L,
       metric = "edge_length"
@@ -127,12 +127,12 @@ test_that("edge-KK weighted-GRIP initialization uses edge-only preparation", {
     coords = init,
     prepared = prepared,
     dim = 3L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "profiled",
-    max_iter = 3L,
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "profiled",
+    max.iter = 3L,
     diagnostics = FALSE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     engine = "cpp"
   )
   direct <- edge.kk(
@@ -140,12 +140,12 @@ test_that("edge-KK weighted-GRIP initialization uses edge-only preparation", {
     dim = 3L,
     init = "weighted_grip",
     weighted.grip.args = weighted.args,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "profiled",
-    max_iter = 3L,
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "profiled",
+    max.iter = 3L,
     diagnostics = FALSE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     seed = 11L,
     engine = "cpp"
   )
@@ -167,12 +167,12 @@ test_that("edge-KK raw graph input uses edge-only preparation when coordinates a
     coords = coords,
     edges = edges,
     n = nrow(coords),
-    edge_weights = rep(1, nrow(edges)),
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    max_iter = 1L,
+    edge.weights = rep(1, nrow(edges)),
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    max.iter = 1L,
     diagnostics = TRUE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     engine = "cpp"
   )
 
@@ -192,11 +192,11 @@ test_that("edge-KK random initialization uses edge-only preparation from raw gra
     edges = edges,
     n = 6L,
     init = "random",
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    max_iter = 1L,
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    max.iter = 1L,
     diagnostics = FALSE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     seed = 5L,
     engine = "cpp"
   )
@@ -214,14 +214,14 @@ test_that("edge-KK weighted-GRIP initialization uses edge-only raw graph prepara
   fit <- edge.kk(
     edges = edges,
     n = 6L,
-    edge_weights = rep(1, nrow(edges)),
+    edge.weights = rep(1, nrow(edges)),
     init = "weighted_grip",
-    weighted.grip.args = list(rounds = 3L, final_rounds = 3L, num_init = 3L),
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    max_iter = 1L,
+    weighted.grip.args = list(rounds = 3L, final.rounds = 3L, num.init = 3L),
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    max.iter = 1L,
     diagnostics = FALSE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     seed = 5L,
     engine = "cpp"
   )
@@ -236,7 +236,7 @@ test_that("edge-KK weighted-GRIP initialization validates companion arguments", 
   prepared <- prepare.edge.kk(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = rep(1, 3L)
+    edge.weights = rep(1, 3L)
   )
 
   expect_error(
@@ -244,7 +244,7 @@ test_that("edge-KK weighted-GRIP initialization validates companion arguments", 
       prepared = prepared,
       init = "weighted_grip",
       weighted.grip.args = list(edges = edges.path(4L)),
-      max_iter = 1L
+      max.iter = 1L
     ),
     "weighted.grip.args must not include"
   )
@@ -253,7 +253,7 @@ test_that("edge-KK weighted-GRIP initialization validates companion arguments", 
       prepared = prepared,
       init = "weighted_grip",
       dim = 4L,
-      max_iter = 1L
+      max.iter = 1L
     ),
     "init = \"weighted_grip\" requires dim to be 2 or 3"
   )
@@ -266,11 +266,11 @@ test_that("edge-KK omits trace rows and frames when tracing is disabled in R eng
     coords = start,
     edges = edges,
     n = 5L,
-    stiffness_method = "uniform",
-    density_mix_schedule = c(0, 1),
-    max_iter = 2L,
+    stiffness.method = "uniform",
+    density.mix.schedule = c(0, 1),
+    max.iter = 2L,
     diagnostics = FALSE,
-    return_trace = FALSE,
+    return.trace = FALSE,
     engine = "R"
   )
 
@@ -285,7 +285,7 @@ test_that("edge-only preparation rejects duplicate undirected edges", {
     prepare.edge.kk(
       edges = rbind(c(1L, 2L), c(2L, 1L)),
       n = 2L,
-      edge_weights = c(1, 1)
+      edge.weights = c(1, 1)
     ),
     "duplicate undirected edges"
   )
@@ -295,7 +295,7 @@ test_that("edge-only preparation does not support classical-MDS initialization",
   prepared <- prepare.edge.kk(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 1, 1)
+    edge.weights = c(1, 1, 1)
   )
 
   expect_error(
@@ -307,7 +307,7 @@ test_that("edge-only preparation does not support classical-MDS initialization",
       prepared = prepared,
       dim = 2L,
       init = "classical_mds",
-      max_iter = 1L
+      max.iter = 1L
     ),
     "MDS initialization requires an all-pairs prepared object"
   )
@@ -326,10 +326,10 @@ test_that("edge-isometric energy gradient matches finite differences", {
   state <- grip:::grip.edge.isometric.energy.gradient(
     coords = coords,
     edges = edges,
-    edge_weights = edge.weights,
+    edge.weights = edge.weights,
     stiffness = stiffness,
     scale = 1.1,
-    edge_length_epsilon = 1e-8
+    edge.length.epsilon = 1e-8
   )
 
   eps <- 1e-6
@@ -367,10 +367,10 @@ test_that("edge-isometric energy gradient supports higher-dimensional coordinate
   state <- grip:::grip.edge.isometric.energy.gradient(
     coords = coords,
     edges = edges,
-    edge_weights = edge.weights,
+    edge.weights = edge.weights,
     stiffness = stiffness,
     scale = 1.05,
-    edge_length_epsilon = 1e-8
+    edge.length.epsilon = 1e-8
   )
 
   eps <- 1e-6
@@ -399,17 +399,17 @@ test_that("edge-KK optimizer preserves exact weighted path layouts", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 2, 1)
+    edge.weights = c(1, 2, 1)
   )
   coords <- cbind(c(0, 1, 3, 4), 0)
   fit <- edge.kk(
     coords = coords,
     prepared = prepared,
     dim = 2L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "identity",
-    max_iter = 5L
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "identity",
+    max.iter = 5L
   )
 
   expect_s3_class(fit, "grip_gmds_layout")
@@ -422,17 +422,17 @@ test_that("edge-KK optimizer preserves exact higher-dimensional weighted path la
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
-    edge_weights = c(1, 2, 1.5, 0.75)
+    edge.weights = c(1, 2, 1.5, 0.75)
   )
   coords <- cbind(c(0, 1, 3, 4.5, 5.25), matrix(0, nrow = 5L, ncol = 3L))
   fit <- edge.kk(
     coords = coords,
     prepared = prepared,
     dim = 4L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "identity",
-    max_iter = 5L,
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "identity",
+    max.iter = 5L,
     engine = "cpp"
   )
 
@@ -447,24 +447,24 @@ test_that("edge-KK optimizer decreases edge error from perturbed layout", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(5L),
     n = 5L,
-    edge_weights = rep(1, 4L)
+    edge.weights = rep(1, 4L)
   )
   start <- cbind(c(0, 0.7, 1.9, 2.4, 4.2), c(0, 0.4, -0.2, 0.5, -0.1))
   before <- score.gmds(
     start,
     prepared = prepared,
-    scale_mode = "identity"
+    scale.mode = "identity"
   )
   fit <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "identity",
-    max_iter = 80L,
-    initial_step = 0.25,
-    return_trace = TRUE
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "identity",
+    max.iter = 80L,
+    initial.step = 0.25,
+    return.trace = TRUE
   )
 
   expect_lt(fit$diagnostics$edge.rel.rmse[[1L]], before$edge.rel.rmse[[1L]])
@@ -477,7 +477,7 @@ test_that("C++ edge-KK optimizer matches R reference engine", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L), c(3L, 4L), c(4L, 1L), c(1L, 3L)),
     n = 4L,
-    edge_weights = c(1, 1.4, 1, 1.3, 1.8)
+    edge.weights = c(1, 1.4, 1, 1.3, 1.8)
   )
   start <- matrix(c(
     0.0, 0.0,
@@ -489,13 +489,13 @@ test_that("C++ edge-KK optimizer matches R reference engine", {
     coords = start,
     prepared = prepared,
     dim = 2L,
-    stiffness_method = "density",
-    stiffness_transform = "sqrt",
-    density_mix_schedule = c(0, 0.5, 1),
-    scale_mode = "profiled",
-    max_iter = 12L,
-    initial_step = 0.2,
-    return_trace = TRUE
+    stiffness.method = "density",
+    stiffness.transform = "sqrt",
+    density.mix.schedule = c(0, 0.5, 1),
+    scale.mode = "profiled",
+    max.iter = 12L,
+    initial.step = 0.2,
+    return.trace = TRUE
   )
   fit.cpp <- do.call(edge.kk, c(args, list(engine = "cpp")))
   fit.r <- do.call(edge.kk, c(args, list(engine = "R")))
@@ -514,7 +514,7 @@ test_that("C++ edge-KK optimizer matches R reference engine in higher dimensions
       c(4L, 5L), c(1L, 5L), c(2L, 5L)
     ),
     n = 5L,
-    edge_weights = c(1, 1.4, 1, 1.3, 2.1, 1.7)
+    edge.weights = c(1, 1.4, 1, 1.3, 2.1, 1.7)
   )
   start <- matrix(c(
     0.0, 0.0, 0.2, -0.1,
@@ -527,13 +527,13 @@ test_that("C++ edge-KK optimizer matches R reference engine in higher dimensions
     coords = start,
     prepared = prepared,
     dim = 4L,
-    stiffness_method = "density",
-    stiffness_transform = "sqrt",
-    density_mix_schedule = c(0, 0.5, 1),
-    scale_mode = "profiled",
-    max_iter = 8L,
-    initial_step = 0.2,
-    return_trace = TRUE,
+    stiffness.method = "density",
+    stiffness.transform = "sqrt",
+    density.mix.schedule = c(0, 0.5, 1),
+    scale.mode = "profiled",
+    max.iter = 8L,
+    initial.step = 0.2,
+    return.trace = TRUE,
     diagnostics = FALSE
   )
   fit.cpp <- do.call(edge.kk, c(args, list(engine = "cpp")))
@@ -549,28 +549,28 @@ test_that("C++ edge-KK optimizer supports fixed and user scale modes", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 2, 1)
+    edge.weights = c(1, 2, 1)
   )
   start <- 2 * cbind(c(0, 1.1, 3.2, 4.0), c(0, 0.2, -0.1, 0.1))
   fixed <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
-    stiffness_method = "uniform",
-    density_mix_schedule = c(0, 1),
-    scale_mode = "fixed_initial",
-    max_iter = 3L,
+    stiffness.method = "uniform",
+    density.mix.schedule = c(0, 1),
+    scale.mode = "fixed_initial",
+    max.iter = 3L,
     engine = "cpp"
   )
   user <- edge.kk(
     coords = start,
     prepared = prepared,
     dim = 2L,
-    stiffness_method = "uniform",
-    density_mix_schedule = 1,
-    scale_mode = "user",
+    stiffness.method = "uniform",
+    density.mix.schedule = 1,
+    scale.mode = "user",
     scale = 2,
-    max_iter = 3L,
+    max.iter = 3L,
     engine = "cpp"
   )
 
@@ -585,7 +585,7 @@ test_that("classical-MDS initialization supports higher-dimensional edge-KK layo
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(6L),
     n = 6L,
-    edge_weights = c(1, 1.5, 0.75, 1.25, 1)
+    edge.weights = c(1, 1.5, 0.75, 1.25, 1)
   )
   init <- suppressWarnings(
     classical.mds(
@@ -599,10 +599,10 @@ test_that("classical-MDS initialization supports higher-dimensional edge-KK layo
       prepared = prepared,
       dim = 4L,
       init = "classical_mds",
-      stiffness_method = "uniform",
-      density_mix_schedule = 1,
-      scale_mode = "identity",
-      max_iter = 3L,
+      stiffness.method = "uniform",
+      density.mix.schedule = 1,
+      scale.mode = "identity",
+      max.iter = 3L,
       diagnostics = FALSE,
       engine = "cpp"
     )

@@ -10,7 +10,7 @@ test_that("geodesic MDS scoring is exact on a weighted path realization", {
   prepared <- prepare.geodesic.kk(
     edges = edges,
     n = 3L,
-    edge_weights = c(1, 2)
+    edge.weights = c(1, 2)
   )
   score <- grip.score.geodesic.mds(coords, prepared = prepared)
 
@@ -55,14 +55,14 @@ test_that("graph-first geodesic MDS preparation matches the data-native wrapper"
   prepared.graph <- prepare.graph.geodesic.mds(
     edges = built$edges,
     n = nrow(data),
-    edge_weights = built$edge_weights,
-    tie_mode = "average"
+    edge.weights = built$edge_weights,
+    tie.mode = "average"
   )
   prepared.data <- grip.prepare.geodesic.mds(
     data = data,
     k = 2L,
     connect = "mst",
-    tie_mode = "average"
+    tie.mode = "average"
   )
 
   expect_s3_class(prepared.graph, "grip_gmds_prepared")
@@ -105,8 +105,8 @@ test_that("compiled geodesic MDS optimizer decreases path stress on a perturbed 
   opt <- grip.optimize.geodesic.mds(
     coords = perturbed,
     prepared = prepared,
-    max_iter = 8L,
-    return_trace = TRUE,
+    max.iter = 8L,
+    return.trace = TRUE,
     engine = "cpp"
   )
   after <- grip.score.geodesic.mds(opt$coords, prepared = prepared)
@@ -126,8 +126,8 @@ test_that("geodesic MDS can optimize directly from data with cmdscale initializa
     data = data,
     k = 1L,
     dim = 2L,
-    max_iter = 3L,
-    return_trace = TRUE
+    max.iter = 3L,
+    return.trace = TRUE
   )
 
   expect_s3_class(opt$prepared, "grip_gmds_prepared")
@@ -153,32 +153,32 @@ test_that("per-vertex anchor pinning matches between the R and C++ GMDS engines"
     coords = coords,
     prepared = prepared,
     init = "user",
-    anchor_mode = "user",
-    anchor_coords = anchor.coords,
-    anchor_weight = 0.2,
-    anchor_weight_end = 0.2,
-    anchor_vertex_weight = anchor.vertex.weight,
+    anchor.mode = "user",
+    anchor.coords = anchor.coords,
+    anchor.weight = 0.2,
+    anchor.weight.end = 0.2,
+    anchor.vertex.weight = anchor.vertex.weight,
     engine = "r",
-    max_iter = 1L,
-    initial_step = 0.05,
+    max.iter = 1L,
+    initial.step = 0.05,
     recenter = FALSE,
-    return_trace = TRUE
+    return.trace = TRUE
   )
   fit.cpp <- grip.optimize.geodesic.mds(
     coords = coords,
     prepared = prepared,
     init = "user",
-    anchor_mode = "user",
-    anchor_coords = anchor.coords,
-    anchor_weight = 0.2,
-    anchor_weight_end = 0.2,
-    anchor_vertex_weight = anchor.vertex.weight,
+    anchor.mode = "user",
+    anchor.coords = anchor.coords,
+    anchor.weight = 0.2,
+    anchor.weight.end = 0.2,
+    anchor.vertex.weight = anchor.vertex.weight,
     engine = "cpp",
-    max_iter = 1L,
-    initial_step = 0.05,
+    max.iter = 1L,
+    initial.step = 0.05,
     recenter = FALSE,
-    return_trace = TRUE,
-    n_threads = 1L
+    return.trace = TRUE,
+    n.threads = 1L
   )
 
   expect_equal(unname(fit.cpp$coords), unname(fit.r$coords), tolerance = 1e-7)

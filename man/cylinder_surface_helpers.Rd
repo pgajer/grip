@@ -12,8 +12,8 @@ cylinder.surface.graph(
   radius = 1,
   height = 2,
   amplitude = 0.3,
-  freq_theta = 2,
-  freq_z = 1,
+  freq.theta = 2,
+  freq.z = 1,
   twist = 0.25,
   normalize = c("median", "mean", "none")
 )
@@ -33,10 +33,10 @@ cylinder.surface.graph(
 \item{amplitude}{Finite numeric deformation amplitude. The resulting radius
 profile must stay positive everywhere.}
 
-\item{freq_theta}{Positive angular frequency used only when
+\item{freq.theta}{Positive angular frequency used only when
 \code{surface = "wavy"}.}
 
-\item{freq_z}{Positive vertical frequency used only when
+\item{freq.z}{Positive vertical frequency used only when
 \code{surface = "wavy"}.}
 
 \item{twist}{Finite angular twist applied linearly with height.}
@@ -70,7 +70,7 @@ graph topology is cylindrical but the intended metric comes from a curved or
 spatially varying 3D realization.
 }
 \details{
-The \code{coords_surface} component contains the 3D coordinates of the embedded
+The \code{coords.surface} component contains the 3D coordinates of the embedded
 cylindrical grid. \code{cylinder.surface.graph()} returns a reusable weighted-graph
 bundle containing the cylinder edges, induced edge weights, the 3D surface
 coordinates, and a 2D unwrapped parameterization.

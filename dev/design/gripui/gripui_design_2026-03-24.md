@@ -75,42 +75,42 @@ packages are missing.
 
 These are the functions I would add first.
 
-#### `gripui_app(project, ...)`
+#### `gripui.app(project, ...)`
 
-Build a Shiny app object from a normalized `gripui_project`.
+Build a Shiny app object from a normalized `gripui.project`.
 
-#### `run_gripui(project, host = "127.0.0.1", port = getOption("shiny.port"), launch.browser = interactive(), ...)`
+#### `run.gripui(project, host = "127.0.0.1", port = getOption("shiny.port"), launch.browser = interactive(), ...)`
 
 Run the app.
 
-#### `gripui_project(graph, layouts, title = NULL, subtitle = NULL, notes = NULL)`
+#### `gripui.project(graph, layouts, title = NULL, subtitle = NULL, notes = NULL)`
 
 Create a normalized in-memory project object.
 
 Expected fields:
 
 - `graph`
-  a list with `adj_list`, optional `weight_list`, optional `vertex_data`,
-  optional `graph_info`
+  a list with `adj.list`, optional `weight.list`, optional `vertex.data`,
+  optional `graph.info`
 - `layouts`
   a data frame with one row per realized layout
 - optional list-columns or columns for artifacts such as `coords`, `coords_path`,
   `html_path`, `gif_path`, `thumbnail_path`
 
-#### `gripui_project_from_compare(compare_obj, graph, vertex_data = NULL, graph_info = NULL, title = NULL)`
+#### `gripui.project.from.compare(compare.obj, graph, vertex.data = NULL, graph.info = NULL, title = NULL)`
 
-Create a `gripui_project` directly from `grip.compare.layouts(..., return.layouts = TRUE)`.
+Create a `gripui.project` directly from `grip.compare.layouts(..., return.layouts = TRUE)`.
 
 This is the easiest package-facing workflow for small and medium examples.
 
-#### `gripui_project_from_dir(root, graph = NULL, title = NULL, subtitle = NULL)`
+#### `gripui.project.from.dir(root, graph = NULL, title = NULL, subtitle = NULL)`
 
-Create a `gripui_project` from a file-backed project directory or from a set of
+Create a `gripui.project` from a file-backed project directory or from a set of
  known manifests and run tables under `root`.
 
 This is the main entry point for large saved searches such as HMP/U01.
 
-#### `gripui_validate_project(project)`
+#### `gripui.validate.project(project)`
 
 Validate structure and required columns before app launch.
 
@@ -134,17 +134,17 @@ layouts after a search run.
 
 This is the missing link for the current HMP/U01 workflow.
 
-## `gripui_project` object shape
+## `gripui.project` object shape
 
 Use a plain list with a lightweight class:
 
 ```r
 list(
   graph = list(
-    adj_list = ...,
-    weight_list = ...,
-    vertex_data = ...,
-    graph_info = ...
+    adj.list = ...,
+    weight.list = ...,
+    vertex.data = ...,
+    graph.info = ...
   ),
   layouts = data.frame(...),
   meta = list(
@@ -158,7 +158,7 @@ list(
 Class:
 
 ```r
-class(x) <- "gripui_project"
+class(x) <- "gripui.project"
 ```
 
 Required `layouts` columns:
@@ -174,13 +174,13 @@ Recommended parameter columns:
 
 - `placement`
 - `rounds`
-- `final_rounds`
-- `num_init`
-- `num_nbrs`
+- `final.rounds`
+- `num.init`
+- `num.nbrs`
 - `r`
 - `s`
-- `repulsion_factor`
-- `tinit_factor`
+- `repulsion.factor`
+- `tinit.factor`
 
 Recommended metric columns:
 
@@ -196,7 +196,7 @@ Recommended metric columns:
 - `score_composite`
 - `score_composite_extended`
 - `run_score_extended`
-- `elapsed_sec`
+- `elapsed.sec`
 
 Recommended artifact columns:
 
@@ -233,10 +233,10 @@ project_root/
 
 An RDS containing:
 
-- `adj_list`
-- optional `weight_list`
-- optional `vertex_data`
-- optional `graph_info`
+- `adj.list`
+- optional `weight.list`
+- optional `vertex.data`
+- optional `graph.info`
 
 ### `catalog/layout_catalog.tsv`
 
@@ -267,7 +267,7 @@ should read one normalized table and then load optional assets lazily.
 The intended ingestion architecture is:
 
 1. one canonical internal model:
-   `gripui_project`
+   `gripui.project`
 2. one canonical on-disk bundle contract:
    `graph/graph.rds` plus `catalog/layout_catalog.tsv` plus artifact files
 3. one or more compatibility adapters for older project layouts
@@ -275,7 +275,7 @@ The intended ingestion architecture is:
 Under this plan:
 
 - the current HMP/U01 coarse/full/repulsion merge is a useful first adapter
-- the app itself should only consume the normalized `gripui_project`
+- the app itself should only consume the normalized `gripui.project`
 - future exporters should write the canonical bundle directly so `gripui` does
   not need project-specific merge logic
 
@@ -292,14 +292,14 @@ Small package-level helpers and roxygen block for the `gripui` feature.
 
 Functions:
 
-- `gripui_project()`
-- `gripui_project_from_compare()`
-- `gripui_project_from_dir()`
-- `gripui_validate_project()`
+- `gripui.project()`
+- `gripui.project.from.compare()`
+- `gripui.project.from.dir()`
+- `gripui.validate.project()`
 
 This file may contain compatibility loaders for legacy project layouts, but the
 goal is for those loaders to normalize everything into the same
-`gripui_project`.
+`gripui.project`.
 
 ### `R/gripui-catalog.R`
 
@@ -319,10 +319,10 @@ than define a second contract.
 
 Functions:
 
-- `gripui_read_embedding_tsv()`
-- `gripui_read_graph_rds()`
-- `gripui_resolve_project_path()`
-- `gripui_load_layout_coords()`
+- `gripui.read.embedding.tsv()`
+- `gripui.read.graph.rds()`
+- `gripui.resolve.project.path()`
+- `gripui.load.layout.coords()`
 
 ### `R/gripui-render.R`
 
@@ -340,14 +340,14 @@ This file should reuse `grip` graph helpers where practical.
 
 Functions:
 
-- `gripui_app()`
-- `run_gripui()`
+- `gripui.app()`
+- `run.gripui()`
 
 ### `R/gripui-ui.R`
 
 Functions:
 
-- `gripui_ui()`
+- `gripui.ui()`
 - `gripui_sidebar_ui()`
 - `gripui_main_ui()`
 
@@ -355,7 +355,7 @@ Functions:
 
 Functions:
 
-- `gripui_server()`
+- `gripui.server()`
 - `gripui_catalog_server()`
 - `gripui_viewer_server()`
 - `gripui_compare_server()`
@@ -428,7 +428,7 @@ Reason:
 Support:
 
 - `plain`
-- categorical views from `vertex_data`, for example `cst`, `subcst`,
+- categorical views from `vertex.data`, for example `cst`, `subcst`,
   `dcst.depth1.absorb`, `dcst.depth2.absorb`
 - continuous views such as `ph` or `log10_reads`
 
@@ -500,7 +500,7 @@ output shape.
 
 Its role is:
 
-- prove that the canonical `gripui_project` model is expressive enough for a
+- prove that the canonical `gripui.project` model is expressive enough for a
   real project
 - let us build and validate the MVP app on real artifacts
 - bridge the gap until search/export scripts can emit canonical bundles
@@ -529,7 +529,7 @@ should be to make canonical bundle writing the preferred path.
 
 That means:
 
-- keep `gripui_project_from_dir()` able to read the HMP adapter path
+- keep `gripui.project.from.dir()` able to read the HMP adapter path
 - add bundle-writing helpers so new searches can write the canonical layout
   catalog and artifact tree directly
 - update future analysis/export scripts to produce canonical bundles first and
@@ -600,9 +600,9 @@ Files:
 
 Deliverables:
 
-- `gripui_project()`
-- `gripui_project_from_dir()`
-- `gripui_validate_project()`
+- `gripui.project()`
+- `gripui.project.from.dir()`
+- `gripui.validate.project()`
 - HMP/U01 project loader
 - tests for table normalization and manifest joins
 
@@ -670,12 +670,12 @@ bundle contract over custom table/manifest merges.
 
 Start with one narrow vertical slice:
 
-1. implement `gripui_project_from_dir()` for the HMP/U01 output structure
+1. implement `gripui.project.from.dir()` for the HMP/U01 output structure
 2. build an MVP app that can:
    - show the catalog
    - filter by stage
    - view any row with `embedding.tsv`
-3. once that works, add `gripui_project_from_compare()` so the same UI also
+3. once that works, add `gripui.project.from.compare()` so the same UI also
    works for smaller package examples
 
 That path gets the real HMP/U01 use case working first while still leading to a

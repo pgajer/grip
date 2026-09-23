@@ -2,11 +2,11 @@ test_that("globalrep layout returns a finite matrix", {
   edges <- edges.path(10)
   coords <- globalrep.grip(edges, n = 10, dim = 2,
                                   placement = "barycenter",
-                                  rounds = 5, final_rounds = 3,
-                                  num_init = 5, num_nbrs = 6,
-                                  coarse_repulsion_factor = 0.2,
-                                  coarse_repulsion_sample = 8,
-                                  coarse_repulsion_exact_below = 32,
+                                  rounds = 5, final.rounds = 3,
+                                  num.init = 5, num.nbrs = 6,
+                                  coarse.repulsion.factor = 0.2,
+                                  coarse.repulsion.sample = 8,
+                                  coarse.repulsion.exact.below = 32,
                                   seed = 123)
   expect_equal(dim(coords), c(10, 2))
   expect_true(all(is.finite(coords)))
@@ -16,19 +16,19 @@ test_that("globalrep seeded runs are deterministic", {
   edges <- edges.cycle(12)
   coords1 <- globalrep.grip(edges, n = 12, dim = 2,
                                    placement = "barycenter",
-                                   rounds = 4, final_rounds = 2,
-                                   num_init = 4, num_nbrs = 5,
-                                   coarse_repulsion_factor = 0.2,
-                                   coarse_repulsion_sample = 8,
-                                   coarse_repulsion_exact_below = 32,
+                                   rounds = 4, final.rounds = 2,
+                                   num.init = 4, num.nbrs = 5,
+                                   coarse.repulsion.factor = 0.2,
+                                   coarse.repulsion.sample = 8,
+                                   coarse.repulsion.exact.below = 32,
                                    seed = 42)
   coords2 <- globalrep.grip(edges, n = 12, dim = 2,
                                    placement = "barycenter",
-                                   rounds = 4, final_rounds = 2,
-                                   num_init = 4, num_nbrs = 5,
-                                   coarse_repulsion_factor = 0.2,
-                                   coarse_repulsion_sample = 8,
-                                   coarse_repulsion_exact_below = 32,
+                                   rounds = 4, final.rounds = 2,
+                                   num.init = 4, num.nbrs = 5,
+                                   coarse.repulsion.factor = 0.2,
+                                   coarse.repulsion.sample = 8,
+                                   coarse.repulsion.exact.below = 32,
                                    seed = 42)
   expect_identical(coords1, coords2)
 })
@@ -37,20 +37,20 @@ test_that("globalrep with zero coarse repulsion matches legacy.grip", {
   edges <- edges.mesh(5, 5)
   coords_base <- legacy.grip(edges, n = 25, dim = 2,
                                     placement = "barycenter",
-                                    rounds = 8, final_rounds = 8,
-                                    num_init = 6, num_nbrs = 8,
+                                    rounds = 8, final.rounds = 8,
+                                    num.init = 6, num.nbrs = 8,
                                     r = 0.15, s = 3.0,
-                                    repulsion_factor = 1.5,
+                                    repulsion.factor = 1.5,
                                     seed = 29)
   coords_globalrep <- globalrep.grip(edges, n = 25, dim = 2,
                                             placement = "barycenter",
-                                            rounds = 8, final_rounds = 8,
-                                            num_init = 6, num_nbrs = 8,
+                                            rounds = 8, final.rounds = 8,
+                                            num.init = 6, num.nbrs = 8,
                                             r = 0.15, s = 3.0,
-                                            repulsion_factor = 1.5,
-                                            coarse_repulsion_factor = 0,
-                                            coarse_repulsion_sample = 8,
-                                            coarse_repulsion_exact_below = 32,
+                                            repulsion.factor = 1.5,
+                                            coarse.repulsion.factor = 0,
+                                            coarse.repulsion.sample = 8,
+                                            coarse.repulsion.exact.below = 32,
                                             seed = 29)
   expect_identical(coords_base, coords_globalrep)
 })
@@ -66,19 +66,19 @@ test_that("globalrep coarse repulsion changes the layout with a fixed seed", {
   edges <- edges.mesh(5, 5)
   coords_none <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
                                        seed = 31)
   coords_more <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
                                        seed = 31)
   expect_gt(max(abs(coords_none - coords_more)), 1e-6)
 })
@@ -87,21 +87,21 @@ test_that("globalrep final_mode can switch the final stage", {
   edges <- edges.mesh(5, 5)
   coords_fr <- globalrep.grip(edges, n = 25, dim = 2,
                                      placement = "barycenter",
-                                     rounds = 8, final_rounds = 8,
-                                     num_init = 6, num_nbrs = 8,
-                                     coarse_repulsion_factor = 0.3,
-                                     coarse_repulsion_sample = 8,
-                                     coarse_repulsion_exact_below = 32,
-                                     final_mode = "fr",
+                                     rounds = 8, final.rounds = 8,
+                                     num.init = 6, num.nbrs = 8,
+                                     coarse.repulsion.factor = 0.3,
+                                     coarse.repulsion.sample = 8,
+                                     coarse.repulsion.exact.below = 32,
+                                     final.mode = "fr",
                                      seed = 31)
   coords_kkr <- globalrep.grip(edges, n = 25, dim = 2,
                                       placement = "barycenter",
-                                      rounds = 8, final_rounds = 8,
-                                      num_init = 6, num_nbrs = 8,
-                                      coarse_repulsion_factor = 0.3,
-                                      coarse_repulsion_sample = 8,
-                                      coarse_repulsion_exact_below = 32,
-                                      final_mode = "kk_repulse",
+                                      rounds = 8, final.rounds = 8,
+                                      num.init = 6, num.nbrs = 8,
+                                      coarse.repulsion.factor = 0.3,
+                                      coarse.repulsion.sample = 8,
+                                      coarse.repulsion.exact.below = 32,
+                                      final.mode = "kk_repulse",
                                       seed = 31)
   expect_gt(max(abs(coords_fr - coords_kkr)), 1e-6)
 })
@@ -110,23 +110,23 @@ test_that("globalrep structural final-stage knobs can change the layout", {
   edges <- edges.mesh(5, 5)
   coords_base <- globalrep.grip(edges, n = 25, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       final_mode = "fr",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       final.mode = "fr",
                                        seed = 31)
   coords_struct <- globalrep.grip(edges, n = 25, dim = 2,
                                          placement = "barycenter",
-                                         rounds = 8, final_rounds = 8,
-                                         num_init = 6, num_nbrs = 8,
-                                         coarse_repulsion_factor = 0.3,
-                                         coarse_repulsion_sample = 8,
-                                         coarse_repulsion_exact_below = 32,
-                                         final_anchor_factor = 1,
-                                         final_move_scale_after_first = 0.5,
-                                         final_mode = "fr",
+                                         rounds = 8, final.rounds = 8,
+                                         num.init = 6, num.nbrs = 8,
+                                         coarse.repulsion.factor = 0.3,
+                                         coarse.repulsion.sample = 8,
+                                         coarse.repulsion.exact.below = 32,
+                                         final.anchor.factor = 1,
+                                         final.move.scale.after.first = 0.5,
+                                         final.mode = "fr",
                                          seed = 31)
   expect_gt(max(abs(coords_base - coords_struct)), 1e-6)
 })
@@ -137,40 +137,40 @@ test_that("globalrep level-0 insertion knobs are wired and can change the layout
 
   coords_base <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       level0_insertion_mode = "inherit",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       level0.insertion.mode = "inherit",
                                        seed = 41)
   coords_bary <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       level0_insertion_mode = "barycenter",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       level0.insertion.mode = "barycenter",
                                        seed = 41)
   coords_no_local_kk <- globalrep.grip(edges, n = n, dim = 2,
                                               placement = "barycenter",
-                                              rounds = 8, final_rounds = 8,
-                                              num_init = 6, num_nbrs = 8,
-                                              coarse_repulsion_factor = 0.3,
-                                              coarse_repulsion_sample = 8,
-                                              coarse_repulsion_exact_below = 32,
-                                              level0_local_kk_steps = 0,
+                                              rounds = 8, final.rounds = 8,
+                                              num.init = 6, num.nbrs = 8,
+                                              coarse.repulsion.factor = 0.3,
+                                              coarse.repulsion.sample = 8,
+                                              coarse.repulsion.exact.below = 32,
+                                              level0.local.kk.steps = 0,
                                               seed = 41)
   coords_ls <- globalrep.grip(edges, n = n, dim = 2,
                                      placement = "barycenter",
-                                     rounds = 8, final_rounds = 8,
-                                     num_init = 6, num_nbrs = 8,
-                                     coarse_repulsion_factor = 0.3,
-                                     coarse_repulsion_sample = 8,
-                                     coarse_repulsion_exact_below = 32,
-                                     level0_insertion_mode = "least_squares",
-                                     level0_anchor_count = 6,
+                                     rounds = 8, final.rounds = 8,
+                                     num.init = 6, num.nbrs = 8,
+                                     coarse.repulsion.factor = 0.3,
+                                     coarse.repulsion.sample = 8,
+                                     coarse.repulsion.exact.below = 32,
+                                     level0.insertion.mode = "least_squares",
+                                     level0.anchor.count = 6,
                                      seed = 41)
 
   expect_identical(coords_base, coords_bary)
@@ -184,33 +184,33 @@ test_that("global insertion anchor knobs can change the layout", {
 
   coords_base <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       insertion_anchor_count = 3,
-                                       insertion_anchor_scope = "any_higher",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       insertion.anchor.count = 3,
+                                       insertion.anchor.scope = "any_higher",
                                        seed = 53)
   coords_more <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       insertion_anchor_count = 6,
-                                       insertion_anchor_scope = "any_higher",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       insertion.anchor.count = 6,
+                                       insertion.anchor.scope = "any_higher",
                                        seed = 53)
   coords_prev <- globalrep.grip(edges, n = n, dim = 2,
                                        placement = "barycenter",
-                                       rounds = 8, final_rounds = 8,
-                                       num_init = 6, num_nbrs = 8,
-                                       coarse_repulsion_factor = 0.3,
-                                       coarse_repulsion_sample = 8,
-                                       coarse_repulsion_exact_below = 32,
-                                       insertion_anchor_count = 6,
-                                       insertion_anchor_scope = "prev_misf",
+                                       rounds = 8, final.rounds = 8,
+                                       num.init = 6, num.nbrs = 8,
+                                       coarse.repulsion.factor = 0.3,
+                                       coarse.repulsion.sample = 8,
+                                       coarse.repulsion.exact.below = 32,
+                                       insertion.anchor.count = 6,
+                                       insertion.anchor.scope = "prev_misf",
                                        seed = 53)
 
   expect_gt(max(abs(coords_base - coords_more)), 1e-6)
@@ -223,52 +223,52 @@ test_that("insertion anchor strategy can change the layout", {
 
   coords_first <- globalrep.grip(
     edges, n = n, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    insertion_anchor_count = 6,
-    insertion_anchor_scope = "prev_misf",
-    insertion_anchor_strategy = "first",
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    insertion.anchor.count = 6,
+    insertion.anchor.scope = "prev_misf",
+    insertion.anchor.strategy = "first",
     seed = 71
   )
   coords_band <- globalrep.grip(
     edges, n = n, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    insertion_anchor_count = 6,
-    insertion_anchor_scope = "prev_misf",
-    insertion_anchor_strategy = "distance_band",
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    insertion.anchor.count = 6,
+    insertion.anchor.scope = "prev_misf",
+    insertion.anchor.strategy = "distance_band",
     seed = 71
   )
   coords_balanced <- globalrep.grip(
     edges, n = n, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    insertion_anchor_count = 6,
-    insertion_anchor_scope = "prev_misf",
-    insertion_anchor_strategy = "balanced_band",
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    insertion.anchor.count = 6,
+    insertion.anchor.scope = "prev_misf",
+    insertion.anchor.strategy = "balanced_band",
     seed = 71
   )
   coords_spread_prev <- globalrep.grip(
     edges, n = n, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    insertion_anchor_count = 6,
-    insertion_anchor_scope = "prev_misf",
-    insertion_anchor_strategy = "spread_prev",
-    level0_insertion_mode = "least_squares",
-    level0_local_kk_steps = 1,
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    insertion.anchor.count = 6,
+    insertion.anchor.scope = "prev_misf",
+    insertion.anchor.strategy = "spread_prev",
+    level0.insertion.mode = "least_squares",
+    level0.local.kk.steps = 1,
     seed = 71
   )
 
@@ -281,24 +281,24 @@ test_that("globalrep LGKK polish knobs can change the layout", {
   edges <- edges.mesh(5, 5)
   coords_base <- globalrep.grip(
     edges, n = 25, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    lgkk_polish_rounds = 0,
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    lgkk.polish.rounds = 0,
     seed = 61
   )
   coords_polish <- globalrep.grip(
     edges, n = 25, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    lgkk_polish_rounds = 4,
-    lgkk_local_nbrs = 6,
-    lgkk_landmark_count = 4,
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    lgkk.polish.rounds = 4,
+    lgkk.local.nbrs = 6,
+    lgkk.landmark.count = 4,
     seed = 61
   )
   expect_gt(max(abs(coords_base - coords_polish)), 1e-6)
@@ -308,26 +308,26 @@ test_that("globalrep multiscale LGKK knobs can change the layout", {
   edges <- edges.mesh(5, 5)
   coords_base <- globalrep.grip(
     edges, n = 25, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    lgkk_multiscale_rounds = 0,
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    lgkk.multiscale.rounds = 0,
     seed = 67
   )
   coords_lgkk <- globalrep.grip(
     edges, n = 25, dim = 2,
-    rounds = 8, final_rounds = 8,
-    num_init = 6, num_nbrs = 8,
-    coarse_repulsion_factor = 0.3,
-    coarse_repulsion_sample = 8,
-    coarse_repulsion_exact_below = 32,
-    lgkk_multiscale_rounds = 2,
-    lgkk_local_nbrs = 6,
-    lgkk_landmark_count = 4,
-    lgkk_multiscale_scope = "all",
-    lgkk_active_limit = 512,
+    rounds = 8, final.rounds = 8,
+    num.init = 6, num.nbrs = 8,
+    coarse.repulsion.factor = 0.3,
+    coarse.repulsion.sample = 8,
+    coarse.repulsion.exact.below = 32,
+    lgkk.multiscale.rounds = 2,
+    lgkk.local.nbrs = 6,
+    lgkk.landmark.count = 4,
+    lgkk.multiscale.scope = "all",
+    lgkk.active.limit = 512,
     seed = 67
   )
   expect_gt(max(abs(coords_base - coords_lgkk)), 1e-6)
@@ -349,25 +349,25 @@ test_that("globalrep staged LGKK budgets can change weighted layouts", {
 
   coords_shared <- globalrep.grip(
     edges, n = h * w, dim = 2,
-    edge_weights = edge_weights,
-    lgkk_multiscale_rounds = 4,
-    lgkk_local_nbrs = 6,
-    lgkk_landmark_count = 8,
-    lgkk_multiscale_scope = "all",
-    lgkk_active_limit = 4096,
+    edge.weights = edge_weights,
+    lgkk.multiscale.rounds = 4,
+    lgkk.local.nbrs = 6,
+    lgkk.landmark.count = 8,
+    lgkk.multiscale.scope = "all",
+    lgkk.active.limit = 4096,
     seed = 1
   )
   coords_a3 <- globalrep.grip(
     edges, n = h * w, dim = 2,
-    edge_weights = edge_weights,
-    lgkk_multiscale_rounds = 0,
-    lgkk_rounds_coarse = 1,
-    lgkk_rounds_pre_final = 2,
-    lgkk_rounds_final = 4,
-    lgkk_local_nbrs = 6,
-    lgkk_landmark_count = 8,
-    lgkk_multiscale_scope = "all",
-    lgkk_active_limit = 4096,
+    edge.weights = edge_weights,
+    lgkk.multiscale.rounds = 0,
+    lgkk.rounds.coarse = 1,
+    lgkk.rounds.pre.final = 2,
+    lgkk.rounds.final = 4,
+    lgkk.local.nbrs = 6,
+    lgkk.landmark.count = 8,
+    lgkk.multiscale.scope = "all",
+    lgkk.active.limit = 4096,
     seed = 1
   )
 
@@ -378,114 +378,114 @@ test_that("globalrep validates the new tuning parameters", {
   edges <- edges.cycle(10)
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          coarse_repulsion_factor = -0.1,
+                          coarse.repulsion.factor = -0.1,
                           seed = 1),
-    "coarse_repulsion_factor must be >= 0"
+    "coarse.repulsion.factor must be >= 0"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          coarse_repulsion_sample = 0,
+                          coarse.repulsion.sample = 0,
                           seed = 1),
-    "coarse_repulsion_sample must be a positive integer"
+    "coarse.repulsion.sample must be a positive integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          coarse_repulsion_exact_below = 0,
+                          coarse.repulsion.exact.below = 0,
                           seed = 1),
-    "coarse_repulsion_exact_below must be a positive integer"
+    "coarse.repulsion.exact.below must be a positive integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          final_anchor_factor = -0.1,
+                          final.anchor.factor = -0.1,
                           seed = 1),
-    "final_anchor_factor must be >= 0"
+    "final.anchor.factor must be >= 0"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          final_move_scale_after_first = 1.1,
+                          final.move.scale.after.first = 1.1,
                           seed = 1),
-    "final_move_scale_after_first must be in \\[0, 1\\]"
+    "final.move.scale.after.first must be in \\[0, 1\\]"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          insertion_anchor_count = 0,
+                          insertion.anchor.count = 0,
                           seed = 1),
-    "insertion_anchor_count must be a positive integer"
+    "insertion.anchor.count must be a positive integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          insertion_anchor_scope = "banana",
+                          insertion.anchor.scope = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          final_mode = "banana",
+                          final.mode = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          level0_insertion_mode = "banana",
+                          level0.insertion.mode = "banana",
                           seed = 1),
     "'arg' should be one of"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          level0_anchor_count = 0,
+                          level0.anchor.count = 0,
                           seed = 1),
-    "level0_anchor_count must be a positive integer"
+    "level0.anchor.count must be a positive integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          level0_local_kk_steps = -1,
+                          level0.local.kk.steps = -1,
                           seed = 1),
-    "level0_local_kk_steps must be a non-negative integer"
+    "level0.local.kk.steps must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_polish_rounds = -1,
+                          lgkk.polish.rounds = -1,
                           seed = 1),
-    "lgkk_polish_rounds must be a non-negative integer"
+    "lgkk.polish.rounds must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_local_nbrs = -1,
+                          lgkk.local.nbrs = -1,
                           seed = 1),
-    "lgkk_local_nbrs must be a non-negative integer"
+    "lgkk.local.nbrs must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_landmark_count = -1,
+                          lgkk.landmark.count = -1,
                           seed = 1),
-    "lgkk_landmark_count must be a non-negative integer"
+    "lgkk.landmark.count must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_rounds_coarse = -1,
+                          lgkk.rounds.coarse = -1,
                           seed = 1),
-    "lgkk_rounds_coarse must be a non-negative integer"
+    "lgkk.rounds.coarse must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_rounds_pre_final = -1,
+                          lgkk.rounds.pre.final = -1,
                           seed = 1),
-    "lgkk_rounds_pre_final must be a non-negative integer"
+    "lgkk.rounds.pre.final must be a non-negative integer"
   )
   expect_error(
     globalrep.grip(edges, n = 10, dim = 2,
-                          lgkk_rounds_final = -1,
+                          lgkk.rounds.final = -1,
                           seed = 1),
-    "lgkk_rounds_final must be a non-negative integer"
+    "lgkk.rounds.final must be a non-negative integer"
   )
 })
 
 test_that("globalrep adaptive default final_rounds schedule is stable", {
-  expect_equal(grip:::grip.globalrep.default.final_rounds(1000L), 384L)
-  expect_equal(grip:::grip.globalrep.default.final_rounds(1001L), 320L)
-  expect_equal(grip:::grip.globalrep.default.final_rounds(5001L), 256L)
-  expect_equal(grip:::grip.globalrep.default.final_rounds(20001L), 200L)
-  expect_equal(grip:::grip.globalrep.default.final_rounds(50001L), 128L)
+  expect_equal(grip:::grip.globalrep.default.final.rounds(1000L), 384L)
+  expect_equal(grip:::grip.globalrep.default.final.rounds(1001L), 320L)
+  expect_equal(grip:::grip.globalrep.default.final.rounds(5001L), 256L)
+  expect_equal(grip:::grip.globalrep.default.final.rounds(20001L), 200L)
+  expect_equal(grip:::grip.globalrep.default.final.rounds(50001L), 128L)
 })
 
 test_that("globalrep small-graph defaults match the new fixed candidate profile", {
@@ -494,21 +494,21 @@ test_that("globalrep small-graph defaults match the new fixed candidate profile"
   coords_explicit <- globalrep.grip(
     edges, n = 12, dim = 2,
     placement = "barycenter",
-    rounds = 160, final_rounds = 384,
-    num_init = 24, num_nbrs = 20,
+    rounds = 160, final.rounds = 384,
+    num.init = 24, num.nbrs = 20,
     r = 0.03, s = 7.5,
-    repulsion_factor = 2.5,
-    coarse_repulsion_factor = 1.5,
-    coarse_repulsion_sample = 16,
-    coarse_repulsion_exact_below = 64,
-    insertion_anchor_count = 3,
-    insertion_anchor_scope = "any_higher",
-    level0_insertion_mode = "inherit",
-    level0_anchor_count = 3,
-    level0_local_kk_steps = 3,
-    lgkk_polish_rounds = 0,
-    lgkk_local_nbrs = 20,
-    lgkk_landmark_count = 8,
+    repulsion.factor = 2.5,
+    coarse.repulsion.factor = 1.5,
+    coarse.repulsion.sample = 16,
+    coarse.repulsion.exact.below = 64,
+    insertion.anchor.count = 3,
+    insertion.anchor.scope = "any_higher",
+    level0.insertion.mode = "inherit",
+    level0.anchor.count = 3,
+    level0.local.kk.steps = 3,
+    lgkk.polish.rounds = 0,
+    lgkk.local.nbrs = 20,
+    lgkk.landmark.count = 8,
     seed = 7
   )
   expect_identical(coords_default, coords_explicit)
@@ -521,21 +521,21 @@ test_that("globalrep larger-graph defaults taper final_rounds only", {
   coords_explicit <- globalrep.grip(
     edges, n = n, dim = 2,
     placement = "barycenter",
-    rounds = 160, final_rounds = 320,
-    num_init = 24, num_nbrs = 20,
+    rounds = 160, final.rounds = 320,
+    num.init = 24, num.nbrs = 20,
     r = 0.03, s = 7.5,
-    repulsion_factor = 2.5,
-    coarse_repulsion_factor = 1.5,
-    coarse_repulsion_sample = 16,
-    coarse_repulsion_exact_below = 64,
-    insertion_anchor_count = 3,
-    insertion_anchor_scope = "any_higher",
-    level0_insertion_mode = "inherit",
-    level0_anchor_count = 3,
-    level0_local_kk_steps = 3,
-    lgkk_polish_rounds = 0,
-    lgkk_local_nbrs = 20,
-    lgkk_landmark_count = 8,
+    repulsion.factor = 2.5,
+    coarse.repulsion.factor = 1.5,
+    coarse.repulsion.sample = 16,
+    coarse.repulsion.exact.below = 64,
+    insertion.anchor.count = 3,
+    insertion.anchor.scope = "any_higher",
+    level0.insertion.mode = "inherit",
+    level0.anchor.count = 3,
+    level0.local.kk.steps = 3,
+    lgkk.polish.rounds = 0,
+    lgkk.local.nbrs = 20,
+    lgkk.landmark.count = 8,
     seed = 9
   )
   expect_identical(coords_default, coords_explicit)
@@ -553,15 +553,15 @@ test_that("globalrep disconnected handling matches legacy.grip when disabled", {
   expect_warning(
     coords_globalrep <- globalrep.grip(edges, n = 7, dim = 2,
                                               rounds = 20,
-                                              final_rounds = 25,
-                                              num_init = 36,
-                                              num_nbrs = 10,
+                                              final.rounds = 25,
+                                              num.init = 36,
+                                              num.nbrs = 10,
                                               r = 0.15,
                                               s = 3.0,
-                                              repulsion_factor = 1.0,
-                                              coarse_repulsion_factor = 0,
-                                              coarse_repulsion_sample = 8,
-                                              coarse_repulsion_exact_below = 32,
+                                              repulsion.factor = 1.0,
+                                              coarse.repulsion.factor = 0,
+                                              coarse.repulsion.sample = 8,
+                                              coarse.repulsion.exact.below = 32,
                                               seed = 11),
     "laying out components separately"
   )

@@ -1,17 +1,24 @@
 # grip 0.2.0.9001 (development version)
 
+- Breaking API change: public function and argument names now use lowercase words
+  separated by dots, including control-list keys (`pair.weights`, `sgd.control`,
+  `learning.rate`, and `n.pivots`). The nine `gripui_`/`run_gripui` entry points
+  also use dots. Old spellings are no longer accepted. Mathematical names `X`
+  and `scale.L0`, S3 class names, enum values, and saved result fields are unchanged.
+  See `inst/API-NAMING.md` for migration examples.
+
 - Added opt-in `metric.mds(approximation = "sparse")` for 2D/3D sparse SGD with pivot-based
   distance preparation, asymmetric endpoint updates, explicit memory checks,
   reproducible sampling, and separately labeled sparse diagnostics.
 - Consolidated full and sparse MDS under `metric.mds()`, with a separate
-  `approximation` choice and `sparse_control` for pivots. The sparse helper is
+  `approximation` choice and `sparse.control` for pivots. The sparse helper is
   private. Existing full-MDS calls retain their defaults; incompatible sparse
   settings fail explicitly before dense preparation.
 - Added a sparse/full SGD and weighted-GRIP vignette with 3D examples, repeated
   runs, independent distance-error scores, and measured time and peak memory.
 - Avoided repeated copying when collecting edge lengths for edge-only preparation.
 
-- Added `metric.mds(pair_weights = "inverse_squared")` for both SGD and SMACOF,
+- Added `metric.mds(pair.weights = "inverse_squared")` for both SGD and SMACOF,
   using the Zheng et al. (2018) graph-drawing stress weights. Uniform weighting
   remains the default. Fitting, start selection, scaling, and reported stress
   consistently use the selected weights; inverse-squared weighting requires
@@ -78,8 +85,8 @@
   remains classical MDS. The iteration budget and stopping rules are unchanged.
 
 * Graph-input APIs now reject fractional, nonfinite, or out-of-range vertex
-  indices and counts before conversion. Supply either `edges`/`edge_weights`
-  or `adj_list`/`weight_list`, not both. A `prepared` graph cannot be combined
+  indices and counts before conversion. Supply either `edges`/`edge.weights`
+  or `adj.list`/`weight.list`, not both. A `prepared` graph cannot be combined
   with raw graph inputs; an explicit `n` must match its stored vertex count.
   Previously, some of these inputs were silently truncated or ignored.
 

@@ -32,9 +32,9 @@ test_that('weighted native updates and checkpoint scores match an independent lo
 test_that('both backends fit and report the inverse-squared objective consistently', {
   skip_if_not_installed('smacof')
   for (backend in c('sgd','smacof')) {
-    args <- list(edges=edges.cycle(8),n=8,edge_weights=seq_len(8),dim=3,
-                 init='random',n_init=3,seed=92,max_iter=80,backend=backend,
-                 pair_weights='inverse_squared',diagnostics=FALSE)
+    args <- list(edges=edges.cycle(8),n=8,edge.weights=seq_len(8),dim=3,
+                 init='random',n.init=3,seed=92,max.iter=80,backend=backend,
+                 pair.weights='inverse_squared',diagnostics=FALSE)
     set.seed(79); saved <- .Random.seed
     fit <- suppressWarnings(do.call(metric.mds,args))
     expect_identical(.Random.seed,saved)
@@ -50,7 +50,7 @@ test_that('both backends fit and report the inverse-squared objective consistent
     expect_equal(raw,min(fit$metadata$starts$raw_stress),tolerance=1e-10)
     expect_true(all(fit$metadata$starts$raw_stress <= fit$metadata$starts$initial_raw_stress+1e-9))
     for (unit in c(1e-5,1e5)) {
-      changed <- args; changed$edge_weights <- unit*args$edge_weights
+      changed <- args; changed$edge.weights <- unit*args$edge.weights
       scaled <- suppressWarnings(do.call(metric.mds,changed))
       expect_equal(as.vector(dist(scaled$coords))/unit,d,tolerance=1e-7)
       expect_equal(scaled$metadata$raw_stress,raw,tolerance=1e-7)
@@ -59,9 +59,9 @@ test_that('both backends fit and report the inverse-squared objective consistent
       trace <- fit$metadata$sgd[[fit$metadata$selected_start]]$trace
       expect_equal(min(trace$profiled_stress),raw,tolerance=1e-9)
     }
-    args$pair_weights <- 'uniform'
+    args$pair.weights <- 'uniform'
     uniform <- suppressWarnings(do.call(metric.mds,args))
-    args$pair_weights <- NULL
+    args$pair.weights <- NULL
     default <- suppressWarnings(do.call(metric.mds,args[!vapply(args,is.null,logical(1))]))
     expect_equal(uniform$coords,default$coords,tolerance=0)
     expect_equal(uniform$metadata$raw_stress,default$metadata$raw_stress,tolerance=0)
@@ -71,7 +71,7 @@ test_that('both backends fit and report the inverse-squared objective consistent
 
 test_that('weighted SMACOF matches an explicit weight matrix and weighted rescaling', {
   skip_if_not_installed('smacof')
-  p <- prepare.graph.geodesic.mds(edges.cycle(6),n=6,edge_weights=seq_len(6))
+  p <- prepare.graph.geodesic.mds(edges.cycle(6),n=6,edge.weights=seq_len(6))
   target <- as.vector(as.dist(p$distance_matrix)); rms <- sqrt(mean(target^2))
   t <- target/rms; w <- 1/t^2
   start <- cbind(1:6,c(2,-1,3,0,1,-2)); X <- scale(start,scale=FALSE)/rms
@@ -80,8 +80,8 @@ test_that('weighted SMACOF matches an explicit weight matrix and weighted rescal
   direct <- suppressWarnings(smacof::mds(p$distance_matrix/rms,ndim=2,type='ratio',weightmat=W,
                         init=X,itmax=100,eps=1e-9,principal=FALSE))
   d <- as.vector(dist(direct$conf)); expected <- d*sum(w*d*target)/sum(w*d^2)
-  fit <- suppressWarnings(metric.mds(prepared=p,dim=2,init=start,max_iter=100,
-    eps=1e-9,backend='smacof',pair_weights='inverse_squared',diagnostics=FALSE))
+  fit <- suppressWarnings(metric.mds(prepared=p,dim=2,init=start,max.iter=100,
+    eps=1e-9,backend='smacof',pair.weights='inverse_squared',diagnostics=FALSE))
   expect_equal(as.vector(dist(fit$coords)),expected,tolerance=1e-9)
 })
 
@@ -91,11 +91,11 @@ test_that('weighted zero-distance and invalid-choice policies are explicit', {
   p$distance_matrix <- as.matrix(dist(X))
   for (backend in c('sgd','smacof')) {
     if (backend=='smacof' && !requireNamespace('smacof',quietly=TRUE)) next
-    expect_error(metric.mds(prepared=p,backend=backend,pair_weights='inverse_squared'), 'strictly positive')
-    fit <- suppressWarnings(metric.mds(prepared=p,backend=backend,init=X,max_iter=5,diagnostics=FALSE))
+    expect_error(metric.mds(prepared=p,backend=backend,pair.weights='inverse_squared'), 'strictly positive')
+    fit <- suppressWarnings(metric.mds(prepared=p,backend=backend,init=X,max.iter=5,diagnostics=FALSE))
     expect_equal(as.vector(dist(fit$coords)),as.vector(dist(X)),tolerance=1e-8)
-    expect_error(metric.mds(prepared=p,backend=backend,pair_weights='bad'), 'arg')
+    expect_error(metric.mds(prepared=p,backend=backend,pair.weights='bad'), 'arg')
     p2 <- p; p2$distance_matrix[1,2] <- p2$distance_matrix[2,1] <- 1e-200
-    expect_error(metric.mds(prepared=p2,backend=backend,pair_weights='inverse_squared'), 'numeric range')
+    expect_error(metric.mds(prepared=p2,backend=backend,pair.weights='inverse_squared'), 'numeric range')
   }
 })

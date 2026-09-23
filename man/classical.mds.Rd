@@ -8,17 +8,17 @@ classical.mds(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 2L,
   add = FALSE,
   eig = TRUE,
   diagnostics = TRUE,
-  scale_mode = c("profiled", "identity", "user"),
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  band_quantiles = c(1/3, 2/3)
+  scale.mode = c("profiled", "identity", "user"),
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  band.quantiles = c(1/3, 2/3)
 )
 }
 \arguments{
@@ -28,17 +28,17 @@ Edge-only objects from \code{\link[=prepare.edge.kk]{prepare.edge.kk()}} are int
 because classical MDS requires a graph distance matrix.}
 
 \item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
-Supply either edges/edge_weights or adj_list/weight_list, not both.
+Supply either edges/edge.weights or adj.list/weight.list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
+\item{adj.list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
+\item{weight.list}{Optional edge-weight list parallel to \code{adj.list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
+\item{edge.weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{dim}{Target embedding dimension. Values greater than 3 are supported
 for GMDS and edge-KK workflows.}
@@ -50,15 +50,15 @@ for GMDS and edge-KK workflows.}
 distance-matrix-only preparation path and does not build the full
 all-pairs path cache.}
 
-\item{scale_mode}{Scale policy for edge, path, and chord targets:
+\item{scale.mode}{Scale policy for edge, path, and chord targets:
 \code{"profiled"} fits one scalar for each diagnostic family, \code{"identity"}
 uses scale one, and \code{"user"} uses the corresponding supplied scale.}
 
-\item{distance_floor}{Positive floor for relative residuals.}
+\item{distance.floor}{Positive floor for relative residuals.}
 
-\item{edge_length_epsilon}{Small stabilizer for fixed-path embedded lengths.}
+\item{edge.length.epsilon}{Small stabilizer for fixed-path embedded lengths.}
 
-\item{band_quantiles}{Two quantiles splitting graph distances into short,
+\item{band.quantiles}{Two quantiles splitting graph distances into short,
 mid, and long bands.}
 }
 \value{

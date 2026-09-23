@@ -17,15 +17,15 @@ grip.mds.has.smacof <- function() {
 #'
 #' @details With `approximation = "full"`, the objective is
 #' \deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
-#' By default, all pair weights are one. With `pair_weights = "inverse_squared"`,
+#' By default, all pair weights are one. With `pair.weights = "inverse_squared"`,
 #' \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
 #' sum of squared relative distance errors. Edge weights define graph distances;
-#' `pair_weights` separately specifies their importance in the stress objective.
+#' `pair.weights` separately specifies their importance in the stress objective.
 #' Both backends, coordinate rescaling, checkpoint/start selection, and stress
 #' metadata use the selected weights. The common `score.gmds()` diagnostic panel
 #' retains its own definitions and does not become a weighted objective report.
 #' SMACOF normalizes targets internally. Returned coordinates are rescaled to
-#' minimize raw stress against the original input distances. `scale_mode`
+#' minimize raw stress against the original input distances. `scale.mode`
 #' controls the optional diagnostic panel only, not the optimization objective.
 #'
 #' Target-normalized raw stress and scale-profiled Stress-1 select the same
@@ -57,14 +57,14 @@ grip.mds.has.smacof <- function() {
 #'
 #' @inheritParams classical.mds
 #' @param prepared An all-pairs prepared graph object containing
-#'   `distance_matrix`, for full MDS only. Sparse MDS requires raw graph inputs.
+#'   `distance.matrix`, for full MDS only. Sparse MDS requires raw graph inputs.
 #'   Edge-only preparations are not supported as inputs to either mode.
 #' @param diagnostics Attach the common GMDS diagnostic panel. With `FALSE`
 #'   and raw graph inputs in full mode, prepare only the distance matrix, without
 #'   path caches. Defaults to `TRUE` for full MDS and `FALSE` for sparse MDS.
 #'   Sparse MDS rejects `TRUE` and explicitly supplied diagnostic controls
-#'   (`scale_mode`, `distance_floor`, `edge_length_epsilon`, `band_quantiles`).
-#' @param scale_mode Diagnostic scale policy: `"profiled"` fits a separate
+#'   (`scale.mode`, `distance.floor`, `edge.length.epsilon`, `band.quantiles`).
+#' @param scale.mode Diagnostic scale policy: `"profiled"` fits a separate
 #'   scalar for each diagnostic family, and `"identity"` uses scale one.
 #'   To evaluate user-specified scales, call [score.gmds()] on the returned
 #'   coordinates separately. This argument never changes the fitted coordinates.
@@ -72,9 +72,9 @@ grip.mds.has.smacof <- function() {
 #'   matrix with `n` rows and `dim` columns in input-distance units. Sparse MDS
 #'   supports only random or supplied starts; random starts use a uniform unit
 #'   cube in normalized-distance units.
-#' @param n_init Positive integer number of starts, including the first start.
+#' @param n.init Positive integer number of starts, including the first start.
 #'   Sparse MDS currently requires one start.
-#' @param max_iter Positive integer iteration limit per start. For SGD, the
+#' @param max.iter Positive integer iteration limit per start. For SGD, the
 #'   number of complete passes over full or retained sparse pairs. Defaults to
 #'   1000 for full MDS and 30 for sparse MDS. The sparse default is a provisional
 #'   calibration choice, not a convergence criterion.
@@ -83,25 +83,25 @@ grip.mds.has.smacof <- function() {
 #' @param seed Integer random seed, or `NULL` to use the current RNG stream.
 #'   With a non-NULL seed, random starts do not change the caller's RNG state.
 #' @param backend `"sgd"` (default) or `"smacof"`. No automatic fallback occurs.
-#' @param pair_weights `"uniform"` (full default) or `"inverse_squared"` (sparse
+#' @param pair.weights `"uniform"` (full default) or `"inverse_squared"` (sparse
 #'   default and the only supported sparse choice). The latter
 #'   applies the paper's inverse-squared shortest-path-distance weights in either
-#'   backend. This is separate from the graph's `edge_weights`.
-#' @param sgd_control Named list used only with `backend = "sgd"`:
-#'   `scheduler` (`"hybrid"` or `"exponential"`), `learning_rate` (0.5),
-#'   `final_rate` (0.01), `switch_ratio` (0.4), `checkpoint_every` (1), and
-#'   `max_workspace_bytes` (256 MiB for full MDS, 512 MiB for sparse MDS).
+#'   backend. This is separate from the graph's `edge.weights`.
+#' @param sgd.control Named list used only with `backend = "sgd"`:
+#'   `scheduler` (`"hybrid"` or `"exponential"`), `learning.rate` (0.5),
+#'   `final.rate` (0.01), `switch.ratio` (0.4), `checkpoint.every` (1), and
+#'   `max.workspace.bytes` (256 MiB for full MDS, 512 MiB for sparse MDS).
 #'   These defaults are provisional calibration
-#'   choices. Rates must be positive with `final_rate <= learning_rate`;
-#'   `switch_ratio` is between zero and one inclusive. The memory allowance covers native workspace,
+#'   choices. Rates must be positive with `final.rate <= learning.rate`;
+#'   `switch.ratio` is between zero and one inclusive. The memory allowance covers native workspace,
 #'   not the R input matrices or total process memory.
 #' @param approximation `"full"` (default) or `"sparse"`. This selects the
 #'   distance model separately from the optimizer selected by `backend`.
 #'   Sparse mode currently supports only SGD, in 2D or 3D. The default `dim = 2`
 #'   is shared by both modes. Mode-specific defaults apply only to omitted
 #'   arguments; explicitly incompatible choices produce errors.
-#' @param sparse_control Named list used only with `approximation = "sparse"`:
-#'   `n_pivots` (200, capped at `n`) and optional distinct vertex ids `pivots`
+#' @param sparse.control Named list used only with `approximation = "sparse"`:
+#'   `n.pivots` (200, capped at `n`) and optional distinct vertex ids `pivots`
 #'   in selection order. Explicit pivots override the default count; supplying
 #'   an inconsistent count is an error. The default count is a provisional
 #'   calibration choice; increasing it increases memory and work per epoch.
@@ -134,11 +134,11 @@ grip.mds.has.smacof <- function() {
 #' The R wrapper independently rescales and recomputes its returned stress.
 #' The exponential schedule's final rate is its boundary value after the planned
 #' passes, not its last applied rate. The hybrid schedule switches after
-#' `floor(switch_ratio * max_iter)` passes, at one tenth the initial rate
+#' `floor(switch.ratio * max.iter)` passes, at one tenth the initial rate
 #' (or the initial rate if the switch is immediate). Its harmonic segment
-#' approaches `final_rate` at the boundary only when the switch rate exceeds
-#' `final_rate`; otherwise that segment stays constant at the switch rate.
-#' With `switch_ratio = 1`, no harmonic segment occurs and `final_rate` is unused.
+#' approaches `final.rate` at the boundary only when the switch rate exceeds
+#' `final.rate`; otherwise that segment stays constant at the switch rate.
+#' With `switch.ratio = 1`, no harmonic segment occurs and `final.rate` is unused.
 #' Coincident points with positive target distance are separated along a seeded
 #' direction; zero targets are not floored. Without such collisions, updates
 #' preserve a deficient initial affine span. Use full-dimensional random starts
@@ -194,12 +194,12 @@ grip.mds.has.smacof <- function() {
 #' @examples
 #' # Schedule completion is reported explicitly, not as convergence.
 #' fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
-#'   dim = 3, init = "random", backend = "sgd", max_iter = 30,
+#'   dim = 3, init = "random", backend = "sgd", max.iter = 30,
 #'   diagnostics = FALSE))
 #' fit$metadata$engine
 #' fit$metadata$target_normalized_rmse
 #' sparse <- metric.mds(edges = edges.path(30), dim = 3,
-#'   approximation = "sparse", sparse_control = list(n_pivots = 5))
+#'   approximation = "sparse", sparse.control = list(n.pivots = 5))
 #' sparse$metadata$sparse_proxy_stress
 #' @seealso [classical.mds()], [edge.kk()], [smacof::mds()]
 #' @md
@@ -211,38 +211,38 @@ grip.mds.has.smacof <- function() {
 metric.mds <- function(prepared = NULL,
                        edges = NULL,
                        n = NULL,
-                       adj_list = NULL,
-                       weight_list = NULL,
-                       edge_weights = NULL,
+                       adj.list = NULL,
+                       weight.list = NULL,
+                       edge.weights = NULL,
                        dim = 2L,
                        init = c("classical", "random"),
-                       n_init = 1L,
-                       max_iter = 1000L,
+                       n.init = 1L,
+                       max.iter = 1000L,
                        eps = 1e-8,
                        seed = 1L,
                        diagnostics = TRUE,
-                       scale_mode = c("profiled", "identity"),
-                       distance_floor = 1e-8,
-                       edge_length_epsilon = 1e-8,
-                       band_quantiles = c(1 / 3, 2 / 3),
+                       scale.mode = c("profiled", "identity"),
+                       distance.floor = 1e-8,
+                       edge.length.epsilon = 1e-8,
+                       band.quantiles = c(1 / 3, 2 / 3),
                        backend = c("sgd", "smacof"),
-                       sgd_control = list(),
-                       pair_weights = c("uniform", "inverse_squared"),
+                       sgd.control = list(),
+                       pair.weights = c("uniform", "inverse_squared"),
                        approximation = c("full", "sparse"),
-                       sparse_control = list()) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
+                       sparse.control = list()) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   backend <- match.arg(backend)
   approximation <- match.arg(approximation)
-  if (!is.list(sparse_control) ||
-      (length(sparse_control) && (is.null(names(sparse_control)) ||
-        anyNA(names(sparse_control)) || any(!nzchar(names(sparse_control))) ||
-        anyDuplicated(names(sparse_control)) ||
-        any(!names(sparse_control) %in% c("n_pivots", "pivots"))))) {
-    stop("sparse_control must be a named list with unique names: n_pivots, pivots",
+  if (!is.list(sparse.control) ||
+      (length(sparse.control) && (is.null(names(sparse.control)) ||
+        anyNA(names(sparse.control)) || any(!nzchar(names(sparse.control))) ||
+        anyDuplicated(names(sparse.control)) ||
+        any(!names(sparse.control) %in% c("n.pivots", "pivots"))))) {
+    stop("sparse.control must be a named list with unique names: n.pivots, pivots",
          call. = FALSE)
   }
-  if (approximation == "full" && length(sparse_control)) {
-    stop("sparse_control requires approximation = 'sparse'", call. = FALSE)
+  if (approximation == "full" && length(sparse.control)) {
+    stop("sparse.control requires approximation = 'sparse'", call. = FALSE)
   }
   # Dispatch before any dense preparation, initialization, or diagnostics.
   if (approximation == "sparse") {
@@ -251,34 +251,34 @@ metric.mds <- function(prepared = NULL,
     if (!is.null(prepared))
       stop("Sparse MDS requires raw graph inputs; prepared objects are not supported", call. = FALSE)
     if (!missing(eps))
-      stop("eps is a SMACOF tolerance; SGD uses max_iter and sgd_control", call. = FALSE)
-    if (!is.numeric(n_init) || length(n_init) != 1L || is.na(n_init) || n_init != 1)
-      stop("Sparse MDS currently requires n_init = 1", call. = FALSE)
+      stop("eps is a SMACOF tolerance; SGD uses max.iter and sgd.control", call. = FALSE)
+    if (!is.numeric(n.init) || length(n.init) != 1L || is.na(n.init) || n.init != 1)
+      stop("Sparse MDS currently requires n.init = 1", call. = FALSE)
     if (missing(init)) init <- "random"
     if (!is.matrix(init) && !identical(init, "random"))
       stop("Sparse init must be 'random' or a coordinate matrix", call. = FALSE)
-    if (missing(max_iter)) max_iter <- 30L
-    if (missing(pair_weights)) pair_weights <- "inverse_squared"
-    pair_weights <- match.arg(pair_weights)
-    if (pair_weights != "inverse_squared")
-      stop("Sparse MDS requires pair_weights = 'inverse_squared'", call. = FALSE)
+    if (missing(max.iter)) max.iter <- 30L
+    if (missing(pair.weights)) pair.weights <- "inverse_squared"
+    pair.weights <- match.arg(pair.weights)
+    if (pair.weights != "inverse_squared")
+      stop("Sparse MDS requires pair.weights = 'inverse_squared'", call. = FALSE)
     if (missing(diagnostics)) diagnostics <- FALSE
     if (!identical(diagnostics, FALSE))
       stop("Sparse MDS requires diagnostics = FALSE; evaluate distances separately", call. = FALSE)
-    if (!missing(scale_mode) || !missing(distance_floor) ||
-        !missing(edge_length_epsilon) || !missing(band_quantiles))
+    if (!missing(scale.mode) || !missing(distance.floor) ||
+        !missing(edge.length.epsilon) || !missing(band.quantiles))
       stop("scale_mode, distance_floor, edge_length_epsilon and band_quantiles are full-MDS diagnostic controls; omit them for sparse MDS", call. = FALSE)
-    return(do.call(.sparse.metric.mds, c(list(edges = edges, n = n,
-      adj_list = adj_list, weight_list = weight_list, edge_weights = edge_weights,
-      dim = dim, init = init, max_iter = max_iter, seed = seed,
-      sgd_control = sgd_control), sparse_control)))
+    return(.grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
+      adj_list = adj.list, weight_list = weight.list, edge_weights = edge.weights,
+      dim = dim, init = init, max_iter = max.iter, seed = seed,
+      sgd_control = sgd.control), sparse.control)))
   }
-  pair_weights <- match.arg(pair_weights)
+  pair.weights <- match.arg(pair.weights)
   if (backend == "sgd" && !missing(eps)) {
-    stop("eps is a SMACOF tolerance; SGD uses max_iter and sgd_control", call. = FALSE)
+    stop("eps is a SMACOF tolerance; SGD uses max.iter and sgd.control", call. = FALSE)
   }
-  if (backend == "smacof" && length(sgd_control)) {
-    stop("sgd_control requires backend = 'sgd'", call. = FALSE)
+  if (backend == "smacof" && length(sgd.control)) {
+    stop("sgd.control requires backend = 'sgd'", call. = FALSE)
   }
   if (backend == "smacof" && !grip.mds.has.smacof()) {
     stop("metric.mds() requires the optional 'smacof' package; install it, ",
@@ -287,8 +287,8 @@ metric.mds <- function(prepared = NULL,
   if (backend == "smacof" && utils::packageVersion("smacof") < "2.1-7") {
     stop("metric.mds() requires smacof >= 2.1-7", call. = FALSE)
   }
-  scale_mode <- match.arg(scale_mode)
-  for (name in c("dim", "n_init", "max_iter")) {
+  scale.mode <- match.arg(scale.mode)
+  for (name in c("dim", "n.init", "max.iter")) {
     value <- get(name)
     if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
         value < 1 || value != floor(value) || value > .Machine$integer.max) {
@@ -297,8 +297,8 @@ metric.mds <- function(prepared = NULL,
   }
   if (dim < 2L) stop("dim must be at least 2", call. = FALSE)
   if (backend == "sgd") {
-    sgd_control <- grip.mds.sgd.control(sgd_control, max_iter)
-    rates <- grip.mds.sgd.rates(sgd_control, max_iter)
+    sgd.control <- grip.mds.sgd.control(sgd.control, max.iter)
+    rates <- grip.mds.sgd.rates(sgd.control, max.iter)
   }
   grip.validate.scalar(eps, "eps", lower = 0, open.lower = TRUE)
   if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
@@ -309,10 +309,10 @@ metric.mds <- function(prepared = NULL,
     stop("seed must be an integer or NULL", call. = FALSE)
   }
   prepared <- if (is.null(prepared) && !diagnostics) {
-    grip.metric.mds.distance.prepared(edges, n, adj_list, weight_list, edge_weights)
+    grip.metric.mds.distance.prepared(edges, n, adj.list, weight.list, edge.weights)
   } else {
     grip.gmds.require.prepared(prepared = prepared, edges = edges, n = n,
-      adj_list = adj_list, weight_list = weight_list, edge_weights = edge_weights)
+      adj.list = adj.list, weight.list = weight.list, edge.weights = edge.weights)
   }
   delta <- prepared$distance_matrix
   if (is.null(delta)) {
@@ -334,20 +334,20 @@ metric.mds <- function(prepared = NULL,
   target.rms <- target.max * sqrt(mean((target / target.max)^2))
   delta.normalized <- delta / target.rms
   target.normalized <- target / target.rms
-  if (pair_weights == "inverse_squared" && any(target <= 0)) {
+  if (pair.weights == "inverse_squared" && any(target <= 0)) {
     stop("inverse_squared pair weights require strictly positive off-diagonal distances; use uniform weighting for zero distances", call. = FALSE)
   }
-  pair.stiffness <- if (pair_weights == "uniform") rep(1, length(target)) else
+  pair.stiffness <- if (pair.weights == "uniform") rep(1, length(target)) else
     (1 / target.normalized)^2
   if (any(!is.finite(pair.stiffness)) || any(pair.stiffness <= 0)) {
     stop("inverse_squared pair weights are outside the representable numeric range", call. = FALSE)
   }
   # Public inverse-squared stress is dimensionless; normalized-distance weights
   # absorb RMS^2. Uniform stress is converted back to squared input units.
-  loss.units <- if (pair_weights == "uniform") target.rms^2 else 1
+  loss.units <- if (pair.weights == "uniform") target.rms^2 else 1
   target.energy <- sum(pair.stiffness * target.normalized^2)
   weight.matrix <- NULL
-  if (backend == "smacof" && pair_weights != "uniform") {
+  if (backend == "smacof" && pair.weights != "uniform") {
     weight.dist <- stats::as.dist(delta)
     weight.dist[] <- pair.stiffness
     weight.matrix <- as.matrix(weight.dist)
@@ -371,7 +371,7 @@ metric.mds <- function(prepared = NULL,
                              diagnostics = FALSE)$coords
     }
   }
-  if (!is.null(seed) && (backend == "sgd" || n_init > 1L || identical(init.name, "random"))) {
+  if (!is.null(seed) && (backend == "sgd" || n.init > 1L || identical(init.name, "random"))) {
     had.seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     old.seed <- if (had.seed) get(".Random.seed", envir = .GlobalEnv) else NULL
     on.exit({
@@ -394,9 +394,9 @@ metric.mds <- function(prepared = NULL,
   }
   best <- NULL
   best.loss <- Inf
-  records <- vector("list", n_init)
-  sgd.records <- vector("list", n_init)
-  for (run in seq_len(n_init)) {
+  records <- vector("list", n.init)
+  sgd.records <- vector("list", n.init)
+  for (run in seq_len(n.init)) {
     start <- if (run == 1L && !is.null(first)) first else
       matrix(stats::rnorm(prepared$n * dim), nrow = prepared$n, ncol = dim)
     start <- rescale(start)
@@ -405,10 +405,10 @@ metric.mds <- function(prepared = NULL,
     if (backend == "sgd") fit.started <- proc.time()[["elapsed"]]
     fit <- tryCatch(withCallingHandlers(
       if (backend == "sgd") {
-        grip.mds.sgd.fit(start$coords, target.normalized, rates, sgd_control, native.seed,
-                         if (pair_weights == "uniform") NULL else pair.stiffness)
+        grip.mds.sgd.fit(start$coords, target.normalized, rates, sgd.control, native.seed,
+                         if (pair.weights == "uniform") NULL else pair.stiffness)
       } else smacof::mds(delta.normalized, ndim = dim, type = "ratio",
-                  init = start$coords, itmax = max_iter, eps = eps, weightmat = weight.matrix,
+                  init = start$coords, itmax = max.iter, eps = eps, weightmat = weight.matrix,
                   principal = FALSE, verbose = FALSE),
       warning = function(w) {
         notices <<- c(notices, conditionMessage(w))
@@ -421,7 +421,7 @@ metric.mds <- function(prepared = NULL,
     rejected <- !failed && result$loss > start$loss + 1e-10 * max(1, start$loss)
     if (rejected) result <- start
     reason <- if (failed) "backend_error" else if (rejected) "rejected_increase" else
-      if (backend == "sgd" || fit$niter >= max_iter) "iteration_limit" else "stress_tolerance"
+      if (backend == "sgd" || fit$niter >= max.iter) "iteration_limit" else "stress_tolerance"
     records[[run]] <- data.frame(
       start = run, initialization = if (run == 1L) init.name else "random",
       initial_raw_stress = start$loss * loss.units,
@@ -460,13 +460,13 @@ metric.mds <- function(prepared = NULL,
   d <- as.double(stats::dist(best$coords))
   target.scale <- sum(pair.stiffness * d * target.normalized) / target.energy
   diag <- if (diagnostics) score.gmds(coords = coords, prepared = prepared,
-    scale_mode = scale_mode, distance_floor = distance_floor,
-    edge_length_epsilon = edge_length_epsilon, band_quantiles = band_quantiles) else NULL
+    scale.mode = scale.mode, distance.floor = distance.floor,
+    edge.length.epsilon = edge.length.epsilon, band.quantiles = band.quantiles) else NULL
   output <- gmds.result(coords = coords, method = "metric_mds", prepared = prepared,
     trace = NULL, diagnostics = diag, metadata = list(
       engine = backend, approximation = "full", grip_version = as.character(getNamespaceVersion("grip")),
       backend_version = if (backend == "smacof") as.character(utils::packageVersion("smacof")) else "grip-sgd-mds-v2",
-      objective = "raw_distance_stress", pair_weights = pair_weights, type = "ratio",
+      objective = "raw_distance_stress", pair_weights = pair.weights, type = "ratio",
       input_rms_distance = target.rms, coordinate_scale = best$multiplier * target.rms,
       raw_stress = best.loss * loss.units,
       target_normalized_rmse = sqrt(best.loss / target.energy),
@@ -474,11 +474,11 @@ metric.mds <- function(prepared = NULL,
       stress1_profiled = sqrt(sum(pair.stiffness * (d - target.scale * target.normalized)^2) / sum(pair.stiffness * d^2)),
       selected_start = selected, converged = runs$converged[selected],
       termination = runs$termination[selected], starts = runs,
-      settings = list(init = init.name, n_init = n_init, max_iter = max_iter, eps = eps,
-                      seed = seed, dimension = dim, pair_weights = pair_weights)))
+      settings = list(init = init.name, n_init = n.init, max_iter = max.iter, eps = eps,
+                      seed = seed, dimension = dim, pair_weights = pair.weights)))
   if (backend == "sgd") {
     output$metadata$settings$eps <- NULL
-    output$metadata$settings$sgd_control <- sgd_control
+    output$metadata$settings$sgd_control <- sgd.control
     output$metadata$sgd <- sgd.records
     output$metadata$settings$randomization <- "R per-start seed; mt19937_64 rejection-sampled Fisher-Yates"
   }

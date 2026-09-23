@@ -206,8 +206,8 @@ karate.search <- compare.layouts(
     candidate.prefix = "karate.search",
     preset = c("tree"),
     rounds = c(96L, 128L),
-    final_rounds = c(192L, 224L),
-    repulsion_factor = c(1.25, 2.0)
+    final.rounds = c(192L, 224L),
+    repulsion.factor = c(1.25, 2.0)
   ),
   clusters = karate.club,
   seeds = 1:3,
@@ -347,15 +347,15 @@ The direct weighted-candidate pattern looks like this:
 ```{r eval=FALSE}
 weighted.candidates <- list(
   weighted_default = grip(metric = "edge_length",
-    adj_list = hmp.u01.gc.coarse$adj_list,
-    weight_list = hmp.u01.gc.coarse$weight_list,
+    adj.list = hmp.u01.gc.coarse$adj_list,
+    weight.list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
     dim = 3,
     seed = 1
   ),
   weighted_irregular = grip(metric = "edge_length",
-    adj_list = hmp.u01.gc.coarse$adj_list,
-    weight_list = hmp.u01.gc.coarse$weight_list,
+    adj.list = hmp.u01.gc.coarse$adj_list,
+    weight.list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
     dim = 3,
     preset = "irregular",
@@ -366,8 +366,8 @@ weighted.candidates <- list(
 weighted.scores <- lapply(weighted.candidates, function(coords) {
   score.layout(
     coords,
-    adj_list = hmp.u01.gc.coarse$adj_list,
-    weight_list = hmp.u01.gc.coarse$weight_list,
+    adj.list = hmp.u01.gc.coarse$adj_list,
+    weight.list = hmp.u01.gc.coarse$weight_list,
     n = length(hmp.u01.gc.coarse$adj_list),
     clusters = hmp.u01.gc.coarse$vertex_data$cst,
     sample.size.stress = 2000L,

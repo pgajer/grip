@@ -6,7 +6,7 @@ test_that('comparison ambient fixtures recover their intended public-API targets
   cases <- recipe$comparison_cases(3L)
   expect_length(cases, 7L)
   for (case in cases) {
-    p <- prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge_weights = case$weights)
+    p <- prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge.weights = case$weights)
     expect_true(all(is.finite(p$distance_matrix)))
     expect_equal(p$distance_matrix, t(p$distance_matrix))
     if (case$target == 'Ambient Euclidean') {
@@ -33,7 +33,7 @@ test_that('overlay alignment preserves distances and does not scale fits', {
 test_that('comparison failures and warnings remain explicit and do not stop later fits', {
   skip_if_not_installed('withr')
   case <- recipe$comparison_cases(3L)[['saddle-9']]
-  p <- prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge_weights = case$weights)
+  p <- prepare.graph.geodesic.mds(edges = case$edges, n = case$n, edge.weights = case$weights)
   failed <- recipe$comparison_fit(case, p, 1L, 10L, 'sgd', fit_fun = function(...) {
     warning('diagnostic warning'); stop('deliberate failed fit')
   })
@@ -51,7 +51,7 @@ test_that('comparison failures and warnings remain explicit and do not stop late
 test_that('weighting comparisons score both goals and select the requested objective', {
   skip_if_not_installed('withr'); skip_if_not_installed('smacof')
   case <- recipe$comparison_cases(3L)[['saddle_graph-9']]
-  p <- prepare.graph.geodesic.mds(case$edges,n=case$n,edge_weights=case$weights)
+  p <- prepare.graph.geodesic.mds(case$edges,n=case$n,edge.weights=case$weights)
   fits <- list()
   for (weight in c('uniform','inverse_squared')) for (backend in c('sgd','smacof')) {
     fit <- recipe$comparison_fit(case,p,1L,10L,backend,pair_weights=weight)

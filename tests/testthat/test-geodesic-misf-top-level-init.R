@@ -3,18 +3,18 @@ test_that("geometric coarse seed builds finite top-level placements", {
   prepared2 <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 36,
-    num_init = 6L,
+    num.init = 6L,
     dim = 2L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 17L
   )
   init2 <- grip:::grip.geodesic.misf.build.geometric.seed.coords(
-    distance_matrix = prepared2$top_level_graph$distance_matrix,
+    distance.matrix = prepared2$top_level_graph$distance_matrix,
     dim = 2L,
-    vertex_ids = prepared2$top_level_vertices,
-    insertion_order = prepared2$insertion_order[prepared2$insertion_order %in% prepared2$top_level_vertices],
-    anchor_count = prepared2$insertion_anchor_count,
-    anchor_weight_mode = prepared2$insertion_anchor_weight_mode
+    vertex.ids = prepared2$top_level_vertices,
+    insertion.order = prepared2$insertion_order[prepared2$insertion_order %in% prepared2$top_level_vertices],
+    anchor.count = prepared2$insertion_anchor_count,
+    anchor.weight.mode = prepared2$insertion_anchor_weight_mode
   )
 
   expect_true(all(is.finite(init2$coords)))
@@ -25,18 +25,18 @@ test_that("geometric coarse seed builds finite top-level placements", {
   prepared3 <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 36,
-    num_init = 6L,
+    num.init = 6L,
     dim = 3L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 17L
   )
   init3 <- grip:::grip.geodesic.misf.build.geometric.seed.coords(
-    distance_matrix = prepared3$top_level_graph$distance_matrix,
+    distance.matrix = prepared3$top_level_graph$distance_matrix,
     dim = 3L,
-    vertex_ids = prepared3$top_level_vertices,
-    insertion_order = prepared3$insertion_order[prepared3$insertion_order %in% prepared3$top_level_vertices],
-    anchor_count = prepared3$insertion_anchor_count,
-    anchor_weight_mode = prepared3$insertion_anchor_weight_mode
+    vertex.ids = prepared3$top_level_vertices,
+    insertion.order = prepared3$insertion_order[prepared3$insertion_order %in% prepared3$top_level_vertices],
+    anchor.count = prepared3$insertion_anchor_count,
+    anchor.weight.mode = prepared3$insertion_anchor_weight_mode
   )
 
   expect_true(all(is.finite(init3$coords)))
@@ -50,18 +50,18 @@ test_that("geometric coarse seed handles top levels smaller than d plus one", {
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 3,
-    num_init = 2L,
+    num.init = 2L,
     dim = 3L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 19L
   )
   init <- grip:::grip.geodesic.misf.build.geometric.seed.coords(
-    distance_matrix = prepared$top_level_graph$distance_matrix,
+    distance.matrix = prepared$top_level_graph$distance_matrix,
     dim = 3L,
-    vertex_ids = prepared$top_level_vertices,
-    insertion_order = prepared$insertion_order[prepared$insertion_order %in% prepared$top_level_vertices],
-    anchor_count = prepared$insertion_anchor_count,
-    anchor_weight_mode = prepared$insertion_anchor_weight_mode
+    vertex.ids = prepared$top_level_vertices,
+    insertion.order = prepared$insertion_order[prepared$insertion_order %in% prepared$top_level_vertices],
+    anchor.count = prepared$insertion_anchor_count,
+    anchor.weight.mode = prepared$insertion_anchor_weight_mode
   )
 
   expect_true(all(is.finite(init$coords)))
@@ -74,12 +74,12 @@ test_that("GMDS and GKK top-level solvers retain geometric initialization metada
   prepared.gmds <- grip.prepare.misf.geodesic.mds(
     edges = edges,
     n = 25,
-    num_init = 6L,
+    num.init = 6L,
     dim = 2L,
-    top_level_mode = "solve",
-    top_level_init = "geometric",
-    top_level_restarts = 2L,
-    top_level_max_iter = 1L,
+    top.level.mode = "solve",
+    top.level.init = "geometric",
+    top.level.restarts = 2L,
+    top.level.max.iter = 1L,
     seed = 23L
   )
   expect_identical(prepared.gmds$top_level_fit$top_level_init, "geometric")
@@ -93,12 +93,12 @@ test_that("GMDS and GKK top-level solvers retain geometric initialization metada
   prepared.gkk <- prepare.misf.geodesic.kk(
     edges = edges,
     n = 25,
-    num_init = 6L,
+    num.init = 6L,
     dim = 2L,
-    top_level_mode = "solve",
-    top_level_init = "geometric",
-    top_level_restarts = 2L,
-    top_level_max_iter = 1L,
+    top.level.mode = "solve",
+    top.level.init = "geometric",
+    top.level.restarts = 2L,
+    top.level.max.iter = 1L,
     seed = 23L
   )
   expect_identical(prepared.gkk$top_level_fit$top_level_init, "geometric")
@@ -121,19 +121,19 @@ test_that("3D geometric coarse seed prefers a full-rank top-level seed when avai
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average",
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average",
     dim = 3L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 12L
   )
   init <- grip:::grip.geodesic.misf.build.geometric.seed.coords(
-    distance_matrix = prepared$top_level_graph$distance_matrix,
+    distance.matrix = prepared$top_level_graph$distance_matrix,
     dim = 3L,
-    vertex_ids = prepared$top_level_vertices,
-    insertion_order = prepared$insertion_order[prepared$insertion_order %in% prepared$top_level_vertices],
-    anchor_count = prepared$insertion_anchor_count,
-    anchor_weight_mode = prepared$insertion_anchor_weight_mode
+    vertex.ids = prepared$top_level_vertices,
+    insertion.order = prepared$insertion_order[prepared$insertion_order %in% prepared$top_level_vertices],
+    anchor.count = prepared$insertion_anchor_count,
+    anchor.weight.mode = prepared$insertion_anchor_weight_mode
   )
 
   seed.local <- match(init$seed_vertices, init$vertex_ids)
@@ -154,7 +154,7 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
     seed = 1050L,
     surface = "paraboloid",
     amplitude = 0.35,
-    graph_space = "surface",
+    graph.space = "surface",
     normalize = "median"
   )
   graph <- seq_spec$graphs[[1L]]
@@ -162,11 +162,11 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
   prepared <- grip.prepare.misf.geodesic.mds(
     edges = graph$edges,
     n = graph$n,
-    edge_weights = graph$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
+    edge.weights = graph$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
     dim = 3L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 2056L
   )
   level.sizes <- unname(vapply(prepared$misf$levels, length, integer(1L)))
@@ -185,11 +185,11 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
   prepared.gkk <- prepare.misf.geodesic.kk(
     edges = graph$edges,
     n = graph$n,
-    edge_weights = graph$edge_weights,
-    tie_mode = "average",
-    num_init = 6L,
+    edge.weights = graph$edge_weights,
+    tie.mode = "average",
+    num.init = 6L,
     dim = 3L,
-    top_level_mode = "skip",
+    top.level.mode = "skip",
     seed = 2056L
   )
   expect_equal(
@@ -203,24 +203,24 @@ test_that("3D MISF preparation skips undersized coarsest sampled-rectangle level
   fit <- grip.optimize.misf.geodesic.mds(
     prepared = prepared,
     dim = 3L,
-    top_level_restarts = 1L,
-    top_level_max_iter = 2L,
-    top_level_engine = "cpp",
-    insertion_anchor_policy = "prev_level_spread",
-    insertion_max_iter = 12L,
-    refinement_local_nbrs = 4L,
-    refinement_landmark_count = 2L,
-    refinement_pair_mode = "sparse",
-    refinement_anchor_weight = 0.05,
-    refinement_anchor_weight_end = 0.01,
-    refinement_continuation = "linear",
-    refinement_max_iter = 2L,
-    refinement_engine = "cpp",
-    final_polish_max_iter = 2L,
-    final_polish_engine = "cpp",
-    n_threads = 1L,
-    return_trace = TRUE,
-    return_frames = FALSE,
+    top.level.restarts = 1L,
+    top.level.max.iter = 2L,
+    top.level.engine = "cpp",
+    insertion.anchor.policy = "prev_level_spread",
+    insertion.max.iter = 12L,
+    refinement.local.nbrs = 4L,
+    refinement.landmark.count = 2L,
+    refinement.pair.mode = "sparse",
+    refinement.anchor.weight = 0.05,
+    refinement.anchor.weight.end = 0.01,
+    refinement.continuation = "linear",
+    refinement.max.iter = 2L,
+    refinement.engine = "cpp",
+    final.polish.max.iter = 2L,
+    final.polish.engine = "cpp",
+    n.threads = 1L,
+    return.trace = TRUE,
+    return.frames = FALSE,
     seed = 2056L
   )
   payloads <- grip:::grip.geodesic.misf.trace.stage.payloads(

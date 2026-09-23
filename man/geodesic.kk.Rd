@@ -9,21 +9,21 @@ geodesic.kk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  max_iter = 16L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  max.iter = 16L,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  initial_step = 1,
-  step_shrink = 0.5,
-  armijo_factor = 1e-04,
-  grad_tol = 1e-08,
-  min_step = 1e-08,
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  initial.step = 1,
+  step.shrink = 0.5,
+  armijo.factor = 1e-04,
+  grad.tol = 1e-08,
+  min.step = 1e-08,
   recenter = TRUE,
-  return_trace = FALSE,
-  scale_mode = c("fixed_initial", "profiled", "user"),
+  return.trace = FALSE,
+  scale.mode = c("fixed_initial", "profiled", "user"),
   scale.L0 = NULL
 )
 }
@@ -37,44 +37,44 @@ geodesic.kk(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{max_iter}{Maximum number of gradient-descent iterations.}
+\item{max.iter}{Maximum number of gradient-descent iterations.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{initial_step}{Initial line-search step size.}
+\item{initial.step}{Initial line-search step size.}
 
-\item{step_shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
+\item{step.shrink}{Multiplicative shrink factor in \verb{(0, 1)} for backtracking.}
 
-\item{armijo_factor}{Non-negative Armijo decrease constant.}
+\item{armijo.factor}{Non-negative Armijo decrease constant.}
 
-\item{grad_tol}{Non-negative stopping tolerance on the gradient norm.}
+\item{grad.tol}{Non-negative stopping tolerance on the gradient norm.}
 
-\item{min_step}{Positive minimum accepted line-search step before giving up.}
+\item{min.step}{Positive minimum accepted line-search step before giving up.}
 
 \item{recenter}{If \code{TRUE}, recenter the layout to zero mean after each
 accepted step.}
 
-\item{return_trace}{If \code{TRUE}, include per-iteration diagnostics and the
+\item{return.trace}{If \code{TRUE}, include per-iteration diagnostics and the
 accepted intermediate coordinate frames.}
 
-\item{scale_mode}{One of \code{"fixed_initial"}, \code{"profiled"}, or
+\item{scale.mode}{One of \code{"fixed_initial"}, \code{"profiled"}, or
 \code{"user"}.}
 
 \item{scale.L0}{Optional user-supplied fixed scale, required when
-\code{scale_mode = "user"}.}
+\code{scale.mode = "user"}.}
 }
 \value{
 A list with \code{coords}, \code{trace}, \code{frames},
@@ -86,10 +86,10 @@ polish under the full all-pairs geodesic Kamada--Kawai objective.
 }
 \details{
 The optimizer supports three scale policies. With
-\code{scale_mode = "fixed_initial"} the target scale is fit once from the
+\code{scale.mode = "fixed_initial"} the target scale is fit once from the
 starting layout and then held fixed during optimization, matching the
-landmark geodesic KK behavior. With \code{scale_mode = "profiled"} the scale is
-re-fit analytically at each evaluation. With \code{scale_mode = "user"}, a
+landmark geodesic KK behavior. With \code{scale.mode = "profiled"} the scale is
+re-fit analytically at each evaluation. With \code{scale.mode = "user"}, a
 fixed user-supplied \code{scale.L0} is used throughout.
 }
 \examples{
@@ -97,5 +97,5 @@ cycle_edges <- edges.cycle(6)
 theta <- seq(0, 2 * pi, length.out = 7)[-7]
 initial <- cbind(cos(theta), sin(theta))
 prepared <- prepare.geodesic.kk(cycle_edges, n = 6)
-fit <- geodesic.kk(initial, prepared = prepared, max_iter = 1)
+fit <- geodesic.kk(initial, prepared = prepared, max.iter = 1)
 }

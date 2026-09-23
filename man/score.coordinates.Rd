@@ -8,7 +8,7 @@ score.coordinates(
   coords,
   reference,
   alignment = c("rigid", "none", "similarity"),
-  allow_reflection = TRUE
+  allow.reflection = TRUE
 )
 }
 \arguments{
@@ -18,7 +18,7 @@ in the same observation order. Row names do not trigger reordering.}
 \item{alignment}{One of \code{"rigid"} (translation and orthogonal transformation),
 \code{"none"}, or \code{"similarity"} (also fit a nonnegative uniform scale).}
 
-\item{allow_reflection}{Allow a reflection in the fitted orthogonal matrix.}
+\item{allow.reflection}{Allow a reflection in the fitted orthogonal matrix.}
 }
 \value{
 A list with \code{rmse}, \code{relative_rmse}, \code{coords} (aligned coordinates),

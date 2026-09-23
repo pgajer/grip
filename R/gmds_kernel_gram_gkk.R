@@ -20,7 +20,7 @@ grip.validate.star.structure <- function(star, n = NULL) {
   star
 }
 
-grip.graph.adjacency.from.edges <- function(edges, edge_weights, n) {
+grip.graph.adjacency.from.edges <- function(edges, edge.weights, n) {
   adj <- vector("list", n)
   weights <- vector("list", n)
   for (i in seq_len(n)) {
@@ -31,7 +31,7 @@ grip.graph.adjacency.from.edges <- function(edges, edge_weights, n) {
     for (e in seq_len(nrow(edges))) {
       u <- edges[e, 1L]
       v <- edges[e, 2L]
-      w <- edge_weights[[e]]
+      w <- edge.weights[[e]]
       adj[[u]] <- c(adj[[u]], v)
       weights[[u]] <- c(weights[[u]], w)
       adj[[v]] <- c(adj[[v]], u)
@@ -55,13 +55,13 @@ grip.graph.adjacency.from.edges <- function(edges, edge_weights, n) {
 #' cosines came from, so later graph constructors can attach a different
 #' Riemannian source without changing the layout backend.
 #'
-#' @param graph Optional graph/prepared object containing `adj_list` and
-#'   `weight_list`, or `edges`/`edge_targets` when it is a prepared GMDS graph.
+#' @param graph Optional graph/prepared object containing `adj.list` and
+#'   `weight.list`, or `edges`/`edge_targets` when it is a prepared GMDS graph.
 #' @param X Numeric matrix used to estimate local target angles.
 #' @param prepared Optional prepared GMDS object. Used when `graph` is omitted.
-#' @param edges,n,edge_weights Optional edge representation used when `graph`
+#' @param edges,n,edge.weights Optional edge representation used when `graph`
 #'   and `prepared` are omitted.
-#' @param adj_list,weight_list Optional adjacency-list representation.
+#' @param adj.list,weight.list Optional adjacency-list representation.
 #' @param angle.power Non-negative exponent `q` in the antipodal kernel.
 #' @param reliability Reliability weighting rule. `"length.balance"` multiplies
 #'   by `min(w_1, w_2) / max(w_1, w_2)`; `"none"` uses one.
@@ -80,14 +80,14 @@ graph.riemannian.star.structure <- function(graph = NULL,
                                             prepared = NULL,
                                             edges = NULL,
                                             n = NULL,
-                                            adj_list = NULL,
-                                            weight_list = NULL,
-                                            edge_weights = NULL,
+                                            adj.list = NULL,
+                                            weight.list = NULL,
+                                            edge.weights = NULL,
                                             angle.power = 4,
                                             reliability = c("length.balance", "none"),
                                             min.angle.weight = 0,
                                             star.quantile = 0) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   X <- grip.validate.coords(X)
   reliability <- match.arg(reliability)
   grip.validate.scalar(angle.power, "angle.power", lower = 0)
@@ -95,7 +95,7 @@ graph.riemannian.star.structure <- function(graph = NULL,
   grip.validate.scalar(star.quantile, "star.quantile", lower = 0, upper = 1, open.upper = TRUE)
 
   if (!is.null(graph)) {
-    if (any(!vapply(list(prepared, edges, adj_list, weight_list, edge_weights), is.null, logical(1)))) {
+    if (any(!vapply(list(prepared, edges, adj.list, weight.list, edge.weights), is.null, logical(1)))) {
       stop("graph cannot be combined with prepared or raw graph inputs; supply one graph representation",
            call. = FALSE)
     }
@@ -106,62 +106,62 @@ graph.riemannian.star.structure <- function(graph = NULL,
     if (inherits(graph, "grip_geodesic_kk_prepared")) {
       prepared <- graph
     } else {
-      adj_list <- grip.null.coalesce(graph$adj_list, graph$adj.list)
-      weight_list <- grip.null.coalesce(graph$weight_list, graph$weight.list)
+      adj.list <- grip.null.coalesce(graph$adj_list, graph$adj.list)
+      weight.list <- grip.null.coalesce(graph$weight_list, graph$weight.list)
       edges <- grip.null.coalesce(graph$edges, edges)
-      edge_weights <- grip.null.coalesce(graph$edge_targets, grip.null.coalesce(graph$edge_weights, edge_weights))
+      edge.weights <- grip.null.coalesce(graph$edge_targets, grip.null.coalesce(graph$edge_weights, edge.weights))
       n <- grip.null.coalesce(graph$n, n)
       # Bundles may store both representations, but they must describe the
       # same weighted graph. Preserve the adjacency ordering after checking.
-      if (!is.null(edges) && !is.null(adj_list)) {
-        from.edges <- prepare.edge.kk(edges = edges, n = n, edge_weights = edge_weights)
-        from.adj <- prepare.edge.kk(adj_list = adj_list, n = n, weight_list = weight_list)
+      if (!is.null(edges) && !is.null(adj.list)) {
+        from.edges <- prepare.edge.kk(edges = edges, n = n, edge.weights = edge.weights)
+        from.adj <- prepare.edge.kk(adj.list = adj.list, n = n, weight.list = weight.list)
         if (!identical(from.edges$edges, from.adj$edges) ||
             !identical(from.edges$edge_targets, from.adj$edge_targets)) {
           stop("graph contains contradictory edge and adjacency representations", call. = FALSE)
         }
-        edges <- edge_weights <- NULL
+        edges <- edge.weights <- NULL
       }
     }
   }
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   if (!is.null(prepared)) {
     prepared <- grip.validate.geodesic.mds.prepared(prepared)
     n <- prepared$n
-    adj_list <- prepared$adj_list
-    weight_list <- prepared$weight_list
-    if (is.null(adj_list) || is.null(weight_list)) {
+    adj.list <- prepared$adj_list
+    weight.list <- prepared$weight_list
+    if (is.null(adj.list) || is.null(weight.list)) {
       aw <- grip.graph.adjacency.from.edges(prepared$edges, prepared$edge_targets, prepared$n)
-      adj_list <- aw$adj_list
-      weight_list <- aw$weight_list
+      adj.list <- aw$adj_list
+      weight.list <- aw$weight_list
     }
-  } else if (is.null(adj_list) || is.null(weight_list)) {
-    if (is.null(edges) || is.null(edge_weights)) {
+  } else if (is.null(adj.list) || is.null(weight.list)) {
+    if (is.null(edges) || is.null(edge.weights)) {
       stop("provide graph/prepared, adj_list/weight_list, or edges/edge_weights")
     }
     if (is.null(n)) {
-      n <- grip.resolve.graph.n(n, edges, adj_list)
+      n <- grip.resolve.graph.n(n, edges, adj.list)
     }
-    aw <- grip.graph.adjacency.from.edges(matrix(as.integer(edges), ncol = 2L), edge_weights, as.integer(n))
-    adj_list <- aw$adj_list
-    weight_list <- aw$weight_list
+    aw <- grip.graph.adjacency.from.edges(matrix(as.integer(edges), ncol = 2L), edge.weights, as.integer(n))
+    adj.list <- aw$adj_list
+    weight.list <- aw$weight_list
   }
 
-  n <- grip.validate.vertex.count(grip.null.coalesce(n, length(adj_list)))
+  n <- grip.validate.vertex.count(grip.null.coalesce(n, length(adj.list)))
   if (nrow(X) != n) {
     stop("nrow(X) must match the graph vertex count")
   }
-  if (!is.list(adj_list) || !is.list(weight_list) || length(adj_list) != n || length(weight_list) != n) {
-    stop("adj_list and weight_list must be lists parallel to the graph vertices")
+  if (!is.list(adj.list) || !is.list(weight.list) || length(adj.list) != n || length(weight.list) != n) {
+    stop("adj.list and weight.list must be lists parallel to the graph vertices")
   }
 
   rows <- vector("list", n)
   row.idx <- 0L
   for (u in seq_len(n)) {
-    nbrs <- as.integer(adj_list[[u]])
-    weights <- as.double(weight_list[[u]])
+    nbrs <- as.integer(adj.list[[u]])
+    weights <- as.double(weight.list[[u]])
     if (length(nbrs) != length(weights)) {
-      stop("weight_list entries must be parallel to adj_list entries")
+      stop("weight.list entries must be parallel to adj.list entries")
     }
     if (length(nbrs) < 2L) {
       next
@@ -188,7 +188,7 @@ graph.riemannian.star.structure <- function(graph = NULL,
       w1 <- weights[[i1]]
       w2 <- weights[[i2]]
       if (!is.finite(w1) || !is.finite(w2) || w1 <= 0 || w2 <= 0) {
-        stop("weight_list must contain finite positive edge lengths")
+        stop("weight.list must contain finite positive edge lengths")
       }
       rel <- if (identical(reliability, "length.balance")) {
         min(w1, w2) / max(w1, w2)
@@ -254,25 +254,25 @@ graph.riemannian.star.structure <- function(graph = NULL,
 
 grip.kernel.gram.energy.gradient <- function(coords,
                                              edges,
-                                             edge_weights,
-                                             edge_stiffness,
+                                             edge.weights,
+                                             edge.stiffness,
                                              star,
-                                             edge_scale = 1,
+                                             edge.scale = 1,
                                              lambda.edge = 1,
                                              lambda.gram = 1,
-                                             edge_length_epsilon = 1e-8) {
+                                             edge.length.epsilon = 1e-8) {
   coords <- grip.validate.coords(coords)
   star <- grip.validate.star.structure(star, nrow(coords))
-  grip.validate.scalar(edge_scale, "edge_scale", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.scale, "edge.scale", lower = 0, open.lower = TRUE)
   grip.validate.scalar(lambda.edge, "lambda.edge", lower = 0)
   grip.validate.scalar(lambda.gram, "lambda.gram", lower = 0)
   edge.state <- grip.edge.isometric.energy.gradient(
     coords = coords,
     edges = edges,
-    edge_weights = edge_weights,
-    stiffness = lambda.edge * edge_stiffness,
-    scale = edge_scale,
-    edge_length_epsilon = edge_length_epsilon
+    edge.weights = edge.weights,
+    stiffness = lambda.edge * edge.stiffness,
+    scale = edge.scale,
+    edge.length.epsilon = edge.length.epsilon
   )
   gradient <- edge.state$gradient
   gram.energy <- 0
@@ -287,7 +287,7 @@ grip.kernel.gram.energy.gradient <- function(coords,
       a <- coords[v, ] - coords[u, ]
       b <- coords[w, ] - coords[u, ]
       observed <- sum(a * b)
-      target <- edge_scale^2 * pairs$w_1[[r]] * pairs$w_2[[r]] * pairs$cos_angle[[r]]
+      target <- edge.scale^2 * pairs$w_1[[r]] * pairs$w_2[[r]] * pairs$cos_angle[[r]]
       residual <- observed - target
       k <- lambda.gram * pairs$angle_weight[[r]]
       gram.energy <- gram.energy + 0.5 * k * residual^2
@@ -309,22 +309,22 @@ grip.kernel.gram.energy.gradient <- function(coords,
     edge_residuals = edge.state$residuals,
     edge_rel_rmse = grip.gmds.residual.stats(
       observed = edge.state$edge_lengths,
-      target = edge_scale * edge_weights,
-      weights = edge_stiffness
+      target = edge.scale * edge.weights,
+      weights = edge.stiffness
     )$stress,
     gram_rel_rmse = if (is.finite(gram.denom) && gram.denom > 0) sqrt(gram.resid2 / gram.denom) else NA_real_,
-    edge_scale = edge_scale
+    edge_scale = edge.scale
   )
 }
 
 grip.kernel.gram.score <- function(coords,
                                    star,
-                                   edge_scale = 1,
+                                   edge.scale = 1,
                                    lambda.gram = 1,
-                                   distance_floor = 1e-8) {
+                                   distance.floor = 1e-8) {
   coords <- grip.validate.coords(coords)
   star <- grip.validate.star.structure(star, nrow(coords))
-  grip.validate.scalar(edge_scale, "edge_scale", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.scale, "edge.scale", lower = 0, open.lower = TRUE)
   grip.validate.scalar(lambda.gram, "lambda.gram", lower = 0)
   pairs <- star$pairs
   if (nrow(pairs) == 0L) {
@@ -344,12 +344,12 @@ grip.kernel.gram.score <- function(coords,
     v <- pairs$neighbor_1[[r]]
     w <- pairs$neighbor_2[[r]]
     observed[[r]] <- sum((coords[v, ] - coords[u, ]) * (coords[w, ] - coords[u, ]))
-    target[[r]] <- edge_scale^2 * pairs$w_1[[r]] * pairs$w_2[[r]] * pairs$cos_angle[[r]]
+    target[[r]] <- edge.scale^2 * pairs$w_1[[r]] * pairs$w_2[[r]] * pairs$cos_angle[[r]]
   }
   weights <- lambda.gram * pairs$angle_weight
   denom <- sum(weights * target^2)
   residual <- observed - target
-  rel <- residual / pmax(abs(target), distance_floor)
+  rel <- residual / pmax(abs(target), distance.floor)
   data.frame(
     n.star.pairs = nrow(pairs),
     gram.rel.rmse = if (is.finite(denom) && denom > 0) sqrt(sum(weights * residual^2) / denom) else NA_real_,
@@ -380,7 +380,7 @@ grip.kernel.gram.score <- function(coords,
 #'   through the default native SGD backend, both from an all-pairs prepared
 #'   object; `"random"`
 #'   uses centered Gaussian coordinates.
-#' @param return_trace If `TRUE`, keep per-iteration trace rows and coordinate
+#' @param return.trace If `TRUE`, keep per-iteration trace rows and coordinate
 #'   frames.
 #' @param seed Random seed used only for `init = "random"`.
 #' @param X Optional ambient/source coordinates used to build `star` when `star`
@@ -392,10 +392,10 @@ grip.kernel.gram.score <- function(coords,
 #'   [graph.riemannian.star.structure()] when `star` is omitted.
 #' @param lambda.edge,lambda.gram Non-negative weights for the diagonal
 #'   edge-length and off-diagonal Gram penalties.
-#' @param stiffness_method,stiffness_transform,density_mix,bandwidth,density_n
+#' @param stiffness.method,stiffness.transform,density.mix,bandwidth,density.n
 #'   Parameters passed to [edge.length.density.stiffness()] to construct
 #'   edge-length stiffnesses for the diagonal edge term.
-#' @param distance_power,stiffness_floor,stiffness_ceiling Additional stiffness
+#' @param distance.power,stiffness.floor,stiffness.ceiling Additional stiffness
 #'   constructor parameters.
 #'
 #' @return A `"grip_gmds_layout"` object with method `"kernel_gram_gkk"`.
@@ -405,9 +405,9 @@ kernel.gram.gkk <- function(coords = NULL,
                                                  prepared = NULL,
                                                  edges = NULL,
                                                  n = NULL,
-                                                 adj_list = NULL,
-                                                 weight_list = NULL,
-                                                 edge_weights = NULL,
+                                                 adj.list = NULL,
+                                                 weight.list = NULL,
+                                                 edge.weights = NULL,
                                                  X = NULL,
                                                  star = NULL,
                                                  dim = 2L,
@@ -418,59 +418,59 @@ kernel.gram.gkk <- function(coords = NULL,
                                                  star.quantile = 0,
                                                  lambda.edge = 1,
                                                  lambda.gram = 1,
-                                                 stiffness_method = c("density", "uniform", "distance_power"),
-                                                 stiffness_transform = c("identity", "sqrt", "log"),
-                                                 density_mix = 1,
+                                                 stiffness.method = c("density", "uniform", "distance_power"),
+                                                 stiffness.transform = c("identity", "sqrt", "log"),
+                                                 density.mix = 1,
                                                  bandwidth = NULL,
-                                                 density_n = 512L,
-                                                 distance_power = 0,
-                                                 stiffness_floor = 0,
-                                                 stiffness_ceiling = Inf,
-                                                 scale_mode = c("profiled", "identity", "user"),
+                                                 density.n = 512L,
+                                                 distance.power = 0,
+                                                 stiffness.floor = 0,
+                                                 stiffness.ceiling = Inf,
+                                                 scale.mode = c("profiled", "identity", "user"),
                                                  scale = NULL,
-                                                 max_iter = 50L,
-                                                 initial_step = 0.1,
-                                                 step_shrink = 0.5,
-                                                 armijo_factor = 1e-4,
-                                                 grad_tol = 1e-8,
-                                                 min_step = 1e-8,
-                                                 edge_length_epsilon = 1e-8,
-                                                 distance_floor = 1e-8,
+                                                 max.iter = 50L,
+                                                 initial.step = 0.1,
+                                                 step.shrink = 0.5,
+                                                 armijo.factor = 1e-4,
+                                                 grad.tol = 1e-8,
+                                                 min.step = 1e-8,
+                                                 edge.length.epsilon = 1e-8,
+                                                 distance.floor = 1e-8,
                                                  recenter = TRUE,
-                                                 return_trace = TRUE,
+                                                 return.trace = TRUE,
                                                  diagnostics = TRUE,
                                                  seed = 1L,
                                                  engine = c("cpp", "R")) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights, prepared)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   init <- match.arg(init)
   reliability <- match.arg(reliability)
-  stiffness_method <- match.arg(stiffness_method)
-  stiffness_transform <- match.arg(stiffness_transform)
-  scale_mode <- match.arg(scale_mode)
+  stiffness.method <- match.arg(stiffness.method)
+  stiffness.transform <- match.arg(stiffness.transform)
+  scale.mode <- match.arg(scale.mode)
   engine <- match.arg(engine)
   grip.validate.scalar(lambda.edge, "lambda.edge", lower = 0)
   grip.validate.scalar(lambda.gram, "lambda.gram", lower = 0)
   grip.validate.scalar(dim, "dim", lower = 2, upper = 3)
   dim <- as.integer(round(dim))
-  grip.validate.scalar(max_iter, "max_iter", lower = 0)
-  max_iter <- as.integer(round(max_iter))
-  grip.validate.scalar(initial_step, "initial_step", lower = 0, open.lower = TRUE)
-  grip.validate.scalar(step_shrink, "step_shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
-  grip.validate.scalar(armijo_factor, "armijo_factor", lower = 0)
-  grip.validate.scalar(grad_tol, "grad_tol", lower = 0)
-  grip.validate.scalar(min_step, "min_step", lower = 0, open.lower = TRUE)
-  grip.validate.scalar(edge_length_epsilon, "edge_length_epsilon", lower = 0)
-  grip.validate.scalar(distance_floor, "distance_floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(max.iter, "max.iter", lower = 0)
+  max.iter <- as.integer(round(max.iter))
+  grip.validate.scalar(initial.step, "initial.step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(step.shrink, "step.shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  grip.validate.scalar(armijo.factor, "armijo.factor", lower = 0)
+  grip.validate.scalar(grad.tol, "grad.tol", lower = 0)
+  grip.validate.scalar(min.step, "min.step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.length.epsilon, "edge.length.epsilon", lower = 0)
+  grip.validate.scalar(distance.floor, "distance.floor", lower = 0, open.lower = TRUE)
   if (!is.logical(recenter) || length(recenter) != 1L || is.na(recenter)) {
     stop("recenter must be TRUE or FALSE")
   }
-  if (!is.logical(return_trace) || length(return_trace) != 1L || is.na(return_trace)) {
-    stop("return_trace must be TRUE or FALSE")
+  if (!is.logical(return.trace) || length(return.trace) != 1L || is.na(return.trace)) {
+    stop("return.trace must be TRUE or FALSE")
   }
   if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
     stop("diagnostics must be TRUE or FALSE")
   }
-  if (identical(scale_mode, "user")) {
+  if (identical(scale.mode, "user")) {
     grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
   }
 
@@ -479,9 +479,9 @@ kernel.gram.gkk <- function(coords = NULL,
     coords = coords,
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights
   )
   if (is.null(prepared$edges) || is.null(prepared$edge_targets)) {
     stop("prepared object must contain edges and edge_targets")
@@ -515,25 +515,25 @@ kernel.gram.gkk <- function(coords = NULL,
   edges <- prepared$edges
   edge.targets <- as.double(prepared$edge_targets)
   stiff <- edge.length.density.stiffness(
-    edge_weights = edge.targets,
-    method = stiffness_method,
-    mix = density_mix,
+    edge.weights = edge.targets,
+    method = stiffness.method,
+    mix = density.mix,
     bandwidth = bandwidth,
-    density_n = density_n,
-    transform = stiffness_transform,
-    distance_power = distance_power,
-    stiffness_floor = stiffness_floor,
-    stiffness_ceiling = stiffness_ceiling
+    density.n = density.n,
+    transform = stiffness.transform,
+    distance.power = distance.power,
+    stiffness.floor = stiffness.floor,
+    stiffness.ceiling = stiffness.ceiling
   )
   edge.stiffness <- stiff$stiffness
 
   state.scale.mode <- switch(
-    scale_mode,
+    scale.mode,
     profiled = "profiled",
     identity = "identity",
     user = "user"
   )
-  state.scale <- if (identical(scale_mode, "user")) as.double(scale) else NA_real_
+  state.scale <- if (identical(scale.mode, "user")) as.double(scale) else NA_real_
 
   if (identical(engine, "cpp")) {
     fit <- grip_optimize_kernel_gram_gkk_layout_cpp(
@@ -548,20 +548,20 @@ kernel.gram.gkk <- function(coords = NULL,
       star_cos = as.double(star$pairs$cos_angle),
       star_weight = as.double(star$pairs$angle_weight),
       coords = current,
-      max_iter = max_iter,
+      max_iter = max.iter,
       scale_mode = state.scale.mode,
       scale = state.scale,
       lambda_edge = lambda.edge,
       lambda_gram = lambda.gram,
-      edge_length_epsilon = edge_length_epsilon,
-      initial_step = initial_step,
-      step_shrink = step_shrink,
-      armijo_factor = armijo_factor,
-      grad_tol = grad_tol,
-      min_step = min_step,
-      distance_floor = distance_floor,
+      edge_length_epsilon = edge.length.epsilon,
+      initial_step = initial.step,
+      step_shrink = step.shrink,
+      armijo_factor = armijo.factor,
+      grad_tol = grad.tol,
+      min_step = min.step,
+      distance_floor = distance.floor,
       recenter = recenter,
-      return_trace = return_trace
+      return_trace = return.trace
     )
     current <- fit$coords
     trace.df <- fit$trace
@@ -569,18 +569,18 @@ kernel.gram.gkk <- function(coords = NULL,
     gram.diag <- grip.kernel.gram.score(
       coords = current,
       star = star,
-      edge_scale = edge.scale,
+      edge.scale = edge.scale,
       lambda.gram = lambda.gram,
-      distance_floor = distance_floor
+      distance.floor = distance.floor
     )
     diag <- if (isTRUE(diagnostics)) {
       cbind(
         score.gmds(
           coords = current,
           prepared = prepared,
-          scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
-          distance_floor = distance_floor,
-          edge_length_epsilon = edge_length_epsilon
+          scale.mode = if (identical(scale.mode, "identity")) "identity" else "profiled",
+          distance.floor = distance.floor,
+          edge.length.epsilon = edge.length.epsilon
         ),
         gram.diag
       )
@@ -604,23 +604,23 @@ kernel.gram.gkk <- function(coords = NULL,
         lambda.gram = lambda.gram,
         stiffness = stiff,
         frames = fit$frames,
-        scale_mode = scale_mode
+        scale_mode = scale.mode
       )
     ))
   }
 
   trace.rows <- list()
   frames <- list(current)
-  for (iter in 0:max_iter) {
+  for (iter in 0:max.iter) {
     edge.lengths <- if (nrow(edges) == 0L) {
       numeric(0L)
     } else {
       diffs <- current[edges[, 1L], , drop = FALSE] - current[edges[, 2L], , drop = FALSE]
-      sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+      sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
     }
     edge.scale <- switch(
-      scale_mode,
-      profiled = grip.edge.isometric.fit.scale(edge.lengths, edge.targets, edge.stiffness, distance_floor),
+      scale.mode,
+      profiled = grip.edge.isometric.fit.scale(edge.lengths, edge.targets, edge.stiffness, distance.floor),
       identity = 1.0,
       user = as.double(scale)
     )
@@ -630,13 +630,13 @@ kernel.gram.gkk <- function(coords = NULL,
     state <- grip.kernel.gram.energy.gradient(
       coords = current,
       edges = edges,
-      edge_weights = edge.targets,
-      edge_stiffness = edge.stiffness,
+      edge.weights = edge.targets,
+      edge.stiffness = edge.stiffness,
       star = star,
-      edge_scale = edge.scale,
+      edge.scale = edge.scale,
       lambda.edge = lambda.edge,
       lambda.gram = lambda.gram,
-      edge_length_epsilon = edge_length_epsilon
+      edge.length.epsilon = edge.length.epsilon
     )
     if (iter == 0L) {
       trace.rows[[length(trace.rows) + 1L]] <- data.frame(
@@ -654,14 +654,14 @@ kernel.gram.gkk <- function(coords = NULL,
       )
       next
     }
-    if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad_tol) {
+    if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad.tol) {
       break
     }
-    step <- as.double(initial_step)
+    step <- as.double(initial.step)
     accepted <- FALSE
     candidate <- current
     candidate.state <- state
-    while (is.finite(step) && step >= min_step) {
+    while (is.finite(step) && step >= min.step) {
       proposal <- current - step * state$gradient
       if (isTRUE(recenter)) {
         proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
@@ -670,11 +670,11 @@ kernel.gram.gkk <- function(coords = NULL,
         numeric(0L)
       } else {
         diffs <- proposal[edges[, 1L], , drop = FALSE] - proposal[edges[, 2L], , drop = FALSE]
-        sqrt(rowSums(diffs^2) + edge_length_epsilon^2)
+        sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
       }
       edge.scale.p <- switch(
-        scale_mode,
-        profiled = grip.edge.isometric.fit.scale(edge.lengths.p, edge.targets, edge.stiffness, distance_floor),
+        scale.mode,
+        profiled = grip.edge.isometric.fit.scale(edge.lengths.p, edge.targets, edge.stiffness, distance.floor),
         identity = 1.0,
         user = as.double(scale)
       )
@@ -684,22 +684,22 @@ kernel.gram.gkk <- function(coords = NULL,
       proposal.state <- grip.kernel.gram.energy.gradient(
         coords = proposal,
         edges = edges,
-        edge_weights = edge.targets,
-        edge_stiffness = edge.stiffness,
+        edge.weights = edge.targets,
+        edge.stiffness = edge.stiffness,
         star = star,
-        edge_scale = edge.scale.p,
+        edge.scale = edge.scale.p,
         lambda.edge = lambda.edge,
         lambda.gram = lambda.gram,
-        edge_length_epsilon = edge_length_epsilon
+        edge.length.epsilon = edge.length.epsilon
       )
-      target.energy <- state$energy - armijo_factor * step * state$gradient_norm^2
+      target.energy <- state$energy - armijo.factor * step * state$gradient_norm^2
       if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
         candidate <- proposal
         candidate.state <- proposal.state
         accepted <- TRUE
         break
       }
-      step <- step * step_shrink
+      step <- step * step.shrink
     }
     trace.rows[[length(trace.rows) + 1L]] <- data.frame(
       iteration = iter,
@@ -718,24 +718,24 @@ kernel.gram.gkk <- function(coords = NULL,
       break
     }
     current <- candidate
-    if (isTRUE(return_trace)) {
+    if (isTRUE(return.trace)) {
       frames[[length(frames) + 1L]] <- current
     }
   }
   trace.df <- do.call(rbind, trace.rows)
-  if (!isTRUE(return_trace)) {
+  if (!isTRUE(return.trace)) {
     frames <- list(current)
   }
   edge.scale <- if (nrow(trace.df)) trace.df$edge.scale[[nrow(trace.df)]] else 1
-  gram.diag <- grip.kernel.gram.score(current, star, edge_scale = edge.scale, lambda.gram = lambda.gram)
+  gram.diag <- grip.kernel.gram.score(current, star, edge.scale = edge.scale, lambda.gram = lambda.gram)
   diag <- if (isTRUE(diagnostics)) {
     cbind(
       score.gmds(
         coords = current,
         prepared = prepared,
-        scale_mode = if (identical(scale_mode, "identity")) "identity" else "profiled",
-        distance_floor = distance_floor,
-        edge_length_epsilon = edge_length_epsilon
+        scale.mode = if (identical(scale.mode, "identity")) "identity" else "profiled",
+        distance.floor = distance.floor,
+        edge.length.epsilon = edge.length.epsilon
       ),
       gram.diag
     )
@@ -759,7 +759,7 @@ kernel.gram.gkk <- function(coords = NULL,
       lambda.gram = lambda.gram,
       stiffness = stiff,
       frames = frames,
-      scale_mode = scale_mode
+      scale_mode = scale.mode
     )
   )
 }

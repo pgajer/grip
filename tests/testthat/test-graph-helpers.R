@@ -62,11 +62,11 @@ test_that("weighted kary tree graph follows custom depth and branch rules", {
   spec <- kary.tree.weighted.graph(
     k = 2,
     depth = 2,
-    base_length = 2,
-    depth_rule = "custom",
-    depth_factors = c(1, 3),
-    branch_rule = "custom",
-    branch_factors = c(1, 2),
+    base.length = 2,
+    depth.rule = "custom",
+    depth.factors = c(1, 3),
+    branch.rule = "custom",
+    branch.factors = c(1, 2),
     normalize = "none"
   )
 
@@ -88,10 +88,10 @@ test_that("weighted kary tree graph supports built-in rule normalization", {
   spec <- kary.tree.weighted.graph(
     k = 3,
     depth = 2,
-    depth_rule = "geometric",
-    depth_decay = 0.7,
-    branch_rule = "linear",
-    branch_spread = 0.4,
+    depth.rule = "geometric",
+    depth.decay = 0.7,
+    branch.rule = "linear",
+    branch.spread = 0.4,
     normalize = "mean"
   )
 
@@ -229,16 +229,16 @@ test_that("periodic tunnel cube mask contains Menger sponge as the 3x3 special c
     grip:::edges.cube.periodic.tunnels(
       level = 2,
       side = 3,
-      tunnel_width = 1,
-      tunnel_period = 2,
-      tunnel_offset = 2
+      tunnel.width = 1,
+      tunnel.period = 2,
+      tunnel.offset = 2
     ),
     grip:::edges.menger.sponge(2)
   )
 })
 
 test_that("occupied mesh graph labels occupied cells consecutively", {
-  keep <- keep.periodic.holes(6, 7, hole_period = 3, hole_height = 1, hole_width = 1)
+  keep <- keep.periodic.holes(6, 7, hole.period = 3, hole.height = 1, hole.width = 1)
   edges <- grip:::edges.occupied.mesh(keep)
 
   expect_equal(max(edges), sum(keep))
@@ -293,7 +293,7 @@ test_that("triangulated pair-of-pants graph labels vertices consecutively", {
 })
 
 test_that("irregular annulus graph labels vertices consecutively", {
-  edges <- grip:::edges.irregular.annulus(rings = 6, outer_count = 24)
+  edges <- grip:::edges.irregular.annulus(rings = 6, outer.count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
@@ -311,25 +311,25 @@ test_that("irregular shell graph labels vertices consecutively", {
 })
 
 test_that("irregular pair-of-pants graph labels vertices consecutively", {
-  edges <- grip:::edges.irregular.pair.of.pants(slices = 11, outer_count = 24)
+  edges <- grip:::edges.irregular.pair.of.pants(slices = 11, outer.count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular torus graph labels vertices consecutively", {
-  edges <- grip:::edges.irregular.torus(major_rings = 8, tube_count = 16)
+  edges <- grip:::edges.irregular.torus(major.rings = 8, tube.count = 16)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular double torus graph labels vertices consecutively", {
-  edges <- grip:::edges.irregular.double.torus(slices = 11, tube_count = 14)
+  edges <- grip:::edges.irregular.double.torus(slices = 11, tube.count = 14)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
 
 test_that("irregular sphere graph labels vertices consecutively", {
-  edges <- grip:::edges.irregular.sphere(bands = 6, equator_count = 24)
+  edges <- grip:::edges.irregular.sphere(bands = 6, equator.count = 24)
   expect_true(all(sort(unique(c(edges))) == seq_len(max(edges))))
   expect_gt(max(edges), 0L)
 })
@@ -367,8 +367,8 @@ test_that("ripple mesh graph supports alternate weight normalization", {
     4, 4,
     surface = "ripple",
     amplitude = 0.6,
-    freq_u = 1.5,
-    freq_v = 0.5,
+    freq.u = 1.5,
+    freq.v = 0.5,
     normalize = "mean"
   )
 
@@ -381,8 +381,8 @@ test_that("mesh surface graph supports diagonal connectivity", {
     4, 4,
     surface = "ripple",
     amplitude = 0.6,
-    freq_u = 1.5,
-    freq_v = 0.5,
+    freq.u = 1.5,
+    freq.v = 0.5,
     connectivity = "diagonal",
     normalize = "mean"
   )
@@ -396,15 +396,15 @@ test_that("mesh surface graph supports diagonal connectivity", {
 test_that("irregular rectangle parameter coordinates are deterministic and ordered", {
   coords1 <- grip:::irregular.rectangle.param.coords(
     5, 6,
-    row_irregularity = 0.22,
-    col_irregularity = 0.18,
-    interior_warp = 0.06
+    row.irregularity = 0.22,
+    col.irregularity = 0.18,
+    interior.warp = 0.06
   )
   coords2 <- grip:::irregular.rectangle.param.coords(
     5, 6,
-    row_irregularity = 0.22,
-    col_irregularity = 0.18,
-    interior_warp = 0.06
+    row.irregularity = 0.22,
+    col.irregularity = 0.18,
+    interior.warp = 0.06
   )
 
   expect_equal(coords1, coords2)
@@ -427,15 +427,15 @@ test_that("irregular rectangle surface embedding supports flat and curved lifts"
   flat <- grip:::irregular.rectangle.surface.embedding(
     4, 5,
     surface = "flat",
-    row_irregularity = 0.2,
-    col_irregularity = 0.15
+    row.irregularity = 0.2,
+    col.irregularity = 0.15
   )
   curved <- grip:::irregular.rectangle.surface.embedding(
     4, 5,
     surface = "paraboloid",
     amplitude = 0.7,
-    row_irregularity = 0.2,
-    col_irregularity = 0.15
+    row.irregularity = 0.2,
+    col.irregularity = 0.15
   )
 
   expect_equal(dim(flat), c(20L, 3L))
@@ -450,9 +450,9 @@ test_that("irregular rectangle surface graph returns normalized positive edge we
     5, 6,
     surface = "paraboloid",
     amplitude = 0.8,
-    row_irregularity = 0.2,
-    col_irregularity = 0.15,
-    interior_warp = 0.07,
+    row.irregularity = 0.2,
+    col.irregularity = 0.15,
+    interior.warp = 0.07,
     normalize = "mean"
   )
 
@@ -480,11 +480,11 @@ test_that("irregular rectangle surface graph supports diagonal connectivity and 
     4, 4,
     surface = "ripple",
     amplitude = 0.5,
-    freq_u = 1.5,
-    freq_v = 0.75,
+    freq.u = 1.5,
+    freq.v = 0.75,
     connectivity = "diagonal",
-    row_irregularity = 0.18,
-    col_irregularity = 0.18
+    row.irregularity = 0.18,
+    col.irregularity = 0.18
   )
 
   expect_equal(spec$edges, edges.mesh(4, 4, connectivity = "diagonal"))
@@ -544,7 +544,7 @@ test_that("sampled rectangle surface graph returns normalized positive iKNN weig
     seed = 7,
     surface = "paraboloid",
     amplitude = 0.8,
-    graph_space = "surface",
+    graph.space = "surface",
     normalize = "mean"
   )
 
@@ -579,9 +579,9 @@ test_that("sampled rectangle surface graphs reuse one sample across k values", {
     seed = 11,
     surface = "ripple",
     amplitude = 0.5,
-    freq_u = 2,
-    freq_v = 3,
-    graph_space = "param"
+    freq.u = 2,
+    freq.v = 3,
+    graph.space = "param"
   )
 
   expect_s3_class(seq_spec, "grip_sampled_rectangle_surface_graphs")
@@ -610,12 +610,12 @@ test_that("sampled rectangle graphs can be rebuilt from saved parameter coordina
     seed = 7,
     surface = "paraboloid",
     amplitude = 0.6,
-    graph_space = "surface",
+    graph.space = "surface",
     normalize = "median"
   )
 
   rebuilt <- grip:::.sampled.rectangle.surface.graph.from.coords(
-    coords_param = spec$coords_param,
+    coords.param = spec$coords_param,
     k = spec$k,
     xmin = spec$xmin,
     xmax = spec$xmax,
@@ -624,7 +624,7 @@ test_that("sampled rectangle graphs can be rebuilt from saved parameter coordina
     seed = spec$seed,
     surface = spec$surface,
     amplitude = 0.6,
-    graph_space = spec$graph_space,
+    graph.space = spec$graph_space,
     normalize = spec$normalize
   )
 
@@ -645,7 +645,7 @@ test_that("sampled rectangle saved topology can be reweighted on a new surface",
     seed = 13,
     surface = "paraboloid",
     amplitude = 0.7,
-    graph_space = "surface",
+    graph.space = "surface",
     normalize = "mean"
   )
 
@@ -695,8 +695,8 @@ test_that("wavy cylinder graph supports alternate weight normalization", {
     6, 9,
     surface = "wavy",
     amplitude = 0.2,
-    freq_theta = 3,
-    freq_z = 1.5,
+    freq.theta = 3,
+    freq.z = 1.5,
     twist = 0.4,
     normalize = "mean"
   )
@@ -737,8 +737,8 @@ test_that("wavy torus graph supports alternate weight normalization", {
     7, 10,
     surface = "wavy",
     amplitude = 0.15,
-    freq_major = 3,
-    freq_minor = 2,
+    freq.major = 3,
+    freq.minor = 2,
     twist = 0.35,
     normalize = "mean"
   )
@@ -779,8 +779,8 @@ test_that("wavy sphere graph supports alternate weight normalization", {
     7, 10,
     surface = "wavy",
     amplitude = 0.18,
-    freq_theta = 3,
-    freq_lat = 2,
+    freq.theta = 3,
+    freq.lat = 2,
     twist = 0.3,
     normalize = "mean"
   )
@@ -861,8 +861,8 @@ test_that("triangulated annulus surface graph returns normalized positive edge w
     resolution = 7,
     surface = "ripple",
     amplitude = 0.35,
-    freq_u = 1.2,
-    freq_v = 0.8,
+    freq.u = 1.2,
+    freq.v = 0.8,
     normalize = "mean"
   )
 
@@ -901,16 +901,16 @@ test_that("triangulated pair-of-pants surface graph returns normalized positive 
 test_that("irregular annulus surface graph returns normalized positive edge weights", {
   spec <- irregular.annulus.surface.graph(
     rings = 6,
-    outer_count = 24,
+    outer.count = 24,
     surface = "ripple",
     amplitude = 0.3,
-    freq_u = 1.3,
-    freq_v = 0.7,
+    freq.u = 1.3,
+    freq.v = 0.7,
     normalize = "mean"
   )
 
   expect_s3_class(spec, "grip_irregular_annulus_surface_graph")
-  expect_equal(spec$edges, grip:::edges.irregular.annulus(rings = 6, outer_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.annulus(rings = 6, outer.count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -929,8 +929,8 @@ test_that("irregular ball solid graph returns normalized positive edge weights",
     layers = 3,
     surface = "wavy",
     amplitude = 0.12,
-    freq_theta = 2,
-    freq_phi = 3,
+    freq.theta = 2,
+    freq.phi = 3,
     normalize = "mean"
   )
 
@@ -954,7 +954,7 @@ test_that("irregular shell solid graph returns normalized positive edge weights"
     base = "octahedron",
     level = 1,
     layers = 3,
-    inner_radius = 0.42,
+    inner.radius = 0.42,
     surface = "bulged",
     amplitude = 0.1,
     normalize = "mean"
@@ -962,7 +962,7 @@ test_that("irregular shell solid graph returns normalized positive edge weights"
 
   expect_s3_class(spec, "grip_irregular_shell_solid_graph")
   expect_equal(spec$edges, grip:::edges.irregular.shell(base = "octahedron", level = 1, layers = 3,
-                                                 inner_radius = 0.42))
+                                                 inner.radius = 0.42))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -978,17 +978,17 @@ test_that("irregular shell solid graph returns normalized positive edge weights"
 
 test_that("irregular torus surface graph returns normalized positive edge weights", {
   spec <- irregular.torus.surface.graph(
-    major_rings = 8,
-    tube_count = 16,
+    major.rings = 8,
+    tube.count = 16,
     surface = "wavy",
     amplitude = 0.18,
-    freq_major = 2,
-    freq_minor = 1.5,
+    freq.major = 2,
+    freq.minor = 1.5,
     normalize = "mean"
   )
 
   expect_s3_class(spec, "grip_irregular_torus_surface_graph")
-  expect_equal(spec$edges, grip:::edges.irregular.torus(major_rings = 8, tube_count = 16))
+  expect_equal(spec$edges, grip:::edges.irregular.torus(major.rings = 8, tube.count = 16))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1003,16 +1003,16 @@ test_that("irregular torus surface graph returns normalized positive edge weight
 test_that("irregular pair-of-pants surface graph returns normalized positive edge weights", {
   spec <- irregular.pair.of.pants.surface.graph(
     slices = 11,
-    outer_count = 24,
+    outer.count = 24,
     surface = "ripple",
     amplitude = 0.28,
-    freq_u = 1.1,
-    freq_v = 0.8,
+    freq.u = 1.1,
+    freq.v = 0.8,
     normalize = "mean"
   )
 
   expect_s3_class(spec, "grip_irregular_pair_of_pants_surface_graph")
-  expect_equal(spec$edges, grip:::edges.irregular.pair.of.pants(slices = 11, outer_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.pair.of.pants(slices = 11, outer.count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1029,16 +1029,16 @@ test_that("irregular pair-of-pants surface graph returns normalized positive edg
 test_that("irregular double torus surface graph returns normalized positive edge weights", {
   spec <- irregular.double.torus.surface.graph(
     slices = 11,
-    tube_count = 14,
+    tube.count = 14,
     surface = "wavy",
     amplitude = 0.14,
-    freq_x = 2,
-    freq_theta = 2.5,
+    freq.x = 2,
+    freq.theta = 2.5,
     normalize = "mean"
   )
 
   expect_s3_class(spec, "grip_irregular_double_torus_surface_graph")
-  expect_equal(spec$edges, grip:::edges.irregular.double.torus(slices = 11, tube_count = 14))
+  expect_equal(spec$edges, grip:::edges.irregular.double.torus(slices = 11, tube.count = 14))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1054,16 +1054,16 @@ test_that("irregular double torus surface graph returns normalized positive edge
 test_that("irregular sphere surface graph returns normalized positive edge weights", {
   spec <- irregular.sphere.surface.graph(
     bands = 6,
-    equator_count = 24,
+    equator.count = 24,
     surface = "wavy",
     amplitude = 0.18,
-    freq_theta = 3,
-    freq_lat = 2,
+    freq.theta = 3,
+    freq.lat = 2,
     normalize = "mean"
   )
 
   expect_s3_class(spec, "grip_irregular_sphere_surface_graph")
-  expect_equal(spec$edges, grip:::edges.irregular.sphere(bands = 6, equator_count = 24))
+  expect_equal(spec$edges, grip:::edges.irregular.sphere(bands = 6, equator.count = 24))
   expect_equal(spec$n, max(spec$edges))
   expect_equal(mean(spec$edge_weights), 1, tolerance = 1e-10)
   expect_gt(max(spec$edge_weights) - min(spec$edge_weights), 1e-6)
@@ -1107,8 +1107,8 @@ test_that("ripple sierpinski triangle graph supports alternate weight normalizat
     2,
     surface = "ripple",
     amplitude = 0.6,
-    freq_u = 1.5,
-    freq_v = 0.5,
+    freq.u = 1.5,
+    freq.v = 0.5,
     normalize = "mean"
   )
 
@@ -1319,8 +1319,8 @@ test_that("recursive triangle mask surface graph returns normalized positive edg
     level = 2,
     surface = "ripple",
     amplitude = 0.55,
-    freq_u = 1.25,
-    freq_v = 0.75
+    freq.u = 1.25,
+    freq.v = 0.75
   )
 
   expect_s3_class(spec, "grip_recursive_triangle_mask_surface_graph")
@@ -1398,8 +1398,8 @@ test_that("ripple sierpinski carpet graph supports alternate weight normalizatio
     2,
     surface = "ripple",
     amplitude = 0.6,
-    freq_u = 1.5,
-    freq_v = 0.5,
+    freq.u = 1.5,
+    freq.v = 0.5,
     normalize = "mean"
   )
 
@@ -1412,8 +1412,8 @@ test_that("vicsek surface graph returns normalized positive edge weights", {
     2,
     surface = "ripple",
     amplitude = 0.6,
-    freq_u = 1.5,
-    freq_v = 0.5,
+    freq.u = 1.5,
+    freq.v = 0.5,
     normalize = "mean"
   )
 
@@ -1428,10 +1428,10 @@ test_that("vicsek surface graph returns normalized positive edge weights", {
 test_that("occupied mesh surface graph returns normalized positive edge weights", {
   keep <- keep.staggered.windows(
     8, 9,
-    window_height = 1,
-    window_width = 2,
-    row_period = 3,
-    col_period = 4
+    window.height = 1,
+    window.width = 2,
+    row.period = 3,
+    col.period = 4
   )
   spec <- occupied.mesh.surface.graph(
     keep,
@@ -1474,10 +1474,10 @@ test_that("occupied mesh surface graph supports diagonal connectivity", {
 })
 
 test_that("deterministic perforated grids produce distinct occupancy patterns", {
-  periodic <- keep.periodic.holes(9, 9, hole_period = 4, hole_height = 1, hole_width = 1)
-  staggered <- keep.staggered.windows(9, 9, window_height = 1, window_width = 2)
-  slits <- keep.slit.channels(9, 9, orientation = "vertical", slit_period = 4)
-  notches <- keep.asymmetric.notches(9, 10, notch_depth = 3, notch_width = 2)
+  periodic <- keep.periodic.holes(9, 9, hole.period = 4, hole.height = 1, hole.width = 1)
+  staggered <- keep.staggered.windows(9, 9, window.height = 1, window.width = 2)
+  slits <- keep.slit.channels(9, 9, orientation = "vertical", slit.period = 4)
+  notches <- keep.asymmetric.notches(9, 10, notch.depth = 3, notch.width = 2)
 
   expect_true(is.matrix(periodic) && is.logical(periodic))
   expect_true(is.matrix(staggered) && is.logical(staggered))

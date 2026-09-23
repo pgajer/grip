@@ -317,7 +317,7 @@ coords.combinatorial <- grip(
 coords.weighted <- grip(metric = "edge_length",
   weighted.mesh$edges,
   n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights,
+  edge.weights = weighted.mesh$edge_weights,
   dim = 3,
   preset = "mesh",
   seed = 1
@@ -326,17 +326,17 @@ coords.weighted <- grip(metric = "edge_length",
 coords.weighted.lgkk <- grip(metric = "edge_length",
   weighted.mesh$edges,
   n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights,
+  edge.weights = weighted.mesh$edge_weights,
   dim = 3,
   preset = "mesh",
-  lgkk_polish_rounds = 6L,
+  lgkk.polish.rounds = 6L,
   seed = 1
 )
 
 gkk.prepared <- prepare.geodesic.kk(
   weighted.mesh$edges,
   n = weighted.mesh$n,
-  edge_weights = weighted.mesh$edge_weights
+  edge.weights = weighted.mesh$edge_weights
 )
 
 weighted.summary <- do.call(

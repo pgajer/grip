@@ -1,4 +1,4 @@
-grip.build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
+grip.build.adj.from.edges <- function(edges, n, edge.weights = NULL) {
   n <- grip.validate.vertex.count(n)
   edges <- as.matrix(edges)
   if (!is.numeric(edges) || ncol(edges) != 2) {
@@ -13,24 +13,24 @@ grip.build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
     stop("edges must be 1-based and within [1, n]")
   }
 
-  use.weights <- !is.null(edge_weights)
+  use.weights <- !is.null(edge.weights)
   if (use.weights) {
-    if (length(edge_weights) != nrow(edges)) {
-      stop("edge_weights length must match number of edges")
+    if (length(edge.weights) != nrow(edges)) {
+      stop("edge.weights length must match number of edges")
     }
-    if (!is.numeric(edge_weights)) {
-      stop("edge_weights must be a numeric vector")
+    if (!is.numeric(edge.weights)) {
+      stop("edge.weights must be a numeric vector")
     }
-    bad <- which(!is.finite(edge_weights) | edge_weights <= 0)
+    bad <- which(!is.finite(edge.weights) | edge.weights <= 0)
     if (length(bad) > 0L) {
       i <- bad[[1L]]
       stop(sprintf(
-        "edge_weights must contain finite values > 0; first invalid at edge_weights[%d] = %s",
+        "edge.weights must contain finite values > 0; first invalid at edge.weights[%d] = %s",
         i,
-        format(edge_weights[i], digits = 16)
+        format(edge.weights[i], digits = 16)
       ))
     }
-    edge_weights <- as.double(edge_weights)
+    edge.weights <- as.double(edge.weights)
   }
 
   out.adj <- vector("list", n)
@@ -46,7 +46,7 @@ grip.build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
     out.adj[[u]] <- c(out.adj[[u]], v)
     out.adj[[v]] <- c(out.adj[[v]], u)
     if (use.weights) {
-      w <- edge_weights[[i]]
+      w <- edge.weights[[i]]
       out.w[[u]] <- c(out.w[[u]], w)
       out.w[[v]] <- c(out.w[[v]], w)
     }
@@ -55,7 +55,7 @@ grip.build.adj.from.edges <- function(edges, n, edge_weights = NULL) {
   list(adj_list = out.adj, weight_list = out.w)
 }
 
-grip.connected.components <- function(adj_list, n) {
+grip.connected.components <- function(adj.list, n) {
   comp <- integer(n)
   cid <- 0L
   for (v in seq_len(n)) {
@@ -69,7 +69,7 @@ grip.connected.components <- function(adj_list, n) {
     while (head <= tail) {
       x <- q[[head]]
       head <- head + 1L
-      nb <- adj_list[[x]]
+      nb <- adj.list[[x]]
       if (length(nb) == 0L) next
       for (u in nb) {
         if (comp[[u]] == 0L) {
@@ -83,19 +83,19 @@ grip.connected.components <- function(adj_list, n) {
   comp
 }
 
-grip.induce.subgraph <- function(adj_list, weight_list, vertices, n) {
+grip.induce.subgraph <- function(adj.list, weight.list, vertices, n) {
   vertices <- as.integer(vertices)
   in.comp <- rep(FALSE, n)
   in.comp[vertices] <- TRUE
   map <- integer(n)
   map[vertices] <- seq_along(vertices)
   sub.adj <- vector("list", length(vertices))
-  use.weights <- !is.null(weight_list)
+  use.weights <- !is.null(weight.list)
   sub.w <- if (use.weights) vector("list", length(vertices)) else NULL
 
   for (i in seq_along(vertices)) {
     v <- vertices[[i]]
-    nb <- as.integer(adj_list[[v]])
+    nb <- as.integer(adj.list[[v]])
     if (length(nb) == 0L) {
       sub.adj[[i]] <- integer(0)
       if (use.weights) sub.w[[i]] <- numeric(0)
@@ -105,7 +105,7 @@ grip.induce.subgraph <- function(adj_list, weight_list, vertices, n) {
     nb.keep <- nb[keep]
     sub.adj[[i]] <- as.integer(map[nb.keep])
     if (use.weights) {
-      sub.w[[i]] <- as.double(weight_list[[v]][keep])
+      sub.w[[i]] <- as.double(weight.list[[v]][keep])
     }
   }
 
@@ -223,7 +223,7 @@ grip.tree.preset.defaults <- function(dim = 2L) {
   )
 }
 
-grip.globalrep.default.final_rounds <- function(n) {
+grip.globalrep.default.final.rounds <- function(n) {
   if (!is.numeric(n) || length(n) != 1L || !is.finite(n)) {
     stop("n must be a single finite numeric value")
   }
@@ -250,7 +250,7 @@ grip.globalrep.base.defaults <- function(n = NULL) {
   list(
     placement = "barycenter",
     rounds = 160L,
-    final_rounds = if (is.null(n)) 384L else grip.globalrep.default.final_rounds(n),
+    final_rounds = if (is.null(n)) 384L else grip.globalrep.default.final.rounds(n),
     num_init = 24L,
     num_nbrs = 20L,
     r = 0.03,
@@ -262,7 +262,7 @@ grip.globalrep.base.defaults <- function(n = NULL) {
   )
 }
 
-grip.forward_call <- function(target, call, env = parent.frame()) {
+grip.forward.call <- function(target, call, env = parent.frame()) {
   args <- as.list(call)[-1L]
   do.call(target, args, envir = env)
 }
@@ -270,31 +270,31 @@ grip.forward_call <- function(target, call, env = parent.frame()) {
 grip.resolve.preset <- function(preset,
                                 dim = 2L,
                                 placement,
-                                placement_missing,
+                                placement.missing,
                                 rounds,
-                                rounds_missing,
-                                final_rounds,
-                                final_rounds_missing,
-                                num_init,
-                                num_init_missing,
-                                num_nbrs,
-                                num_nbrs_missing,
+                                rounds.missing,
+                                final.rounds,
+                                final.rounds.missing,
+                                num.init,
+                                num.init.missing,
+                                num.nbrs,
+                                num.nbrs.missing,
                                 r,
-                                r_missing,
+                                r.missing,
                                 s,
-                                s_missing,
-                                repulsion_factor,
-                                repulsion_factor_missing) {
+                                s.missing,
+                                repulsion.factor,
+                                repulsion.factor.missing) {
   if (is.null(preset)) {
     return(list(
       placement = placement,
       rounds = rounds,
-      final_rounds = final_rounds,
-      num_init = num_init,
-      num_nbrs = num_nbrs,
+      final_rounds = final.rounds,
+      num_init = num.init,
+      num_nbrs = num.nbrs,
       r = r,
       s = s,
-      repulsion_factor = repulsion_factor
+      repulsion_factor = repulsion.factor
     ))
   }
 
@@ -306,37 +306,37 @@ grip.resolve.preset <- function(preset,
     tree = grip.tree.preset.defaults(dim = dim),
     stop("unknown preset")
   )
-  if (placement_missing) placement <- defaults$placement
-  if (rounds_missing) rounds <- defaults$rounds
-  if (final_rounds_missing) final_rounds <- defaults$final_rounds
-  if (num_init_missing) num_init <- defaults$num_init
-  if (num_nbrs_missing) num_nbrs <- defaults$num_nbrs
-  if (r_missing) r <- defaults$r
-  if (s_missing) s <- defaults$s
-  if (repulsion_factor_missing) repulsion_factor <- defaults$repulsion_factor
+  if (placement.missing) placement <- defaults$placement
+  if (rounds.missing) rounds <- defaults$rounds
+  if (final.rounds.missing) final.rounds <- defaults$final_rounds
+  if (num.init.missing) num.init <- defaults$num_init
+  if (num.nbrs.missing) num.nbrs <- defaults$num_nbrs
+  if (r.missing) r <- defaults$r
+  if (s.missing) s <- defaults$s
+  if (repulsion.factor.missing) repulsion.factor <- defaults$repulsion_factor
 
   list(
     placement = placement,
     rounds = rounds,
-    final_rounds = final_rounds,
-    num_init = num_init,
-    num_nbrs = num_nbrs,
+    final_rounds = final.rounds,
+    num_init = num.init,
+    num_nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor
+    repulsion_factor = repulsion.factor
   )
 }
 
-grip.validate.tuning.inputs <- function(num_nbrs, r, s, repulsion_factor) {
-  if (!is.numeric(num_nbrs) || length(num_nbrs) != 1L || !is.finite(num_nbrs)) {
-    stop("num_nbrs must be a single finite numeric value")
+grip.validate.tuning.inputs <- function(num.nbrs, r, s, repulsion.factor) {
+  if (!is.numeric(num.nbrs) || length(num.nbrs) != 1L || !is.finite(num.nbrs)) {
+    stop("num.nbrs must be a single finite numeric value")
   }
-  if (abs(num_nbrs - round(num_nbrs)) > sqrt(.Machine$double.eps)) {
-    stop("num_nbrs must be a positive integer")
+  if (abs(num.nbrs - round(num.nbrs)) > sqrt(.Machine$double.eps)) {
+    stop("num.nbrs must be a positive integer")
   }
-  num_nbrs <- as.integer(round(num_nbrs))
-  if (is.na(num_nbrs) || num_nbrs <= 0L) {
-    stop("num_nbrs must be a positive integer")
+  num.nbrs <- as.integer(round(num.nbrs))
+  if (is.na(num.nbrs) || num.nbrs <= 0L) {
+    stop("num.nbrs must be a positive integer")
   }
 
   if (!is.numeric(r) || length(r) != 1L || !is.finite(r)) {
@@ -355,216 +355,216 @@ grip.validate.tuning.inputs <- function(num_nbrs, r, s, repulsion_factor) {
     stop("s must be >= 0")
   }
 
-  if (!is.numeric(repulsion_factor) || length(repulsion_factor) != 1L ||
-      !is.finite(repulsion_factor)) {
-    stop("repulsion_factor must be a single finite numeric value")
+  if (!is.numeric(repulsion.factor) || length(repulsion.factor) != 1L ||
+      !is.finite(repulsion.factor)) {
+    stop("repulsion.factor must be a single finite numeric value")
   }
-  repulsion_factor <- as.double(repulsion_factor)
-  if (repulsion_factor < 0) {
-    stop("repulsion_factor must be >= 0")
+  repulsion.factor <- as.double(repulsion.factor)
+  if (repulsion.factor < 0) {
+    stop("repulsion.factor must be >= 0")
   }
 
   list(
-    num_nbrs = num_nbrs,
+    num_nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor
+    repulsion_factor = repulsion.factor
   )
 }
 
-grip.validate.globalrep.tuning.inputs <- function(num_nbrs,
+grip.validate.globalrep.tuning.inputs <- function(num.nbrs,
                                                   r,
                                                   s,
-                                                  repulsion_factor,
-                                                  coarse_repulsion_factor,
-                                                  coarse_repulsion_sample,
-                                                  coarse_repulsion_exact_below,
-                                                  final_anchor_factor = 0,
-                                                  final_move_scale_after_first = 1,
-                                                  insertion_anchor_count = 3,
-                                                  insertion_anchor_scope = "any_higher",
-                                                  insertion_anchor_strategy = "first",
-                                                  level0_insertion_mode = "inherit",
-                                                  level0_anchor_count = insertion_anchor_count,
-                                                  level0_local_kk_steps = 3) {
+                                                  repulsion.factor,
+                                                  coarse.repulsion.factor,
+                                                  coarse.repulsion.sample,
+                                                  coarse.repulsion.exact.below,
+                                                  final.anchor.factor = 0,
+                                                  final.move.scale.after.first = 1,
+                                                  insertion.anchor.count = 3,
+                                                  insertion.anchor.scope = "any_higher",
+                                                  insertion.anchor.strategy = "first",
+                                                  level0.insertion.mode = "inherit",
+                                                  level0.anchor.count = insertion.anchor.count,
+                                                  level0.local.kk.steps = 3) {
   tuning <- grip.validate.tuning.inputs(
-    num_nbrs = num_nbrs,
+    num.nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor
+    repulsion.factor = repulsion.factor
   )
 
-  if (!is.numeric(coarse_repulsion_factor) ||
-      length(coarse_repulsion_factor) != 1L ||
-      !is.finite(coarse_repulsion_factor)) {
-    stop("coarse_repulsion_factor must be a single finite numeric value")
+  if (!is.numeric(coarse.repulsion.factor) ||
+      length(coarse.repulsion.factor) != 1L ||
+      !is.finite(coarse.repulsion.factor)) {
+    stop("coarse.repulsion.factor must be a single finite numeric value")
   }
-  coarse_repulsion_factor <- as.double(coarse_repulsion_factor)
-  if (coarse_repulsion_factor < 0) {
-    stop("coarse_repulsion_factor must be >= 0")
+  coarse.repulsion.factor <- as.double(coarse.repulsion.factor)
+  if (coarse.repulsion.factor < 0) {
+    stop("coarse.repulsion.factor must be >= 0")
   }
 
-  if (!is.numeric(coarse_repulsion_sample) ||
-      length(coarse_repulsion_sample) != 1L ||
-      !is.finite(coarse_repulsion_sample)) {
-    stop("coarse_repulsion_sample must be a single finite numeric value")
+  if (!is.numeric(coarse.repulsion.sample) ||
+      length(coarse.repulsion.sample) != 1L ||
+      !is.finite(coarse.repulsion.sample)) {
+    stop("coarse.repulsion.sample must be a single finite numeric value")
   }
-  if (abs(coarse_repulsion_sample - round(coarse_repulsion_sample)) >
+  if (abs(coarse.repulsion.sample - round(coarse.repulsion.sample)) >
       sqrt(.Machine$double.eps)) {
-    stop("coarse_repulsion_sample must be a positive integer")
+    stop("coarse.repulsion.sample must be a positive integer")
   }
-  coarse_repulsion_sample <- as.integer(round(coarse_repulsion_sample))
-  if (is.na(coarse_repulsion_sample) || coarse_repulsion_sample <= 0L) {
-    stop("coarse_repulsion_sample must be a positive integer")
+  coarse.repulsion.sample <- as.integer(round(coarse.repulsion.sample))
+  if (is.na(coarse.repulsion.sample) || coarse.repulsion.sample <= 0L) {
+    stop("coarse.repulsion.sample must be a positive integer")
   }
 
-  if (!is.numeric(coarse_repulsion_exact_below) ||
-      length(coarse_repulsion_exact_below) != 1L ||
-      !is.finite(coarse_repulsion_exact_below)) {
-    stop("coarse_repulsion_exact_below must be a single finite numeric value")
+  if (!is.numeric(coarse.repulsion.exact.below) ||
+      length(coarse.repulsion.exact.below) != 1L ||
+      !is.finite(coarse.repulsion.exact.below)) {
+    stop("coarse.repulsion.exact.below must be a single finite numeric value")
   }
-  if (abs(coarse_repulsion_exact_below - round(coarse_repulsion_exact_below)) >
+  if (abs(coarse.repulsion.exact.below - round(coarse.repulsion.exact.below)) >
       sqrt(.Machine$double.eps)) {
-    stop("coarse_repulsion_exact_below must be a positive integer")
+    stop("coarse.repulsion.exact.below must be a positive integer")
   }
-  coarse_repulsion_exact_below <- as.integer(round(coarse_repulsion_exact_below))
-  if (is.na(coarse_repulsion_exact_below) || coarse_repulsion_exact_below <= 0L) {
-    stop("coarse_repulsion_exact_below must be a positive integer")
-  }
-
-  if (!is.numeric(final_anchor_factor) ||
-      length(final_anchor_factor) != 1L ||
-      !is.finite(final_anchor_factor)) {
-    stop("final_anchor_factor must be a single finite numeric value")
-  }
-  final_anchor_factor <- as.double(final_anchor_factor)
-  if (final_anchor_factor < 0) {
-    stop("final_anchor_factor must be >= 0")
+  coarse.repulsion.exact.below <- as.integer(round(coarse.repulsion.exact.below))
+  if (is.na(coarse.repulsion.exact.below) || coarse.repulsion.exact.below <= 0L) {
+    stop("coarse.repulsion.exact.below must be a positive integer")
   }
 
-  if (!is.numeric(final_move_scale_after_first) ||
-      length(final_move_scale_after_first) != 1L ||
-      !is.finite(final_move_scale_after_first)) {
-    stop("final_move_scale_after_first must be a single finite numeric value")
+  if (!is.numeric(final.anchor.factor) ||
+      length(final.anchor.factor) != 1L ||
+      !is.finite(final.anchor.factor)) {
+    stop("final.anchor.factor must be a single finite numeric value")
   }
-  final_move_scale_after_first <- as.double(final_move_scale_after_first)
-  if (final_move_scale_after_first < 0 || final_move_scale_after_first > 1) {
-    stop("final_move_scale_after_first must be in [0, 1]")
+  final.anchor.factor <- as.double(final.anchor.factor)
+  if (final.anchor.factor < 0) {
+    stop("final.anchor.factor must be >= 0")
   }
 
-  if (!is.numeric(insertion_anchor_count) ||
-      length(insertion_anchor_count) != 1L ||
-      !is.finite(insertion_anchor_count)) {
-    stop("insertion_anchor_count must be a single finite numeric value")
+  if (!is.numeric(final.move.scale.after.first) ||
+      length(final.move.scale.after.first) != 1L ||
+      !is.finite(final.move.scale.after.first)) {
+    stop("final.move.scale.after.first must be a single finite numeric value")
   }
-  if (abs(insertion_anchor_count - round(insertion_anchor_count)) >
+  final.move.scale.after.first <- as.double(final.move.scale.after.first)
+  if (final.move.scale.after.first < 0 || final.move.scale.after.first > 1) {
+    stop("final.move.scale.after.first must be in [0, 1]")
+  }
+
+  if (!is.numeric(insertion.anchor.count) ||
+      length(insertion.anchor.count) != 1L ||
+      !is.finite(insertion.anchor.count)) {
+    stop("insertion.anchor.count must be a single finite numeric value")
+  }
+  if (abs(insertion.anchor.count - round(insertion.anchor.count)) >
       sqrt(.Machine$double.eps)) {
-    stop("insertion_anchor_count must be a positive integer")
+    stop("insertion.anchor.count must be a positive integer")
   }
-  insertion_anchor_count <- as.integer(round(insertion_anchor_count))
-  if (is.na(insertion_anchor_count) || insertion_anchor_count <= 0L) {
-    stop("insertion_anchor_count must be a positive integer")
+  insertion.anchor.count <- as.integer(round(insertion.anchor.count))
+  if (is.na(insertion.anchor.count) || insertion.anchor.count <= 0L) {
+    stop("insertion.anchor.count must be a positive integer")
   }
 
-  insertion_anchor_scope <- match.arg(
-    insertion_anchor_scope,
+  insertion.anchor.scope <- match.arg(
+    insertion.anchor.scope,
     choices = c("any_higher", "prev_misf")
   )
 
-  insertion_anchor_strategy <- match.arg(
-    insertion_anchor_strategy,
+  insertion.anchor.strategy <- match.arg(
+    insertion.anchor.strategy,
     choices = c("first", "distance_band", "balanced_band", "spread_prev")
   )
 
-  level0_insertion_mode <- match.arg(
-    level0_insertion_mode,
+  level0.insertion.mode <- match.arg(
+    level0.insertion.mode,
     choices = c("inherit", "barycenter", "least_squares")
   )
 
-  if (!is.numeric(level0_anchor_count) ||
-      length(level0_anchor_count) != 1L ||
-      !is.finite(level0_anchor_count)) {
-    stop("level0_anchor_count must be a single finite numeric value")
+  if (!is.numeric(level0.anchor.count) ||
+      length(level0.anchor.count) != 1L ||
+      !is.finite(level0.anchor.count)) {
+    stop("level0.anchor.count must be a single finite numeric value")
   }
-  if (abs(level0_anchor_count - round(level0_anchor_count)) >
+  if (abs(level0.anchor.count - round(level0.anchor.count)) >
       sqrt(.Machine$double.eps)) {
-    stop("level0_anchor_count must be a positive integer")
+    stop("level0.anchor.count must be a positive integer")
   }
-  level0_anchor_count <- as.integer(round(level0_anchor_count))
-  if (is.na(level0_anchor_count) || level0_anchor_count <= 0L) {
-    stop("level0_anchor_count must be a positive integer")
+  level0.anchor.count <- as.integer(round(level0.anchor.count))
+  if (is.na(level0.anchor.count) || level0.anchor.count <= 0L) {
+    stop("level0.anchor.count must be a positive integer")
   }
 
-  if (!is.numeric(level0_local_kk_steps) ||
-      length(level0_local_kk_steps) != 1L ||
-      !is.finite(level0_local_kk_steps)) {
-    stop("level0_local_kk_steps must be a single finite numeric value")
+  if (!is.numeric(level0.local.kk.steps) ||
+      length(level0.local.kk.steps) != 1L ||
+      !is.finite(level0.local.kk.steps)) {
+    stop("level0.local.kk.steps must be a single finite numeric value")
   }
-  if (abs(level0_local_kk_steps - round(level0_local_kk_steps)) >
+  if (abs(level0.local.kk.steps - round(level0.local.kk.steps)) >
       sqrt(.Machine$double.eps)) {
-    stop("level0_local_kk_steps must be a non-negative integer")
+    stop("level0.local.kk.steps must be a non-negative integer")
   }
-  level0_local_kk_steps <- as.integer(round(level0_local_kk_steps))
-  if (is.na(level0_local_kk_steps) || level0_local_kk_steps < 0L) {
-    stop("level0_local_kk_steps must be a non-negative integer")
+  level0.local.kk.steps <- as.integer(round(level0.local.kk.steps))
+  if (is.na(level0.local.kk.steps) || level0.local.kk.steps < 0L) {
+    stop("level0.local.kk.steps must be a non-negative integer")
   }
 
   c(
     tuning,
     list(
-      coarse_repulsion_factor = coarse_repulsion_factor,
-      coarse_repulsion_sample = coarse_repulsion_sample,
-      coarse_repulsion_exact_below = coarse_repulsion_exact_below,
-      final_anchor_factor = final_anchor_factor,
-      final_move_scale_after_first = final_move_scale_after_first,
-      insertion_anchor_count = insertion_anchor_count,
-      insertion_anchor_scope = insertion_anchor_scope,
-      insertion_anchor_strategy = insertion_anchor_strategy,
-      level0_insertion_mode = level0_insertion_mode,
-      level0_anchor_count = level0_anchor_count,
-      level0_local_kk_steps = level0_local_kk_steps
+      coarse_repulsion_factor = coarse.repulsion.factor,
+      coarse_repulsion_sample = coarse.repulsion.sample,
+      coarse_repulsion_exact_below = coarse.repulsion.exact.below,
+      final_anchor_factor = final.anchor.factor,
+      final_move_scale_after_first = final.move.scale.after.first,
+      insertion_anchor_count = insertion.anchor.count,
+      insertion_anchor_scope = insertion.anchor.scope,
+      insertion_anchor_strategy = insertion.anchor.strategy,
+      level0_insertion_mode = level0.insertion.mode,
+      level0_anchor_count = level0.anchor.count,
+      level0_local_kk_steps = level0.local.kk.steps
     )
   )
 }
 
-grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
-                                             lgkk_multiscale_rounds = 0L,
-                                             lgkk_rounds_coarse = NULL,
-                                             lgkk_rounds_pre_final = NULL,
-                                             lgkk_rounds_final = NULL,
-                                             lgkk_local_nbrs = 20L,
-                                             lgkk_landmark_count = 8L,
-                                             lgkk_multiscale_scope = "all",
-                                             lgkk_active_limit = 4096L) {
-  if (!is.numeric(lgkk_polish_rounds) ||
-      length(lgkk_polish_rounds) != 1L ||
-      !is.finite(lgkk_polish_rounds)) {
-    stop("lgkk_polish_rounds must be a single finite numeric value")
+grip.validate.lgkk.polish.inputs <- function(lgkk.polish.rounds = 0L,
+                                             lgkk.multiscale.rounds = 0L,
+                                             lgkk.rounds.coarse = NULL,
+                                             lgkk.rounds.pre.final = NULL,
+                                             lgkk.rounds.final = NULL,
+                                             lgkk.local.nbrs = 20L,
+                                             lgkk.landmark.count = 8L,
+                                             lgkk.multiscale.scope = "all",
+                                             lgkk.active.limit = 4096L) {
+  if (!is.numeric(lgkk.polish.rounds) ||
+      length(lgkk.polish.rounds) != 1L ||
+      !is.finite(lgkk.polish.rounds)) {
+    stop("lgkk.polish.rounds must be a single finite numeric value")
   }
-  if (abs(lgkk_polish_rounds - round(lgkk_polish_rounds)) >
+  if (abs(lgkk.polish.rounds - round(lgkk.polish.rounds)) >
       sqrt(.Machine$double.eps)) {
-    stop("lgkk_polish_rounds must be a non-negative integer")
+    stop("lgkk.polish.rounds must be a non-negative integer")
   }
-  lgkk_polish_rounds <- as.integer(round(lgkk_polish_rounds))
-  if (is.na(lgkk_polish_rounds) || lgkk_polish_rounds < 0L) {
-    stop("lgkk_polish_rounds must be a non-negative integer")
+  lgkk.polish.rounds <- as.integer(round(lgkk.polish.rounds))
+  if (is.na(lgkk.polish.rounds) || lgkk.polish.rounds < 0L) {
+    stop("lgkk.polish.rounds must be a non-negative integer")
   }
 
-  if (!is.numeric(lgkk_multiscale_rounds) ||
-      length(lgkk_multiscale_rounds) != 1L ||
-      !is.finite(lgkk_multiscale_rounds)) {
-    stop("lgkk_multiscale_rounds must be a single finite numeric value")
+  if (!is.numeric(lgkk.multiscale.rounds) ||
+      length(lgkk.multiscale.rounds) != 1L ||
+      !is.finite(lgkk.multiscale.rounds)) {
+    stop("lgkk.multiscale.rounds must be a single finite numeric value")
   }
-  if (abs(lgkk_multiscale_rounds - round(lgkk_multiscale_rounds)) >
+  if (abs(lgkk.multiscale.rounds - round(lgkk.multiscale.rounds)) >
       sqrt(.Machine$double.eps)) {
-    stop("lgkk_multiscale_rounds must be a non-negative integer")
+    stop("lgkk.multiscale.rounds must be a non-negative integer")
   }
-  lgkk_multiscale_rounds <- as.integer(round(lgkk_multiscale_rounds))
-  if (is.na(lgkk_multiscale_rounds) || lgkk_multiscale_rounds < 0L) {
-    stop("lgkk_multiscale_rounds must be a non-negative integer")
+  lgkk.multiscale.rounds <- as.integer(round(lgkk.multiscale.rounds))
+  if (is.na(lgkk.multiscale.rounds) || lgkk.multiscale.rounds < 0L) {
+    stop("lgkk.multiscale.rounds must be a non-negative integer")
   }
 
-  validate_optional_rounds <- function(x, name) {
+  validate.optional.rounds <- function(x, name) {
     if (is.null(x)) {
       return(NULL)
     }
@@ -581,87 +581,87 @@ grip.validate.lgkk.polish.inputs <- function(lgkk_polish_rounds = 0L,
     x
   }
 
-  lgkk_rounds_coarse <- validate_optional_rounds(lgkk_rounds_coarse, "lgkk_rounds_coarse")
-  lgkk_rounds_pre_final <- validate_optional_rounds(lgkk_rounds_pre_final, "lgkk_rounds_pre_final")
-  lgkk_rounds_final <- validate_optional_rounds(lgkk_rounds_final, "lgkk_rounds_final")
+  lgkk.rounds.coarse <- validate.optional.rounds(lgkk.rounds.coarse, "lgkk.rounds.coarse")
+  lgkk.rounds.pre.final <- validate.optional.rounds(lgkk.rounds.pre.final, "lgkk.rounds.pre.final")
+  lgkk.rounds.final <- validate.optional.rounds(lgkk.rounds.final, "lgkk.rounds.final")
 
-  if (is.null(lgkk_rounds_coarse)) {
-    lgkk_rounds_coarse <- lgkk_multiscale_rounds
+  if (is.null(lgkk.rounds.coarse)) {
+    lgkk.rounds.coarse <- lgkk.multiscale.rounds
   }
-  if (is.null(lgkk_rounds_pre_final)) {
-    lgkk_rounds_pre_final <- lgkk_multiscale_rounds
+  if (is.null(lgkk.rounds.pre.final)) {
+    lgkk.rounds.pre.final <- lgkk.multiscale.rounds
   }
-  if (is.null(lgkk_rounds_final)) {
-    lgkk_rounds_final <- lgkk_multiscale_rounds
+  if (is.null(lgkk.rounds.final)) {
+    lgkk.rounds.final <- lgkk.multiscale.rounds
   }
 
-  if (!is.numeric(lgkk_local_nbrs) ||
-      length(lgkk_local_nbrs) != 1L ||
-      !is.finite(lgkk_local_nbrs)) {
-    stop("lgkk_local_nbrs must be a single finite numeric value")
+  if (!is.numeric(lgkk.local.nbrs) ||
+      length(lgkk.local.nbrs) != 1L ||
+      !is.finite(lgkk.local.nbrs)) {
+    stop("lgkk.local.nbrs must be a single finite numeric value")
   }
-  if (abs(lgkk_local_nbrs - round(lgkk_local_nbrs)) >
+  if (abs(lgkk.local.nbrs - round(lgkk.local.nbrs)) >
       sqrt(.Machine$double.eps)) {
-    stop("lgkk_local_nbrs must be a non-negative integer")
+    stop("lgkk.local.nbrs must be a non-negative integer")
   }
-  lgkk_local_nbrs <- as.integer(round(lgkk_local_nbrs))
-  if (is.na(lgkk_local_nbrs) || lgkk_local_nbrs < 0L) {
-    stop("lgkk_local_nbrs must be a non-negative integer")
+  lgkk.local.nbrs <- as.integer(round(lgkk.local.nbrs))
+  if (is.na(lgkk.local.nbrs) || lgkk.local.nbrs < 0L) {
+    stop("lgkk.local.nbrs must be a non-negative integer")
   }
 
-  if (!is.numeric(lgkk_landmark_count) ||
-      length(lgkk_landmark_count) != 1L ||
-      !is.finite(lgkk_landmark_count)) {
-    stop("lgkk_landmark_count must be a single finite numeric value")
+  if (!is.numeric(lgkk.landmark.count) ||
+      length(lgkk.landmark.count) != 1L ||
+      !is.finite(lgkk.landmark.count)) {
+    stop("lgkk.landmark.count must be a single finite numeric value")
   }
-  if (abs(lgkk_landmark_count - round(lgkk_landmark_count)) >
+  if (abs(lgkk.landmark.count - round(lgkk.landmark.count)) >
       sqrt(.Machine$double.eps)) {
-    stop("lgkk_landmark_count must be a non-negative integer")
+    stop("lgkk.landmark.count must be a non-negative integer")
   }
-  lgkk_landmark_count <- as.integer(round(lgkk_landmark_count))
-  if (is.na(lgkk_landmark_count) || lgkk_landmark_count < 0L) {
-    stop("lgkk_landmark_count must be a non-negative integer")
+  lgkk.landmark.count <- as.integer(round(lgkk.landmark.count))
+  if (is.na(lgkk.landmark.count) || lgkk.landmark.count < 0L) {
+    stop("lgkk.landmark.count must be a non-negative integer")
   }
 
-  lgkk_multiscale_scope <- match.arg(
-    lgkk_multiscale_scope,
+  lgkk.multiscale.scope <- match.arg(
+    lgkk.multiscale.scope,
     choices = c("all", "coarse")
   )
 
-  if (!is.numeric(lgkk_active_limit) ||
-      length(lgkk_active_limit) != 1L ||
-      !is.finite(lgkk_active_limit)) {
-    stop("lgkk_active_limit must be a single finite numeric value")
+  if (!is.numeric(lgkk.active.limit) ||
+      length(lgkk.active.limit) != 1L ||
+      !is.finite(lgkk.active.limit)) {
+    stop("lgkk.active.limit must be a single finite numeric value")
   }
-  if (abs(lgkk_active_limit - round(lgkk_active_limit)) >
+  if (abs(lgkk.active.limit - round(lgkk.active.limit)) >
       sqrt(.Machine$double.eps)) {
-    stop("lgkk_active_limit must be a positive integer")
+    stop("lgkk.active.limit must be a positive integer")
   }
-  lgkk_active_limit <- as.integer(round(lgkk_active_limit))
-  if (is.na(lgkk_active_limit) || lgkk_active_limit <= 0L) {
-    stop("lgkk_active_limit must be a positive integer")
+  lgkk.active.limit <- as.integer(round(lgkk.active.limit))
+  if (is.na(lgkk.active.limit) || lgkk.active.limit <= 0L) {
+    stop("lgkk.active.limit must be a positive integer")
   }
 
   list(
-    lgkk_polish_rounds = lgkk_polish_rounds,
-    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
-    lgkk_rounds_coarse = lgkk_rounds_coarse,
-    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
-    lgkk_rounds_final = lgkk_rounds_final,
-    lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = lgkk_multiscale_scope,
-    lgkk_active_limit = lgkk_active_limit
+    lgkk_polish_rounds = lgkk.polish.rounds,
+    lgkk_multiscale_rounds = lgkk.multiscale.rounds,
+    lgkk_rounds_coarse = lgkk.rounds.coarse,
+    lgkk_rounds_pre_final = lgkk.rounds.pre.final,
+    lgkk_rounds_final = lgkk.rounds.final,
+    lgkk_local_nbrs = lgkk.local.nbrs,
+    lgkk_landmark_count = lgkk.landmark.count,
+    lgkk_multiscale_scope = lgkk.multiscale.scope,
+    lgkk_active_limit = lgkk.active.limit
   )
 }
 
 grip.apply.lgkk.polish <- function(coords,
-                                   adj_list,
-                                   weight_list,
+                                   adj.list,
+                                   weight.list,
                                    rounds,
-                                   lgkk_local_nbrs,
-                                   lgkk_landmark_count,
-                                   return_trace = FALSE) {
+                                   lgkk.local.nbrs,
+                                   lgkk.landmark.count,
+                                   return.trace = FALSE) {
   if (is.null(rounds) || rounds <= 0L) {
     return(list(
       coords = coords,
@@ -670,19 +670,19 @@ grip.apply.lgkk.polish <- function(coords,
     ))
   }
   prepared <- prepare.landmark.geodesic.kk(
-    adj_list = adj_list,
-    weight_list = weight_list,
+    adj.list = adj.list,
+    weight.list = weight.list,
     n = nrow(coords),
-    local_nbrs = lgkk_local_nbrs,
-    landmark_count = lgkk_landmark_count
+    local.nbrs = lgkk.local.nbrs,
+    landmark.count = lgkk.landmark.count
   )
   landmark.geodesic.kk(
     coords = coords,
     prepared = prepared,
-    max_iter = rounds,
-    local_nbrs = lgkk_local_nbrs,
-    landmark_count = lgkk_landmark_count,
-    return_trace = return_trace
+    max.iter = rounds,
+    local.nbrs = lgkk.local.nbrs,
+    landmark.count = lgkk.landmark.count,
+    return.trace = return.trace
   )
 }
 
@@ -691,43 +691,43 @@ grip.apply.lgkk.polish <- function(coords,
 #' This compatibility entry point is equivalent to
 #' \code{\link{grip}(..., metric = "hop")}. It keeps the old
 #' global-repulsion name available while using the same quality-first
-#' multiscale GRIP engine and adaptive \code{final_rounds} schedule as the
+#' multiscale GRIP engine and adaptive \code{final.rounds} schedule as the
 #' primary layout API.
 #'
 #' @inheritParams grip
-#' @param weight_list Optional parallel list of positive edge lengths for
-#'   \code{adj_list}. \code{NULL} treats every edge as length 1.
-#' @param edge_weights Optional positive edge lengths for \code{edges}, in row
+#' @param weight.list Optional parallel list of positive edge lengths for
+#'   \code{adj.list}. \code{NULL} treats every edge as length 1.
+#' @param edge.weights Optional positive edge lengths for \code{edges}, in row
 #'   order. \code{NULL} treats every edge as length 1.
-#' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
+#' @param coarse.repulsion.factor Non-negative multiplier applied to the extra
 #'   coarse-level active-set repulsion term. \code{0} disables that extra term;
 #'   when the remaining tuning arguments also match
 #'   \code{\link{legacy.grip}()}, the result matches the legacy
 #'   layout behavior.
-#' @param coarse_repulsion_sample Positive integer sample size used to
+#' @param coarse.repulsion.sample Positive integer sample size used to
 #'   approximate active-set-wide repulsion on larger coarse levels.
-#' @param coarse_repulsion_exact_below Positive integer threshold. When the
+#' @param coarse.repulsion.exact.below Positive integer threshold. When the
 #'   active set size is at most this value, the coarse repulsion is computed
 #'   exactly against all currently active vertices instead of being sampled.
-#' @param final_anchor_factor Non-negative multiplier for an anchor term that
+#' @param final.anchor.factor Non-negative multiplier for an anchor term that
 #'   pulls the final FR stage back toward the pre-final full-graph layout.
 #'   `0` disables the anchor and preserves the current behavior.
-#' @param final_move_scale_after_first Scalar in `[0, 1]` applied to the final
+#' @param final.move.scale.after.first Scalar in `[0, 1]` applied to the final
 #'   FR displacement after the first finest-level round. Values below `1`
 #'   damp later full-graph movement while keeping the first FR round unchanged.
-#' @param final_mode Final full-graph refinement mode. \code{"fr"} keeps the
+#' @param final.mode Final full-graph refinement mode. \code{"fr"} keeps the
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
-#' @param insertion_anchor_count Positive integer number of anchor vertices used
+#' @param insertion.anchor.count Positive integer number of anchor vertices used
 #'   during multiscale insertion on non-initial MISF refinement levels. This is
 #'   the closest current implementation to a global \code{K_mish} parameter.
-#' @param insertion_anchor_scope Anchor-eligibility rule used during multiscale
+#' @param insertion.anchor.scope Anchor-eligibility rule used during multiscale
 #'   insertion. \code{"any_higher"} matches the historical GRIP behavior and
 #'   allows anchors from any already placed higher MISF level.
 #'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
 #'   level only.
-#' @param insertion_anchor_strategy Anchor-selection rule used during
+#' @param insertion.anchor.strategy Anchor-selection rule used during
 #'   multiscale insertion. \code{"first"} keeps the historical
 #'   first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
 #'   until the \code{K_mish}-th anchor distance band is exhausted, then places
@@ -736,274 +736,274 @@ grip.apply.lgkk.polish <- function(coords,
 #'   selects a subset whose centroid stays centered in the candidate cloud while
 #'   remaining geometrically spread out. \code{"spread_prev"} is a
 #'   symmetry-oriented band strategy intended to be paired with
-#'   \code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+#'   \code{insertion.anchor.scope = "prev_misf"}; it selects anchors with broad
 #'   angular and geometric coverage before placement.
-#' @param level0_insertion_mode Level-0 insertion placement override used only
+#' @param level0.insertion.mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
 #'   circle heuristic at level 0 and uses barycentric anchor placement.
 #'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
 #'   level 0 before any local micro-polish.
-#' @param level0_anchor_count Positive integer number of already placed anchors
+#' @param level0.anchor.count Positive integer number of already placed anchors
 #'   to collect for level-0 insertion experiments. By default this inherits
-#'   \code{insertion_anchor_count}. The legacy behavior uses 3.
-#' @param level0_local_kk_steps Non-negative integer number of tiny local KK
+#'   \code{insertion.anchor.count}. The legacy behavior uses 3.
+#' @param level0.local.kk.steps Non-negative integer number of tiny local KK
 #'   micro-polish steps applied immediately after each level-0 insertion. The
 #'   legacy behavior uses 3.
-#' @param lgkk_polish_rounds Non-negative integer number of experimental
+#' @param lgkk.polish.rounds Non-negative integer number of experimental
 #'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
 #'   \code{0} disables the polish.
-#' @param lgkk_multiscale_rounds Non-negative integer number of compiled
+#' @param lgkk.multiscale.rounds Non-negative integer number of compiled
 #'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
 #'   after each eligible MISF level completes its standard GRIP rounds.
 #'   This legacy shared budget is used as a fallback when any of the more
 #'   specific per-stage budgets below are left \code{NULL}.
-#' @param lgkk_rounds_coarse Optional non-negative integer number of compiled
+#' @param lgkk.rounds.coarse Optional non-negative integer number of compiled
 #'   LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
-#'   When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.
-#' @param lgkk_rounds_pre_final Optional non-negative integer number of compiled
+#'   When \code{NULL}, this falls back to \code{lgkk.multiscale.rounds}.
+#' @param lgkk.rounds.pre.final Optional non-negative integer number of compiled
 #'   LGKK rounds applied on the last coarse level just before the full graph is
 #'   opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
-#'   \code{lgkk_multiscale_rounds}.
-#' @param lgkk_rounds_final Optional non-negative integer number of compiled
+#'   \code{lgkk.multiscale.rounds}.
+#' @param lgkk.rounds.final Optional non-negative integer number of compiled
 #'   LGKK rounds applied after the full graph level completes its standard GRIP
 #'   rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
-#'   \code{lgkk_multiscale_rounds}.
-#' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
+#'   \code{lgkk.multiscale.rounds}.
+#' @param lgkk.local.nbrs Number of nearest graph-metric neighbors retained per
 #'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
-#' @param lgkk_landmark_count Number of farthest-point landmarks retained per
+#' @param lgkk.landmark.count Number of farthest-point landmarks retained per
 #'   vertex in the LGKK sparse long-range set when either LGKK stage is
 #'   enabled.
-#' @param lgkk_multiscale_scope Scope for the compiled multiscale LGKK stage.
+#' @param lgkk.multiscale.scope Scope for the compiled multiscale LGKK stage.
 #'   \code{"all"} applies it after every eligible MISF level, including the
 #'   final full-graph level. \code{"coarse"} applies it only on coarse levels.
-#' @param lgkk_active_limit Positive integer upper bound on the active-set size
+#' @param lgkk.active.limit Positive integer upper bound on the active-set size
 #'   for compiled multiscale LGKK cache construction. Levels larger than this
 #'   skip the multiscale LGKK stage.
 #' @return A numeric matrix with `n` rows and `dim` columns.
 #' @examples
 #' edges <- edges.mesh(4, 4)
 #' coords <- globalrep.grip(edges, n = max(edges), dim = 2,
-#'                                 rounds = 8, final_rounds = 8,
-#'                                 num_init = 6, num_nbrs = 8,
-#'                                 coarse_repulsion_factor = 0.2,
-#'                                 coarse_repulsion_sample = 8,
-#'                                 coarse_repulsion_exact_below = 32,
+#'                                 rounds = 8, final.rounds = 8,
+#'                                 num.init = 6, num.nbrs = 8,
+#'                                 coarse.repulsion.factor = 0.2,
+#'                                 coarse.repulsion.sample = 8,
+#'                                 coarse.repulsion.exact.below = 32,
 #'                                 seed = 1)
 #' round(coords, 3)
 #' @export
 #' @md
 globalrep.grip <- function(edges = NULL,
                                   n = NULL,
-                                  adj_list = NULL,
-                                  weight_list = NULL,
-                                  edge_weights = NULL,
+                                  adj.list = NULL,
+                                  weight.list = NULL,
+                                  edge.weights = NULL,
                                   dim = 3,
                                   placement = c("barycenter", "circle"),
                                   preset = NULL,
                                   rounds = 160,
-                                  final_rounds = 384,
-                                  num_init = 24,
-                                  num_nbrs = 20,
+                                  final.rounds = 384,
+                                  num.init = 24,
+                                  num.nbrs = 20,
                                   r = 0.03,
                                   s = 7.5,
-                                  repulsion_factor = 2.5,
-                                  coarse_repulsion_factor = 1.5,
-                                  coarse_repulsion_sample = 16,
-                                  coarse_repulsion_exact_below = 64,
-                                  final_anchor_factor = 0,
-                                  final_move_scale_after_first = 1,
-                                  final_mode = c("fr", "kk_repulse"),
-                                  insertion_anchor_count = 3,
-                                  insertion_anchor_scope = c("any_higher", "prev_misf"),
-                                  insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                                  level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                                  level0_anchor_count = insertion_anchor_count,
-                                  level0_local_kk_steps = 3,
-                                  lgkk_polish_rounds = 0L,
-                                  lgkk_multiscale_rounds = 0L,
-                                  lgkk_rounds_coarse = NULL,
-                                  lgkk_rounds_pre_final = NULL,
-                                  lgkk_rounds_final = NULL,
-                                  lgkk_local_nbrs = 20L,
-                                  lgkk_landmark_count = 8L,
-                                  lgkk_multiscale_scope = c("all", "coarse"),
-                                  lgkk_active_limit = 4096L,
-                                  tinit_factor = 6,
+                                  repulsion.factor = 2.5,
+                                  coarse.repulsion.factor = 1.5,
+                                  coarse.repulsion.sample = 16,
+                                  coarse.repulsion.exact.below = 64,
+                                  final.anchor.factor = 0,
+                                  final.move.scale.after.first = 1,
+                                  final.mode = c("fr", "kk_repulse"),
+                                  insertion.anchor.count = 3,
+                                  insertion.anchor.scope = c("any_higher", "prev_misf"),
+                                  insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                                  level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                                  level0.anchor.count = insertion.anchor.count,
+                                  level0.local.kk.steps = 3,
+                                  lgkk.polish.rounds = 0L,
+                                  lgkk.multiscale.rounds = 0L,
+                                  lgkk.rounds.coarse = NULL,
+                                  lgkk.rounds.pre.final = NULL,
+                                  lgkk.rounds.final = NULL,
+                                  lgkk.local.nbrs = 20L,
+                                  lgkk.landmark.count = 8L,
+                                  lgkk.multiscale.scope = c("all", "coarse"),
+                                  lgkk.active.limit = 4096L,
+                                  tinit.factor = 6,
                                   seed = 6,
                                   disconnected = c("components", "error")) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
-  final_rounds_missing <- missing(final_rounds)
-  num_init_missing <- missing(num_init)
-  num_nbrs_missing <- missing(num_nbrs)
+  final_rounds_missing <- missing(final.rounds)
+  num_init_missing <- missing(num.init)
+  num_nbrs_missing <- missing(num.nbrs)
   r_missing <- missing(r)
   s_missing <- missing(s)
-  repulsion_factor_missing <- missing(repulsion_factor)
+  repulsion_factor_missing <- missing(repulsion.factor)
 
   preset <- grip.normalize.preset(preset, fn = "globalrep.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = placement_missing,
+    placement.missing = placement_missing,
     rounds = rounds,
-    rounds_missing = rounds_missing,
-    final_rounds = final_rounds,
-    final_rounds_missing = final_rounds_missing,
-    num_init = num_init,
-    num_init_missing = num_init_missing,
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = num_nbrs_missing,
+    rounds.missing = rounds_missing,
+    final.rounds = final.rounds,
+    final.rounds.missing = final_rounds_missing,
+    num.init = num.init,
+    num.init.missing = num_init_missing,
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = num_nbrs_missing,
     r = r,
-    r_missing = r_missing,
+    r.missing = r_missing,
     s = s,
-    s_missing = s_missing,
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = repulsion_factor_missing
+    s.missing = s_missing,
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = repulsion_factor_missing
   )
   placement <- resolved$placement
   rounds <- resolved$rounds
-  final_rounds <- resolved$final_rounds
-  num_init <- resolved$num_init
-  num_nbrs <- resolved$num_nbrs
+  final.rounds <- resolved$final_rounds
+  num.init <- resolved$num_init
+  num.nbrs <- resolved$num_nbrs
   r <- resolved$r
   s <- resolved$s
-  repulsion_factor <- resolved$repulsion_factor
+  repulsion.factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
-  final_mode <- match.arg(final_mode)
-  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
-  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
-  level0_insertion_mode <- match.arg(level0_insertion_mode)
-  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
+  final.mode <- match.arg(final.mode)
+  insertion.anchor.scope <- match.arg(insertion.anchor.scope)
+  insertion.anchor.strategy <- match.arg(insertion.anchor.strategy)
+  level0.insertion.mode <- match.arg(level0.insertion.mode)
+  lgkk.multiscale.scope <- match.arg(lgkk.multiscale.scope)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     placement = placement,
     seed = seed
   )
-  adj_list <- validated$adj_list
-  weight_list <- validated$weight_list
+  adj.list <- validated$adj_list
+  weight.list <- validated$weight_list
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
   if (is.null(preset) && final_rounds_missing) {
-    final_rounds <- grip.globalrep.default.final_rounds(n)
+    final.rounds <- grip.globalrep.default.final.rounds(n)
   }
   tuning <- grip.validate.globalrep.tuning.inputs(
-    num_nbrs = num_nbrs,
+    num.nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor,
-    coarse_repulsion_factor = coarse_repulsion_factor,
-    coarse_repulsion_sample = coarse_repulsion_sample,
-    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
-    final_anchor_factor = final_anchor_factor,
-    final_move_scale_after_first = final_move_scale_after_first,
-    insertion_anchor_count = insertion_anchor_count,
-    insertion_anchor_scope = insertion_anchor_scope,
-    insertion_anchor_strategy = insertion_anchor_strategy,
-    level0_insertion_mode = level0_insertion_mode,
-    level0_anchor_count = level0_anchor_count,
-    level0_local_kk_steps = level0_local_kk_steps
+    repulsion.factor = repulsion.factor,
+    coarse.repulsion.factor = coarse.repulsion.factor,
+    coarse.repulsion.sample = coarse.repulsion.sample,
+    coarse.repulsion.exact.below = coarse.repulsion.exact.below,
+    final.anchor.factor = final.anchor.factor,
+    final.move.scale.after.first = final.move.scale.after.first,
+    insertion.anchor.count = insertion.anchor.count,
+    insertion.anchor.scope = insertion.anchor.scope,
+    insertion.anchor.strategy = insertion.anchor.strategy,
+    level0.insertion.mode = level0.insertion.mode,
+    level0.anchor.count = level0.anchor.count,
+    level0.local.kk.steps = level0.local.kk.steps
   )
-  num_nbrs <- tuning$num_nbrs
+  num.nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
-  repulsion_factor <- tuning$repulsion_factor
-  coarse_repulsion_factor <- tuning$coarse_repulsion_factor
-  coarse_repulsion_sample <- tuning$coarse_repulsion_sample
-  coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
-  final_anchor_factor <- tuning$final_anchor_factor
-  final_move_scale_after_first <- tuning$final_move_scale_after_first
-  insertion_anchor_count <- tuning$insertion_anchor_count
-  insertion_anchor_scope <- tuning$insertion_anchor_scope
-  insertion_anchor_strategy <- tuning$insertion_anchor_strategy
-  level0_insertion_mode <- tuning$level0_insertion_mode
-  level0_anchor_count <- tuning$level0_anchor_count
-  level0_local_kk_steps <- tuning$level0_local_kk_steps
+  repulsion.factor <- tuning$repulsion_factor
+  coarse.repulsion.factor <- tuning$coarse_repulsion_factor
+  coarse.repulsion.sample <- tuning$coarse_repulsion_sample
+  coarse.repulsion.exact.below <- tuning$coarse_repulsion_exact_below
+  final.anchor.factor <- tuning$final_anchor_factor
+  final.move.scale.after.first <- tuning$final_move_scale_after_first
+  insertion.anchor.count <- tuning$insertion_anchor_count
+  insertion.anchor.scope <- tuning$insertion_anchor_scope
+  insertion.anchor.strategy <- tuning$insertion_anchor_strategy
+  level0.insertion.mode <- tuning$level0_insertion_mode
+  level0.anchor.count <- tuning$level0_anchor_count
+  level0.local.kk.steps <- tuning$level0_local_kk_steps
   lgkk <- grip.validate.lgkk.polish.inputs(
-    lgkk_polish_rounds = lgkk_polish_rounds,
-    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
-    lgkk_rounds_coarse = lgkk_rounds_coarse,
-    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
-    lgkk_rounds_final = lgkk_rounds_final,
-    lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = lgkk_multiscale_scope,
-    lgkk_active_limit = lgkk_active_limit
+    lgkk.polish.rounds = lgkk.polish.rounds,
+    lgkk.multiscale.rounds = lgkk.multiscale.rounds,
+    lgkk.rounds.coarse = lgkk.rounds.coarse,
+    lgkk.rounds.pre.final = lgkk.rounds.pre.final,
+    lgkk.rounds.final = lgkk.rounds.final,
+    lgkk.local.nbrs = lgkk.local.nbrs,
+    lgkk.landmark.count = lgkk.landmark.count,
+    lgkk.multiscale.scope = lgkk.multiscale.scope,
+    lgkk.active.limit = lgkk.active.limit
   )
-  lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
-  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
-  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
-  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
-  lgkk_rounds_final <- lgkk$lgkk_rounds_final
-  lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
-  lgkk_landmark_count <- lgkk$lgkk_landmark_count
-  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
-  lgkk_active_limit <- lgkk$lgkk_active_limit
+  lgkk.polish.rounds <- lgkk$lgkk_polish_rounds
+  lgkk.multiscale.rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk.rounds.coarse <- lgkk$lgkk_rounds_coarse
+  lgkk.rounds.pre.final <- lgkk$lgkk_rounds_pre_final
+  lgkk.rounds.final <- lgkk$lgkk_rounds_final
+  lgkk.local.nbrs <- lgkk$lgkk_local_nbrs
+  lgkk.landmark.count <- lgkk$lgkk_landmark_count
+  lgkk.multiscale.scope <- lgkk$lgkk_multiscale_scope
+  lgkk.active.limit <- lgkk$lgkk_active_limit
 
-  layout.adj <- function(adj_list, weight_list, n) {
+  layout.adj <- function(adj.list, weight.list, n) {
     coords <- grip_layout_globalrep_adj_cpp(
-      adj_list = adj_list,
-      weight_list = weight_list,
+      adj_list = adj.list,
+      weight_list = weight.list,
       n = n,
       dim = dim,
       placement = placement,
       rounds = as.integer(rounds),
-      final_rounds = as.integer(final_rounds),
-      num_init = as.integer(num_init),
-      num_nbrs = num_nbrs,
+      final_rounds = as.integer(final.rounds),
+      num_init = as.integer(num.init),
+      num_nbrs = num.nbrs,
       r = r,
       s = s,
-      repulsion_factor = repulsion_factor,
-      coarse_repulsion_factor = coarse_repulsion_factor,
-      coarse_repulsion_sample = coarse_repulsion_sample,
-      coarse_repulsion_exact_below = coarse_repulsion_exact_below,
-      final_anchor_factor = final_anchor_factor,
-      final_move_scale_after_first = final_move_scale_after_first,
-      insertion_anchor_count = insertion_anchor_count,
-      insertion_anchor_scope = insertion_anchor_scope,
-      insertion_anchor_strategy = insertion_anchor_strategy,
-      level0_insertion_mode = level0_insertion_mode,
-      level0_anchor_count = level0_anchor_count,
-      level0_local_kk_steps = level0_local_kk_steps,
-      lgkk_multiscale_rounds = lgkk_multiscale_rounds,
-      lgkk_rounds_coarse = lgkk_rounds_coarse,
-      lgkk_rounds_pre_final = lgkk_rounds_pre_final,
-      lgkk_rounds_final = lgkk_rounds_final,
-      lgkk_local_nbrs = lgkk_local_nbrs,
-      lgkk_landmark_count = lgkk_landmark_count,
-      lgkk_multiscale_scope = lgkk_multiscale_scope,
-      lgkk_active_limit = lgkk_active_limit,
-      final_mode = final_mode,
-      tinit_factor = as.integer(tinit_factor),
+      repulsion_factor = repulsion.factor,
+      coarse_repulsion_factor = coarse.repulsion.factor,
+      coarse_repulsion_sample = coarse.repulsion.sample,
+      coarse_repulsion_exact_below = coarse.repulsion.exact.below,
+      final_anchor_factor = final.anchor.factor,
+      final_move_scale_after_first = final.move.scale.after.first,
+      insertion_anchor_count = insertion.anchor.count,
+      insertion_anchor_scope = insertion.anchor.scope,
+      insertion_anchor_strategy = insertion.anchor.strategy,
+      level0_insertion_mode = level0.insertion.mode,
+      level0_anchor_count = level0.anchor.count,
+      level0_local_kk_steps = level0.local.kk.steps,
+      lgkk_multiscale_rounds = lgkk.multiscale.rounds,
+      lgkk_rounds_coarse = lgkk.rounds.coarse,
+      lgkk_rounds_pre_final = lgkk.rounds.pre.final,
+      lgkk_rounds_final = lgkk.rounds.final,
+      lgkk_local_nbrs = lgkk.local.nbrs,
+      lgkk_landmark_count = lgkk.landmark.count,
+      lgkk_multiscale_scope = lgkk.multiscale.scope,
+      lgkk_active_limit = lgkk.active.limit,
+      final_mode = final.mode,
+      tinit_factor = as.integer(tinit.factor),
       seed = seed
     )
     polished <- grip.apply.lgkk.polish(
       coords = coords,
-      adj_list = adj_list,
-      weight_list = weight_list,
-      rounds = lgkk_polish_rounds,
-      lgkk_local_nbrs = lgkk_local_nbrs,
-      lgkk_landmark_count = lgkk_landmark_count,
-      return_trace = FALSE
+      adj.list = adj.list,
+      weight.list = weight.list,
+      rounds = lgkk.polish.rounds,
+      lgkk.local.nbrs = lgkk.local.nbrs,
+      lgkk.landmark.count = lgkk.landmark.count,
+      return.trace = FALSE
     )
     polished$coords
   }
 
-  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  comp <- grip.connected.components(adj.list = adj.list, n = n)
   n.comp <- length(unique(comp))
 
   if (n.comp == 1L) {
-    return(layout.adj(adj_list = adj_list, weight_list = weight_list, n = n))
+    return(layout.adj(adj.list = adj.list, weight.list = weight.list, n = n))
   }
 
   if (identical(disconnected, "error")) {
@@ -1026,14 +1026,14 @@ globalrep.grip <- function(edges = NULL,
   for (k in seq_along(comp.ids)) {
     rows <- which(comp == comp.ids[[k]])
     sub <- grip.induce.subgraph(
-      adj_list = adj_list,
-      weight_list = weight_list,
+      adj.list = adj.list,
+      weight.list = weight.list,
       vertices = rows,
       n = n
     )
     layouts[[k]] <- layout.adj(
-      adj_list = sub$adj_list,
-      weight_list = sub$weight_list,
+      adj.list = sub$adj_list,
+      weight.list = sub$weight_list,
       n = length(rows)
     )
   }
@@ -1046,19 +1046,19 @@ globalrep.grip <- function(edges = NULL,
 #' engine with extra coarse-level global repulsion to reduce foldovers while
 #' preserving the usual GRIP refinement structure. With \code{preset = NULL},
 #' the default profile is tuned for higher-quality layouts and automatically
-#' tapers \code{final_rounds} on larger graphs.
+#' tapers \code{final.rounds} on larger graphs.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
-#'   Supply either \code{edges}/\code{edge_weights} or
-#'   \code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+#'   Supply either \code{edges}/\code{edge.weights} or
+#'   \code{adj.list}/\code{weight.list}, not both. Fractional, nonfinite,
 #'   and out-of-range vertex ids are rejected before integer conversion.
 #' @param n Number of vertices, a finite positive integer.
-#' @param adj_list Adjacency list (1-based) for undirected graphs.
-#' @param weight_list Parallel list of edge lengths for \code{adj_list}.
+#' @param adj.list Adjacency list (1-based) for undirected graphs.
+#' @param weight.list Parallel list of edge lengths for \code{adj.list}.
 #'   The edge-length-metric engine requires it; in the hop-metric engine,
 #'   \code{NULL} treats all edges as length 1. All supplied lengths must be
 #'   finite and strictly positive.
-#' @param edge_weights Vector of edge lengths for \code{edges}, in the same
+#' @param edge.weights Vector of edge lengths for \code{edges}, in the same
 #'   order as its rows. The edge-length-metric engine requires it; in the
 #'   hop-metric engine, \code{NULL} treats all edges as length 1. All supplied
 #'   lengths must be finite and strictly positive. The selected engine
@@ -1082,41 +1082,41 @@ globalrep.grip <- function(edges = NULL,
 #'   6. Presets only fill in tuning arguments that you did not supply
 #'   explicitly.
 #' @param rounds Initial rounds for refinement.
-#' @param final_rounds Final rounds for refinement.
-#' @param num_init Number of initial vertices in the coarsest level.
-#' @param num_nbrs Maximum number of graph-distance neighbors retained for local
+#' @param final.rounds Final rounds for refinement.
+#' @param num.init Number of initial vertices in the coarsest level.
+#' @param num.nbrs Maximum number of graph-distance neighbors retained for local
 #'   refinement at each filtration level.
 #' @param r Main local temperature adaptation rate in \code{[0, 1]}.
 #' @param s Non-negative boost factor applied when successive displacements have
 #'   a consistent direction.
-#' @param repulsion_factor Non-negative multiplier applied to GRIP's
+#' @param repulsion.factor Non-negative multiplier applied to GRIP's
 #'   finest-level repulsive force scale.
-#' @param coarse_repulsion_factor Non-negative multiplier applied to the extra
+#' @param coarse.repulsion.factor Non-negative multiplier applied to the extra
 #'   coarse-level active-set repulsion term. \code{0} disables that extra term.
-#' @param coarse_repulsion_sample Positive integer sample size used to
+#' @param coarse.repulsion.sample Positive integer sample size used to
 #'   approximate active-set-wide repulsion on larger coarse levels.
-#' @param coarse_repulsion_exact_below Positive integer threshold. When the
+#' @param coarse.repulsion.exact.below Positive integer threshold. When the
 #'   active set size is at most this value, the coarse repulsion is computed
 #'   exactly against all currently active vertices instead of being sampled.
-#' @param final_anchor_factor Non-negative multiplier for an anchor term that
+#' @param final.anchor.factor Non-negative multiplier for an anchor term that
 #'   pulls the final FR stage back toward the pre-final full-graph layout.
 #'   `0` disables the anchor and preserves the current behavior.
-#' @param final_move_scale_after_first Scalar in `[0, 1]` applied to the final
+#' @param final.move.scale.after.first Scalar in `[0, 1]` applied to the final
 #'   FR displacement after the first finest-level round. Values below `1`
 #'   damp later full-graph movement while keeping the first FR round unchanged.
-#' @param final_mode Final full-graph refinement mode. \code{"fr"} keeps the
+#' @param final.mode Final full-graph refinement mode. \code{"fr"} keeps the
 #'   current Fruchterman-Reingold-style final stage. \code{"kk_repulse"} uses a
 #'   KK-style local distance-matching update with explicit active-set
 #'   repulsion instead of the final FR phase.
-#' @param insertion_anchor_count Positive integer number of anchor vertices used
+#' @param insertion.anchor.count Positive integer number of anchor vertices used
 #'   during multiscale insertion on non-initial MISF refinement levels. This is
 #'   the closest current implementation to a global \code{K_mish} parameter.
-#' @param insertion_anchor_scope Anchor-eligibility rule used during multiscale
+#' @param insertion.anchor.scope Anchor-eligibility rule used during multiscale
 #'   insertion. \code{"any_higher"} matches the historical GRIP behavior and
 #'   allows anchors from any already placed higher MISF level.
 #'   \code{"prev_misf"} restricts anchors to the immediately previous MISF
 #'   level only.
-#' @param insertion_anchor_strategy Anchor-selection rule used during
+#' @param insertion.anchor.strategy Anchor-selection rule used during
 #'   multiscale insertion. \code{"first"} keeps the historical
 #'   first-anchors-found BFS behavior. \code{"distance_band"} keeps exploring
 #'   until the \code{K_mish}-th anchor distance band is exhausted, then places
@@ -1125,62 +1125,62 @@ globalrep.grip <- function(edges = NULL,
 #'   selects a subset whose centroid stays centered in the candidate cloud while
 #'   remaining geometrically spread out. \code{"spread_prev"} is a
 #'   symmetry-oriented band strategy intended to be paired with
-#'   \code{insertion_anchor_scope = "prev_misf"}; it selects anchors with broad
+#'   \code{insertion.anchor.scope = "prev_misf"}; it selects anchors with broad
 #'   angular and geometric coverage before placement.
-#' @param level0_insertion_mode Level-0 insertion placement override used only
+#' @param level0.insertion.mode Level-0 insertion placement override used only
 #'   when the finest filtration level is first populated. \code{"inherit"}
 #'   keeps the current GRIP behavior. \code{"barycenter"} disables the 2D
 #'   circle heuristic at level 0 and uses barycentric anchor placement.
 #'   \code{"least_squares"} uses a multi-anchor least-squares distance fit at
 #'   level 0 before any local micro-polish.
-#' @param level0_anchor_count Positive integer number of already placed anchors
+#' @param level0.anchor.count Positive integer number of already placed anchors
 #'   to collect for level-0 insertion experiments. By default this inherits
-#'   \code{insertion_anchor_count}. The legacy behavior uses 3.
-#' @param level0_local_kk_steps Non-negative integer number of tiny local KK
+#'   \code{insertion.anchor.count}. The legacy behavior uses 3.
+#' @param level0.local.kk.steps Non-negative integer number of tiny local KK
 #'   micro-polish steps applied immediately after each level-0 insertion. The
 #'   legacy behavior uses 3.
-#' @param lgkk_polish_rounds Non-negative integer number of experimental
+#' @param lgkk.polish.rounds Non-negative integer number of experimental
 #'   landmark-geodesic KK polish iterations applied after the main GRIP solve.
 #'   \code{0} disables the polish.
-#' @param lgkk_multiscale_rounds Non-negative integer number of compiled
+#' @param lgkk.multiscale.rounds Non-negative integer number of compiled
 #'   landmark-geodesic KK refinement rounds applied inside the multiscale solver
 #'   after each eligible MISF level completes its standard GRIP rounds.
 #'   This legacy shared budget is used as a fallback when any of the more
 #'   specific per-stage budgets below are left \code{NULL}.
-#' @param lgkk_rounds_coarse Optional non-negative integer number of compiled
+#' @param lgkk.rounds.coarse Optional non-negative integer number of compiled
 #'   LGKK rounds applied on coarse MISF levels with \code{misf_level > 1}.
-#'   When \code{NULL}, this falls back to \code{lgkk_multiscale_rounds}.
-#' @param lgkk_rounds_pre_final Optional non-negative integer number of compiled
+#'   When \code{NULL}, this falls back to \code{lgkk.multiscale.rounds}.
+#' @param lgkk.rounds.pre.final Optional non-negative integer number of compiled
 #'   LGKK rounds applied on the last coarse level just before the full graph is
 #'   opened (\code{misf_level == 1}). When \code{NULL}, this falls back to
-#'   \code{lgkk_multiscale_rounds}.
-#' @param lgkk_rounds_final Optional non-negative integer number of compiled
+#'   \code{lgkk.multiscale.rounds}.
+#' @param lgkk.rounds.final Optional non-negative integer number of compiled
 #'   LGKK rounds applied after the full graph level completes its standard GRIP
 #'   rounds (\code{misf_level == 0}). When \code{NULL}, this falls back to
-#'   \code{lgkk_multiscale_rounds}.
-#' @param lgkk_local_nbrs Number of nearest graph-metric neighbors retained per
+#'   \code{lgkk.multiscale.rounds}.
+#' @param lgkk.local.nbrs Number of nearest graph-metric neighbors retained per
 #'   vertex in the LGKK sparse local set when either LGKK stage is enabled.
-#' @param lgkk_landmark_count Number of farthest-point landmarks retained per
+#' @param lgkk.landmark.count Number of farthest-point landmarks retained per
 #'   vertex in the LGKK sparse long-range set when either LGKK stage is
 #'   enabled.
-#' @param lgkk_multiscale_scope Scope for the compiled multiscale LGKK stage.
+#' @param lgkk.multiscale.scope Scope for the compiled multiscale LGKK stage.
 #'   \code{"all"} applies it after every eligible MISF level, including the
 #'   final full-graph level. \code{"coarse"} applies it only on coarse levels.
-#' @param lgkk_active_limit Positive integer upper bound on the active-set size
+#' @param lgkk.active.limit Positive integer upper bound on the active-set size
 #'   for compiled multiscale LGKK cache construction. Levels larger than this
 #'   skip the multiscale LGKK stage.
-#' @param metric_neighbor_cap Weighted-metric search limit used only when
+#' @param metric.neighbor.cap Weighted-metric search limit used only when
 #'   \code{metric = "edge_length"}. \code{NULL} performs the exact weighted
 #'   neighborhood search and stops once the required neighbors and anchors are
 #'   filled. A positive integer enables an approximate search by limiting the
 #'   number of settled vertices per search. It is an error to supply this
 #'   argument with \code{metric = "hop"}.
-#' @param length_normalization Global normalization applied only when
+#' @param length.normalization Global normalization applied only when
 #'   \code{metric = "edge_length"}: \code{"median"} (default) divides every
 #'   edge length by their median, \code{"mean"} divides by their mean, and
 #'   \code{"none"} preserves the supplied numerical scale. It is an error to
 #'   supply this argument with \code{metric = "hop"}.
-#' @param tinit_factor Initial temperature factor.
+#' @param tinit.factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
 #'   \code{"components"} (default) lays out each connected component separately
@@ -1189,7 +1189,7 @@ globalrep.grip <- function(edges = NULL,
 #' @details
 #' \strong{Edge-length semantics}
 #'
-#' The arguments \code{edge_weights} and \code{weight_list} are historically
+#' The arguments \code{edge.weights} and \code{weight.list} are historically
 #' named but represent positive edge \emph{lengths} or traversal costs, not
 #' connection strengths, capacities, or similarities. A larger value requests
 #' a longer geometric edge. If the available values are strengths for which a
@@ -1215,15 +1215,15 @@ globalrep.grip <- function(edges = NULL,
 #' used instead of hop-count breadth-first searches. By default, all lengths
 #' are divided by their median before layout; this preserves relative geometry
 #' while placing the numerical scale near the solver's unit scale. Use
-#' \code{length_normalization = "mean"} for mean scaling or \code{"none"} when
+#' \code{length.normalization = "mean"} for mean scaling or \code{"none"} when
 #' the absolute supplied scale is intentional. Multiplying all input lengths
 #' by the same positive constant therefore leaves the default normalized solve
 #' unchanged.
 #'
 #' For \code{edges} input, provide one value per row through
-#' \code{edge_weights}. For \code{adj_list} input, provide a parallel
-#' \code{weight_list}: \code{weight_list[[i]][j]} is the length of the edge from
-#' vertex \code{i} to \code{adj_list[[i]][j]}. For an undirected graph, the
+#' \code{edge.weights}. For \code{adj.list} input, provide a parallel
+#' \code{weight.list}: \code{weight.list[[i]][j]} is the length of the edge from
+#' vertex \code{i} to \code{adj.list[[i]][j]}. For an undirected graph, the
 #' adjacency and length entries should be symmetric.
 #' @references
 #' Gajer, P. and Kobourov, S.G. (2002). GRIP: Graph dRawing with Intelligent
@@ -1238,9 +1238,9 @@ globalrep.grip <- function(edges = NULL,
 #' @examples
 #' edges <- edges.mesh(4, 4)
 #' coords <- grip(edges, n = max(edges), dim = 2,
-#'                       coarse_repulsion_factor = 0.2,
-#'                       coarse_repulsion_sample = 8,
-#'                       coarse_repulsion_exact_below = 32,
+#'                       coarse.repulsion.factor = 0.2,
+#'                       coarse.repulsion.sample = 8,
+#'                       coarse.repulsion.exact.below = 32,
 #'                       seed = 1)
 #' round(coords, 3)
 #'
@@ -1248,9 +1248,9 @@ globalrep.grip <- function(edges = NULL,
 #' path <- cbind(1:5, 2:6)
 #' lengths <- c(1, 1, 2, 1, 1)
 #' weighted.coords <- grip(
-#'   path, n = 6, edge_weights = lengths,
+#'   path, n = 6, edge.weights = lengths,
 #'   metric = "edge_length", dim = 2,
-#'   rounds = 4, final_rounds = 4, num_init = 3, seed = 1
+#'   rounds = 4, final.rounds = 4, num.init = 3, seed = 1
 #' )
 #' @export
 #' @md
@@ -1260,49 +1260,49 @@ globalrep.grip <- function(edges = NULL,
 #' guides with \code{vignette(package = "grip")}.
 grip <- function(edges = NULL,
                         n = NULL,
-                        adj_list = NULL,
-                        weight_list = NULL,
-                        edge_weights = NULL,
+                        adj.list = NULL,
+                        weight.list = NULL,
+                        edge.weights = NULL,
                         dim = 3,
                         placement = c("barycenter", "circle"),
                         preset = NULL,
                         rounds = 160,
-                        final_rounds = 384,
-                        num_init = 24,
-                        num_nbrs = 20,
+                        final.rounds = 384,
+                        num.init = 24,
+                        num.nbrs = 20,
                         r = 0.03,
                         s = 7.5,
-                        repulsion_factor = 2.5,
-                        coarse_repulsion_factor = 1.5,
-                        coarse_repulsion_sample = 16,
-                        coarse_repulsion_exact_below = 64,
-                        final_anchor_factor = 0,
-                        final_move_scale_after_first = 1,
-                        final_mode = c("fr", "kk_repulse"),
-                        insertion_anchor_count = 3,
-                        insertion_anchor_scope = c("any_higher", "prev_misf"),
-                        insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                        level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                        level0_anchor_count = insertion_anchor_count,
-                        level0_local_kk_steps = 3,
-                        lgkk_polish_rounds = 0L,
-                        lgkk_multiscale_rounds = 0L,
-                        lgkk_rounds_coarse = NULL,
-                        lgkk_rounds_pre_final = NULL,
-                        lgkk_rounds_final = NULL,
-                        lgkk_local_nbrs = 20L,
-                        lgkk_landmark_count = 8L,
-                        lgkk_multiscale_scope = c("all", "coarse"),
-                        lgkk_active_limit = 4096L,
-                        tinit_factor = 6,
+                        repulsion.factor = 2.5,
+                        coarse.repulsion.factor = 1.5,
+                        coarse.repulsion.sample = 16,
+                        coarse.repulsion.exact.below = 64,
+                        final.anchor.factor = 0,
+                        final.move.scale.after.first = 1,
+                        final.mode = c("fr", "kk_repulse"),
+                        insertion.anchor.count = 3,
+                        insertion.anchor.scope = c("any_higher", "prev_misf"),
+                        insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                        level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                        level0.anchor.count = insertion.anchor.count,
+                        level0.local.kk.steps = 3,
+                        lgkk.polish.rounds = 0L,
+                        lgkk.multiscale.rounds = 0L,
+                        lgkk.rounds.coarse = NULL,
+                        lgkk.rounds.pre.final = NULL,
+                        lgkk.rounds.final = NULL,
+                        lgkk.local.nbrs = 20L,
+                        lgkk.landmark.count = 8L,
+                        lgkk.multiscale.scope = c("all", "coarse"),
+                        lgkk.active.limit = 4096L,
+                        tinit.factor = 6,
                         seed = 6,
                         disconnected = c("components", "error"),
                         metric = c("hop", "edge_length"),
-                        metric_neighbor_cap = NULL,
-                        length_normalization = c("median", "mean", "none")) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
-  length_normalization_missing <- missing(length_normalization)
+                        metric.neighbor.cap = NULL,
+                        length.normalization = c("median", "mean", "none")) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  metric_neighbor_cap_missing <- missing(metric.neighbor.cap)
+  length_normalization_missing <- missing(length.normalization)
   metric <- match.arg(metric)
 
   call <- match.call(expand.dots = FALSE)
@@ -1317,10 +1317,10 @@ grip <- function(edges = NULL,
     }
     call$metric_neighbor_cap <- NULL
     call$length_normalization <- NULL
-    return(grip.forward_call(globalrep.grip, call, env = parent.frame()))
+    return(grip.forward.call(globalrep.grip, call, env = parent.frame()))
   }
 
-  grip.forward_call(globalrep.weighted.grip, call, env = parent.frame())
+  grip.forward.call(globalrep.weighted.grip, call, env = parent.frame())
 }
 
 #' Compute the legacy GRIP layout
@@ -1331,15 +1331,15 @@ grip <- function(edges = NULL,
 #' pre-global-repulsion behavior.
 #'
 #' @param edges Two-column integer matrix of edges (1-based vertex ids).
-#'   Supply either \code{edges}/\code{edge_weights} or
-#'   \code{adj_list}/\code{weight_list}, not both. Fractional, nonfinite,
+#'   Supply either \code{edges}/\code{edge.weights} or
+#'   \code{adj.list}/\code{weight.list}, not both. Fractional, nonfinite,
 #'   and out-of-range vertex ids are rejected before integer conversion.
 #' @param n Number of vertices, a finite positive integer.
-#' @param adj_list Adjacency list (1-based) for undirected graphs.
-#' @param weight_list Optional parallel list of edge weights (edge lengths).
+#' @param adj.list Adjacency list (1-based) for undirected graphs.
+#' @param weight.list Optional parallel list of edge weights (edge lengths).
 #'   If NULL, all edges are treated as weight 1. All weights must be finite
 #'   and strictly positive.
-#' @param edge_weights Optional vector of edge weights for \code{edges}. All
+#' @param edge.weights Optional vector of edge weights for \code{edges}. All
 #'   weights must be finite and strictly positive.
 #' @param dim Layout dimension (2 or 3). Default is 3.
 #' @param placement Initial placement strategy. "circle" is only used for 2D.
@@ -1354,17 +1354,17 @@ grip <- function(edges = NULL,
 #'   6. Presets only fill in tuning arguments that you did not supply
 #'   explicitly.
 #' @param rounds Initial rounds for refinement.
-#' @param final_rounds Final rounds for refinement.
-#' @param num_init Number of initial vertices in the coarsest level.
-#' @param num_nbrs Maximum number of graph-distance neighbors retained for local
+#' @param final.rounds Final rounds for refinement.
+#' @param num.init Number of initial vertices in the coarsest level.
+#' @param num.nbrs Maximum number of graph-distance neighbors retained for local
 #'   refinement at each filtration level.
 #' @param r Main local temperature adaptation rate in \code{[0, 1]}.
 #' @param s Non-negative boost factor applied when successive displacements have
 #'   a consistent direction.
-#' @param repulsion_factor Non-negative multiplier applied to GRIP's
+#' @param repulsion.factor Non-negative multiplier applied to GRIP's
 #'   finest-level repulsive force scale. \code{1} keeps the historical
 #'   repulsion strength; \code{0} disables that repulsive term.
-#' @param tinit_factor Initial temperature factor.
+#' @param tinit.factor Initial temperature factor.
 #' @param seed Optional RNG seed for reproducibility. If NULL, uses current time.
 #' @param disconnected How to handle disconnected graphs:
 #'   \code{"components"} (default) lays out each connected component separately
@@ -1383,120 +1383,120 @@ grip <- function(edges = NULL,
 #' edges <- cbind(1:5, 2:6)
 #' coords <- legacy.grip(edges, n = 6, dim = 2,
 #'                              placement = "barycenter",
-#'                              rounds = 5, final_rounds = 5,
-#'                              num_init = 3, num_nbrs = 4,
+#'                              rounds = 5, final.rounds = 5,
+#'                              num.init = 3, num.nbrs = 4,
 #'                              seed = 1)
 #' round(coords, 3)
 #' @export
 #' @md
 legacy.grip <- function(edges = NULL,
                                n = NULL,
-                               adj_list = NULL,
-                               weight_list = NULL,
-                               edge_weights = NULL,
+                               adj.list = NULL,
+                               weight.list = NULL,
+                               edge.weights = NULL,
                                dim = 3,
                                placement = c("barycenter", "circle"),
                                preset = NULL,
                                rounds = 20,
-                               final_rounds = 25,
-                               num_init = 36,
-                               num_nbrs = 10,
+                               final.rounds = 25,
+                               num.init = 36,
+                               num.nbrs = 10,
                                r = 0.15,
                                s = 3.0,
-                               repulsion_factor = 1.0,
-                               tinit_factor = 6,
+                               repulsion.factor = 1.0,
+                               tinit.factor = 6,
                                seed = 6,
                                disconnected = c("components", "error")) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
-  final_rounds_missing <- missing(final_rounds)
-  num_init_missing <- missing(num_init)
-  num_nbrs_missing <- missing(num_nbrs)
+  final_rounds_missing <- missing(final.rounds)
+  num_init_missing <- missing(num.init)
+  num_nbrs_missing <- missing(num.nbrs)
   r_missing <- missing(r)
   s_missing <- missing(s)
-  repulsion_factor_missing <- missing(repulsion_factor)
+  repulsion_factor_missing <- missing(repulsion.factor)
 
   preset <- grip.normalize.preset(preset, fn = "legacy.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = placement_missing,
+    placement.missing = placement_missing,
     rounds = rounds,
-    rounds_missing = rounds_missing,
-    final_rounds = final_rounds,
-    final_rounds_missing = final_rounds_missing,
-    num_init = num_init,
-    num_init_missing = num_init_missing,
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = num_nbrs_missing,
+    rounds.missing = rounds_missing,
+    final.rounds = final.rounds,
+    final.rounds.missing = final_rounds_missing,
+    num.init = num.init,
+    num.init.missing = num_init_missing,
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = num_nbrs_missing,
     r = r,
-    r_missing = r_missing,
+    r.missing = r_missing,
     s = s,
-    s_missing = s_missing,
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = repulsion_factor_missing
+    s.missing = s_missing,
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = repulsion_factor_missing
   )
   placement <- resolved$placement
   rounds <- resolved$rounds
-  final_rounds <- resolved$final_rounds
-  num_init <- resolved$num_init
-  num_nbrs <- resolved$num_nbrs
+  final.rounds <- resolved$final_rounds
+  num.init <- resolved$num_init
+  num.nbrs <- resolved$num_nbrs
   r <- resolved$r
   s <- resolved$s
-  repulsion_factor <- resolved$repulsion_factor
+  repulsion.factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   disconnected <- match.arg(disconnected)
 
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     placement = placement,
     seed = seed
   )
-  adj_list <- validated$adj_list
-  weight_list <- validated$weight_list
+  adj.list <- validated$adj_list
+  weight.list <- validated$weight_list
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
   tuning <- grip.validate.tuning.inputs(
-    num_nbrs = num_nbrs,
+    num.nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor
+    repulsion.factor = repulsion.factor
   )
-  num_nbrs <- tuning$num_nbrs
+  num.nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
-  repulsion_factor <- tuning$repulsion_factor
+  repulsion.factor <- tuning$repulsion_factor
 
-  layout.adj <- function(adj_list, weight_list, n) {
-    grip_layout_adj_cpp(adj_list = adj_list,
-                        weight_list = weight_list,
+  layout.adj <- function(adj.list, weight.list, n) {
+    grip_layout_adj_cpp(adj_list = adj.list,
+                        weight_list = weight.list,
                         n = n,
                         dim = dim,
                         placement = placement,
                         rounds = as.integer(rounds),
-                        final_rounds = as.integer(final_rounds),
-                        num_init = as.integer(num_init),
-                        num_nbrs = num_nbrs,
+                        final_rounds = as.integer(final.rounds),
+                        num_init = as.integer(num.init),
+                        num_nbrs = num.nbrs,
                         r = r,
                         s = s,
-                        repulsion_factor = repulsion_factor,
-                        tinit_factor = as.integer(tinit_factor),
+                        repulsion_factor = repulsion.factor,
+                        tinit_factor = as.integer(tinit.factor),
                         seed = seed)
   }
 
-  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  comp <- grip.connected.components(adj.list = adj.list, n = n)
   n.comp <- length(unique(comp))
 
   if (n.comp == 1L) {
-    return(layout.adj(adj_list = adj_list, weight_list = weight_list, n = n))
+    return(layout.adj(adj.list = adj.list, weight.list = weight.list, n = n))
   }
 
   if (identical(disconnected, "error")) {
@@ -1519,14 +1519,14 @@ legacy.grip <- function(edges = NULL,
   for (k in seq_along(comp.ids)) {
     rows <- which(comp == comp.ids[[k]])
     sub <- grip.induce.subgraph(
-      adj_list = adj_list,
-      weight_list = weight_list,
+      adj.list = adj.list,
+      weight.list = weight.list,
       vertices = rows,
       n = n
     )
     layouts[[k]] <- layout.adj(
-      adj_list = sub$adj_list,
-      weight_list = sub$weight_list,
+      adj.list = sub$adj_list,
+      weight.list = sub$weight_list,
       n = length(rows)
     )
   }
@@ -1550,16 +1550,16 @@ legacy.grip <- function(edges = NULL,
 #' @param diagnostics Optional per-frame diagnostic mode. \code{"none"} skips
 #'   extra scoring, \code{"light"} appends lightweight shape diagnostics, and
 #'   \code{"full"} also computes sampled stress on each traced frame.
-#' @param target_coords Optional numeric target coordinate matrix used to append
+#' @param target.coords Optional numeric target coordinate matrix used to append
 #'   per-frame Procrustes RMSE diagnostics. It must have `n` rows and `dim`
 #'   columns.
-#' @param diagnostic_sample_size_nonedge Positive integer sample size used for
+#' @param diagnostic.sample.size.nonedge Positive integer sample size used for
 #'   per-frame non-edge separation diagnostics when \code{diagnostics != "none"}.
-#' @param diagnostic_sample_size_stress Positive integer sample size used for
+#' @param diagnostic.sample.size.stress Positive integer sample size used for
 #'   per-frame sampled stress when \code{diagnostics = "full"}.
-#' @param diagnostic_nonedge_seed RNG seed base used for per-frame non-edge
+#' @param diagnostic.nonedge.seed RNG seed base used for per-frame non-edge
 #'   separation diagnostics.
-#' @param diagnostic_stress_seed RNG seed base used for per-frame sampled stress
+#' @param diagnostic.stress.seed RNG seed base used for per-frame sampled stress
 #'   diagnostics.
 #' @return A list with \code{final}, \code{frames}, \code{meta}, \code{trace},
 #'   \code{trace.every}, canonical \code{stage_trace} and \code{stage_data},
@@ -1581,8 +1581,8 @@ legacy.grip <- function(edges = NULL,
 #' edges <- cbind(1:5, 2:6)
 #' tr <- trace.grip(edges, n = 6, dim = 2,
 #'                         placement = "barycenter",
-#'                         rounds = 3, final_rounds = 2,
-#'                         num_init = 3, num_nbrs = 4,
+#'                         rounds = 3, final.rounds = 2,
+#'                         num.init = 3, num.nbrs = 4,
 #'                         trace = "level",
 #'                         trace.every = 1,
 #'                         diagnostics = "light",
@@ -1591,95 +1591,95 @@ legacy.grip <- function(edges = NULL,
 #' @noRd
 grip.trace.hop <- function(edges = NULL,
                               n = NULL,
-                              adj_list = NULL,
-                              weight_list = NULL,
-                              edge_weights = NULL,
+                              adj.list = NULL,
+                              weight.list = NULL,
+                              edge.weights = NULL,
                               dim = 3,
                               placement = c("barycenter", "circle"),
                               preset = NULL,
                               rounds = 160,
-                              final_rounds = 384,
-                              num_init = 24,
-                              num_nbrs = 20,
+                              final.rounds = 384,
+                              num.init = 24,
+                              num.nbrs = 20,
                               r = 0.03,
                               s = 7.5,
-                              repulsion_factor = 2.5,
-                              coarse_repulsion_factor = 1.5,
-                              coarse_repulsion_sample = 16,
-                              coarse_repulsion_exact_below = 64,
-                              final_anchor_factor = 0,
-                              final_move_scale_after_first = 1,
-                              final_mode = c("fr", "kk_repulse"),
-                              insertion_anchor_count = 3,
-                              insertion_anchor_scope = c("any_higher", "prev_misf"),
-                              insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                              level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                              level0_anchor_count = insertion_anchor_count,
-                              level0_local_kk_steps = 3,
-                              lgkk_polish_rounds = 0L,
-                              lgkk_multiscale_rounds = 0L,
-                              lgkk_rounds_coarse = NULL,
-                              lgkk_rounds_pre_final = NULL,
-                              lgkk_rounds_final = NULL,
-                              lgkk_local_nbrs = 20L,
-                              lgkk_landmark_count = 8L,
-                              lgkk_multiscale_scope = c("all", "coarse"),
-                              lgkk_active_limit = 4096L,
-                              tinit_factor = 6,
+                              repulsion.factor = 2.5,
+                              coarse.repulsion.factor = 1.5,
+                              coarse.repulsion.sample = 16,
+                              coarse.repulsion.exact.below = 64,
+                              final.anchor.factor = 0,
+                              final.move.scale.after.first = 1,
+                              final.mode = c("fr", "kk_repulse"),
+                              insertion.anchor.count = 3,
+                              insertion.anchor.scope = c("any_higher", "prev_misf"),
+                              insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                              level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                              level0.anchor.count = insertion.anchor.count,
+                              level0.local.kk.steps = 3,
+                              lgkk.polish.rounds = 0L,
+                              lgkk.multiscale.rounds = 0L,
+                              lgkk.rounds.coarse = NULL,
+                              lgkk.rounds.pre.final = NULL,
+                              lgkk.rounds.final = NULL,
+                              lgkk.local.nbrs = 20L,
+                              lgkk.landmark.count = 8L,
+                              lgkk.multiscale.scope = c("all", "coarse"),
+                              lgkk.active.limit = 4096L,
+                              tinit.factor = 6,
                               seed = 6,
                               trace = c("round", "level"),
                               trace.every = 1,
                               diagnostics = c("none", "light", "full"),
-                              target_coords = NULL,
-                              diagnostic_sample_size_nonedge = 1000L,
-                              diagnostic_sample_size_stress = 500L,
-                              diagnostic_nonedge_seed = 1L,
-                              diagnostic_stress_seed = 1L) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+                              target.coords = NULL,
+                              diagnostic.sample.size.nonedge = 1000L,
+                              diagnostic.sample.size.stress = 500L,
+                              diagnostic.nonedge.seed = 1L,
+                              diagnostic.stress.seed = 1L) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
-  final_rounds_missing <- missing(final_rounds)
-  num_init_missing <- missing(num_init)
-  num_nbrs_missing <- missing(num_nbrs)
+  final_rounds_missing <- missing(final.rounds)
+  num_init_missing <- missing(num.init)
+  num_nbrs_missing <- missing(num.nbrs)
   r_missing <- missing(r)
   s_missing <- missing(s)
-  repulsion_factor_missing <- missing(repulsion_factor)
+  repulsion_factor_missing <- missing(repulsion.factor)
 
   preset <- grip.normalize.preset(preset, fn = "trace.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = placement_missing,
+    placement.missing = placement_missing,
     rounds = rounds,
-    rounds_missing = rounds_missing,
-    final_rounds = final_rounds,
-    final_rounds_missing = final_rounds_missing,
-    num_init = num_init,
-    num_init_missing = num_init_missing,
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = num_nbrs_missing,
+    rounds.missing = rounds_missing,
+    final.rounds = final.rounds,
+    final.rounds.missing = final_rounds_missing,
+    num.init = num.init,
+    num.init.missing = num_init_missing,
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = num_nbrs_missing,
     r = r,
-    r_missing = r_missing,
+    r.missing = r_missing,
     s = s,
-    s_missing = s_missing,
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = repulsion_factor_missing
+    s.missing = s_missing,
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = repulsion_factor_missing
   )
   placement <- resolved$placement
   rounds <- resolved$rounds
-  final_rounds <- resolved$final_rounds
-  num_init <- resolved$num_init
-  num_nbrs <- resolved$num_nbrs
+  final.rounds <- resolved$final_rounds
+  num.init <- resolved$num_init
+  num.nbrs <- resolved$num_nbrs
   r <- resolved$r
   s <- resolved$s
-  repulsion_factor <- resolved$repulsion_factor
+  repulsion.factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
-  final_mode <- match.arg(final_mode)
-  insertion_anchor_scope <- match.arg(insertion_anchor_scope)
-  insertion_anchor_strategy <- match.arg(insertion_anchor_strategy)
-  level0_insertion_mode <- match.arg(level0_insertion_mode)
-  lgkk_multiscale_scope <- match.arg(lgkk_multiscale_scope)
+  final.mode <- match.arg(final.mode)
+  insertion.anchor.scope <- match.arg(insertion.anchor.scope)
+  insertion.anchor.strategy <- match.arg(insertion.anchor.strategy)
+  level0.insertion.mode <- match.arg(level0.insertion.mode)
+  lgkk.multiscale.scope <- match.arg(lgkk.multiscale.scope)
   trace <- match.arg(trace)
   diagnostics <- match.arg(diagnostics)
 
@@ -1694,76 +1694,76 @@ grip.trace.hop <- function(edges = NULL,
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     placement = placement,
     seed = seed
   )
-  adj_list <- validated$adj_list
-  weight_list <- validated$weight_list
+  adj.list <- validated$adj_list
+  weight.list <- validated$weight_list
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
-  trace.edges <- grip.edges.from.adj.list(adj_list)
+  trace.edges <- grip.edges.from.adj.list(adj.list)
   if (is.null(preset) && final_rounds_missing) {
-    final_rounds <- grip.globalrep.default.final_rounds(n)
+    final.rounds <- grip.globalrep.default.final.rounds(n)
   }
   tuning <- grip.validate.globalrep.tuning.inputs(
-    num_nbrs = num_nbrs,
+    num.nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor,
-    coarse_repulsion_factor = coarse_repulsion_factor,
-    coarse_repulsion_sample = coarse_repulsion_sample,
-    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
-    final_anchor_factor = final_anchor_factor,
-    final_move_scale_after_first = final_move_scale_after_first,
-    insertion_anchor_count = insertion_anchor_count,
-    insertion_anchor_scope = insertion_anchor_scope,
-    insertion_anchor_strategy = insertion_anchor_strategy,
-    level0_insertion_mode = level0_insertion_mode,
-    level0_anchor_count = level0_anchor_count,
-    level0_local_kk_steps = level0_local_kk_steps
+    repulsion.factor = repulsion.factor,
+    coarse.repulsion.factor = coarse.repulsion.factor,
+    coarse.repulsion.sample = coarse.repulsion.sample,
+    coarse.repulsion.exact.below = coarse.repulsion.exact.below,
+    final.anchor.factor = final.anchor.factor,
+    final.move.scale.after.first = final.move.scale.after.first,
+    insertion.anchor.count = insertion.anchor.count,
+    insertion.anchor.scope = insertion.anchor.scope,
+    insertion.anchor.strategy = insertion.anchor.strategy,
+    level0.insertion.mode = level0.insertion.mode,
+    level0.anchor.count = level0.anchor.count,
+    level0.local.kk.steps = level0.local.kk.steps
   )
-  num_nbrs <- tuning$num_nbrs
+  num.nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
-  repulsion_factor <- tuning$repulsion_factor
-  coarse_repulsion_factor <- tuning$coarse_repulsion_factor
-  coarse_repulsion_sample <- tuning$coarse_repulsion_sample
-  coarse_repulsion_exact_below <- tuning$coarse_repulsion_exact_below
-  final_anchor_factor <- tuning$final_anchor_factor
-  final_move_scale_after_first <- tuning$final_move_scale_after_first
-  insertion_anchor_count <- tuning$insertion_anchor_count
-  insertion_anchor_scope <- tuning$insertion_anchor_scope
-  insertion_anchor_strategy <- tuning$insertion_anchor_strategy
-  level0_insertion_mode <- tuning$level0_insertion_mode
-  level0_anchor_count <- tuning$level0_anchor_count
-  level0_local_kk_steps <- tuning$level0_local_kk_steps
+  repulsion.factor <- tuning$repulsion_factor
+  coarse.repulsion.factor <- tuning$coarse_repulsion_factor
+  coarse.repulsion.sample <- tuning$coarse_repulsion_sample
+  coarse.repulsion.exact.below <- tuning$coarse_repulsion_exact_below
+  final.anchor.factor <- tuning$final_anchor_factor
+  final.move.scale.after.first <- tuning$final_move_scale_after_first
+  insertion.anchor.count <- tuning$insertion_anchor_count
+  insertion.anchor.scope <- tuning$insertion_anchor_scope
+  insertion.anchor.strategy <- tuning$insertion_anchor_strategy
+  level0.insertion.mode <- tuning$level0_insertion_mode
+  level0.anchor.count <- tuning$level0_anchor_count
+  level0.local.kk.steps <- tuning$level0_local_kk_steps
   lgkk <- grip.validate.lgkk.polish.inputs(
-    lgkk_polish_rounds = lgkk_polish_rounds,
-    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
-    lgkk_rounds_coarse = lgkk_rounds_coarse,
-    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
-    lgkk_rounds_final = lgkk_rounds_final,
-    lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = lgkk_multiscale_scope,
-    lgkk_active_limit = lgkk_active_limit
+    lgkk.polish.rounds = lgkk.polish.rounds,
+    lgkk.multiscale.rounds = lgkk.multiscale.rounds,
+    lgkk.rounds.coarse = lgkk.rounds.coarse,
+    lgkk.rounds.pre.final = lgkk.rounds.pre.final,
+    lgkk.rounds.final = lgkk.rounds.final,
+    lgkk.local.nbrs = lgkk.local.nbrs,
+    lgkk.landmark.count = lgkk.landmark.count,
+    lgkk.multiscale.scope = lgkk.multiscale.scope,
+    lgkk.active.limit = lgkk.active.limit
   )
-  lgkk_polish_rounds <- lgkk$lgkk_polish_rounds
-  lgkk_multiscale_rounds <- lgkk$lgkk_multiscale_rounds
-  lgkk_rounds_coarse <- lgkk$lgkk_rounds_coarse
-  lgkk_rounds_pre_final <- lgkk$lgkk_rounds_pre_final
-  lgkk_rounds_final <- lgkk$lgkk_rounds_final
-  lgkk_local_nbrs <- lgkk$lgkk_local_nbrs
-  lgkk_landmark_count <- lgkk$lgkk_landmark_count
-  lgkk_multiscale_scope <- lgkk$lgkk_multiscale_scope
-  lgkk_active_limit <- lgkk$lgkk_active_limit
+  lgkk.polish.rounds <- lgkk$lgkk_polish_rounds
+  lgkk.multiscale.rounds <- lgkk$lgkk_multiscale_rounds
+  lgkk.rounds.coarse <- lgkk$lgkk_rounds_coarse
+  lgkk.rounds.pre.final <- lgkk$lgkk_rounds_pre_final
+  lgkk.rounds.final <- lgkk$lgkk_rounds_final
+  lgkk.local.nbrs <- lgkk$lgkk_local_nbrs
+  lgkk.landmark.count <- lgkk$lgkk_landmark_count
+  lgkk.multiscale.scope <- lgkk$lgkk_multiscale_scope
+  lgkk.active.limit <- lgkk$lgkk_active_limit
 
-  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  comp <- grip.connected.components(adj.list = adj.list, n = n)
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
@@ -1773,52 +1773,52 @@ grip.trace.hop <- function(edges = NULL,
   }
 
   out <- grip_layout_globalrep_trace_adj_cpp(
-    adj_list = adj_list,
-    weight_list = weight_list,
+    adj_list = adj.list,
+    weight_list = weight.list,
     n = n,
     dim = dim,
     placement = placement,
     rounds = as.integer(rounds),
-    final_rounds = as.integer(final_rounds),
-    num_init = as.integer(num_init),
-    num_nbrs = num_nbrs,
+    final_rounds = as.integer(final.rounds),
+    num_init = as.integer(num.init),
+    num_nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor,
-    coarse_repulsion_factor = coarse_repulsion_factor,
-    coarse_repulsion_sample = coarse_repulsion_sample,
-    coarse_repulsion_exact_below = coarse_repulsion_exact_below,
-    final_anchor_factor = final_anchor_factor,
-    final_move_scale_after_first = final_move_scale_after_first,
-    insertion_anchor_count = insertion_anchor_count,
-    insertion_anchor_scope = insertion_anchor_scope,
-    insertion_anchor_strategy = insertion_anchor_strategy,
-    level0_insertion_mode = level0_insertion_mode,
-    level0_anchor_count = level0_anchor_count,
-    level0_local_kk_steps = level0_local_kk_steps,
-    lgkk_multiscale_rounds = lgkk_multiscale_rounds,
-    lgkk_rounds_coarse = lgkk_rounds_coarse,
-    lgkk_rounds_pre_final = lgkk_rounds_pre_final,
-    lgkk_rounds_final = lgkk_rounds_final,
-    lgkk_local_nbrs = lgkk_local_nbrs,
-    lgkk_landmark_count = lgkk_landmark_count,
-    lgkk_multiscale_scope = lgkk_multiscale_scope,
-    lgkk_active_limit = lgkk_active_limit,
-    final_mode = final_mode,
-    tinit_factor = as.integer(tinit_factor),
+    repulsion_factor = repulsion.factor,
+    coarse_repulsion_factor = coarse.repulsion.factor,
+    coarse_repulsion_sample = coarse.repulsion.sample,
+    coarse_repulsion_exact_below = coarse.repulsion.exact.below,
+    final_anchor_factor = final.anchor.factor,
+    final_move_scale_after_first = final.move.scale.after.first,
+    insertion_anchor_count = insertion.anchor.count,
+    insertion_anchor_scope = insertion.anchor.scope,
+    insertion_anchor_strategy = insertion.anchor.strategy,
+    level0_insertion_mode = level0.insertion.mode,
+    level0_anchor_count = level0.anchor.count,
+    level0_local_kk_steps = level0.local.kk.steps,
+    lgkk_multiscale_rounds = lgkk.multiscale.rounds,
+    lgkk_rounds_coarse = lgkk.rounds.coarse,
+    lgkk_rounds_pre_final = lgkk.rounds.pre.final,
+    lgkk_rounds_final = lgkk.rounds.final,
+    lgkk_local_nbrs = lgkk.local.nbrs,
+    lgkk_landmark_count = lgkk.landmark.count,
+    lgkk_multiscale_scope = lgkk.multiscale.scope,
+    lgkk_active_limit = lgkk.active.limit,
+    final_mode = final.mode,
+    tinit_factor = as.integer(tinit.factor),
     seed = seed,
     trace = trace,
     trace_every = trace.every
   )
-  if (lgkk_polish_rounds > 0L) {
+  if (lgkk.polish.rounds > 0L) {
     polished <- grip.apply.lgkk.polish(
       coords = out$final,
-      adj_list = adj_list,
-      weight_list = weight_list,
-      rounds = lgkk_polish_rounds,
-      lgkk_local_nbrs = lgkk_local_nbrs,
-      lgkk_landmark_count = lgkk_landmark_count,
-      return_trace = TRUE
+      adj.list = adj.list,
+      weight.list = weight.list,
+      rounds = lgkk.polish.rounds,
+      lgkk.local.nbrs = lgkk.local.nbrs,
+      lgkk.landmark.count = lgkk.landmark.count,
+      return.trace = TRUE
     )
     if (length(polished$frames) > 1L) {
       add.frames <- polished$frames[-1L]
@@ -1846,14 +1846,14 @@ grip.trace.hop <- function(edges = NULL,
   out$diagnostics <- grip.trace.compute.diagnostics(
     frames = out$frames,
     meta = out$meta,
-    adj.list = adj_list,
-    weight.list = weight_list,
+    adj.list = adj.list,
+    weight.list = weight.list,
     diagnostics = diagnostics,
-    target.coords = target_coords,
-    sample.size.nonedge = diagnostic_sample_size_nonedge,
-    sample.size.stress = diagnostic_sample_size_stress,
-    nonedge.seed = diagnostic_nonedge_seed,
-    stress.seed = diagnostic_stress_seed
+    target.coords = target.coords,
+    sample.size.nonedge = diagnostic.sample.size.nonedge,
+    sample.size.stress = diagnostic.sample.size.stress,
+    nonedge.seed = diagnostic.nonedge.seed,
+    stress.seed = diagnostic.stress.seed
   )
   stage.bundle <- grip.layout.trace.as.stage.bundle(
     trace = out,
@@ -1888,17 +1888,17 @@ grip.trace.hop <- function(edges = NULL,
 #' @param diagnostics Optional per-frame diagnostic mode. \code{"none"} skips
 #'   extra scoring, \code{"light"} appends lightweight shape diagnostics, and
 #'   \code{"full"} also computes sampled stress on each traced frame.
-#' @param target_coords Optional numeric target coordinate matrix used to append
+#' @param target.coords Optional numeric target coordinate matrix used to append
 #'   per-frame Procrustes RMSE diagnostics. It must have \code{n} rows and
 #'   \code{dim} columns.
-#' @param diagnostic_sample_size_nonedge Positive integer sample size used for
+#' @param diagnostic.sample.size.nonedge Positive integer sample size used for
 #'   per-frame non-edge separation diagnostics when
 #'   \code{diagnostics != "none"}.
-#' @param diagnostic_sample_size_stress Positive integer sample size used for
+#' @param diagnostic.sample.size.stress Positive integer sample size used for
 #'   per-frame sampled stress when \code{diagnostics = "full"}.
-#' @param diagnostic_nonedge_seed RNG seed base used for per-frame non-edge
+#' @param diagnostic.nonedge.seed RNG seed base used for per-frame non-edge
 #'   separation diagnostics.
-#' @param diagnostic_stress_seed RNG seed base used for per-frame sampled stress
+#' @param diagnostic.stress.seed RNG seed base used for per-frame sampled stress
 #'   diagnostics.
 #' @return A list containing the final layout, recorded coordinate frames,
 #'   frame metadata, trace settings, canonical stage data, and any requested
@@ -1907,7 +1907,7 @@ grip.trace.hop <- function(edges = NULL,
 #' edges <- cbind(1:5, 2:6)
 #' tr <- trace.grip(
 #'   edges, n = 6, metric = "hop", dim = 2,
-#'   rounds = 3, final_rounds = 2, num_init = 3,
+#'   rounds = 3, final.rounds = 2, num.init = 3,
 #'   trace = "level", diagnostics = "light", seed = 1
 #' )
 #' tr$meta
@@ -1918,56 +1918,56 @@ grip.trace.hop <- function(edges = NULL,
 #' guides with \code{vignette(package = "grip")}.
 trace.grip <- function(edges = NULL,
                        n = NULL,
-                       adj_list = NULL,
-                       weight_list = NULL,
-                       edge_weights = NULL,
+                       adj.list = NULL,
+                       weight.list = NULL,
+                       edge.weights = NULL,
                        dim = 3,
                        placement = c("barycenter", "circle"),
                        preset = NULL,
                        rounds = 160,
-                       final_rounds = 384,
-                       num_init = 24,
-                       num_nbrs = 20,
+                       final.rounds = 384,
+                       num.init = 24,
+                       num.nbrs = 20,
                        r = 0.03,
                        s = 7.5,
-                       repulsion_factor = 2.5,
-                       coarse_repulsion_factor = 1.5,
-                       coarse_repulsion_sample = 16,
-                       coarse_repulsion_exact_below = 64,
-                       final_anchor_factor = 0,
-                       final_move_scale_after_first = 1,
-                       final_mode = c("fr", "kk_repulse"),
-                       insertion_anchor_count = 3,
-                       insertion_anchor_scope = c("any_higher", "prev_misf"),
-                       insertion_anchor_strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
-                       level0_insertion_mode = c("inherit", "barycenter", "least_squares"),
-                       level0_anchor_count = insertion_anchor_count,
-                       level0_local_kk_steps = 3,
-                       lgkk_polish_rounds = 0L,
-                       lgkk_multiscale_rounds = 0L,
-                       lgkk_rounds_coarse = NULL,
-                       lgkk_rounds_pre_final = NULL,
-                       lgkk_rounds_final = NULL,
-                       lgkk_local_nbrs = 20L,
-                       lgkk_landmark_count = 8L,
-                       lgkk_multiscale_scope = c("all", "coarse"),
-                       lgkk_active_limit = 4096L,
-                       tinit_factor = 6,
+                       repulsion.factor = 2.5,
+                       coarse.repulsion.factor = 1.5,
+                       coarse.repulsion.sample = 16,
+                       coarse.repulsion.exact.below = 64,
+                       final.anchor.factor = 0,
+                       final.move.scale.after.first = 1,
+                       final.mode = c("fr", "kk_repulse"),
+                       insertion.anchor.count = 3,
+                       insertion.anchor.scope = c("any_higher", "prev_misf"),
+                       insertion.anchor.strategy = c("first", "distance_band", "balanced_band", "spread_prev"),
+                       level0.insertion.mode = c("inherit", "barycenter", "least_squares"),
+                       level0.anchor.count = insertion.anchor.count,
+                       level0.local.kk.steps = 3,
+                       lgkk.polish.rounds = 0L,
+                       lgkk.multiscale.rounds = 0L,
+                       lgkk.rounds.coarse = NULL,
+                       lgkk.rounds.pre.final = NULL,
+                       lgkk.rounds.final = NULL,
+                       lgkk.local.nbrs = 20L,
+                       lgkk.landmark.count = 8L,
+                       lgkk.multiscale.scope = c("all", "coarse"),
+                       lgkk.active.limit = 4096L,
+                       tinit.factor = 6,
                        seed = 6,
                        trace = c("round", "level"),
                        trace.every = 1,
                        diagnostics = c("none", "light", "full"),
-                       target_coords = NULL,
-                       diagnostic_sample_size_nonedge = 1000L,
-                       diagnostic_sample_size_stress = 500L,
-                       diagnostic_nonedge_seed = 1L,
-                       diagnostic_stress_seed = 1L,
+                       target.coords = NULL,
+                       diagnostic.sample.size.nonedge = 1000L,
+                       diagnostic.sample.size.stress = 500L,
+                       diagnostic.nonedge.seed = 1L,
+                       diagnostic.stress.seed = 1L,
                        metric = c("hop", "edge_length"),
-                       metric_neighbor_cap = NULL,
-                       length_normalization = c("median", "mean", "none")) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
-  metric_neighbor_cap_missing <- missing(metric_neighbor_cap)
-  length_normalization_missing <- missing(length_normalization)
+                       metric.neighbor.cap = NULL,
+                       length.normalization = c("median", "mean", "none")) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  metric_neighbor_cap_missing <- missing(metric.neighbor.cap)
+  length_normalization_missing <- missing(length.normalization)
   metric <- match.arg(metric)
 
   call <- match.call(expand.dots = FALSE)
@@ -1982,10 +1982,10 @@ trace.grip <- function(edges = NULL,
     }
     call$metric_neighbor_cap <- NULL
     call$length_normalization <- NULL
-    return(grip.forward_call(grip.trace.hop, call, env = parent.frame()))
+    return(grip.forward.call(grip.trace.hop, call, env = parent.frame()))
   }
 
-  grip.forward_call(grip.trace.edge.length, call, env = parent.frame())
+  grip.forward.call(grip.trace.edge.length, call, env = parent.frame())
 }
 
 #' Compute a trace for the legacy GRIP layout
@@ -2008,8 +2008,8 @@ trace.grip <- function(edges = NULL,
 #' edges <- cbind(1:5, 2:6)
 #' tr <- trace.legacy.grip(edges, n = 6, dim = 2,
 #'                                placement = "barycenter",
-#'                                rounds = 3, final_rounds = 2,
-#'                                num_init = 3, num_nbrs = 4,
+#'                                rounds = 3, final.rounds = 2,
+#'                                num.init = 3, num.nbrs = 4,
 #'                                trace = "level",
 #'                                trace.every = 1,
 #'                                seed = 1)
@@ -2017,62 +2017,62 @@ trace.grip <- function(edges = NULL,
 #' @export
 trace.legacy.grip <- function(edges = NULL,
                                      n = NULL,
-                                     adj_list = NULL,
-                                     weight_list = NULL,
-                                     edge_weights = NULL,
+                                     adj.list = NULL,
+                                     weight.list = NULL,
+                                     edge.weights = NULL,
                                      dim = 3,
                                      placement = c("barycenter", "circle"),
                                      preset = NULL,
                                      rounds = 20,
-                                     final_rounds = 25,
-                                     num_init = 36,
-                                     num_nbrs = 10,
+                                     final.rounds = 25,
+                                     num.init = 36,
+                                     num.nbrs = 10,
                                      r = 0.15,
                                      s = 3.0,
-                                     repulsion_factor = 1.0,
-                                     tinit_factor = 6,
+                                     repulsion.factor = 1.0,
+                                     tinit.factor = 6,
                                      seed = 6,
                                      trace = c("round", "level"),
                                      trace.every = 1) {
-  grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   placement_missing <- missing(placement)
   rounds_missing <- missing(rounds)
-  final_rounds_missing <- missing(final_rounds)
-  num_init_missing <- missing(num_init)
-  num_nbrs_missing <- missing(num_nbrs)
+  final_rounds_missing <- missing(final.rounds)
+  num_init_missing <- missing(num.init)
+  num_nbrs_missing <- missing(num.nbrs)
   r_missing <- missing(r)
   s_missing <- missing(s)
-  repulsion_factor_missing <- missing(repulsion_factor)
+  repulsion_factor_missing <- missing(repulsion.factor)
 
   preset <- grip.normalize.preset(preset, fn = "trace.legacy.grip")
   resolved <- grip.resolve.preset(
     preset = preset,
     dim = dim,
     placement = placement,
-    placement_missing = placement_missing,
+    placement.missing = placement_missing,
     rounds = rounds,
-    rounds_missing = rounds_missing,
-    final_rounds = final_rounds,
-    final_rounds_missing = final_rounds_missing,
-    num_init = num_init,
-    num_init_missing = num_init_missing,
-    num_nbrs = num_nbrs,
-    num_nbrs_missing = num_nbrs_missing,
+    rounds.missing = rounds_missing,
+    final.rounds = final.rounds,
+    final.rounds.missing = final_rounds_missing,
+    num.init = num.init,
+    num.init.missing = num_init_missing,
+    num.nbrs = num.nbrs,
+    num.nbrs.missing = num_nbrs_missing,
     r = r,
-    r_missing = r_missing,
+    r.missing = r_missing,
     s = s,
-    s_missing = s_missing,
-    repulsion_factor = repulsion_factor,
-    repulsion_factor_missing = repulsion_factor_missing
+    s.missing = s_missing,
+    repulsion.factor = repulsion.factor,
+    repulsion.factor.missing = repulsion_factor_missing
   )
   placement <- resolved$placement
   rounds <- resolved$rounds
-  final_rounds <- resolved$final_rounds
-  num_init <- resolved$num_init
-  num_nbrs <- resolved$num_nbrs
+  final.rounds <- resolved$final_rounds
+  num.init <- resolved$num_init
+  num.nbrs <- resolved$num_nbrs
   r <- resolved$r
   s <- resolved$s
-  repulsion_factor <- resolved$repulsion_factor
+  repulsion.factor <- resolved$repulsion_factor
   placement <- match.arg(placement)
   trace <- match.arg(trace)
 
@@ -2087,30 +2087,30 @@ trace.legacy.grip <- function(edges = NULL,
   validated <- grip.validate.layout.inputs(
     edges = edges,
     n = n,
-    adj_list = adj_list,
-    weight_list = weight_list,
-    edge_weights = edge_weights,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
     dim = dim,
     placement = placement,
     seed = seed
   )
-  adj_list <- validated$adj_list
-  weight_list <- validated$weight_list
+  adj.list <- validated$adj_list
+  weight.list <- validated$weight_list
   n <- validated$n
   dim <- validated$dim
   seed <- validated$seed
   tuning <- grip.validate.tuning.inputs(
-    num_nbrs = num_nbrs,
+    num.nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor
+    repulsion.factor = repulsion.factor
   )
-  num_nbrs <- tuning$num_nbrs
+  num.nbrs <- tuning$num_nbrs
   r <- tuning$r
   s <- tuning$s
-  repulsion_factor <- tuning$repulsion_factor
+  repulsion.factor <- tuning$repulsion_factor
 
-  comp <- grip.connected.components(adj_list = adj_list, n = n)
+  comp <- grip.connected.components(adj.list = adj.list, n = n)
   n.comp <- length(unique(comp))
   if (n.comp != 1L) {
     stop(sprintf(
@@ -2120,19 +2120,19 @@ trace.legacy.grip <- function(edges = NULL,
   }
 
   out <- grip_layout_trace_adj_cpp(
-    adj_list = adj_list,
-    weight_list = weight_list,
+    adj_list = adj.list,
+    weight_list = weight.list,
     n = n,
     dim = dim,
     placement = placement,
     rounds = as.integer(rounds),
-    final_rounds = as.integer(final_rounds),
-    num_init = as.integer(num_init),
-    num_nbrs = num_nbrs,
+    final_rounds = as.integer(final.rounds),
+    num_init = as.integer(num.init),
+    num_nbrs = num.nbrs,
     r = r,
     s = s,
-    repulsion_factor = repulsion_factor,
-    tinit_factor = as.integer(tinit_factor),
+    repulsion_factor = repulsion.factor,
+    tinit_factor = as.integer(tinit.factor),
     seed = seed,
     trace = trace,
     trace_every = trace.every

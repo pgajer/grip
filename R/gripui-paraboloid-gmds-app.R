@@ -44,7 +44,7 @@ gripui.paraboloid.gmds.area.floor.ratio <- function(coords, triangles) {
   as.double(stats::quantile(areas, probs = 0.05, names = FALSE)) / med
 }
 
-gripui.paraboloid.gmds.mesh.roughness <- function(coords, adj_list, edges) {
+gripui.paraboloid.gmds.mesh.roughness <- function(coords, adj.list, edges) {
   centered <- sweep(coords, 2L, colMeans(coords), FUN = "-", check.margin = FALSE)
   median.edge <- stats::median(sqrt(rowSums(
     (centered[edges[, 1L], , drop = FALSE] - centered[edges[, 2L], , drop = FALSE])^2
@@ -53,7 +53,7 @@ gripui.paraboloid.gmds.mesh.roughness <- function(coords, adj_list, edges) {
     return(NA_real_)
   }
   residuals <- vapply(seq_len(nrow(centered)), function(i) {
-    nbrs <- adj_list[[i]]
+    nbrs <- adj.list[[i]]
     if (length(nbrs) == 0L) {
       return(0)
     }
@@ -81,8 +81,8 @@ gripui.paraboloid.gmds.make.case <- function(side = 12L, amplitude = 0.35) {
   prepared <- prepare.graph.geodesic.mds(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
   cmd <- grip.classical.mds.embedding(prepared, dim = 3L, eig = TRUE)
   list(
@@ -104,7 +104,7 @@ gripui.paraboloid.gmds.make.case <- function(side = 12L, amplitude = 0.35) {
 gripui.paraboloid.gmds.metric.row <- function(case,
                                               coords,
                                               method,
-                                              elapsed_sec = NA_real_) {
+                                              elapsed.sec = NA_real_) {
   score <- grip.score.geodesic.mds(coords = coords, prepared = case$prepared)
   aligned <- grip.align.to.target.nd(coords, case$truth, allow.reflection = TRUE)
   list(
@@ -115,7 +115,7 @@ gripui.paraboloid.gmds.metric.row <- function(case,
       rho = aligned$rmse,
       eta = gripui.paraboloid.gmds.mesh.roughness(coords, case$adj_list, case$edges),
       alpha_0.05 = gripui.paraboloid.gmds.area.floor.ratio(coords, case$triangles),
-      runtime_sec = as.double(elapsed_sec),
+      runtime_sec = as.double(elapsed.sec),
       stringsAsFactors = FALSE
     )
   )
@@ -130,25 +130,25 @@ gripui.paraboloid.gmds.constant.schedule <- function(lambda) {
 
 gripui.paraboloid.gmds.compute.payload <- function(side = 12L,
                                                    amplitude = 0.35,
-                                                   lambda_anchor = 0.10,
-                                                   lambda_edge = 0.25,
-                                                   lambda_repulsion = 0.20,
-                                                   max_iter = 15L,
-                                                   n_threads = 0L) {
+                                                   lambda.anchor = 0.10,
+                                                   lambda.edge = 0.25,
+                                                   lambda.repulsion = 0.20,
+                                                   max.iter = 15L,
+                                                   n.threads = 0L) {
   case <- gripui.paraboloid.gmds.make.case(side = side, amplitude = amplitude)
-  max_iter <- grip.validate.count(max_iter, "max_iter")
-  n_threads <- grip.validate.count(n_threads, "n_threads")
-  lambda_anchor <- gripui.paraboloid.gmds.constant.schedule(lambda_anchor)
-  lambda_edge <- gripui.paraboloid.gmds.constant.schedule(lambda_edge)
-  lambda_repulsion <- gripui.paraboloid.gmds.constant.schedule(lambda_repulsion)
+  max.iter <- grip.validate.count(max.iter, "max.iter")
+  n.threads <- grip.validate.count(n.threads, "n.threads")
+  lambda.anchor <- gripui.paraboloid.gmds.constant.schedule(lambda.anchor)
+  lambda.edge <- gripui.paraboloid.gmds.constant.schedule(lambda.edge)
+  lambda.repulsion <- gripui.paraboloid.gmds.constant.schedule(lambda.repulsion)
 
-  anchor_mode <- if (lambda_anchor > 0) "cmdscale" else "none"
+  anchor_mode <- if (lambda.anchor > 0) "cmdscale" else "none"
 
   reference <- gripui.paraboloid.gmds.metric.row(
     case = case,
     coords = case$truth,
     method = "Reference paraboloid",
-    elapsed_sec = 0
+    elapsed.sec = 0
   )
   reference$display_coords <- case$truth
 
@@ -156,48 +156,48 @@ gripui.paraboloid.gmds.compute.payload <- function(side = 12L,
   rep_fit <- grip.optimize.geodesic.mds(
     coords = case$cmd$coords,
     prepared = case$prepared,
-    anchor_mode = anchor_mode,
-    anchor_weight = lambda_anchor,
-    anchor_weight_end = lambda_anchor,
+    anchor.mode = anchor_mode,
+    anchor.weight = lambda.anchor,
+    anchor.weight.end = lambda.anchor,
     continuation = "constant",
-    repulsion_weight = lambda_repulsion,
-    repulsion_weight_end = lambda_repulsion,
-    repulsion_continuation = "constant",
+    repulsion.weight = lambda.repulsion,
+    repulsion.weight.end = lambda.repulsion,
+    repulsion.continuation = "constant",
     engine = "cpp",
-    max_iter = max_iter,
-    n_threads = n_threads,
-    return_trace = FALSE
+    max.iter = max.iter,
+    n.threads = n.threads,
+    return.trace = FALSE
   )
   rep_elapsed <- proc.time()[["elapsed"]] - rep_started
   repulsion <- gripui.paraboloid.gmds.metric.row(
     case = case,
     coords = rep_fit$coords,
     method = "Anchor + Repulsion",
-    elapsed_sec = rep_elapsed
+    elapsed.sec = rep_elapsed
   )
 
   edge_started <- proc.time()[["elapsed"]]
   edge_fit <- grip.optimize.geodesic.mds(
     coords = case$cmd$coords,
     prepared = case$prepared,
-    anchor_mode = anchor_mode,
-    anchor_weight = lambda_anchor,
-    anchor_weight_end = lambda_anchor,
+    anchor.mode = anchor_mode,
+    anchor.weight = lambda.anchor,
+    anchor.weight.end = lambda.anchor,
     continuation = "constant",
-    edge_spring_weight = lambda_edge,
-    edge_spring_weight_end = lambda_edge,
-    edge_spring_continuation = "constant",
+    edge.spring.weight = lambda.edge,
+    edge.spring.weight.end = lambda.edge,
+    edge.spring.continuation = "constant",
     engine = "cpp",
-    max_iter = max_iter,
-    n_threads = n_threads,
-    return_trace = FALSE
+    max.iter = max.iter,
+    n.threads = n.threads,
+    return.trace = FALSE
   )
   edge_elapsed <- proc.time()[["elapsed"]] - edge_started
   edge <- gripui.paraboloid.gmds.metric.row(
     case = case,
     coords = edge_fit$coords,
     method = "Anchor + Edge Spring",
-    elapsed_sec = edge_elapsed
+    elapsed.sec = edge_elapsed
   )
 
   metric_table <- rbind(
@@ -218,11 +218,11 @@ gripui.paraboloid.gmds.compute.payload <- function(side = 12L,
     anchor_edge_spring = edge,
     metric_table = metric_table,
     settings = list(
-      lambda_anchor = lambda_anchor,
-      lambda_edge = lambda_edge,
-      lambda_repulsion = lambda_repulsion,
-      max_iter = max_iter,
-      n_threads = n_threads
+      lambda_anchor = lambda.anchor,
+      lambda_edge = lambda.edge,
+      lambda_repulsion = lambda.repulsion,
+      max_iter = max.iter,
+      n_threads = n.threads
     )
   )
 }
@@ -259,7 +259,7 @@ gripui.paraboloid.gmds.panel.card <- function(title, coords, graph, note) {
     bslib::card_header(title),
     shiny::tags$div(
       style = "padding:0.6rem 0.6rem 0.2rem;",
-      gripui.render.rglwidget(coords = coords, graph = graph, show_edges = TRUE)
+      gripui.render.rglwidget(coords = coords, graph = graph, show.edges = TRUE)
     ),
     shiny::tags$p(
       style = "padding:0 1rem 1rem;color:#5f5445;line-height:1.45;margin-bottom:0;",
@@ -307,7 +307,7 @@ gripui.paraboloid.gmds.server <- function() {
     payload_state <- shiny::reactiveVal(NULL)
     error_state <- shiny::reactiveVal(NULL)
 
-    compute_payload <- function() {
+    compute.payload <- function() {
       shiny::withProgress(message = "Computing paraboloid layouts", value = 0, {
         shiny::incProgress(0.15, detail = "Building reference mesh")
         side <- as.integer(round(input$mesh_side))
@@ -321,11 +321,11 @@ gripui.paraboloid.gmds.server <- function() {
         payload <- gripui.paraboloid.gmds.compute.payload(
           side = side,
           amplitude = amplitude,
-          lambda_anchor = lambda_anchor,
-          lambda_edge = lambda_edge,
-          lambda_repulsion = lambda_repulsion,
-          max_iter = max_iter,
-          n_threads = n_threads
+          lambda.anchor = lambda_anchor,
+          lambda.edge = lambda_edge,
+          lambda.repulsion = lambda_repulsion,
+          max.iter = max_iter,
+          n.threads = n_threads
         )
         shiny::incProgress(1, detail = "Done")
         payload
@@ -334,7 +334,7 @@ gripui.paraboloid.gmds.server <- function() {
 
     shiny::observeEvent(input$render_layouts, {
       result <- tryCatch(
-        compute_payload(),
+        compute.payload(),
         error = function(e) e
       )
       if (inherits(result, "error")) {
@@ -426,9 +426,9 @@ gripui.paraboloid.gmds.server <- function() {
 #' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); requireNamespace("shiny", quietly = TRUE) && requireNamespace("bslib", quietly = TRUE) && requireNamespace("rgl", quietly = TRUE) })
-#' app <- gripui_paraboloid_gmds_app()
+#' app <- gripui.paraboloid.gmds.app()
 #' inherits(app, "shiny.appobj")
-gripui_paraboloid_gmds_app <- function(title = "Paraboloid GMDS Explorer",
+gripui.paraboloid.gmds.app <- function(title = "Paraboloid GMDS Explorer",
                                        subtitle = "Reference geometry plus two on-the-fly regularized GMDS variants.") {
   old <- gripui.require.family.app.packages()
   on.exit(options(rgl.useNULL = old), add = TRUE)
@@ -454,15 +454,15 @@ gripui_paraboloid_gmds_app <- function(title = "Paraboloid GMDS Explorer",
 #' @noRd
 #'
 #' @examplesIf local({ old <- getOption("rgl.useNULL"); options(rgl.useNULL = TRUE); on.exit(options(rgl.useNULL = old), add = TRUE); packages <- c("shiny", "bslib", "rgl", "later", "httpuv"); if (!all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) return(FALSE); server <- tryCatch(httpuv::startServer("127.0.0.1", 0L, list(call = function(req) list(status = 200L, headers = list(), body = "ok"))), error = function(e) NULL); if (is.null(server)) return(FALSE); server$stop(); TRUE })
-#' run_gripui_paraboloid_gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
-run_gripui_paraboloid_gmds <- function(title = "Paraboloid GMDS Explorer",
+#' run.gripui.paraboloid.gmds(launch.browser = FALSE, quiet = TRUE, auto.stop.after = 0.1)
+run.gripui.paraboloid.gmds <- function(title = "Paraboloid GMDS Explorer",
                                        subtitle = "Reference geometry plus two on-the-fly regularized GMDS variants.",
                                        host = "127.0.0.1",
                                        port = getOption("shiny.port"),
                                        launch.browser = interactive(),
                                        auto.stop.after = NULL,
                                        ...) {
-  app <- gripui_paraboloid_gmds_app(title = title, subtitle = subtitle)
+  app <- gripui.paraboloid.gmds.app(title = title, subtitle = subtitle)
 
   if (!is.null(auto.stop.after)) {
     if (!requireNamespace("later", quietly = TRUE)) {

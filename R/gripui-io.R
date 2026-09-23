@@ -21,7 +21,7 @@ gripui.read.tsv <- function(path) {
   )
 }
 
-gripui_read_embedding_tsv <- function(path) {
+gripui.read.embedding.tsv <- function(path) {
   tbl <- gripui.read.tsv(path)
   if (ncol(tbl) < 2L) {
     stop("embedding TSV must contain an id column and at least one coordinate column")
@@ -45,7 +45,7 @@ gripui_read_embedding_tsv <- function(path) {
   )
 }
 
-gripui_read_graph_rds <- function(path) {
+gripui.read.graph.rds <- function(path) {
   obj <- readRDS(path)
   if (!is.list(obj)) {
     stop("graph RDS must contain a list")
@@ -59,7 +59,7 @@ gripui_read_graph_rds <- function(path) {
   obj
 }
 
-gripui_resolve_project_path <- function(root, path) {
+gripui.resolve.project.path <- function(root, path) {
   if (!is.character(root) || length(root) != 1L || is.na(root) || !nzchar(root)) {
     stop("root must be a single non-empty character value")
   }
@@ -71,7 +71,7 @@ gripui.is.graph.object <- function(x) {
   is.list(x) && any(c("adj_list", "weight_list", "vertex_data", "graph_info") %in% names(x))
 }
 
-gripui.get.graph <- function(project, graph_id = NULL) {
+gripui.get.graph <- function(project, graph.id = NULL) {
   graph <- project$graph
   if (is.null(graph)) {
     return(NULL)
@@ -82,17 +82,17 @@ gripui.get.graph <- function(project, graph_id = NULL) {
   if (!is.list(graph) || is.null(names(graph))) {
     return(NULL)
   }
-  if (is.null(graph_id) || is.na(graph_id) || !nzchar(graph_id)) {
+  if (is.null(graph.id) || is.na(graph.id) || !nzchar(graph.id)) {
     return(graph[[1L]])
   }
-  graph[[graph_id]]
+  graph[[graph.id]]
 }
 
-gripui.best.vertex.key <- function(vertex_data, ids) {
-  if (!is.data.frame(vertex_data) || length(ids) == 0L) {
+gripui.best.vertex.key <- function(vertex.data, ids) {
+  if (!is.data.frame(vertex.data) || length(ids) == 0L) {
     return(NULL)
   }
-  scores <- vapply(vertex_data, function(col) {
+  scores <- vapply(vertex.data, function(col) {
     sum(ids %in% as.character(col))
   }, integer(1L))
   if (length(scores) == 0L || max(scores) == 0L) {
@@ -101,7 +101,7 @@ gripui.best.vertex.key <- function(vertex_data, ids) {
   names(scores)[[which.max(scores)]]
 }
 
-gripui_load_layout_coords <- function(project, layout) {
+gripui.load.layout.coords <- function(project, layout) {
   if (!inherits(project, "gripui_project")) {
     stop("project must inherit from 'gripui_project'")
   }
@@ -130,8 +130,8 @@ gripui_load_layout_coords <- function(project, layout) {
     stop("selected layout does not have in-memory or on-disk coordinates")
   }
 
-  emb <- gripui_read_embedding_tsv(row$coords_path[[1L]])
-  graph <- gripui.get.graph(project, graph_id = if ("graph_id" %in% names(row)) row$graph_id[[1L]] else NULL)
+  emb <- gripui.read.embedding.tsv(row$coords_path[[1L]])
+  graph <- gripui.get.graph(project, graph.id = if ("graph_id" %in% names(row)) row$graph_id[[1L]] else NULL)
   if (is.null(graph) || is.null(emb$id_col) || is.null(graph$vertex_data)) {
     return(emb$coords)
   }

@@ -14,8 +14,8 @@ test_that("tie-averaged cache counts all 3x3 mesh corner shortest paths", {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
 
   idx <- which(prepared$pair_matrix[, 1L] == 1L & prepared$pair_matrix[, 2L] == 9L)
@@ -36,7 +36,7 @@ test_that("C++ tie-averaged cache matches the legacy R cache", {
   base <- grip:::grip.prepare.geodesic.kk.base(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
+    edge.weights = bundle$edge_weights,
     caller = "cache-equivalence-test"
   )
   pair.matrix <- grip:::grip.full.geodesic.kk.pair.matrix(base$n)
@@ -53,7 +53,7 @@ test_that("C++ tie-averaged cache matches the legacy R cache", {
     weight.list = base$weight_list,
     dist.matrix = base$distance_matrix,
     parents = base$parents,
-    cache_engine = "cpp"
+    cache.engine = "cpp"
   )
 
   expect_equal(
@@ -101,28 +101,28 @@ test_that("tie-averaged GMDS fixes the flat orthogonal mesh symmetry failure", {
   prepared.single <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "single"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "single"
   )
   prepared.avg <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
   opt.single <- grip:::grip.optimize.geodesic.mds(
     prepared = prepared.single,
     dim = 2L,
     init = "cmdscale",
     engine = "cpp",
-    max_iter = 25L
+    max.iter = 25L
   )
   opt.avg <- grip:::grip.optimize.geodesic.mds(
     prepared = prepared.avg,
     dim = 2L,
     init = "cmdscale",
     engine = "cpp",
-    max_iter = 25L
+    max.iter = 25L
   )
   rho.single <- grip:::grip.align.to.target.nd(
     opt.single$coords,
@@ -155,32 +155,32 @@ test_that("threaded flat optimizer matches the serial flat optimizer", {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
   cmd <- grip:::grip.classical.mds.embedding(prepared, dim = 2L, eig = TRUE)
   opt.serial <- grip:::grip.optimize.geodesic.mds(
     coords = cmd$coords,
     prepared = prepared,
     engine = "cpp",
-    max_iter = 3L,
-    n_threads = 1L,
-    return_trace = TRUE
+    max.iter = 3L,
+    n.threads = 1L,
+    return.trace = TRUE
   )
   opt.parallel <- grip:::grip.optimize.geodesic.mds(
     coords = cmd$coords,
     prepared = prepared,
     engine = "cpp",
-    max_iter = 3L,
-    n_threads = 2L,
-    return_trace = TRUE
+    max.iter = 3L,
+    n.threads = 2L,
+    return.trace = TRUE
   )
   opt.capped <- grip:::grip.optimize.geodesic.mds(
     coords = cmd$coords,
     prepared = prepared,
     engine = "cpp",
-    max_iter = 1L,
-    n_threads = 99L
+    max.iter = 1L,
+    n.threads = 99L
   )
 
   expect_equal(opt.serial$coords, opt.parallel$coords, tolerance = 1e-8)
@@ -196,8 +196,8 @@ test_that("GMDS thread environment fallback respects explicit settings and cap",
   prepared <- prepare.geodesic.kk(edges = edges.path(4L), n = 4L)
   coords <- cbind(seq_len(4L), c(0, 0.1, -0.1, 0))
   run <- function(threads) grip:::grip.optimize.geodesic.mds(
-    coords = coords, prepared = prepared, engine = "cpp", max_iter = 1L,
-    n_threads = threads)$n_threads_used
+    coords = coords, prepared = prepared, engine = "cpp", max.iter = 1L,
+    n.threads = threads)$n_threads_used
   Sys.setenv(GRIP_GMDS_THREADS = "1")
   expect_identical(run(0L), 1L)
   expect_identical(run(2L), 2L)
@@ -226,8 +226,8 @@ test_that("anchored scoring and continuation expose the tether contribution", {
   anchored <- grip.score.geodesic.mds(
     coords,
     prepared = prepared,
-    anchor_coords = anchor,
-    anchor_weight = 0.5
+    anchor.coords = anchor,
+    anchor.weight = 0.5
   )
 
   penalty <- sum((coords - anchor)^2)
@@ -237,9 +237,9 @@ test_that("anchored scoring and continuation expose the tether contribution", {
   expect_equal(anchored$gmds.energy[[1L]], anchored$gmds.base.energy[[1L]] + anchored$anchor.energy[[1L]])
 
   schedule <- grip:::grip.geodesic.mds.anchor.schedule(
-    max_iter = 4L,
-    anchor_weight = 0.2,
-    anchor_weight_end = 0,
+    max.iter = 4L,
+    anchor.weight = 0.2,
+    anchor.weight.end = 0,
     continuation = "linear"
   )
   expect_equal(schedule, c(0.2, 0.15, 0.1, 0.05, 0))
@@ -247,13 +247,13 @@ test_that("anchored scoring and continuation expose the tether contribution", {
   opt <- grip.optimize.geodesic.mds(
     coords = coords,
     prepared = prepared,
-    anchor_mode = "initial",
-    anchor_weight = 0.2,
-    anchor_weight_end = 0,
+    anchor.mode = "initial",
+    anchor.weight = 0.2,
+    anchor.weight.end = 0,
     continuation = "linear",
     engine = "cpp",
-    max_iter = 4L,
-    return_trace = TRUE
+    max.iter = 4L,
+    return.trace = TRUE
   )
   expect_true(all(diff(opt$trace$anchor_weight) <= 1e-12))
   expect_equal(opt$trace$anchor_weight[[1L]], 0.2)

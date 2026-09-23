@@ -10,7 +10,7 @@ test_that("MISF-GMDS runs on sampled rectangle paraboloid k-sequences", {
       seed = 1050,
       surface = "paraboloid",
       amplitude = 0.35,
-      graph_space = "surface",
+      graph.space = "surface",
       normalize = "median"
     ),
     sampled.rectangle.surface.graphs(
@@ -23,7 +23,7 @@ test_that("MISF-GMDS runs on sampled rectangle paraboloid k-sequences", {
       seed = 1075,
       surface = "paraboloid",
       amplitude = 0.35,
-      graph_space = "surface",
+      graph.space = "surface",
       normalize = "median"
     )
   )
@@ -41,34 +41,34 @@ test_that("MISF-GMDS runs on sampled rectangle paraboloid k-sequences", {
       prepared <- grip.prepare.misf.geodesic.mds(
         edges = graph$edges,
         n = graph$n,
-        edge_weights = graph$edge_weights,
-        tie_mode = "average",
-        num_init = 6L,
+        edge.weights = graph$edge_weights,
+        tie.mode = "average",
+        num.init = 6L,
         dim = 3L,
-        top_level_mode = "skip",
+        top.level.mode = "skip",
         seed = 3000L + graph$n + graph$k
       )
       fit <- grip.optimize.misf.geodesic.mds(
         prepared = prepared,
         dim = 3L,
-        top_level_restarts = 1L,
-        top_level_max_iter = 2L,
-        top_level_engine = "cpp",
-        insertion_anchor_policy = "prev_level_spread",
-        insertion_max_iter = 12L,
-        refinement_local_nbrs = 4L,
-        refinement_landmark_count = 2L,
-        refinement_pair_mode = "sparse",
-        refinement_anchor_weight = 0.05,
-        refinement_anchor_weight_end = 0.01,
-        refinement_continuation = "linear",
-        refinement_max_iter = 2L,
-        refinement_engine = "cpp",
-        final_polish_max_iter = 2L,
-        final_polish_engine = "cpp",
-        n_threads = 1L,
-        return_trace = TRUE,
-        return_frames = FALSE,
+        top.level.restarts = 1L,
+        top.level.max.iter = 2L,
+        top.level.engine = "cpp",
+        insertion.anchor.policy = "prev_level_spread",
+        insertion.max.iter = 12L,
+        refinement.local.nbrs = 4L,
+        refinement.landmark.count = 2L,
+        refinement.pair.mode = "sparse",
+        refinement.anchor.weight = 0.05,
+        refinement.anchor.weight.end = 0.01,
+        refinement.continuation = "linear",
+        refinement.max.iter = 2L,
+        refinement.engine = "cpp",
+        final.polish.max.iter = 2L,
+        final.polish.engine = "cpp",
+        n.threads = 1L,
+        return.trace = TRUE,
+        return.frames = FALSE,
         seed = 3000L + graph$n + graph$k
       )
 

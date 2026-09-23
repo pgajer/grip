@@ -7,14 +7,14 @@
 \usage{
 triangulated.pair.of.pants.surface.graph(
   resolution = 12,
-  outer_radius = 1.1,
-  hole_radius = 0.24,
-  hole_offset = 0.38,
-  hole_height = 0.18,
+  outer.radius = 1.1,
+  hole.radius = 0.24,
+  hole.offset = 0.38,
+  hole.height = 0.18,
   surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
   amplitude = 0.6,
-  freq_u = 1,
-  freq_v = 1,
+  freq.u = 1,
+  freq.v = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -22,14 +22,14 @@ triangulated.pair.of.pants.surface.graph(
 \item{resolution}{Positive lattice-resolution control. Larger values produce
 finer triangulations.}
 
-\item{outer_radius}{Positive radius of the outer boundary.}
+\item{outer.radius}{Positive radius of the outer boundary.}
 
-\item{hole_radius}{Positive radius of each interior hole.}
+\item{hole.radius}{Positive radius of each interior hole.}
 
-\item{hole_offset}{Positive horizontal offset of the two hole centers from
+\item{hole.offset}{Positive horizontal offset of the two hole centers from
 the vertical axis.}
 
-\item{hole_height}{Vertical coordinate shared by the two hole centers.}
+\item{hole.height}{Vertical coordinate shared by the two hole centers.}
 
 \item{surface}{Geometry family used for the 3D lift. One of \code{"flat"},
 \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
@@ -37,10 +37,10 @@ the vertical axis.}
 
 \item{amplitude}{Finite deformation amplitude.}
 
-\item{freq_u}{Positive ripple frequency in the first planar coordinate. Used
+\item{freq.u}{Positive ripple frequency in the first planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the second planar coordinate. Used
+\item{freq.v}{Positive ripple frequency in the second planar coordinate. Used
 only when \code{surface = "ripple"}.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
@@ -73,7 +73,7 @@ holes. The resulting graph is a triangulated surface with three boundary
 components and a deterministic non-grid topology.
 }
 \details{
-The \code{coords_surface} component is the 3D
+The \code{coords.surface} component is the 3D
 coordinates of the clipped lattice vertices in the same vertex order as
 \code{edges}.
 \code{triangulated.pair.of.pants.surface.graph()} returns a reusable

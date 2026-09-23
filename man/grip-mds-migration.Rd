@@ -42,10 +42,10 @@ a refinement workflow, compute it explicitly and pass its coordinates to
 
 \section{Native SGD backend}{
 
-\code{metric.mds(backend = "sgd", max_iter = 30, ...)} explicitly selects the
+\code{metric.mds(backend = "sgd", max.iter = 30, ...)} explicitly selects the
 default backend with a short trial budget, without requiring smacof.
 SGD uses the same uniform pair weights and shortest-path targets. Its controls
-remain provisional calibration choices, and \code{max_iter} counts complete pair
+remain provisional calibration choices, and \code{max.iter} counts complete pair
 passes. Schedule completion is reported as \code{iteration_limit}, not convergence.
 Inspect per-start records and \code{metadata$sgd} checkpoint histories. Selecting
 \code{init = "metric_mds"} in refinement methods follows the default SGD backend;

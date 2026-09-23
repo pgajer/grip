@@ -12,7 +12,7 @@ test_that("classical MDS retains cmdscale distances and metadata", {
 
 test_that("ratio SMACOF wrapper restores input units and matches the backend", {
   skip_if_not_installed("smacof", "2.1-7")
-  p <- prepare.graph.geodesic.mds(edges.cycle(7), n = 7, edge_weights = rep(3, 7))
+  p <- prepare.graph.geodesic.mds(edges.cycle(7), n = 7, edge.weights = rep(3, 7))
   initial <- classical.mds(prepared = p, diagnostics = FALSE)$coords
   target <- as.double(as.dist(p$distance_matrix))
   rms <- sqrt(mean(target^2))
@@ -23,7 +23,7 @@ test_that("ratio SMACOF wrapper restores input units and matches the backend", {
                          init = x, eps = 1e-10, itmax = 2000)
   bd <- as.double(dist(backend$conf))
   multiplier <- sum(bd * target) / sum(bd^2)
-  fit <- smacof_call(prepared = p, init = initial, eps = 1e-10, max_iter = 2000)
+  fit <- smacof_call(prepared = p, init = initial, eps = 1e-10, max.iter = 2000)
   observed <- as.double(dist(fit$coords))
   expect_equal(observed, multiplier * bd, tolerance = 1e-9)
   expect_equal(fit$metadata$raw_stress, sum((observed-target)^2), tolerance = 1e-10)
@@ -47,12 +47,12 @@ test_that("exact Euclidean targets are recovered and changes of units are equiva
   x <- rbind(c(0,0,0), c(1,0,0), c(0,2,0), c(0,0,3), c(1,1,1))
   edges <- t(combn(nrow(x), 2))
   lengths <- sqrt(rowSums((x[edges[,1],]-x[edges[,2],])^2))
-  fit <- smacof_call(edges = edges, n = nrow(x), edge_weights = lengths,
+  fit <- smacof_call(edges = edges, n = nrow(x), edge.weights = lengths,
                     dim = 3, diagnostics = FALSE, eps = 1e-12)
   expect_equal(as.matrix(dist(fit$coords)), as.matrix(dist(x)), tolerance = 1e-8)
   expect_lt(fit$metadata$target_normalized_rmse, 1e-10)
   expect_identical(fit$prepared$pair_mode, "distance_matrix_only")
-  large <- smacof_call(edges = edges, n = nrow(x), edge_weights = 1e5*lengths,
+  large <- smacof_call(edges = edges, n = nrow(x), edge.weights = 1e5*lengths,
                       dim = 3, diagnostics = FALSE, eps = 1e-12)
   expect_equal(as.matrix(dist(large$coords))/1e5, as.matrix(dist(fit$coords)),
                tolerance = 1e-8)
@@ -63,10 +63,10 @@ test_that("multiple starts are reproducible, preserve the RNG, and select achiev
   p <- prepare.graph.geodesic.mds(edges.cycle(8), n = 8)
   set.seed(817)
   before <- .Random.seed
-  a <- suppressWarnings(smacof_call(prepared = p, init = "random", n_init = 3,
+  a <- suppressWarnings(smacof_call(prepared = p, init = "random", n.init = 3,
                                    seed = 19, diagnostics = FALSE))
   expect_identical(.Random.seed, before)
-  b <- suppressWarnings(smacof_call(prepared = p, init = "random", n_init = 3,
+  b <- suppressWarnings(smacof_call(prepared = p, init = "random", n.init = 3,
                                    seed = 19, diagnostics = FALSE))
   expect_equal(a$coords, b$coords)
   expect_equal(a$metadata$starts, b$metadata$starts)
@@ -79,7 +79,7 @@ test_that("multiple starts are reproducible, preserve the RNG, and select achiev
 test_that("iteration limits remain visible and do not claim convergence", {
   skip_if_not_installed("smacof", "2.1-7")
   expect_warning(fit <- smacof_call(edges = edges.cycle(8), n = 8, init = "random",
-                                   max_iter = 1, diagnostics = FALSE), "iteration_limit")
+                                   max.iter = 1, diagnostics = FALSE), "iteration_limit")
   expect_false(fit$metadata$converged)
   expect_identical(fit$metadata$termination, "iteration_limit")
   expect_equal(fit$metadata$starts$iterations, 1)
@@ -91,8 +91,8 @@ test_that("MDS initializers dispatch explicitly and defaults remain classical", 
   c <- classical.mds(prepared = p, diagnostics = FALSE)
   expect_warning(m <- metric.mds(prepared = p, diagnostics = FALSE), "iteration_limit")
   expect_identical(m$metadata$engine, "sgd")
-  common <- list(prepared = p, max_iter = 0, diagnostics = FALSE,
-                  density_mix_schedule = 1, scale_mode = "identity")
+  common <- list(prepared = p, max.iter = 0, diagnostics = FALSE,
+                  density.mix.schedule = 1, scale.mode = "identity")
   default <- do.call(edge.kk, common)
   explicit <- do.call(edge.kk, c(common, list(init = "classical_mds")))
   expect_warning(stress <- do.call(edge.kk, c(common, list(init = "metric_mds"))),
@@ -101,10 +101,10 @@ test_that("MDS initializers dispatch explicitly and defaults remain classical", 
   expect_equal(default$coords, explicit$coords)
   expect_equal(as.matrix(dist(stress$coords)), as.matrix(dist(m$coords)))
   expect_warning(cold <- edge.kk(edges = edges.cycle(6), n = 6, init = "metric_mds",
-                  max_iter = 0, density_mix_schedule = 1, diagnostics = FALSE), "iteration_limit")
+                  max.iter = 0, density.mix.schedule = 1, diagnostics = FALSE), "iteration_limit")
   expect_equal(as.matrix(dist(cold$coords)), as.matrix(dist(m$coords)))
   expect_warning(gram <- kernel.gram.gkk(prepared = p, X = c$coords, dim = 2,
-    init = "metric_mds", max_iter = 0, diagnostics = FALSE), "iteration_limit")
+    init = "metric_mds", max.iter = 0, diagnostics = FALSE), "iteration_limit")
   expect_equal(as.matrix(dist(gram$coords)), as.matrix(dist(m$coords)))
 })
 
@@ -112,9 +112,9 @@ test_that("stress MDS rejects unsuitable inputs instead of silently changing the
   skip_if_not_installed("smacof", "2.1-7")
   p <- prepare.graph.geodesic.mds(edges.cycle(5), n = 5)
   expect_error(smacof_call(prepared = p, add = TRUE), "unused argument")
-  expect_error(smacof_call(prepared = p, n_init = 1.5), "positive integer")
-  expect_error(smacof_call(prepared = p, max_iter = 0), "positive integer")
-  expect_error(smacof_call(prepared = p, scale_mode = "user"), "arg")
+  expect_error(smacof_call(prepared = p, n.init = 1.5), "positive integer")
+  expect_error(smacof_call(prepared = p, max.iter = 0), "positive integer")
+  expect_error(smacof_call(prepared = p, scale.mode = "user"), "arg")
   expect_error(smacof_call(prepared = p, dim = 5), "less than")
   expect_error(smacof_call(prepared = p, init = matrix(0,5,2)), "collapsed")
   expect_error(smacof_call(prepared = p, init = matrix(0,4,2)), "n by dim")
@@ -150,7 +150,7 @@ test_that("backend failures are recorded and never become silent classical fallb
     original(...)
   }, .package = "smacof")
   fit <- suppressWarnings(smacof_call(edges = edges.cycle(6), n = 6,
-                                     n_init = 2, diagnostics = FALSE))
+                                     n.init = 2, diagnostics = FALSE))
   expect_identical(fit$metadata$starts$termination[1], "backend_error")
   expect_match(fit$metadata$starts$error[1], "controlled backend failure")
   expect_equal(fit$metadata$selected_start, 2)
@@ -168,7 +168,7 @@ test_that("near-tie routes and strict MDS targets remain separate", {
   skip_if_not_installed("smacof", "2.1-7")
   e <- rbind(c(1L, 2L), c(1L, 3L), c(2L, 3L))
   w <- c(1, 2 + 1e-8, 1)
-  p <- prepare.graph.geodesic.mds(e, n = 3L, edge_weights = w)
+  p <- prepare.graph.geodesic.mds(e, n = 3L, edge.weights = w)
   expect_identical(p$distance_matrix, t(p$distance_matrix))
   expect_equal(unname(p$distance_matrix), matrix(c(0,1,2,1,0,1,2,1,0), 3), tolerance = 1e-14)
   # The established near-tie convention chooses the direct 1--3 edge.
@@ -176,7 +176,7 @@ test_that("near-tie routes and strict MDS targets remain separate", {
   expect_equal(p$pair_graph_distance[i], 2 + 1e-8, tolerance = 1e-14)
   expect_equal(unname(p$path_edges[[i]]), matrix(c(1L,3L), ncol=2L))
   m <- smacof_call(prepared = p, dim = 2L, diagnostics = FALSE)
-  strict <- smacof_call(edges = e, n = 3L, edge_weights = w,
+  strict <- smacof_call(edges = e, n = 3L, edge.weights = w,
                        dim = 2L, diagnostics = FALSE)
   expect_equal(as.matrix(dist(m$coords)), as.matrix(dist(strict$coords)), tolerance=1e-10)
   expect_lt(m$metadata$raw_stress, 1e-12)

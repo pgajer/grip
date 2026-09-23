@@ -19,7 +19,7 @@ test_that("coordinate scoring distinguishes rigid and similarity fits", {
   expect_equal(score.coordinates(x, matrix(0,4,3), "similarity")$scale, 0)
   expect_error(score.coordinates(x[-1, ], x), "dimensions")
   expect_error(score.coordinates(x*NA, x))
-  expect_error(score.coordinates(x, x, allow_reflection = NA))
+  expect_error(score.coordinates(x, x, allow.reflection = NA))
   expect_error(score.coordinates(x, x, "unknown"))
   # Higher-dimensional coordinates and rank-deficient configurations are allowed.
   expect_lt(score.coordinates(cbind(x, x), cbind(x, x))$rmse, 1e-12)
@@ -46,7 +46,7 @@ test_that("surface area sampling, distance units and uncertainty are explicit", 
   x <- rbind(c(0,0,0),c(1,0,0),c(0,1,0),c(1,1,0))
   f <- rbind(c(1,2,3),c(2,4,3))
   y <- sweep(x,2,c(0,0,2),"+")
-  s <- score.surface(x,f,y,f,sample_size=1000)
+  s <- score.surface(x,f,y,f,sample.size=1000)
   expect_equal(s$rms,2,tolerance=1e-12)
   expect_equal(s$forward_rms,2,tolerance=1e-12)
   expect_equal(s$reverse_mean,2,tolerance=1e-12)

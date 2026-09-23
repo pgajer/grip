@@ -2,7 +2,7 @@ build_test_sierpinski_carpet_lgkk <- function(level) {
   side <- 3L^level
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
 
-  keep_cell <- function(x, y) {
+  keep.cell <- function(x, y) {
     while (x > 0L || y > 0L) {
       if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
         return(FALSE)
@@ -13,7 +13,7 @@ build_test_sierpinski_carpet_lgkk <- function(level) {
     TRUE
   }
 
-  keep <- mapply(keep_cell, grid$x, grid$y)
+  keep <- mapply(keep.cell, grid$x, grid$y)
   cells <- grid[keep, , drop = FALSE]
   coords <- cbind(
     x = cells$x + 0.5,
@@ -54,9 +54,9 @@ test_that("landmark geodesic KK scoring is exact on a weighted path realization"
   prepared <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 3L,
-    edge_weights = c(1, 2),
-    local_nbrs = 1L,
-    landmark_count = 1L
+    edge.weights = c(1, 2),
+    local.nbrs = 1L,
+    landmark.count = 1L
   )
   score <- score.landmark.geodesic.kk(coords, prepared = prepared)
 
@@ -72,14 +72,14 @@ test_that("prepared landmark geodesic KK caches are deterministic and reusable",
   prepared1 <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 9L,
-    local_nbrs = 2L,
-    landmark_count = 2L
+    local.nbrs = 2L,
+    landmark.count = 2L
   )
   prepared2 <- prepare.landmark.geodesic.kk(
     edges = edges,
     n = 9L,
-    local_nbrs = 2L,
-    landmark_count = 2L
+    local.nbrs = 2L,
+    landmark.count = 2L
   )
 
   expect_equal(prepared1$pair_matrix, prepared2$pair_matrix)
@@ -92,8 +92,8 @@ test_that("prepared landmark geodesic KK caches are deterministic and reusable",
     coords = coords,
     edges = edges,
     n = 9L,
-    local_nbrs = 2L,
-    landmark_count = 2L
+    local.nbrs = 2L,
+    landmark.count = 2L
   )
   cached <- score.landmark.geodesic.kk(coords = coords, prepared = prepared1)
 
@@ -106,8 +106,8 @@ test_that("landmark geodesic KK prefers the canonical carpet over a perturbed ca
   prepared <- prepare.landmark.geodesic.kk(
     edges = built$edges,
     n = nrow(built$coords),
-    local_nbrs = 6L,
-    landmark_count = 4L
+    local.nbrs = 6L,
+    landmark.count = 4L
   )
 
   perturbed <- built$coords
@@ -126,8 +126,8 @@ test_that("landmark geodesic KK optimizer decreases the objective", {
   prepared <- prepare.landmark.geodesic.kk(
     edges = built$edges,
     n = nrow(built$coords),
-    local_nbrs = 6L,
-    landmark_count = 4L
+    local.nbrs = 6L,
+    landmark.count = 4L
   )
 
   perturbed <- built$coords
@@ -138,8 +138,8 @@ test_that("landmark geodesic KK optimizer decreases the objective", {
   opt <- landmark.geodesic.kk(
     coords = perturbed,
     prepared = prepared,
-    max_iter = 8L,
-    return_trace = TRUE
+    max.iter = 8L,
+    return.trace = TRUE
   )
   after <- score.landmark.geodesic.kk(opt$coords, prepared = prepared)
 

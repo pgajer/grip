@@ -29,7 +29,7 @@ local_test_dir <- function(prefix) {
   path
 }
 
-test_that("gripui_project normalizes minimal layout catalogs", {
+test_that("gripui.project normalizes minimal layout catalogs", {
   graph <- list(
     adj_list = list(2L, c(1L, 3L), 2L),
     vertex_data = data.frame(vertex_id = c("v1", "v2", "v3"), stringsAsFactors = FALSE)
@@ -42,7 +42,7 @@ test_that("gripui_project normalizes minimal layout catalogs", {
     stringsAsFactors = FALSE
   )
 
-  project <- gripui_project(graph = graph, layouts = layouts, title = "Toy")
+  project <- gripui.project(graph = graph, layouts = layouts, title = "Toy")
 
   expect_s3_class(project, "gripui_project")
   expect_equal(project$meta$title, "Toy")
@@ -59,7 +59,7 @@ test_that("gripui_project normalizes minimal layout catalogs", {
   expect_equal(project$layouts$availability[[1L]], "summary-only")
 })
 
-test_that("gripui_project_from_compare attaches in-memory coordinates", {
+test_that("gripui.project.from.compare attaches in-memory coordinates", {
   edges <- edges.path(6)
   cmp <- compare.layouts(
     edges = edges,
@@ -70,19 +70,19 @@ test_that("gripui_project_from_compare attaches in-memory coordinates", {
   )
   graph <- list(adj_list = adj_from_edges(edges, n = 6))
 
-  project <- gripui_project_from_compare(cmp, graph = graph, title = "Path compare")
+  project <- gripui.project.from.compare(cmp, graph = graph, title = "Path compare")
 
   expect_s3_class(project, "gripui_project")
   expect_equal(nrow(project$layouts), 2L)
   expect_true(all(project$layouts$viewable))
   expect_true(all(vapply(project$layouts$coords, is.matrix, logical(1L))))
 
-  coords <- gripui_load_layout_coords(project, project$layouts$layout_id[[1L]])
+  coords <- gripui.load.layout.coords(project, project$layouts$layout_id[[1L]])
   expect_true(is.matrix(coords))
   expect_equal(nrow(coords), 6L)
 })
 
-test_that("gripui_project_from_dir loads a normalized bundle", {
+test_that("gripui.project.from.dir loads a normalized bundle", {
   root <- local_test_dir("gripui-bundle")
   on.exit(unlink(root, recursive = TRUE, force = TRUE), add = TRUE)
 
@@ -119,19 +119,19 @@ test_that("gripui_project_from_dir loads a normalized bundle", {
     file.path(root, "catalog", "layout_catalog.tsv")
   )
 
-  project <- gripui_project_from_dir(root)
+  project <- gripui.project.from.dir(root)
 
   expect_s3_class(project, "gripui_project")
   expect_true(project$layouts$viewable[[1L]])
   expect_match(project$layouts$coords_path[[1L]], "toy_embedding.tsv$")
 
-  coords <- gripui_load_layout_coords(project, 1L)
+  coords <- gripui.load.layout.coords(project, 1L)
   expect_equal(coords[1L, 1L], 1)
   expect_equal(coords[2L, 1L], 2)
   expect_equal(coords[3L, 1L], 3)
 })
 
-test_that("gripui_project_from_dir loads HMP-style run tables and manifests", {
+test_that("gripui.project.from.dir loads HMP-style run tables and manifests", {
   parent <- local_test_dir("gripui-hmp-parent")
   on.exit(unlink(parent, recursive = TRUE, force = TRUE), add = TRUE)
 
@@ -245,7 +245,7 @@ test_that("gripui_project_from_dir loads HMP-style run tables and manifests", {
     )
   )
 
-  project <- gripui_project_from_dir(root, graph = graphs, title = "HMP")
+  project <- gripui.project.from.dir(root, graph = graphs, title = "HMP")
 
   expect_s3_class(project, "gripui_project")
   expect_equal(sort(unique(project$layouts$stage)), c("coarse_stage", "full_stage2", "repulsion_sweep"))
@@ -253,7 +253,7 @@ test_that("gripui_project_from_dir loads HMP-style run tables and manifests", {
   expect_equal(project$layouts$color_view_default[project$layouts$stage == "repulsion_sweep"], "cst")
 
   full.row <- project$layouts[project$layouts$stage == "full_stage2", , drop = FALSE]
-  coords <- gripui_load_layout_coords(project, full.row$layout_id[[1L]])
+  coords <- gripui.load.layout.coords(project, full.row$layout_id[[1L]])
   expect_equal(coords[1L, ], c(10, 1, 100))
   expect_equal(coords[3L, ], c(30, 3, 300))
 })

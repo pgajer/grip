@@ -80,11 +80,11 @@ comparison_fit <- function(case, prepared, seed, budget, backend,
                            fit_fun = grip::metric.mds, pair_weights = 'uniform') {
   warnings <- character()
   args <- list(prepared = prepared, dim = case$dimension,
-               init = comparison_start(case, seed), n_init = 1L, seed = seed,
-               max_iter = budget, backend = backend, pair_weights = pair_weights, diagnostics = FALSE)
+               init = comparison_start(case, seed), n.init = 1L, seed = seed,
+               max.iter = budget, backend = backend, pair.weights = pair_weights, diagnostics = FALSE)
   if (backend == 'smacof') args$eps <- 1e-8
-  if (backend == 'sgd') args$sgd_control <- list(scheduler = 'hybrid', learning_rate = .5,
-    final_rate = .01, switch_ratio = .4, checkpoint_every = 1L, max_workspace_bytes = 256 * 1024^2)
+  if (backend == 'sgd') args$sgd.control <- list(scheduler = 'hybrid', learning.rate = .5,
+    final.rate = .01, switch.ratio = .4, checkpoint.every = 1L, max.workspace.bytes = 256 * 1024^2)
   started <- proc.time()[['elapsed']]
   fit <- tryCatch(withCallingHandlers(do.call(fit_fun, args), warning = function(w) {
     warnings <<- c(warnings, conditionMessage(w)); invokeRestart('muffleWarning')

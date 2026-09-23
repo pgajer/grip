@@ -10,8 +10,8 @@ test_that("geodesic-MDS scoring exposes bending energy", {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
   coords <- grip:::grip.classical.mds.embedding(prepared, dim = 3L)$coords
   bending <- grip.rectangular.grid.bending.stencils(4L, 4L)
@@ -20,8 +20,8 @@ test_that("geodesic-MDS scoring exposes bending energy", {
   bent <- grip.score.geodesic.mds(
     coords,
     prepared = prepared,
-    bending_stencils = bending,
-    bending_weight = 0.1
+    bending.stencils = bending,
+    bending.weight = 0.1
   )
 
   expect_equal(plain$bend.energy[[1L]], 0)
@@ -42,8 +42,8 @@ test_that("C++ and R bending-regularized GMDS agree for one iteration", {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights,
-    tie_mode = "average"
+    edge.weights = bundle$edge_weights,
+    tie.mode = "average"
   )
   coords <- grip:::grip.classical.mds.embedding(prepared, dim = 3L)$coords
   bending <- grip.rectangular.grid.bending.stencils(4L, 4L)
@@ -52,24 +52,24 @@ test_that("C++ and R bending-regularized GMDS agree for one iteration", {
     coords = coords,
     prepared = prepared,
     engine = "r",
-    max_iter = 1L,
-    initial_step = 0.05,
-    bending_stencils = bending,
-    bending_weight = 0.1,
-    return_trace = TRUE,
+    max.iter = 1L,
+    initial.step = 0.05,
+    bending.stencils = bending,
+    bending.weight = 0.1,
+    return.trace = TRUE,
     recenter = TRUE
   )
   fit.cpp <- grip.optimize.geodesic.mds(
     coords = coords,
     prepared = prepared,
     engine = "cpp",
-    max_iter = 1L,
-    initial_step = 0.05,
-    bending_stencils = bending,
-    bending_weight = 0.1,
-    return_trace = TRUE,
+    max.iter = 1L,
+    initial.step = 0.05,
+    bending.stencils = bending,
+    bending.weight = 0.1,
+    return.trace = TRUE,
     recenter = TRUE,
-    n_threads = 1L
+    n.threads = 1L
   )
 
   expect_true("bend_energy" %in% names(fit.cpp$trace))

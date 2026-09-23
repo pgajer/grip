@@ -31,14 +31,14 @@ grip_weighted_nd_trace_parity_tuning <- function(dim = 2L) {
     dim = as.integer(dim),
     placement = "barycenter",
     rounds = 3L,
-    final_rounds = 2L,
-    num_init = if (dim == 2L) 5L else 6L,
-    num_nbrs = 6L,
+    final.rounds = 2L,
+    num.init = if (dim == 2L) 5L else 6L,
+    num.nbrs = 6L,
     r = 0.03,
     s = 6.0,
-    repulsion_factor = 1.5,
-    length_normalization = "median",
-    tinit_factor = 6L,
+    repulsion.factor = 1.5,
+    length.normalization = "median",
+    tinit.factor = 6L,
     seed = 81L,
     trace.every = 1L
   )
@@ -70,7 +70,7 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
   common <- c(
     list(
       edges = fixture$edges,
-      edge_weights = fixture$edge_weights,
+      edge.weights = fixture$edge_weights,
       n = fixture$n
     ),
     tuning
@@ -79,15 +79,15 @@ grip_weighted_nd_trace_parity_compare_one <- function(fixture,
     common,
     list(
       trace = "round",
-      coarse_repulsion_factor = tuning$repulsion_factor,
-      coarse_repulsion_sample = 100000L,
-      coarse_repulsion_exact_below = 100000L,
-      final_anchor_factor = 0,
-      final_move_scale_after_first = 1,
-      final_mode = "fr",
-      lgkk_polish_rounds = 0L,
-      lgkk_multiscale_rounds = 0L,
-      metric_neighbor_cap = NULL,
+      coarse.repulsion.factor = tuning$repulsion.factor,
+      coarse.repulsion.sample = 100000L,
+      coarse.repulsion.exact.below = 100000L,
+      final.anchor.factor = 0,
+      final.move.scale.after.first = 1,
+      final.mode = "fr",
+      lgkk.polish.rounds = 0L,
+      lgkk.multiscale.rounds = 0L,
+      metric.neighbor.cap = NULL,
       metric = "edge_length",
       diagnostics = "none"
     )
@@ -299,20 +299,20 @@ grip_weighted_nd_trace_parity_neighbor_diagnostic <- function(fixture,
   )
   legacy <- build.weighted.misf(
     edges = fixture$edges,
-    edge_weights = fixture$edge_weights,
+    edge.weights = fixture$edge_weights,
     n = fixture$n,
-    num_init = tuning$num_init,
-    num_nbrs = tuning$num_nbrs,
-    length_normalization = tuning$length_normalization,
+    num.init = tuning$num.init,
+    num.nbrs = tuning$num.nbrs,
+    length.normalization = tuning$length.normalization,
     seed = tuning$seed
   )
   nd <- grip:::grip.build.misf.weighted.nd(
     edges = fixture$edges,
-    edge_weights = fixture$edge_weights,
+    edge.weights = fixture$edge_weights,
     n = fixture$n,
-    num_init = tuning$num_init,
-    num_nbrs = tuning$num_nbrs,
-    length_normalization = tuning$length_normalization,
+    num.init = tuning$num.init,
+    num.nbrs = tuning$num.nbrs,
+    length.normalization = tuning$length.normalization,
     seed = tuning$seed
   )
   level <- max(legacy$misf_height, 0L)

@@ -9,15 +9,15 @@ score.landmark.geodesic.kk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  local_nbrs = 20L,
-  landmark_count = 8L,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  local.nbrs = 20L,
+  landmark.count = 8L,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  return_pair_details = FALSE
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  return.pair.details = FALSE
 )
 }
 \arguments{
@@ -30,28 +30,28 @@ score.landmark.geodesic.kk(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
-\item{local_nbrs}{Number of nearest graph-metric neighbors retained per
+\item{local.nbrs}{Number of nearest graph-metric neighbors retained per
 vertex when \code{prepared} is not supplied.}
 
-\item{landmark_count}{Number of farthest-point landmarks retained per vertex
+\item{landmark.count}{Number of farthest-point landmarks retained per vertex
 when \code{prepared} is not supplied.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{return_pair_details}{If \code{TRUE}, include pairwise path lengths and
+\item{return.pair.details}{If \code{TRUE}, include pairwise path lengths and
 residuals in a list column.}
 }
 \value{
@@ -74,7 +74,7 @@ cycle_edges <- edges.cycle(6)
 theta <- seq(0, 2 * pi, length.out = 7)[-7]
 coords <- cbind(cos(theta), sin(theta))
 prepared <- prepare.landmark.geodesic.kk(
-  cycle_edges, n = 6, local_nbrs = 2, landmark_count = 2
+  cycle_edges, n = 6, local.nbrs = 2, landmark.count = 2
 )
 score <- score.landmark.geodesic.kk(coords, prepared = prepared)
 }

@@ -127,9 +127,9 @@ test_that("compare.layouts expands search grids into candidates", {
     search = list(
       candidate.prefix = "mesh.search",
       preset = "mesh",
-      final_rounds = c(96L, 128L),
-      num_nbrs = c(16L, 20L),
-      repulsion_factor = c(1.0, 1.5)
+      final.rounds = c(96L, 128L),
+      num.nbrs = c(16L, 20L),
+      repulsion.factor = c(1.0, 1.5)
     ),
     seeds = 1
   )

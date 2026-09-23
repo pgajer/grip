@@ -2,7 +2,7 @@ build_test_sierpinski_carpet <- function(level) {
   side <- 3L^level
   grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
 
-  keep_cell <- function(x, y) {
+  keep.cell <- function(x, y) {
     while (x > 0L || y > 0L) {
       if ((x %% 3L) == 1L && (y %% 3L) == 1L) {
         return(FALSE)
@@ -13,7 +13,7 @@ build_test_sierpinski_carpet <- function(level) {
     TRUE
   }
 
-  keep <- mapply(keep_cell, grid$x, grid$y)
+  keep <- mapply(keep.cell, grid$x, grid$y)
   cells <- grid[keep, , drop = FALSE]
   coords <- cbind(
     x = cells$x + 0.5,

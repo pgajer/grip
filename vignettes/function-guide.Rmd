@@ -44,7 +44,7 @@ helpers support different decisions around that drawing.
 | Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
 | Where did a fold or collapse appear? | `trace.grip()` | [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html) |
 | How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Graph examples](synthetic-graph-families.html) |
-| How do I browse many saved results? | `gripui_project()` and `run_gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
+| How do I browse many saved results? | `gripui.project()` and `run.gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
 
 The seven linked package vignettes are installed with grip. The
 [gallery](https://pgajer.github.io/grip/articles/gallery.html),
@@ -86,13 +86,13 @@ vertices beyond the largest endpoint. Avoid duplicate edges and self-loops;
 the edge-list layout converter ignores self-loops, and duplicate treatment is
 not a common contract across all helpers.
 
-Alternatively use `adj_list`, a list of length `n`: element `i` lists the
+Alternatively use `adj.list`, a list of length `n`: element `i` lists the
 neighbors of vertex `i`. Include both directions of each undirected edge,
-with matching lengths in a parallel `weight_list`. An isolated vertex has an
+with matching lengths in a parallel `weight.list`. An isolated vertex has an
 empty neighbor vector (and empty length vector if weighted). Do not supply
 both graph representations: this is an error, as are fractional or nonfinite
 vertex indices and counts. Supply lengths with their matching representation
-(`edge_weights` with `edges`, or `weight_list` with `adj_list`). Preserve the same vertex ordering in graph,
+(`edge.weights` with `edges`, or `weight.list` with `adj.list`). Preserve the same vertex ordering in graph,
 coordinates, labels, and references; row names do not establish correspondence.
 
 `grip()` defaults to `dim = 3`; request `dim = 2` explicitly for base 2D plots.
@@ -110,9 +110,9 @@ stopifnot(nrow(path.with.isolate) == 6L, all(is.finite(path.with.isolate)))
 
 ### Hop counts or edge lengths?
 
-The historical names `edge_weights` and `weight_list` mean **finite positive
+The historical names `edge.weights` and `weight.list` mean **finite positive
 lengths or traversal costs**, not connection strengths. With an edge list,
-`edge_weights[j]` belongs to row `j`. Larger lengths request greater separation;
+`edge.weights[j]` belongs to row `j`. Larger lengths request greater separation;
 convert strengths to scientifically meaningful lengths before fitting.
 
 - `metric = "hop"` uses hop counts for the standard hierarchy, neighborhoods,
@@ -122,9 +122,9 @@ convert strengths to scientifically meaningful lengths before fitting.
   use supplied lengths even when the standard stages use hops.
 - `metric = "edge_length"` requires lengths and uses sums of those lengths
   along shortest paths throughout the multiscale engine. Its default
-  `length_normalization = "median"` divides by the median length; `"mean"`
+  `length.normalization = "median"` divides by the median length; `"mean"`
   divides by the mean and `"none"` retains their numerical scale. These
-  normalization controls and `metric_neighbor_cap` belong only to this mode.
+  normalization controls and `metric.neighbor.cap` belong only to this mode.
   A finite neighbor cap enables an approximate weighted search.
 
 A graph-family constructor may already normalize lengths: inspect its
@@ -210,14 +210,14 @@ with `backend = "sgd"`, or optional **smacof** selected with
 `backend = "smacof"`. The SGD pair updates follow Zheng, Pawar and Goodman
 (2018); the default hybrid learning-rate schedule follows Hangan, Kobourov and
 Miller (2026). Both papers are listed in the [SGD references](#sgd-references).
-Use `pair_weights = "inverse_squared"` with either backend to minimize the
+Use `pair.weights = "inverse_squared"` with either backend to minimize the
 paper's sum of squared relative distance errors. Edge lengths determine the
-shortest-path targets; `pair_weights` determines their influence in stress.
+shortest-path targets; `pair.weights` determines their influence in stress.
 Returned coordinates are rescaled to the input distance units. Multiple starts
 can help with local optima; iteration limits do not certify convergence or a
 global optimum. `init` accepts `"classical"`, `"random"`, or a coordinate
-matrix; `n_init` includes the first start. A non-NULL `seed` preserves the
-caller's R random-number state. `scale_mode` changes diagnostics only.
+matrix; `n.init` includes the first start. A non-NULL `seed` preserves the
+caller's R random-number state. `scale.mode` changes diagnostics only.
 
 In versions through 0.2.0, `metric.mds()` performed classical scaling. Use
 `classical.mds()` to retain that behavior, including `add` and `eig`. See the
@@ -228,8 +228,8 @@ prepared <- prepare.graph.geodesic.mds(edges.cycle(8), n = 8)
 classical <- classical.mds(prepared = prepared, dim = 2)
 print(classical)
 if (requireNamespace("smacof", quietly = TRUE)) {
-  metric <- metric.mds(prepared = prepared, dim = 2, backend = "smacof", n_init = 2,
-                       max_iter = 100, seed = 11)
+  metric <- metric.mds(prepared = prepared, dim = 2, backend = "smacof", n.init = 2,
+                       max.iter = 100, seed = 11)
   metric$metadata$raw_stress
 } else {
   message("Install smacof for this optional-backend comparison; the SGD example below needs no extra backend.")
@@ -238,7 +238,7 @@ if (requireNamespace("smacof", quietly = TRUE)) {
 
 The default SGD backend requires no additional runtime package. Its learning-rate and
 checkpoint defaults are provisional calibration choices. A pass visits every
-unordered pair. The function's `max_iter` default is 1000; the 30 passes
+unordered pair. The function's `max.iter` default is 1000; the 30 passes
 requested below are an initial trial budget, not a convergence rule.
 Schedule completion emits an iteration-limit warning; the example suppresses
 that expected warning and displays the termination status instead.
@@ -247,7 +247,7 @@ checkpoint history and compare repeated starts before drawing conclusions.
 
 ```{r mds-sgd}
 sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
-  init = "random", max_iter = 30, seed = 11))
+  init = "random", max.iter = 30, seed = 11))
 sgd$metadata$engine  # Omitting backend selects "sgd".
 sgd$metadata$termination  # Schedule exhausted, not a convergence certificate.
 sgd$metadata$target_normalized_rmse
@@ -272,7 +272,7 @@ endpoints close together. These measurements answer different questions.
 |---|---|---|
 | Is the drawing useful without a reference embedding? | `score.layout()`: sampled chords versus shortest graph distances, edge-length variation, non-neighbor separation, and optional 2D crossings or clusters. | Sampled stress fits one scalar and is dimensionless. Edge CV and separation ratios are dimensionless; crossing counts are counts. Sampling seeds and sizes affect the result. |
 | Are local lengths, retained paths, and endpoint separations faithful? | `score.gmds()`: separate edge, fixed-path, and chord residual panels on a prepared graph. Path targets follow its retained-route convention; they may differ slightly from strict distances near ties. | `"profiled"` fits a separate scale per panel; `"identity"` fixes one; `"user"` supplies panel scales. Relative RMSE is dimensionless; absolute RMSE is in drawn-coordinate units against scaled targets. No coordinate-reference alignment. |
-| Did corresponding vertices recover particular coordinates? | `score.coordinates(coords, reference)`: root mean squared Euclidean vertex displacement. Rows must correspond. | Default rigid alignment allows translation, rotation and reflection. `allow_reflection = FALSE` forbids reflection. Similarity also fits uniform scale; `"none"` uses the supplied alignment. RMSE is in reference-coordinate units; relative RMSE divides by the reference RMS radius. |
+| Did corresponding vertices recover particular coordinates? | `score.coordinates(coords, reference)`: root mean squared Euclidean vertex displacement. Rows must correspond. | Default rigid alignment allows translation, rotation and reflection. `allow.reflection = FALSE` forbids reflection. Similarity also fits uniform scale; `"none"` uses the supplied alignment. RMSE is in reference-coordinate units; relative RMSE divides by the reference RMS radius. |
 | Do two already aligned triangular surfaces occupy the same region? | `score.surface()`: area-weighted, symmetric RMS closest-point distance to triangles, estimated by sampling each surface. Different meshes are allowed. | No alignment, scaling, or triangulation is performed. Output has coordinate-distance units. Its Monte Carlo standard error measures sampling error, not mesh or alignment uncertainty. It is not a maximum-distance measure. |
 
 The geodesic-KK scorers use their own path objectives, stiffnesses, and scale
@@ -301,8 +301,8 @@ parallel edges explicitly before comparing these different workflows, particular
 when their lengths differ. The validators do not silently simplify your input.
 
 Treat preparations as immutable graph-specific objects. Do not combine a
-`prepared` object with raw graph inputs (`edges`, `adj_list`, `edge_weights`,
-or `weight_list`); these calls fail rather than silently choosing a graph.
+`prepared` object with raw graph inputs (`edges`, `adj.list`, `edge.weights`,
+or `weight.list`); these calls fail rather than silently choosing a graph.
 An explicit `n` must be an integer matching the prepared vertex count.
 Rebuild the preparation to change the graph. Coordinate
 candidates on the same graph may change without rebuilding the graph cache;
@@ -355,8 +355,8 @@ interface; supply higher-dimensional coordinates directly for edge repair.
 fit `metric.mds(backend = "smacof", ...)` first and supply its coordinates.
 
 `geodesic.kk()` and `landmark.geodesic.kk()` require starting coordinates.
-MISF preparation uses `top_level_init = "geometric"`, `"cmdscale"`, or
-`"random"`; `misf.geodesic.kk(top_level_init = NULL)` inherits the prepared
+MISF preparation uses `top.level.init = "geometric"`, `"cmdscale"`, or
+`"random"`; `misf.geodesic.kk(top.level.init = NULL)` inherits the prepared
 choice or defaults to `"geometric"`. Its `"cmdscale"` spelling still means
 classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
@@ -531,15 +531,15 @@ method accounting, and help targets against the current namespace.
 
 | Function | Purpose | Details |
 |---|---|---|
-| `gripui_project()` | Assemble graph, layouts, scores, and metadata into an explorer project. | [Help](`r help_url("gripui_project")`) |
-| `gripui_project_from_compare()` | Convert a layout-comparison result into an explorer project. | [Help](`r help_url("gripui_project_from_compare")`) |
-| `gripui_project_from_dir()` | Load a saved explorer project from a directory. | [Help](`r help_url("gripui_project_from_dir")`) |
-| `gripui_validate_project()` | Validate a project's graph and layout structures. | [Help](`r help_url("gripui_validate_project")`) |
-| `gripui_app()` | Construct the Shiny layout-explorer app object. | [Help](`r help_url("gripui_app")`) |
-| `run_gripui()` | Launch the layout explorer in an interactive session. | [Help](`r help_url("run_gripui")`) |
-| `gripui_graph_family_catalog()` | List family identifiers and geometry choices for the family explorer. | [Help](`r help_url("gripui_graph_family_catalog")`) |
-| `gripui_family_app()` | Construct the Shiny synthetic-family explorer app object. | [Help](`r help_url("gripui_family_app")`) |
-| `run_gripui_family()` | Launch the synthetic-family explorer in an interactive session. | [Help](`r help_url("run_gripui_family")`) |
+| `gripui.project()` | Assemble graph, layouts, scores, and metadata into an explorer project. | [Help](`r help_url("gripui.project")`) |
+| `gripui.project.from.compare()` | Convert a layout-comparison result into an explorer project. | [Help](`r help_url("gripui.project.from.compare")`) |
+| `gripui.project.from.dir()` | Load a saved explorer project from a directory. | [Help](`r help_url("gripui.project.from.dir")`) |
+| `gripui.validate.project()` | Validate a project's graph and layout structures. | [Help](`r help_url("gripui.validate.project")`) |
+| `gripui.app()` | Construct the Shiny layout-explorer app object. | [Help](`r help_url("gripui.app")`) |
+| `run.gripui()` | Launch the layout explorer in an interactive session. | [Help](`r help_url("run.gripui")`) |
+| `gripui.graph.family.catalog()` | List family identifiers and geometry choices for the family explorer. | [Help](`r help_url("gripui.graph.family.catalog")`) |
+| `gripui.family.app()` | Construct the Shiny synthetic-family explorer app object. | [Help](`r help_url("gripui.family.app")`) |
+| `run.gripui.family()` | Launch the synthetic-family explorer in an interactive session. | [Help](`r help_url("run.gripui.family")`) |
 
 ## Find detailed help
 

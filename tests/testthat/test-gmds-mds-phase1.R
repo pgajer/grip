@@ -5,7 +5,7 @@ run.gmds.mesh.case <- function(bundle,
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights
+    edge.weights = bundle$edge_weights
   )
 
   cmd <- grip:::grip.classical.mds.embedding(prepared, dim = dim, eig = TRUE)
@@ -13,9 +13,9 @@ run.gmds.mesh.case <- function(bundle,
   opt <- grip.optimize.geodesic.mds(
     coords = cmd$coords,
     prepared = prepared,
-    max_iter = max_iter,
+    max.iter = max_iter,
     engine = "cpp",
-    return_trace = TRUE
+    return.trace = TRUE
   )
   fit.before <- grip:::grip.align.to.target.nd(
     cmd$coords,
@@ -48,7 +48,7 @@ test_that("classical MDS diagnostics are finite on a flat mesh", {
   prepared <- prepare.geodesic.kk(
     edges = bundle$edges,
     n = bundle$n,
-    edge_weights = bundle$edge_weights
+    edge.weights = bundle$edge_weights
   )
   fit <- grip:::grip.classical.mds.embedding(prepared, dim = 2L, eig = TRUE)
   score <- grip:::grip.classical.mds.score.stats(fit$coords, prepared)
@@ -93,10 +93,10 @@ test_that("GMDS refinement lowers path stress on slit-channel meshes", {
     keep.slit.channels(
       10, 10,
       orientation = "vertical",
-      slit_period = 4,
-      slit_width = 1,
-      bridge_spacing = 3,
-      bridge_size = 1,
+      slit.period = 4,
+      slit.width = 1,
+      bridge.spacing = 3,
+      bridge.size = 1,
       offset = 2
     ),
     surface = "saddle",
@@ -122,8 +122,8 @@ test_that("GMDS refinement lowers path stress for 3D ripple meshes", {
     6, 6,
     surface = "ripple",
     amplitude = 0.5,
-    freq_u = 2,
-    freq_v = 2,
+    freq.u = 2,
+    freq.v = 2,
     normalize = "median"
   )
   run <- run.gmds.mesh.case(
@@ -175,8 +175,8 @@ test_that("diagonal mesh connectivity improves GMDS geometry on simple ripple me
     6, 6,
     surface = "ripple",
     amplitude = 0.5,
-    freq_u = 2,
-    freq_v = 2,
+    freq.u = 2,
+    freq.v = 2,
     connectivity = "orthogonal",
     normalize = "median"
   )
@@ -184,8 +184,8 @@ test_that("diagonal mesh connectivity improves GMDS geometry on simple ripple me
     6, 6,
     surface = "ripple",
     amplitude = 0.5,
-    freq_u = 2,
-    freq_v = 2,
+    freq.u = 2,
+    freq.v = 2,
     connectivity = "diagonal",
     normalize = "median"
   )

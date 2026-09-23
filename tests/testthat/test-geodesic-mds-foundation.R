@@ -11,8 +11,8 @@ test_that("path graphs admit exact zero-stress realizations", {
   prepared <- prepare.graph.geodesic.mds(
     edges = edges.path(4L),
     n = 4L,
-    edge_weights = c(1, 1.5, 0.7),
-    tie_mode = "single"
+    edge.weights = c(1, 1.5, 0.7),
+    tie.mode = "single"
   )
 
   coords_exact <- cbind(c(0, 1, 2.5, 3.2), 0)
@@ -29,9 +29,9 @@ test_that("path graphs admit exact zero-stress realizations", {
     coords = coords_perturbed,
     prepared = prepared,
     engine = "cpp",
-    max_iter = 25L,
-    return_trace = TRUE,
-    n_threads = 1L
+    max.iter = 25L,
+    return.trace = TRUE,
+    n.threads = 1L
   )
   expect_lt(path_raw_stress(fit$score), 1e-6)
 })
@@ -51,8 +51,8 @@ test_that("shared-edge triangles show nonunique exact GMDS minima", {
       byrow = TRUE
     ),
     n = 4L,
-    edge_weights = rep(1, 5L),
-    tie_mode = "single"
+    edge.weights = rep(1, 5L),
+    tie.mode = "single"
   )
 
   coords_separated <- rbind(
@@ -97,8 +97,8 @@ test_that("selected tree examples admit exact zero-stress realizations", {
   star.prepared <- prepare.graph.geodesic.mds(
     edges = star.edges,
     n = 5L,
-    edge_weights = edge_lengths_from_coords(star.edges, star.coords),
-    tie_mode = "single"
+    edge.weights = edge_lengths_from_coords(star.edges, star.coords),
+    tie.mode = "single"
   )
   star.score <- grip.score.geodesic.mds(coords = star.coords, prepared = star.prepared)
   expect_lt(path_raw_stress(star.score), 1e-12)
@@ -116,8 +116,8 @@ test_that("selected tree examples admit exact zero-stress realizations", {
   tree.prepared <- prepare.graph.geodesic.mds(
     edges = tree.edges,
     n = nrow(tree.coords),
-    edge_weights = edge_lengths_from_coords(tree.edges, tree.coords),
-    tie_mode = "single"
+    edge.weights = edge_lengths_from_coords(tree.edges, tree.coords),
+    tie.mode = "single"
   )
   tree.score <- grip.score.geodesic.mds(coords = tree.coords, prepared = tree.prepared)
   expect_lt(path_raw_stress(tree.score), 1e-12)
@@ -137,14 +137,14 @@ test_that("tie_mode average records tied shortest paths on a square", {
   prepared_single <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "single"
+    edge.weights = rep(1, 4L),
+    tie.mode = "single"
   )
   prepared_average <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "average"
+    edge.weights = rep(1, 4L),
+    tie.mode = "average"
   )
 
   pair_idx <- which(
@@ -180,14 +180,14 @@ test_that("tie_mode average is relabeling-invariant on the square objective", {
   prepared_a <- prepare.graph.geodesic.mds(
     edges = square_edges,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "average"
+    edge.weights = rep(1, 4L),
+    tie.mode = "average"
   )
   prepared_b <- prepare.graph.geodesic.mds(
     edges = square_edges_perm,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "average"
+    edge.weights = rep(1, 4L),
+    tie.mode = "average"
   )
 
   square_coords <- rbind(
@@ -225,26 +225,26 @@ test_that("diamond ties document single-mode label dependence and average-mode i
   prepared_single <- prepare.graph.geodesic.mds(
     edges = diamond_edges,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "single"
+    edge.weights = rep(1, 4L),
+    tie.mode = "single"
   )
   prepared_single_perm <- prepare.graph.geodesic.mds(
     edges = diamond_edges_perm,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "single"
+    edge.weights = rep(1, 4L),
+    tie.mode = "single"
   )
   prepared_average <- prepare.graph.geodesic.mds(
     edges = diamond_edges,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "average"
+    edge.weights = rep(1, 4L),
+    tie.mode = "average"
   )
   prepared_average_perm <- prepare.graph.geodesic.mds(
     edges = diamond_edges_perm,
     n = 4L,
-    edge_weights = rep(1, 4L),
-    tie_mode = "average"
+    edge.weights = rep(1, 4L),
+    tie.mode = "average"
   )
 
   pair_idx <- which(prepared_average$pair_matrix[, 1L] == 1L & prepared_average$pair_matrix[, 2L] == 4L)
@@ -277,26 +277,26 @@ test_that("3x3 lattice patches restore symmetry under tie_mode average", {
   prepared_single <- prepare.graph.geodesic.mds(
     edges = lattice_edges,
     n = 9L,
-    edge_weights = rep(1, nrow(lattice_edges)),
-    tie_mode = "single"
+    edge.weights = rep(1, nrow(lattice_edges)),
+    tie.mode = "single"
   )
   prepared_single_perm <- prepare.graph.geodesic.mds(
     edges = lattice_edges_perm,
     n = 9L,
-    edge_weights = rep(1, nrow(lattice_edges_perm)),
-    tie_mode = "single"
+    edge.weights = rep(1, nrow(lattice_edges_perm)),
+    tie.mode = "single"
   )
   prepared_average <- prepare.graph.geodesic.mds(
     edges = lattice_edges,
     n = 9L,
-    edge_weights = rep(1, nrow(lattice_edges)),
-    tie_mode = "average"
+    edge.weights = rep(1, nrow(lattice_edges)),
+    tie.mode = "average"
   )
   prepared_average_perm <- prepare.graph.geodesic.mds(
     edges = lattice_edges_perm,
     n = 9L,
-    edge_weights = rep(1, nrow(lattice_edges_perm)),
-    tie_mode = "average"
+    edge.weights = rep(1, nrow(lattice_edges_perm)),
+    tie.mode = "average"
   )
 
   pair_idx <- which(prepared_average$pair_matrix[, 1L] == 1L & prepared_average$pair_matrix[, 2L] == 9L)

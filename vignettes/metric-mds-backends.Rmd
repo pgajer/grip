@@ -51,13 +51,13 @@ SMACOF combines information from all pairs before updating the entire
 configuration at once. Each update is designed to reduce total stress;
 an individual SGD adjustment need not reduce total stress, even though it
 improves the distance for the pair being adjusted.
-With the default `pair_weights = "uniform"`, both minimize the same raw distance stress:
+With the default `pair.weights = "uniform"`, both minimize the same raw distance stress:
 
 \[
 S(Z) = \sum_{i<j} \bigl(\lVert z_i-z_j\rVert-d_{ij}\bigr)^2.
 \]
 
-Both also support `pair_weights = "inverse_squared"`, the graph-drawing
+Both also support `pair.weights = "inverse_squared"`, the graph-drawing
 weighting used by [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
 The [weighting comparison](#the-effect-of-stress-weighting) below shows how
 this changes the fitted layouts. The original 420-fit comparison uses uniform
@@ -97,17 +97,17 @@ X <- cbind(uv, z = .8 * (uv[, 1]^2 - uv[, 2]^2))
 edges <- t(combn(nrow(X), 2))
 lengths <- sqrt(rowSums((X[edges[, 1], ] - X[edges[, 2], ])^2))
 prepared <- prepare.graph.geodesic.mds(edges = edges, n = nrow(X),
-                                      edge_weights = lengths)
+                                      edge.weights = lengths)
 start <- withr::with_seed(11, matrix(rnorm(nrow(X) * 3), nrow(X), 3))
 # Schedule completion emits an iteration-limit warning, not convergence.
 sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
-  init = start, n_init = 1, max_iter = 30, seed = 11, diagnostics = FALSE))
+  init = start, n.init = 1, max.iter = 30, seed = 11, diagnostics = FALSE))
 sgd$metadata$engine  # "sgd": backend omitted deliberately
 sgd$metadata$termination
 smacof.fit <- NULL
 if (requireNamespace('smacof', quietly = TRUE)) {
   smacof.fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
-    init = start, n_init = 1, max_iter = 30, seed = 11,
+    init = start, n.init = 1, max.iter = 30, seed = 11,
     backend = 'smacof', eps = 1e-8, diagnostics = FALSE))
   rbind(SGD = comparison_score(sgd$coords, prepared$distance_matrix),
         SMACOF = comparison_score(smacof.fit$coords, prepared$distance_matrix))
@@ -140,7 +140,7 @@ if (have.ivue) {
 }
 ```
 
-`max_iter` defaults to 1000; 30 is an explicit short trial allowance.
+`max.iter` defaults to 1000; 30 is an explicit short trial allowance.
 One SGD pass visits all unordered pairs. One SMACOF iteration is a different
 operation, so equal iteration counts are not equal work. SGD's schedule ends
 with `iteration_limit`, even when it returns an earlier, better checkpoint.
@@ -175,7 +175,7 @@ The reference mesh on each quadform connects corresponding sampled vertices;
 it is a display aid, not a geodesic or surface-recovery certificate.
 
 For every dataset, both backends receive the **same saved starting-coordinate
-recipe**, for seeds 1–5, and `n_init = 1`. Each allowance of 10, 30 or 100
+recipe**, for seeds 1–5, and `n.init = 1`. Each allowance of 10, 30 or 100
 starts a separate fit from those coordinates. SGD uses the hybrid schedule
 with initial rate 0.5, boundary rate 0.01, switch fraction 0.4, and scoring after
 every pass; SMACOF uses `eps = 1e-8`. Backend order alternates between paired
@@ -332,14 +332,14 @@ Select the same weighting for either backend:
 
 ```{r weighted-api, eval=FALSE}
 sgd <- metric.mds(prepared = prepared, dim = 3, init = start,
-                 backend = "sgd", pair_weights = "inverse_squared",
-                 max_iter = 100, diagnostics = FALSE)
+                 backend = "sgd", pair.weights = "inverse_squared",
+                 max.iter = 100, diagnostics = FALSE)
 smacof <- metric.mds(prepared = prepared, dim = 3, init = start,
-                    backend = "smacof", pair_weights = "inverse_squared",
-                    max_iter = 100, eps = 1e-8, diagnostics = FALSE)
+                    backend = "smacof", pair.weights = "inverse_squared",
+                    max.iter = 100, eps = 1e-8, diagnostics = FALSE)
 ```
 
-Set `pair_weights = "uniform"` to use the original objective. Inverse-squared
+Set `pair.weights = "uniform"` to use the original objective. Inverse-squared
 weighting requires positive distances between distinct vertices; zero distances
 are rejected rather than replaced by a small constant. The learning-rate
 schedule stays the same as above, in RMS-normalized distance units. These fits

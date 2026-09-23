@@ -7,9 +7,9 @@
 estimate.preparation(
   n,
   n.edges = NA_integer_,
-  pair_mode = c("all_pairs", "landmark_sparse", "distance_matrix_only", "edge_only"),
-  local_nbrs = 20L,
-  landmark_count = 8L
+  pair.mode = c("all_pairs", "landmark_sparse", "distance_matrix_only", "edge_only"),
+  local.nbrs = 20L,
+  landmark.count = 8L
 )
 }
 \arguments{
@@ -17,10 +17,10 @@ estimate.preparation(
 
 \item{n.edges}{Number of undirected edges, or NA if unknown.}
 
-\item{pair_mode}{Preparation mode: full paths, landmark paths, distances only,
+\item{pair.mode}{Preparation mode: full paths, landmark paths, distances only,
 or edges only.}
 
-\item{local_nbrs, landmark_count}{Counts used by landmark preparation.}
+\item{local.nbrs, landmark.count}{Counts used by landmark preparation.}
 }
 \value{
 A one-row data frame containing graph counts, pair mode, a pair-count
@@ -49,7 +49,7 @@ raised on the main thread. Cancellation does not return a partial fit.
 }
 \examples{
 estimate.preparation(10000, n.edges = 20000)
-estimate.preparation(10000, n.edges = 20000, pair_mode = "edge_only")
+estimate.preparation(10000, n.edges = 20000, pair.mode = "edge_only")
 }
 \seealso{
 \code{\link[=prepare.graph.geodesic.mds]{prepare.graph.geodesic.mds()}}, \code{\link[=prepare.landmark.geodesic.kk]{prepare.landmark.geodesic.kk()}}

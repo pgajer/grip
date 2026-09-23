@@ -6,8 +6,8 @@ test_that("coordinates survive extraction without transformation", {
   expect_identical(layout.coords(z), z)
   trace <- trace.grip(e, n = 6, dim = 2, seed = 11)
   fit <- classical.mds(edges = e, n = 6)
-  refinement <- geodesic.kk(z, edges = e, n = 6, max_iter = 0)
-  landmark <- landmark.geodesic.kk(z, edges = e, n = 6, max_iter = 0)
+  refinement <- geodesic.kk(z, edges = e, n = 6, max.iter = 0)
+  landmark <- landmark.geodesic.kk(z, edges = e, n = 6, max.iter = 0)
   for (obj in list(trace, fit, refinement, landmark)) {
     expected <- if (inherits(obj, "grip_layout_trace")) obj$final else obj$coords
     expect_identical(layout.coords(obj), expected)

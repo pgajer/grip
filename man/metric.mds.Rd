@@ -8,44 +8,44 @@ metric.mds(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   dim = 2L,
   init = c("classical", "random"),
-  n_init = 1L,
-  max_iter = 1000L,
+  n.init = 1L,
+  max.iter = 1000L,
   eps = 1e-08,
   seed = 1L,
   diagnostics = TRUE,
-  scale_mode = c("profiled", "identity"),
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  band_quantiles = c(1/3, 2/3),
+  scale.mode = c("profiled", "identity"),
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  band.quantiles = c(1/3, 2/3),
   backend = c("sgd", "smacof"),
-  sgd_control = list(),
-  pair_weights = c("uniform", "inverse_squared"),
+  sgd.control = list(),
+  pair.weights = c("uniform", "inverse_squared"),
   approximation = c("full", "sparse"),
-  sparse_control = list()
+  sparse.control = list()
 )
 }
 \arguments{
 \item{prepared}{An all-pairs prepared graph object containing
-\code{distance_matrix}, for full MDS only. Sparse MDS requires raw graph inputs.
+\code{distance.matrix}, for full MDS only. Sparse MDS requires raw graph inputs.
 Edge-only preparations are not supported as inputs to either mode.}
 
 \item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
-Supply either edges/edge_weights or adj_list/weight_list, not both.
+Supply either edges/edge.weights or adj.list/weight.list, not both.
 Raw graph inputs cannot be combined with a prepared object.}
 
 \item{n}{Finite positive integer vertex count. When supplied with a prepared
 object, it must match the stored graph size.}
 
-\item{adj_list}{Optional adjacency list used when \code{prepared} is omitted.}
+\item{adj.list}{Optional adjacency list used when \code{prepared} is omitted.}
 
-\item{weight_list}{Optional edge-weight list parallel to \code{adj_list}.}
+\item{weight.list}{Optional edge-weight list parallel to \code{adj.list}.}
 
-\item{edge_weights}{Optional positive edge weights parallel to \code{edges}.}
+\item{edge.weights}{Optional positive edge weights parallel to \code{edges}.}
 
 \item{dim}{Target embedding dimension. Values greater than 3 are supported
 for GMDS and edge-KK workflows.}
@@ -55,10 +55,10 @@ matrix with \code{n} rows and \code{dim} columns in input-distance units. Sparse
 supports only random or supplied starts; random starts use a uniform unit
 cube in normalized-distance units.}
 
-\item{n_init}{Positive integer number of starts, including the first start.
+\item{n.init}{Positive integer number of starts, including the first start.
 Sparse MDS currently requires one start.}
 
-\item{max_iter}{Positive integer iteration limit per start. For SGD, the
+\item{max.iter}{Positive integer iteration limit per start. For SGD, the
 number of complete passes over full or retained sparse pairs. Defaults to
 1000 for full MDS and 30 for sparse MDS. The sparse default is a provisional
 calibration choice, not a convergence criterion.}
@@ -73,35 +73,35 @@ With a non-NULL seed, random starts do not change the caller's RNG state.}
 and raw graph inputs in full mode, prepare only the distance matrix, without
 path caches. Defaults to \code{TRUE} for full MDS and \code{FALSE} for sparse MDS.
 Sparse MDS rejects \code{TRUE} and explicitly supplied diagnostic controls
-(\code{scale_mode}, \code{distance_floor}, \code{edge_length_epsilon}, \code{band_quantiles}).}
+(\code{scale.mode}, \code{distance.floor}, \code{edge.length.epsilon}, \code{band.quantiles}).}
 
-\item{scale_mode}{Diagnostic scale policy: \code{"profiled"} fits a separate
+\item{scale.mode}{Diagnostic scale policy: \code{"profiled"} fits a separate
 scalar for each diagnostic family, and \code{"identity"} uses scale one.
 To evaluate user-specified scales, call \code{\link[=score.gmds]{score.gmds()}} on the returned
 coordinates separately. This argument never changes the fitted coordinates.}
 
-\item{distance_floor}{Positive floor for relative residuals.}
+\item{distance.floor}{Positive floor for relative residuals.}
 
-\item{edge_length_epsilon}{Small stabilizer for fixed-path embedded lengths.}
+\item{edge.length.epsilon}{Small stabilizer for fixed-path embedded lengths.}
 
-\item{band_quantiles}{Two quantiles splitting graph distances into short,
+\item{band.quantiles}{Two quantiles splitting graph distances into short,
 mid, and long bands.}
 
 \item{backend}{\code{"sgd"} (default) or \code{"smacof"}. No automatic fallback occurs.}
 
-\item{sgd_control}{Named list used only with \code{backend = "sgd"}:
-\code{scheduler} (\code{"hybrid"} or \code{"exponential"}), \code{learning_rate} (0.5),
-\code{final_rate} (0.01), \code{switch_ratio} (0.4), \code{checkpoint_every} (1), and
-\code{max_workspace_bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
+\item{sgd.control}{Named list used only with \code{backend = "sgd"}:
+\code{scheduler} (\code{"hybrid"} or \code{"exponential"}), \code{learning.rate} (0.5),
+\code{final.rate} (0.01), \code{switch.ratio} (0.4), \code{checkpoint.every} (1), and
+\code{max.workspace.bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
 These defaults are provisional calibration
-choices. Rates must be positive with \code{final_rate <= learning_rate};
-\code{switch_ratio} is between zero and one inclusive. The memory allowance covers native workspace,
+choices. Rates must be positive with \code{final.rate <= learning.rate};
+\code{switch.ratio} is between zero and one inclusive. The memory allowance covers native workspace,
 not the R input matrices or total process memory.}
 
-\item{pair_weights}{\code{"uniform"} (full default) or \code{"inverse_squared"} (sparse
+\item{pair.weights}{\code{"uniform"} (full default) or \code{"inverse_squared"} (sparse
 default and the only supported sparse choice). The latter
 applies the paper's inverse-squared shortest-path-distance weights in either
-backend. This is separate from the graph's \code{edge_weights}.}
+backend. This is separate from the graph's \code{edge.weights}.}
 
 \item{approximation}{\code{"full"} (default) or \code{"sparse"}. This selects the
 distance model separately from the optimizer selected by \code{backend}.
@@ -109,8 +109,8 @@ Sparse mode currently supports only SGD, in 2D or 3D. The default \code{dim = 2}
 is shared by both modes. Mode-specific defaults apply only to omitted
 arguments; explicitly incompatible choices produce errors.}
 
-\item{sparse_control}{Named list used only with \code{approximation = "sparse"}:
-\code{n_pivots} (200, capped at \code{n}) and optional distinct vertex ids \code{pivots}
+\item{sparse.control}{Named list used only with \code{approximation = "sparse"}:
+\code{n.pivots} (200, capped at \code{n}) and optional distinct vertex ids \code{pivots}
 in selection order. Explicit pivots override the default count; supplying
 an inconsistent count is an error. The default count is a provisional
 calibration choice; increasing it increases memory and work per epoch.}
@@ -147,15 +147,15 @@ behavior. The \code{add} and \code{eig} arguments belong to \code{classical.mds(
 \details{
 With \code{approximation = "full"}, the objective is
 \deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
-By default, all pair weights are one. With \code{pair_weights = "inverse_squared"},
+By default, all pair weights are one. With \code{pair.weights = "inverse_squared"},
 \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
 sum of squared relative distance errors. Edge weights define graph distances;
-\code{pair_weights} separately specifies their importance in the stress objective.
+\code{pair.weights} separately specifies their importance in the stress objective.
 Both backends, coordinate rescaling, checkpoint/start selection, and stress
 metadata use the selected weights. The common \code{score.gmds()} diagnostic panel
 retains its own definitions and does not become a weighted objective report.
 SMACOF normalizes targets internally. Returned coordinates are rescaled to
-minimize raw stress against the original input distances. \code{scale_mode}
+minimize raw stress against the original input distances. \code{scale.mode}
 controls the optional diagnostic panel only, not the optimization objective.
 
 Target-normalized raw stress and scale-profiled Stress-1 select the same
@@ -200,11 +200,11 @@ scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
 The R wrapper independently rescales and recomputes its returned stress.
 The exponential schedule's final rate is its boundary value after the planned
 passes, not its last applied rate. The hybrid schedule switches after
-\code{floor(switch_ratio * max_iter)} passes, at one tenth the initial rate
+\code{floor(switch.ratio * max.iter)} passes, at one tenth the initial rate
 (or the initial rate if the switch is immediate). Its harmonic segment
-approaches \code{final_rate} at the boundary only when the switch rate exceeds
-\code{final_rate}; otherwise that segment stays constant at the switch rate.
-With \code{switch_ratio = 1}, no harmonic segment occurs and \code{final_rate} is unused.
+approaches \code{final.rate} at the boundary only when the switch rate exceeds
+\code{final.rate}; otherwise that segment stays constant at the switch rate.
+With \code{switch.ratio = 1}, no harmonic segment occurs and \code{final.rate} is unused.
 Coincident points with positive target distance are separated along a seeded
 direction; zero targets are not floored. Without such collisions, updates
 preserve a deficient initial affine span. Use full-dimensional random starts
@@ -263,17 +263,17 @@ guides with \code{vignette(package = "grip")}.
 
 \examples{
 prepared <- prepare.graph.geodesic.mds(edges.cycle(6), n = 6)
-fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max_iter = 30))
+fit <- suppressWarnings(metric.mds(prepared = prepared, dim = 2, max.iter = 30))
 fit$metadata$raw_stress
 fit$metadata$termination # Schedule completion is not a convergence certificate.
 # Schedule completion is reported explicitly, not as convergence.
 fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
-  dim = 3, init = "random", backend = "sgd", max_iter = 30,
+  dim = 3, init = "random", backend = "sgd", max.iter = 30,
   diagnostics = FALSE))
 fit$metadata$engine
 fit$metadata$target_normalized_rmse
 sparse <- metric.mds(edges = edges.path(30), dim = 3,
-  approximation = "sparse", sparse_control = list(n_pivots = 5))
+  approximation = "sparse", sparse.control = list(n.pivots = 5))
 sparse$metadata$sparse_proxy_stress
 }
 \references{

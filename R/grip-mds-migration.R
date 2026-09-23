@@ -31,10 +31,10 @@
 #' `edge.kk()` or `kernel.gram.gkk()`. No automatic backend fallback is made.
 #'
 #' @section Native SGD backend:
-#' `metric.mds(backend = "sgd", max_iter = 30, ...)` explicitly selects the
+#' `metric.mds(backend = "sgd", max.iter = 30, ...)` explicitly selects the
 #' default backend with a short trial budget, without requiring smacof.
 #' SGD uses the same uniform pair weights and shortest-path targets. Its controls
-#' remain provisional calibration choices, and `max_iter` counts complete pair
+#' remain provisional calibration choices, and `max.iter` counts complete pair
 #' passes. Schedule completion is reported as `iteration_limit`, not convergence.
 #' Inspect per-start records and `metadata$sgd` checkpoint histories. Selecting
 #' `init = "metric_mds"` in refinement methods follows the default SGD backend;

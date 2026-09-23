@@ -90,7 +90,7 @@ coords.unweighted <- grip(
 coords.weighted <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
-  edge_weights = surface.mesh$edge_weights,
+  edge.weights = surface.mesh$edge_weights,
   dim = 3,
   preset = "mesh",
   seed = 1
@@ -99,7 +99,7 @@ coords.weighted <- grip(metric = "edge_length",
 gkk.prepared <- prepare.geodesic.kk(
   surface.mesh$edges,
   n = surface.mesh$n,
-  edge_weights = surface.mesh$edge_weights
+  edge.weights = surface.mesh$edge_weights
 )
 
 surface.summary <- do.call(
@@ -165,7 +165,7 @@ without substantial distortion.
 coords.weighted.2d <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
-  edge_weights = surface.mesh$edge_weights,
+  edge.weights = surface.mesh$edge_weights,
   dim = 2,
   preset = "mesh",
   seed = 2
@@ -174,7 +174,7 @@ coords.weighted.2d <- grip(metric = "edge_length",
 coords.weighted.3d <- grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
-  edge_weights = surface.mesh$edge_weights,
+  edge.weights = surface.mesh$edge_weights,
   dim = 3,
   preset = "mesh",
   seed = 2
@@ -265,16 +265,16 @@ but assigns edge lengths by depth and branch position.
 tree.graph <- kary.tree.weighted.graph(
   k = 2,
   depth = 4,
-  depth_rule = "geometric",
-  depth_decay = 0.82,
-  branch_rule = "linear",
-  branch_spread = 0.25
+  depth.rule = "geometric",
+  depth.decay = 0.82,
+  branch.rule = "linear",
+  branch.spread = 0.25
 )
 
 tree.coords <- grip(metric = "edge_length",
   tree.graph$edges,
   n = tree.graph$n,
-  edge_weights = tree.graph$edge_weights,
+  edge.weights = tree.graph$edge_weights,
   dim = 2,
   preset = "tree",
   seed = 3
@@ -316,8 +316,8 @@ The weighted API also supports:
   evaluation,
 - `prepare.landmark.geodesic.kk()` /
   `score.landmark.geodesic.kk()` for sparse LGKK evaluation,
-- `lgkk_polish_rounds` for post-layout landmark geodesic KK refinement,
-- `lgkk_multiscale_rounds` and the stage-specific LGKK controls for in-core
+- `lgkk.polish.rounds` for post-layout landmark geodesic KK refinement,
+- `lgkk.multiscale.rounds` and the stage-specific LGKK controls for in-core
   multiscale refinement.
 
 These GKK/LGKK tools are public, but they are not the default entry path. For
@@ -331,7 +331,7 @@ Here is the smallest traced weighted example pattern:
 surface.trace <- trace.grip(metric = "edge_length",
   surface.mesh$edges,
   n = surface.mesh$n,
-  edge_weights = surface.mesh$edge_weights,
+  edge.weights = surface.mesh$edge_weights,
   dim = 3,
   preset = "mesh",
   trace = "level",

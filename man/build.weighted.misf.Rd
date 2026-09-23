@@ -7,12 +7,12 @@
 build.weighted.misf(
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
-  num_init = 24,
-  num_nbrs = 20,
-  length_normalization = c("median", "mean", "none"),
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
+  num.init = 24,
+  num.nbrs = 20,
+  length.normalization = c("median", "mean", "none"),
   seed = 6
 )
 }
@@ -21,17 +21,17 @@ build.weighted.misf(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for undirected graphs.}
+\item{adj.list}{Adjacency list (1-based) for undirected graphs.}
 
-\item{weight_list}{Parallel list of strictly positive edge lengths.}
+\item{weight.list}{Parallel list of strictly positive edge lengths.}
 
-\item{edge_weights}{Optional vector of edge lengths for \code{edges}.}
+\item{edge.weights}{Optional vector of edge lengths for \code{edges}.}
 
-\item{num_init}{Number of initial vertices in the coarsest level.}
+\item{num.init}{Number of initial vertices in the coarsest level.}
 
-\item{num_nbrs}{Maximum number of retained local neighbors per level.}
+\item{num.nbrs}{Maximum number of retained local neighbors per level.}
 
-\item{length_normalization}{Global edge-length normalization:
+\item{length.normalization}{Global edge-length normalization:
 \code{"median"} (default), \code{"mean"}, or \code{"none"}.}
 
 \item{seed}{Optional RNG seed for reproducibility. If NULL, uses current time.}
@@ -52,7 +52,7 @@ hierarchies on the same graph.
 cycle_edges <- edges.cycle(6)
 cycle_lengths <- seq(0.8, 1.3, length.out = nrow(cycle_edges))
 levels <- build.weighted.misf(
-  edges = cycle_edges, n = 6, edge_weights = cycle_lengths,
-  num_init = 3, num_nbrs = 2, seed = 1
+  edges = cycle_edges, n = 6, edge.weights = cycle_lengths,
+  num.init = 3, num.nbrs = 2, seed = 1
 )
 }

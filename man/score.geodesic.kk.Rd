@@ -9,15 +9,15 @@ score.geodesic.kk(
   prepared = NULL,
   edges = NULL,
   n = NULL,
-  adj_list = NULL,
-  weight_list = NULL,
-  edge_weights = NULL,
+  adj.list = NULL,
+  weight.list = NULL,
+  edge.weights = NULL,
   stiffness = 1,
-  distance_floor = 1e-08,
-  edge_length_epsilon = 1e-08,
-  scale_mode = c("profiled", "user"),
+  distance.floor = 1e-08,
+  edge.length.epsilon = 1e-08,
+  scale.mode = c("profiled", "user"),
   scale.L0 = NULL,
-  return_pair_details = FALSE
+  return.pair.details = FALSE
 )
 }
 \arguments{
@@ -30,28 +30,28 @@ score.geodesic.kk(
 
 \item{n}{Number of vertices.}
 
-\item{adj_list}{Adjacency list (1-based) for an undirected graph.}
+\item{adj.list}{Adjacency list (1-based) for an undirected graph.}
 
-\item{weight_list}{Optional parallel list of positive edge weights.}
+\item{weight.list}{Optional parallel list of positive edge weights.}
 
-\item{edge_weights}{Optional positive edge-weight vector parallel to
+\item{edge.weights}{Optional positive edge-weight vector parallel to
 \code{edges}.}
 
 \item{stiffness}{Global stiffness constant \(K\).}
 
-\item{distance_floor}{Small positive floor used in
-\code{k_ij = K / max(g_ij, distance_floor)^2}.}
+\item{distance.floor}{Small positive floor used in
+\code{k_ij = K / max(g_ij, distance.floor)^2}.}
 
-\item{edge_length_epsilon}{Small positive stabilizer added inside each
+\item{edge.length.epsilon}{Small positive stabilizer added inside each
 embedded edge length.}
 
-\item{scale_mode}{Either \code{"profiled"} to fit \code{L0} analytically
+\item{scale.mode}{Either \code{"profiled"} to fit \code{L0} analytically
 for the supplied layout or \code{"user"} to use \code{scale.L0}.}
 
 \item{scale.L0}{Optional user-supplied geodesic KK scale, required when
-\code{scale_mode = "user"}.}
+\code{scale.mode = "user"}.}
 
-\item{return_pair_details}{If \code{TRUE}, include pairwise path lengths and
+\item{return.pair.details}{If \code{TRUE}, include pairwise path lengths and
 residuals in a list column.}
 }
 \value{

@@ -9,10 +9,10 @@ vicsek.surface.graph(
   level = 2,
   surface = c("saddle", "paraboloid", "ripple"),
   amplitude = 0.75,
-  freq_u = 1,
-  freq_v = 1,
-  x_scale = 1,
-  y_scale = 1,
+  freq.u = 1,
+  freq.v = 1,
+  x.scale = 1,
+  y.scale = 1,
   normalize = c("median", "mean", "none")
 )
 }
@@ -25,15 +25,15 @@ vicsek.surface.graph(
 \item{amplitude}{Finite numeric amplitude controlling the non-flat
 displacement.}
 
-\item{freq_u}{Positive ripple frequency in the horizontal parameter
+\item{freq.u}{Positive ripple frequency in the horizontal parameter
 direction. Used only when \code{surface = "ripple"}.}
 
-\item{freq_v}{Positive ripple frequency in the vertical parameter direction.
+\item{freq.v}{Positive ripple frequency in the vertical parameter direction.
 Used only when \code{surface = "ripple"}.}
 
-\item{x_scale}{Positive horizontal scaling of the parameter domain.}
+\item{x.scale}{Positive horizontal scaling of the parameter domain.}
 
-\item{y_scale}{Positive vertical scaling of the parameter domain.}
+\item{y.scale}{Positive vertical scaling of the parameter domain.}
 
 \item{normalize}{Normalization applied to the induced edge lengths. One of
 \code{"median"}, \code{"mean"}, or \code{"none"}.}
@@ -53,7 +53,7 @@ neighbors. This produces a mesh-derived fractal family with strong
 bottlenecks while remaining orthogonally connected at every level.
 }
 \details{
-The \code{coords_surface} component contains the 3D coordinates of the occupied
+The \code{coords.surface} component contains the 3D coordinates of the occupied
 cells in the same vertex order as \code{edges}.
 \code{vicsek.surface.graph()} returns a reusable weighted-graph bundle for the
 named Vicsek family.

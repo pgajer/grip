@@ -2,9 +2,9 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
   compute_bundle <- getFromNamespace("gripui.gmds.compute.bundle", "grip")
   merge_values <- getFromNamespace(".gripui.family.merge.values", "grip")
 
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   desc <- catalog$mesh
-  values <- merge_values(desc, preset_id = "default")
+  values <- merge_values(desc, preset.id = "default")
   values$h <- 4L
   values$w <- 4L
   values$surface <- "paraboloid"
@@ -34,14 +34,14 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
       values = values,
       method = method,
       dim = 3L,
-      num_init = 6L,
-      prepare_seed = 1101L,
-      optimizer_seed = 2101L,
-      top_level_max_iter = 1L,
-      insertion_max_iter = 4L,
-      refinement_max_iter = 1L,
-      final_polish_max_iter = 1L,
-      n_threads = 0L
+      num.init = 6L,
+      prepare.seed = 1101L,
+      optimizer.seed = 2101L,
+      top.level.max.iter = 1L,
+      insertion.max.iter = 4L,
+      refinement.max.iter = 1L,
+      final.polish.max.iter = 1L,
+      n.threads = 0L
     )
 
     expect_true(is.list(bundle))
@@ -75,9 +75,9 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
     expect_true(all(c("paper_panel", "paper_wide") %in% unname(figure_preset_choices())))
     export.payload <- export_stage_payload(
       bundle = bundle,
-      stage_id = "top_level",
-      focus_level = bundle$prepared$top_level_level,
-      expansion_level = expansion_levels[[1L]]
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]]
     )
     expect_true(is.list(export.payload))
     expect_equal(export.payload$label, cases[[method]]$top_label)
@@ -85,24 +85,24 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
 
     context <- paper_context(
       bundle = bundle,
-      stage_id = "top_level",
-      focus_level = bundle$prepared$top_level_level,
-      expansion_level = expansion_levels[[1L]]
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]]
     )
     expect_true(is.data.frame(context))
     expect_equal(context$manuscript_section[[1L]], "Coarsest seed, expansion, and refinement")
     expect_match(
-      paper_note(bundle, "top_level", focus_level = bundle$prepared$top_level_level),
+      paper_note(bundle, "top_level", focus.level = bundle$prepared$top_level_level),
       "Paper link:"
     )
 
     png.path <- tempfile(fileext = ".png")
     pdf.path <- tempfile(fileext = ".pdf")
     write_static_figure(
-      export_payload = export.payload,
-      png_path = png.path,
-      pdf_path = pdf.path,
-      figure_preset = "paper_panel"
+      export.payload = export.payload,
+      png.path = png.path,
+      pdf.path = pdf.path,
+      figure.preset = "paper_panel"
     )
     expect_true(file.exists(png.path))
     expect_true(file.exists(pdf.path))
@@ -113,12 +113,12 @@ test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, a
     dir <- tempfile("gmds-export-test-")
     files <- write_export_bundle(
       bundle = bundle,
-      export_payload = export.payload,
-      stage_id = "top_level",
-      focus_level = bundle$prepared$top_level_level,
-      expansion_level = expansion_levels[[1L]],
+      export.payload = export.payload,
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]],
       preset = "paper_figure_bundle",
-      figure_preset = "paper_panel",
+      figure.preset = "paper_panel",
       dir = dir
     )
     expect_true(all(file.exists(files)))
@@ -141,7 +141,7 @@ test_that("GMDS stage explorer app builds", {
   options(rgl.useNULL = TRUE)
   on.exit(options(rgl.useNULL = old), add = TRUE)
 
-  app <- gripui_gmds_app(catalog = gripui_graph_family_catalog()[c("mesh", "sampled_rectangle")])
+  app <- gripui.gmds.app(catalog = gripui.graph.family.catalog()[c("mesh", "sampled_rectangle")])
   expect_s3_class(app, "shiny.appobj")
 })
 
@@ -152,9 +152,9 @@ test_that("GMDS app normalizes stale MIS filtration levels safely", {
   selected_level_table <- getFromNamespace("gripui.gmds.selected.level.table", "grip")
   export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
 
-  catalog <- gripui_graph_family_catalog()
+  catalog <- gripui.graph.family.catalog()
   desc <- catalog$mesh
-  values <- merge_values(desc, preset_id = "default")
+  values <- merge_values(desc, preset.id = "default")
   values$h <- 4L
   values$w <- 4L
   values$surface <- "paraboloid"
@@ -165,14 +165,14 @@ test_that("GMDS app normalizes stale MIS filtration levels safely", {
     values = values,
     method = "gmds",
     dim = 3L,
-    num_init = 6L,
-    prepare_seed = 1101L,
-    optimizer_seed = 2101L,
-    top_level_max_iter = 1L,
-    insertion_max_iter = 4L,
-    refinement_max_iter = 1L,
-    final_polish_max_iter = 1L,
-    n_threads = 0L
+    num.init = 6L,
+    prepare.seed = 1101L,
+    optimizer.seed = 2101L,
+    top.level.max.iter = 1L,
+    insertion.max.iter = 4L,
+    refinement.max.iter = 1L,
+    final.polish.max.iter = 1L,
+    n.threads = 0L
   )
 
   expect_equal(
@@ -188,8 +188,8 @@ test_that("GMDS app normalizes stale MIS filtration levels safely", {
 
   misf.payload <- export_stage_payload(
     bundle = bundle,
-    stage_id = "misf",
-    focus_level = 99
+    stage.id = "misf",
+    focus.level = 99
   )
   expect_true(is.list(misf.payload))
   expect_equal(misf.payload$level, bundle$prepared$top_level_level)

@@ -2,7 +2,7 @@ test_that("Riemannian star structure builds antipodal-weighted center pairs", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L)),
     n = 3L,
-    edge_weights = c(1, 1)
+    edge.weights = c(1, 1)
   )
   X <- cbind(c(0, 1, 2), c(0, 0, 0))
   star <- graph.riemannian.star.structure(
@@ -23,7 +23,7 @@ test_that("Riemannian star angle.power downweights non-antipodal pairs", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(1L, 3L), c(1L, 4L)),
     n = 4L,
-    edge_weights = c(1, 1, 1)
+    edge.weights = c(1, 1, 1)
   )
   X <- rbind(
     c(0, 0),
@@ -43,7 +43,7 @@ test_that("Riemannian star quantile filter keeps strongest star pairs", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(1L, 3L), c(1L, 4L), c(1L, 5L)),
     n = 5L,
-    edge_weights = rep(1, 4)
+    edge.weights = rep(1, 4)
   )
   X <- rbind(
     c(0, 0),
@@ -69,7 +69,7 @@ test_that("Riemannian star quantile filter keeps strongest star pairs", {
 
 test_that("kernel Gram energy gradient matches finite differences", {
   edges <- rbind(c(1L, 2L), c(2L, 3L), c(2L, 4L))
-  prepared <- prepare.graph.geodesic.mds(edges = edges, n = 4L, edge_weights = c(1, 1, 1))
+  prepared <- prepare.graph.geodesic.mds(edges = edges, n = 4L, edge.weights = c(1, 1, 1))
   X <- rbind(
     c(0, 0),
     c(1, 0),
@@ -86,10 +86,10 @@ test_that("kernel Gram energy gradient matches finite differences", {
   state <- grip:::grip.kernel.gram.energy.gradient(
     coords = coords,
     edges = prepared$edges,
-    edge_weights = prepared$edge_targets,
-    edge_stiffness = c(0.8, 1.2, 1.1),
+    edge.weights = prepared$edge_targets,
+    edge.stiffness = c(0.8, 1.2, 1.1),
     star = star,
-    edge_scale = 1.05,
+    edge.scale = 1.05,
     lambda.edge = 0.7,
     lambda.gram = 0.4
   )
@@ -104,11 +104,11 @@ test_that("kernel Gram energy gradient matches finite differences", {
       minus[i, j] <- minus[i, j] - eps
       e.plus <- grip:::grip.kernel.gram.energy.gradient(
         plus, prepared$edges, prepared$edge_targets, c(0.8, 1.2, 1.1),
-        star, edge_scale = 1.05, lambda.edge = 0.7, lambda.gram = 0.4
+        star, edge.scale = 1.05, lambda.edge = 0.7, lambda.gram = 0.4
       )$energy
       e.minus <- grip:::grip.kernel.gram.energy.gradient(
         minus, prepared$edges, prepared$edge_targets, c(0.8, 1.2, 1.1),
-        star, edge_scale = 1.05, lambda.edge = 0.7, lambda.gram = 0.4
+        star, edge.scale = 1.05, lambda.edge = 0.7, lambda.gram = 0.4
       )$energy
       fd[i, j] <- (e.plus - e.minus) / (2 * eps)
     }
@@ -121,7 +121,7 @@ test_that("C++ kernel Gram-gKK matches R reference engine", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L), c(2L, 4L), c(4L, 5L)),
     n = 5L,
-    edge_weights = c(1, 1.1, 1, 1.2)
+    edge.weights = c(1, 1.1, 1, 1.2)
   )
   X <- rbind(
     c(0, 0),
@@ -145,12 +145,12 @@ test_that("C++ kernel Gram-gKK matches R reference engine", {
     angle.power = 4,
     lambda.edge = 1,
     lambda.gram = 0.5,
-    stiffness_method = "uniform",
-    density_mix = 1,
-    scale_mode = "profiled",
-    max_iter = 10L,
-    initial_step = 0.05,
-    return_trace = TRUE
+    stiffness.method = "uniform",
+    density.mix = 1,
+    scale.mode = "profiled",
+    max.iter = 10L,
+    initial.step = 0.05,
+    return.trace = TRUE
   )
   fit.cpp <- do.call(kernel.gram.gkk, c(args, list(engine = "cpp")))
   fit.r <- do.call(kernel.gram.gkk, c(args, list(engine = "R")))
@@ -165,7 +165,7 @@ test_that("kernel Gram-gKK improves folded antipodal star Gram error", {
   prepared <- prepare.graph.geodesic.mds(
     edges = rbind(c(1L, 2L), c(2L, 3L)),
     n = 3L,
-    edge_weights = c(1, 1)
+    edge.weights = c(1, 1)
   )
   X <- cbind(c(0, 1, 2), c(0, 0, 0))
   folded <- rbind(
@@ -174,19 +174,19 @@ test_that("kernel Gram-gKK improves folded antipodal star Gram error", {
     c(1, 1)
   )
   star <- graph.riemannian.star.structure(prepared = prepared, X = X, angle.power = 4)
-  before <- grip:::grip.kernel.gram.score(folded, star, edge_scale = 1)
+  before <- grip:::grip.kernel.gram.score(folded, star, edge.scale = 1)
   fit <- kernel.gram.gkk(
     coords = folded,
     prepared = prepared,
     star = star,
     dim = 2L,
-    stiffness_method = "uniform",
-    density_mix = 1,
-    scale_mode = "identity",
+    stiffness.method = "uniform",
+    density.mix = 1,
+    scale.mode = "identity",
     lambda.edge = 1,
     lambda.gram = 1,
-    max_iter = 80L,
-    initial_step = 0.05,
+    max.iter = 80L,
+    initial.step = 0.05,
     engine = "cpp"
   )
 
