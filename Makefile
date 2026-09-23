@@ -110,6 +110,6 @@ audit-api-guide:
 
 vignette-previews: audit-api-guide
 	Rscript tools/pkg/render-vignette-previews.R
-	node tools/tests/test-comparison-controls.cjs output/vignette-previews/doc/metric-mds-backends.html output/vignette-previews/doc/sparse-metric-mds.html
+	node tools/tests/test-comparison-controls.cjs output/vignette-previews/doc/metric-mds-backends.html output/vignette-previews/doc/sparse-metric-mds.html output/vignette-previews/doc/synthetic-graph-families.html
 
 check check-clean check-fast: audit-api-guide

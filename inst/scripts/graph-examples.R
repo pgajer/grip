@@ -182,6 +182,6 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
     if (el.gripControls) el.gripControls.remove();
     el.gripControls = panel; el.after(panel); update();
   }", data = list(ids = object.ids, labels = as.list(labels[names]),
-    initial = if (all(c('mds', 'refined') %in% names)) 'both' else
-      if ('mds' %in% names) 'mds' else if ('refined' %in% names) 'refined' else 'both'))
+    initial = if ('mds' %in% names) 'mds' else
+      if ('refined' %in% names) 'refined' else 'both'))
 }

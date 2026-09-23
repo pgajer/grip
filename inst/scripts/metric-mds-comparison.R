@@ -268,6 +268,10 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
 # Match the graph gallery's always-visible selector; changing the selection
 # changes only object visibility, leaving alignment, scale and camera intact.
 comparison_layout_selector <- function(widget, object.ids) {
+  choices <- setdiff(names(object.ids), 'Reference')
+  preferred <- intersect(c('SGD', 'SGD: uniform', 'Full SGD'), choices)
+  initial <- if (length(preferred)) preferred[[1L]] else
+    if (length(choices)) choices[[1L]] else 'all'
   htmlwidgets::onRender(widget, "function(el, x, data) {
     var scene = el.rglinstance, root = scene.scene.rootSubscene;
     var legend = el.querySelector('.ivue-legend'), rows = {};
@@ -288,7 +292,7 @@ comparison_layout_selector <- function(widget, object.ids) {
     });
     var all = document.createElement('option'); all.value = 'all';
     all.textContent = select.options.length === 2 ? 'both' : 'all layouts';
-    select.appendChild(all); select.value = 'all';
+    select.appendChild(all); select.value = data.initial;
     label.appendChild(select); panel.appendChild(label);
     var hint = document.createElement('span'); hint.textContent = ' Drag to rotate; scroll to zoom.';
     panel.appendChild(hint);
@@ -312,7 +316,7 @@ comparison_layout_selector <- function(widget, object.ids) {
     panel.style.margin = '0 auto 8px';
     if (el.gripControls) el.gripControls.remove();
     el.gripControls = panel; el.after(panel); update();
-  }", data = list(ids = object.ids))
+  }", data = list(ids = object.ids, initial = initial))
 }
 
 comparison_planar <- function(case, fits) {

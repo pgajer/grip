@@ -14,6 +14,7 @@ class Element {
   setAttribute() {}
   addEventListener(name, fn) { this.events[name] = fn; }
   querySelector() { return null; }
+  querySelectorAll() { return []; }
   remove() {}
 }
 
@@ -45,18 +46,27 @@ for (const file of process.argv.slice(2)) {
     const el = new Element('div'); el.rglinstance = scene;
     el.after = panel => { el.panel = panel; };
     const run = vm.runInNewContext('(' + hook.code + ')', {
-      document: { createElement: tag => new Element(tag) }
+      document: { createElement: tag => new Element(tag) },
+      ResizeObserver: class { observe() {} disconnect() {} }
     });
     run(el, widget.x, hook.data);
     const select = el.panel.children[0].children[0];
     assert.equal(el.panel.style.position, 'static', 'Controls must sit below the canvas');
-    for (const choice of select.options) {
-      select.value = choice.value; select.events.change();
+    const preferred = ['mds', 'SGD', 'SGD: uniform', 'Full SGD'].find(name => name in ids);
+    if (preferred) assert.equal(select.value, preferred, 'Metric MDS must be the initial layout');
+    function checkVisibility(choice) {
       for (const [name, values] of Object.entries(ids)) {
-        const expected = name === 'Reference' || choice.value === 'all' || choice.value === name;
+        const expected = ['Reference', 'reference'].includes(name) ||
+          ['all', 'both'].includes(choice) || choice === name;
         for (const id of [].concat(values)) assert.equal(visible.has(id), expected,
-          `${file}: ${name} visibility with ${choice.value}`);
+          `${file}: ${name} visibility with ${choice}`);
       }
+    }
+    checkVisibility(select.value);
+    for (const choice of select.options) {
+      if (choice.disabled) continue;
+      select.value = choice.value; select.events.change();
+      checkVisibility(select.value);
     }
     checked++;
   }
