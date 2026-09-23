@@ -53,6 +53,8 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          # Enhances are optional; ivue is sourced separately for website builds.
+          dependencies: 'c("Depends", "Imports", "LinkingTo", "Suggests")'
 
       - uses: r-lib/actions/check-r-package@v2
         with:
