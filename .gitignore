@@ -33,6 +33,10 @@ CRAN-SUBMISSION
 /vignettes/*_files/
 /vignettes/articles/*_files/
 
+# Local rendered copies in the pre-restructuring documentation archive.
+/vignettes/archives/**/*.html
+/vignettes/archives/**/*_files/
+
 # R build/check artifacts
 *.Rcheck/
 .claude/

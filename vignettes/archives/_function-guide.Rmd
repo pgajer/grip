@@ -1,0 +1,571 @@
+---
+title: "Finding your way around grip"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Finding your way around grip}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+table { width: 100%; }
+td, th { vertical-align: top; }
+td code { white-space: normal; overflow-wrap: anywhere; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                     fig.width = 6, fig.height = 4.5)
+# Installed help and pkgdown have different reference-page locations.
+help_url <- function(topic) {
+  prefix <- if (identical(Sys.getenv("IN_PKGDOWN"), "true")) {
+    "../reference/"
+  } else "../html/"
+  paste0(prefix, topic, ".html")
+}
+```
+
+What do you want to learn from your graph: its connectivity, its edge-length
+geometry, or how a drawing compares with a known reference? Start with that
+question. `grip()` computes a drawing; scoring, tracing, and graph-family
+helpers support different decisions around that drawing.
+
+## Choose a starting point
+
+| Your question | Entry point | Follow-up |
+|---|---|---|
+| What does the connectivity look like? | `grip(metric = "hop")` | [Getting Started](grip-examples.html) |
+| What if edges have meaningful lengths? | `grip(metric = "edge_length")` | [Weighted Graph Layouts](weighted-grip-intro.html) |
+| Which settings and seeds give useful drawings? | `compare.layouts()`, then `params.from.summary()` | [Choosing Layouts for Real Data](grip-real-data.html) |
+| Does my drawing preserve graph distances? | `score.layout()` or the more specialized `score.gmds()` | [Choose a score](#choose-a-score) |
+| Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
+| Where did a fold or collapse appear? | `trace.grip()` | [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html) |
+| How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Graph examples](synthetic-graph-families.html) |
+| How do I browse many saved results? | `gripui.project()` and `run.gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
+
+The seven linked package vignettes are installed with grip. The
+[gallery](https://pgajer.github.io/grip/articles/gallery.html),
+[comparison article](https://pgajer.github.io/grip/articles/grip-vs-alternatives.html),
+and interactive explorer are website-only articles.
+
+## A first drawing and diagnostic
+
+Here 20 vertices form a rectangular grid. Sampled stress measures how well
+Euclidean separation in the drawing matches shortest-path hop counts after
+fitting a common scale. Zero means perfect agreement on the evaluated pairs;
+it does not certify that every geometric feature or unsampled pair is correct.
+
+```{r first-layout, fig.alt="A 20-vertex rectangular mesh drawn with the mesh preset, showing its rows and columns."}
+library(grip)
+edges <- edges.mesh(4, 5)
+coords <- grip(edges, n = 20, dim = 2, preset = "mesh", seed = 11)
+stopifnot(identical(dim(coords), c(20L, 2L)), all(is.finite(coords)))
+plot.layout(coords, edges = edges, pch = 16, cex = 0.7,
+            main = "A 4 by 5 mesh")
+quality <- score.layout(coords, edges = edges, n = 20,
+                        sample.size.stress = 200, stress.seed = 11,
+                        edge.crossings = "never")
+knitr::kable(quality[, c("sampled.stress", "edge.length.cv")], digits = 3)
+```
+
+The edge-length coefficient of variation (`edge.length.cv`) is the standard
+deviation divided by the mean of drawn edge lengths. It describes their
+uniformity, which is useful here because the graph is unweighted. Unequal
+lengths can be intentional on other graphs.
+
+### Input and output conventions
+
+Supply an undirected edge list as a two-column matrix of **1-based integer
+vertex indices**, one edge per row. Supply `n` explicitly when the highest
+numbered vertex is isolated, when the edge list is empty, or when a generator
+has a known vertex count. Inferring `n = max(edges)` cannot recover isolated
+vertices beyond the largest endpoint. Avoid duplicate edges and self-loops;
+the edge-list layout converter ignores self-loops, and duplicate treatment is
+not a common contract across all helpers.
+
+Alternatively use `adj.list`, a list of length `n`: element `i` lists the
+neighbors of vertex `i`. Include both directions of each undirected edge,
+with matching lengths in a parallel `weight.list`. An isolated vertex has an
+empty neighbor vector (and empty length vector if weighted). Do not supply
+both graph representations: this is an error, as are fractional or nonfinite
+vertex indices and counts. Supply lengths with their matching representation
+(`edge.weights` with `edges`, or `weight.list` with `adj.list`). Preserve the same vertex ordering in graph,
+coordinates, labels, and references; row names do not establish correspondence.
+
+`grip()` defaults to `dim = 3`; request `dim = 2` explicitly for base 2D plots.
+It returns an `n` by `dim` numeric matrix. By default disconnected components
+are laid out separately and packed into that matrix, including isolated
+vertices. Their relative positions are display choices, not finite distances
+between components. Set `disconnected = "error"` to reject such inputs.
+Sampled graph-distance stress uses reachable pairs; full all-pairs geodesic
+preparations require a connected graph. Split components before using them.
+
+```{r isolated-vertex}
+path.with.isolate <- grip(edges.path(5), n = 6, dim = 2, seed = 11)
+stopifnot(nrow(path.with.isolate) == 6L, all(is.finite(path.with.isolate)))
+```
+
+### Hop counts or edge lengths?
+
+The historical names `edge.weights` and `weight.list` mean **finite positive
+lengths or traversal costs**, not connection strengths. With an edge list,
+`edge.weights[j]` belongs to row `j`. Larger lengths request greater separation;
+convert strengths to scientifically meaningful lengths before fitting.
+
+- `metric = "hop"` uses hop counts for the standard hierarchy, neighborhoods,
+  and insertion anchors. If lengths are supplied, they still set adjacent-edge
+  attractive-force targets, without global normalization. Omit lengths for a
+  purely unweighted baseline. Optional landmark-geodesic refinement stages
+  use supplied lengths even when the standard stages use hops.
+- `metric = "edge_length"` requires lengths and uses sums of those lengths
+  along shortest paths throughout the multiscale engine. Its default
+  `length.normalization = "median"` divides by the median length; `"mean"`
+  divides by the mean and `"none"` retains their numerical scale. These
+  normalization controls and `metric.neighbor.cap` belong only to this mode.
+  A finite neighbor cap enables an approximate weighted search.
+
+A graph-family constructor may already normalize lengths: inspect its
+`weight_scale` and `normalize` fields before choosing solver normalization.
+`score.layout()` has no `metric` argument: it uses weighted shortest paths
+when lengths are supplied and hops when they are omitted, independently of
+how the drawing was fitted.
+
+## Dimensions, result objects, and methods
+
+| Operation | Coordinate dimensions and result |
+|---|---|
+| `grip()`, global-repulsion variants, legacy layouts | 2 or 3 columns; coordinate matrix. |
+| `weighted.grip.nd()` | At least 2 columns, including dimensions above 3; weighted multiscale layout matrix. Opt in explicitly. |
+| `classical.mds()`, `metric.mds()`, `edge.kk()` | Support higher dimensions (MDS dimension must be smaller than vertex count); list of class `grip_gmds_layout`, with `$coords`, `$diagnostics`, `$metadata`, and method information. |
+| `score.layout()`, full/landmark/MISF geodesic-KK, `kernel.gram.gkk()` and local-star tools | 2D or 3D workflows; do not infer higher-dimensional support from the MDS interfaces. |
+| `score.gmds()`, `score.coordinates()` | Higher-dimensional matrices supported; corresponding-coordinate inputs must have identical shapes. |
+| `score.surface()` | Three-column coordinates plus explicit triangular faces for each surface. |
+| `trace.grip()` | List with `$final`, `$frames`, `$meta`, and `$diagnostics`; frames have 2 or 3 columns. |
+| `plot.layout()`, `project.3d()` | 2D drawing or a view of the first three coordinate columns; additional columns are ignored, not fitted into a new layout. |
+
+Use `plot.layout(coords, edges = edges)` on the ordinary matrix returned by
+`grip()`. The registered [`plot.layout` method](`r help_url("plot.layout")`)
+is also dispatched by `plot()` on an object with class `"layout"`; grip's
+ordinary matrix does not acquire that class. `plot()` alone on a matrix is
+not the graph plotting workflow.
+
+Call `print(fit)` on a `grip_gmds_layout` to see its
+[method summary](`r help_url("print.grip_gmds_layout")`), then plot
+`fit$coords`. Call `print(hierarchy)` on the `grip_misf` returned by
+`build.misf()` for its [hierarchy summary](`r help_url("print.grip_misf")`).
+These are the other two S3 registrations; they are not additional exports.
+`build.weighted.misf()` returns its documented hierarchy list and does not
+share that print method. Full and landmark geodesic-KK refinements return
+lists with `$coords`, `$score`, and optional traces, not ordinary matrices.
+
+For static 3D figures, always request `projection = "ortho"` in
+`plot.layout()`. Its default 3D route uses optional rgl interactively.
+`project.3d()` rotates the first three columns and returns two projected
+columns. Score the original coordinates to assess the fitted layout; scoring
+the projection answers a different question.
+
+### A common extraction step
+
+[`layout.coords()`](`r help_url("layout.coords")`) returns the original coordinate
+matrix from a matrix, trace, MDS fit, or supported refinement result. It preserves
+vertex order, dimensions, names, and values; it does not align or project results.
+Use the same graph when scoring the extracted matrices:
+
+```{r common-extraction}
+small.edges <- edges.path(6)
+fits <- list(
+  ordinary = grip(small.edges, n = 6, dim = 2, seed = 1),
+  trace = trace.grip(small.edges, n = 6, dim = 2, seed = 1),
+  classical = classical.mds(edges = small.edges, n = 6)
+)
+matrices <- lapply(fits, layout.coords)
+vapply(matrices, function(z) score.layout(z, edges = small.edges, n = 6,
+  sample.size.stress = 15, stress.seed = 1,
+  edge.crossings = "never")$sampled.stress, numeric(1))
+# Plot any extracted matrix with the same graph:
+# plot.layout(matrices[[1]], edges = small.edges)
+```
+
+Direct `$final` and `$coords` extraction remains supported. In MDS results,
+`method`, `coords`, `diagnostics`, and `metadata` remain available; stopping
+metadata depends on the method. Prepared caches and coordinate-dependent state
+are internal/version-dependent and should be rebuilt when their contract changes.
+The accessor rejects unknown lists and ambiguous results instead of guessing a field.
+
+## Classical scaling and metric stress MDS
+
+`classical.mds()` runs `stats::cmdscale()` on graph shortest-path distances.
+Classical scaling approximates the double-centered squared-distance (Gram)
+matrix by a low-rank Euclidean representation, usually called minimizing
+*strain*. It does not directly minimize the sum of squared distance residuals.
+Non-Euclidean graph distances can yield negative eigenvalues; `add` and `eig`
+are controls of this classical method.
+
+By default, `metric.mds()` minimizes uniformly weighted raw distance stress,
+\(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through native stochastic gradient descent (SGD) by default,
+with `backend = "sgd"`, or optional **smacof** selected with
+`backend = "smacof"`. The SGD pair updates follow Zheng, Pawar and Goodman
+(2018); the default hybrid learning-rate schedule follows Hangan, Kobourov and
+Miller (2026). Both papers are listed in the [SGD references](#sgd-references).
+Use `pair.weights = "inverse_squared"` with either backend to minimize the
+paper's sum of squared relative distance errors. Edge lengths determine the
+shortest-path targets; `pair.weights` determines their influence in stress.
+Returned coordinates are rescaled to the input distance units. Multiple starts
+can help with local optima; iteration limits do not certify convergence or a
+global optimum. `init` accepts `"classical"`, `"random"`, or a coordinate
+matrix; `n.init` includes the first start. A non-NULL `seed` preserves the
+caller's R random-number state. `scale.mode` changes diagnostics only.
+
+In versions through 0.2.0, `metric.mds()` performed classical scaling. Use
+`classical.mds()` to retain that behavior, including `add` and `eig`. See the
+[MDS migration help](`r help_url("grip-mds-migration")`).
+
+```{r mds-baselines}
+prepared <- prepare.graph.geodesic.mds(edges.cycle(8), n = 8)
+classical <- classical.mds(prepared = prepared, dim = 2)
+print(classical)
+if (requireNamespace("smacof", quietly = TRUE)) {
+  metric <- metric.mds(prepared = prepared, dim = 2, backend = "smacof", n.init = 2,
+                       max.iter = 100, seed = 11)
+  metric$metadata$raw_stress
+} else {
+  message("Install smacof for this optional-backend comparison; the SGD example below needs no extra backend.")
+}
+```
+
+The default SGD backend requires no additional runtime package. Its learning-rate and
+checkpoint defaults are provisional calibration choices. A pass visits every
+unordered pair. The function's `max.iter` default is 1000; the 30 passes
+requested below are an initial trial budget, not a convergence rule.
+Schedule completion emits an iteration-limit warning; the example suppresses
+that expected warning and displays the termination status instead.
+The `eps` argument belongs to SMACOF and must be omitted for SGD. Inspect the
+checkpoint history and compare repeated starts before drawing conclusions.
+
+```{r mds-sgd}
+sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
+  init = "random", max.iter = 30, seed = 11))
+sgd$metadata$engine  # Omitting backend selects "sgd".
+sgd$metadata$termination  # Schedule exhausted, not a convergence certificate.
+sgd$metadata$target_normalized_rmse
+sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
+# Use edge.kk(prepared = prepared, coords = sgd$coords, dim = 3) to refine it.
+```
+
+For matched-start stress and timing comparisons, quadratic surfaces, and
+interactive 3D overlays, see [Comparing SGD and SMACOF](metric-mds-backends.html).
+For graphs where all-pairs preparation is too expensive, `metric.mds(approximation = "sparse")`
+uses pivot-based sparse SGD in 2D or 3D. Its reported sparse proxy is separate
+from full stress. See [Sparse SGD for larger graphs](sparse-metric-mds.html).
+
+## Choose a score
+
+A *chord* is the Euclidean separation between two drawn vertices. A *path
+length* adds the drawn lengths of consecutive graph edges along a retained
+route. A folded chain can preserve its path length while bringing its
+endpoints close together. These measurements answer different questions.
+
+| Question | Score and targets | Alignment, scale, and units |
+|---|---|---|
+| Is the drawing useful without a reference embedding? | `score.layout()`: sampled chords versus shortest graph distances, edge-length variation, non-neighbor separation, and optional 2D crossings or clusters. | Sampled stress fits one scalar and is dimensionless. Edge CV and separation ratios are dimensionless; crossing counts are counts. Sampling seeds and sizes affect the result. |
+| Are local lengths, retained paths, and endpoint separations faithful? | `score.gmds()`: separate edge, fixed-path, and chord residual panels on a prepared graph. Path targets follow its retained-route convention; they may differ slightly from strict distances near ties. | `"profiled"` fits a separate scale per panel; `"identity"` fixes one; `"user"` supplies panel scales. Relative RMSE is dimensionless; absolute RMSE is in drawn-coordinate units against scaled targets. No coordinate-reference alignment. |
+| Did corresponding vertices recover particular coordinates? | `score.coordinates(coords, reference)`: root mean squared Euclidean vertex displacement. Rows must correspond. | Default rigid alignment allows translation, rotation and reflection. `allow.reflection = FALSE` forbids reflection. Similarity also fits uniform scale; `"none"` uses the supplied alignment. RMSE is in reference-coordinate units; relative RMSE divides by the reference RMS radius. |
+| Do two already aligned triangular surfaces occupy the same region? | `score.surface()`: area-weighted, symmetric RMS closest-point distance to triangles, estimated by sampling each surface. Different meshes are allowed. | No alignment, scaling, or triangulation is performed. Output has coordinate-distance units. Its Monte Carlo standard error measures sampling error, not mesh or alignment uncertainty. It is not a maximum-distance measure. |
+
+The geodesic-KK scorers use their own path objectives, stiffnesses, and scale
+policies. Their values are not interchangeable with sampled chord stress,
+metric-MDS raw stress, or reference errors. Compare layouts using the same
+graph, lengths, vertex order, samples, preparation, scale policy, and score
+definition. Candidate composite scores are relative to their search and
+weighting choices, not universal quality grades.
+
+## Reuse preparations and control cost
+
+| Preparation | What can be reused | When to rebuild |
+|---|---|---|
+| `prepare.edge.kk()` | Edges and targets for repeated edge repair and edge diagnostics; no all-pairs cache. | Changed topology, vertex order/count, or edge lengths. |
+| `prepare.graph.geodesic.mds()` / `prepare.geodesic.kk()` | Connected-graph distances and retained routes for multiple coordinate candidates. | Graph changes, a new tie policy, or older caches predating the shortest-path symmetry fix. |
+| `prepare.landmark.geodesic.kk()` | A sparse set of local and landmark routes. | Graph changes or new local-neighbor/landmark counts. |
+| `prepare.misf.geodesic.kk()` | Multiscale independent-set filtration (MISF), level routes, and initializers. | Graph changes or changed hierarchy, tie, or initialization settings. |
+| `build.misf()` / `build.weighted.misf()` | Inspectable multiscale hierarchy, with the latter also storing weighted neighborhoods and anchors. | Changed graph, metric, seed, or construction controls. They are not a generic `prepared` argument for `grip()`. |
+
+Graph inputs must be undirected: adjacency entries have reciprocal entries with
+matching lengths and multiplicities. Self-loops are rejected; remove them before
+layout or preparation. Ordinary GRIP preserves parallel-edge multiplicity.
+Full and landmark geodesic preparations collapse parallel pairs in their canonical
+edge table; edge-only preparation rejects duplicate undirected edges. Simplify
+parallel edges explicitly before comparing these different workflows, particularly
+when their lengths differ. The validators do not silently simplify your input.
+
+Treat preparations as immutable graph-specific objects. Do not combine a
+`prepared` object with raw graph inputs (`edges`, `adj.list`, `edge.weights`,
+or `weight.list`); these calls fail rather than silently choosing a graph.
+An explicit `n` must be an integer matching the prepared vertex count.
+Rebuild the preparation to change the graph. Coordinate
+candidates on the same graph may change without rebuilding the graph cache;
+a state containing coordinate-dependent forces or a local-star geometry must
+be recomputed when those coordinates change.
+
+Use [`estimate.preparation()`](`r help_url("estimate.preparation")`) before a
+large graph-distance preparation:
+
+```{r preparation-estimate}
+estimate.preparation(10000, n.edges = 20000)
+```
+
+This is a lower bound for one matrix, not a peak-memory prediction. Dense
+preparations warn before graph searches when that bound exceeds 512 MiB.
+Set `options(grip.preparation.warn.bytes = ...)` to a different positive byte
+count, or `Inf` to acknowledge and suppress the advisory warning. Edge-only
+preparation has no dense distance matrix. **Landmark preparation still computes
+dense distances**; it reduces retained paths, not that storage requirement.
+
+Native construction/refinement checks for interrupts at main-thread boundaries.
+Threaded geodesic-MDS work joins its workers before raising an interrupt;
+cancellation may wait for the current evaluation and does not return a partial fit.
+
+A dense distance matrix takes roughly `8 * n^2` bytes before workspace and
+copies. Full route caches can cost much more, depending on path lengths. Use
+`diagnostics = FALSE` with raw inputs in the two MDS methods to avoid the full
+route cache; the dense distance matrix is still required. Classical scaling
+also uses a dense eigendecomposition. Landmark and multiscale preparations
+reduce retained pairs or work on smaller levels, but their cost still depends
+on graph searches and route lengths. Begin with GRIP, small candidate sets,
+and level traces; retaining every round of a large solve can itself be costly.
+
+## Experimental refinement and current initializers
+
+Try the appropriate GRIP metric, a plausible preset, several seeds, and the
+scoring/tracing workflows first. Edge-KK, full geodesic-KK, landmark geodesic-KK,
+MISF geodesic-KK, repulsive stages, and kernel/Gram local-star tools are
+**public experimental interfaces**. Improving their objective need not improve
+a reference embedding or the readability of a drawing.
+
+`edge.kk()` accepts supplied `coords`, or `init = "classical_mds"` (default),
+`"metric_mds"`, `"weighted_grip"`, or `"random"`. The MDS choices need
+all-pairs distances; supplying coordinates or using a non-MDS start permits
+edge-only preparation. The weighted-GRIP initializer uses the 2D/3D `grip()`
+interface; supply higher-dimensional coordinates directly for edge repair.
+`kernel.gram.gkk()` accepts `"classical_mds"` (default), `"metric_mds"`, or
+`"random"`, or supplied coordinates. Both methods now interpret
+`"metric_mds"` as stress minimization through native SGD. To use SMACOF,
+fit `metric.mds(backend = "smacof", ...)` first and supply its coordinates.
+
+`geodesic.kk()` and `landmark.geodesic.kk()` require starting coordinates.
+MISF preparation uses `top.level.init = "geometric"`, `"cmdscale"`, or
+`"random"`; `misf.geodesic.kk(top.level.init = NULL)` inherits the prepared
+choice or defaults to `"geometric"`. Its `"cmdscale"` spelling still means
+classical scaling. Initializer names are not a uniform package-wide vocabulary.
+
+## Function catalog
+
+This guide covers **106 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 108
+unique exported or registered function names, not 106. The catalog gives each
+export exactly one row. Methods selected by R's generic functions are explained
+through their objects below. Internal helpers and the compatibility aliases
+retired in 0.2.0 are not public entry points.
+
+Each row below is one explicit export. **Help** opens the detailed help page;
+in an offline R session use `help("function.name", package = "grip")`.
+Shared help topics may document several exports, but these rows keep their
+purposes distinct. Maintainers can run `make audit-api-guide` to check coverage,
+method accounting, and help targets against the current namespace.
+
+### Compute layouts
+
+| Function | Purpose | Details |
+|---|---|---|
+| `grip()` | Compute a multiscale layout using hop counts or positive edge lengths. | [Help](`r help_url("grip")`) |
+| `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
+| `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
+| `metric.mds()` | Fit full metric MDS with SGD or SMACOF, or a pivot-based sparse approximation with SGD. | [Help](`r help_url("metric.mds")`) |
+| `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
+| `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
+| `legacy.grip()` | Reproduce the legacy GRIP profile for historical comparisons. | [Help](`r help_url("legacy.grip")`) |
+
+### Select and compare candidates
+
+| Function | Purpose | Details |
+|---|---|---|
+| `compare.layouts()` | Run candidate settings across seeds and summarize layout quality and stability. | [Help](`r help_url("compare.layouts")`) |
+| `params.from.summary()` | Recover reusable layout parameters from a comparison summary row. | [Help](`r help_url("params.from.summary")`) |
+
+### Score graph distances or reference geometry
+
+| Function | Purpose | Details |
+|---|---|---|
+| `score.layout()` | Evaluate sampled graph-distance fidelity and drawing-quality heuristics. | [Help](`r help_url("score.layout")`) |
+| `score.gmds()` | Report separate edge, retained-path, and chord diagnostic panels. | [Help](`r help_url("score.gmds")`) |
+| `score.coordinates()` | Measure error against corresponding reference vertices with explicit alignment. | [Help](`r help_url("score.coordinates")`) |
+| `score.surface()` | Estimate symmetric area-weighted distance between already aligned triangular surfaces. | [Help](`r help_url("score.surface")`) |
+| `geometry.diagnostics()` | Compute reference-aware geometric diagnostics for trace frames. | [Help](`r help_url("geometry.diagnostics")`) |
+
+### Trace multiscale layouts
+
+| Function | Purpose | Details |
+|---|---|---|
+| `trace.grip()` | Record multiscale frames and diagnostics under either graph metric. | [Help](`r help_url("trace.grip")`) |
+| `trace.legacy.grip()` | Record frames from the legacy layout profile. | [Help](`r help_url("trace.legacy.grip")`) |
+
+### Plot and project
+
+| Function | Purpose | Details |
+|---|---|---|
+| `layout.coords()` | Extract unchanged coordinates from supported result families | [Help](`r help_url("layout.coords")`) |
+| `plot.layout()` | Draw a coordinate matrix and graph edges; also the registered plot method for class layout. | [Help](`r help_url("plot.layout")`) |
+| `project.3d()` | Rotate and project the first three coordinate columns to a static two-column view. | [Help](`r help_url("project.3d")`) |
+
+### Prepare graphs and inspect multiscale structures
+
+| Function | Purpose | Details |
+|---|---|---|
+| `build.misf()` | Build the hop-distance maximal independent-set filtration used by GRIP. | [Help](`r help_url("build.misf")`) |
+| `build.weighted.misf()` | Build weighted multiscale levels, neighborhoods, and insertion anchors. | [Help](`r help_url("build.weighted.misf")`) |
+| `estimate.preparation()` | Estimate dense storage and retained-pair bounds without preparing a graph | [Help](`r help_url("estimate.preparation")`) |
+| `prepare.edge.kk()` | Prepare edges and length targets without an all-pairs cache for experimental edge repair. | [Help](`r help_url("prepare.edge.kk")`) |
+| `prepare.graph.geodesic.mds()` | Prepare connected-graph all-pairs distances and retained geodesic routes. | [Help](`r help_url("prepare.graph.geodesic.mds")`) |
+| `prepare.geodesic.kk()` | Prepare full retained routes for experimental geodesic-KK scoring and refinement. | [Help](`r help_url("prepare.geodesic.kk")`) |
+| `prepare.landmark.geodesic.kk()` | Prepare sparse local and landmark routes for experimental refinement. | [Help](`r help_url("prepare.landmark.geodesic.kk")`) |
+| `prepare.misf.geodesic.kk()` | Prepare multiscale hierarchies and per-level routes for experimental geodesic-KK. | [Help](`r help_url("prepare.misf.geodesic.kk")`) |
+
+### Experimental refinement and state diagnostics
+
+| Function | Purpose | Details |
+|---|---|---|
+| `edge.kk()` | Repair adjacent-edge lengths from a starting layout under edge stress. | [Help](`r help_url("edge.kk")`) |
+| `edge.length.density.stiffness()` | Convert edge lengths to normalized spring stiffnesses for edge repair. | [Help](`r help_url("edge.length.density.stiffness")`) |
+| `geodesic.kk()` | Refine supplied coordinates using full retained-path geodesic-KK energy. | [Help](`r help_url("geodesic.kk")`) |
+| `score.geodesic.kk()` | Evaluate full geodesic-KK path error and energy. | [Help](`r help_url("score.geodesic.kk")`) |
+| `landmark.geodesic.kk()` | Refine supplied coordinates using sparse local and landmark routes. | [Help](`r help_url("landmark.geodesic.kk")`) |
+| `score.landmark.geodesic.kk()` | Evaluate the sparse landmark geodesic-KK objective. | [Help](`r help_url("score.landmark.geodesic.kk")`) |
+| `misf.geodesic.kk()` | Compute a layout through multiscale geodesic-KK insertion and refinement. | [Help](`r help_url("misf.geodesic.kk")`) |
+| `score.misf.geodesic.kk()` | Evaluate a layout on a selected prepared MISF level. | [Help](`r help_url("score.misf.geodesic.kk")`) |
+| `edge.repulsive.state()` | Evaluate edge repair combined with repulsion at fixed coordinates. | [Help](`r help_url("edge.repulsive.state")`) |
+| `edge.repulsive.stage()` | Optimize an edge-repair stage with repulsion. | [Help](`r help_url("edge.repulsive.stage")`) |
+| `repulsive.state()` | Evaluate the repulsion-only objective and gradient at fixed coordinates. | [Help](`r help_url("repulsive.state")`) |
+| `repulsive.stage()` | Optimize a repulsion-only stage from supplied coordinates. | [Help](`r help_url("repulsive.stage")`) |
+| `graph.riemannian.star.structure()` | Build local reference-star geometry for kernel/Gram refinement. | [Help](`r help_url("graph.riemannian.star.structure")`) |
+| `kernel.gram.gkk()` | Refine a layout using edge stress and local kernel/Gram shape constraints. | [Help](`r help_url("kernel.gram.gkk")`) |
+
+### Synthetic graphs: primitive edge generators
+
+| Function | Purpose | Details |
+|---|---|---|
+| `edges.path()` | Return consecutive edges of a path. | [Help](`r help_url("graph_generators")`) |
+| `edges.cycle()` | Return edges of a closed cycle. | [Help](`r help_url("graph_generators")`) |
+| `edges.mesh()` | Return edges of a rectangular grid. | [Help](`r help_url("graph_generators")`) |
+| `edges.cube()` | Return edges of a three-dimensional grid. | [Help](`r help_url("graph_generators")`) |
+| `edges.cylinder()` | Return edges of a grid wrapped in one direction. | [Help](`r help_url("graph_generators")`) |
+| `edges.torus()` | Return edges of a grid wrapped in both directions. | [Help](`r help_url("graph_generators")`) |
+| `edges.kary.tree()` | Return a rooted tree with k children per internal vertex. | [Help](`r help_url("graph_generators")`) |
+| `edges.sierpinski.carpet()` | Return occupied-cell adjacency for a Sierpinski carpet. | [Help](`r help_url("graph_generators")`) |
+| `edges.sierpinski.triangle()` | Return a recursively subdivided Sierpinski triangle graph. | [Help](`r help_url("graph_generators")`) |
+| `edges.sierpinski.tetrahedron()` | Return a recursively subdivided Sierpinski tetrahedron graph. | [Help](`r help_url("graph_generators")`) |
+
+### Synthetic graphs: configurable keep masks
+
+| Function | Purpose | Details |
+|---|---|---|
+| `keep.periodic.holes()` | Create a finite-grid keep matrix with periodic holes. | [Help](`r help_url("perforated_grid_helpers")`) |
+| `keep.asymmetric.notches()` | Create a finite-grid keep matrix with asymmetric notches. | [Help](`r help_url("perforated_grid_helpers")`) |
+| `keep.slit.channels()` | Create a finite-grid keep matrix with slit channels. | [Help](`r help_url("perforated_grid_helpers")`) |
+| `keep.staggered.windows()` | Create a finite-grid keep matrix with staggered windows. | [Help](`r help_url("perforated_grid_helpers")`) |
+| `mask.border()` | Create a square recursive mask retaining its border. | [Help](`r help_url("mask_pattern_helpers")`) |
+| `mask.corner()` | Create a square recursive corner pattern. | [Help](`r help_url("mask_pattern_helpers")`) |
+| `mask.cross()` | Create a square recursive cross pattern. | [Help](`r help_url("mask_pattern_helpers")`) |
+| `mask.asymmetric.holes()` | Create a square recursive pattern with asymmetric holes. | [Help](`r help_url("mask_pattern_helpers")`) |
+| `mask.cube.periodic.tunnels()` | Create a cubic recursive keep array with periodic tunnels. | [Help](`r help_url("cube_mask_pattern_helpers")`) |
+| `mask.cube.asymmetric.cavities()` | Create a cubic recursive keep array with offset cavities. | [Help](`r help_url("cube_mask_pattern_helpers")`) |
+| `mask.cube.channel.network()` | Create a cubic recursive keep array with connected channels. | [Help](`r help_url("cube_mask_pattern_helpers")`) |
+| `mask.triangle.classic()` | Select the three corner subtriangles of the classic recursive triangle. | [Help](`r help_url("triangle_mask_helpers")`) |
+| `mask.triangle.bridge()` | Select a recursive triangle pattern including a bridge. | [Help](`r help_url("triangle_mask_helpers")`) |
+| `mask.tetrahedron.classic()` | Select the four corner subtetrahedra of the classic recursive tetrahedron. | [Help](`r help_url("tetrahedron_mask_helpers")`) |
+| `mask.tetrahedron.corner.missing()` | Select a recursive tetrahedron pattern with one missing corner. | [Help](`r help_url("tetrahedron_mask_helpers")`) |
+
+### Synthetic graphs: complete surface and solid bundles
+
+| Function | Purpose | Details |
+|---|---|---|
+| `mesh.surface.graph()` | Lift a rectangular mesh to a surface with induced edge lengths. | [Help](`r help_url("mesh_surface_helpers")`) |
+| `occupied.mesh.surface.graph()` | Lift a finite occupied grid specified by a keep matrix. | [Help](`r help_url("occupied_mesh_surface_helpers")`) |
+| `cylinder.surface.graph()` | Construct a weighted cylindrical surface bundle. | [Help](`r help_url("cylinder_surface_helpers")`) |
+| `sphere.surface.graph()` | Construct a weighted pole-and-latitude-ring sphere bundle. | [Help](`r help_url("sphere_surface_helpers")`) |
+| `torus.surface.graph()` | Construct a weighted toroidal surface bundle. | [Help](`r help_url("torus_surface_helpers")`) |
+| `irregular.rectangle.surface.graph()` | Construct a deterministically irregular rectangular surface bundle. | [Help](`r help_url("irregular_rectangle_surface_helpers")`) |
+| `irregular.annulus.surface.graph()` | Construct an irregular annular surface bundle. | [Help](`r help_url("irregular_annulus_surface_helpers")`) |
+| `irregular.sphere.surface.graph()` | Construct an irregular spherical surface bundle. | [Help](`r help_url("irregular_sphere_surface_helpers")`) |
+| `irregular.torus.surface.graph()` | Construct an irregular toroidal surface bundle. | [Help](`r help_url("irregular_torus_surface_helpers")`) |
+| `irregular.double.torus.surface.graph()` | Construct an irregular double-torus surface bundle. | [Help](`r help_url("irregular_double_torus_surface_helpers")`) |
+| `irregular.pair.of.pants.surface.graph()` | Construct an irregular surface with three boundary components. | [Help](`r help_url("irregular_pair_of_pants_surface_helpers")`) |
+| `irregular.ball.solid.graph()` | Construct a graph sampling a three-dimensional ball interior. | [Help](`r help_url("irregular_ball_solid_helpers")`) |
+| `irregular.shell.solid.graph()` | Construct a graph sampling a three-dimensional shell volume. | [Help](`r help_url("irregular_shell_solid_helpers")`) |
+| `triangulated.annulus.surface.graph()` | Construct a lifted triangular-lattice annulus bundle. | [Help](`r help_url("triangulated_annulus_surface_helpers")`) |
+| `triangulated.pair.of.pants.surface.graph()` | Construct a lifted triangular-lattice surface with two holes. | [Help](`r help_url("triangulated_pair_of_pants_surface_helpers")`) |
+| `triangulated.polyhedron.surface.graph()` | Construct a subdivided polyhedral graph with reference coordinates. | [Help](`r help_url("triangulated_polyhedron_surface_helpers")`) |
+| `sampled.rectangle.surface.graph()` | Sample a rectangle and construct one intersection-nearest-neighbor graph bundle. | [Help](`r help_url("sampled_rectangle_surface_helpers")`) |
+| `sampled.rectangle.surface.graphs()` | Reuse one rectangular sample across a sequence of neighborhood sizes. | [Help](`r help_url("sampled_rectangle_surface_helpers")`) |
+| `kary.tree.weighted.graph()` | Assign intrinsic tree lengths by depth and child slot, with tree metadata. | [Help](`r help_url("kary_tree_weighted_graph_helpers")`) |
+
+### Synthetic graphs: complete recursive bundles
+
+| Function | Purpose | Details |
+|---|---|---|
+| `recursive.mask.grid.surface.graph()` | Recursively apply a square mask and lift the retained cells. | [Help](`r help_url("recursive_mask_grid_surface_helpers")`) |
+| `recursive.cube.mask.surface.graph()` | Recursively apply a cubic mask and embed occupied-cell adjacency. | [Help](`r help_url("recursive_cube_mask_surface_helpers")`) |
+| `recursive.triangle.mask.surface.graph()` | Recursively apply a triangle mask and return a weighted bundle. | [Help](`r help_url("recursive_triangle_mask_surface_helpers")`) |
+| `recursive.tetrahedron.mask.surface.graph()` | Recursively apply a tetrahedron mask and return a weighted bundle. | [Help](`r help_url("recursive_tetrahedron_mask_surface_helpers")`) |
+| `sierpinski.carpet.surface.graph()` | Construct a weighted Sierpinski carpet with a surface lift. | [Help](`r help_url("sierpinski_carpet_surface_helpers")`) |
+| `sierpinski.triangle.surface.graph()` | Construct a weighted Sierpinski triangle with reference coordinates. | [Help](`r help_url("sierpinski_triangle_surface_helpers")`) |
+| `sierpinski.tetrahedron.surface.graph()` | Construct a weighted Sierpinski tetrahedron with reference coordinates. | [Help](`r help_url("sierpinski_tetrahedron_surface_helpers")`) |
+| `menger.sponge.surface.graph()` | Construct a weighted Menger occupied-cube graph bundle. | [Help](`r help_url("menger_sponge_surface_helpers")`) |
+| `vicsek.surface.graph()` | Construct a weighted recursive cross-family bundle. | [Help](`r help_url("vicsek_surface_helpers")`) |
+| `cube.periodic.tunnels.surface.graph()` | Construct a recursively perforated cube bundle with periodic tunnels. | [Help](`r help_url("porous_cube_surface_helpers")`) |
+| `cube.asymmetric.cavities.surface.graph()` | Construct a recursively perforated cube bundle with offset cavities. | [Help](`r help_url("porous_cube_surface_helpers")`) |
+| `cube.channel.network.surface.graph()` | Construct a recursively perforated cube bundle with a channel network. | [Help](`r help_url("porous_cube_surface_helpers")`) |
+
+### Interactive exploration
+
+| Function | Purpose | Details |
+|---|---|---|
+| `gripui.project()` | Assemble graph, layouts, scores, and metadata into an explorer project. | [Help](`r help_url("gripui.project")`) |
+| `gripui.project.from.compare()` | Convert a layout-comparison result into an explorer project. | [Help](`r help_url("gripui.project.from.compare")`) |
+| `gripui.project.from.dir()` | Load a saved explorer project from a directory. | [Help](`r help_url("gripui.project.from.dir")`) |
+| `gripui.validate.project()` | Validate a project's graph and layout structures. | [Help](`r help_url("gripui.validate.project")`) |
+| `gripui.app()` | Construct the Shiny layout-explorer app object. | [Help](`r help_url("gripui.app")`) |
+| `run.gripui()` | Launch the layout explorer in an interactive session. | [Help](`r help_url("run.gripui")`) |
+| `gripui.graph.family.catalog()` | List family identifiers and geometry choices for the family explorer. | [Help](`r help_url("gripui.graph.family.catalog")`) |
+| `gripui.family.app()` | Construct the Shiny synthetic-family explorer app object. | [Help](`r help_url("gripui.family.app")`) |
+| `run.gripui.family()` | Launch the synthetic-family explorer in an interactive session. | [Help](`r help_url("run.gripui.family")`) |
+
+## Find detailed help
+
+```{r navigation, eval=FALSE}
+help(package = "grip")
+help("grip-package", package = "grip")
+help("grip", package = "grip")
+vignette(package = "grip")
+vignette("synthetic-graph-families", package = "grip")
+```
+
+The [0.2 migration help](`r help_url("grip-0.2-migration")`) documents retired
+aliases. Internal builders and standalone embeddings used within graph bundles
+are implementation details; use the public bundle constructors above.
+
+This guide adopts the short function-and-purpose listings and connections
+between overview, examples, and detailed help found in the
+[Hmisc documentation](https://hbiostat.org/r/hmisc/) and its
+[package overview](https://raw.githubusercontent.com/harrelfe/Hmisc/master/man/Overview.Rd).
+The groups here follow graph-layout tasks specific to grip.
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

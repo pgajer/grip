@@ -1,0 +1,146 @@
+---
+title: "HMP/U01 Weighted Graph Case Study"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 9,
+  fig.height = 5.6
+)
+```
+
+## What this article is for
+
+The main real-data workflow now lives in:
+
+- `Choosing Layouts for Real Data`
+
+This companion keeps the HMP/U01-specific material that is still useful on its
+own:
+
+- the structure of the bundled `hmp.u01.gc.coarse` object,
+- the coarsening provenance,
+- and the location of the bundled precomputed search artifacts.
+
+```{r}
+library(grip)
+
+data(hmp.u01.gc.coarse)
+```
+
+## The bundled graph object
+
+`hmp.u01.gc.coarse` is a weighted, coarsened real-world graph derived from the
+giant connected component of the HMP+U01 16S amplicon iKNN graph.
+
+```{r}
+graph.info <- data.frame(
+  quantity = c(
+    "source dataset",
+    "representation",
+    "selected k",
+    "original giant-component vertices",
+    "coarsened vertices",
+    "weighted undirected edges"
+  ),
+  value = c(
+    hmp.u01.gc.coarse$graph_info$source_dataset,
+    hmp.u01.gc.coarse$graph_info$representation,
+    hmp.u01.gc.coarse$graph_info$selected_k,
+    hmp.u01.gc.coarse$graph_info$original_vertices,
+    hmp.u01.gc.coarse$graph_info$coarse_vertices,
+    hmp.u01.gc.coarse$graph_info$edge_count
+  ),
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(graph.info)
+```
+
+The object contains four top-level components:
+
+```{r}
+names(hmp.u01.gc.coarse)
+```
+
+- `adj_list`
+- `weight_list`
+- `vertex_data`
+- `graph_info`
+
+The `vertex_data` frame includes aggregated biological labels such as `cst` and
+`subcst`:
+
+```{r}
+names(hmp.u01.gc.coarse$vertex_data)
+```
+
+## Coarsening provenance
+
+The coarsening history records how the graph was reduced at each round,
+including the number of retained vertices and the matching ratio.
+
+```{r}
+knitr::kable(hmp.u01.gc.coarse$graph_info$coarsening_rounds)
+```
+
+This provenance is useful when the graph is used as a benchmark or manuscript
+example, because it makes the bundled object reproducible as a derived graph
+rather than just a static artifact.
+
+## Bundled search artifacts
+
+The package ships precomputed HMP/U01 search results used by the main real-data
+vignette. The artifact directory is:
+
+```{r}
+system.file("extdata", "hmp_u01_gc_coarse", package = "grip")
+```
+
+The bundled results file used in the real-data vignette is:
+
+```{r}
+path <- system.file(
+  "extdata", "hmp_u01_gc_coarse", "vignette_results.rds",
+  package = "grip"
+)
+path
+```
+
+It contains:
+
+```{r}
+hmp.results <- readRDS(path)
+names(hmp.results)
+```
+
+These precomputed artifacts keep the full HMP/U01 workflow available without
+making regular vignette builds excessively heavy.
+
+They can be regenerated from an installed package with:
+
+```{r regenerate-results, eval=FALSE}
+Sys.setenv(GRIP_HMP_RESULTS_OUTPUT = "hmp_vignette_results.rds")
+source(system.file(
+  "scripts", "precompute-hmp-results.R",
+  package = "grip"
+))
+```
+
+## Where the workflow now lives
+
+For the actual layout-selection workflow on this graph, including:
+
+- preset shortlisting,
+- local search,
+- metric tables,
+- and CST-colored projected layouts,
+
+see:
+
+- `Choosing Layouts for Real Data`
+
+That vignette now contains the HMP/U01 case study in a form that sits directly
+alongside the smaller unweighted and weighted real-data examples.

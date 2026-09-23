@@ -1,0 +1,220 @@
+---
+title: "Sparse SGD for larger graphs"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Sparse SGD for larger graphs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1000px; }
+table { width: 100%; }
+.rglWebGL { max-width: 100%; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',out.width='100%')
+source(system.file('scripts','metric-mds-comparison.R',package='grip'),local=TRUE)
+source(system.file('scripts','metric-mds-surface-alignment.R',package='grip'),local=TRUE)
+source(system.file('scripts','sparse-mds-comparison.R',package='grip'),local=TRUE)
+bundle <- readRDS(system.file('extdata','sparse-mds-comparison','benchmark.rds',package='grip'))
+rows <- sparse_comparison_rows(bundle)
+summary <- sparse_comparison_summary(bundle)
+have.ivue <- isTRUE(getOption('grip.vignette.interactive',TRUE)) &&
+  requireNamespace('ivue',quietly=TRUE) && requireNamespace('rgl',quietly=TRUE) &&
+  'layer3D.callback' %in% getNamespaceExports('ivue') &&
+  'limits' %in% names(formals(ivue::plot3D.plain))
+method_label <- function(x) ifelse(x=='full','Full SGD',ifelse(x=='grip','Weighted GRIP',
+  paste('Sparse SGD:',sub('sparse','',x),'pivots')))
+```
+
+## From all pairs to representative vertices
+
+Full metric MDS fits all pairs of vertices. That makes both the distance
+calculation and fitting expensive as a graph grows. `metric.mds(approximation = "sparse")` keeps
+all graph edges and approximates longer-range influences using representative
+vertices, called **pivots**. A pivot's contribution depends on the nearby
+vertices it represents. This is the sparse model of
+[Ortmann, Klimenta and Brandes (2017)](https://doi.org/10.7155/jgaa.00440),
+with the SGD updates of
+[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+
+With `n` vertices, `m` edges and `h` pivots, storage and work per fitting pass
+are proportional to roughly `m + n*h`, rather than all `n*(n-1)/2` pairs.
+Preparation computes shortest paths from the pivots. The two endpoints of a
+sparse constraint can have different influences: a vertex may move toward a
+pivot without moving that pivot. This is why selecting a few pairs from an
+ordinary symmetric MDS fit is not the same algorithm.
+
+## Using sparse SGD
+
+The following code uses the saved saddle graph from this comparison:
+
+```{r sparse-actual, eval=FALSE}
+examples <- readRDS(system.file('extdata', 'sparse-mds-comparison',
+                               'benchmark.rds', package='grip'))
+g <- examples$cases[['saddle_graph-64']]
+fit <- metric.mds(edges=g$edges, n=g$n, edge.weights=g$weights,
+                  dim=3, approximation="sparse", backend="sgd",
+                  sparse.control=list(n.pivots=16), max.iter=100, seed=1)
+plot.layout(layout.coords(fit), edges=g$edges)
+fit$metadata$sparse$pivots
+```
+
+The default is 200 pivots (or all vertices for smaller graphs) and 30 epochs.
+These are **provisional calibration choices**. Use `sparse.control=list(n.pivots=100)` to explore the
+quality–cost tradeoff, or `sparse.control=list(pivots=c(1,20,40))` to choose
+the representatives explicitly. The graph must be connected and its lengths
+positive. Disconnected graphs produce an error; no connecting edges are added.
+
+`approximation` chooses full or sparse distances; `backend` chooses the optimizer.
+Full MDS remains the default and supports SGD and SMACOF. Sparse MDS currently
+supports only SGD. Both modes default to two dimensions; request `dim=3` for
+3D layouts, as above.
+
+When omitted, sparse settings are `init="random"`, `pair.weights="inverse_squared"`,
+`max.iter=30`, and `diagnostics=FALSE`. Sparse mode accepts a supplied coordinate
+matrix, but rejects classical initialization, uniform weighting, multiple
+starts, prepared objects, and dense diagnostic controls. Supply raw edges or
+adjacency lists. These errors prevent an unexpected full distance calculation.
+
+Sparse SGD uses inverse-squared distance weights. Edge constraints retain their
+supplied lengths, following the upstream implementation. If a weighted edge has
+a shorter alternative route, its target differs from full MDS's shortest-path
+target. Our examples use unit or Euclidean chord lengths, so this distinction
+does not affect their target distances.
+
+`metadata$sparse_proxy_stress` describes the retained constraints, using the
+average of their two endpoint weights. It is **not full stress**, and it is not
+assumed to decrease at every pass. The function returns the terminal layout,
+centered and in input-distance units, without fitting an additional scale.
+It does not silently compute a full distance matrix for initialization or scoring.
+
+## What the saved experiment compares
+
+The experiment uses a saddle, a paraboloid, and a spatial helix with 64 vertices
+each; the 307-vertex structural graph `dwt_307` supplied with grip; and a larger
+saddle with 4,096 vertices. It compares:
+
+- Full SGD with inverse-squared stress weights.
+- Sparse SGD with 8 and 32 pivots on the smaller examples, and 32, 128 and 200 on the larger saddle.
+- Weighted GRIP, using `metric='edge_length'`, `length.normalization='none'`, and its default layout settings.
+
+There are three runs of each setting, with seeds 1–3. Both SGD methods use the
+same supplied random coordinate matrix, the default hybrid learning-rate
+schedule, and 100 epochs. Full MDS fits the coordinate scale and retains its
+best checkpoint; sparse SGD returns its terminal iterate without fitting the
+scale. GRIP uses its own multiscale initialization. Thus these are comparisons
+of the documented methods, not identical initialization trajectories or equal
+work per iteration. Each worker has a 90-second limit and the experiment has a
+20-minute limit. Failed attempts remain in the saved results.
+
+Full SGD is deliberately omitted above 512 vertices in this bounded experiment;
+that cutoff is an experiment choice, not a measured limit of the full method.
+For the smaller examples, the reported error is the root-mean-square relative
+error over **all graph shortest-path distances**. For the larger saddle, it is
+estimated using all distances from 32 uniformly sampled source vertices. Those
+sources are chosen independently of the fitting pivots, and the same distances
+are used to evaluate every layout. The independent evaluator uses igraph's
+Dijkstra implementation. The first error column uses returned coordinates without further scaling.
+
+After inspecting the completed run, we added a **scale diagnostic** because
+weighted GRIP returned substantially larger layouts than the distance targets.
+For every method, we also fit one positive multiplier to minimize relative error
+on the same assessment distances. The second error column reports that
+scale-adjusted error. Original coordinates and errors are retained. This
+additional diagnostic was not used to tune or rerun any layout.
+
+**Total seconds** includes graph preparation and layout fitting, but excludes
+package loading and the independent quality evaluation. **Peak MiB** is measured
+maximum resident memory of a separate R worker, including package loading and
+result serialization. It is not an estimate from the number of pairs and it
+includes the R process baseline. Preparation and fitting times are separately
+available for sparse SGD in the saved rows; these phases are not exposed
+separately for the other two methods.
+
+The experiment returned coordinates for **`r sum(rows$status=='ok')` of
+`r nrow(rows)` attempted fits**. These results do not establish convergence.
+Tables show medians over the successful runs, alongside the number attempted.
+The figures always show seed 1, rather than choosing the best-looking run.
+The displayed layouts use their independently fitted scale multipliers, listed
+below each table for the exact displayed runs. The saddle examples then use
+**surface-shape alignment**, matching nearby locations on the triangulated
+surfaces without requiring vertex labels to agree. Translation, rotation and
+reflection are allowed, with no further resizing or deformation. The other
+examples use vertex-based Procrustes alignment;
+for `dwt_307`, full SGD supplies the alignment reference, not a known true shape.
+
+Surface alignment uses the same 48-start nearest-surface matching procedure as
+the [SGD–SMACOF comparison](metric-mds-backends.html). The 64-vertex saddle uses
+nine area-weighted samples per triangle. For the 4,096-vertex saddle, the original
+64-by-64 grid supplies 7,938 triangles; one sample per triangle is used for
+registration. All vertices and edges remain in the display. The original and
+scale-adjusted error tables are unchanged by this alignment.
+
+Use the **Layout** selector below each 3D figure to show one method or all
+layouts together. Generating coordinates remain visible where available.
+Drag to rotate and scroll to zoom; switching layouts preserves the camera and
+scale.
+
+```{r sparse-gallery, results='asis', echo=FALSE}
+for (id in names(bundle$cases)) {
+  case <- bundle$cases[[id]]
+  cat('\n\n### ',case$label,' (',case$n,' vertices)\n\n',sep='')
+  cat(if(bundle$evaluation[[id]]$mode=='full') 'Error uses all vertex pairs.\n\n' else
+    'Error is estimated from 32 independently sampled source vertices. Full SGD was not attempted.\n\n')
+  med <- summary[summary$case==id,]; med$method <- method_label(med$method)
+  cat(knitr::kable(med[,c('method','returned','attempted','relative_error','profiled_relative_error','seconds','peak_mib')],
+    row.names=FALSE,digits=3,col.names=c('Method','Returned','Attempted','Original error','Scale-adjusted error','Total seconds','Peak MiB')),sep='\n')
+  selected <- Filter(function(f) f$row$case==id && f$row$seed==1,bundle$fits)
+  fits <- stats::setNames(selected,vapply(selected,function(f) f$row$method,''))
+  cat('\n\nDisplayed seed-1 scale multipliers: ',paste(vapply(fits,function(f) paste(method_label(f$row$method),format(f$row$relative_scale,digits=3)),''),collapse='; '),'.\n\n',sep='')
+  child <- c(sprintf('```{r sparse-view-%s, echo=FALSE}',id),
+    'if (grepl("^saddle", case$id) && (!have.ivue || !requireNamespace("FNN", quietly=TRUE))) {',
+    '  cat("The surface-aligned view requires FNN and interactive rendering with ivue and rgl.")',
+    '} else if (have.ivue) { sparse_comparison_view(case,fits) } else {',
+    sprintf('knitr::include_graphics(system.file("extdata","sparse-mds-comparison","%s.png",package="grip"))',id),
+    '}','```')
+  cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
+}
+failed <- rows[rows$status!='ok',c('case','seed','method','failure')]
+if(nrow(failed)) { cat('\n\n### Unsuccessful attempts\n\n'); cat(knitr::kable(failed),sep='\n') }
+```
+
+A larger number of pivots increases work and memory; a better layout is not
+guaranteed for each seed. Compare the full or independently sampled error above,
+rather than comparing the sparse proxy between methods or pivot counts. The
+[SGD–SMACOF comparison](metric-mds-backends.html) separately illustrates the
+effect of uniform versus inverse-squared stress weights.
+
+## Repeating the experiment
+
+Building this vignette displays saved results; it does not run the experiment.
+Install a fresh copy of grip and use the explicit script in the source repository:
+
+```sh
+mkdir -p ../comparison-library
+R CMD INSTALL --preclean --library=../comparison-library . > ../comparison-install.log 2>&1
+Rscript tools/pkg/build-sparse-mds-comparison.R ../fresh-sparse-results ../comparison-library ../comparison-install.log
+```
+
+The script also needs `processx`, `withr`, `igraph`, `ivue`, and the
+system `time` command on macOS or Linux. It saves all attempts and resource logs.
+See the [reproduction guide](https://github.com/pgajer/grip/blob/main/tools/README.md)
+for rendering the saved 3D views.
+
+## References
+
+- Ortmann, M., Klimenta, M., and Brandes, U. (2017). *A Sparse Stress Model*.
+  Journal of Graph Algorithms and Applications, 21(5), 791–821.
+  [doi:10.7155/jgaa.00440](https://doi.org/10.7155/jgaa.00440).
+- Zheng, J. X., Pawar, S., and Goodman, D. F. M. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S., and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

@@ -1,0 +1,221 @@
+---
+title: "Graph examples"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Graph examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1000px; }
+td, th { vertical-align: top; }
+td code { white-space: normal; overflow-wrap: anywhere; }
+.rglWebGL { max-width: 100%; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', out.width = '100%')
+library(grip)
+source(system.file('scripts', 'graph-examples.R', package = 'grip'), local = TRUE)
+bundle <- readRDS(system.file('extdata', 'graph-examples', 'layouts.rds', package = 'grip'))
+have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
+  requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
+  all(c('plot3D.groups','color.scale.groups','layer3D.callback','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
+  'limits' %in% names(formals(ivue::plot3D.plain))
+```
+
+Explore trees, curved surfaces, recursive constructions, and graphs from
+applications. Each example shows a **3D metric-MDS layout** and the result of
+**edge-KK refinement**, using the same graph and edge lengths. The six
+SuiteSparse examples also appear in
+[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+They join grip's generated graph families and its karate-club example here.
+
+`metric.mds()` uses SGD by default. For the method references and a comparison
+with SMACOF, see [Comparing SGD and SMACOF](metric-mds-backends.html).
+The layouts here illustrate the graphs using grip's current functions;
+they do not reproduce the paper's inverse-squared-distance stress weighting.
+
+## Draw a graph in two steps
+
+This small example creates a weighted tree, draws it in 3D, and refines its
+edge lengths. The gallery uses this same recipe for every graph.
+
+```{r small-example}
+g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
+                            branch.spread = .2, normalize = 'none')
+prepared <- prepare.graph.geodesic.mds(
+  edges = g$edges, n = g$n, edge.weights = g$edge_weights)
+mds <- suppressWarnings(metric.mds(
+  prepared = prepared, dim = 3, init = 'random',
+  n.init = 3, max.iter = 80, seed = 2026, diagnostics = FALSE))
+refined <- edge.kk(
+  coords = mds$coords, prepared = prepared, dim = 3,
+  stiffness.method = 'uniform', density.mix.schedule = 1,
+  scale.mode = 'identity', max.iter = 100,
+  return.trace = FALSE, diagnostics = FALSE)
+```
+
+MDS tries to fit shortest-path distances between **all pairs of vertices**.
+Edge-KK adjusts the drawing to fit **directly connected vertices**. Here every
+edge has equal influence during refinement, and `scale.mode = "identity"`
+keeps its target length fixed. An improvement in edge lengths can come with a
+worse fit to distances between more widely separated vertices.
+
+We use three random starts for MDS, retaining the one with the lowest stress,
+and allow 80 passes per start. Reaching that limit can produce an
+`iteration_limit` warning; the small example suppresses it, while the saved
+gallery records it. Refinement allows 100 iterations. These are illustration
+settings, not settings chosen to make either stage win. All fits use seed 2026.
+
+For the six new datasets, replace the graph-construction line with:
+
+```{r supplied-data}
+data(zheng.graphs)
+names(zheng.graphs)
+g <- zheng.graphs[['lesmis']]
+head(g$vertex_data)
+```
+
+Each dataset supplies `n`, `edges`, `edge_weights`, `vertex_data`, and
+`graph_info`. Vertex indices follow the original matrix rows. The six graphs
+are connected; no vertices were dropped or connecting edges added. We use
+unit edge lengths and preserve the original matrix values separately.
+For example, Les Miserables coappearance counts describe connection strength,
+so they are not passed to the layout functions as distances.
+
+## Reading the gallery
+
+**Blue is metric MDS; orange is MDS followed by edge-KK.** Gray, when present,
+shows the coordinates used to construct the graph. Each visible layout includes
+all its edges. Switching layouts preserves the camera and scale. Each layout is
+**Procrustes-aligned** to the generating coordinates (or to metric MDS when no
+generating coordinates are available). Corresponding vertices are matched by
+their graph indices; translation and rotation/reflection minimize their summed
+squared separations. No resizing is used to make the layouts agree.
+Generating coordinates show where a geometric graph came from, but need not
+realize its graph shortest-path distances as straight-line separations.
+
+Each graph has an interactive 3D view made with
+[ivue](https://github.com/pgajer/ivue). Use the visible layout selector to choose
+**metric-MDS**, **metric-MDS + edge-KK**, or **both**. Gray generating coordinates
+remain visible where available. Drag to rotate and scroll to zoom.
+Without a compatible ivue installation, the vignette shows saved images with
+both layouts.
+
+Each table reports two errors. **Graph-distance error** measures the fit to
+all shortest-path distances; **edge-length error** measures the fit to supplied
+edge lengths. Both are root-mean-square errors divided by the root-mean-square
+target length, so zero is exact agreement and lower is better. Scores use the
+returned coordinates without fitting an extra scale. Each stage's elapsed time
+is also listed; preparation is excluded, and the refinement time is additional
+to the MDS time. These are single-workstation timings, not a speed comparison.
+
+```{r gallery, echo=FALSE, results='asis'}
+descriptions <- c(
+  tree = 'A binary tree with shorter edges at greater depth and different lengths for sibling branches. It has no generating coordinates.',
+  carpet = 'A recursively perforated grid lifted onto a saddle. Its holes create detours in graph paths.',
+  saddle = 'A grid lifted to a saddle, with horizontal, vertical, and diagonal edges. Traversal lengths are measured between neighboring surface points. Both layouts are Procrustes-aligned to the gray generating surface. The remaining difference in shape cannot be removed by rotating, reflecting, or translating the layouts while keeping corresponding vertices matched.',
+  paraboloid = 'A grid lifted to a bowl-shaped surface, with horizontal, vertical, and diagonal edges. The diagonals distinguish its graph distances from those of the saddle.',
+  torus = 'A grid wrapped around a torus. Connections continue around both circular directions.',
+  porous = 'A twisted cubical channel network with interior vertices and several routes through the volume.',
+  karate = 'The karate-club social graph already supplied by grip, drawn here with unit edge lengths.',
+  dwt_66 = 'A small structural graph from the Harwell–Boeing collection. Its elongated structure makes bends and twists easy to inspect.',
+  lesmis = 'Characters in Les Miserables are connected when they appear in the same chapter. Character names are retained in vertex_data.',
+  dwt_307 = 'A structural graph included among the paper’s examples. It provides a useful contrast to the other meshes.',
+  '494_bus' = 'The connectivity of a 494-bus power-system matrix. Electrical values are preserved in the source file but are not layout distances.',
+  dwt_1005 = 'A larger structural mesh with 1,005 vertices. Rotate the view to inspect its folds and connections.',
+  '1138_bus' = 'The connectivity of a 1,138-bus power-system matrix, showing branching at a larger scale.')
+recipes <- c(
+  tree = "g <- kary.tree.weighted.graph(k = 2, depth = 5, depth_decay = .85, branch_spread = .2, normalize = 'none')",
+  carpet = "g <- recursive.mask.grid.surface.graph(mask.border(3), level = 2, surface = 'saddle', amplitude = .5, normalize = 'none')",
+  saddle = "g <- mesh.surface.graph(10, 10, surface = 'saddle', connectivity = 'diagonal', normalize = 'none')",
+  paraboloid = "g <- mesh.surface.graph(10, 10, surface = 'paraboloid', connectivity = 'diagonal', normalize = 'none')",
+  torus = "g <- torus.surface.graph(12, 8, normalize = 'none')",
+  porous = "g <- cube.channel.network.surface.graph(side = 5, level = 1, surface = 'twisted', twist = .2, normalize = 'none')",
+  karate = "E <- as.matrix(read.csv(system.file('extdata', 'karate-club-edges.csv', package = 'grip')))\ng <- list(n = 34L, edges = E, edge_weights = rep(1, nrow(E)))")
+for (group in c('Generated graphs', 'Graphs from applications')) {
+  cat('\n\n## ', group, '\n\n', sep = '')
+  for (id in names(bundle$cases)) {
+    graph <- bundle$cases[[id]]
+    if (graph$group != group) next
+    fits <- bundle$fits[[id]]
+    cat('\n\n### ', graph$label, '\n\n', descriptions[[id]], '\n\n', sep = '')
+    cat(sprintf('**%s vertices; %s edges. %s.**\n\n', graph$n, nrow(graph$edges), graph$lengths))
+    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- zheng.graphs[['%s']]", id)
+    cat('```r\n', recipe, '\n```\n\n', sep = '')
+    if (!is.null(graph$graph_info$source_url)) cat('[Source and metadata](', graph$graph_info$source_url, ').\n\n', sep = '')
+    if (!is.null(fits$error)) { cat('Layout unavailable: ', fits$error, '\n\n', sep = ''); next }
+    tab <- do.call(rbind, lapply(c('mds','refined'), function(method) {
+      f <- fits[[method]]
+      data.frame(Method = if (method == 'mds') 'Metric MDS' else 'MDS + edge-KK',
+        Graph_error = if (is.null(f$scores)) NA_real_ else f$scores[['graph_error']],
+        Edge_error = if (is.null(f$scores)) NA_real_ else f$scores[['edge_error']],
+        Stage_seconds = if (is.null(f$seconds)) NA_real_ else f$seconds)
+    }))
+    cat(knitr::kable(tab, digits = 4, row.names = FALSE,
+      col.names = c('Layout', 'Graph-distance error', 'Edge-length error', 'Stage seconds')), sep = '\n')
+    if (!is.null(fits$refined$error)) cat('\nRefinement unavailable: ', fits$refined$error, '\n', sep = '')
+    child <- c(
+      sprintf('```{r overlay-%s, echo=FALSE}', id),
+      'if (have.ivue) { graph_example_view(graph, fits) } else {',
+      sprintf('knitr::include_graphics(system.file("extdata", "graph-examples", "%s.png", package = "grip"))', id),
+      '}', '```')
+    cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+  }
+}
+```
+
+## More graph constructors
+
+| Need | Public entry points | Output |
+|---|---|---|
+| Topology alone | `edges.path()`, `edges.mesh()`, `edges.kary.tree()`, the other primitive `edges.*()` generators | Two-column edge matrix; no bundled reference coordinates or lengths. |
+| A finite perforated grid | `keep.periodic.holes()`, `keep.asymmetric.notches()`, `keep.slit.channels()`, `keep.staggered.windows()`, then `occupied.mesh.surface.graph()` | A keep matrix followed by a complete weighted graph bundle. |
+| A recursive pattern | Square `mask.*()` helpers, cubic `mask.cube.*()` arrays, or triangle/tetrahedron masks, then the matching `recursive.*.surface.graph()` | A mask followed by a recursively generated weighted bundle. |
+| A regular reference surface | `mesh.surface.graph()`, `cylinder.surface.graph()`, `sphere.surface.graph()`, `torus.surface.graph()` | Edges, lengths, 3D reference coordinates, and parameters. |
+| Irregular surfaces or volumes | The `irregular.*.surface.graph()` and `irregular.*.solid.graph()` families | Deterministic geometric constructions; “irregular” does not imply random sampling. |
+| Triangular-lattice or polyhedral topology | The three `triangulated.*.surface.graph()` families | Graph edges and reference coordinates; the public bundles do not expose triangular faces. |
+| Randomly sampled rectangle | `sampled.rectangle.surface.graph()` or plural `sampled.rectangle.surface.graphs()` | One graph or a sequence on a shared sampled point set. |
+| Intrinsic lengths without an embedding | `kary.tree.weighted.graph()` | Tree edges, lengths, depths, parents, and edge metadata. |
+
+The [website gallery](https://pgajer.github.io/grip/articles/gallery.html)
+illustrates more families. Use complete public bundles; standalone embeddings
+and specialized edge builders used inside them are internal functions.
+A name ending in `surface.graph` is not a promise of a triangle mesh:
+occupied-cube families, for example, connect occupied cells and can include
+interior vertices.
+
+
+## Repeat the gallery
+
+The small tree example runs when this vignette is built. The gallery uses
+saved layouts so rebuilding the document does not repeat the larger fits.
+To draw any graph yourself, use its construction line above followed by the
+two-step example. Keep `dim = 3` and the same edge lengths in both steps.
+
+The full recipe is installed as `scripts/graph-examples.R`. Instructions for
+rebuilding the saved layouts and images are in the
+[reproduction guide](https://github.com/pgajer/grip/blob/main/tools/README.md#graph-examples-gallery).
+The saved file retains the settings, software version, all MDS starts, warnings,
+and any unsuccessful fits. This gallery uses dense shortest-path distances;
+check graph size before increasing the construction sizes substantially.
+
+## Data sources
+
+The six new graph datasets are derived from the
+[SuiteSparse Matrix Collection](https://sparse.tamu.edu/), distributed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original matrices,
+author credits, character labels, and descriptions of the conversion are
+included in `extdata/zheng-graphs/`. See `help('zheng.graphs')` for details.
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Davis, T. A. and Hu, Y. (2011). *The University of Florida Sparse Matrix Collection*.
+  [doi:10.1145/2049662.2049663](https://doi.org/10.1145/2049662.2049663).
+- Knuth, D. E. (1993). *The Stanford GraphBase: A Platform for Combinatorial Computing*.
+  Addison-Wesley. Source of the Les Miserables coappearance data.

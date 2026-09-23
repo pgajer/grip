@@ -1,0 +1,226 @@
+---
+title: "Getting Started with grip"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with grip}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8.5,
+  fig.height = 5.2
+)
+```
+
+## What this vignette covers
+
+`grip` has four main user workflows:
+
+- `grip(metric = "hop")` for ordinary unweighted or topology-first graphs,
+- `grip(metric = "edge_length")` when edge lengths carry geometry you want to keep,
+- `compare.layouts()` and `score.layout()` when you want a
+  disciplined real-data shortlist,
+- `trace.grip()` with the corresponding metric when you need diagnostics
+  rather than just a final picture.
+
+This vignette is the shortest path through the default workflow. It shows how
+to:
+
+- compute a first unweighted layout,
+- score it,
+- fit a metric multidimensional scaling (MDS) baseline,
+- compare a few plausible candidates,
+- and decide when to switch to the specialist guides.
+
+For weighted layouts, real-data search, tracing, and interactive exploration,
+the later guides go deeper. Advanced GKK/LGKK tools are public, but they are
+treated as later-stage experimental helpers rather than the default starting
+point.
+
+```{r}
+library(grip)
+```
+
+## A first unweighted layout
+
+For an ordinary unweighted graph, `grip()` is the default starting
+point. Here is a small mesh in 2D.
+
+```{r}
+mesh.edges <- edges.mesh(5, 5)
+mesh.coords <- grip(
+  mesh.edges,
+  n = 25,
+  dim = 2,
+  preset = "mesh",
+  seed = 1
+)
+
+mesh.score <- score.layout(mesh.coords, edges = mesh.edges, n = 25)
+knitr::kable(mesh.score[, c(
+  "sampled.stress",
+  "edge.length.cv",
+  "sampled.nonedge.sep.ratio"
+)], digits = 3)
+```
+
+```{r fig.width=5.2, fig.height=4.6}
+plot.layout(
+  mesh.coords,
+  mesh.edges,
+  main = "grip() on a 5x5 mesh",
+  pch = 16,
+  cex = 0.65,
+  edge.col = "gray82"
+)
+```
+
+For small and medium unweighted graphs, that is often all you need:
+
+- choose `dim = 2` or `dim = 3`,
+- optionally start from a preset,
+- and score or compare a few candidate settings if the graph is important.
+
+## A metric MDS baseline
+
+In this development version (0.2.0.9001), `metric.mds()` uses
+`backend = "sgd"` by default. This native stochastic gradient descent (SGD)
+backend minimizes the sum of squared differences between Euclidean distances
+in the layout and graph shortest-path distances, giving every vertex pair
+equal weight by default (`pair.weights = "uniform"`). Its pair updates follow Zheng, Pawar and Goodman (2018), and its
+default hybrid learning-rate schedule follows Hangan, Kobourov and Miller
+(2026); see the [SGD references](#sgd-references).
+
+This example fits the same 25-vertex mesh. Omitting `backend` selects SGD;
+`seed` makes the stochastic run reproducible. We explicitly limit the example
+to 30 passes over all vertex pairs. The function's `max.iter` default is 1000;
+30 is a short trial budget, not a convergence criterion. SGD reports
+`iteration_limit` when its schedule ends. We suppress that expected warning
+here and display the termination status instead.
+
+```{r metric-mds-default}
+mesh.mds <- suppressWarnings(metric.mds(
+  edges = mesh.edges, n = 25, dim = 2,
+  init = "random", max.iter = 30, seed = 1
+))
+mesh.mds$metadata$engine       # "sgd": the default backend
+mesh.mds$metadata$termination  # "iteration_limit": not certified convergence
+mesh.mds$metadata$raw_stress
+```
+
+SGD requires no additional backend package. Its learning-rate and checkpoint
+settings are provisional calibration choices. For an alternative optimizer,
+install **smacof** and explicitly request `metric.mds(backend = "smacof", ...)`.
+The two backends optimize the same raw distance-stress objective, but their
+iterations represent different amounts of work. The `eps` stopping tolerance
+applies only to SMACOF and must be omitted for SGD. Both backends also support
+`pair.weights = "inverse_squared"`, which uses Zheng et al.'s weighting to
+minimize squared relative distance errors. See the
+[weighting examples](metric-mds-backends.html#the-effect-of-stress-weighting)
+for the resulting 3D layouts.
+
+In grip versions through 0.2.0, `metric.mds()` performed classical scaling.
+Use `classical.mds()` to retain that earlier behavior. The
+[function guide](function-guide.html#classical-scaling-and-metric-stress-mds)
+explains the distinction, multiple starts, and optional edge-KK refinement.
+For stress and timing comparisons with interactive quadratic-surface views,
+see [Comparing SGD and SMACOF](metric-mds-backends.html).
+
+## Compare a few plausible candidates
+
+If the first picture matters, it is usually better to compare a short candidate
+list than to tune blindly. `compare.layouts()` runs several seeds and
+summarizes the results in a score table.
+
+```{r}
+mesh.cmp <- compare.layouts(
+  edges = mesh.edges,
+  n = 25,
+  dim = 2,
+  candidates = c("default", "mesh", "tree"),
+  seeds = 1:2,
+  sample.size.stress = 500L,
+  sample.size.nonedge = 1000L,
+  edge.crossings = "never"
+)
+
+knitr::kable(mesh.cmp$summary[, c(
+  "candidate",
+  "sampled.stress.mean",
+  "edge.length.cv.mean",
+  "sampled.nonedge.sep.ratio.mean",
+  "score.composite"
+)], digits = 3)
+```
+
+That same pattern scales to real graphs:
+
+- shortlist a few plausible presets,
+- run several seeds,
+- inspect the summary table before choosing a favorite picture,
+- then search locally only if the graph is important enough to justify it.
+
+## What if the graph is weighted?
+
+If edge values are only metadata, omit them for an unweighted baseline.
+Supplying `edge.weights` even with `metric = "hop"` changes adjacent-edge
+force targets; those values must be positive lengths, not strengths. When the
+edge lengths represent geometry that the layout should preserve, the default
+path changes:
+
+- start from `grip(metric = "edge_length")`,
+- prefer 3D when the graph geometry is genuinely three-dimensional,
+- and add GKK/LGKK only later if you need advanced geodesic-aware scoring or
+  polish on a smaller weighted candidate set.
+
+## When should you switch workflows?
+
+Start with `grip()` when the graph is fundamentally unweighted and you
+mainly care about its combinatorial structure.
+
+Switch to the other guides when the task changes:
+
+- use `grip(metric = "edge_length")` when edge lengths encode geometry you care
+  about,
+- use `compare.layouts()` on real graphs when you want a disciplined
+  shortlist rather than a single run,
+- use `trace.grip()` or `trace.grip(metric = "edge_length")` when you want to
+  inspect how a solve evolves,
+- use GKK/LGKK only after you already have weighted candidate layouts and need
+  advanced experimental geodesic-aware scoring or polish,
+- use `run.gripui()` or `run.gripui.family()` in an interactive R session when
+  you want app-based exploration.
+
+## Where to go next
+
+For an API map, see [Finding your way around grip](function-guide.html).
+For reproducible bundles and reference scoring, see
+[Graph examples](synthetic-graph-families.html).
+Both are installed vignettes; the broader gallery and interactive explorer
+are website-only articles.
+
+
+
+- `Weighted Graph Layouts with grip` covers weighted solving, geodesic scoring,
+  and 2D-versus-3D decisions.
+- `Choosing Layouts for Real Data` focuses on candidate shortlisting, local
+  search, and real-data evaluation.
+- `Tracing and Diagnosing Layouts` covers trace objects and per-frame
+  diagnostics.
+- `Interactive Exploration with gripui` is a website article about the
+  package's Shiny tools.
+- `Synthetic Graph Families and Geometries` is a website article about the
+  benchmark and geometry library.
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

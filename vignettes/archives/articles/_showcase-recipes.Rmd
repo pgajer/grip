@@ -1,0 +1,130 @@
+---
+title: "Reproduce the visual showcases"
+---
+
+The construction traces show GRIP introducing vertices and refining their
+positions. The saddle animations rotate fixed saved coordinates. Use the
+controls below to play or stop motion; every display starts with a still view.
+Stopping returns to that preview. On GitHub, follow the README's showcase link
+to reach this page. Without JavaScript, the still views and recipes remain usable.
+
+These larger showcases are separate from the small, executable
+[Getting Started](grip-examples.html) and
+[synthetic graph examples](synthetic-graph-families.html).
+
+## Triangle construction
+
+<img src="../reference/figures/readme-sierpinski-triangle-level-6-trace-poster.png" alt="Finished level-6 Sierpinski triangle layout with nested triangular holes." width="450" data-grip-animation="../reference/figures/readme-sierpinski-triangle-level-6-trace.gif" data-grip-motion-label="triangle construction" />
+
+A level-6 Sierpinski triangle, recorded with `trace.grip()` in two dimensions,
+`preset = "carpet"`, and seed 1. This is a construction sequence, not elapsed
+physical time. Frames are aligned to the generator's reference coordinates
+and displayed in a common frame so changes in orientation and overall scale
+do not obscure the refinement.
+
+The maintained [asset generator](https://github.com/pgajer/grip/blob/main/tools/pkg/generate-readme-assets.R)
+contains the graph construction, complete solver call, frame selection,
+alignment, symmetry convention, limits, colors, and export settings.
+The output is 600 by 600 pixels, 4 frames per second, with a hold on the final
+layout. Its poster is taken from that same final frame.
+
+From a checkout of the version whose display you want to reproduce:
+
+```sh
+git clone https://github.com/pgajer/grip.git
+cd grip
+# For a historical display, check out its recorded commit before rendering.
+Rscript -e 'install.packages(c("pkgload", "magick", "png", "rmarkdown", "knitr"))'
+make readme-assets
+```
+
+The [build record](../reference/figures/readme-traces-provenance.txt) records the
+source commit, package version, seeds, settings, and R session for these assets.
+A checkout also needs a C++17 toolchain. The `magick` R package may need
+ImageMagick development libraries when installed from source. Rendering is an
+explicit task; installing grip does not run these large traces.
+
+For a smaller example using the public generator:
+
+```{r small-trace, eval=FALSE}
+library(grip)
+edges <- edges.sierpinski.triangle(3)
+trace <- trace.grip(edges, n = max(edges), dim = 2,
+                    preset = "carpet", trace = "level", seed = 1)
+plot.layout(trace$final, edges = edges, pch = 16)
+```
+
+This smaller level-3 graph does not reproduce the level-6 asset. For tracing
+and scoring your own run, follow [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html).
+
+## Carpet construction
+
+<img src="../reference/figures/readme-sierpinski-carpet-level-4-trace-poster.png" alt="Completed level-4 Sierpinski carpet layout with its recursive square holes." width="600" data-grip-animation="../reference/figures/readme-sierpinski-carpet-level-4-trace.gif" data-grip-motion-label="carpet construction" />
+
+The same `make readme-assets` command builds this level-4 carpet using
+`preset = "carpet"`, seed 24, and a round trace in two dimensions. The generator
+aligns frames to the recursive grid and uses shared plotting limits. The
+[synthetic graph guide](synthetic-graph-families.html) provides smaller executable
+examples for inspecting holes, graph lengths, and reference coordinates.
+
+## Saved saddle rotations
+
+<img src="../reference/figures/readme-saddle-reference.png" alt="Three saved saddle configurations viewed with a common triangulation and coordinate axes." data-grip-animation="../reference/figures/readme-saddle-rotation.gif" data-grip-motion-label="synchronized saddle rotation" />
+
+These are frozen display configurations of 1,000 corresponding vertices and
+1,977 triangles. Their saved labels are "Original saddle", "Metric MDS", and
+"MDS + edge-KK". The fixture does not record the solver version, objective,
+initialization, convergence, or alignment transform used to produce the fitted
+coordinates. In particular, the historical "Metric MDS" label does not
+establish that this display used the current stress-minimizing `metric.mds()`.
+Use it to inspect the saved shapes, not to compare current solver accuracy.
+
+In the current development version (0.2.0.9001), `metric.mds()` defaults to
+`backend = "sgd"`, using native stochastic gradient descent. The pair updates
+follow Zheng, Pawar and Goodman (2018), and the default hybrid learning-rate
+schedule follows Hangan, Kobourov and Miller (2026); see the
+[SGD references](#sgd-references). Select `backend = "smacof"` explicitly to use
+the optional **smacof** optimizer. Neither backend can be inferred from the
+saved saddle labels. For a new fit using the default backend, see the
+[Getting Started example](grip-examples.html#a-metric-mds-baseline).
+
+<img src="../reference/figures/readme-saddle-overlay-poster.png" alt="Overlay of the saved fitted configurations in blue and orange with the generating saddle in gray." width="720" data-grip-animation="../reference/figures/readme-saddle-overlay-rotation.gif" data-grip-motion-label="saddle overlay rotation" />
+
+Both animations rotate fixed, already aligned coordinates around the vertical
+axis, at 20 frames per second and 12 seconds per revolution. They share their
+camera convention, scales, and triangulation; the overlay uses blue and orange
+for the saved fits and gray for the generating saddle. Motion does not show
+optimization or provide an accuracy measure.
+
+The [fixture manifest](https://github.com/pgajer/grip/blob/main/tools/pkg/fixtures/saddle-preview.json)
+records what is known and what is missing. To replay the stored coordinates
+without rerunning fits:
+
+```sh
+make readme-saddle-animation
+make saddle-overlay-animation
+```
+
+These explicit WebGL rendering targets need `ivue` with `layer3D.axes()`,
+`camera.zup()`, and `animate.frames()`, plus rgl, htmlwidgets, Pandoc, Node.js,
+Playwright, and a compatible browser. See the
+[renderer](https://github.com/pgajer/grip/blob/main/tools/pkg/render-saddle-preview.R)
+and [capture script](https://github.com/pgajer/grip/blob/main/tools/pkg/capture-saddle-preview.cjs)
+for their environment settings. They emit render provenance alongside the
+output; they are not a complete recipe for fitting the historical configurations.
+Ordinary README builds reuse the saved saddle assets and need none of these
+WebGL tools.
+
+For a fully executable current-method example with known graph/reference
+semantics, use the [synthetic graph guide](synthetic-graph-families.html).
+Graph-path error, straight-line-distance error, and reference agreement answer
+different questions; see [Choose a score](function-guide.html#choose-a-score).
+
+## SGD references
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Hangan, D., Kobourov, S. and Miller, J. (2026).
+  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).
