@@ -35,7 +35,9 @@ jobs:
         run: python3 tools/check-no-manuscripts.py
 
       - name: Install system dependencies for rgl and GIF rendering
-        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libmagick++-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libmagick++-dev
 
       - uses: r-lib/actions/setup-pandoc@v2
 
