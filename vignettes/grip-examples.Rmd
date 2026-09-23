@@ -91,7 +91,7 @@ In this development version (0.2.0.9001), `metric.mds()` uses
 `backend = "sgd"` by default. This native stochastic gradient descent (SGD)
 backend minimizes the sum of squared differences between Euclidean distances
 in the layout and graph shortest-path distances, giving every vertex pair
-equal weight. Its pair updates follow Zheng, Pawar and Goodman (2018), and its
+equal weight by default (`pair_weights = "uniform"`). Its pair updates follow Zheng, Pawar and Goodman (2018), and its
 default hybrid learning-rate schedule follows Hangan, Kobourov and Miller
 (2026); see the [SGD references](#sgd-references).
 
@@ -117,7 +117,11 @@ settings are provisional calibration choices. For an alternative optimizer,
 install **smacof** and explicitly request `metric.mds(backend = "smacof", ...)`.
 The two backends optimize the same raw distance-stress objective, but their
 iterations represent different amounts of work. The `eps` stopping tolerance
-applies only to SMACOF and must be omitted for SGD.
+applies only to SMACOF and must be omitted for SGD. Both backends also support
+`pair_weights = "inverse_squared"`, which uses Zheng et al.'s weighting to
+minimize squared relative distance errors. See the
+[weighting examples](metric-mds-backends.html#the-effect-of-stress-weighting)
+for the resulting 3D layouts.
 
 In grip versions through 0.2.0, `metric.mds()` performed classical scaling.
 Use `classical.mds()` to retain that earlier behavior. The

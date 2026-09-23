@@ -23,7 +23,8 @@ metric.mds(
   edge_length_epsilon = 1e-08,
   band_quantiles = c(1/3, 2/3),
   backend = c("sgd", "smacof"),
-  sgd_control = list()
+  sgd_control = list(),
+  pair_weights = c("uniform", "inverse_squared")
 )
 }
 \arguments{
@@ -85,21 +86,29 @@ mid, and long bands.}
 choices. Rates must be positive with \code{final_rate <= learning_rate};
 \code{switch_ratio} is between zero and one inclusive. The memory allowance covers native workspace,
 not the R input matrices or total process memory.}
+
+\item{pair_weights}{\code{"uniform"} (default) or \code{"inverse_squared"}. The latter
+applies the paper's inverse-squared shortest-path-distance weights in either
+backend. This is separate from the graph's \code{edge_weights}.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.
 \code{metadata} records the objective, backend/version, achieved raw stress,
-target-normalized RMSE, both Stress-1 conventions, selected start,
+weighted target-normalized RMSE, both weighted Stress-1 conventions, selected start,
 coordinate scale multiplier, and per-start losses and stopping information.
 SGD adds per-start elapsed seconds (native fitting including scoring),
 native seeds, pair-update counts, best epochs, and checkpoint histories in
 \code{metadata$sgd}. Histories use RMS-normalized target-distance units and include
-both raw and scale-profiled stress; the public diagnostics use original
-units. SGD reports \code{iteration_limit} and \code{converged = FALSE} when its
+both raw and scale-profiled stress. Internally, inverse-squared weights are
+\code{1 / (distance / input_rms_distance)^2}; the corresponding stress is already
+dimensionless. Uniform raw stress is converted to squared input-distance
+units for public metadata. Weighted target-normalized RMSE takes the square
+root of the ratio of stress to the sum of weighted squared target distances.
+SGD reports \code{iteration_limit} and \code{converged = FALSE} when its
 schedule finishes, including when an earlier checkpoint is returned.
 }
 \description{
-\code{metric.mds()} minimizes unweighted raw distance stress on a graph's
+\code{metric.mds()} minimizes raw distance stress on a graph's
 all-pairs shortest-path distances using native stochastic gradient descent
 (SGD, the default) or \code{smacof::mds(type = "ratio")}.
 Only the SMACOF backend requires the optional \pkg{smacof} package.
@@ -109,8 +118,14 @@ behavior. The \code{add} and \code{eig} arguments belong to \code{classical.mds(
 }
 \details{
 The objective is
-\deqn{S(Z) = \sum_{i<j}(\|z_i-z_j\|_2-\delta_{ij})^2.}
-Edge weights define graph distances, not pair stiffnesses in this objective.
+\deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
+By default, all pair weights are one. With \code{pair_weights = "inverse_squared"},
+\eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
+sum of squared relative distance errors. Edge weights define graph distances;
+\code{pair_weights} separately specifies their importance in the stress objective.
+Both backends, coordinate rescaling, checkpoint/start selection, and stress
+metadata use the selected weights. The common \code{score.gmds()} diagnostic panel
+retains its own definitions and does not become a weighted objective report.
 SMACOF normalizes targets internally. Returned coordinates are rescaled to
 minimize raw stress against the original input distances. \code{scale_mode}
 controls the optional diagnostic panel only, not the optimization objective.
@@ -135,13 +150,21 @@ older cached preparations if their near-tie distance matrix is asymmetric.
 
 Targets must be finite, symmetric, and nonnegative, with zero diagonal and
 at least one positive distance. Missing and infinite distances are rejected.
-Supplied starts may have coincident points but must not be wholly collapsed.
+Inverse-squared weighting requires strictly positive off-diagonal targets;
+zero distances are rejected, not floored. Uniform weighting still allows zero
+distances. Extreme ratios that overflow or underflow the normalized weights
+are rejected. Supplied starts may have coincident points but must not be wholly collapsed.
 The implementation uses dense all-pairs matrices; edge-only refinement with
 \code{\link[=edge.kk]{edge.kk()}} is preferable when that preparation is too large.
 }
 \section{SGD behavior}{
 
-Every pass visits all unordered pairs in shuffled order. Symmetric clipped
+Every pass visits all unordered pairs in shuffled order. The pair step is
+clipped at \code{min(rate * normalized_pair_weight, 1)}. Rates use RMS-normalized
+distance units for both weighting choices; changing input distance units
+therefore preserves the optimization trajectory up to scale. The default
+schedule is shared across weighting choices, not a reproduction of the
+graph-dependent annealing schedule used in Zheng et al. (2018). Symmetric clipped
 updates follow Zheng et al. (2018); the hybrid exponential/harmonic schedule
 follows Hangan et al. (2026). The terminal epoch is always scored. The best
 independently scored checkpoint, including initialization, is retained using

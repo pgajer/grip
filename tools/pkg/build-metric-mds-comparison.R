@@ -2,7 +2,9 @@
 # Explicit developer benchmark; never executed by a vignette or package install.
 # Usage: Rscript tools/pkg/build-metric-mds-comparison.R <fresh-output-dir> <candidate-library> <install-log>
 args <- commandArgs(TRUE)
-if (length(args) != 3L) stop('Supply a fresh output directory, installed candidate library, and clean-install compilation log.')
+if (!length(args) %in% 3:4) stop('Supply a fresh output directory, installed candidate library, and clean-install compilation log.')
+weighting <- length(args) == 4L
+if (weighting && args[4] != 'weighting') stop('The optional fourth argument must be weighting.')
 build.log <- readLines(args[[3]], warn = FALSE)
 compile.line <- grep('-c metric_mds_sgd.cpp', build.log, value = TRUE, fixed = TRUE)
 if (length(compile.line) != 1L) stop('The log must show one fresh compilation of metric_mds_sgd.cpp; install with --preclean.')
@@ -44,8 +46,16 @@ protocol <- list(sides = c(8L,12L), seeds = 1:5, budgets = c(10L,30L,100L),
   package_versions = vapply(c('grip','smacof','ivue','rgl'), function(p)
     if (requireNamespace(p, quietly = TRUE)) as.character(packageVersion(p)) else NA_character_, ''),
   recorded_utc = format(Sys.time(), tz = 'UTC', usetz = TRUE))
+protocol$pair_weights <- if (weighting) c('uniform','inverse_squared') else 'uniform'
+protocol$experiment <- if (weighting) 'weighting' else 'uniform_baseline'
+if (weighting) {
+  protocol$sides <- 8L; protocol$budgets <- 100L; protocol$campaign_seconds <- 600
+  protocol$cases <- c('saddle_graph-64','paraboloid_graph-64','helix_graph-64')
+}
 saveRDS(protocol, file.path(out, 'protocol.rds'))
 cases <- comparison_cases(protocol$sides)
+if (weighting) cases <- cases[protocol$cases]
+planned <- length(cases)*length(protocol$seeds)*length(protocol$budgets)*length(protocol$pair_weights)*2L
 bundle <- list(protocol = protocol, cases = cases, baseline = list(), fits = list())
 block <- 0L
 for (id in names(cases)) {
@@ -63,33 +73,33 @@ for (id in names(cases)) {
   classical <- classical * sum(v * target) / sum(v^2)
   elapsed <- proc.time()[['elapsed']] - begin
   bundle$baseline[[id]] <- list(coords = classical, score = comparison_score(classical, D), seconds = elapsed)
-  for (seed in protocol$seeds) for (budget in protocol$budgets) {
+  for (seed in protocol$seeds) for (budget in protocol$budgets) for (pair_weights in protocol$pair_weights) {
     block <- block + 1L
     backends <- if (block %% 2L) c('sgd','smacof') else c('smacof','sgd')
     for (backend in backends) {
       worker.begin <- proc.time()[['elapsed']]
       remaining <- protocol$campaign_seconds - (worker.begin - started)
       result <- if (remaining <= 0) simpleError('Campaign allowance exhausted') else tryCatch(
-        callr::r(function(case, prepared, seed, budget, backend, recipe, lib) {
+        callr::r(function(case, prepared, seed, budget, backend, recipe, lib, pair_weights) {
           .libPaths(c(lib, .libPaths()))
           library(grip, lib.loc = lib)
           loadNamespace('smacof')
           source(recipe)
-          comparison_fit(case, prepared, seed, budget, backend)
-        }, args = list(case, prepared, seed, budget, backend, recipe, lib),
+          comparison_fit(case, prepared, seed, budget, backend, pair_weights = pair_weights)
+        }, args = list(case, prepared, seed, budget, backend, recipe, lib, pair_weights),
         libpath = .libPaths(), timeout = min(remaining, protocol$per_fit_timeout_seconds)),
         error = function(e) e)
       if (inherits(result, 'error')) {
         result <- list(coords = NULL, row = data.frame(case = id, seed = seed, budget = budget,
-          backend = backend, status = if (remaining <= 0) 'not_run_campaign_limit' else 'worker_error_or_timeout',
+          backend = backend, pair_weights = pair_weights, uniform_error = NA_real_, relative_error = NA_real_, status = if (remaining <= 0) 'not_run_campaign_limit' else 'worker_error_or_timeout',
           seconds = NA_real_, raw_stress = NA_real_, error = NA_real_, iterations = NA_integer_,
           termination = NA_character_, converged = FALSE, warnings = '', failure = conditionMessage(result)))
       }
       result$row$worker_seconds <- proc.time()[['elapsed']] - worker.begin
-      key <- paste(id, seed, budget, backend, sep = '_')
+      key <- paste(id, seed, budget, backend, pair_weights, sep = '_')
       bundle$fits[[key]] <- result
       saveRDS(bundle, file.path(out, 'progress.rds'), compress = FALSE)
-      if (length(bundle$fits) %% 20L == 0L) { cat('Recorded', length(bundle$fits), '/ 420 fits\n'); flush.console() }
+      if (length(bundle$fits) %% 20L == 0L) { cat('Recorded', length(bundle$fits), '/', planned, 'fits\n'); flush.console() }
     }
   }
 }

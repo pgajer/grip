@@ -166,7 +166,7 @@ test_that("SGD recovers exact Euclidean distances and improves imperfect starts"
   expect_equal(random$metadata$raw_stress,
                sum((as.double(dist(random$coords))-as.double(as.dist(p$distance_matrix)))^2))
   expect_equal(random$metadata$engine, "sgd")
-  expect_equal(random$metadata$backend_version, "grip-sgd-mds-v1")
+  expect_equal(random$metadata$backend_version, "grip-sgd-mds-v2")
 })
 
 test_that("distance units and all supported dimensions are respected", {

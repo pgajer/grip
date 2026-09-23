@@ -25,7 +25,8 @@ const {pathToFileURL} = require('url');
         return el?.rglinstance && el.querySelector('canvas')?.width > 0;
       });
       const expectedViews = await page.locator('.rglWebGL').count();
-      if (expectedViews < 1 || expectedViews > (panels ? 3 : 1)) throw new Error(`Unexpected view count: ${file}`);
+      if (panels && expectedViews === 4) await page.setViewportSize({width:920,height:800});
+      if (expectedViews < 1 || expectedViews > (panels ? 4 : 1)) throw new Error(`Unexpected view count: ${file}`);
       await page.waitForFunction(expected => [...document.querySelectorAll('.rglWebGL')].filter(el => el.rglinstance && el.querySelector('canvas')?.width > 0).length === expected, expectedViews);
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       if (panels) {

@@ -1,4 +1,4 @@
-# Internal controls for the native, uniform-stress backend.
+# Internal controls for the native stress backend.
 grip.mds.sgd.control <- function(control, max_iter) {
   defaults <- list(scheduler = "hybrid", learning_rate = 0.5,
                    final_rate = 0.01, switch_ratio = 0.4,
@@ -56,7 +56,7 @@ grip.mds.sgd.rates <- function(control, max_iter) {
   rates
 }
 
-grip.mds.sgd.fit <- function(start, target, rates, control, native_seed) {
+grip.mds.sgd.fit <- function(start, target, rates, control, native_seed, weights = NULL) {
   grip_sgd_mds_cpp(start, target, rates, native_seed,
-                   control$checkpoint_every, control$max_workspace_bytes, TRUE)
+                   control$checkpoint_every, control$max_workspace_bytes, TRUE, weights)
 }

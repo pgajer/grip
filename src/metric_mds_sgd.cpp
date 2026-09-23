@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace {
-struct Pair { int i, j; double target; };
+struct Pair { int i, j; double target, weight; };
 struct Score { double raw, profiled; };
 
 std::size_t checked_product(std::size_t a, std::size_t b) {
@@ -44,9 +44,9 @@ Score score(const Rcpp::NumericMatrix& x, const std::vector<Pair>& pairs) {
         const Pair& p = pairs[k];
         const long double r = separation(x, p.i, p.j);
         const long double error = r - p.target;
-        raw += error * error;
-        cross += r * p.target;
-        squares += r * r;
+        raw += p.weight * error * error;
+        cross += p.weight * r * p.target;
+        squares += p.weight * r * r;
     }
     if (!(squares > 0)) Rcpp::stop("Collapsed SGD checkpoint");
     const long double scale = cross / squares;
@@ -56,7 +56,7 @@ Score score(const Rcpp::NumericMatrix& x, const std::vector<Pair>& pairs) {
         if ((k & 16383) == 0) Rcpp::checkUserInterrupt();
         const Pair& p = pairs[k];
         const long double error = scale * separation(x, p.i, p.j) - p.target;
-        profiled += error * error;
+        profiled += p.weight * error * error;
     }
     const Score result{static_cast<double>(raw), static_cast<double>(profiled)};
     if (!std::isfinite(result.raw) || !std::isfinite(result.profiled))
@@ -71,7 +71,8 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
                           Rcpp::NumericVector targets,
                           Rcpp::NumericVector rates, int seed,
                           int checkpoint_every, double max_workspace_bytes,
-                          bool shuffle = true) {
+                          bool shuffle = true,
+                          Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
     const int n = start.nrow(), dim = start.ncol();
     if (n < 2 || dim < 1 || checkpoint_every < 1 || rates.size() < 1 || seed < 0 ||
         !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
@@ -80,6 +81,10 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
     const std::size_t count = checked_product(static_cast<std::size_t>(n), n - 1) / 2;
     if (static_cast<std::uint64_t>(targets.size()) != count)
         Rcpp::stop("SGD target count does not match the configuration");
+    const bool weighted = weights.isNotNull();
+    const Rcpp::NumericVector pair_weights = weighted ? Rcpp::NumericVector(weights) : Rcpp::NumericVector();
+    if (weighted && static_cast<std::uint64_t>(pair_weights.size()) != count)
+        Rcpp::stop("SGD weight count does not match the configuration");
     const int epochs = static_cast<int>(rates.size());
     const std::size_t checkpoints = 1 + static_cast<std::size_t>(epochs / checkpoint_every) +
         (epochs % checkpoint_every != 0);
@@ -102,7 +107,9 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
             if ((k & 16383) == 0) Rcpp::checkUserInterrupt();
             const double target = targets[k];
             if (!std::isfinite(target) || target < 0) Rcpp::stop("Invalid SGD target distance");
-            pairs.push_back(Pair{i, j, target});
+            const double weight = weighted ? pair_weights[k] : 1.0;
+            if (!std::isfinite(weight) || weight <= 0) Rcpp::stop("SGD pair weights must be finite and positive");
+            pairs.push_back(Pair{i, j, target, weight});
         }
     }
     Rcpp::NumericMatrix x = Rcpp::clone(start), best = Rcpp::clone(start);
@@ -128,10 +135,11 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
                 std::swap(order[remaining - 1], order[bounded(rng, remaining)]);
             }
         }
-        const double mu = std::min(rates[epoch], 1.0);
         for (std::size_t pos = 0; pos < count; ++pos) {
             if ((pos & 16383) == 0) Rcpp::checkUserInterrupt();
             const Pair& p = pairs[order[pos]];
+            // Test before multiplying so a very large positive product cannot overflow.
+            const double mu = rates[epoch] >= 1.0 / p.weight ? 1.0 : rates[epoch] * p.weight;
             const double distance = separation(x, p.i, p.j);
             if (distance == 0 && p.target == 0) continue;
             if (distance == 0) {

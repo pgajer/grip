@@ -204,13 +204,15 @@ matrix by a low-rank Euclidean representation, usually called minimizing
 Non-Euclidean graph distances can yield negative eigenvalues; `add` and `eig`
 are controls of this classical method.
 
-`metric.mds()` minimizes unweighted raw distance stress,
+By default, `metric.mds()` minimizes uniformly weighted raw distance stress,
 \(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through native stochastic gradient descent (SGD) by default,
 with `backend = "sgd"`, or optional **smacof** selected with
 `backend = "smacof"`. The SGD pair updates follow Zheng, Pawar and Goodman
 (2018); the default hybrid learning-rate schedule follows Hangan, Kobourov and
 Miller (2026). Both papers are listed in the [SGD references](#sgd-references).
-Edge lengths determine the shortest-path targets, not pairwise stiffnesses.
+Use `pair_weights = "inverse_squared"` with either backend to minimize the
+paper's sum of squared relative distance errors. Edge lengths determine the
+shortest-path targets; `pair_weights` determines their influence in stress.
 Returned coordinates are rescaled to the input distance units. Multiple starts
 can help with local optima; iteration limits do not certify convergence or a
 global optimum. `init` accepts `"classical"`, `"random"`, or a coordinate

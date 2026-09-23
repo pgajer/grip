@@ -1,5 +1,13 @@
 # grip 0.2.0.9001 (development version)
 
+- Added `metric.mds(pair_weights = "inverse_squared")` for both SGD and SMACOF,
+  using the Zheng et al. (2018) graph-drawing stress weights. Uniform weighting
+  remains the default. Fitting, start selection, scaling, and reported stress
+  consistently use the selected weights; inverse-squared weighting requires
+  positive off-diagonal distances.
+- Expanded the SGD–SMACOF vignette with a separate matched comparison of both
+  weightings on three 3D graph examples, reporting both error measures and timing.
+
 - Static plot controls now override defaults consistently, including labels,
   limits, aspect ratio, and orthographic vertex symbols/sizes.
 - Added `layout.coords()` for unchanged coordinate extraction and

@@ -2,13 +2,13 @@
 
 ## Scope and compatibility
 
-`metric.mds(backend = "sgd")` minimizes the existing uniform all-pairs raw
-distance stress. `backend = "sgd"` is the default; explicitly select
-`backend = "smacof"` to reproduce a previous SMACOF analysis. Both new arguments,
-`backend` and `sgd_control`, are appended to the public signature. Inputs,
+`metric.mds(backend = "sgd")` minimizes all-pairs raw distance stress, with uniform weighting by default
+or `pair_weights = "inverse_squared"` for the Zheng et al. graph objective. `backend = "sgd"` is the default; explicitly select
+`backend = "smacof"` to reproduce a previous SMACOF analysis. The arguments
+`backend`, `sgd_control`, and `pair_weights` are appended to the public signature. Inputs,
 distance normalization, initialization, output units, diagnostic definitions,
 and multiple-start selection retain the existing contract. There is no Python
-runtime dependency, automatic fallback, weighted objective, sparse surrogate,
+runtime dependency, automatic fallback, custom weight matrix, sparse surrogate,
 or lazy graph-distance calculation. Refinement methods retain their default
 classical initializer; explicitly
 selecting `init = "metric_mds"` now follows SGD. Supply coordinates explicitly
@@ -33,12 +33,22 @@ to preserve a SMACOF initializer.
 The new C++ implementation adapts the pair update and the exponential/hybrid
 schedules. It does not vendor the Python estimator, upstream PRNG, graph-distance
 code, or sparse methods. MIT and BSD notices are retained in `inst/COPYRIGHTS`.
-Algorithm identity: `grip-sgd-mds-v1`. Matching upstream random seeds does not
+Algorithm identity: `grip-sgd-mds-v2` (adds pair weights; v1 was uniform only). Matching upstream random seeds does not
 imply identical trajectories.
 
 ## Exact optimization rules
 
 Distances are divided by their root mean square as in the SMACOF wrapper.
+Uniform mode uses w=1. Inverse-squared mode uses
+`w = 1/(distance / input_rms_distance)^2`; thus the schedules remain independent
+of input distance units. Public raw stress is dimensionless in inverse-squared
+mode, and has squared input-distance units in uniform mode. Scoring, optimal
+coordinate scaling, checkpoint selection, and multiple-start selection all use
+the same weights. SMACOF receives the corresponding symmetric weight matrix.
+Zero off-diagonal targets are rejected for inverse-squared weighting; there is
+no distance floor. Normalized weights must be finite and strictly positive.
+This adds the paper's weighting without adopting its graph-dependent schedule.
+
 Pairs are enumerated `(0,1), (0,2), ..., (n-2,n-1)`, which matches R's condensed
 `dist` order. Every epoch resets that order and applies descending Fisher-Yates
 shuffling with an unbiased rejection-sampled integer from `std::mt19937_64`.
@@ -47,7 +57,7 @@ With a supplied public seed, the R RNG state is restored on return, including
 errors. Native shuffling consumes no further R random numbers.
 
 For a pair with separation vector `v = z_i-z_j`, distance `r`, and target `d`,
-set `mu = min(eta, 1)` and update both endpoints symmetrically by
+set `mu = min(eta * w, 1)` and update both endpoints symmetrically by
 `mu * (r-d) / 2 * (v/r)`. Compute the unit vector before multiplying to avoid
 overflow in `(r-d)/r`. A coincident pair with positive target uses a seeded
 unit vector obtained by normalizing independent uniform coordinates in [-1,1).
@@ -81,7 +91,7 @@ SGD performs its prescribed schedule and reports `iteration_limit`, never a
 convergence certificate. No automatic plateau criterion is implemented.
 
 At epoch zero, each checkpoint, and the terminal epoch, independently recompute
-raw and optimally scale-profiled stress by summing all pair residuals. This
+raw and optimally scale-profiled stress by summing weighted squared pair residuals. This
 does not rescale the ongoing search. Retain the configuration with smallest
 profiled stress; exact ties retain the earlier configuration. The R wrapper
 independently profiles/scales and scores the selected configuration again.

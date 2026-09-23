@@ -51,11 +51,17 @@ SMACOF combines information from all pairs before updating the entire
 configuration at once. Each update is designed to reduce total stress;
 an individual SGD adjustment need not reduce total stress, even though it
 improves the distance for the pair being adjusted.
-Both minimize the same uniformly weighted raw distance stress:
+With the default `pair_weights = "uniform"`, both minimize the same raw distance stress:
 
 \[
 S(Z) = \sum_{i<j} \bigl(\lVert z_i-z_j\rVert-d_{ij}\bigr)^2.
 \]
+
+Both also support `pair_weights = "inverse_squared"`, the graph-drawing
+weighting used by [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+The [weighting comparison](#the-effect-of-stress-weighting) below shows how
+this changes the fitted layouts. The original 420-fit comparison uses uniform
+weighting throughout.
 
 This is a comparison of these implementations and settings on small synthetic
 examples. For a more extensive comparison of SGD and SMACOF across 18 benchmark
@@ -307,6 +313,106 @@ for (kind in kinds) {
 }
 ```
 
+## The effect of stress weighting
+
+Uniform stress measures squared errors in distance units. The paper's weighting
+instead minimizes squared **relative** errors:
+
+\[
+S_{\mathrm{relative}}(Z)
+= \sum_{i<j}\frac{(\lVert z_i-z_j\rVert-d_{ij})^2}{d_{ij}^2}.
+\]
+
+For example, an error of 0.2 on a target distance of 1 counts as much as an error
+of 2 on a target distance of 10. Thus shorter distances receive more influence
+than under uniform weighting. This changes the objective for both optimizers;
+it is separate from the edge lengths used to compute graph shortest paths.
+
+Select the same weighting for either backend:
+
+```{r weighted-api, eval=FALSE}
+sgd <- metric.mds(prepared = prepared, dim = 3, init = start,
+                 backend = "sgd", pair_weights = "inverse_squared",
+                 max_iter = 100, diagnostics = FALSE)
+smacof <- metric.mds(prepared = prepared, dim = 3, init = start,
+                    backend = "smacof", pair_weights = "inverse_squared",
+                    max_iter = 100, eps = 1e-8, diagnostics = FALSE)
+```
+
+Set `pair_weights = "uniform"` to use the original objective. Inverse-squared
+weighting requires positive distances between distinct vertices; zero distances
+are rejected rather than replaced by a small constant. The learning-rate
+schedule stays the same as above, in RMS-normalized distance units. These fits
+use the paper's weighting, with grip's documented schedule and initialization.
+
+This **separate 60-fit experiment** compares the saddle, paraboloid, and spatial
+helix graphs with 64 vertices each. Each backend and weighting receives the same
+five random starting shapes, seeds 1–5, with one start per fit and an allowance
+of 100 passes or iterations. The wrapper fits the initial and final coordinate
+scale to the selected objective. The allowance, SGD controls, and SMACOF
+tolerance match the original comparison. Each worker has 30 seconds; the whole
+experiment has 600 seconds. Failed fits remain in the results.
+
+Every returned layout is scored under **both** definitions: uniform normalized
+error and root-mean-square relative error. Compare rows within the same error
+column. The two columns measure different goals; their magnitudes do not select
+a universally better weighting. Reported scores use the returned coordinates
+without fitting another scale for the other objective.
+
+```{r weighting-results, include=FALSE}
+weighting.bundle <- readRDS(system.file('extdata','metric-mds-weighting',
+                                      'benchmark.rds',package='grip'))
+weighting.rows <- comparison_rows(weighting.bundle)
+weighting.summary <- comparison_summary(weighting.bundle)
+weighting.pairs <- merge(
+  weighting.summary[weighting.summary$pair_weights=='uniform',c('case','backend','uniform_error','relative_error')],
+  weighting.summary[weighting.summary$pair_weights=='inverse_squared',c('case','backend','uniform_error','relative_error')],
+  by=c('case','backend'),suffixes=c('.uniform','.inverse'))
+```
+
+The run returned coordinates for **`r sum(weighting.rows$status == 'ok')` of
+`r nrow(weighting.rows)` fits**. As above, a returned fit does not imply
+convergence. Tables give medians across all five starts and then the scores of
+the exact displayed runs. The figures use the preselected seed 1. All four
+layouts and the gray generating reference share the same camera and scale;
+Procrustes alignment uses corresponding vertices without resizing.
+
+In this run, inverse-squared weighting lowered median relative error in
+**`r sum(weighting.pairs$relative_error.inverse < weighting.pairs$relative_error.uniform)`
+of `r nrow(weighting.pairs)` graph–backend comparisons**, while increasing median
+uniform error in **`r sum(weighting.pairs$uniform_error.inverse > weighting.pairs$uniform_error.uniform)`**.
+The figures show how that change in priorities alters each layout.
+
+```{r weighting-figures, results='asis', echo=FALSE}
+for (id in names(weighting.bundle$cases)) {
+  case <- weighting.bundle$cases[[id]]
+  fits <- comparison_weighting_fits(weighting.bundle,id)
+  cat('\n\n### ',case$label,': uniform versus inverse-squared weights\n\n',sep='')
+  med <- weighting.summary[weighting.summary$case==id,]
+  med$backend <- toupper(med$backend)
+  med$pair_weights <- ifelse(med$pair_weights=='uniform','Uniform','Inverse-squared')
+  cat('Medians across five starting shapes:\n\n')
+  cat(knitr::kable(med[,c('backend','pair_weights','successful','attempted',
+                         'uniform_error','relative_error','seconds')],
+    row.names=FALSE,digits=4,col.names=c('Backend','Weighting','Returned','Attempted',
+      'Uniform error','Relative error','Fit seconds')),sep='\n')
+  shown <- do.call(rbind,lapply(fits,`[[`,'row'))
+  shown$backend <- toupper(shown$backend)
+  shown$pair_weights <- ifelse(shown$pair_weights=='uniform','Uniform','Inverse-squared')
+  cat('\n\nDisplayed runs (seed 1):\n\n')
+  cat(knitr::kable(shown[,c('backend','pair_weights','uniform_error','relative_error',
+                          'seconds','termination','status')], row.names=FALSE,digits=4,
+    col.names=c('Backend','Weighting','Uniform error','Relative error','Fit seconds','Termination','Status')),sep='\n')
+  child <- c(
+    sprintf('```{r weighting-panels-%s, echo=FALSE, fig.cap="Each panel shows one fitted layout against the gray generating reference. The interactive view below combines all four layouts; its legend identifies each backend and weighting."}',id),
+    sprintf('knitr::include_graphics(system.file("extdata","metric-mds-weighting","%s-panels.png",package="grip"))',id),'```',
+    sprintf('```{r weighting-overlay-%s, echo=FALSE}',id),
+    'if (have.ivue) { comparison_view(case,fits,weighting=TRUE) } else {',
+    sprintf('knitr::include_graphics(system.file("extdata","metric-mds-weighting","%s.png",package="grip"))',id),'}','```')
+  cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
+}
+```
+
 ## Reproduce the experiment
 
 Building this vignette runs the small example and displays saved results for
@@ -317,6 +423,13 @@ and **smacof**, then run these commands in the grip source folder:
 mkdir -p ../comparison-library
 R CMD INSTALL --preclean --library=../comparison-library . > ../comparison-install.log 2>&1
 Rscript tools/pkg/build-metric-mds-comparison.R ../fresh-results ../comparison-library ../comparison-install.log
+```
+
+To repeat the separate weighting comparison, add `weighting` as the final
+argument and choose another results folder:
+
+```sh
+Rscript tools/pkg/build-metric-mds-comparison.R ../fresh-weighting-results ../comparison-library ../comparison-install.log weighting
 ```
 
 The script saves the timings, fitted coordinates, and any errors in

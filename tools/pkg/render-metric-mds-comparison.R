@@ -9,6 +9,14 @@ dir.create(args[[2]], recursive = TRUE, showWarnings = FALSE)
 out <- normalizePath(args[[2]])
 for (case in bundle$cases) {
   if (case$dimension == 2L) next
+  if (identical(bundle$protocol$experiment, 'weighting')) {
+    fits <- comparison_weighting_fits(bundle, case$id)
+    htmlwidgets::saveWidget(comparison_view(case, fits, weighting=TRUE),
+      file.path(out,paste0(case$id,'.html')), selfcontained=TRUE)
+    htmltools::save_html(comparison_weighting_panels(case,fits),
+      file.path(out,paste0(case$id,'-panels.html')), libdir='panel-libs')
+    next
+  }
   fits <- comparison_representative(bundle, case$id)
   w <- comparison_view(case, fits)
   w$elementId <- paste0('comparison-', case$id)

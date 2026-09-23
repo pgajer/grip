@@ -47,3 +47,24 @@ test_that('comparison failures and warnings remain explicit and do not stop late
   expect_match(ok$row$warnings, 'iteration_limit')
   expect_equal(recipe$comparison_score(ok$coords, p$distance_matrix)[['raw_stress']], ok$row$raw_stress)
 })
+
+test_that('weighting comparisons score both goals and select the requested objective', {
+  skip_if_not_installed('withr'); skip_if_not_installed('smacof')
+  case <- recipe$comparison_cases(3L)[['saddle_graph-9']]
+  p <- prepare.graph.geodesic.mds(case$edges,n=case$n,edge_weights=case$weights)
+  fits <- list()
+  for (weight in c('uniform','inverse_squared')) for (backend in c('sgd','smacof')) {
+    fit <- recipe$comparison_fit(case,p,1L,10L,backend,pair_weights=weight)
+    target <- as.vector(as.dist(p$distance_matrix)); drawn <- as.vector(dist(fit$coords))
+    expect_identical(fit$row$status,'ok')
+    expect_equal(fit$row$uniform_error,sqrt(sum((drawn-target)^2)/sum(target^2)))
+    expect_equal(fit$row$relative_error,sqrt(mean(((drawn-target)/target)^2)))
+    fits[[paste(backend,weight)]] <- fit
+  }
+  bundle <- list(fits=fits)
+  selected <- recipe$comparison_representative(bundle,case$id,budget=10L,pair_weights='inverse_squared')
+  expect_true(all(vapply(selected,function(f) f$row$pair_weights=='inverse_squared',logical(1))))
+  summary <- recipe$comparison_summary(bundle)
+  expect_equal(nrow(summary),4L)
+  expect_true(all(summary$attempted==1L))
+})

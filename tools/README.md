@@ -29,6 +29,14 @@ Rscript tools/pkg/render-metric-mds-comparison.R <fresh-output-dir>/benchmark.rd
 node tools/pkg/capture-metric-mds-comparison.cjs <render-dir> <image-dir>
 ```
 
+For the separate 60-fit weighting comparison on the 64-vertex saddle,
+paraboloid, and helix graphs, add `weighting` as the runner's fourth argument.
+Both backends fit both objectives from five paired starts; every result is
+scored under both objectives. The same renderer detects that bundle and writes
+four-panel comparisons plus 3D overlays. Reviewed weighting artifacts belong
+in `inst/extdata/metric-mds-weighting/`; the original uniform experiment stays
+in `inst/extdata/metric-mds-comparison/`.
+
 The explicit benchmark needs `callr`, `smacof` and the candidate package; the
 renderer needs `ivue`, `rgl`, `htmlwidgets` and Pandoc; image capture needs
 Playwright and Chromium. The script preserves each attempt and records failures.

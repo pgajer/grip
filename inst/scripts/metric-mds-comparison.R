@@ -49,10 +49,17 @@ comparison_cases <- function(sides = c(8L, 12L)) {
   cases
 }
 
-comparison_score <- function(coords, distances) {
-  residual <- as.double(stats::dist(coords)) - as.double(stats::as.dist(distances))
+comparison_score <- function(coords, distances, pair_weights = 'uniform') {
+  target <- as.double(stats::as.dist(distances))
+  residual <- as.double(stats::dist(coords)) - target
+  if (pair_weights == 'inverse_squared') {
+    if (any(target <= 0)) stop('Inverse-squared scoring needs positive distances.')
+    raw <- sum((residual / target)^2)
+    return(c(raw_stress = raw, error = sqrt(raw / length(target))))
+  }
+  stopifnot(pair_weights == 'uniform')
   raw <- sum(residual^2)
-  c(raw_stress = raw, error = sqrt(raw / sum(stats::as.dist(distances)^2)))
+  c(raw_stress = raw, error = sqrt(raw / sum(target^2)))
 }
 
 comparison_align <- function(coords, reference) {
@@ -70,11 +77,11 @@ comparison_start <- function(case, seed) {
 }
 
 comparison_fit <- function(case, prepared, seed, budget, backend,
-                           fit_fun = grip::metric.mds) {
+                           fit_fun = grip::metric.mds, pair_weights = 'uniform') {
   warnings <- character()
   args <- list(prepared = prepared, dim = case$dimension,
                init = comparison_start(case, seed), n_init = 1L, seed = seed,
-               max_iter = budget, backend = backend, diagnostics = FALSE)
+               max_iter = budget, backend = backend, pair_weights = pair_weights, diagnostics = FALSE)
   if (backend == 'smacof') args$eps <- 1e-8
   if (backend == 'sgd') args$sgd_control <- list(scheduler = 'hybrid', learning_rate = .5,
     final_rate = .01, switch_ratio = .4, checkpoint_every = 1L, max_workspace_bytes = 256 * 1024^2)
@@ -84,6 +91,7 @@ comparison_fit <- function(case, prepared, seed, budget, backend,
   }), error = function(e) e)
   seconds <- proc.time()[['elapsed']] - started
   row <- data.frame(case = case$id, seed = seed, budget = budget, backend = backend,
+    pair_weights = pair_weights, uniform_error = NA_real_, relative_error = NA_real_,
     status = 'error', seconds = seconds, raw_stress = NA_real_, error = NA_real_,
     iterations = NA_integer_, termination = NA_character_, converged = FALSE,
     warnings = paste(warnings, collapse = ' | '), failure = '', stringsAsFactors = FALSE)
@@ -91,36 +99,48 @@ comparison_fit <- function(case, prepared, seed, budget, backend,
     row$failure <- conditionMessage(fit)
     return(list(row = row, coords = NULL))
   }
-  score <- comparison_score(fit$coords, prepared$distance_matrix)
+  score <- comparison_score(fit$coords, prepared$distance_matrix, pair_weights)
   stopifnot(isTRUE(all.equal(unname(score[['raw_stress']]), fit$metadata$raw_stress,
                             tolerance = 1e-8)), all(is.finite(fit$coords)))
+  row$uniform_error <- comparison_score(fit$coords, prepared$distance_matrix)[['error']]
+  row$relative_error <- if (all(prepared$distance_matrix[lower.tri(prepared$distance_matrix)] > 0))
+    comparison_score(fit$coords, prepared$distance_matrix, 'inverse_squared')[['error']] else NA_real_
   row$status <- 'ok'; row$raw_stress <- score[['raw_stress']]; row$error <- score[['error']]
   row$iterations <- fit$metadata$starts$iterations[[1]]
   row$termination <- fit$metadata$termination; row$converged <- fit$metadata$converged
-  list(row = row, coords = fit$coords)
+  list(row = row, coords = fit$coords, metadata = fit$metadata)
 }
 
-comparison_rows <- function(bundle) do.call(rbind, lapply(bundle$fits, `[[`, 'row'))
+comparison_rows <- function(bundle) {
+  do.call(rbind, lapply(bundle$fits, function(fit) {
+    row <- fit$row
+    if (is.null(row$pair_weights)) row$pair_weights <- 'uniform'
+    row
+  }))
+}
 
 comparison_summary <- function(bundle) {
   rows <- comparison_rows(bundle)
-  keys <- unique(rows[, c('case','budget','backend')])
+  keys <- unique(rows[, c('case','budget','backend','pair_weights')])
   do.call(rbind, lapply(seq_len(nrow(keys)), function(i) {
     key <- keys[i, ]
-    z <- rows[rows$case == key$case & rows$budget == key$budget & rows$backend == key$backend, ]
+    z <- rows[rows$case == key$case & rows$budget == key$budget & rows$backend == key$backend & rows$pair_weights == key$pair_weights, ]
     ok <- z$status == 'ok'
     q <- function(x, p) if (any(ok)) unname(stats::quantile(x[ok], p)) else NA_real_
     data.frame(key, successful = sum(ok), attempted = nrow(z),
       error = q(z$error, .5), error_q25 = q(z$error, .25), error_q75 = q(z$error, .75),
+      uniform_error = if ('uniform_error' %in% names(z)) q(z$uniform_error, .5) else NA_real_,
+      relative_error = if ('relative_error' %in% names(z)) q(z$relative_error, .5) else NA_real_,
       seconds = q(z$seconds, .5), seconds_q25 = q(z$seconds, .25), seconds_q75 = q(z$seconds, .75))
   }))
 }
 
-comparison_representative <- function(bundle, id, seed = 1L, budget = 100L) {
+comparison_representative <- function(bundle, id, seed = 1L, budget = 100L, pair_weights = 'uniform') {
   result <- lapply(c('sgd', 'smacof'), function(backend) {
     # Exact fixed settings, without selecting a winner or replacing a failed run.
     matches <- which(vapply(bundle$fits, function(f) f$row$case == id &&
-      f$row$seed == seed && f$row$budget == budget && f$row$backend == backend, logical(1)))
+      f$row$seed == seed && f$row$budget == budget && f$row$backend == backend &&
+      (if (is.null(f$row$pair_weights)) 'uniform' else f$row$pair_weights) == pair_weights, logical(1)))
     stopifnot(length(matches) == 1L)
     bundle$fits[[matches]]
   })
@@ -129,17 +149,24 @@ comparison_representative <- function(bundle, id, seed = 1L, budget = 100L) {
 
 comparison_view <- function(case, fits, width = 900L, height = 460L,
                             show = c('overlay', 'reference', 'sgd', 'smacof'),
-                            legend = TRUE, controls = TRUE) {
+                            legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
   coordinates <- list(Reference = case$X)
-  for (backend in c('sgd','smacof')) if (!is.null(fits[[backend]]$coords)) {
-    coordinates[[toupper(backend)]] <- comparison_align(fits[[backend]]$coords, case$X)
+  labels <- if (weighting) c(sgd_uniform = 'SGD: uniform',
+    sgd_inverse_squared = 'SGD: inverse-squared', smacof_uniform = 'SMACOF: uniform',
+    smacof_inverse_squared = 'SMACOF: inverse-squared') else c(sgd = 'SGD', smacof = 'SMACOF')
+  for (backend in names(labels)) if (!is.null(fits[[backend]]$coords)) {
+    coordinates[[labels[[backend]]]] <- comparison_align(fits[[backend]]$coords, case$X)
   }
-  palette <- c(Reference = '#888888', SGD = '#1769AA', SMACOF = '#D66A19')
+  palette <- if (weighting) c(Reference = '#888888', 'SGD: uniform' = '#1769AA',
+    'SGD: inverse-squared' = '#009E73', 'SMACOF: uniform' = '#D66A19',
+    'SMACOF: inverse-squared' = '#AA3377') else
+      c(Reference = '#888888', SGD = '#1769AA', SMACOF = '#D66A19')
   bounds <- t(apply(do.call(rbind, coordinates), 2L, range))
   padding <- pmax(bounds[,2] - bounds[,1], 1e-8) * .04
   bounds <- bounds + cbind(-padding, padding)
+  if (!is.null(limits)) bounds <- limits
   if (show != 'overlay') coordinates <- coordinates[intersect(names(coordinates),
     if (show == 'reference') 'Reference' else toupper(show))]
   if (!length(coordinates)) stop('This fit is unavailable; inspect its recorded failure.')
@@ -165,7 +192,9 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             zoom = .85),
     limits = bounds, legend.show = legend, controls = controls,
     layers = layers, width = width, height = height, legend.width = 150,
-    description = if (controls) paste(case$label, case$n, 'points;', case$target,
+    description = if (controls && weighting) paste(case$label, case$n,
+      'vertices. Gray: reference; blue/green: SGD with uniform/inverse-squared weights;',
+      'orange/purple: SMACOF with uniform/inverse-squared weights. Alignment preserves scale.') else if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
   widget$sizingPolicy$browser$fill <- FALSE
   htmlwidgets::onRender(widget, "function(el) {
@@ -241,4 +270,31 @@ comparison_tradeoff <- function(bundle, ids) {
     }
     graphics::legend('topright', c('SGD','SMACOF'), col = c('#1769AA','#D66A19'), pch = c(16,17), bty = 'n', cex = .8)
   }
+}
+
+
+comparison_weighting_fits <- function(bundle, id, seed = 1L) {
+  fits <- list()
+  for (weight in c('uniform','inverse_squared')) {
+    pair <- comparison_representative(bundle, id, seed = seed, pair_weights = weight)
+    for (backend in names(pair)) fits[[paste(backend,weight,sep='_')]] <- pair[[backend]]
+  }
+  fits[c('sgd_uniform','sgd_inverse_squared','smacof_uniform','smacof_inverse_squared')]
+}
+
+comparison_weighting_panels <- function(case, fits) {
+  overlay <- comparison_view(case, fits, weighting = TRUE, controls = FALSE)
+  limits <- attr(overlay,'ivue')$limits
+  panels <- lapply(names(fits), function(key) {
+    fit <- fits[[key]]; backend <- strsplit(key,'_',fixed=TRUE)[[1]][1]
+    label <- paste(toupper(backend), if (fit$row$pair_weights=='uniform') 'uniform' else 'inverse-squared')
+    htmltools::tags$section(htmltools::tags$h3(label),
+      htmltools::tags$p(sprintf('Uniform error %.3g; relative error %.3g', fit$row$uniform_error, fit$row$relative_error)),
+      if (is.null(fit$coords)) htmltools::tags$p('Fit unavailable') else
+        comparison_view(case, stats::setNames(list(fit),key), weighting=TRUE,
+          width=450L, height=320L, legend=FALSE, controls=FALSE, limits=limits))
+  })
+  htmltools::tagList(htmltools::tags$style(htmltools::HTML(
+    'body {margin:8px;font:15px system-ui;width:900px;} .panels {display:grid;grid-template-columns:450px 450px;} h3,p {text-align:center;margin:4px;} section {width:450px;} .panels .ivue-description {display:none;}')),
+    htmltools::tags$div(class='panels',panels))
 }
