@@ -88,7 +88,8 @@ plot.layout <- function(x,
   if (d == 2) {
     do.call(
       graphics::plot,
-      merge.args(list(x = coords[, 1], y = coords[, 2], asp = 1, col = vertex.col), dots)
+      merge.args(list(x = coords[, 1], y = coords[, 2], asp = 1, col = vertex.col,
+                      xlab = "", ylab = ""), dots)
     )
     if (!is.null(edges) && nrow(edges) > 0) {
       apply(edges, 1, function(e) {

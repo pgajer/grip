@@ -269,7 +269,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
 # changes only object visibility, leaving alignment, scale and camera intact.
 comparison_layout_selector <- function(widget, object.ids) {
   choices <- setdiff(names(object.ids), 'Reference')
-  preferred <- intersect(c('SGD', 'SGD: uniform', 'Full SGD'), choices)
+  preferred <- intersect(c('metric-MDS', 'SGD', 'SGD: uniform', 'Full SGD'), choices)
   initial <- if (length(preferred)) preferred[[1L]] else
     if (length(choices)) choices[[1L]] else 'all'
   htmlwidgets::onRender(widget, "function(el, x, data) {

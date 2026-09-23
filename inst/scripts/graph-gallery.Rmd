@@ -1,0 +1,54 @@
+```{r gallery, echo=FALSE, results='asis'}
+descriptions <- c(
+  tree = 'A binary tree with shorter edges at greater depth and different lengths for sibling branches. It has no generating coordinates.',
+  carpet = 'A recursively perforated grid lifted onto a saddle. Its holes create detours in graph paths.',
+  saddle = 'A grid lifted to a saddle, with horizontal, vertical, and diagonal edges. Traversal lengths are measured between neighboring surface points. Both layouts are Procrustes-aligned to the gray generating surface. The remaining difference in shape cannot be removed by rotating, reflecting, or translating the layouts while keeping corresponding vertices matched.',
+  paraboloid = 'A grid lifted to a bowl-shaped surface, with horizontal, vertical, and diagonal edges. The diagonals distinguish its graph distances from those of the saddle.',
+  torus = 'A grid wrapped around a torus. Connections continue around both circular directions.',
+  porous = 'A twisted cubical channel network with interior vertices and several routes through the volume.',
+  karate = 'The karate-club social graph already supplied by grip, drawn here with unit edge lengths.',
+  dwt_66 = 'A small structural graph from the Harwell–Boeing collection. Its elongated structure makes bends and twists easy to inspect.',
+  lesmis = 'Characters in Les Miserables are connected when they appear in the same chapter. Character names are retained in vertex_data.',
+  dwt_307 = 'A structural graph included among the paper’s examples. It provides a useful contrast to the other meshes.',
+  '494_bus' = 'The connectivity of a 494-bus power-system matrix. Electrical values are preserved in the source file but are not layout distances.',
+  dwt_1005 = 'A larger structural mesh with 1,005 vertices. Rotate the view to inspect its folds and connections.',
+  '1138_bus' = 'The connectivity of a 1,138-bus power-system matrix, showing branching at a larger scale.')
+recipes <- c(
+  tree = "g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85, branch.spread = .2, normalize = 'none')",
+  carpet = "g <- recursive.mask.grid.surface.graph(mask.border(3), level = 2, surface = 'saddle', amplitude = .5, normalize = 'none')",
+  saddle = "g <- mesh.surface.graph(10, 10, surface = 'saddle', connectivity = 'diagonal', normalize = 'none')",
+  paraboloid = "g <- mesh.surface.graph(10, 10, surface = 'paraboloid', connectivity = 'diagonal', normalize = 'none')",
+  torus = "g <- torus.surface.graph(12, 8, normalize = 'none')",
+  porous = "g <- cube.channel.network.surface.graph(side = 5, level = 1, surface = 'twisted', twist = .2, normalize = 'none')",
+  karate = "E <- as.matrix(read.csv(system.file('extdata', 'karate-club-edges.csv', package = 'grip')))\ng <- list(n = 34L, edges = E, edge_weights = rep(1, nrow(E)))")
+for (group in c('Graphs from applications', 'Generated graphs')) {
+  cat('\n\n## ', group, '\n\n', sep = '')
+  for (id in gallery.ids) {
+    graph <- bundle$cases[[id]]
+    if (graph$group != group) next
+    fits <- bundle$fits[[id]]
+    cat('\n\n### ', graph$label, ' {#graph-',id,'}\n\n', descriptions[[id]], '\n\n', sep = '')
+    cat(sprintf('**%s vertices; %s edges. %s.**\n\n', graph$n, nrow(graph$edges), graph$lengths))
+    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- zheng.graphs[['%s']]", id)
+    cat('```r\n', recipe, '\n```\n\n', sep = '')
+    if (!is.null(graph$graph_info$source_url)) cat('[Source and metadata](', graph$graph_info$source_url, ').\n\n', sep = '')
+    if (!is.null(fits$error)) { cat('Layout unavailable: ', fits$error, '\n\n', sep = ''); next }
+    tab <- do.call(rbind, lapply(c('mds','refined'), function(method) {
+      f <- fits[[method]]
+      data.frame(Method = if (method == 'mds') 'Metric MDS' else 'MDS + edge-KK',
+        Graph_error = if (is.null(f$scores)) NA_real_ else f$scores[['graph_error']],
+        Edge_error = if (is.null(f$scores)) NA_real_ else f$scores[['edge_error']],
+        Stage_seconds = if (is.null(f$seconds)) NA_real_ else f$seconds)
+    }))
+    cat(knitr::kable(tab, digits = 4, row.names = FALSE,
+      col.names = c('Layout', 'Graph-distance error', 'Edge-length error', 'Stage seconds')), sep = '\n')
+    if (!is.null(fits$refined$error)) cat('\nRefinement unavailable: ', fits$refined$error, '\n', sep = '')
+    child <- c(
+      sprintf('```{r overlay-%s, echo=FALSE}', id),
+      'if (have.ivue) { graph_example_view(graph, fits) } else {',
+      'documentation.view(list("metric-MDS"=fits$mds$coords),graph$edges,reference=graph$coords_surface)',
+      '}', '```')
+    cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+  }
+}
+```

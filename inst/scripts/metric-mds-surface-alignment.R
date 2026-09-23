@@ -128,3 +128,33 @@ comparison.surface.audit <- function(coords, reference, triangles, registered,
       surface.alignment = score(registered$coords))
   }))
 }
+
+# Saved display registrations are separate from the frozen fitted coordinates.
+# Normal documentation builds verify the inputs and reuse these registrations.
+comparison.surface.saved <- function(case, fits, kind=c('full','sparse')) {
+  kind <- match.arg(kind)
+  fits <- fits[vapply(fits,function(f) !is.null(f$coords),logical(1))]
+  input <- list(reference=case$X, triangles=case$triangles,
+    coordinates=lapply(fits, `[[`, 'coords'), kind=kind,
+    algorithm=lapply(list(comparison.surface.align, comparison.surface.example,
+      comparison.surface.audit, comparison.surface.samples, comparison.surface.matches),body))
+  temp <- tempfile(); on.exit(unlink(temp),add=TRUE)
+  saveRDS(input,temp,version=2)
+  fingerprint <- unname(tools::md5sum(temp))
+  directory <- getOption('grip.documentation.display.dir',
+    system.file('extdata','documentation-display',package='grip'))
+  filename <- file.path(directory,paste0(kind,'-',case$id,'-',
+    substr(fingerprint,1,12),'.rds'))
+  rebuild <- isTRUE(getOption('grip.documentation.rebuild',FALSE))
+  if (!rebuild && file.exists(filename)) {
+    saved <- readRDS(filename)
+    if (identical(saved$fingerprint,fingerprint)) return(saved$result)
+  }
+  if (!rebuild) stop('Missing or outdated display registration. Run make documentation-assets.')
+  result <- if (kind=='full') comparison.surface.example(case,fits) else list(
+    registrations=lapply(fits,function(f) comparison.surface.align(f$coords,
+      case$X,case$triangles,subdivisions=if(case$n>512L) 1L else 3L)))
+  dir.create(directory,recursive=TRUE,showWarnings=FALSE)
+  saveRDS(list(fingerprint=fingerprint,result=result),filename,compress='xz',version=2)
+  result
+}

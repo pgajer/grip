@@ -47,6 +47,18 @@
 
 ## Documentation
 
+* Reorganized the documentation into ten main installed vignettes and four
+  appendices, published from the same sources on the website. The complete
+  categorized function overview is retained. Website-only tutorials have been
+  incorporated, with redirects for retired pages and an unchanged source archive.
+* Added richer application-graph introductions, a recorded-stage trace slider,
+  a consolidated HMP/U01 case study, and a shorter gripui walkthrough. Full
+  experiment results remain available separately from the main MDS guides.
+* Unified preview navigation and link checks, reused verified surface display
+  registrations, and replaced stale static fallbacks with current coordinates.
+  Static 2D graph plots now have empty default axis labels instead of numeric
+  coordinate strings.
+
 * Sparse-MDS figures now use the graph gallery's always-visible layout-selector
   structure, showing one method or all layouts while preserving camera and scale.
 

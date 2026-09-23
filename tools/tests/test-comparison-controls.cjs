@@ -52,7 +52,7 @@ for (const file of process.argv.slice(2)) {
     run(el, widget.x, hook.data);
     const select = el.panel.children[0].children[0];
     assert.equal(el.panel.style.position, 'static', 'Controls must sit below the canvas');
-    const preferred = ['mds', 'SGD', 'SGD: uniform', 'Full SGD'].find(name => name in ids);
+    const preferred = ['mds', 'metric-MDS', 'SGD', 'SGD: uniform', 'Full SGD'].find(name => name in ids);
     if (preferred) assert.equal(select.value, preferred, 'Metric MDS must be the initial layout');
     function checkVisibility(choice) {
       for (const [name, values] of Object.entries(ids)) {

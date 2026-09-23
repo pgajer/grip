@@ -1,10 +1,24 @@
 ---
-title: "Comparing grip with Alternative Layout Engines"
+title: "Historical layout-engine comparison: grip 0.2.0"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Historical layout-engine comparison: grip 0.2.0}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-This website-only article complements the installed
-[function guide](function-guide.html) and
-[synthetic graph examples](synthetic-graph-families.html).
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -18,25 +32,11 @@ knitr::opts_chunk$set(
 
 ## What is compared
 
-`grip` is no longer just an R implementation of the classical GRIP algorithm.
-The package now contains:
-
-- a quality-first GRIP workflow for ordinary graphs,
-- weighted geometry-aware sister APIs,
-- and geodesic scoring and polishing utilities.
-
-That means there are now **two different comparison questions**:
-
-1. how the saved grip 0.2.0 results compare with other R layout engines on
-   ordinary unweighted graphs,
-2. how geometry-aware weighted `grip` methods behave on weighted graphs, where
-   plain topology is not the whole problem.
-
-This article treats those as separate tracks.
-
-```{r}
-library(grip)
-```
+This appendix preserves the external-engine benchmark run with grip 0.2.0 on
+23 August 2026. It is historical evidence, not a benchmark of the current MDS
+backend. The [current selection guide](grip-real-data.html) explains how to
+compare layouts; [Metric MDS](metric-mds-backends.html) compares the current
+SGD and SMACOF implementations on their separately recorded examples.
 
 ## Shared scoring idea
 
@@ -165,16 +165,6 @@ The stress score fits a common scale; it is not the raw stress objective of
 `metric.mds()`. Preset/tuned rows are labeled separately from ordinary defaults.
 Keep the results where another method scores better when interpreting the comparison.
 
-In the current development version (0.2.0.9001), `metric.mds()` uses native
-stochastic gradient descent by default (`backend = "sgd"`); the optional
-**smacof** optimizer requires `backend = "smacof"`. SGD pair updates follow
-Zheng, Pawar and Goodman (2018), with the default hybrid learning-rate schedule
-from Hangan, Kobourov and Miller (2026); see the
-[SGD references](#sgd-references). The frozen results below do not evaluate
-this new default or compare the two metric-MDS backends. The
-[function guide](function-guide.html#classical-scaling-and-metric-stress-mds)
-provides executable examples of both backends.
-
 ### Benchmark 1: Zachary karate club
 
 This is still a useful small-graph sanity check. The graph is small enough that
@@ -287,147 +277,11 @@ The saved external-package benchmark has a limited scope:
 
 That second question needs a different benchmark track.
 
-## Track 2: geometry-aware comparisons on weighted graphs
-
-For weighted graphs with meaningful edge lengths, a pure topology-only
-comparison is no longer enough. The weighted track in `grip` is built around:
-
-- `grip(metric = "edge_length")`
-- optional experimental LGKK-based refinement
-- and full geodesic-KK scoring.
-
-The small example below is built and scored live in the vignette. It uses a
-plain mesh topology whose edge lengths are induced by a curved saddle surface.
-
-```{r weighted-case}
-weighted.mesh <- mesh.surface.graph(
-  5, 5,
-  surface = "saddle",
-  amplitude = 0.8
-)
-
-coords.combinatorial <- grip(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  dim = 3,
-  preset = "mesh",
-  seed = 1
-)
-
-coords.weighted <- grip(metric = "edge_length",
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge.weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  seed = 1
-)
-
-coords.weighted.lgkk <- grip(metric = "edge_length",
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge.weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  lgkk.polish.rounds = 6L,
-  seed = 1
-)
-
-gkk.prepared <- prepare.geodesic.kk(
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge.weights = weighted.mesh$edge_weights
-)
-
-weighted.summary <- do.call(
-  rbind,
-  list(
-    cbind(
-      method = "Combinatorial GRIP",
-      score.geodesic.kk(
-        coords.combinatorial,
-        prepared = gkk.prepared
-      )[, c(
-        "gkk.weighted.rel.rmse",
-        "gkk.weighted.rmse",
-        "gkk.mean.rel.path.error"
-      )]
-    ),
-    cbind(
-      method = "Weighted GRIP",
-      score.geodesic.kk(
-        coords.weighted,
-        prepared = gkk.prepared
-      )[, c(
-        "gkk.weighted.rel.rmse",
-        "gkk.weighted.rmse",
-        "gkk.mean.rel.path.error"
-      )]
-    ),
-    cbind(
-      method = "Weighted GRIP + LGKK polish",
-      score.geodesic.kk(
-        coords.weighted.lgkk,
-        prepared = gkk.prepared
-      )[, c(
-        "gkk.weighted.rel.rmse",
-        "gkk.weighted.rmse",
-        "gkk.mean.rel.path.error"
-      )]
-    )
-  )
-)
-
-knitr::kable(
-  weighted.summary,
-  digits = 4,
-  row.names = FALSE,
-  caption = "Weighted mesh surface: geodesic-KK comparison metrics."
-)
-```
-
-```{r weighted-plot, fig.width=11.2, fig.height=8}
-par(mfrow = c(2, 2), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(weighted.mesh$coords_surface, weighted.mesh$edges, "Target geometry")
-plot_layout(coords.combinatorial, weighted.mesh$edges, "Combinatorial GRIP")
-plot_layout(coords.weighted, weighted.mesh$edges, "Weighted GRIP")
-plot_layout(coords.weighted.lgkk, weighted.mesh$edges, "Weighted GRIP + LGKK polish")
-```
-
-This weighted section is not a package-versus-package benchmark in the old
-sense. Instead, it answers the more relevant question for modern `grip`:
-
-- what happens when the graph metric matters?
-
-On this example the progression is exactly what the current package design aims
-for:
-
-- combinatorial GRIP gives a topology-respecting layout,
-- weighted GRIP improves geodesic fidelity,
-- weighted GRIP plus experimental LGKK polish improves it further.
-
-## So what should you compare with what?
-
-For ordinary unweighted graphs:
-
-- compare `grip` with `igraph` and `graphlayouts`,
-- use `score.layout()` to evaluate all of them on the same graph,
-- and expect the answer to depend on graph family and graph size.
-
-For weighted geometric graphs:
-
-- start with `grip(metric = "edge_length")`,
-- use 3D as the primary layout space when the geometry demands it,
-- and evaluate candidate layouts with geodesic-aware criteria such as
-  `score.geodesic.kk()`.
-
-That is the main conceptual change in the package since the original version of
-this article was written.
-
 ## Reproducing the external benchmark bundle
 
-To regenerate the precomputed external-package results in the current working
-directory:
+To run the comparison recipe again with your installed package version, write
+to a new output file. Reproducing the archived numerical results additionally
+requires the software versions recorded above:
 
 ```{r reproduce, eval=FALSE}
 Sys.setenv(GRIP_VS_ALTERNATIVES_OUTPUT = "benchmark_results.rds")
@@ -437,22 +291,8 @@ source(system.file(
 ))
 ```
 
-The weighted section of this article is generated directly inside the vignette,
-so it reflects the package version used for this website build
-(`r as.character(packageVersion("grip"))`). It is separate from the frozen
-external-package results and their timing evidence.
-
 ## Session info for the bundled external results
 
 ```{r session-info-precomputed}
 res$session_info
 ```
-
-## SGD references
-
-- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
-  *Graph Drawing by Stochastic Gradient Descent*.
-  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
-- Hangan, D., Kobourov, S. and Miller, J. (2026).
-  *Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
-  Optimization*. [arXiv:2605.00641](https://arxiv.org/abs/2605.00641).

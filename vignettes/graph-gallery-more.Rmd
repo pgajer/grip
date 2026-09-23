@@ -1,0 +1,94 @@
+---
+title: "Graph gallery: further examples"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Graph gallery: further examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+This companion contains the other nine graphs from the same saved gallery.
+See the [main gallery](synthetic-graph-families.html) for the method, errors,
+alignment, conversion rules, and complete reproduction recipe. All vertices
+and edges remain in every display; the examples are split across pages to
+reduce the number of simultaneous 3D views.
+
+```{r gallery-data, include=FALSE}
+source(system.file('scripts','graph-examples.R',package='grip'),local=TRUE)
+bundle <- readRDS(system.file('extdata','graph-examples','layouts.rds',package='grip'))
+have.ivue <- documentation.interactive()
+```
+
+```{r selected, include=FALSE}
+gallery.ids <- c('dwt_307','494_bus','lesmis','dwt_66','karate','tree','saddle','paraboloid','torus')
+```
+
+```{r gallery-pages, results='asis', echo=FALSE}
+cat(knitr::knit_child(system.file('scripts','graph-gallery.Rmd',package='grip'),
+  envir=environment(),quiet=TRUE),sep='\n')
+```
+
+
+## Construction examples
+
+These examples retain the distinctive irregular and recursive families from
+the former website gallery. They compare generating coordinates with weighted
+GRIP, separately from the saved metric-MDS/edge-KK collection above. These new
+teaching fits use the stated seed and the current package; they do not extend
+the saved MDS timing experiment. For these two teaching views only, each fit
+is translated, rotated/reflected, and uniformly resized to match the generating
+reference's root-mean-square radius. The caption reports the display multipliers.
+
+### A folded irregular annulus
+
+```{r annulus-recipe}
+annulus <- irregular.annulus.surface.graph(rings=5,outer.count=36,
+  inner.radius=.42,surface='folded',amplitude=.2)
+annulus.fit <- grip(edges=annulus$edges,n=annulus$n,edge.weights=annulus$edge_weights,
+  dim=3,metric='edge_length',preset='irregular',seed=4)
+```
+
+```{r annulus-view, echo=FALSE}
+documentation.view(list('Weighted GRIP'=annulus.fit),annulus$edges,
+  reference=annulus$coords_surface,common.size=TRUE,
+  description='Folded annulus: gray generating reference and weighted GRIP. Aligned at a common overall size for display.')
+```
+
+The inner boundary forces routes around the hole. The gray generating surface
+helps explain the graph construction; it is not an exact Euclidean realization
+of every graph distance.
+
+### A recursive cross pattern
+
+```{r vicsek-recipe}
+cross <- vicsek.surface.graph(level=3,surface='ripple',amplitude=.55)
+cross.fit <- grip(edges=cross$edges,n=cross$n,edge.weights=cross$edge_weights,
+  dim=3,metric='edge_length',preset='carpet',seed=3)
+```
+
+```{r vicsek-view, echo=FALSE}
+documentation.view(list('Weighted GRIP'=cross.fit),cross$edges,
+  reference=cross$coords_surface,common.size=TRUE,
+  description='Recursive Vicsek pattern on a rippled surface. Aligned at a common overall size for display.')
+```
+
+Recursion introduces repeated branches and bottlenecks. For the recorded
+stages of a related planar recursive construction, see
+[Tracing and diagnosing layouts](grip-trace-and-diagnostics.html).

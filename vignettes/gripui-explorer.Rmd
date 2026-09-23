@@ -1,0 +1,110 @@
+---
+title: "Interactive exploration with gripui"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Interactive exploration with gripui}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+The project explorer lets you select saved layouts, inspect their scores, and
+rotate the selected graph. The graph-family explorer instead constructs
+synthetic examples from parameters. Both are optional Shiny applications.
+
+## Prepare an application graph
+
+This walkthrough uses the same **dwt_307** graph as Getting Started. Two presets
+and two seeds provide a small collection to browse.
+
+```{r compare-example}
+data(zheng.graphs)
+g <- zheng.graphs[['dwt_307']]
+cmp <- compare.layouts(edges=g$edges,n=g$n,dim=3,
+  candidates=c('default','tree'),seeds=1:2,return.layouts=TRUE,
+  edge.crossings='never')
+adj <- vector('list',g$n)
+for(i in seq_len(nrow(g$edges))) {
+  a <- g$edges[i,1];b <- g$edges[i,2]
+  adj[[a]] <- c(adj[[a]],b);adj[[b]] <- c(adj[[b]],a)
+}
+project <- gripui.project.from.compare(cmp,
+  graph=list(adj_list=adj),title='dwt_307: presets and seeds')
+gripui.validate.project(project)
+```
+
+## Launch and explore
+
+```{r launch, eval=FALSE}
+run.gripui(project)
+```
+
+The app requires **shiny**, **bslib**, **DT**, **htmltools**, and **rgl**, all
+listed as optional dependencies of grip. Launching it is an interactive step;
+building this vignette does not start a server.
+
+| Step | What to do | What to inspect |
+|---|---|---|
+| 1. Choose a result | Select a row in the layout catalog | Candidate, seed, status, and available coordinates |
+| 2. Inspect the drawing | Rotate the graph and compare another row | Branches, folds, and crowded regions |
+| 3. Read the scores | Compare the score landscape and table | Distance agreement alongside visual differences |
+| 4. Check stability | Compare seeds within a candidate | Whether the apparent structure persists |
+
+The figure below previews two layouts from this project. It is an ivue figure,
+not a screenshot of the Shiny application. The app provides the catalog and
+score-selection workflow described above.
+
+```{r project-view, echo=FALSE}
+documentation.view(list('Default: seed 1'=cmp$layouts$default[['1']],
+  'Tree: seed 1'=cmp$layouts$tree[['1']]),g$edges,
+  description='Saved project layouts: default and tree GRIP presets. Rigid alignment; no resizing.')
+```
+
+```{r project-table}
+knitr::kable(project$layouts[,c('layout_id','candidate','seed','status','availability')])
+```
+
+## Explore graph families
+
+For a new synthetic construction rather than saved layout results, launch:
+
+```{r families, eval=FALSE}
+run.gripui.family()
+```
+
+Choose a graph family, alter its construction parameters, and inspect its
+geometry. The [graph gallery](synthetic-graph-families.html) introduces the
+families and their ordinary R recipes; the function overview lists all
+[interactive exploration functions](function-guide.html#interactive-exploration).
+
+## Import existing results
+
+Use `gripui.project()` to assemble results from another source, or
+`gripui.project.from.dir()` to read an existing output directory. Keep vertex
+ordering consistent between graph data and every coordinate matrix.
+
+```{r from-directory, eval=FALSE}
+project <- gripui.project.from.dir(root='/path/to/saved/outputs',
+  title='My saved search')
+gripui.validate.project(project)
+run.gripui(project)
+```
+
+The function help documents the project fields and directory structure.
+For layout selection principles, see [Choosing and evaluating](grip-real-data.html).

@@ -7,6 +7,15 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -34,80 +43,28 @@ choice as `grip()`:
 - `trace.grip(metric = "hop")` for combinatorial layouts,
 - `trace.grip(metric = "edge_length")` for edge-length geometry-aware layouts.
 
-Tracing follows the same package decision rule:
-
-- ordinary unweighted or topology-first graphs: trace
-  `trace.grip(metric = "hop")`,
-- weighted geometry-aware graphs: trace `trace.grip(metric = "edge_length")`,
-- real-data layout search: add trace only when a shortlist or one promising
-  solve needs explanation,
-- advanced GKK/LGKK hooks can appear in weighted traces, but they remain
-  public experimental add-ons rather than the default reason to trace.
-
 ```{r}
 library(grip)
-```
-
-```{r}
-plot.trace.frame <- function(coords, edges, main = "", vertex.col = "black") {
-  active <- stats::complete.cases(coords[, 1:2, drop = FALSE])
-  xy <- coords[active, 1:2, drop = FALSE]
-
-  xlim <- range(xy[, 1])
-  ylim <- range(xy[, 2])
-  xpad <- 0.08 * diff(xlim)
-  ypad <- 0.08 * diff(ylim)
-  if (!is.finite(xpad) || xpad == 0) xpad <- 0.2
-  if (!is.finite(ypad) || ypad == 0) ypad <- 0.2
-
-  plot(
-    xy[, 1], xy[, 2],
-    type = "n",
-    asp = 1,
-    axes = FALSE,
-    xlab = "",
-    ylab = "",
-    xlim = xlim + c(-xpad, xpad),
-    ylim = ylim + c(-ypad, ypad),
-    main = main
-  )
-
-  active.edges <- edges[active[edges[, 1]] & active[edges[, 2]], , drop = FALSE]
-  if (nrow(active.edges) > 0) {
-    apply(active.edges, 1, function(e) {
-      graphics::segments(
-        coords[e[1], 1], coords[e[1], 2],
-        coords[e[2], 1], coords[e[2], 2],
-        col = "gray82"
-      )
-    })
-  }
-
-  points(xy[, 1], xy[, 2], pch = 16, cex = 0.55, col = vertex.col)
-}
-
-pick.trace.frames <- function(trace.obj) {
-  n <- length(trace.obj$frames)
-  unique(c(1L, max(2L, floor((n + 1L) / 2L)), n))
-}
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
 
 ## A first combinatorial trace
 
-The example below traces a 2D layout of a small mesh. Using
+The example below traces a planar recursive triangle. Its nested holes make
+the multiscale construction visible. Using
 `trace = "level"` keeps the vignette readable by recording the coarse
 initialization, the start of each new level, and the final layout.
 
 ```{r}
-mesh.edges <- edges.mesh(5, 5)
+mesh.edges <- edges.sierpinski.triangle(4)
 
 mesh.trace <- trace.grip(
   mesh.edges,
-  n = 25,
+  n = max(mesh.edges),
   dim = 2,
-  preset = "mesh",
-  rounds = 12,
-  final.rounds = 16,
+  preset = "carpet",
+  rounds = 48,
+  final.rounds = 96,
   trace = "level",
   diagnostics = "light",
   seed = 1
@@ -122,20 +79,14 @@ knitr::kable(mesh.trace$diagnostics[, c(
 )], digits = 3)
 ```
 
-```{r fig.width=10.5, fig.height=3.8}
-sel <- pick.trace.frames(mesh.trace)
-
-op <- par(mfrow = c(1, length(sel)), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
-on.exit(par(op), add = TRUE)
-
-for (idx in sel) {
-  plot.trace.frame(
-    mesh.trace$frames[[idx]],
-    mesh.edges,
-    main = paste(mesh.trace$meta$phase[[idx]], "(frame", idx, ")")
-  )
-}
+```{r trace-view, echo=FALSE}
+documentation.trace(mesh.trace,mesh.edges)
 ```
+
+Move the slider to inspect recorded stages of the construction. Bounds stay
+fixed, and each stage shows only its active vertices and edges. This is a
+planar graph, so a 2D view makes its recursive holes easier to inspect.
+
 
 The two most useful tables are:
 
@@ -150,9 +101,9 @@ rounds within each active level.
 ```{r}
 mesh.trace.round <- trace.grip(
   mesh.edges,
-  n = 25,
+  n = max(mesh.edges),
   dim = 2,
-  preset = "mesh",
+  preset = "carpet",
   rounds = 6,
   final.rounds = 8,
   trace = "round",
@@ -172,65 +123,22 @@ Use:
 - `trace = "level"` for most reporting and teaching,
 - `trace = "round"` when you are diagnosing a tuning issue.
 
-## Weighted traces
+## Read changes over the trace
 
-Weighted traces answer a slightly different question. Instead of only asking
-whether the layout becomes visually cleaner, we can also ask whether it moves
-toward a target geometry.
-
-Here the graph is a mesh whose edge lengths come from a curved 3D saddle
-surface.
-
-```{r}
-weighted.mesh <- mesh.surface.graph(
-  4, 4,
-  surface = "saddle",
-  amplitude = 0.8
-)
-
-weighted.trace <- trace.grip(metric = "edge_length",
-  weighted.mesh$edges,
-  n = weighted.mesh$n,
-  edge.weights = weighted.mesh$edge_weights,
-  dim = 3,
-  preset = "mesh",
-  rounds = 8,
-  final.rounds = 12,
-  trace = "level",
-  diagnostics = "light",
-  target.coords = weighted.mesh$coords_surface,
-  seed = 2
-)
-
-knitr::kable(weighted.trace$meta)
-knitr::kable(weighted.trace$diagnostics[, c(
-  "frame",
-  "edge.length.cv",
-  "sampled.nonedge.sep.ratio",
-  "procrustes.rmse"
-)], digits = 3)
+```{r diagnostic-curve, echo=FALSE}
+plot(mesh.trace$diagnostics$frame,mesh.trace$diagnostics$edge.length.cv,
+  type='b',pch=16,col='#1769AA',xlab='Recorded frame',ylab='Edge-length variation')
 ```
 
-```{r fig.width=10.8, fig.height=3.8}
-sel.w <- pick.trace.frames(weighted.trace)
+Early frames contain only the active coarse vertices. Read changes in the
+score together with the stage and active graph; adjacent frames may not score
+identical vertex sets. Level traces show insertion stages; round traces show
+more of the refinement within each stage. They are different sampling schedules.
 
-op <- par(mfrow = c(1, length(sel.w)), mar = c(1.2, 1.2, 3, 1.2), bg = "white")
-on.exit(par(op), add = TRUE)
-
-for (idx in sel.w) {
-  frame.xy <- project.3d(weighted.trace$frames[[idx]], azimuth = 35, elevation = 20)
-  plot.trace.frame(
-    frame.xy,
-    weighted.mesh$edges,
-    main = paste(weighted.trace$meta$phase[[idx]], "(frame", idx, ")"),
-    vertex.col = "#1F3B73"
-  )
-}
-```
-
-The important extra column is `procrustes.rmse`. When a meaningful target
-geometry exists, it gives a direct per-frame measure of whether the layout is
-getting closer to that target up to rigid motion and scale.
+For a weighted graph, use `trace.grip(metric='edge_length', ...)` with its
+lengths. The [weighted guide](weighted-grip-intro.html) explains this metric.
+Detailed construction animations and their reproduction commands are described
+in the [asset guide](https://github.com/pgajer/grip/blob/main/tools/README.md#readme-and-showcase-assets).
 
 ## Trace objects are analysis objects
 
@@ -264,8 +172,7 @@ The most useful components are:
 For an API map, see [Finding your way around grip](function-guide.html).
 For reproducible bundles and reference scoring, see
 [Graph examples](synthetic-graph-families.html).
-Both are installed vignettes; the broader gallery and interactive explorer
-are website-only articles.
+These guides and the interactive-explorer walkthrough are installed vignettes.
 
 
 

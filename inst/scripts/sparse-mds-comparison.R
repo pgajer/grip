@@ -60,7 +60,7 @@ sparse.comparison.surface.triangles <- function(case) {
   rbind(cbind(a,b,d), cbind(a,d,c))
 }
 
-sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
+sparse_comparison_view <- function(case, fits, adjust_scale = TRUE, saved.display = FALSE) {
   fits <- fits[vapply(fits,function(f) !is.null(f$coords),logical(1))]
   if (!length(fits)) stop('No successful fits to display')
   if (adjust_scale) fits <- lapply(fits,function(f) { f$coords <- f$coords*f$row$relative_scale; f })
@@ -68,8 +68,10 @@ sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
     triangles <- sparse.comparison.surface.triangles(case)
     # The 64-by-64 grid already has a fine mesh. One centroid per triangle
     # supplies 7,938 area-weighted samples without coarsening any display data.
-    lapply(fits, function(f) comparison.surface.align(f$coords,case$X,triangles,
-      subdivisions=if (case$n > 512L) 1L else 3L))
+    case$triangles <- triangles
+    if (saved.display) comparison.surface.saved(case,fits,kind='sparse')$registrations else
+      lapply(fits,function(f) comparison.surface.align(f$coords,case$X,triangles,
+        subdivisions=if(case$n>512L) 1L else 3L))
   } else NULL
   reference <- !is.null(case$X)
   if (!reference) case$X <- fits[[1]]$coords
@@ -77,6 +79,12 @@ sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
     'Weighted GRIP' else paste('Sparse SGD:',sub('sparse','',k),'pivots'),'')
   palette <- stats::setNames(c('#1769AA','#009E73','#D66A19','#AA3377','#CC79A7')[seq_along(fits)],labels)
   if (reference) palette <- c(Reference='#888888',palette)
+  if (exists('documentation.interactive',mode='function') && !documentation.interactive()) {
+    key <- names(fits)[1L]
+    z <- if (is.null(surface)) comparison_align(fits[[key]]$coords,case$X) else surface[[key]]$coords
+    points <- c(if(reference) list(Reference=case$X),setNames(list(z),labels[[key]]))
+    return(documentation.static(points,case$draw_edges,palette[names(points)]))
+  }
   comparison_view(case,fits,series_labels=labels,series_colors=palette,reference=reference,layout_selector=TRUE,
     surface.alignments=surface,
     description=paste(case$label,case$n,'vertices. Rotate to compare layouts.',

@@ -29,47 +29,39 @@ home:
 
 navbar:
   structure:
-    left:
-      - intro
-      - reference
-      - articles
-      - changelog
-    right:
-      - github
+    left: [intro, gallery, guides, cases, reference]
+    right: [changelog, github]
   components:
     intro:
       text: Get started
       href: articles/grip-examples.html
-    articles:
-      text: Articles
+    gallery:
+      text: Graph gallery
+      href: articles/synthetic-graph-families.html
+    guides:
+      text: Guides
       menu:
-        - text: Function Guide
+        - text: Finding your way around grip
           href: articles/function-guide.html
-        - text: "Comparing SGD and SMACOF"
-          href: articles/metric-mds-backends.html
-        - text: "Sparse SGD for larger graphs"
-          href: articles/sparse-metric-mds.html
-        - text: Graph examples
-          href: articles/synthetic-graph-families.html
-        - text: Getting Started
-          href: articles/grip-examples.html
-        - text: Weighted Layouts
-          href: articles/weighted-grip-intro.html
-        - text: Choosing Layouts for Real Data
+        - text: Choosing and evaluating a layout
           href: articles/grip-real-data.html
-        - text: Tracing and Diagnostics
+        - text: Layouts with meaningful edge lengths
+          href: articles/weighted-grip-intro.html
+        - text: Metric MDS
+          href: articles/metric-mds-backends.html
+        - text: Sparse SGD
+          href: articles/sparse-metric-mds.html
+        - text: Tracing and diagnostics
           href: articles/grip-trace-and-diagnostics.html
-        - text: Interactive Explorer
-          href: articles/gripui-explorer.html
-        - text: HMP/U01 Case Study
+    cases:
+      text: Explore further
+      menu:
+        - text: HMP/U01 biological network
           href: articles/hmp-u01-case-study.html
-        - text: "Comparing with Alternatives"
-          href: articles/grip-vs-alternatives.html
-        - text: "---"
-        - text: Showcase recipes
-          href: articles/showcase-recipes.html
-        - text: Gallery
-          href: articles/gallery.html
+        - text: Interactive exploration with gripui
+          href: articles/gripui-explorer.html
+        - text: Complete results and further examples
+          href: articles/index.html
     changelog:
       text: Changelog
       href: news/index.html
@@ -77,6 +69,20 @@ navbar:
       icon: fa-github
       href: https://github.com/pgajer/grip
       aria-label: GitHub
+
+articles:
+  - title: Start here
+    contents: [grip-examples, function-guide, synthetic-graph-families]
+  - title: Choose and understand layouts
+    contents: [grip-real-data, weighted-grip-intro, metric-mds-backends, sparse-metric-mds, grip-trace-and-diagnostics]
+  - title: Case study and exploration
+    contents: [hmp-u01-case-study, gripui-explorer]
+  - title: Complete results and further examples
+    contents: [graph-gallery-more, metric-mds-results, sparse-mds-results, grip-vs-alternatives]
+
+redirects:
+  - [articles/gallery.html, articles/synthetic-graph-families.html#constructing-other-graph-families]
+  - [articles/showcase-recipes.html, articles/grip-trace-and-diagnostics.html]
 
 reference:
   - title: "Compute layouts"

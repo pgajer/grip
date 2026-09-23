@@ -35,7 +35,8 @@ List available guides with \code{vignette(package = "grip")}.
 Development installations from GitHub include these guides only when built
 with \code{build_vignettes = TRUE}. The
 \href{https://pgajer.github.io/grip/}{website} also provides rendered guides,
-a gallery, and website-only comparison and explorer articles. Check
+the graph gallery, comparisons, case study, and explorer walkthrough from
+the same installed vignette sources. Check
 \code{packageVersion("grip")} when using development documentation.
 }
 

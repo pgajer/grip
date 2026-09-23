@@ -18,7 +18,8 @@ manuscript catalogs are not inputs to either target.
 
 `inst/scripts/metric-mds-comparison.R` contains the public-API synthetic-data,
 fitting, scoring and plotting recipes. The installed vignette renders reviewed
-results from `inst/extdata/metric-mds-comparison/` and runs only its small example.
+results from `inst/extdata/metric-mds-comparison/`; its full protocol and all cases
+are retained in the installed `metric-mds-results` appendix.
 
 To run a new, isolated timing experiment, install the candidate package into a
 separate library, then call:
@@ -90,3 +91,43 @@ outside the timed workers. Source-sampled distances for the large graph are
 independent of fitting pivots. Reviewed coordinates, scores and figure assets
 belong in `inst/extdata/sparse-mds-comparison/`. Full worker results and logs
 remain private; ordinary vignette builds only read the reviewed bundle.
+
+## Documentation collection
+
+All teaching material is maintained as installed `vignettes/*.Rmd` sources.
+Pkgdown publishes those same sources. Ten primary guides are followed by four
+appendices: further graph examples, the full MDS experiment, the full sparse
+experiment, and the historical grip 0.2.0 engine comparison. `_pkgdown.yml`
+controls both the site navigation and local preview index.
+
+Run `make vignette-previews` to render all pages, local help, an index, a build
+manifest, and redirects for former article locations. This also checks the
+complete API catalog, selector behavior, archived checksums, and local links.
+The output is `output/vignette-previews/index.html`. For another destination:
+
+```
+Rscript tools/pkg/render-vignette-previews.R /absolute/output/directory
+```
+
+Routine rendering uses saved experiment results and surface registrations;
+it runs only the modest teaching examples. `make documentation-assets` is the
+explicit, more expensive step for rebuilding surface registrations after
+changed inputs or alignment code. It does not rerun optimizers or benchmarks.
+The saved transforms have input/algorithm fingerprints checked at render time.
+Static fallbacks use the current display coordinates rather than old screenshots.
+
+The immutable snapshot in `vignettes/archives/` records the sources before this
+restructuring. Its underscored Rmd names prevent pkgdown discovery and the whole
+directory is excluded from R builds. Generated archive HTML remains local.
+Do not regenerate or edit archived sources when updating current documentation.
+
+## README and showcase assets
+
+`make readme-assets` generates the recursive triangle/carpet construction
+animations and their provenance. Their current teaching counterpart is the
+recorded-stage slider in the tracing vignette. The old saddle showcase is a
+historical display fixture, with its known and missing metadata retained in
+`tools/pkg/fixtures/saddle-preview.json`; it is not evidence about current SGD.
+The former showcase URL redirects to the tracing guide. Rendering commands for
+the historical saddle remain the explicit `readme-saddle-animation` and
+`saddle-overlay-animation` Makefile targets.

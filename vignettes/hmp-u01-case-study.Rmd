@@ -1,0 +1,134 @@
+---
+title: "A biological network: HMP/U01"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{A biological network: HMP/U01}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+This graph summarizes similarities among HMP+U01 16S amplicon samples.
+The supplied object records a representation based on taxa at at least 1%
+relative abundance followed by principal component analysis, and a
+nearest-neighbor construction with k=3. Coarsening reduces the original giant
+component to 1,828 vertices and 4,656 weighted edges.
+
+The biological labels are **community state types (CSTs)** and finer subtypes.
+Use them to interpret groups in the drawing; separated colors do not by
+themselves establish that the geometry is accurate.
+
+## Inspect the graph
+
+```{r graph}
+data(hmp.u01.gc.coarse)
+g <- hmp.u01.gc.coarse
+knitr::kable(data.frame(Quantity=c('Original giant-component vertices',
+  'Coarsened vertices','Undirected edges','Selected k'),
+  Value=unlist(g$graph_info[c('original_vertices','coarse_vertices','edge_count','selected_k')],use.names=FALSE)))
+```
+
+The original giant component has 6,474 vertices. Seven other components were
+discarded in the recorded preparation; no claim is made here about their
+arrangement. This coarsened weighted HMP/U01 object differs from the unweighted
+HMP graph in the historical external-engine benchmark.
+
+## Interpret a saved layout
+
+The saved search used grip 0.2.0, seed 1, and the default, tree, and torus presets.
+It supplied lengths to the hop-based GRIP workflow: adjacent attractions use
+lengths, while standard hierarchy searches use hops. **These are historical
+hop-based fits, not new `metric='edge_length'` results.** The displayed
+configuration is the default preset, selected for this walkthrough without
+ranking it by appearance.
+
+```{r saved, include=FALSE}
+results <- readRDS(system.file('extdata','hmp_u01_gc_coarse','vignette_results.rds',package='grip'))
+edges <- do.call(rbind,lapply(seq_along(g$adj_list),function(i) {
+  j <- g$adj_list[[i]];j <- j[j>i];cbind(rep(i,length(j)),j)
+}))
+```
+
+```{r hmp-view, echo=FALSE}
+documentation.groups(results$layouts$preset$default,edges,g$vertex_data$cst,
+  description='HMP/U01: saved default-preset layout, seed 1. Colors show community state types. Drag to rotate; scroll to zoom.')
+```
+
+Rotation helps distinguish actual branches from overlaps in projection.
+The coordinates are shown in their saved units, without alignment to a putative
+biological reference configuration.
+
+## Compare the recorded candidates
+
+```{r preset-scores}
+knitr::kable(results$preset_summary[,c('candidate','sampled.stress.mean',
+  'edge.length.cv.mean','cluster.separation.mean','score.composite')],digits=3)
+```
+
+Stress describes graph-distance agreement; cluster separation describes the
+CST labels. Their priorities may differ. This saved search has one seed per
+candidate, so it does not measure variation over random starts.
+
+The recorded local search varied final refinement rounds and repulsion near
+the selected settings. Its full summaries and individual outcomes are retained
+in `results$local_search_summary` and `results$local_search_runs`.
+
+```{r local-scores}
+knitr::kable(results$local_search_summary[,c('candidate','final.rounds',
+  'repulsion.factor','sampled.stress.mean','cluster.separation.mean')],digits=3)
+```
+
+## Fit the weighted graph today
+
+Use the explicit edge-length mode for a new weighted-geodesic layout. This
+recipe is separate from the saved historical results above.
+
+```{r new-weighted, eval=FALSE}
+coords <- grip(adj.list=g$adj_list,weight.list=g$weight_list,
+  n=length(g$adj_list),dim=3,metric='edge_length',seed=1)
+score.layout(coords,adj.list=g$adj_list,weight.list=g$weight_list,
+  n=length(g$adj_list),clusters=g$vertex_data$cst,edge.crossings='never')
+```
+
+See [weighted layouts](weighted-grip-intro.html) for the metric semantics and
+[Choosing and evaluating](grip-real-data.html) for repeated seeds and candidate
+selection.
+
+## Data and coarsening record
+
+The object contains `adj_list`, parallel `weight_list`, `vertex_data`, and
+`graph_info`. The vertex metadata includes aggregated CST and subtype labels.
+The recorded coarsening rounds are:
+
+```{r coarsening}
+knitr::kable(g$graph_info$coarsening_rounds)
+```
+
+Saved results reside in `extdata/hmp_u01_gc_coarse/vignette_results.rds` in the
+installed package. They include candidate settings, scores, fitted coordinates,
+and the software session. To regenerate that historical workflow into a new
+file, explicitly set the output path before sourcing its script:
+
+```{r reproduce, eval=FALSE}
+Sys.setenv(GRIP_HMP_RESULTS_OUTPUT='fresh-hmp-results.rds')
+source(system.file('scripts','precompute-hmp-results.R',package='grip'))
+```
+
+That script reproduces its documented hop-based workflow; it does not rerun
+the new weighted recipe above. Keep any new runs separate from the saved evidence.

@@ -11,6 +11,17 @@ vignette: >
 
 <style>
 body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
 table { width: 100%; }
 td, th { vertical-align: top; }
 td code { white-space: normal; overflow-wrap: anywhere; }
@@ -44,12 +55,11 @@ helpers support different decisions around that drawing.
 | Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
 | Where did a fold or collapse appear? | `trace.grip()` | [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html) |
 | How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Graph examples](synthetic-graph-families.html) |
-| How do I browse many saved results? | `gripui.project()` and `run.gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
+| How do I browse many saved results? | `gripui.project()` and `run.gripui()` in an interactive session | [Interactive exploration](gripui-explorer.html) |
 
-The seven linked package vignettes are installed with grip. The
-[gallery](https://pgajer.github.io/grip/articles/gallery.html),
-[comparison article](https://pgajer.github.io/grip/articles/grip-vs-alternatives.html),
-and interactive explorer are website-only articles.
+This overview and the linked guides are installed vignettes. The website
+publishes the same sources. Start with [Getting Started](grip-examples.html)
+for a first drawing, then use this categorized overview to explore the package.
 
 ## A first drawing and diagnostic
 
@@ -197,69 +207,16 @@ The accessor rejects unknown lists and ambiguous results instead of guessing a f
 
 ## Classical scaling and metric stress MDS
 
-`classical.mds()` runs `stats::cmdscale()` on graph shortest-path distances.
-Classical scaling approximates the double-centered squared-distance (Gram)
-matrix by a low-rank Euclidean representation, usually called minimizing
-*strain*. It does not directly minimize the sum of squared distance residuals.
-Non-Euclidean graph distances can yield negative eigenvalues; `add` and `eig`
-are controls of this classical method.
+`classical.mds()` fits a low-rank representation of the double-centered squared
+distance matrix. `metric.mds()` minimizes distance stress, using native SGD by
+default or `backend="smacof"`. It also offers `approximation="sparse"` with SGD.
+Use [Metric MDS](metric-mds-backends.html) for executable examples, the method
+references, and stress weighting; use [Sparse SGD](sparse-metric-mds.html) when
+all-pairs preparation is too costly.
 
-By default, `metric.mds()` minimizes uniformly weighted raw distance stress,
-\(\sum_{i<j}(\|z_i-z_j\|-d_{ij})^2\), through native stochastic gradient descent (SGD) by default,
-with `backend = "sgd"`, or optional **smacof** selected with
-`backend = "smacof"`. The SGD pair updates follow Zheng, Pawar and Goodman
-(2018); the default hybrid learning-rate schedule follows Hangan, Kobourov and
-Miller (2026). Both papers are listed in the [SGD references](#sgd-references).
-Use `pair.weights = "inverse_squared"` with either backend to minimize the
-paper's sum of squared relative distance errors. Edge lengths determine the
-shortest-path targets; `pair.weights` determines their influence in stress.
-Returned coordinates are rescaled to the input distance units. Multiple starts
-can help with local optima; iteration limits do not certify convergence or a
-global optimum. `init` accepts `"classical"`, `"random"`, or a coordinate
-matrix; `n.init` includes the first start. A non-NULL `seed` preserves the
-caller's R random-number state. `scale.mode` changes diagnostics only.
-
-In versions through 0.2.0, `metric.mds()` performed classical scaling. Use
-`classical.mds()` to retain that behavior, including `add` and `eig`. See the
+Through version 0.2.0, `metric.mds()` performed classical scaling. Use
+`classical.mds()` to retain that behavior; see the
 [MDS migration help](`r help_url("grip-mds-migration")`).
-
-```{r mds-baselines}
-prepared <- prepare.graph.geodesic.mds(edges.cycle(8), n = 8)
-classical <- classical.mds(prepared = prepared, dim = 2)
-print(classical)
-if (requireNamespace("smacof", quietly = TRUE)) {
-  metric <- metric.mds(prepared = prepared, dim = 2, backend = "smacof", n.init = 2,
-                       max.iter = 100, seed = 11)
-  metric$metadata$raw_stress
-} else {
-  message("Install smacof for this optional-backend comparison; the SGD example below needs no extra backend.")
-}
-```
-
-The default SGD backend requires no additional runtime package. Its learning-rate and
-checkpoint defaults are provisional calibration choices. A pass visits every
-unordered pair. The function's `max.iter` default is 1000; the 30 passes
-requested below are an initial trial budget, not a convergence rule.
-Schedule completion emits an iteration-limit warning; the example suppresses
-that expected warning and displays the termination status instead.
-The `eps` argument belongs to SMACOF and must be omitted for SGD. Inspect the
-checkpoint history and compare repeated starts before drawing conclusions.
-
-```{r mds-sgd}
-sgd <- suppressWarnings(metric.mds(prepared = prepared, dim = 3,
-  init = "random", max.iter = 30, seed = 11))
-sgd$metadata$engine  # Omitting backend selects "sgd".
-sgd$metadata$termination  # Schedule exhausted, not a convergence certificate.
-sgd$metadata$target_normalized_rmse
-sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
-# Use edge.kk(prepared = prepared, coords = sgd$coords, dim = 3) to refine it.
-```
-
-For matched-start stress and timing comparisons, quadratic surfaces, and
-interactive 3D overlays, see [Comparing SGD and SMACOF](metric-mds-backends.html).
-For graphs where all-pairs preparation is too expensive, `metric.mds(approximation = "sparse")`
-uses pivot-based sparse SGD in 2D or 3D. Its reported sparse proxy is separate
-from full stress. See [Sparse SGD for larger graphs](sparse-metric-mds.html).
 
 ## Choose a score
 
