@@ -50,7 +50,7 @@ sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
     'Weighted GRIP' else paste('Sparse SGD:',sub('sparse','',k),'pivots'),'')
   palette <- stats::setNames(c('#1769AA','#009E73','#D66A19','#AA3377','#CC79A7')[seq_along(fits)],labels)
   if (reference) palette <- c(Reference='#888888',palette)
-  comparison_view(case,fits,series_labels=labels,series_colors=palette,reference=reference,
+  comparison_view(case,fits,series_labels=labels,series_colors=palette,reference=reference,layout_selector=TRUE,
     description=paste(case$label,case$n,'vertices. Rotate to compare layouts.',
       if (reference) 'Gray: generating reference.' else 'No generating reference is available.',
       if (adjust_scale) 'Each method is resized by its independently fitted scalar; Procrustes then aligns orientation.' else 'Input-distance units; Procrustes preserves scale.'))

@@ -25,6 +25,7 @@ rows <- sparse_comparison_rows(bundle)
 summary <- sparse_comparison_summary(bundle)
 have.ivue <- isTRUE(getOption('grip.vignette.interactive',TRUE)) &&
   requireNamespace('ivue',quietly=TRUE) && requireNamespace('rgl',quietly=TRUE) &&
+  'layer3D.callback' %in% getNamespaceExports('ivue') &&
   'limits' %in% names(formals(ivue::plot3D.plain))
 method_label <- function(x) ifelse(x=='full','Full SGD',ifelse(x=='grip','Weighted GRIP',
   paste('Sparse SGD:',sub('sparse','',x),'pivots')))
@@ -143,6 +144,11 @@ The displayed layouts use their independently fitted scale multipliers, listed
 below each table for the exact displayed runs. Procrustes alignment then rotates
 or reflects corresponding vertices without further resizing;
 for `dwt_307`, full SGD supplies the alignment reference, not a known true shape.
+
+Use the **Layout** selector below each 3D figure to show one method or all
+layouts together. Generating coordinates remain visible where available.
+Drag to rotate and scroll to zoom; switching layouts preserves the camera and
+scale.
 
 ```{r sparse-gallery, results='asis', echo=FALSE}
 for (id in names(bundle$cases)) {

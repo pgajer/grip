@@ -151,7 +151,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             show = c('overlay', 'reference', 'sgd', 'smacof'),
                             legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL,
                             series_labels = NULL, series_colors = NULL,
-                            reference = TRUE, description = NULL) {
+                            reference = TRUE, description = NULL, layout_selector = FALSE) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
   coordinates <- if (reference) list(Reference = case$X) else list()
@@ -174,14 +174,34 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
   if (!length(coordinates)) stop('This fit is unavailable; inspect its recorded failure.')
   X <- do.call(rbind, coordinates)
   rownames(X) <- NULL
-  layers <- list()
-  for (j in seq_along(coordinates)) {
-    name <- names(coordinates)[j]; offset <- (j - 1L) * case$n
-    if (nrow(case$draw_edges)) layers[[length(layers) + 1L]] <-
-      ivue::layer3D.edges(case$draw_edges + offset, col = grDevices::adjustcolor(palette[[name]], .38), width = .7)
-    if (!is.null(case$triangles)) layers[[length(layers) + 1L]] <-
-      ivue::layer3D.mesh(case$triangles + offset, col = palette[[name]], alpha = .09,
-                         edges = FALSE)
+  object.ids <- list()
+  if (layout_selector) {
+    # Track points, edges and surfaces separately for each selectable layout.
+    layers <- list(ivue::layer3D.callback(function(ctx) {
+      rgl::pop3d(id = unique(ctx$draw.ids$object))
+      for (name in names(coordinates)) {
+        coords <- coordinates[[name]]
+        ids <- rgl::points3d(coords, col = palette[[name]], size = 4,
+                             alpha = .8, lit = FALSE)
+        if (nrow(case$draw_edges)) ids <- c(ids,
+          rgl::segments3d(coords[as.vector(t(case$draw_edges)), , drop = FALSE],
+            col = palette[[name]], alpha = .38, lwd = .7, lit = FALSE))
+        if (!is.null(case$triangles)) ids <- c(ids,
+          rgl::triangles3d(coords[as.vector(t(case$triangles)), , drop = FALSE],
+            col = palette[[name]], alpha = .09, lit = FALSE))
+        object.ids[[name]] <<- as.integer(ids)
+      }
+    }))
+  } else {
+    layers <- list()
+    for (j in seq_along(coordinates)) {
+      name <- names(coordinates)[j]; offset <- (j - 1L) * case$n
+      if (nrow(case$draw_edges)) layers[[length(layers) + 1L]] <-
+        ivue::layer3D.edges(case$draw_edges + offset, col = grDevices::adjustcolor(palette[[name]], .38), width = .7)
+      if (!is.null(case$triangles)) layers[[length(layers) + 1L]] <-
+        ivue::layer3D.mesh(case$triangles + offset, col = palette[[name]], alpha = .09,
+                           edges = FALSE)
+    }
   }
   layers[[length(layers) + 1L]] <- ivue::layer3D.axes(limits = bounds, padding = 0,
     width = 1, head.length = .035, cex = .8)
@@ -192,14 +212,14 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     xlab = '', ylab = '', zlab = '', aspect = 'equal',
     camera = ivue::camera.zup(elevation = 22, turn = -125,
                             zoom = .85),
-    limits = bounds, legend.show = legend, controls = controls,
+    limits = bounds, legend.show = legend, controls = controls && !layout_selector,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (!is.null(description)) description else if (controls && weighting) paste(case$label, case$n,
       'vertices. Gray: reference; blue/green: SGD with uniform/inverse-squared weights;',
       'orange/purple: SMACOF with uniform/inverse-squared weights. Alignment preserves scale.') else if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
   widget$sizingPolicy$browser$fill <- FALSE
-  htmlwidgets::onRender(widget, "function(el) {
+  widget <- htmlwidgets::onRender(widget, "function(el) {
     // Keep the WebGL buffer and displayed canvas within the widget dimensions.
     if (el.gripResize) el.gripResize.disconnect();
     function fitCanvas() {
@@ -234,6 +254,57 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
       el.gripControls = toolbar; el.after(toolbar);
     }
   }")
+  if (layout_selector && controls)
+    widget <- comparison_layout_selector(widget, object.ids)
+  widget
+}
+
+# Match the graph gallery's always-visible selector; changing the selection
+# changes only object visibility, leaving alignment, scale and camera intact.
+comparison_layout_selector <- function(widget, object.ids) {
+  htmlwidgets::onRender(widget, "function(el, x, data) {
+    var scene = el.rglinstance, root = scene.scene.rootSubscene;
+    var legend = el.querySelector('.ivue-legend'), rows = {};
+    if (legend) Object.keys(data.ids).forEach(function(name) {
+      rows[name] = Array.from(legend.children).find(function(node) {
+        return node.tagName === 'DIV' && node.textContent.trim().startsWith(name + ' (');
+      });
+    });
+    var panel = document.createElement('div'); panel.className = 'ivue-tools';
+    panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', 'Layout controls');
+    panel.style.border = '0'; panel.style.maxHeight = 'none'; panel.style.overflow = 'visible';
+    var label = document.createElement('label'); label.textContent = 'Layout: ';
+    var select = document.createElement('select');
+    select.className = 'grip-layout-selector'; select.style.font = 'inherit';
+    Object.keys(data.ids).filter(function(name) { return name !== 'Reference'; }).forEach(function(name) {
+      var option = document.createElement('option'); option.value = name;
+      option.textContent = name; select.appendChild(option);
+    });
+    var all = document.createElement('option'); all.value = 'all'; all.textContent = 'all layouts';
+    select.appendChild(all); select.value = 'all';
+    label.appendChild(select); panel.appendChild(label);
+    var hint = document.createElement('span'); hint.textContent = ' Drag to rotate; scroll to zoom.';
+    panel.appendChild(hint);
+    function update() {
+      Object.keys(data.ids).forEach(function(name) {
+        var visible = name === 'Reference' || select.value === 'all' || select.value === name;
+        data.ids[name].forEach(function(id) {
+          if (visible) scene.addToSubscene(id, root); else scene.delFromSubscene(id, root);
+        });
+        if (rows[name]) rows[name].style.display = visible ? 'flex' : 'none';
+      });
+      scene.drawScene();
+    }
+    select.addEventListener('change', update);
+    ['pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function(event) {
+      panel.addEventListener(event, function(e) { e.stopPropagation(); });
+    });
+    panel.style.position = 'static'; panel.style.boxSizing = 'border-box';
+    panel.style.width = el.style.width; panel.style.maxWidth = '100%';
+    panel.style.margin = '0 auto 8px';
+    if (el.gripControls) el.gripControls.remove();
+    el.gripControls = panel; el.after(panel); update();
+  }", data = list(ids = object.ids))
 }
 
 comparison_planar <- function(case, fits) {

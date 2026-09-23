@@ -40,6 +40,9 @@
 
 ## Documentation
 
+* Sparse-MDS figures now use the graph gallery's always-visible layout-selector
+  structure, showing one method or all layouts while preserving camera and scale.
+
 * Interactive vignette figures now show their controls continuously, without
   a collapsible "View controls" panel.
 
