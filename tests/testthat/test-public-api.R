@@ -97,6 +97,7 @@ test_that("the public API matches the documented development contract", {
     "sierpinski.carpet.surface.graph",
     "sierpinski.tetrahedron.surface.graph",
     "sierpinski.triangle.surface.graph",
+    "sparse.metric.mds",
     "sphere.surface.graph",
     "torus.surface.graph",
     "trace.grip",
@@ -108,7 +109,7 @@ test_that("the public API matches the documented development contract", {
     "weighted.grip.nd"
   ))
 
-  expect_length(expected, 106L)
+  expect_length(expected, 107L)
   expect_identical(sort(getNamespaceExports("grip")), expected)
 })
 

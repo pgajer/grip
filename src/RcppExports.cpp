@@ -738,8 +738,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_sgd_mds_cpp
-Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle, Rcpp::Nullable<Rcpp::NumericVector> weights);
-RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP, SEXP weightsSEXP) {
+Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle, Rcpp::Nullable<Rcpp::NumericVector> weights, Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints, Rcpp::Nullable<Rcpp::NumericVector> reverse_weights, bool retain_best);
+RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP, SEXP weightsSEXP, SEXP endpointsSEXP, SEXP reverse_weightsSEXP, SEXP retain_bestSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -751,7 +751,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type max_workspace_bytes(max_workspace_bytesSEXP);
     Rcpp::traits::input_parameter< bool >::type shuffle(shuffleSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type weights(weightsSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_sgd_mds_cpp(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type endpoints(endpointsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type reverse_weights(reverse_weightsSEXP);
+    Rcpp::traits::input_parameter< bool >::type retain_best(retain_bestSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_mds_cpp(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -765,6 +768,23 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type vertices(verticesSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type triangles(trianglesSEXP);
     rcpp_result_gen = Rcpp::wrap(grip_surface_distances_cpp(points, vertices, triangles));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_sparse_prepare_cpp
+Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges, Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed, double max_workspace_bytes);
+RcppExport SEXP _grip_grip_sparse_prepare_cpp(SEXP nSEXP, SEXP edgesSEXP, SEXP lengthsSEXP, SEXP hSEXP, SEXP suppliedSEXP, SEXP seedSEXP, SEXP max_workspace_bytesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type edges(edgesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type lengths(lengthsSEXP);
+    Rcpp::traits::input_parameter< int >::type h(hSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type supplied(suppliedSEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< double >::type max_workspace_bytes(max_workspace_bytesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sparse_prepare_cpp(n, edges, lengths, h, supplied, seed, max_workspace_bytes));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -796,8 +816,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
-    {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 8},
+    {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 11},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
+    {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 7},
     {NULL, NULL, 0}
 };
 

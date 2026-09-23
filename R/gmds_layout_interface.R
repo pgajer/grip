@@ -494,6 +494,8 @@ print.grip_gmds_layout <- function(x, ...) {
     objective.name)
   cat("  objective:", objective, "\n")
   if (!is.null(meta$raw_stress)) cat("  raw stress:", number(meta$raw_stress), "\n")
+  if (!is.null(meta$sparse_proxy_stress))
+    cat("  sparse proxy stress (not full stress):", number(meta$sparse_proxy_stress), "\n")
   if (!is.null(meta$converged)) {
     cat("  converged:", if (isTRUE(meta$converged)) "yes" else "no", "\n")
   } else {

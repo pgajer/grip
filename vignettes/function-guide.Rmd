@@ -257,6 +257,9 @@ sgd$metadata$sgd[[1]]$trace[c(1, 31), ]
 
 For matched-start stress and timing comparisons, quadratic surfaces, and
 interactive 3D overlays, see [Comparing SGD and SMACOF](metric-mds-backends.html).
+For graphs where all-pairs preparation is too expensive, `sparse.metric.mds()`
+uses pivot-based sparse SGD in 2D or 3D. Its reported sparse proxy is separate
+from full stress. See [Sparse SGD for larger graphs](sparse-metric-mds.html).
 
 ## Choose a score
 
@@ -359,8 +362,8 @@ classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
 
-This guide covers **106 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 108
+This guide covers **107 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 109
 unique exported or registered function names, not 107. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
 through their objects below. Internal helpers and the compatibility aliases
@@ -380,6 +383,7 @@ method accounting, and help targets against the current namespace.
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
 | `metric.mds()` | Minimize raw distance stress with native SGD (default) or SMACOF and multiple starts. | [Help](`r help_url("metric.mds")`) |
+| `sparse.metric.mds()` | Approximate long-range stress using pivots and sparse SGD in 2D or 3D. | [Help](`r help_url("sparse.metric.mds")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
 | `legacy.grip()` | Reproduce the legacy GRIP profile for historical comparisons. | [Help](`r help_url("legacy.grip")`) |

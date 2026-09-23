@@ -1,6 +1,7 @@
 Third-party notices for the metric-MDS SGD backend
 
-The pair-update algorithm and schedules in src/metric_mds_sgd.cpp and
+The pair-update algorithms, sparse preparation, and schedules in
+src/metric_mds_sgd.cpp, src/sparse_metric_mds.cpp, R/sparse_metric_mds.R, and
 R/metric_mds_sgd.R are adapted from the following reference implementations.
 Their notices are preserved below. Remaining grip code is GPL (>= 3).
 

@@ -413,6 +413,19 @@ for (id in names(weighting.bundle$cases)) {
 }
 ```
 
+## Sparse SGD for larger graphs
+
+`sparse.metric.mds()` uses representative vertices (pivots) to approximate
+long-range interactions while retaining graph edges. It implements the sparse
+SGD method of [Zheng et al. (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+based on [Ortmann et al. (2017)](https://doi.org/10.7155/jgaa.00440), with
+inverse-squared weighting and no all-pairs distance preparation.
+
+See [Sparse SGD for larger graphs](sparse-metric-mds.html) for usage and a
+separate comparison of full SGD, sparse SGD with several pivot counts, and
+weighted GRIP. It includes 3D views, repeated runs, total layout times, measured
+peak memory, and an independently scored 4,096-vertex saddle.
+
 ## Reproduce the experiment
 
 Building this vignette runs the small example and displays saved results for

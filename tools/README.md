@@ -70,3 +70,23 @@ and the absence of legend tables. Use a fresh render directory to avoid
 capturing obsolete figures. Each graph runs in a separate process with a
 180-second limit, and failures are saved while later graphs continue. Edge-KK failures retain the
 completed MDS layout. Settings and all MDS start summaries are retained.
+
+
+## Sparse SGD comparison vignette
+
+After a clean optimized installation as above, run:
+
+```sh
+Rscript tools/pkg/build-sparse-mds-comparison.R <fresh-dir> <candidate-library> <install-log>
+Rscript tools/pkg/render-sparse-mds-comparison.R <fresh-dir>/benchmark.rds <render-dir>
+node tools/pkg/capture-metric-mds-comparison.cjs <render-dir> <image-dir>
+```
+
+The fixed 60-fit experiment uses three seeds, 100 SGD epochs, several pivot
+counts, and weighted GRIP defaults. A worker gets 90 seconds; the run gets 20
+minutes. It measures worker peak resident memory using `/usr/bin/time` (macOS
+or Linux), preserving failed attempts and logs. Quality evaluation uses igraph
+outside the timed workers. Source-sampled distances for the large graph are
+independent of fitting pivots. Reviewed coordinates, scores and figure assets
+belong in `inst/extdata/sparse-mds-comparison/`. Full worker results and logs
+remain private; ordinary vignette builds only read the reviewed bundle.

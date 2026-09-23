@@ -149,17 +149,19 @@ comparison_representative <- function(bundle, id, seed = 1L, budget = 100L, pair
 
 comparison_view <- function(case, fits, width = 900L, height = 460L,
                             show = c('overlay', 'reference', 'sgd', 'smacof'),
-                            legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL) {
+                            legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL,
+                            series_labels = NULL, series_colors = NULL,
+                            reference = TRUE, description = NULL) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
-  coordinates <- list(Reference = case$X)
-  labels <- if (weighting) c(sgd_uniform = 'SGD: uniform',
+  coordinates <- if (reference) list(Reference = case$X) else list()
+  labels <- if (!is.null(series_labels)) series_labels else if (weighting) c(sgd_uniform = 'SGD: uniform',
     sgd_inverse_squared = 'SGD: inverse-squared', smacof_uniform = 'SMACOF: uniform',
     smacof_inverse_squared = 'SMACOF: inverse-squared') else c(sgd = 'SGD', smacof = 'SMACOF')
   for (backend in names(labels)) if (!is.null(fits[[backend]]$coords)) {
     coordinates[[labels[[backend]]]] <- comparison_align(fits[[backend]]$coords, case$X)
   }
-  palette <- if (weighting) c(Reference = '#888888', 'SGD: uniform' = '#1769AA',
+  palette <- if (!is.null(series_colors)) series_colors else if (weighting) c(Reference = '#888888', 'SGD: uniform' = '#1769AA',
     'SGD: inverse-squared' = '#009E73', 'SMACOF: uniform' = '#D66A19',
     'SMACOF: inverse-squared' = '#AA3377') else
       c(Reference = '#888888', SGD = '#1769AA', SMACOF = '#D66A19')
@@ -192,7 +194,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             zoom = .85),
     limits = bounds, legend.show = legend, controls = controls,
     layers = layers, width = width, height = height, legend.width = 150,
-    description = if (controls && weighting) paste(case$label, case$n,
+    description = if (!is.null(description)) description else if (controls && weighting) paste(case$label, case$n,
       'vertices. Gray: reference; blue/green: SGD with uniform/inverse-squared weights;',
       'orange/purple: SMACOF with uniform/inverse-squared weights. Alignment preserves scale.') else if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)

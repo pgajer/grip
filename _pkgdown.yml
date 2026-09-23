@@ -47,6 +47,8 @@ navbar:
           href: articles/function-guide.html
         - text: "Comparing SGD and SMACOF"
           href: articles/metric-mds-backends.html
+        - text: "Sparse SGD for larger graphs"
+          href: articles/sparse-metric-mds.html
         - text: Graph examples
           href: articles/synthetic-graph-families.html
         - text: Getting Started
@@ -83,6 +85,7 @@ reference:
       - weighted.grip.nd
       - classical.mds
       - metric.mds
+      - sparse.metric.mds
       - globalrep.grip
       - globalrep.weighted.grip
       - legacy.grip

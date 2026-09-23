@@ -1,5 +1,12 @@
 # grip 0.2.0.9001 (development version)
 
+- Added opt-in `sparse.metric.mds()` for 2D/3D sparse SGD with pivot-based
+  distance preparation, asymmetric endpoint updates, explicit memory checks,
+  reproducible sampling, and separately labeled sparse diagnostics.
+- Added a sparse/full SGD and weighted-GRIP vignette with 3D examples, repeated
+  runs, independent distance-error scores, and measured time and peak memory.
+- Avoided repeated copying when collecting edge lengths for edge-only preparation.
+
 - Added `metric.mds(pair_weights = "inverse_squared")` for both SGD and SMACOF,
   using the Zheng et al. (2018) graph-drawing stress weights. Uniform weighting
   remains the default. Fitting, start selection, scaling, and reported stress

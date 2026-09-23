@@ -794,7 +794,7 @@ grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
                                                      weight.list = NULL,
                                                      caller = "prepare.edge.kk") {
   edges <- list()
-  edge.weights <- numeric(0L)
+  weight.chunks <- vector("list", length(adj.list))
   for (u in seq_along(adj.list)) {
     nb <- as.integer(adj.list[[u]])
     if (length(nb) == 0L) next
@@ -803,12 +803,13 @@ grip.canonical.edge.bundle.from.adj.list <- function(adj.list,
     chosen <- nb[keep]
     edges[[length(edges) + 1L]] <- cbind(rep.int(u, length(chosen)), chosen)
     if (is.null(weight.list)) {
-      edge.weights <- c(edge.weights, rep.int(1, length(chosen)))
+      weight.chunks[[u]] <- rep.int(1, length(chosen))
     } else {
-      edge.weights <- c(edge.weights, as.double(weight.list[[u]][keep]))
+      weight.chunks[[u]] <- as.double(weight.list[[u]][keep])
     }
   }
 
+  edge.weights <- as.double(unlist(weight.chunks, use.names = FALSE))
   edges <- .bind_edges(edges)
   if (nrow(edges) == 0L) {
     return(list(edges = .empty_edge_matrix(), edge_targets = numeric(0L)))
