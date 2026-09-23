@@ -157,7 +157,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
   layers[[length(layers) + 1L]] <- ivue::layer3D.axes(limits = bounds, padding = 0,
     width = 1, head.length = .035, cex = .8)
   groups <- rep(names(coordinates), each = case$n)
-  ivue::plot3D.groups(X, groups = groups,
+  widget <- ivue::plot3D.groups(X, groups = groups,
     scale = ivue::color.scale.groups(names(palette), colors = palette),
     point.type = 'point', point.size = 4, alpha = .8, axes = FALSE,
     xlab = '', ylab = '', zlab = '', aspect = 'equal',
@@ -167,6 +167,9 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (controls) paste(case$label, case$n, 'points;', case$target,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
+  htmlwidgets::onRender(widget, "function(el) {
+    el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
+  }")
 }
 
 comparison_planar <- function(case, fits) {

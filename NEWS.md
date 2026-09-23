@@ -21,6 +21,9 @@
 
 ## Documentation
 
+* Simplified the graph gallery to one interactive view per graph, with a
+  layout selector for metric-MDS, metric-MDS + edge-KK, or both. Removed
+  duplicate static panels and the legend-table disclosure from vignette views.
 * Expanded the installed "Graph examples" vignette with interactive 3D
   metric-MDS and edge-KK views of 13 graphs. Added six attributed SuiteSparse
   datasets as `zheng.graphs`, including original matrices and character labels.

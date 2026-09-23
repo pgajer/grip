@@ -23,7 +23,7 @@ source(system.file('scripts', 'graph-examples.R', package = 'grip'), local = TRU
 bundle <- readRDS(system.file('extdata', 'graph-examples', 'layouts.rds', package = 'grip'))
 have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
   requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
-  all(c('plot3D.groups','color.scale.groups','layer3D.edges','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
+  all(c('plot3D.groups','color.scale.groups','layer3D.callback','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
   'limits' %in% names(formals(ivue::plot3D.plain))
 ```
 
@@ -90,23 +90,18 @@ so they are not passed to the layout functions as distances.
 ## Reading the gallery
 
 **Blue is metric MDS; orange is MDS followed by edge-KK.** Gray, when present,
-shows the coordinates used to construct the graph. All edges are shown.
-The panels share the same camera, limits, and scale. Layouts are aligned by
+shows the coordinates used to construct the graph. Each visible layout includes
+all its edges. Switching layouts preserves the camera and scale. Layouts are aligned by
 translation and rotation/reflection only; no resizing is used to make them agree.
 Generating coordinates show where a geometric graph came from, but need not
 realize its graph shortest-path distances as straight-line separations.
 
-Below each set of panels is an interactive overlay made with
-[ivue](https://github.com/pgajer/ivue). Drag to rotate and scroll to zoom.
-Without a compatible ivue installation, the vignette shows saved images of
-those same views. To rotate one layout on its own, use:
-
-```{r individual-view, eval=FALSE}
-source(system.file('scripts', 'graph-examples.R', package = 'grip'))
-bundle <- readRDS(system.file('extdata', 'graph-examples', 'layouts.rds', package = 'grip'))
-graph_example_view(bundle$cases[['lesmis']], bundle$fits[['lesmis']], show = 'mds')
-graph_example_view(bundle$cases[['lesmis']], bundle$fits[['lesmis']], show = 'refined')
-```
+Each graph has an interactive 3D view made with
+[ivue](https://github.com/pgajer/ivue). Under **View controls**, choose
+**metric-MDS**, **metric-MDS + edge-KK**, or **both**. Gray generating coordinates
+remain visible where available. Drag to rotate and scroll to zoom.
+Without a compatible ivue installation, the vignette shows saved images with
+both layouts.
 
 Each table reports two errors. **Graph-distance error** measures the fit to
 all shortest-path distances; **edge-length error** measures the fit to supplied
@@ -162,9 +157,6 @@ for (group in c('Generated graphs', 'Graphs from applications')) {
       col.names = c('Layout', 'Graph-distance error', 'Edge-length error', 'Stage seconds')), sep = '\n')
     if (!is.null(fits$refined$error)) cat('\nRefinement unavailable: ', fits$refined$error, '\n', sep = '')
     child <- c(
-      sprintf('```{r panels-%s, echo=FALSE, fig.cap="Shared camera and scale. Blue: metric MDS; orange: MDS + edge-KK; gray, when shown: generating coordinates."}', id),
-      sprintf('knitr::include_graphics(system.file("extdata", "graph-examples", "%s-panels.png", package = "grip"))', id),
-      '```',
       sprintf('```{r overlay-%s, echo=FALSE}', id),
       'if (have.ivue) { graph_example_view(graph, fits) } else {',
       sprintf('knitr::include_graphics(system.file("extdata", "graph-examples", "%s.png", package = "grip"))', id),

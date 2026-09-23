@@ -89,22 +89,79 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
   if (show != 'overlay') configurations <- configurations[intersect(names(configurations), show)]
   if (!length(configurations)) stop('Requested layout is unavailable.')
   palette <- c(reference = '#888888', mds = '#1769AA', refined = '#D66A19')
-  labels <- c(reference = 'Generating coordinates', mds = 'Metric MDS', refined = 'MDS + edge-KK')
-  layers <- lapply(seq_along(configurations), function(i) ivue::layer3D.edges(
-    graph$edges + (i - 1L) * graph$n,
-    col = grDevices::adjustcolor(palette[[names(configurations)[i]]], .5), width = .8))
+  labels <- c(reference = 'Generating coordinates', mds = 'metric-MDS', refined = 'metric-MDS + edge-KK')
+  # Separate objects let the selector hide both vertices and edges without
+  # rebuilding the scene or changing its camera, bounds, or alignment.
+  object.ids <- list()
+  layers <- list(ivue::layer3D.callback(function(ctx) {
+    rgl::pop3d(id = unique(ctx$draw.ids$object))
+    for (name in names(configurations)) {
+      coords <- configurations[[name]]
+      points <- rgl::points3d(coords, col = palette[[name]],
+                             size = if (graph$n > 500) 2.5 else 4, lit = FALSE)
+      edges <- rgl::segments3d(coords[as.vector(t(graph$edges)), , drop = FALSE],
+                              col = palette[[name]], alpha = .5, lwd = .8, lit = FALSE)
+      object.ids[[name]] <<- as.integer(c(points, edges))
+    }
+  }))
   layers[[length(layers) + 1L]] <- ivue::layer3D.axes(limits = bounds, padding = 0,
     width = 1, head.length = .035, cex = .8)
   names <- names(configurations)
-  ivue::plot3D.groups(do.call(rbind, configurations),
+  widget <- ivue::plot3D.groups(do.call(rbind, configurations),
     groups = rep(unname(labels[names]), each = graph$n),
     scale = ivue::color.scale.groups(unname(labels[names]),
       colors = stats::setNames(unname(palette[names]), unname(labels[names]))),
     point.type = 'point', point.size = if (graph$n > 500) 2.5 else 4,
     axes = FALSE, xlab = '', ylab = '', zlab = '', aspect = 'equal',
     camera = ivue::camera.zup(elevation = 22, turn = -125, zoom = .6),
-    limits = bounds, layers = layers, legend.show = controls, controls = controls,
+    limits = bounds, layers = layers, legend.show = controls, controls = FALSE,
     width = width, height = height, legend.width = 180,
     description = if (controls) paste(graph$label,
       'Gray: generating coordinates (when available); blue: MDS; orange: MDS + edge-KK.') else NULL)
+  if (!controls) return(widget)
+  htmlwidgets::onRender(widget, "function(el, x, data) {
+    var scene = el.rglinstance, root = scene.scene.rootSubscene;
+    el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
+    var legend = el.querySelector('.ivue-legend');
+    var rows = {};
+    if (legend) Object.keys(data.labels).forEach(function(name) {
+      rows[name] = Array.from(legend.children).find(function(node) {
+        return node.tagName === 'DIV' && node.textContent.trim().startsWith(data.labels[name] + ' (');
+      });
+    });
+    var panel = document.createElement('details');
+    panel.className = 'ivue-tools'; panel.open = true;
+    var summary = document.createElement('summary'); summary.textContent = 'View controls';
+    panel.appendChild(summary);
+    var label = document.createElement('label'); label.textContent = 'Layout: ';
+    var select = document.createElement('select');
+    select.className = 'grip-layout-selector'; select.style.font = 'inherit';
+    [['mds', 'metric-MDS'], ['refined', 'metric-MDS + edge-KK'], ['both', 'both']].forEach(function(choice) {
+      var option = document.createElement('option');
+      option.value = choice[0]; option.textContent = choice[1];
+      option.disabled = choice[0] === 'both' ? !(data.ids.mds && data.ids.refined) : !data.ids[choice[0]];
+      select.appendChild(option);
+    });
+    select.value = data.initial;
+    label.appendChild(select); panel.appendChild(label);
+    var hint = document.createElement('span'); hint.textContent = ' Drag to rotate; scroll to zoom.';
+    panel.appendChild(hint);
+    function update() {
+      Object.keys(data.ids).forEach(function(name) {
+        var visible = name === 'reference' || select.value === 'both' || select.value === name;
+        data.ids[name].forEach(function(id) {
+          if (visible) scene.addToSubscene(id, root); else scene.delFromSubscene(id, root);
+        });
+        if (rows[name]) rows[name].style.display = visible ? 'flex' : 'none';
+      });
+      scene.drawScene();
+    }
+    select.addEventListener('change', update);
+    ['pointerdown', 'mousedown', 'touchstart', 'wheel'].forEach(function(event) {
+      panel.addEventListener(event, function(e) { e.stopPropagation(); });
+    });
+    el.appendChild(panel); update();
+  }", data = list(ids = object.ids, labels = as.list(labels[names]),
+    initial = if (all(c('mds', 'refined') %in% names)) 'both' else
+      if ('mds' %in% names) 'mds' else if ('refined' %in% names) 'refined' else 'both'))
 }

@@ -35,6 +35,38 @@ const {pathToFileURL} = require('url');
         }));
         if (new Set(cameras).size !== 1) throw new Error(`Panel cameras or bounds differ: ${file}`);
       }
+      if (await page.locator('.ivue-legend details').count()) throw new Error(`Legend table remains: ${file}`);
+      const selector = page.locator('.grip-layout-selector');
+      const hasSelector = await selector.count();
+      if (hasSelector) {
+        if (await page.locator('.ivue-tools button').count()) throw new Error(`Old view buttons remain: ${file}`);
+        const choices = await selector.locator('option').allTextContents();
+        if (JSON.stringify(choices) !== JSON.stringify(['metric-MDS', 'metric-MDS + edge-KK', 'both']))
+          throw new Error(`Incorrect layout choices: ${file}`);
+        const inspect = () => page.evaluate(() => {
+          const el = document.querySelector('.rglWebGL'), scene = el.rglinstance;
+          const root = scene.getObj(scene.scene.rootSubscene);
+          const payload = JSON.parse(document.querySelector('script[data-for="' + el.id + '"]').textContent);
+          const data = payload.jsHooks.render.find(hook => hook.data?.ids).data;
+          return {ids: data.ids, shown: root.objects,
+            geometry: JSON.stringify(Object.values(data.ids).flat().map(id => scene.getObj(id).vertices)),
+            camera: JSON.stringify({matrix: root.par3d.userMatrix.getAsArray(), zoom: root.par3d.zoom, bbox: root.par3d.bbox}),
+            legends: Array.from(el.querySelectorAll('.ivue-legend > div')).filter(row => row.style.display !== 'none').map(row => row.textContent)};
+        });
+        const initial = await inspect();
+        for (const mode of ['mds', 'refined', 'both', 'mds', 'both']) {
+          await selector.selectOption(mode);
+          const state = await inspect();
+          for (const [name, ids] of Object.entries(state.ids)) {
+            const visible = name === 'reference' || mode === 'both' || mode === name;
+            if (ids.some(id => state.shown.includes(id) !== visible)) throw new Error(`Wrong object visibility: ${file} ${mode} ${name}`);
+          }
+          const expectedLegends = (state.ids.reference ? 1 : 0) + (mode === 'both' ? 2 : 1);
+          if (state.legends.length !== expectedLegends) throw new Error(`Wrong legend visibility: ${file} ${mode}`);
+          if (state.camera !== initial.camera || state.geometry !== initial.geometry)
+            throw new Error(`Switching layouts changed camera or coordinates: ${file}`);
+        }
+      }
       const output = path.join(destination, file.replace(/\.html$/, '.png'));
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.evaluate(() => document.fonts.ready);
@@ -53,7 +85,7 @@ const {pathToFileURL} = require('url');
       const after = await readCamera();
       if (JSON.stringify(before) === JSON.stringify(after)) throw new Error(`Rotation failed: ${file}`);
       if (errors.length) throw new Error(errors.join('\n'));
-      results.push({file, views: expectedViews, offline: true, rotation: true, javascriptErrors: errors});
+      results.push({file, views: expectedViews, offline: true, rotation: true, layoutSelector: Boolean(hasSelector), legendTables: false, javascriptErrors: errors});
       await page.close();
       console.log(`Captured and checked ${file}`);
     }

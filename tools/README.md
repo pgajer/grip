@@ -55,6 +55,10 @@ The fitter needs `callr`; rendering needs `ivue`, `rgl`, `htmltools`,
 `htmlwidgets`, and Pandoc. The shared capture script needs Playwright and Chromium;
 `PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` can locate them. Review the layouts
 and scores before replacing `inst/extdata/graph-examples/layouts.rds` and its
-images. Each graph runs in a separate process with a 180-second limit, and
-failures are saved while later graphs continue. Edge-KK failures retain the
+images. Rendering uses the saved layouts without refitting. Each interactive view
+has a selector for metric-MDS, metric-MDS + edge-KK, or both; captures show both.
+The capture script checks visibility, fixed camera and coordinates, rotation,
+and the absence of legend tables. Use a fresh render directory to avoid
+capturing obsolete figures. Each graph runs in a separate process with a
+180-second limit, and failures are saved while later graphs continue. Edge-KK failures retain the
 completed MDS layout. Settings and all MDS start summaries are retained.
