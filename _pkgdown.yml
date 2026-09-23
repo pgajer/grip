@@ -47,7 +47,7 @@ navbar:
           href: articles/function-guide.html
         - text: "Comparing SGD and SMACOF"
           href: articles/metric-mds-backends.html
-        - text: Synthetic Graph Examples
+        - text: Graph examples
           href: articles/synthetic-graph-families.html
         - text: Getting Started
           href: articles/grip-examples.html
@@ -192,6 +192,7 @@ reference:
       - print.grip_misf
   - title: Data
     contents:
+      - zheng.graphs
       - hmp.gc
       - hmp.u01.gc.coarse
   - title: Package and migration

@@ -61,3 +61,14 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+SuiteSparse graph examples (CC BY 4.0)
+
+The matrices in inst/extdata/zheng-graphs and their derived data/zheng.graphs.rda
+are distributed under Creative Commons Attribution 4.0 International:
+https://creativecommons.org/licenses/by/4.0/
+Original contributors: G. Everstine, D. Taylor, D. Knuth, and D. Tylavsky.
+Collection: Timothy A. Davis and Yifan Hu, SuiteSparse Matrix Collection.
+See inst/extdata/zheng-graphs/PROVENANCE.md and the matrix headers for complete
+attribution, source-specific references, and descriptions of modifications.

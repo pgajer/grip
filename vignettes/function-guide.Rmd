@@ -41,9 +41,9 @@ helpers support different decisions around that drawing.
 | What if edges have meaningful lengths? | `grip(metric = "edge_length")` | [Weighted Graph Layouts](weighted-grip-intro.html) |
 | Which settings and seeds give useful drawings? | `compare.layouts()`, then `params.from.summary()` | [Choosing Layouts for Real Data](grip-real-data.html) |
 | Does my drawing preserve graph distances? | `score.layout()` or the more specialized `score.gmds()` | [Choose a score](#choose-a-score) |
-| Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Synthetic graph examples](synthetic-graph-families.html) |
+| Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
 | Where did a fold or collapse appear? | `trace.grip()` | [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html) |
-| How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Synthetic graph families](synthetic-graph-families.html) |
+| How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Graph examples](synthetic-graph-families.html) |
 | How do I browse many saved results? | `gripui_project()` and `run_gripui()` in an interactive session | [Website explorer article](https://pgajer.github.io/grip/articles/gripui-explorer.html) |
 
 The seven linked package vignettes are installed with grip. The

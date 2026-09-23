@@ -259,15 +259,18 @@ cmp$summary[, c("candidate", "score.composite", "sampled.stress.mean")]
 
 ## Documentation
 
-A development installation built with vignettes contains six guides,
+A development installation built with vignettes contains seven guides,
 listed by `vignette(package = "grip")`:
 
 - **Finding your way around grip** — a task-oriented function catalog,
   metric and score choices, and detailed help. Open with
   `vignette("function-guide", package = "grip")`.
-- **Synthetic graph families and layout examples** — reproducible graph
-  bundles, static drawings, and reference-coordinate comparisons. Open
-  with `vignette("synthetic-graph-families", package = "grip")`.
+- **Graph examples** — generated graphs and application datasets with
+  interactive 3D MDS and edge-KK views. Open with
+  `vignette("synthetic-graph-families", package = "grip")`.
+- **Comparing SGD and SMACOF for metric MDS** — stress and timing
+  comparisons on synthetic clouds and weighted graphs. Open with
+  `vignette("metric-mds-backends", package = "grip")`.
 - **Getting Started with grip** — the shortest path through the default
   unweighted workflow, with guidance on when to switch to weighted,
   trace, or comparison workflows.

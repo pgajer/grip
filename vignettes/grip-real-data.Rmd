@@ -519,7 +519,7 @@ artifact paths, see the companion article `HMP/U01 Weighted Graph Case Study`.
 
 For an API map, see [Finding your way around grip](function-guide.html).
 For reproducible bundles and reference scoring, see
-[Synthetic graph families and layout examples](synthetic-graph-families.html).
+[Graph examples](synthetic-graph-families.html).
 Both are installed vignettes; the broader gallery and interactive explorer
 are website-only articles.
 

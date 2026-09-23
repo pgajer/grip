@@ -21,6 +21,10 @@
 
 ## Documentation
 
+* Expanded the installed "Graph examples" vignette with interactive 3D
+  metric-MDS and edge-KK views of 13 graphs. Added six attributed SuiteSparse
+  datasets as `zheng.graphs`, including original matrices and character labels.
+
 * Distinguished CRAN and development installations, including offline-vignette
   building, and added a development notice and direct quick-start navigation.
 * Repaired Markdown function links in help and made package help lead to a

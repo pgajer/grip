@@ -35,3 +35,26 @@ Playwright and Chromium. The script preserves each attempt and records failures.
 Review results before replacing the public bundle or images. Raw worker logs,
 intermediate attempts and browser audit records belong outside the repository.
 The reviewed bundle, images and recipes are public vignette artifacts.
+
+## Graph examples gallery
+
+The six SuiteSparse graphs are installed as `zheng.graphs`. Rebuild them
+without downloading anything using `Rscript data-raw/zheng_graphs.R`; the
+archived matrices and attribution are in `inst/extdata/zheng-graphs/`.
+
+The gallery includes six generated graphs, karate club, and these six datasets.
+To recreate all 3D layouts, install this checkout into a separate library and run:
+
+```
+Rscript tools/pkg/build-graph-examples.R <fresh-output-dir> <candidate-library>
+Rscript tools/pkg/render-graph-examples.R <fresh-output-dir>/layouts.rds <render-dir>
+node tools/pkg/capture-metric-mds-comparison.cjs <render-dir> <image-dir>
+```
+
+The fitter needs `callr`; rendering needs `ivue`, `rgl`, `htmltools`,
+`htmlwidgets`, and Pandoc. The shared capture script needs Playwright and Chromium;
+`PLAYWRIGHT_MODULE` and `CHROMIUM_EXECUTABLE` can locate them. Review the layouts
+and scores before replacing `inst/extdata/graph-examples/layouts.rds` and its
+images. Each graph runs in a separate process with a 180-second limit, and
+failures are saved while later graphs continue. Edge-KK failures retain the
+completed MDS layout. Settings and all MDS start summaries are retained.

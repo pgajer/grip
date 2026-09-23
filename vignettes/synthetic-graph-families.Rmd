@@ -1,10 +1,10 @@
 ---
-title: "Synthetic graph families and layout examples"
+title: "Graph examples"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Synthetic graph families and layout examples}
+  %\VignetteIndexEntry{Graph examples}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -13,21 +13,168 @@ vignette: >
 body { max-width: 1000px; }
 td, th { vertical-align: top; }
 td code { white-space: normal; overflow-wrap: anywhere; }
+.rglWebGL { max-width: 100%; }
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
-                     fig.width = 6, fig.height = 4.5)
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>', out.width = '100%')
+library(grip)
+source(system.file('scripts', 'graph-examples.R', package = 'grip'), local = TRUE)
+bundle <- readRDS(system.file('extdata', 'graph-examples', 'layouts.rds', package = 'grip'))
+have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
+  requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
+  all(c('plot3D.groups','color.scale.groups','layer3D.edges','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
+  'limits' %in% names(formals(ivue::plot3D.plain))
 ```
 
-Choose a synthetic family to make a layout question reproducible. A tree
-isolates branching and edge-length effects; a masked grid adds holes and
-bottlenecks; a surface bundle supplies reference coordinates. These examples
-use small graphs to demonstrate the workflow, not to rank layout methods.
-For the complete function catalog and score definitions, see
-[Finding your way around grip](function-guide.html).
+Explore trees, curved surfaces, recursive constructions, and graphs from
+applications. Each example shows a **3D metric-MDS layout** and the result of
+**edge-KK refinement**, using the same graph and edge lengths. The six
+SuiteSparse examples also appear in
+[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+They join grip's generated graph families and its karate-club example here.
 
-## Choose the kind of input you need
+`metric.mds()` uses SGD by default. For the method references and a comparison
+with SMACOF, see [Comparing SGD and SMACOF](metric-mds-backends.html).
+The layouts here illustrate the graphs using grip's current functions;
+they do not reproduce the paper's inverse-squared-distance stress weighting.
+
+## Draw a graph in two steps
+
+This small example creates a weighted tree, draws it in 3D, and refines its
+edge lengths. The gallery uses this same recipe for every graph.
+
+```{r small-example}
+g <- kary.tree.weighted.graph(k = 2, depth = 5, depth_decay = .85,
+                            branch_spread = .2, normalize = 'none')
+prepared <- prepare.graph.geodesic.mds(
+  edges = g$edges, n = g$n, edge_weights = g$edge_weights)
+mds <- suppressWarnings(metric.mds(
+  prepared = prepared, dim = 3, init = 'random',
+  n_init = 3, max_iter = 80, seed = 2026, diagnostics = FALSE))
+refined <- edge.kk(
+  coords = mds$coords, prepared = prepared, dim = 3,
+  stiffness_method = 'uniform', density_mix_schedule = 1,
+  scale_mode = 'identity', max_iter = 100,
+  return_trace = FALSE, diagnostics = FALSE)
+```
+
+MDS tries to fit shortest-path distances between **all pairs of vertices**.
+Edge-KK adjusts the drawing to fit **directly connected vertices**. Here every
+edge has equal influence during refinement, and `scale_mode = "identity"`
+keeps its target length fixed. An improvement in edge lengths can come with a
+worse fit to distances between more widely separated vertices.
+
+We use three random starts for MDS, retaining the one with the lowest stress,
+and allow 80 passes per start. Reaching that limit can produce an
+`iteration_limit` warning; the small example suppresses it, while the saved
+gallery records it. Refinement allows 100 iterations. These are illustration
+settings, not settings chosen to make either stage win. All fits use seed 2026.
+
+For the six new datasets, replace the graph-construction line with:
+
+```{r supplied-data}
+data(zheng.graphs)
+names(zheng.graphs)
+g <- zheng.graphs[['lesmis']]
+head(g$vertex_data)
+```
+
+Each dataset supplies `n`, `edges`, `edge_weights`, `vertex_data`, and
+`graph_info`. Vertex indices follow the original matrix rows. The six graphs
+are connected; no vertices were dropped or connecting edges added. We use
+unit edge lengths and preserve the original matrix values separately.
+For example, Les Miserables coappearance counts describe connection strength,
+so they are not passed to the layout functions as distances.
+
+## Reading the gallery
+
+**Blue is metric MDS; orange is MDS followed by edge-KK.** Gray, when present,
+shows the coordinates used to construct the graph. All edges are shown.
+The panels share the same camera, limits, and scale. Layouts are aligned by
+translation and rotation/reflection only; no resizing is used to make them agree.
+Generating coordinates show where a geometric graph came from, but need not
+realize its graph shortest-path distances as straight-line separations.
+
+Below each set of panels is an interactive overlay made with
+[ivue](https://github.com/pgajer/ivue). Drag to rotate and scroll to zoom.
+Without a compatible ivue installation, the vignette shows saved images of
+those same views. To rotate one layout on its own, use:
+
+```{r individual-view, eval=FALSE}
+source(system.file('scripts', 'graph-examples.R', package = 'grip'))
+bundle <- readRDS(system.file('extdata', 'graph-examples', 'layouts.rds', package = 'grip'))
+graph_example_view(bundle$cases[['lesmis']], bundle$fits[['lesmis']], show = 'mds')
+graph_example_view(bundle$cases[['lesmis']], bundle$fits[['lesmis']], show = 'refined')
+```
+
+Each table reports two errors. **Graph-distance error** measures the fit to
+all shortest-path distances; **edge-length error** measures the fit to supplied
+edge lengths. Both are root-mean-square errors divided by the root-mean-square
+target length, so zero is exact agreement and lower is better. Scores use the
+returned coordinates without fitting an extra scale. Each stage's elapsed time
+is also listed; preparation is excluded, and the refinement time is additional
+to the MDS time. These are single-workstation timings, not a speed comparison.
+
+```{r gallery, echo=FALSE, results='asis'}
+descriptions <- c(
+  tree = 'A binary tree with shorter edges at greater depth and different lengths for sibling branches. It has no generating coordinates.',
+  carpet = 'A recursively perforated grid lifted onto a saddle. Its holes create detours in graph paths.',
+  saddle = 'A grid lifted to a saddle, with horizontal, vertical, and diagonal edges. Traversal lengths are measured between neighboring surface points.',
+  paraboloid = 'A grid lifted to a bowl-shaped surface, with horizontal, vertical, and diagonal edges. The diagonals distinguish its graph distances from those of the saddle.',
+  torus = 'A grid wrapped around a torus. Connections continue around both circular directions.',
+  porous = 'A twisted cubical channel network with interior vertices and several routes through the volume.',
+  karate = 'The karate-club social graph already supplied by grip, drawn here with unit edge lengths.',
+  dwt_66 = 'A small structural graph from the Harwell–Boeing collection. Its elongated structure makes bends and twists easy to inspect.',
+  lesmis = 'Characters in Les Miserables are connected when they appear in the same chapter. Character names are retained in vertex_data.',
+  dwt_307 = 'A structural graph included among the paper’s examples. It provides a useful contrast to the other meshes.',
+  '494_bus' = 'The connectivity of a 494-bus power-system matrix. Electrical values are preserved in the source file but are not layout distances.',
+  dwt_1005 = 'A larger structural mesh with 1,005 vertices. Rotate the view to inspect its folds and connections.',
+  '1138_bus' = 'The connectivity of a 1,138-bus power-system matrix, showing branching at a larger scale.')
+recipes <- c(
+  tree = "g <- kary.tree.weighted.graph(k = 2, depth = 5, depth_decay = .85, branch_spread = .2, normalize = 'none')",
+  carpet = "g <- recursive.mask.grid.surface.graph(mask.border(3), level = 2, surface = 'saddle', amplitude = .5, normalize = 'none')",
+  saddle = "g <- mesh.surface.graph(10, 10, surface = 'saddle', connectivity = 'diagonal', normalize = 'none')",
+  paraboloid = "g <- mesh.surface.graph(10, 10, surface = 'paraboloid', connectivity = 'diagonal', normalize = 'none')",
+  torus = "g <- torus.surface.graph(12, 8, normalize = 'none')",
+  porous = "g <- cube.channel.network.surface.graph(side = 5, level = 1, surface = 'twisted', twist = .2, normalize = 'none')",
+  karate = "E <- as.matrix(read.csv(system.file('extdata', 'karate-club-edges.csv', package = 'grip')))\ng <- list(n = 34L, edges = E, edge_weights = rep(1, nrow(E)))")
+for (group in c('Generated graphs', 'Graphs from applications')) {
+  cat('\n\n## ', group, '\n\n', sep = '')
+  for (id in names(bundle$cases)) {
+    graph <- bundle$cases[[id]]
+    if (graph$group != group) next
+    fits <- bundle$fits[[id]]
+    cat('\n\n### ', graph$label, '\n\n', descriptions[[id]], '\n\n', sep = '')
+    cat(sprintf('**%s vertices; %s edges. %s.**\n\n', graph$n, nrow(graph$edges), graph$lengths))
+    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- zheng.graphs[['%s']]", id)
+    cat('```r\n', recipe, '\n```\n\n', sep = '')
+    if (!is.null(graph$graph_info$source_url)) cat('[Source and metadata](', graph$graph_info$source_url, ').\n\n', sep = '')
+    if (!is.null(fits$error)) { cat('Layout unavailable: ', fits$error, '\n\n', sep = ''); next }
+    tab <- do.call(rbind, lapply(c('mds','refined'), function(method) {
+      f <- fits[[method]]
+      data.frame(Method = if (method == 'mds') 'Metric MDS' else 'MDS + edge-KK',
+        Graph_error = if (is.null(f$scores)) NA_real_ else f$scores[['graph_error']],
+        Edge_error = if (is.null(f$scores)) NA_real_ else f$scores[['edge_error']],
+        Stage_seconds = if (is.null(f$seconds)) NA_real_ else f$seconds)
+    }))
+    cat(knitr::kable(tab, digits = 4, row.names = FALSE,
+      col.names = c('Layout', 'Graph-distance error', 'Edge-length error', 'Stage seconds')), sep = '\n')
+    if (!is.null(fits$refined$error)) cat('\nRefinement unavailable: ', fits$refined$error, '\n', sep = '')
+    child <- c(
+      sprintf('```{r panels-%s, echo=FALSE, fig.cap="Shared camera and scale. Blue: metric MDS; orange: MDS + edge-KK; gray, when shown: generating coordinates."}', id),
+      sprintf('knitr::include_graphics(system.file("extdata", "graph-examples", "%s-panels.png", package = "grip"))', id),
+      '```',
+      sprintf('```{r overlay-%s, echo=FALSE}', id),
+      'if (have.ivue) { graph_example_view(graph, fits) } else {',
+      sprintf('knitr::include_graphics(system.file("extdata", "graph-examples", "%s.png", package = "grip"))', id),
+      '}', '```')
+    cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+  }
+}
+```
+
+## More graph constructors
 
 | Need | Public entry points | Output |
 |---|---|---|
@@ -47,248 +194,33 @@ A name ending in `surface.graph` is not a promise of a triangle mesh:
 occupied-cube families, for example, connect occupied cells and can include
 interior vertices.
 
-## Read a bundle before using it
 
-```{r bundle-structure}
-library(grip)
-mesh <- mesh.surface.graph(3, 4, surface = "saddle", normalize = "none")
-names(mesh)
-c(vertices = mesh$n, edges = nrow(mesh$edges),
-  reference_dimensions = ncol(mesh$coords_surface))
-head(mesh$edges)
-```
+## Repeat the gallery
 
-| Field | Meaning and ordering |
-|---|---|
-| `edges` | Integer matrix with two columns, one undirected edge per row; endpoints are 1-based vertex indices. |
-| `n` | Total number of vertices. Use this instead of `max(edges)` so isolated vertices are retained. |
-| `edge_weights` | Positive lengths parallel to edge rows. These are traversal lengths, not strengths. |
-| `coords_surface` | When supplied, an `n` by 3 reference-coordinate matrix. Row `i` is vertex `i`, in the same order as the edge endpoints. Tree bundles omit it. |
-| `coords_param` | When supplied, coordinates before the geometric deformation. Often `n` by 2, but polyhedra and volumetric families can use three columns. These are not automatically layout targets. |
-| `weight_scale` | Divisor used to normalize raw lengths: supplied length equals raw length divided by `weight_scale`. The reference coordinates remain in their original units. |
-| `normalize`, `family`, `label`, and construction controls | Record the selected normalization and family-specific settings. Exact fields differ by constructor. |
+The small tree example runs when this vignette is built. The gallery uses
+saved layouts so rebuilding the document does not repeat the larger fits.
+To draw any graph yourself, use its construction line above followed by the
+two-step example. Keep `dim = 3` and the same edge lengths in both steps.
 
-Most geometric families induce lengths from the Euclidean distances between
-reference endpoints. `kary.tree.weighted.graph()` assigns lengths intrinsically.
-Sampled rectangles also return `raw_edge_weights` (3D endpoint distances) and
-`iknn_witness_edge_weights` (intersection-neighbor construction diagnostics).
-Even with `graph_space = "param"`, the final sampled-rectangle lengths use
-3D endpoint distances; `graph_space` changes graph construction.
+The full recipe is installed as `scripts/graph-examples.R`. Instructions for
+rebuilding the saved layouts and images are in the
+[reproduction guide](https://github.com/pgajer/grip/blob/main/tools/README.md#graph-examples-gallery).
+The saved file retains the settings, software version, all MDS starts, warnings,
+and any unsuccessful fits. This gallery uses dense shortest-path distances;
+check graph size before increasing the construction sizes substantially.
 
-Do not assume a shared schema beyond the documented constructor fields.
-The plural sampled-rectangle function returns a container with `$graphs`,
-`$k`, `$k_statistics`, and shared coordinate matrices; pass one member of
-`$graphs` to the layout workflow. It sorts and deduplicates the supplied
-neighborhood sizes. No public bundle used here supplies `faces` or `triangles`.
-`score.surface()` needs explicit triangle connectivity supplied separately;
-it cannot infer a surface from these edge lists.
+## Data sources
 
-Ordering is part of reproducibility. The rectangular mesh enumerates each
-row from left to right. Mask matrices use display orientation (top row first,
-left column first); occupied-cell coordinates and graph indices share that
-order. Sphere bundles put the north pole first, then latitude rings from
-north to south, then the south pole. Trees put the root first and enumerate
-children by parent and child slot. For other families, retain the constructor's
-returned order rather than reconstructing it from a drawing. Reordering rows
-requires remapping edges and every reference and metadata field together.
+The six new graph datasets are derived from the
+[SuiteSparse Matrix Collection](https://sparse.tamu.edu/), distributed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original matrices,
+author credits, character labels, and descriptions of the conversion are
+included in `extdata/zheng-graphs/`. See `help('zheng.graphs')` for details.
 
-## Example 1: a tree with intrinsic edge lengths
-
-Use a primitive path when you need only topology:
-
-```{r primitive-path}
-path.edges <- edges.path(7)
-path.coords <- grip(path.edges, n = 7, dim = 2, preset = "tree", seed = 21)
-stopifnot(identical(dim(path.edges), c(6L, 2L)))
-```
-
-A complete weighted tree separates depth-dependent tapering from child-slot
-asymmetry. Here a binary tree has three levels below the root (15 vertices).
-It has no generating reference coordinates; a graph-distance diagnostic is
-therefore the appropriate first score.
-
-```{r weighted-tree, fig.alt="A branching tree drawn using intrinsic positive edge lengths; its connectivity and edge-length variation are visible."}
-tree <- kary.tree.weighted.graph(
-  k = 2, depth = 3, depth_decay = 0.8,
-  branch_spread = 0.25, normalize = "none"
-)
-knitr::kable(head(tree$edge_table), digits = 3)
-tree.coords <- grip(tree$edges, n = tree$n,
-                    edge_weights = tree$edge_weights,
-                    metric = "edge_length", length_normalization = "none",
-                    dim = 2, preset = "tree", seed = 21)
-plot.layout(tree.coords, edges = tree$edges,
-            vertex.col = tree$vertex_depth + 1L, pch = 16,
-            main = "Intrinsic lengths on a binary tree")
-tree.score <- score.layout(tree.coords, edges = tree$edges, n = tree$n,
-                            edge_weights = tree$edge_weights,
-                            sample.size.stress = 150, stress.seed = 21,
-                            edge.crossings = "never")
-knitr::kable(tree.score[, c("sampled.stress", "edge.length.cv")], digits = 3)
-```
-
-`parent` has one entry per vertex and uses 0 for the root's missing parent;
-`vertex_depth` starts at 0. `edge_table` follows the edge rows and records
-parent, child, both depths, child slot, raw length, and normalized length.
-Unequal drawn edges are intentional here, so a low edge-length coefficient of
-variation is not the goal. Weighted sampled stress evaluates chords against
-tree-path distances after fitting scale. Branching tree metrics cannot in
-general be preserved exactly as Euclidean separations in two dimensions.
-
-## Example 2: a recursive graph with holes
-
-A keep mask describes which cells survive each subdivision. The border of a
-3 by 3 mask removes the center at each step. At level 2 there are 64 retained
-cells. This example uses a flat lift (`amplitude = 0`) and omits lengths when
-fitting and scoring, so both operations use hop counts.
-
-```{r masked-grid}
-keep <- mask.border(3)
-keep
-carpet <- recursive.mask.grid.surface.graph(
-  mask = keep, level = 2, surface = "saddle", amplitude = 0
-)
-stopifnot(carpet$n == 64L, nrow(carpet$coords_param) == carpet$n)
-carpet.coords <- grip(carpet$edges, n = carpet$n,
-                      metric = "hop", dim = 2, preset = "carpet", seed = 22)
-```
-
-```{r masked-grid-plot, fig.width=8, fig.height=4, fig.alt="Reference grid and GRIP drawing of a recursive carpet with holes, shown side by side."}
-op <- par(mfrow = c(1, 2), mar = c(3, 3, 2, 1))
-plot.layout(carpet$coords_param, edges = carpet$edges, pch = 16, cex = 0.5,
-            main = "Generating grid")
-plot.layout(carpet.coords, edges = carpet$edges, pch = 16, cex = 0.5,
-            main = "Hop-metric drawing")
-par(op)
-```
-
-```{r masked-grid-score}
-carpet.score <- score.layout(carpet.coords, edges = carpet$edges, n = carpet$n,
-                              sample.size.stress = 300, stress.seed = 22,
-                              edge.crossings = "never")
-carpet.score$sampled.stress
-```
-
-The layout preserves the graph's vertex and edge identities, but it need not
-reproduce the original square arrangement. Holes and narrow connections make
-this a useful example for [tracing](grip-trace-and-diagnostics.html).
-A different keep pattern can disconnect a graph or isolate cells; `grip()`
-packs components by default. Such packing is not evidence of distances
-between disconnected components.
-
-Square and cubic recursive grids require `level >= 1`. Triangle and tetrahedron
-recursions and triangulated polyhedra also allow level 0. Triangle masks have
-four named child slots; tetrahedron masks have four corner slots. A cubic
-keep array is not interchangeable with either. Increasing depth multiplies
-the retained cells, so inspect `n` before launching a layout or all-pairs score.
-
-## Example 3: graph fidelity versus reference recovery
-
-An octahedron subdivided once gives 18 vertices and a three-dimensional
-reference configuration. The two fits below keep topology, vertex order,
-supplied lengths, seed, dimension, preset, and iteration controls fixed.
-Both receive the same **unnormalized lengths**. Hop mode uses those lengths
-for adjacent-edge forces; edge-length mode additionally uses them for graph
-neighborhoods and hierarchy construction. Its solver normalization is set to
-`"none"` to retain the same input length scale.
-
-```{r surface-fits}
-surface <- triangulated.polyhedron.surface.graph(
-  base = "octahedron", level = 1, surface = "inflated", normalize = "none"
-)
-common <- list(edges = surface$edges, n = surface$n,
-               edge_weights = surface$edge_weights, dim = 3,
-               preset = "mesh", rounds = 40, final_rounds = 60, seed = 23)
-fits <- list(
-  hop = do.call(grip, c(common, list(metric = "hop"))),
-  edge_length = do.call(grip, c(common, list(
-    metric = "edge_length", length_normalization = "none")))
-)
-stopifnot(surface$n == 18L,
-          all(vapply(fits, function(x) all(is.finite(x)), logical(1))))
-reference.scores <- lapply(fits, score.coordinates,
-                           reference = surface$coords_surface,
-                           alignment = "similarity")
-summary <- do.call(rbind, lapply(names(fits), function(method) {
-  graph.score <- score.layout(
-    fits[[method]], edges = surface$edges, n = surface$n,
-    edge_weights = surface$edge_weights, sample.size.stress = 200,
-    stress.seed = 23, edge.crossings = "never"
-  )
-  data.frame(method = method,
-             weighted_chord_stress = graph.score$sampled.stress,
-             reference_relative_rmse = reference.scores[[method]]$relative_rmse,
-             alignment_scale = reference.scores[[method]]$scale)
-}))
-knitr::kable(summary, digits = 3)
-```
-
-Both drawings are scored against the **same weighted graph distances**, with
-the same pair sampling settings. The coordinate score separately uses the
-same reference and vertex correspondence, fitting translation, an orthogonal
-transformation (including reflection), and uniform scale. Relative coordinate
-RMSE is root mean squared vertex displacement divided by the reference's RMS
-radius. Similarity alignment removes overall size differences, so it does
-not establish recovery of absolute length scale. Use `alignment = "rigid"`
-when scale must count as error.
-
-```{r surface-projections, fig.width=9, fig.height=3.6, fig.alt="Static projections of the reference surface and the hop- and edge-length-metric layouts, aligned for comparison."}
-op <- par(mfrow = c(1, 3), mar = c(1, 1, 2, 1))
-plot.layout(surface$coords_surface, edges = surface$edges,
-            projection = "ortho", main = "Reference")
-for (method in names(fits)) {
-  plot.layout(reference.scores[[method]]$coords, edges = surface$edges,
-              projection = "ortho",
-              main = if (method == "hop") "Hop metric" else "Edge-length metric",
-              vertex.col = "#215A87")
-}
-par(op)
-```
-
-These are static orthographic views of 3D coordinates, not new 2D fits.
-Scores above use all three columns. The generating coordinates provide one
-reference: graph symmetries, bending, missing constraints, and the choice of
-objective can permit other drawings. Matching graph-path distances, matching
-endpoint separations, and recovering this reference are distinct goals.
-Here the rounded scores agree closely, showing that the two metric choices
-can give similar results on a symmetric graph. One graph and one seed do not
-establish general superiority of either mode.
-
-## Reproducibility and practical limits
-
-Primitive generators and the regular, recursive, and irregular families are
-deterministic for fixed construction arguments. The sampled-rectangle family
-uses random sampling: a supplied integer `seed` fixes that sample and restores
-the caller's R random-number state; `seed = NULL` uses and advances the current
-stream. A plural call samples once for all requested neighborhood sizes.
-Graph sampling and layout fitting have separate seeds.
-
-```{r sampled-reproducibility}
-sample.one <- sampled.rectangle.surface.graph(n = 20, k = 4, seed = 24)
-sample.two <- sampled.rectangle.surface.graph(n = 20, k = 4, seed = 24)
-stopifnot(identical(sample.one$edges, sample.two$edges),
-          identical(sample.one$coords_surface, sample.two$coords_surface))
-c(vertices = sample.one$n, edges = nrow(sample.one$edges))
-```
-
-For `grip()`, pass an explicit `seed` (the default is 6); `NULL` uses the
-current time rather than the caller's R random stream. Record the package
-version, graph arguments, vertex order, graph and solver normalization, layout
-controls, and scoring seeds. Fixed seeds aid repeatability within an
-implementation; they are not promises of identical floating-point results
-across future versions and platforms.
-
-The surface and solid bundles here return three reference columns, while
-`grip()` fits either 2D or 3D. Higher-dimensional layout workflows are described
-in the [function guide](function-guide.html); changing layout dimension does
-not create a higher-dimensional reference bundle. Sphere and wrapped families
-have minimum grid-size restrictions; intrinsic trees can have depth 0, with
-one vertex and no edges. Use constructor help for parameter bounds.
-
-No example here needs Shiny, rgl, an interactive device, or a browser. For
-larger families, first inspect the graph size and use modest sampled scores;
-full shortest-path matrices and route caches can dominate memory. Optional
-[interactive exploration](https://pgajer.github.io/grip/articles/gripui-explorer.html)
-and the [gallery](https://pgajer.github.io/grip/articles/gallery.html) are
-website follow-ups. The installed [weighted-layout guide](weighted-grip-intro.html)
-and [real-data guide](grip-real-data.html) develop the corresponding workflows.
+- Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Davis, T. A. and Hu, Y. (2011). *The University of Florida Sparse Matrix Collection*.
+  [doi:10.1145/2049662.2049663](https://doi.org/10.1145/2049662.2049663).
+- Knuth, D. E. (1993). *The Stanford GraphBase: A Platform for Combinatorial Computing*.
+  Addison-Wesley. Source of the Les Miserables coappearance data.

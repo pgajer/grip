@@ -195,7 +195,7 @@ Switch to the other guides when the task changes:
 
 For an API map, see [Finding your way around grip](function-guide.html).
 For reproducible bundles and reference scoring, see
-[Synthetic graph families and layout examples](synthetic-graph-families.html).
+[Graph examples](synthetic-graph-families.html).
 Both are installed vignettes; the broader gallery and interactive explorer
 are website-only articles.
 
