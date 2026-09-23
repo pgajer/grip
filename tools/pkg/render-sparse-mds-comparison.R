@@ -2,6 +2,7 @@
 args <- commandArgs(TRUE)
 stopifnot(length(args)==2L)
 source('inst/scripts/metric-mds-comparison.R')
+source('inst/scripts/metric-mds-surface-alignment.R')
 source('inst/scripts/sparse-mds-comparison.R')
 bundle <- readRDS(args[1]); dir.create(args[2],recursive=TRUE,showWarnings=FALSE)
 for (id in names(bundle$cases)) {

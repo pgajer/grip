@@ -1,5 +1,6 @@
 # Public-API recipes for the sparse-SGD comparison. Source the metric comparison
-# recipe first for alignment and ivue display; sourcing never runs a benchmark.
+# and surface-alignment recipes first for alignment and ivue display;
+# sourcing never runs a benchmark.
 sparse_comparison_cases <- function() {
   cases <- comparison_cases(8L)[c('saddle_graph-64','paraboloid_graph-64','helix_graph-64')]
   env <- new.env(); utils::data('zheng.graphs',package='grip',envir=env)
@@ -40,10 +41,36 @@ sparse_comparison_fit <- function(case, method, seed, epochs=100L) {
     fitting_seconds=fitting,metadata=if (method=='grip') NULL else fit$metadata)
 }
 
+sparse.comparison.surface.triangles <- function(case) {
+  if (!is.null(case$triangles)) return(case$triangles)
+  if (!identical(case$id, 'saddle-4096')) stop('No surface mesh is available for this case.')
+  # The saved large fixture omitted triangles but retained its complete grid.
+  # Recover vertex indices from coordinates rather than assuming row order.
+  x <- sort(unique(case$X[,1])); y <- sort(unique(case$X[,2]))
+  stopifnot(length(x) * length(y) == case$n, length(x) > 1L, length(y) > 1L,
+    !anyDuplicated(case$X[,1:2,drop=FALSE]),
+    max(abs(case$X[,3] - .8*(case$X[,1]^2-case$X[,2]^2))) < 1e-10)
+  index <- matrix(NA_integer_, length(x), length(y))
+  index[cbind(match(case$X[,1],x), match(case$X[,2],y))] <- seq_len(case$n)
+  stopifnot(!anyNA(index))
+  a <- as.vector(index[-length(x),-length(y)])
+  b <- as.vector(index[-1L,-length(y)])
+  c <- as.vector(index[-length(x),-1L])
+  d <- as.vector(index[-1L,-1L])
+  rbind(cbind(a,b,d), cbind(a,d,c))
+}
+
 sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
   fits <- fits[vapply(fits,function(f) !is.null(f$coords),logical(1))]
   if (!length(fits)) stop('No successful fits to display')
   if (adjust_scale) fits <- lapply(fits,function(f) { f$coords <- f$coords*f$row$relative_scale; f })
+  surface <- if (grepl('^saddle', case$id)) {
+    triangles <- sparse.comparison.surface.triangles(case)
+    # The 64-by-64 grid already has a fine mesh. One centroid per triangle
+    # supplies 7,938 area-weighted samples without coarsening any display data.
+    lapply(fits, function(f) comparison.surface.align(f$coords,case$X,triangles,
+      subdivisions=if (case$n > 512L) 1L else 3L))
+  } else NULL
   reference <- !is.null(case$X)
   if (!reference) case$X <- fits[[1]]$coords
   labels <- vapply(names(fits),function(k) if (k=='full') 'Full SGD' else if (k=='grip')
@@ -51,9 +78,12 @@ sparse_comparison_view <- function(case, fits, adjust_scale = TRUE) {
   palette <- stats::setNames(c('#1769AA','#009E73','#D66A19','#AA3377','#CC79A7')[seq_along(fits)],labels)
   if (reference) palette <- c(Reference='#888888',palette)
   comparison_view(case,fits,series_labels=labels,series_colors=palette,reference=reference,layout_selector=TRUE,
+    surface.alignments=surface,
     description=paste(case$label,case$n,'vertices. Rotate to compare layouts.',
       if (reference) 'Gray: generating reference.' else 'No generating reference is available.',
-      if (adjust_scale) 'Each method is resized by its independently fitted scalar; Procrustes then aligns orientation.' else 'Input-distance units; Procrustes preserves scale.'))
+      if (adjust_scale) 'Each method is resized by its independently fitted scalar.' else 'Input-distance units.',
+      if (!is.null(surface)) 'Surface-shape alignment; no further resizing.' else
+        'Vertex-based Procrustes alignment; no further resizing.'))
 }
 
 sparse_comparison_rows <- function(bundle) do.call(rbind,lapply(bundle$fits,`[[`,'row'))

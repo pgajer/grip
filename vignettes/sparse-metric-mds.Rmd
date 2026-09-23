@@ -19,6 +19,7 @@ table { width: 100%; }
 library(grip)
 knitr::opts_chunk$set(collapse=TRUE,comment='#>',out.width='100%')
 source(system.file('scripts','metric-mds-comparison.R',package='grip'),local=TRUE)
+source(system.file('scripts','metric-mds-surface-alignment.R',package='grip'),local=TRUE)
 source(system.file('scripts','sparse-mds-comparison.R',package='grip'),local=TRUE)
 bundle <- readRDS(system.file('extdata','sparse-mds-comparison','benchmark.rds',package='grip'))
 rows <- sparse_comparison_rows(bundle)
@@ -141,9 +142,19 @@ The experiment returned coordinates for **`r sum(rows$status=='ok')` of
 Tables show medians over the successful runs, alongside the number attempted.
 The figures always show seed 1, rather than choosing the best-looking run.
 The displayed layouts use their independently fitted scale multipliers, listed
-below each table for the exact displayed runs. Procrustes alignment then rotates
-or reflects corresponding vertices without further resizing;
+below each table for the exact displayed runs. The saddle examples then use
+**surface-shape alignment**, matching nearby locations on the triangulated
+surfaces without requiring vertex labels to agree. Translation, rotation and
+reflection are allowed, with no further resizing or deformation. The other
+examples use vertex-based Procrustes alignment;
 for `dwt_307`, full SGD supplies the alignment reference, not a known true shape.
+
+Surface alignment uses the same 48-start nearest-surface matching procedure as
+the [SGD–SMACOF comparison](metric-mds-backends.html). The 64-vertex saddle uses
+nine area-weighted samples per triangle. For the 4,096-vertex saddle, the original
+64-by-64 grid supplies 7,938 triangles; one sample per triangle is used for
+registration. All vertices and edges remain in the display. The original and
+scale-adjusted error tables are unchanged by this alignment.
 
 Use the **Layout** selector below each 3D figure to show one method or all
 layouts together. Generating coordinates remain visible where available.
@@ -163,7 +174,9 @@ for (id in names(bundle$cases)) {
   fits <- stats::setNames(selected,vapply(selected,function(f) f$row$method,''))
   cat('\n\nDisplayed seed-1 scale multipliers: ',paste(vapply(fits,function(f) paste(method_label(f$row$method),format(f$row$relative_scale,digits=3)),''),collapse='; '),'.\n\n',sep='')
   child <- c(sprintf('```{r sparse-view-%s, echo=FALSE}',id),
-    'if (have.ivue) { sparse_comparison_view(case,fits) } else {',
+    'if (grepl("^saddle", case$id) && (!have.ivue || !requireNamespace("FNN", quietly=TRUE))) {',
+    '  cat("The surface-aligned view requires FNN and interactive rendering with ivue and rgl.")',
+    '} else if (have.ivue) { sparse_comparison_view(case,fits) } else {',
     sprintf('knitr::include_graphics(system.file("extdata","sparse-mds-comparison","%s.png",package="grip"))',id),
     '}','```')
   cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
