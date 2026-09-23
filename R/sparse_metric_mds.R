@@ -1,85 +1,7 @@
-#' Sparse stochastic-gradient graph layout
-#'
-#' `sparse.metric.mds()` uses graph edges and a small set of representative
-#' vertices (pivots) to approximate long-range stress interactions. It implements
-#' the asymmetric sparse SGD updates of Zheng et al. (2018), based on the sparse
-#' model of Ortmann et al. (2017), in 2D or 3D. Distances are prepared only
-#' from pivots, without a separate all-pairs matrix.
-#'
-#' @param edges Two-column matrix of undirected edges, using 1-based vertex ids.
-#' @param n Number of vertices; inferred from edges or adjacency when omitted.
-#' @param adj_list Reciprocal adjacency list, instead of `edges`.
-#' @param weight_list Positive lengths parallel to `adj_list`.
-#' @param edge_weights Positive finite lengths parallel to `edges`; omitted
-#'   lengths are one.
-#' @param dim Output dimension, 2 or 3.
-#' @param n_pivots Number of pivots, capped at `n`. Default 200 is a provisional
-#'   calibration choice. Increasing it increases memory and work per epoch.
-#' @param pivots Optional distinct vertex ids in selection order. Overrides
-#'   the default `n_pivots`; an explicitly supplied inconsistent count is an error.
-#' @param init `"random"` for a uniform unit cube in normalized-distance units,
-#'   or a finite `n` by `dim` coordinate matrix in input-distance units.
-#' @param max_iter Number of epochs (passes through the sparse constraints).
-#'   Default 30 is a provisional calibration choice, not a convergence criterion.
-#' @param seed Optional integer seed, preserving the caller's R RNG state.
-#' @param sgd_control Controls as for [metric.mds()]: scheduler, learning_rate,
-#'   final_rate, switch_ratio, checkpoint_every, and max_workspace_bytes.
-#'   The sparse default native allowance is 512 MiB. Separate preparation and
-#'   fitting estimates are checked; this is not a cap on total R process memory.
-#'
-#' @details The graph must be connected. Disconnected graphs are rejected without
-#' repair. Pivots are chosen with probability proportional to distance to the
-#' nearest selected pivot, starting from a uniform random vertex. Graph lengths
-#' are normalized by their maximum before shortest-path calculations. Exact distance
-#' ties in region assignment go to the earliest selected pivot. Near floating-point
-#' boundaries, general weighted graphs can still be sensitive to arithmetic. Each nonadjacent
-#' vertex receives an influence from a pivot weighted by the number of vertices
-#' in that pivot's region within half their separation, divided by squared
-#' separation. The reverse influence can be zero or different. Edges have
-#' inverse-squared weights at both endpoints.
-#'
-#' Edge targets are the supplied edge lengths, as in the upstream sparse
-#' implementation. For a weighted edge with a shorter alternative route, that
-#' target differs from the shortest-path target of [metric.mds()]. Exact
-#' full-pivot update parity requires every edge to be a shortest path, as with
-#' unit lengths or Euclidean chord lengths, and matched starts, rates and order.
-#'
-#' Targets are normalized by RMS over the retained unordered pairs; endpoint
-#' weights use the same units. The default hybrid schedule is grip's existing
-#' schedule, not the paper's weight-dependent annealing. The terminal iterate is
-#' returned, centered and converted back to input units, with no fitted scale.
-#' A checkpoint proxy averages the two endpoint weights for each pair. Asymmetric
-#' updates are not claimed to follow the gradient of that proxy, or to decrease
-#' it monotonically. This diagnostic is not full stress or equation (19) of
-#' Zheng et al. Use independent distance evaluation to compare sparse and full
-#' layouts. No dense diagnostics or classical initialization run implicitly.
-#'
-#' @return A `grip_gmds_layout` with `method = "sparse_metric_mds"`.
-#'   `coords` is the terminal layout. `prepared` contains an edge-only graph,
-#'   without a distance matrix. `metadata$sparse` records retained pairs,
-#'   original-unit targets, endpoint multiplicities, selected pivots and region
-#'   owners. Metadata also records seeds, controls, preparation/fitting seconds,
-#'   native workspace estimates, `sparse_proxy_stress`, its normalized root
-#'   error, and `termination = "iteration_limit"`, `converged = FALSE`.
-#'   `trace` reports checkpoint proxy stress, epochs, rates and pair updates.
-#' @references
-#' Ortmann, M., Klimenta, M., and Brandes, U. (2017). A Sparse Stress Model.
-#' Journal of Graph Algorithms and Applications, 21(5), 791--821.
-#' \doi{10.7155/jgaa.00440}.
-#'
-#' Zheng, J. X., Pawar, S., and Goodman, D. F. M. (2018).
-#' Graph Drawing by Stochastic Gradient Descent.
-#' \doi{10.1109/TVCG.2018.2859997}, Algorithm 2.
-#' @seealso [metric.mds()], [grip()], [edge.kk()], [layout.coords()]
-#' @examples
-#' fit <- sparse.metric.mds(edges.path(30), n = 30, n_pivots = 5,
-#'                          dim = 3, max_iter = 20, seed = 1)
-#' plot.layout(layout.coords(fit), edges = edges.path(30))
-#' fit$metadata$sparse_proxy_stress
-#' @export
-sparse.metric.mds <- function(edges = NULL, n = NULL, adj_list = NULL,
+# Private sparse implementation; public dispatch and documentation: metric.mds().
+.sparse.metric.mds <- function(edges = NULL, n = NULL, adj_list = NULL,
                               weight_list = NULL, edge_weights = NULL,
-                              dim = 3L, n_pivots = 200L, pivots = NULL,
+                              dim = 2L, n_pivots = 200L, pivots = NULL,
                               init = "random", max_iter = 30L, seed = 1L,
                               sgd_control = list()) {
   grip.validate.graph.arguments(edges, n, adj_list, weight_list, edge_weights)
@@ -153,8 +75,8 @@ sparse.metric.mds <- function(edges = NULL, n = NULL, adj_list = NULL,
   energy <- sum((sparse$count_i + sparse$count_j)/2)
   trace <- fit$trace[, c("epoch","raw_stress","pair_updates","learning_rate")]
   names(trace)[2L] <- "sparse_proxy_stress"
-  gmds.result(coords, "sparse_metric_mds", prepared=prepared, trace=trace,
-    metadata=list(engine="sgd", backend_version="grip-sparse-sgd-v1",
+  gmds.result(coords, "metric_mds", prepared=prepared, trace=trace,
+    metadata=list(engine="sgd", approximation="sparse", backend_version="grip-sparse-sgd-v1",
       objective="asymmetric sparse constraints (endpoint-average proxy reported separately)",
       pair_weights="inverse_squared", sparse_proxy_stress=unname(proxy),
       sparse_proxy_normalized_rmse=sqrt(unname(proxy)/energy),

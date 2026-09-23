@@ -1,9 +1,22 @@
 # Sparse SGD for graph layout
 
-## Contract (initial implementation)
+## Public interface
 
-`sparse.metric.mds()` is a separate, opt-in function. Full `metric.mds()` stays
-unchanged. Inputs are a connected simple undirected graph, positive finite edge
+`metric.mds(approximation = "sparse", backend = "sgd")` dispatches to the
+unexported `.sparse.metric.mds()` before dense preparation. `approximation =
+"full"` remains the default; existing positional arguments and defaults are
+preserved. Both modes default to `dim = 2`. Only omitted sparse arguments take
+mode-specific defaults: random initialization, inverse-squared weighting,
+30 epochs, and diagnostics disabled. Sparse mode rejects SMACOF, classical
+starts, uniform weights, `n_init != 1`, non-NULL prepared objects, enabled dense
+diagnostics, and explicitly supplied dense diagnostic controls. Pivot controls
+are a strictly named `sparse_control` list (`n_pivots`, `pivots`); nonempty sparse
+controls are rejected in full mode. Both results use method `metric_mds` and
+record `metadata$engine` and `metadata$approximation`.
+
+## Sparse contract
+
+ Inputs are a connected simple undirected graph, positive finite edge
 lengths (or unit lengths), and 2D or 3D output. Use the existing edge-only graph
 preparation; never build all-pairs distances, path caches, or classical MDS.
 Reject disconnected inputs; do not repair or silently select a component.

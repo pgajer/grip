@@ -31,8 +31,8 @@ sparse_comparison_fit <- function(case, method, seed, epochs=100L) {
     prep <- NA_real_; fitting <- NA_real_
   } else {
     h <- as.integer(sub('sparse','',method))
-    fit <- grip::sparse.metric.mds(edges=case$edges,n=case$n,edge_weights=case$weights,
-      dim=3,init=start,seed=seed,max_iter=epochs,n_pivots=h)
+    fit <- grip::metric.mds(approximation="sparse",edges=case$edges,n=case$n,edge_weights=case$weights,
+      dim=3,init=start,seed=seed,max_iter=epochs,sparse_control=list(n_pivots=h))
     prep <- fit$metadata$preparation_seconds; fitting <- fit$metadata$fitting_seconds
   }
   seconds <- proc.time()[['elapsed']]-began

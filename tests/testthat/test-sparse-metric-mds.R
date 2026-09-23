@@ -78,13 +78,13 @@ test_that('all-pivot updates reduce to full updates with matched order, scale an
 test_that('public sparse fits are repeatable, scale equivariant, and preserve RNG', {
   E <- edges.cycle(12); X <- cbind(sin(1:12),cos(1:12),sin((1:12)*2))
   set.seed(17); saved <- .Random.seed
-  a <- sparse.metric.mds(E,edge_weights=sqrt(1:12)+.137,pivots=c(1,5,9),init=X,max_iter=8)
+  a <- metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,5,9)),edges=E,edge_weights=sqrt(1:12)+.137,init=X,max_iter=8)
   expect_identical(.Random.seed,saved)
   expect_identical(a$metadata$sparse$pivots,c(1L,5L,9L))
-  b <- sparse.metric.mds(E,edge_weights=sqrt(1:12)+.137,pivots=c(1,5,9),init=X,max_iter=8)
+  b <- metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,5,9)),edges=E,edge_weights=sqrt(1:12)+.137,init=X,max_iter=8)
   expect_equal(a$coords,b$coords,tolerance=0)
   for (scale in c(1e-150,1e150)) {
-    scaled <- sparse.metric.mds(E,edge_weights=scale*(sqrt(1:12)+.137),pivots=c(1,5,9),init=X*scale,max_iter=8)
+    scaled <- metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,5,9)),edges=E,edge_weights=scale*(sqrt(1:12)+.137),init=X*scale,max_iter=8)
     expect_equal(scaled$coords/scale,a$coords,tolerance=1e-10)
     expect_equal(scaled$metadata$sparse_proxy_stress,a$metadata$sparse_proxy_stress,tolerance=1e-10)
   }
@@ -105,27 +105,27 @@ test_that('sparse API never invokes dense preparation or classical initializatio
     grip.metric.mds.distance.prepared=function(...) stop('DENSE'),
     classical.mds=function(...) stop('DENSE'))
   for (h in c(1L,3L,20L)) {
-    fit <- sparse.metric.mds(edges.path(20),n_pivots=h,max_iter=2)
+    fit <- metric.mds(approximation="sparse",dim=3,sparse_control=list(n_pivots=h),edges=edges.path(20),max_iter=2)
     expect_equal(length(fit$metadata$sparse$pivots),h)
     expect_lte(nrow(fit$metadata$sparse$pairs),20*h+19)
     expect_null(fit$prepared$distance_matrix)
   }
-  for (dim in 2:3) expect_equal(ncol(sparse.metric.mds(edges.path(5),dim=dim,max_iter=2)$coords),dim)
+  for (dim in 2:3) expect_equal(ncol(metric.mds(approximation="sparse",edges=edges.path(5),dim=dim,max_iter=2)$coords),dim)
 })
 
 test_that('sparse invalid inputs and resource limits fail explicitly', {
   E <- edges.path(5)
-  expect_error(sparse.metric.mds(E,n=6),'connected')
-  expect_error(sparse.metric.mds(E,edge_weights=c(0,1,1,1)),'positive|> 0')
-  expect_error(sparse.metric.mds(E,pivots=c(1,1)),'distinct')
-  expect_error(sparse.metric.mds(E,pivots=c(1,6)),'vertex')
-  expect_error(sparse.metric.mds(E,pivots=c(1,3),n_pivots=3),'match')
-  expect_error(sparse.metric.mds(E,dim=4),'dim')
-  expect_error(sparse.metric.mds(E,max_iter=0),'positive')
-  expect_error(sparse.metric.mds(E,init='classical'),'init')
-  expect_true(all(is.finite(sparse.metric.mds(E,init=matrix(0,5,3),max_iter=2)$coords)))
-  expect_error(sparse.metric.mds(E,seed=NA),'seed')
-  expect_error(sparse.metric.mds(E,sgd_control=list(max_workspace_bytes=1000)),'workspace')
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,n=6),'connected')
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,edge_weights=c(0,1,1,1)),'positive|> 0')
+  expect_error(metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,1)),edges=E),'distinct')
+  expect_error(metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,6)),edges=E),'vertex')
+  expect_error(metric.mds(approximation="sparse",dim=3,sparse_control=list(pivots=c(1,3),n_pivots=3),edges=E),'match')
+  expect_error(metric.mds(approximation="sparse",edges=E,dim=4),'dim')
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,max_iter=0),'positive')
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,init='classical'),'init')
+  expect_true(all(is.finite(metric.mds(approximation="sparse",dim=3,edges=E,init=matrix(0,5,3),max_iter=2)$coords)))
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,seed=NA),'seed')
+  expect_error(metric.mds(approximation="sparse",dim=3,edges=E,sgd_control=list(max_workspace_bytes=1000)),'workspace')
   expect_error(grip_sparse_prepare_cpp(5L,E,rep(1,4),2L,c(1L,1L),1L,1e7),'distinct')
   expect_error(grip_sparse_prepare_cpp(5L,E,rep(1,4),2L,integer(),1L,1),'workspace')
 })
@@ -133,9 +133,9 @@ test_that('sparse invalid inputs and resource limits fail explicitly', {
 
 test_that('unit scaling does not alter exact half-distance boundaries on a path', {
   E <- edges.path(12)
-  a <- sparse.metric.mds(E,n_pivots=3,seed=125,max_iter=3)
+  a <- metric.mds(approximation="sparse",dim=3,sparse_control=list(n_pivots=3),edges=E,seed=125,max_iter=3)
   for (scale in c(1e-6,1e-150,1e150)) {
-    b <- sparse.metric.mds(E,edge_weights=rep(scale,11),n_pivots=3,seed=125,max_iter=3)
+    b <- metric.mds(approximation="sparse",dim=3,sparse_control=list(n_pivots=3),edges=E,edge_weights=rep(scale,11),seed=125,max_iter=3)
     expect_identical(a$metadata$sparse$count_i,b$metadata$sparse$count_i)
     expect_identical(a$metadata$sparse$count_j,b$metadata$sparse$count_j)
     expect_equal(a$coords,b$coords/scale,tolerance=1e-12)
@@ -144,8 +144,8 @@ test_that('unit scaling does not alter exact half-distance boundaries on a path'
 
 test_that('adjacency input agrees and printed sparse scores are labeled', {
   E <- edges.path(8); prep <- prepare.edge.kk(E,n=8,edge_weights=sqrt(1:7))
-  a <- sparse.metric.mds(E,n=8,edge_weights=sqrt(1:7),n_pivots=3,max_iter=3)
-  b <- sparse.metric.mds(adj_list=prep$adj_list,weight_list=prep$weight_list,n_pivots=3,max_iter=3)
+  a <- metric.mds(approximation="sparse",dim=3,sparse_control=list(n_pivots=3),edges=E,n=8,edge_weights=sqrt(1:7),max_iter=3)
+  b <- metric.mds(approximation="sparse",dim=3,sparse_control=list(n_pivots=3),adj_list=prep$adj_list,weight_list=prep$weight_list,max_iter=3)
   expect_equal(a$coords,b$coords,tolerance=0)
   expect_output(print(a),'sparse proxy stress [(]not full stress[)]')
 })
@@ -161,4 +161,89 @@ test_that('independent scale diagnostic retains coordinates and original errors'
   expect_equal(adjusted$fits$fit$row$relative_error,3)
   expect_equal(adjusted$fits$fit$row$relative_scale,.25)
   expect_equal(adjusted$fits$fit$row$profiled_relative_error,0)
+})
+
+test_that('unified MDS defaults choose the sparse path without dense work', {
+  local_mocked_bindings(prepare.graph.geodesic.mds=function(...) stop('DENSE'),
+    grip.metric.mds.distance.prepared=function(...) stop('DENSE'),
+    grip.gmds.require.prepared=function(...) stop('DENSE'),
+    score.gmds=function(...) stop('DENSE'),
+    classical.mds=function(...) stop('DENSE'))
+  x <- metric.mds(edges=edges.path(8), approximation='sparse')
+  explicit <- metric.mds(edges=edges.path(8), approximation='sparse', backend='sgd',
+    dim=2, init='random', max_iter=30, diagnostics=FALSE,
+    pair_weights='inverse_squared', sparse_control=list(n_pivots=200))
+  expect_identical(x$coords, explicit$coords)
+  expect_equal(dim(x$coords), c(8,2))
+  expect_identical(x$method, 'metric_mds')
+  expect_identical(x$metadata$engine, 'sgd')
+  expect_identical(x$metadata$approximation, 'sparse')
+  expect_identical(x$metadata$pair_weights, 'inverse_squared')
+  expect_equal(x$metadata$settings$max_iter, 30)
+  expect_equal(x$metadata$settings$sgd_control$max_workspace_bytes, 512*1024^2)
+  expect_null(x$diagnostics)
+  expect_null(x$metadata$raw_stress)
+  expect_null(x$prepared$distance_matrix)
+  expect_false('sparse.metric.mds' %in% getNamespaceExports('grip'))
+  expect_false('.sparse.metric.mds' %in% getNamespaceExports('grip'))
+  expect_true(is.function(get('.sparse.metric.mds', asNamespace('grip'))))
+})
+
+test_that('unsupported sparse settings fail before graph preparation', {
+  local_mocked_bindings(prepare.edge.kk=function(...) stop('PREPARATION'),
+    grip.gmds.require.prepared=function(...) stop('DENSE'))
+  call <- function(...) metric.mds(edges=edges.path(8), approximation='sparse', ...)
+  expect_error(call(backend='smacof'), 'requires backend')
+  expect_error(call(pair_weights='uniform'), 'inverse_squared')
+  expect_error(call(init='classical'), 'Sparse init')
+  expect_error(call(eps=1e-8), 'SMACOF tolerance')
+  for (n in list(2, 0, NA, Inf, c(1,1), '1', NULL))
+    expect_error(call(n_init=n), 'n_init = 1')
+  for (d in list(TRUE, NA, 0, c(FALSE,FALSE), NULL))
+    expect_error(call(diagnostics=d), 'diagnostics = FALSE')
+  for (arg in c('scale_mode','distance_floor','edge_length_epsilon','band_quantiles'))
+    expect_error(do.call(call,setNames(list(NULL),arg)), 'diagnostic controls')
+  expect_error(metric.mds(prepared=list(n=8), approximation='sparse'), 'raw graph inputs')
+})
+
+test_that('sparse controls are strict and preserve explicit pivot semantics', {
+  for (control in list(NULL, 3, list(3), list(n_pivot=3),
+                       list(n_pivots=2,n_pivots=3), setNames(list(3),NA_character_))) {
+    expect_error(metric.mds(edges=edges.path(8), approximation='sparse',
+                            sparse_control=control), 'named list')
+  }
+  expect_error(metric.mds(edges=edges.path(8), sparse_control=list(n_pivots=3)),
+               'requires approximation')
+  expect_error(metric.mds(edges=edges.path(8), approximation='other'), 'arg')
+  x <- metric.mds(edges=edges.path(8), approximation='sparse',
+                  sparse_control=list(pivots=c(7L,2L)), max_iter=2)
+  y <- metric.mds(edges=edges.path(8), approximation='sparse',
+                  sparse_control=list(n_pivots=2,pivots=c(7L,2L)), max_iter=2)
+  expect_identical(x$metadata$sparse$pivots, c(7L,2L))
+  expect_identical(x$coords,y$coords)
+  expect_error(metric.mds(edges=edges.path(8), approximation='sparse',
+    sparse_control=list(n_pivots=3,pivots=c(7L,2L))), 'must match')
+})
+
+test_that('existing full calls and explicit full selection agree', {
+  E <- edges.cycle(8)
+  # These positional arguments predate approximation and sparse_control.
+  a <- suppressWarnings(metric.mds(NULL,E,8,NULL,NULL,NULL,2,'random',1,3,
+                                   diagnostics=FALSE,seed=31))
+  b <- suppressWarnings(metric.mds(edges=E,n=8,dim=2,init='random',n_init=1,
+    max_iter=3,diagnostics=FALSE,seed=31,approximation='full',backend='sgd',
+    pair_weights='uniform'))
+  expect_identical(a$coords,b$coords)
+  expect_identical(a$metadata$raw_stress,b$metadata$raw_stress)
+  expect_identical(a$metadata$approximation,'full')
+  expect_identical(a$metadata$engine,'sgd')
+  expect_null(a$metadata$sparse_proxy_stress)
+  expect_identical(a$metadata$pair_weights,'uniform')
+  expect_equal(a$metadata$settings$sgd_control$max_workspace_bytes,256*1024^2)
+  # Capture omitted full defaults before the costly fit.
+  local_mocked_bindings(grip.mds.sgd.control=function(control,max_iter) {
+    expect_identical(max_iter,1000L)
+    stop('FULL DEFAULTS')
+  })
+  expect_error(metric.mds(edges=E), 'FULL DEFAULTS')
 })

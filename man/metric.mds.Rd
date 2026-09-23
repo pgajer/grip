@@ -24,12 +24,15 @@ metric.mds(
   band_quantiles = c(1/3, 2/3),
   backend = c("sgd", "smacof"),
   sgd_control = list(),
-  pair_weights = c("uniform", "inverse_squared")
+  pair_weights = c("uniform", "inverse_squared"),
+  approximation = c("full", "sparse"),
+  sparse_control = list()
 )
 }
 \arguments{
 \item{prepared}{An all-pairs prepared graph object containing
-\code{distance_matrix}. Edge-only preparations are not supported.}
+\code{distance_matrix}, for full MDS only. Sparse MDS requires raw graph inputs.
+Edge-only preparations are not supported as inputs to either mode.}
 
 \item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge_weights or adj_list/weight_list, not both.
@@ -47,14 +50,18 @@ object, it must match the stored graph size.}
 \item{dim}{Target embedding dimension. Values greater than 3 are supported
 for GMDS and edge-KK workflows.}
 
-\item{init}{\code{"classical"} (default), \code{"random"}, or a finite numeric
-matrix with \code{n} rows and \code{dim} columns in input-distance units.}
+\item{init}{\code{"classical"} (full default), \code{"random"} (sparse default), or a finite numeric
+matrix with \code{n} rows and \code{dim} columns in input-distance units. Sparse MDS
+supports only random or supplied starts; random starts use a uniform unit
+cube in normalized-distance units.}
 
-\item{n_init}{Positive integer number of starts, including the first start.}
+\item{n_init}{Positive integer number of starts, including the first start.
+Sparse MDS currently requires one start.}
 
 \item{max_iter}{Positive integer iteration limit per start. For SGD, the
-number of complete passes over all unordered pairs. The retained default
-is 1000; explicitly request 30 for a short initial SGD trial.}
+number of complete passes over full or retained sparse pairs. Defaults to
+1000 for full MDS and 30 for sparse MDS. The sparse default is a provisional
+calibration choice, not a convergence criterion.}
 
 \item{eps}{Positive SMACOF tolerance for the change in normalized stress.
 Do not supply this argument for SGD, which runs its prescribed schedule.}
@@ -63,7 +70,10 @@ Do not supply this argument for SGD, which runs its prescribed schedule.}
 With a non-NULL seed, random starts do not change the caller's RNG state.}
 
 \item{diagnostics}{Attach the common GMDS diagnostic panel. With \code{FALSE}
-and raw graph inputs, prepare only the distance matrix, without path caches.}
+and raw graph inputs in full mode, prepare only the distance matrix, without
+path caches. Defaults to \code{TRUE} for full MDS and \code{FALSE} for sparse MDS.
+Sparse MDS rejects \code{TRUE} and explicitly supplied diagnostic controls
+(\code{scale_mode}, \code{distance_floor}, \code{edge_length_epsilon}, \code{band_quantiles}).}
 
 \item{scale_mode}{Diagnostic scale policy: \code{"profiled"} fits a separate
 scalar for each diagnostic family, and \code{"identity"} uses scale one.
@@ -82,18 +92,33 @@ mid, and long bands.}
 \item{sgd_control}{Named list used only with \code{backend = "sgd"}:
 \code{scheduler} (\code{"hybrid"} or \code{"exponential"}), \code{learning_rate} (0.5),
 \code{final_rate} (0.01), \code{switch_ratio} (0.4), \code{checkpoint_every} (1), and
-\code{max_workspace_bytes} (256 MiB). These defaults are provisional calibration
+\code{max_workspace_bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
+These defaults are provisional calibration
 choices. Rates must be positive with \code{final_rate <= learning_rate};
 \code{switch_ratio} is between zero and one inclusive. The memory allowance covers native workspace,
 not the R input matrices or total process memory.}
 
-\item{pair_weights}{\code{"uniform"} (default) or \code{"inverse_squared"}. The latter
+\item{pair_weights}{\code{"uniform"} (full default) or \code{"inverse_squared"} (sparse
+default and the only supported sparse choice). The latter
 applies the paper's inverse-squared shortest-path-distance weights in either
 backend. This is separate from the graph's \code{edge_weights}.}
+
+\item{approximation}{\code{"full"} (default) or \code{"sparse"}. This selects the
+distance model separately from the optimizer selected by \code{backend}.
+Sparse mode currently supports only SGD, in 2D or 3D. The default \code{dim = 2}
+is shared by both modes. Mode-specific defaults apply only to omitted
+arguments; explicitly incompatible choices produce errors.}
+
+\item{sparse_control}{Named list used only with \code{approximation = "sparse"}:
+\code{n_pivots} (200, capped at \code{n}) and optional distinct vertex ids \code{pivots}
+in selection order. Explicit pivots override the default count; supplying
+an inconsistent count is an error. The default count is a provisional
+calibration choice; increasing it increases memory and work per epoch.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.
-\code{metadata} records the objective, backend/version, achieved raw stress,
+\code{metadata$engine} and \code{metadata$approximation} identify both choices.
+In full mode, \code{metadata} records the objective, backend/version, achieved raw stress,
 weighted target-normalized RMSE, both weighted Stress-1 conventions, selected start,
 coordinate scale multiplier, and per-start losses and stopping information.
 SGD adds per-start elapsed seconds (native fitting including scoring),
@@ -108,16 +133,19 @@ SGD reports \code{iteration_limit} and \code{converged = FALSE} when its
 schedule finishes, including when an earlier checkpoint is returned.
 }
 \description{
-\code{metric.mds()} minimizes raw distance stress on a graph's
-all-pairs shortest-path distances using native stochastic gradient descent
-(SGD, the default) or \code{smacof::mds(type = "ratio")}.
+\code{metric.mds()} fits Euclidean coordinates to graph distances. The default
+\code{approximation = "full"} minimizes raw stress over all shortest-path
+distances, using native stochastic gradient descent (SGD, the default)
+or \code{smacof::mds(type = "ratio")}. With \code{approximation = "sparse"},
+pivots and sparse SGD approximate long-range interactions without
+constructing an all-pairs distance matrix.
 Only the SMACOF backend requires the optional \pkg{smacof} package.
 Before version 0.2.0.9000,
 this name performed classical scaling; use \code{\link[=classical.mds]{classical.mds()}} to retain that
 behavior. The \code{add} and \code{eig} arguments belong to \code{classical.mds()} only.
 }
 \details{
-The objective is
+With \code{approximation = "full"}, the objective is
 \deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
 By default, all pair weights are one. With \code{pair_weights = "inverse_squared"},
 \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
@@ -154,10 +182,10 @@ Inverse-squared weighting requires strictly positive off-diagonal targets;
 zero distances are rejected, not floored. Uniform weighting still allows zero
 distances. Extreme ratios that overflow or underflow the normalized weights
 are rejected. Supplied starts may have coincident points but must not be wholly collapsed.
-The implementation uses dense all-pairs matrices; edge-only refinement with
-\code{\link[=edge.kk]{edge.kk()}} is preferable when that preparation is too large.
+Full MDS uses dense all-pairs matrices; use \code{approximation = "sparse"}
+when that preparation is too large. Sparse behavior is described below.
 }
-\section{SGD behavior}{
+\section{Full SGD behavior}{
 
 Every pass visits all unordered pairs in shuffled order. The pair step is
 clipped at \code{min(rate * normalized_pair_weight, 1)}. Rates use RMS-normalized
@@ -184,6 +212,48 @@ to examine this sensitivity. This backend retains quadratic pair storage and
 work per pass. It does not validate the supplied graph distances.
 }
 
+\section{Sparse approximation}{
+
+Sparse SGD implements the asymmetric updates of Zheng et al. (2018),
+Algorithm 2, based on the model of Ortmann et al. (2017).
+The graph must have positive finite edge lengths and be connected. Disconnected graphs are rejected without
+repair. Pivots are chosen with probability proportional to distance to the
+nearest selected pivot, starting from a uniform random vertex. Graph lengths
+are normalized by their maximum before shortest-path calculations. Exact distance
+ties in region assignment go to the earliest selected pivot. Near floating-point
+boundaries, general weighted graphs can still be sensitive to arithmetic. Each nonadjacent
+vertex receives an influence from a pivot weighted by the number of vertices
+in that pivot's region within half their separation, divided by squared
+separation. The reverse influence can be zero or different. Edges have
+inverse-squared weights at both endpoints.
+
+Edge targets are the supplied edge lengths, as in the upstream sparse
+implementation. For a weighted edge with a shorter alternative route, that
+target differs from the shortest-path target of full MDS. Exact
+full-pivot update parity requires every edge to be a shortest path, as with
+unit lengths or Euclidean chord lengths, and matched starts, rates and order.
+
+Targets are normalized by RMS over the retained unordered pairs; endpoint
+weights use the same units. The default hybrid schedule is grip's existing
+schedule, not the paper's weight-dependent annealing. The terminal iterate is
+returned, centered and converted back to input units, with no fitted scale.
+A checkpoint proxy averages the two endpoint weights for each pair. Asymmetric
+updates are not claimed to follow the gradient of that proxy, or to decrease
+it monotonically. This diagnostic is not full stress or equation (19) of
+Zheng et al. Use independent distance evaluation to compare sparse and full
+layouts. No dense diagnostics or classical initialization run implicitly.
+
+Sparse results share the \code{metric_mds} method name.
+\code{coords} is the terminal layout. \code{prepared} contains an edge-only graph,
+without a distance matrix. \code{metadata$sparse} records retained pairs,
+original-unit targets, endpoint multiplicities, selected pivots and region
+owners. Metadata also records seeds, controls, preparation/fitting seconds,
+native workspace estimates (separately checked for preparation and fitting),
+\code{sparse_proxy_stress}, its normalized root
+error, and \code{termination = "iteration_limit"}, \code{converged = FALSE}.
+\code{trace} reports checkpoint proxy stress, epochs, rates and pair updates.
+}
+
 \section{Workflow guides}{
 
 Start with \code{vignette("function-guide", package = "grip")}
@@ -202,8 +272,13 @@ fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
   diagnostics = FALSE))
 fit$metadata$engine
 fit$metadata$target_normalized_rmse
+sparse <- metric.mds(edges = edges.path(30), dim = 3,
+  approximation = "sparse", sparse_control = list(n_pivots = 5))
+sparse$metadata$sparse_proxy_stress
 }
 \references{
+Ortmann, M., Klimenta, M. and Brandes, U. (2017).
+A Sparse Stress Model. \doi{10.7155/jgaa.00440}.
 Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
 Graph Drawing by Stochastic Gradient Descent.
 \doi{10.1109/TVCG.2018.2859997}.

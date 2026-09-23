@@ -85,7 +85,6 @@ reference:
       - weighted.grip.nd
       - classical.mds
       - metric.mds
-      - sparse.metric.mds
       - globalrep.grip
       - globalrep.weighted.grip
       - legacy.grip

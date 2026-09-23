@@ -1,8 +1,12 @@
 # grip 0.2.0.9001 (development version)
 
-- Added opt-in `sparse.metric.mds()` for 2D/3D sparse SGD with pivot-based
+- Added opt-in `metric.mds(approximation = "sparse")` for 2D/3D sparse SGD with pivot-based
   distance preparation, asymmetric endpoint updates, explicit memory checks,
   reproducible sampling, and separately labeled sparse diagnostics.
+- Consolidated full and sparse MDS under `metric.mds()`, with a separate
+  `approximation` choice and `sparse_control` for pivots. The sparse helper is
+  private. Existing full-MDS calls retain their defaults; incompatible sparse
+  settings fail explicitly before dense preparation.
 - Added a sparse/full SGD and weighted-GRIP vignette with 3D examples, repeated
   runs, independent distance-error scores, and measured time and peak memory.
 - Avoided repeated copying when collecting edge lengths for edge-only preparation.

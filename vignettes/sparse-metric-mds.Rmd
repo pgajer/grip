@@ -33,7 +33,7 @@ method_label <- function(x) ifelse(x=='full','Full SGD',ifelse(x=='grip','Weight
 ## From all pairs to representative vertices
 
 Full metric MDS fits all pairs of vertices. That makes both the distance
-calculation and fitting expensive as a graph grows. `sparse.metric.mds()` keeps
+calculation and fitting expensive as a graph grows. `metric.mds(approximation = "sparse")` keeps
 all graph edges and approximates longer-range influences using representative
 vertices, called **pivots**. A pivot's contribution depends on the nearby
 vertices it represents. This is the sparse model of
@@ -56,17 +56,29 @@ The following code uses the saved saddle graph from this comparison:
 examples <- readRDS(system.file('extdata', 'sparse-mds-comparison',
                                'benchmark.rds', package='grip'))
 g <- examples$cases[['saddle_graph-64']]
-fit <- sparse.metric.mds(edges=g$edges, n=g$n, edge_weights=g$weights,
-                        dim=3, n_pivots=16, max_iter=100, seed=1)
+fit <- metric.mds(edges=g$edges, n=g$n, edge_weights=g$weights,
+                  dim=3, approximation="sparse", backend="sgd",
+                  sparse_control=list(n_pivots=16), max_iter=100, seed=1)
 plot.layout(layout.coords(fit), edges=g$edges)
 fit$metadata$sparse$pivots
 ```
 
 The default is 200 pivots (or all vertices for smaller graphs) and 30 epochs.
-These are **provisional calibration choices**. Use `n_pivots` to explore the
-quality–cost tradeoff, or supply a vector such as `pivots=c(1,20,40)` to choose
+These are **provisional calibration choices**. Use `sparse_control=list(n_pivots=100)` to explore the
+quality–cost tradeoff, or `sparse_control=list(pivots=c(1,20,40))` to choose
 the representatives explicitly. The graph must be connected and its lengths
 positive. Disconnected graphs produce an error; no connecting edges are added.
+
+`approximation` chooses full or sparse distances; `backend` chooses the optimizer.
+Full MDS remains the default and supports SGD and SMACOF. Sparse MDS currently
+supports only SGD. Both modes default to two dimensions; request `dim=3` for
+3D layouts, as above.
+
+When omitted, sparse settings are `init="random"`, `pair_weights="inverse_squared"`,
+`max_iter=30`, and `diagnostics=FALSE`. Sparse mode accepts a supplied coordinate
+matrix, but rejects classical initialization, uniform weighting, multiple
+starts, prepared objects, and dense diagnostic controls. Supply raw edges or
+adjacency lists. These errors prevent an unexpected full distance calculation.
 
 Sparse SGD uses inverse-squared distance weights. Edge constraints retain their
 supplied lengths, following the upstream implementation. If a weighted edge has
