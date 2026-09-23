@@ -289,7 +289,8 @@ comparison_layout_selector <- function(widget, object.ids) {
     function update() {
       Object.keys(data.ids).forEach(function(name) {
         var visible = name === 'Reference' || select.value === 'all' || select.value === name;
-        data.ids[name].forEach(function(id) {
+        // htmlwidgets serializes a single object ID as a number, not an array.
+        [].concat(data.ids[name]).forEach(function(id) {
           if (visible) scene.addToSubscene(id, root); else scene.delFromSubscene(id, root);
         });
         if (rows[name]) rows[name].style.display = visible ? 'flex' : 'none';
