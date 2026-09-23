@@ -21,6 +21,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = '#>', fig.width = 9,
 library(grip)
 recipe <- system.file('scripts', 'metric-mds-comparison.R', package = 'grip')
 source(recipe, local = TRUE)
+source(system.file('scripts', 'metric-mds-surface-alignment.R', package = 'grip'), local = TRUE)
 bundle <- readRDS(system.file('extdata', 'metric-mds-comparison', 'benchmark.rds', package = 'grip'))
 rows <- comparison_rows(bundle)
 last <- rows[rows$budget == 100L & rows$status == 'ok', ]
@@ -244,6 +245,13 @@ operations preserve all fitted distances; shared axes retain the input units.
 Blue and orange graph segments show the same edges in each embedding. Dense
 complete graphs are shown as clouds, avoiding thousands of overlapping edges.
 
+The two **Saddle: Local graph paths** examples also show a surface-shape
+alignment below the vertex-aligned view. This display matches nearby surface
+locations without requiring their vertex labels to agree. It uses translation,
+rotation and reflection only: scale, fitted distances and stress stay unchanged.
+Both views use the same camera and limits. A closer surface overlay therefore
+does not mean that corresponding vertices or the original geometry were recovered.
+
 Each 3D figure has a layout selector below it. Choose SGD, SMACOF, or both;
 the gray generating reference stays visible. In the stress-weighting examples,
 choose one backend and weighting combination or all layouts. Changing the
@@ -289,6 +297,7 @@ for (kind in kinds) {
       sprintf('```{r table-%s, echo=FALSE}', id),
       sprintf('case <- bundle$cases[["%s"]]', id),
       'fits <- comparison_representative(bundle, case$id)',
+      'surface <- if (grepl("^saddle_graph-", case$id) && requireNamespace("FNN", quietly=TRUE)) comparison.surface.example(case, fits) else NULL',
       'reference <- comparison_score(case$X[,seq_len(case$dimension),drop=FALSE], case$distances)',
       'classical <- bundle$baseline[[case$id]]',
       'tab <- data.frame(Method = c("Generating reference", "Classical MDS", "SGD", "SMACOF"),',
@@ -305,14 +314,42 @@ for (kind in kinds) {
       'if (case$dimension == 2L) {',
       '  comparison_planar(case, fits)',
       '} else if (have.ivue) {',
-      '  comparison_view(case, fits)',
+      '  comparison_view(case, fits, limits=if (!is.null(surface)) surface$limits else NULL)',
       '} else {',
       '  knitr::include_graphics(system.file("extdata", "metric-mds-comparison", paste0(case$id, ".png"), package = "grip"))',
       '}', '```')
     cat(knitr::knit_child(text = child, envir = environment(), quiet = TRUE), sep = '\n')
+    if (kind == 'saddle_graph') {
+      child <- c('#### Surface-shape alignment', '',
+        'The gray reference stays fixed. The blue and orange layouts are moved to match surface shape rather than vertex labels. Choose SGD, SMACOF, or both.', '',
+        sprintf('```{r surface-shape-%s, echo=FALSE}', id),
+        'if (!is.null(surface)) knitr::kable(surface$audit, digits=4, row.names=FALSE, col.names=c("Backend", "Subdivisions per edge", "Surface RMS before", "Surface RMS after")) else cat("Install FNN to calculate this additional alignment.")', '```', '',
+        sprintf('```{r surface-overlay-%s, echo=FALSE}', id),
+        'if (!is.null(surface) && have.ivue) comparison_view(case, fits, limits=surface$limits, surface.alignments=surface$registrations,',
+        '  description=paste(case$label, case$n, "points. Surface-shape alignment; scale unchanged. Gray: reference; blue: SGD; orange: SMACOF."))',
+        '```', '')
+      cat(knitr::knit_child(text=child, envir=environment(), quiet=TRUE), sep='\n')
+    }
   }
 }
 ```
+
+Surface alignment uses symmetric iterative closest-point matching on the
+triangulated surfaces. Each triangle is sampled at the centers of nine equal-area
+subtriangles; samples are weighted by triangle area. The search starts from the
+vertex-aligned fit at 24 rotations about the reference's vertical axis, with and
+without a vertical reflection. Each of the 48 starts allows 80 updates, stopping
+when the change in mean squared surface distance is at most one billionth of its
+initial value. Updates can rotate about any axis. The lowest sampled error is
+selected, retaining the initial alignment if none improves it. This is a local
+search, not a guarantee of the globally best surface match.
+
+The tables evaluate the result on denser samples: 36 and 81 subtriangles per
+triangle. **Surface RMS** is the square root of the mean squared nearest-sample
+distance, averaged in both directions and weighted by surface area. It is in
+coordinate units; smaller values indicate closer surfaces. It is an approximation
+to surface distance, not vertex error or MDS stress. The mesh, its boundary and
+the underlying fitted coordinates are unchanged.
 
 ## The effect of stress weighting
 

@@ -151,7 +151,8 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             show = c('overlay', 'reference', 'sgd', 'smacof'),
                             legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL,
                             series_labels = NULL, series_colors = NULL,
-                            reference = TRUE, description = NULL, layout_selector = controls) {
+                            reference = TRUE, description = NULL, layout_selector = controls,
+                            surface.alignments = NULL) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
   coordinates <- if (reference) list(Reference = case$X) else list()
@@ -159,7 +160,8 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     sgd_inverse_squared = 'SGD: inverse-squared', smacof_uniform = 'SMACOF: uniform',
     smacof_inverse_squared = 'SMACOF: inverse-squared') else c(sgd = 'SGD', smacof = 'SMACOF')
   for (backend in names(labels)) if (!is.null(fits[[backend]]$coords)) {
-    coordinates[[labels[[backend]]]] <- comparison_align(fits[[backend]]$coords, case$X)
+    coordinates[[labels[[backend]]]] <- if (is.null(surface.alignments))
+      comparison_align(fits[[backend]]$coords, case$X) else surface.alignments[[backend]]$coords
   }
   palette <- if (!is.null(series_colors)) series_colors else if (weighting) c(Reference = '#888888', 'SGD: uniform' = '#1769AA',
     'SGD: inverse-squared' = '#009E73', 'SMACOF: uniform' = '#D66A19',
