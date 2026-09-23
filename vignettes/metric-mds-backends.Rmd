@@ -29,7 +29,7 @@ paired <- merge(last[last$backend == 'sgd', c('case','seed','error')],
                 by = c('case','seed'), suffixes = c('.sgd','.smacof'))
 have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
   requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
-  all(c('plot3D.groups','color.scale.groups','layer3D.mesh','layer3D.edges','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
+  all(c('plot3D.groups','color.scale.groups','layer3D.callback','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
   'limits' %in% names(formals(ivue::plot3D.plain))
 ```
 
@@ -244,12 +244,15 @@ operations preserve all fitted distances; shared axes retain the input units.
 Blue and orange graph segments show the same edges in each embedding. Dense
 complete graphs are shown as clouds, avoiding thousands of overlapping edges.
 
-Side-by-side panels first show the reference and each backend separately, with
-common limits, camera and scale. The overlay below them shows their agreement.
-With a current `ivue` (including mesh layers and shared view limits) and `rgl`
-available, drag to rotate and scroll to zoom. Otherwise,
-the figures use saved images of these same `ivue` views. The plane uses 2D
-panels. To inspect just one configuration, recreate a view with `show` set to
+Each 3D figure has a layout selector below it. Choose SGD, SMACOF, or both;
+the gray generating reference stays visible. In the stress-weighting examples,
+choose one backend and weighting combination or all layouts. Changing the
+selection keeps the same camera, alignment and scale. Drag to rotate and scroll
+to zoom.
+
+These interactive views require a current `ivue` and `rgl`. Otherwise, the figures
+use saved images of the same views. The plane uses 2D panels. To recreate a view
+with just one configuration, set `show` to
 `"reference"`, `"sgd"`, or `"smacof"`:
 
 ```{r individual-view, eval=FALSE}
@@ -264,12 +267,12 @@ comparison_view(case, fits, show = 'overlay')
 
 `ivue` is optional and is available from
 [its source repository](https://github.com/pgajer/ivue). Its public
-`plot3D.groups()`, `layer3D.mesh()`, `layer3D.edges()`, `layer3D.axes()`
+`plot3D.groups()`, `layer3D.callback()`, `layer3D.axes()`
 and `camera.zup()` methods
 build these views. It does not fit or modify the embeddings. Set
 `options(grip.vignette.interactive = FALSE)` before rendering to use the saved
 images even when ivue is installed. Overlapping colors may hide very close
-fits; the single-method views above help inspect them separately.
+fits; use the selector to inspect them separately.
 
 ```{r experiment-figures, results='asis', echo=FALSE}
 kinds <- c('gaussian','plane','paraboloid','saddle','paraboloid_graph','saddle_graph','helix_graph')
@@ -297,9 +300,7 @@ for (kind in kinds) {
       'tab$Raw_stress <- format(tab$Raw_stress, scientific = TRUE, digits = 4)',
       'tab$Normalized_error <- format(tab$Normalized_error, scientific = TRUE, digits = 4)',
       'knitr::kable(tab, digits = 3, col.names = c("Method", "Raw stress", "Normalized error", "Fit seconds", "Passes/iterations", "Termination"))', '```',
-      sprintf('```{r embedding-%s, echo=FALSE, fig.height=3.5, fig.cap="Fixed seed 1, allowance 100. Gray: generating reference; blue: SGD; orange: SMACOF. The table above reports the exact displayed fits. Alignment preserves scale."}', id),
-      'if (case$dimension != 2L) knitr::include_graphics(system.file("extdata", "metric-mds-comparison", paste0(case$id, "-panels.png"), package = "grip"))',
-      '```',
+      'Fixed seed 1, allowance 100. Gray: generating reference; blue: SGD; orange: SMACOF. The table above reports the exact displayed fits. Alignment preserves scale.', '',
       sprintf('```{r overlay-%s, echo=FALSE, fig.height=3.5}', id),
       'if (case$dimension == 2L) {',
       '  comparison_planar(case, fits)',
@@ -404,8 +405,6 @@ for (id in names(weighting.bundle$cases)) {
                           'seconds','termination','status')], row.names=FALSE,digits=4,
     col.names=c('Backend','Weighting','Uniform error','Relative error','Fit seconds','Termination','Status')),sep='\n')
   child <- c(
-    sprintf('```{r weighting-panels-%s, echo=FALSE, fig.cap="Each panel shows one fitted layout against the gray generating reference. The interactive view below combines all four layouts; its legend identifies each backend and weighting."}',id),
-    sprintf('knitr::include_graphics(system.file("extdata","metric-mds-weighting","%s-panels.png",package="grip"))',id),'```',
     sprintf('```{r weighting-overlay-%s, echo=FALSE}',id),
     'if (have.ivue) { comparison_view(case,fits,weighting=TRUE) } else {',
     sprintf('knitr::include_graphics(system.file("extdata","metric-mds-weighting","%s.png",package="grip"))',id),'}','```')

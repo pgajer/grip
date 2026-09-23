@@ -151,7 +151,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             show = c('overlay', 'reference', 'sgd', 'smacof'),
                             legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL,
                             series_labels = NULL, series_colors = NULL,
-                            reference = TRUE, description = NULL, layout_selector = FALSE) {
+                            reference = TRUE, description = NULL, layout_selector = controls) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
   coordinates <- if (reference) list(Reference = case$X) else list()
@@ -280,7 +280,8 @@ comparison_layout_selector <- function(widget, object.ids) {
       var option = document.createElement('option'); option.value = name;
       option.textContent = name; select.appendChild(option);
     });
-    var all = document.createElement('option'); all.value = 'all'; all.textContent = 'all layouts';
+    var all = document.createElement('option'); all.value = 'all';
+    all.textContent = select.options.length === 2 ? 'both' : 'all layouts';
     select.appendChild(all); select.value = 'all';
     label.appendChild(select); panel.appendChild(label);
     var hint = document.createElement('span'); hint.textContent = ' Drag to rotate; scroll to zoom.';
