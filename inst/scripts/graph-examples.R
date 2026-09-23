@@ -66,6 +66,8 @@ graph_example_fit <- function(graph, seed = 2026L) {
   records
 }
 
+# Orthogonal Procrustes: minimize squared distances between corresponding rows.
+# Permit reflections as well as rotations, but preserve fitted distances (no scaling).
 graph_example_align <- function(coords, reference) {
   A <- sweep(coords, 2, colMeans(coords)); B <- sweep(reference, 2, colMeans(reference))
   s <- svd(crossprod(A, B))
@@ -123,6 +125,7 @@ graph_example_view <- function(graph, fits, show = c('overlay', 'mds', 'refined'
     var scene = el.rglinstance, root = scene.scene.rootSubscene;
     el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
     var legend = el.querySelector('.ivue-legend');
+    if (legend) legend.style.width = 'max-content';
     var rows = {};
     if (legend) Object.keys(data.labels).forEach(function(name) {
       rows[name] = Array.from(legend.children).find(function(node) {

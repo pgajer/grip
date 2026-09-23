@@ -40,3 +40,17 @@ test_that('gallery scores distinguish global distances from edge lengths', {
   aligned <- env$graph_example_align(2*Z, Z)
   expect_equal(as.vector(dist(aligned)),as.vector(dist(2*Z)),tolerance=1e-12)
 })
+
+test_that('Procrustes alignment recovers known rotations, reflections and translations', {
+  env <- new.env(); sys.source(system.file('scripts','graph-examples.R',package='grip'), env)
+  reference <- rbind(c(0,0,0), c(1,0,0), c(0,2,0), c(0,0,3), c(2,1,-1))
+  theta <- .73
+  rotation <- rbind(c(cos(theta),-sin(theta),0), c(sin(theta),cos(theta),0), c(0,0,1))
+  for (reflection in c(1,-1)) {
+    transformed <- sweep(reference %*% rotation %*% diag(c(1,1,reflection)),
+                         2, c(7,-4,2), '+')
+    aligned <- env$graph_example_align(transformed, reference)
+    expect_equal(aligned, reference, tolerance = 1e-12)
+    expect_equal(as.vector(dist(aligned)), as.vector(dist(transformed)), tolerance = 1e-12)
+  }
+})

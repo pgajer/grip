@@ -91,8 +91,11 @@ so they are not passed to the layout functions as distances.
 
 **Blue is metric MDS; orange is MDS followed by edge-KK.** Gray, when present,
 shows the coordinates used to construct the graph. Each visible layout includes
-all its edges. Switching layouts preserves the camera and scale. Layouts are aligned by
-translation and rotation/reflection only; no resizing is used to make them agree.
+all its edges. Switching layouts preserves the camera and scale. Each layout is
+**Procrustes-aligned** to the generating coordinates (or to metric MDS when no
+generating coordinates are available). Corresponding vertices are matched by
+their graph indices; translation and rotation/reflection minimize their summed
+squared separations. No resizing is used to make the layouts agree.
 Generating coordinates show where a geometric graph came from, but need not
 realize its graph shortest-path distances as straight-line separations.
 
@@ -115,7 +118,7 @@ to the MDS time. These are single-workstation timings, not a speed comparison.
 descriptions <- c(
   tree = 'A binary tree with shorter edges at greater depth and different lengths for sibling branches. It has no generating coordinates.',
   carpet = 'A recursively perforated grid lifted onto a saddle. Its holes create detours in graph paths.',
-  saddle = 'A grid lifted to a saddle, with horizontal, vertical, and diagonal edges. Traversal lengths are measured between neighboring surface points.',
+  saddle = 'A grid lifted to a saddle, with horizontal, vertical, and diagonal edges. Traversal lengths are measured between neighboring surface points. Both layouts are Procrustes-aligned to the gray generating surface. The remaining difference in shape cannot be removed by rotating, reflecting, or translating the layouts while keeping corresponding vertices matched.',
   paraboloid = 'A grid lifted to a bowl-shaped surface, with horizontal, vertical, and diagonal edges. The diagonals distinguish its graph distances from those of the saddle.',
   torus = 'A grid wrapped around a torus. Connections continue around both circular directions.',
   porous = 'A twisted cubical channel network with interior vertices and several routes through the volume.',

@@ -169,6 +169,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
       'targets. Gray: reference; blue: SGD; orange: SMACOF. Rigid alignment only.') else NULL)
   htmlwidgets::onRender(widget, "function(el) {
     el.querySelectorAll('.ivue-legend details').forEach(function(node) { node.remove(); });
+    el.querySelectorAll('.ivue-legend').forEach(function(node) { node.style.width = 'max-content'; });
   }")
 }
 

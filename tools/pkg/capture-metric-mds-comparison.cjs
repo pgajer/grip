@@ -36,6 +36,13 @@ const {pathToFileURL} = require('url');
         if (new Set(cameras).size !== 1) throw new Error(`Panel cameras or bounds differ: ${file}`);
       }
       if (await page.locator('.ivue-legend details').count()) throw new Error(`Legend table remains: ${file}`);
+      await page.evaluate(() => document.fonts.ready);
+      const wrappedLabels = await page.locator('.ivue-legend > div > span:last-child').evaluateAll(nodes =>
+        nodes.filter(node => {
+          const range = document.createRange(); range.selectNodeContents(node);
+          return range.getClientRects().length > 1;
+        }).map(node => node.textContent));
+      if (wrappedLabels.length) throw new Error(`Wrapped legend entries: ${file}: ${wrappedLabels.join(', ')}`);
       const selector = page.locator('.grip-layout-selector');
       const hasSelector = await selector.count();
       if (hasSelector) {

@@ -21,6 +21,9 @@
 
 ## Documentation
 
+* Vignette legends now expand to fit their entries. Clarified the gallery
+  Procrustes alignment and verified it with known transformations and the
+  saved saddle layouts.
 * Simplified the graph gallery to one interactive view per graph, with a
   layout selector for metric-MDS, metric-MDS + edge-KK, or both. Removed
   duplicate static panels and the legend-table disclosure from vignette views.
