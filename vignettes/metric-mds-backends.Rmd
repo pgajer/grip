@@ -238,18 +238,19 @@ the median. A failed selected run stays unavailable. Figure tables report
 that exact run's error, raw stress and fitting time, as well as a separately
 computed classical-MDS reference.
 
-For overlays we center each fit, then apply an orthogonal rotation/reflection
+Except for the two local-graph saddle examples described below, we center each
+fit, then apply an orthogonal rotation/reflection
 to match corresponding reference vertices. **No rescaling is performed for
 alignment.** The reported scores use original returned coordinates. These
 operations preserve all fitted distances; shared axes retain the input units.
 Blue and orange graph segments show the same edges in each embedding. Dense
 complete graphs are shown as clouds, avoiding thousands of overlapping edges.
 
-The two **Saddle: Local graph paths** examples also show a surface-shape
-alignment below the vertex-aligned view. This display matches nearby surface
+The two **Saddle: Local graph paths** examples use surface-shape
+alignment. This display matches nearby surface
 locations without requiring their vertex labels to agree. It uses translation,
 rotation and reflection only: scale, fitted distances and stress stay unchanged.
-Both views use the same camera and limits. A closer surface overlay therefore
+A closer surface overlay therefore
 does not mean that corresponding vertices or the original geometry were recovered.
 
 Each 3D figure has a layout selector below it. Choose SGD, SMACOF, or both;
@@ -258,8 +259,9 @@ choose one backend and weighting combination or all layouts. Changing the
 selection keeps the same camera, alignment and scale. Drag to rotate and scroll
 to zoom.
 
-These interactive views require a current `ivue` and `rgl`. Otherwise, the figures
-use saved images of the same views. The plane uses 2D panels. To recreate a view
+These interactive views require a current `ivue` and `rgl`; surface alignment
+also requires `FNN`. The other examples provide saved images when interactive
+rendering is unavailable. The plane uses 2D panels. To recreate a surface-aligned view
 with just one configuration, set `show` to
 `"reference"`, `"sgd"`, or `"smacof"`:
 
@@ -268,9 +270,10 @@ bundle <- readRDS(system.file('extdata', 'metric-mds-comparison',
                               'benchmark.rds', package = 'grip'))
 case <- bundle$cases[['saddle_graph-144']]
 fits <- comparison_representative(bundle, case$id)
-comparison_view(case, fits, show = 'sgd')
-comparison_view(case, fits, show = 'smacof')
-comparison_view(case, fits, show = 'overlay')
+surface <- comparison.surface.example(case, fits)
+comparison_view(case, fits, show = 'sgd', surface.alignments = surface$registrations)
+comparison_view(case, fits, show = 'smacof', surface.alignments = surface$registrations)
+comparison_view(case, fits, show = 'overlay', surface.alignments = surface$registrations)
 ```
 
 `ivue` is optional and is available from
@@ -278,8 +281,8 @@ comparison_view(case, fits, show = 'overlay')
 `plot3D.groups()`, `layer3D.callback()`, `layer3D.axes()`
 and `camera.zup()` methods
 build these views. It does not fit or modify the embeddings. Set
-`options(grip.vignette.interactive = FALSE)` before rendering to use the saved
-images even when ivue is installed. Overlapping colors may hide very close
+`options(grip.vignette.interactive = FALSE)` before rendering to use saved
+images where available, even when ivue is installed. Overlapping colors may hide very close
 fits; use the selector to inspect them separately.
 
 ```{r experiment-figures, results='asis', echo=FALSE}
@@ -309,7 +312,8 @@ for (kind in kinds) {
       'tab$Raw_stress <- format(tab$Raw_stress, scientific = TRUE, digits = 4)',
       'tab$Normalized_error <- format(tab$Normalized_error, scientific = TRUE, digits = 4)',
       'knitr::kable(tab, digits = 3, col.names = c("Method", "Raw stress", "Normalized error", "Fit seconds", "Passes/iterations", "Termination"))', '```',
-      'Fixed seed 1, allowance 100. Gray: generating reference; blue: SGD; orange: SMACOF. The table above reports the exact displayed fits. Alignment preserves scale.', '',
+      'Fixed seed 1, allowance 100. Gray: generating reference; blue: SGD; orange: SMACOF. The table above reports the exact displayed fits. Alignment preserves scale.', '')
+    if (kind != 'saddle_graph') child <- c(child,
       sprintf('```{r overlay-%s, echo=FALSE, fig.height=3.5}', id),
       'if (case$dimension == 2L) {',
       '  comparison_planar(case, fits)',
@@ -323,7 +327,7 @@ for (kind in kinds) {
       child <- c('#### Surface-shape alignment', '',
         'The gray reference stays fixed. The blue and orange layouts are moved to match surface shape rather than vertex labels. Choose SGD, SMACOF, or both.', '',
         sprintf('```{r surface-shape-%s, echo=FALSE}', id),
-        'if (!is.null(surface)) knitr::kable(surface$audit, digits=4, row.names=FALSE, col.names=c("Backend", "Subdivisions per edge", "Surface RMS before", "Surface RMS after")) else cat("Install FNN to calculate this additional alignment.")', '```', '',
+        'if (!is.null(surface)) knitr::kable(surface$audit, digits=4, row.names=FALSE, col.names=c("Backend", "Subdivisions per edge", "Surface RMS before", "Surface RMS after")) else cat("Install FNN to calculate surface alignment.")', '```', '',
         sprintf('```{r surface-overlay-%s, echo=FALSE}', id),
         'if (!is.null(surface) && have.ivue) comparison_view(case, fits, limits=surface$limits, surface.alignments=surface$registrations,',
         '  description=paste(case$label, case$n, "points. Surface-shape alignment; scale unchanged. Gray: reference; blue: SGD; orange: SMACOF."))',
