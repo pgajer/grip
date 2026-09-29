@@ -36,24 +36,27 @@ reference that the layout must recover.
 ```{r first-layout}
 data(zheng.graphs)
 g <- zheng.graphs[['dwt_307']]
-coords <- grip(edges=g$edges, n=g$n, dim=3, seed=1)
+fit <- metric.mds(edges=g$edges, n=g$n, dim=3, backend="sgd",
+                  seed=1, diagnostics=FALSE)
+coords <- fit$coords
 ```
 
 Each row of `g$edges` contains two vertex indices, numbered from 1 to `g$n`.
 Each row of `coords` gives the position of the corresponding vertex.
-For an unweighted graph, `grip()` uses shortest-path hop counts to guide its
-multiscale layout. Here all edges have unit length.
+Metric MDS with SGD fits Euclidean separations to graph shortest-path distances.
+Here all edges have unit length, so targets are hop distances. Inspect the fit
+diagnostics and termination status; a returned layout does not imply convergence.
 
 ```{r first-view, echo=FALSE}
-documentation.view(list(GRIP=coords),g$edges,
-  description='dwt_307: 307 vertices. GRIP with seed 1. Drag to rotate; scroll to zoom.')
+documentation.view(list(`SGD metric MDS`=coords),g$edges,
+  description='dwt_307: 307 vertices. SGD metric MDS with seed 1. Drag to rotate; scroll to zoom.')
 ```
 
 Rotate the graph to inspect its structure. All vertices and edges are shown.
 For a quick view in an interactive R session, use:
 
 ```{r plot-recipe, eval=FALSE}
-plot.layout(coords, edges=g$edges)
+ivue::plot3D.plain(coords, layers=list(ivue::layer3D.edges(g$edges)))
 ```
 
 ## Assess the drawing
@@ -71,7 +74,7 @@ shows how evenly the unit edges are drawn. Nonedge separation describes how
 far apart unconnected vertices lie relative to edges. These measures describe
 different aspects of a drawing; no single number captures readability.
 
-## A metric MDS alternative
+## Metric MDS controls
 
 `metric.mds()` directly fits Euclidean distances to graph shortest-path
 distances. Its default SGD backend adjusts pairs of vertices in shuffled order,

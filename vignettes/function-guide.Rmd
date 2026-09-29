@@ -73,8 +73,9 @@ library(grip)
 edges <- edges.mesh(4, 5)
 coords <- grip(edges, n = 20, dim = 2, preset = "mesh", seed = 11)
 stopifnot(identical(dim(coords), c(20L, 2L)), all(is.finite(coords)))
-plot.layout(coords, edges = edges, pch = 16, cex = 0.7,
-            main = "A 4 by 5 mesh")
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+documentation.view(list(`GRIP mesh (2D fit)`=cbind(coords,z=0)),edges,
+  aligned=TRUE,description='A planar mesh fit in an interactive 3D viewer.')
 quality <- score.layout(coords, edges = edges, n = 20,
                         sample.size.stress = 200, stress.seed = 11,
                         edge.crossings = "never")
@@ -120,7 +121,7 @@ stopifnot(nrow(path.with.isolate) == 6L, all(is.finite(path.with.isolate)))
 
 ### Hop counts or edge lengths?
 
-The historical names `edge.weights` and `weight.list` mean **finite positive
+The arguments `edge.weights` and `weight.list` mean **finite positive
 lengths or traversal costs**, not connection strengths. With an edge list,
 `edge.weights[j]` belongs to row `j`. Larger lengths request greater separation;
 convert strengths to scientifically meaningful lengths before fitting.
@@ -214,9 +215,6 @@ Use [Metric MDS](metric-mds-backends.html) for executable examples, the method
 references, and stress weighting; use [Sparse SGD](sparse-metric-mds.html) when
 all-pairs preparation is too costly.
 
-Through version 0.2.0, `metric.mds()` performed classical scaling. Use
-`classical.mds()` to retain that behavior; see the
-[MDS migration help](`r help_url("grip-mds-migration")`).
 
 ## Choose a score
 
@@ -244,7 +242,7 @@ weighting choices, not universal quality grades.
 | Preparation | What can be reused | When to rebuild |
 |---|---|---|
 | `prepare.edge.kk()` | Edges and targets for repeated edge repair and edge diagnostics; no all-pairs cache. | Changed topology, vertex order/count, or edge lengths. |
-| `prepare.graph.geodesic.mds()` / `prepare.geodesic.kk()` | Connected-graph distances and retained routes for multiple coordinate candidates. | Graph changes, a new tie policy, or older caches predating the shortest-path symmetry fix. |
+| `prepare.graph.geodesic.mds()` / `prepare.geodesic.kk()` | Connected-graph distances and retained routes for multiple coordinate candidates. | Graph changes, a new tie policy, or a changed preparation contract. |
 | `prepare.landmark.geodesic.kk()` | A sparse set of local and landmark routes. | Graph changes or new local-neighbor/landmark counts. |
 | `prepare.misf.geodesic.kk()` | Multiscale independent-set filtration (MISF), level routes, and initializers. | Graph changes or changed hierarchy, tie, or initialization settings. |
 | `build.misf()` / `build.weighted.misf()` | Inspectable multiscale hierarchy, with the latter also storing weighted neighborhoods and anchors. | Changed graph, metric, seed, or construction controls. They are not a generic `prepared` argument for `grip()`. |
@@ -290,13 +288,16 @@ copies. Full route caches can cost much more, depending on path lengths. Use
 route cache; the dense distance matrix is still required. Classical scaling
 also uses a dense eigendecomposition. Landmark and multiscale preparations
 reduce retained pairs or work on smaller levels, but their cost still depends
-on graph searches and route lengths. Begin with GRIP, small candidate sets,
-and level traces; retaining every round of a large solve can itself be costly.
+on graph searches and route lengths. Begin with SGD metric MDS; use its sparse mode with raw graph inputs when
+full distance storage is too costly. Evaluate the approximation independently.
+GRIP and its level traces remain alternatives; retaining every round of a
+large solve can itself be costly.
 
 ## Experimental refinement and current initializers
 
-Try the appropriate GRIP metric, a plausible preset, several seeds, and the
-scoring/tracing workflows first. Edge-KK, full geodesic-KK, landmark geodesic-KK,
+Start with metric MDS using SGD, with sparse approximation when needed,
+and compare seeds using independent diagnostics. Do not append refinement
+automatically. GRIP presets and tracing remain alternative workflows. Edge-KK, full geodesic-KK, landmark geodesic-KK,
 MISF geodesic-KK, repulsive stages, and kernel/Gram local-star tools are
 **public experimental interfaces**. Improving their objective need not improve
 a reference embedding or the readability of a drawing.
@@ -323,8 +324,7 @@ This guide covers **106 explicit public exports and three registered S3
 methods**. `plot.layout()` is both exported and registered, so there are 108
 unique exported or registered function names, not 106. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
-through their objects below. Internal helpers and the compatibility aliases
-retired in 0.2.0 are not public entry points.
+through their objects below. Internal helpers are not public entry points.
 
 Each row below is one explicit export. **Help** opens the detailed help page;
 in an offline R session use `help("function.name", package = "grip")`.
@@ -342,7 +342,7 @@ method accounting, and help targets against the current namespace.
 | `metric.mds()` | Fit full metric MDS with SGD or SMACOF, or a pivot-based sparse approximation with SGD. | [Help](`r help_url("metric.mds")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
-| `legacy.grip()` | Reproduce the legacy GRIP profile for historical comparisons. | [Help](`r help_url("legacy.grip")`) |
+| `legacy.grip()` | Fit the alternative GRIP optimization profile. | [Help](`r help_url("legacy.grip")`) |
 
 ### Select and compare candidates
 
@@ -508,8 +508,7 @@ vignette(package = "grip")
 vignette("synthetic-graph-families", package = "grip")
 ```
 
-The [0.2 migration help](`r help_url("grip-0.2-migration")`) documents retired
-aliases. Internal builders and standalone embeddings used within graph bundles
+Internal builders and standalone embeddings used within graph bundles
 are implementation details; use the public bundle constructors above.
 
 This guide adopts the short function-and-purpose listings and connections

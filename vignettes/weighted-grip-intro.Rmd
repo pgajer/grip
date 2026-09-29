@@ -18,6 +18,11 @@ th, td { vertical-align: top; }
 pre { overflow-x: auto; }
 </style>
 
+For a new graph-distance embedding, start with SGD metric MDS and use
+[sparse mode](sparse-metric-mds.html) when full fitting is too costly.
+The weighted-GRIP and edge-KK examples here document alternatives or saved
+comparisons; they are not an automatic large-graph pipeline.
+
 ```{r setup, include=FALSE}
 library(grip)
 knitr::opts_chunk$set(collapse=TRUE, comment='#>', fig.width=9, fig.height=5,

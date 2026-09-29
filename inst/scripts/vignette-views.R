@@ -112,3 +112,38 @@ documentation.trace <- function(trace, edges) {
     lapply(seq_along(labels),function(i) htmltools::tags$span(class='trace-label',
       style=paste0('display:',if(i==length(frames)) 'inline' else 'none'),labels[i])))
 }
+
+# Switch layouts while retaining vertex-level biological colors and camera.
+documentation.group.layouts <- function(layouts, edges, groups, description='') {
+  stopifnot(documentation.interactive(),length(layouts)>0)
+  groups <- as.character(groups);groups[is.na(groups)] <- 'Unclassified'
+  levels <- sort(unique(groups))
+  colors <- setNames(grDevices::hcl.colors(length(levels),'Dark 3'),levels)
+  layouts <- lapply(layouts,function(z) sweep(z,2,colMeans(z)))
+  stopifnot(all(vapply(layouts,function(z) nrow(z)==length(groups)&&ncol(z)==3&&all(is.finite(z)),TRUE)))
+  # Equal visual radius prevents arbitrary method scales from hiding a layout.
+  radii <- vapply(layouts,function(z) sqrt(mean(rowSums(z^2))),0)
+  stopifnot(all(is.finite(radii)),all(radii>0))
+  layouts <- Map(function(z,radius) z/radius,layouts,radii)
+  description <- paste(description,
+    'Display only: each layout is centered and scaled to unit RMS radius; saved fits and scores are unchanged.')
+  bounds <- t(apply(do.call(rbind,layouts),2,range))
+  padding <- pmax(bounds[,2]-bounds[,1],1e-8)*.04
+  bounds <- bounds+cbind(-padding,padding)
+  ids <- list()
+  widget <- ivue::plot3D.groups(layouts[[1]],groups=groups,
+    scale=ivue::color.scale.groups(levels,colors=colors),
+    axes=FALSE,aspect='equal',limits=bounds,camera=ivue::camera.zup(),
+    controls=FALSE,legend.show=TRUE,width=900,height=520,description=description,
+    layers=list(ivue::layer3D.callback(function(ctx) {
+      rgl::pop3d(id=unique(ctx$draw.ids$object))
+      for (name in names(layouts)) {
+        z <- layouts[[name]]
+        points <- rgl::points3d(z,col=colors[groups],size=4,lit=FALSE)
+        lines <- rgl::segments3d(z[as.vector(t(edges)),,drop=FALSE],
+          col='#808080',alpha=.35,lwd=.6,lit=FALSE)
+        ids[[name]] <<- as.integer(c(points,lines))
+      }
+    })))
+  comparison_layout_selector(widget,ids)
+}

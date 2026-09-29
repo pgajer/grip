@@ -1,10 +1,10 @@
 ---
-title: "Historical layout-engine comparison: grip 0.2.0"
+title: "Comparing graph layout engines"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Historical layout-engine comparison: grip 0.2.0}
+  %\VignetteIndexEntry{Comparing graph layout engines}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -32,11 +32,12 @@ knitr::opts_chunk$set(
 
 ## What is compared
 
-This appendix preserves the external-engine benchmark run with grip 0.2.0 on
-23 August 2026. It is historical evidence, not a benchmark of the current MDS
-backend. The [current selection guide](grip-real-data.html) explains how to
-compare layouts; [Metric MDS](metric-mds-backends.html) compares the current
-SGD and SMACOF implementations on their separately recorded examples.
+This guide shows how to compare multiscale GRIP with layout engines from
+igraph and graphlayouts using common diagnostics on unweighted graphs.
+The examples use precomputed fits with the settings described below.
+They do not compare SGD metric MDS; see [Metric MDS](metric-mds-backends.html)
+for SGD and SMACOF, and [Choosing and evaluating](grip-real-data.html)
+for selecting layouts for your data.
 
 ## Shared scoring idea
 
@@ -74,46 +75,20 @@ Those GKK/LGKK-style tools are advanced public experimental utilities rather
 than the default onboarding path, and they are used in the second half of this
 article for the weighted comparison track.
 
-```{r}
-plot_layout <- function(coords,
-                        edges,
-                        title,
-                        vertex.col = "#1F3B73",
-                        edge.col = "gray80",
-                        cex = 0.55) {
-  if (ncol(coords) == 2L) {
-    plot(
-      coords[, 1], coords[, 2],
-      asp = 1,
-      pch = 16,
-      cex = cex,
-      col = vertex.col,
-      xlab = "",
-      ylab = "",
-      axes = FALSE,
-      main = title
-    )
-    if (!is.null(edges) && nrow(edges) > 0) {
-      segments(
-        coords[edges[, 1], 1], coords[edges[, 1], 2],
-        coords[edges[, 2], 1], coords[edges[, 2], 2],
-        col = edge.col
-      )
-    }
-  } else {
-    plot.layout(
-      coords,
-      edges,
-      projection = "ortho",
-      azimuth = 35,
-      elevation = 22,
-      vertex.col = vertex.col,
-      edge.col = edge.col,
-      main = title
-    )
-  }
+```{r interactive-helpers, include=FALSE}
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+comparison.views <- function(layouts, edges) {
+  htmltools::tagList(lapply(names(layouts), function(name) {
+    z <- layouts[[name]]
+    if (ncol(z)==2L) z <- cbind(z,0)
+    documentation.view(setNames(list(z),name),edges,aligned=TRUE,
+      description=paste(name, ': saved coordinates; 2D fits remain planar. Drag to rotate.'))
+  }))
 }
 ```
+
+Planar fits are displayed at z = 0 in interactive 3D viewers. Rotating the
+view does not change the dimension in which a layout was fitted.
 
 ## Track 1: external-package comparisons on unweighted graphs
 
@@ -144,18 +119,9 @@ res <- readRDS(res.path)
 
 ### Provenance of the saved comparison
 
-The external results were generated on **23 August 2026 with grip 0.2.0**.
-They are frozen results, not reruns of the development version serving this page.
 The [provenance record](https://github.com/pgajer/grip/blob/main/inst/extdata/vs_alternatives/BENCHMARK_PROVENANCE.md)
 and [reproduction script](https://github.com/pgajer/grip/blob/main/inst/scripts/precompute-vs-alternatives.R)
-record the settings and timing boundaries. The artifact's software versions are:
-
-```{r external-versions}
-knitr::kable(data.frame(
-  Package = names(res$benchmark_metadata$package_versions),
-  Version = unname(res$benchmark_metadata$package_versions)
-), row.names = FALSE)
-```
+provide the computation environment, settings and timing boundaries.
 
 The karate graph has **34 vertices and 78 edges**; the 12 by 12 mesh has
 **144 vertices and 264 edges**. Each table below scores a saved layout with
@@ -184,19 +150,13 @@ knitr::kable(
   karate.display,
   digits = 4,
   row.names = FALSE,
-  caption = "Karate club: saved grip 0.2.0 benchmark; one seeded layout per method."
+  caption = "Karate club: precomputed comparison; one seeded layout per method."
 )
 ```
 
 ```{r karate-plot, fig.width=12, fig.height=7.5}
 k <- res$karate
-par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(k$layouts$fr,            k$edges, "FR (igraph)", cex = 0.6)
-plot_layout(k$layouts$kk,            k$edges, "KK (igraph)", cex = 0.6)
-plot_layout(k$layouts$drl,           k$edges, "DrL (igraph)", cex = 0.6)
-plot_layout(k$layouts$stress,        k$edges, "Stress (graphlayouts)", cex = 0.6)
-plot_layout(k$layouts$grip.default,  k$edges, "grip default", cex = 0.6)
-plot_layout(k$layouts$grip.tuned,    k$edges, "grip tuned", cex = 0.6)
+comparison.views(k$layouts, k$edges)
 ```
 
 On graphs this small, `grip` does not have a special structural advantage.
@@ -222,23 +182,17 @@ knitr::kable(
   mesh.display,
   digits = 4,
   row.names = FALSE,
-  caption = "12x12 mesh: saved grip 0.2.0 benchmark; one seeded layout per method."
+  caption = "12x12 mesh: precomputed comparison; one seeded layout per method."
 )
 ```
 
 ```{r mesh-plot, fig.width=12, fig.height=7.5}
 m <- res$mesh
-par(mfrow = c(2, 3), mar = c(1, 1, 3, 1), bg = "white")
-plot_layout(m$layouts$fr,            m$edges, "FR (igraph)", cex = 0.5)
-plot_layout(m$layouts$kk,            m$edges, "KK (igraph)", cex = 0.5)
-plot_layout(m$layouts$drl,           m$edges, "DrL (igraph)", cex = 0.5)
-plot_layout(m$layouts$stress,        m$edges, "Stress (graphlayouts)", cex = 0.5)
-plot_layout(m$layouts$grip.default,  m$edges, "grip default", cex = 0.5)
-plot_layout(m$layouts$grip.mesh,     m$edges, "grip mesh preset", cex = 0.5)
+comparison.views(m$layouts, m$edges)
 ```
 
 This benchmark shows a different pattern from the karate graph: on a canonical
-structured family like a mesh, the saved grip 0.2.0 default result
+structured family like a mesh, the default GRIP result
 shows a clean uncrossed layout. The saved `mesh` preset result has slightly
 lower sampled stress. These are particular seeded results, not an estimate of
 variation across layout seeds. At the same time, stress and KK remain very strong on a regular
@@ -253,7 +207,7 @@ M4 Max with 64 GiB memory, macOS/Darwin 25.6.0, and R 4.6.1.
 
 ```{r hmp-saved-results}
 knitr::kable(res$hmp$timing, digits = 3, row.names = FALSE,
-  caption = "HMP graph: elapsed seconds for saved grip 0.2.0-era runs.")
+  caption = "HMP graph: elapsed seconds for the precomputed layout runs.")
 knitr::kable(res$hmp$scores[, c("method", "sampled.stress", "edge.length.cv")],
   digits = 4, row.names = FALSE,
   caption = "HMP graph: hop-distance quality of the first timed layout per method.")
@@ -279,9 +233,7 @@ That second question needs a different benchmark track.
 
 ## Reproducing the external benchmark bundle
 
-To run the comparison recipe again with your installed package version, write
-to a new output file. Reproducing the archived numerical results additionally
-requires the software versions recorded above:
+Run the comparison recipe with the installed packages and a separate output file:
 
 ```{r reproduce, eval=FALSE}
 Sys.setenv(GRIP_VS_ALTERNATIVES_OUTPUT = "benchmark_results.rds")
@@ -289,10 +241,4 @@ source(system.file(
   "scripts", "precompute-vs-alternatives.R",
   package = "grip"
 ))
-```
-
-## Session info for the bundled external results
-
-```{r session-info-precomputed}
-res$session_info
 ```

@@ -37,7 +37,7 @@ navbar:
       href: articles/grip-examples.html
     gallery:
       text: Graph gallery
-      href: articles/synthetic-graph-families.html
+      href: articles/gallery.html
     guides:
       text: Guides
       menu:
@@ -72,16 +72,15 @@ navbar:
 
 articles:
   - title: Start here
-    contents: [grip-examples, function-guide, synthetic-graph-families]
+    contents: [grip-examples, function-guide, gallery, synthetic-graph-families]
   - title: Choose and understand layouts
     contents: [grip-real-data, weighted-grip-intro, metric-mds-backends, sparse-metric-mds, grip-trace-and-diagnostics]
   - title: Case study and exploration
     contents: [hmp-u01-case-study, gripui-explorer]
   - title: Complete results and further examples
-    contents: [graph-gallery-more, metric-mds-results, sparse-mds-results, grip-vs-alternatives]
+    contents: [gallery_grip, graph-gallery-more, metric-mds-results, sparse-mds-results, grip-vs-alternatives]
 
 redirects:
-  - [articles/gallery.html, articles/synthetic-graph-families.html#constructing-other-graph-families]
   - [articles/showcase-recipes.html, articles/grip-trace-and-diagnostics.html]
 
 reference:

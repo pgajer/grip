@@ -31,6 +31,16 @@ settings on **494_bus**, a 494-vertex power network supplied with grip.
 Its source electrical values are not layout distances: we use the bundled
 unit-length connectivity graph.
 
+## Recommended starting workflow
+
+Start with `metric.mds(backend="sgd")` for a graph-distance embedding.
+When full pairwise distances and fitting exceed the available resources, use
+`metric.mds(backend="sgd", approximation="sparse")`; sparse mode approximates
+the fitting objective and still needs independent distance-fidelity checks.
+Do not append edge-KK automatically: improving adjacent-edge lengths can worsen
+longer-range distance fidelity. This starting recommendation is not a claim
+that one optimizer wins on every graph.
+
 ## Choose a method for the question
 
 | Question | Starting point |
@@ -46,7 +56,7 @@ provides the complete categorized catalog. [Metric MDS](metric-mds-backends.html
 compares its two optimizers; [weighted layouts](weighted-grip-intro.html)
 explains distance-valued edges.
 
-## Compare settings across seeds
+## Compare alternative GRIP settings across seeds
 
 ```{r candidates}
 data(zheng.graphs)
@@ -60,6 +70,7 @@ knitr::kable(cmp$summary[,c('candidate','sampled.stress.mean',
   'stability.procrustes.mean')],digits=3)
 ```
 
+This section demonstrates an alternative algorithm, not the default SGD workflow.
 These are three GRIP presets with three seeds each. They are a teaching
 comparison, not tuned recommendations for power networks. Sampled stress is
 smaller when drawn distances better match graph shortest paths. Stability
@@ -118,6 +129,6 @@ preparation; its matrix-size estimate is a lower bound, not peak memory.
 Start with a few seeds and candidates. Use [traces](grip-trace-and-diagnostics.html)
 to investigate a fold or collapse before increasing a search indiscriminately.
 
-The [historical engine comparison](grip-vs-alternatives.html) preserves the
-published-in-this-package grip 0.2.0-era results and their original settings.
+The [layout-engine comparison](grip-vs-alternatives.html) illustrates common
+diagnostics for multiscale GRIP, igraph and graphlayouts on unweighted graphs.
 Those results do not benchmark the current metric-MDS backend.

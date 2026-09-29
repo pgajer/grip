@@ -76,10 +76,11 @@ cat(knitr::knit_child(system.file('scripts','graph-gallery.Rmd',package='grip'),
   envir=environment(),quiet=TRUE),sep='\n')
 ```
 
-## Draw a graph in two steps
+## Start with SGD metric MDS
 
-This small example creates a weighted tree, draws it in 3D, and refines its
-edge lengths. The gallery uses this same recipe for every graph.
+This small example creates a weighted tree and draws it in 3D with SGD.
+The saved gallery also compares an optional edge-KK stage; it is not a
+recommended automatic second step.
 
 ```{r small-example}
 g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
@@ -87,8 +88,20 @@ g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
 prepared <- prepare.graph.geodesic.mds(
   edges = g$edges, n = g$n, edge.weights = g$edge_weights)
 mds <- suppressWarnings(metric.mds(
-  prepared = prepared, dim = 3, init = 'random',
+  prepared = prepared, dim = 3, backend = 'sgd', init = 'random',
   n.init = 3, max.iter = 80, seed = 2026, diagnostics = FALSE))
+```
+
+Use `mds$coords` as the default result. For larger graphs, pass raw graph inputs
+to `metric.mds(approximation="sparse", backend="sgd", ...)` rather than creating
+this dense preparation; see [sparse MDS](sparse-metric-mds.html).
+
+### Optional edge-length comparison
+
+The following reproduces the gallery's additional comparison. Retain it only
+when its independent diagnostics support the intended use.
+
+```{r optional-edge-comparison}
 refined <- edge.kk(
   coords = mds$coords, prepared = prepared, dim = 3,
   stiffness.method = 'uniform', density.mix.schedule = 1,

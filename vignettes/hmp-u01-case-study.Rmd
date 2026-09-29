@@ -47,16 +47,21 @@ knitr::kable(data.frame(Quantity=c('Original giant-component vertices',
 The original giant component has 6,474 vertices. Seven other components were
 discarded in the recorded preparation; no claim is made here about their
 arrangement. This coarsened weighted HMP/U01 object differs from the unweighted
-HMP graph in the historical external-engine benchmark.
+HMP graph in the external-engine comparison.
 
-## Interpret a saved layout
+## Compare three layouts
 
-The saved search used grip 0.2.0, seed 1, and the default, tree, and torus presets.
-It supplied lengths to the hop-based GRIP workflow: adjacent attractions use
-lengths, while standard hierarchy searches use hops. **These are historical
-hop-based fits, not new `metric='edge_length'` results.** The displayed
-configuration is the default preset, selected for this walkthrough without
-ranking it by appearance.
+The selector opens with **SGD metric MDS**, followed by **weighted GRIP**
+(`metric="edge_length"`) and **hop-based GRIP**. The SGD and weighted-GRIP fits
+use the same coarsened graph, positive edge lengths, three dimensions and seed
+1. SGD uses full weighted graph distances, uniform pair weights, a random
+start and a 200-iteration budget, without edge-KK refinement. Weighted GRIP
+uses its edge-length hierarchy and default optimization settings. This is a
+one-seed illustration, not a controlled method-ranking experiment.
+
+Hop-based GRIP uses supplied edge lengths for adjacent attractions and hop
+distances for hierarchy searches. The selector shows its default preset with
+seed 1. The preset comparison below also includes tree and torus settings.
 
 ```{r saved, include=FALSE}
 results <- readRDS(system.file('extdata','hmp_u01_gc_coarse','vignette_results.rds',package='grip'))
@@ -66,13 +71,35 @@ edges <- do.call(rbind,lapply(seq_along(g$adj_list),function(i) {
 ```
 
 ```{r hmp-view, echo=FALSE}
-documentation.groups(results$layouts$preset$default,edges,g$vertex_data$cst,
-  description='HMP/U01: saved default-preset layout, seed 1. Colors show community state types. Drag to rotate; scroll to zoom.')
+fresh <- readRDS(system.file('extdata','hmp_u01_gc_coarse','weighted_layouts.rds',package='grip'))
+documentation.group.layouts(list(
+  `SGD metric MDS`=fresh$sgd$value$coords,
+  `Weighted GRIP`=fresh$weighted_grip$value,
+  `Hop-based GRIP`=results$layouts$preset$default),
+  edges,g$vertex_data$cst,
+  description='HMP/U01: select a layout; CST colors are identical across layouts. Drag to rotate; scroll to zoom.')
 ```
 
 Rotation helps distinguish actual branches from overlaps in projection.
-The coordinates are shown in their saved units, without alignment to a putative
-biological reference configuration.
+Coordinates are centered and uniformly rescaled to the same root-mean-square
+radius for display, so each method is visible despite its different fitted
+scale. Shapes and orientations are preserved, with common bounds and an
+unchanged camera when switching. CST colors remain fixed. Saved coordinates
+and diagnostics are unchanged; this display does not compare absolute scale
+or align layouts to a biological reference.
+
+### Fit status
+
+```{r new-status}
+knitr::kable(fresh$sgd$value$metadata$starts,digits=4)
+knitr::kable(data.frame(Method=c("SGD metric MDS","Weighted GRIP"),
+  Seconds=c(fresh$sgd$elapsed_seconds,fresh$weighted_grip$elapsed_seconds)),digits=2)
+```
+
+An iteration limit means that SGD returned coordinates without meeting its
+stopping criterion. Weighted GRIP uses a fixed optimization schedule; returning
+a layout is not a convergence claim. The scores below describe the
+hop-based preset candidates; they do not score the SGD or weighted-GRIP fits.
 
 ## Compare the recorded candidates
 
@@ -94,12 +121,16 @@ knitr::kable(results$local_search_summary[,c('candidate','final.rounds',
   'repulsion.factor','sampled.stress.mean','cluster.separation.mean')],digits=3)
 ```
 
-## Fit the weighted graph today
+## Reproduce the weighted fits
 
-Use the explicit edge-length mode for a new weighted-geodesic layout. This
-recipe is separate from the saved historical results above.
+Start with SGD metric MDS for a new weighted graph-distance fit. The
+edge-length GRIP alternative used in the selector is shown below. This
+recipe uses edge-length distances; the preset tables above use hop-based GRIP.
 
 ```{r new-weighted, eval=FALSE}
+mds <- metric.mds(adj.list=g$adj_list,weight.list=g$weight_list,
+  n=length(g$adj_list),dim=3,backend='sgd',init='random',seed=1,
+  max.iter=200,pair.weights='uniform',diagnostics=FALSE)
 coords <- grip(adj.list=g$adj_list,weight.list=g$weight_list,
   n=length(g$adj_list),dim=3,metric='edge_length',seed=1)
 score.layout(coords,adj.list=g$adj_list,weight.list=g$weight_list,
@@ -122,7 +153,7 @@ knitr::kable(g$graph_info$coarsening_rounds)
 
 Saved results reside in `extdata/hmp_u01_gc_coarse/vignette_results.rds` in the
 installed package. They include candidate settings, scores, fitted coordinates,
-and the software session. To regenerate that historical workflow into a new
+and the software session. To run the hop-based preset comparison into a separate
 file, explicitly set the output path before sourcing its script:
 
 ```{r reproduce, eval=FALSE}
@@ -131,4 +162,10 @@ source(system.file('scripts','precompute-hmp-results.R',package='grip'))
 ```
 
 That script reproduces its documented hop-based workflow; it does not rerun
-the new weighted recipe above. Keep any new runs separate from the saved evidence.
+the weighted recipe above. Use separate output files for each comparison.
+
+The SGD and weighted-GRIP fits are stored in `weighted_layouts.rds`, with
+settings, warnings, runtimes, source/data checksums and session information.
+Reproduce them from the source checkout with
+`Rscript inst/scripts/precompute-hmp-layout-selector.R`. This does not overwrite
+the hop-based preset comparison.

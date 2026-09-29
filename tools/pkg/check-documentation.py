@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, unquote
 import csv, hashlib, re, sys
 root=Path(__file__).resolve().parents[2]
 v=root/'vignettes'
-assert len(list(v.glob('*.Rmd')))==14, 'Expected ten guides and four appendices'
+assert len(list(v.glob('*.Rmd')))==16, 'Expected twelve guides and four appendices'
 assert not list((v/'articles').glob('*.Rmd')), 'Website-only tutorial sources remain'
 for row in csv.DictReader((v/'archives/manifest.tsv').open(),delimiter='\t'):
     path=v/'archives'/row['archive_path']
@@ -45,4 +45,4 @@ for f in files:
 if errors:
     for e in errors:print(*e,sep=': ')
     raise SystemExit(1)
-print('Verified 14 installed sources, archived checksums, and documentation links/anchors.')
+print('Verified 16 installed sources, archived checksums, and documentation links/anchors.')

@@ -1,0 +1,362 @@
+---
+title: "Graph gallery: SGD metric MDS"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Graph gallery: SGD metric MDS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+This gallery fits the same six graph families as the
+[multiscale GRIP gallery](gallery_grip.html), using SGD metric MDS.
+Graphs, edge lengths and seeds are retained so their
+representations are easy to compare. This is an illustration, not a controlled
+benchmark of optimizer quality or runtime. All SGD fits here use three dimensions;
+the preserved GRIP tree example uses two.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.retina = 2,
+  fig.width = 11,
+  fig.height = 4.2
+)
+```
+
+Each fit uses weighted graph shortest-path distances, uniform pair weights,
+and full metric MDS with the SGD backend. The examples are small enough for
+full distances. No edge-KK refinement follows MDS. For larger graphs see
+[sparse SGD](sparse-metric-mds.html).
+
+The reference coordinates generate edge lengths; they are not the MDS targets.
+Shortest-path distances need not admit an exact Euclidean representation, so
+a fitted layout can differ from the reference geometry even with low stress.
+The ivue viewers support rotation, zoom and selection of displayed geometries.
+Coordinates are centered for display without rotation or scale fitting; these
+are not aligned shape-recovery comparisons. The parameter grid is planar and
+is displayed at z = 0. Install `ivue` and `rgl` to build the interactive views.
+
+```{r}
+library(grip)
+```
+
+```{r view-helpers, include=FALSE}
+source(system.file('scripts', 'vignette-views.R', package='grip'), local=TRUE)
+stopifnot(documentation.interactive())
+```
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.rglWebGL { max-width: 100%; }
+</style>
+
+## Family classes at a glance
+
+The table below lists a representative subset of the larger family collection.
+
+| Family class | Representative helper | Why it matters |
+|:--|:--|:--|
+| Lifted lattices | `mesh.surface.graph()` | Plain topology, nontrivial metric geometry |
+| Wrapped surfaces | `torus.surface.graph()` | Closed periodic surface geometry |
+| Recursive fractals | `vicsek.surface.graph()` | Self-similar bottlenecks and holes |
+| Irregular manifolds | `irregular.annulus.surface.graph()` | Non-lattice surface geometry with boundary |
+| Porous 3D families | `cube.channel.network.surface.graph()` | Volumetric geodesic detours |
+| Intrinsic trees | `kary.tree.weighted.graph()` | Geometry from edge lengths rather than ambient space |
+
+This article shows one representative example from each class. The interactive
+family browser described in `Interactive Exploration with gripui` exposes a
+much larger catalog.
+
+## Lifted lattices
+
+The simplest geometry-rich family keeps the graph topology of a rectangular
+mesh but induces edge lengths from a curved embedding in `R^3`.
+
+```{r mesh-family}
+mesh.graph <- mesh.surface.graph(
+  5, 5,
+  surface = "saddle",
+  amplitude = 0.8
+)
+
+mesh.fit <- metric.mds(
+  edges = mesh.graph$edges,
+  n = mesh.graph$n,
+  edge.weights = mesh.graph$edge_weights,
+  dim = 3,
+  seed = 1,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+mesh.coords <- mesh.fit$coords
+
+mesh.summary <- data.frame(
+  family = mesh.graph$family,
+  surface = mesh.graph$surface,
+  n = mesh.graph$n,
+  m = nrow(mesh.graph$edges),
+  weight_scale = mesh.graph$weight_scale
+)
+
+knitr::kable(mesh.summary, digits = 3)
+```
+
+```{r mesh-interactive}
+documentation.view(
+  list(`SGD metric MDS`=mesh.coords,
+       `Reference geometry`=mesh.graph$coords_surface,
+       `Parameter grid`=cbind(mesh.graph$coords_param, z=0)),
+  edges=mesh.graph$edges, aligned=TRUE,
+  description="Mesh: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+The useful design pattern here is that the topology stays simple while the
+metric geometry becomes nontrivial.
+
+## Wrapped surfaces
+
+Wrapped lattices extend the same idea to periodic topologies such as a torus.
+
+```{r torus-family}
+torus.graph <- torus.surface.graph(
+  5, 6,
+  surface = "pinched",
+  minor.radius = 0.33,
+  amplitude = 0.18,
+  twist = 0.18
+)
+
+torus.fit <- metric.mds(
+  edges = torus.graph$edges,
+  n = torus.graph$n,
+  edge.weights = torus.graph$edge_weights,
+  dim = 3,
+  seed = 2,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+torus.coords <- torus.fit$coords
+
+knitr::kable(
+  data.frame(
+    family = torus.graph$family,
+    surface = torus.graph$surface,
+    n = torus.graph$n,
+    m = nrow(torus.graph$edges)
+  )
+)
+```
+
+```{r torus-interactive}
+documentation.view(
+  list(`SGD metric MDS`=torus.coords,
+       `Reference geometry`=torus.graph$coords_surface),
+  edges=torus.graph$edges, aligned=TRUE,
+  description="Torus: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+These wrapped families are especially useful when ordinary planar intuition is
+misleading and a 3D layout is the natural target.
+
+## Recursive and fractal families
+
+The package now includes recursive square-mask families such as the Vicsek
+fractal and Sierpinski carpet variants, all of which can be lifted into curved
+surface geometries.
+
+```{r vicsek-family}
+vicsek.graph <- vicsek.surface.graph(
+  level = 2,
+  surface = "ripple",
+  amplitude = 0.55
+)
+
+vicsek.fit <- metric.mds(
+  edges = vicsek.graph$edges,
+  n = vicsek.graph$n,
+  edge.weights = vicsek.graph$edge_weights,
+  dim = 3,
+  seed = 3,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+vicsek.coords <- vicsek.fit$coords
+```
+
+```{r vicsek-interactive}
+documentation.view(
+  list(`SGD metric MDS`=vicsek.coords,
+       `Reference geometry`=vicsek.graph$coords_surface),
+  edges=vicsek.graph$edges, aligned=TRUE,
+  description="Vicsek: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+Recursive families are useful because they create holes, bottlenecks, and
+multi-scale detours that are hard to capture with simpler lattices.
+
+## Irregular manifolds
+
+Not all surface families in `grip` are based on regular grids. The package also
+includes irregular triangulated manifolds with boundary and closed irregular
+surfaces.
+
+```{r annulus-family}
+annulus.graph <- irregular.annulus.surface.graph(
+  rings = 5,
+  outer.count = 24,
+  inner.radius = 0.42,
+  surface = "folded",
+  amplitude = 0.2
+)
+
+annulus.fit <- metric.mds(
+  edges = annulus.graph$edges,
+  n = annulus.graph$n,
+  edge.weights = annulus.graph$edge_weights,
+  dim = 3,
+  seed = 4,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+annulus.coords <- annulus.fit$coords
+```
+
+```{r annulus-interactive}
+documentation.view(
+  list(`SGD metric MDS`=annulus.coords,
+       `Reference geometry`=annulus.graph$coords_surface),
+  edges=annulus.graph$edges, aligned=TRUE,
+  description="Annulus: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+These families are important because they reduce lattice bias and produce more
+variable local geometry than mesh-like constructions.
+
+## Porous 3D families
+
+The cubical branch introduces graphs that are genuinely volumetric rather than
+surface-like. Channel networks and related porous families create 3D geodesic
+detours that are hard to flatten cleanly.
+
+```{r cube-family}
+cube.graph <- cube.channel.network.surface.graph(
+  side = 5,
+  level = 1,
+  surface = "twisted",
+  twist = 0.2
+)
+
+cube.fit <- metric.mds(
+  edges = cube.graph$edges,
+  n = cube.graph$n,
+  edge.weights = cube.graph$edge_weights,
+  dim = 3,
+  seed = 5,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+cube.coords <- cube.fit$coords
+
+knitr::kable(
+  data.frame(
+    family = cube.graph$family,
+    n = cube.graph$n,
+    m = nrow(cube.graph$edges)
+  )
+)
+```
+
+```{r cube-interactive}
+documentation.view(
+  list(`SGD metric MDS`=cube.coords,
+       `Reference geometry`=cube.graph$coords_surface),
+  edges=cube.graph$edges, aligned=TRUE,
+  description="Cube: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+This family class is especially useful for testing whether a method can
+preserve large-scale volumetric structure without collapsing tunnels and
+channels.
+
+## Intrinsic weighted trees
+
+Some family geometries are intrinsic rather than ambient. The weighted tree
+helpers preserve the exact tree topology while assigning edge lengths directly
+from branch-depth and branch-position rules.
+
+```{r tree-family}
+tree.graph <- kary.tree.weighted.graph(
+  k = 2,
+  depth = 4,
+  depth.rule = "geometric",
+  depth.decay = 0.82,
+  branch.rule = "linear",
+  branch.spread = 0.25
+)
+
+tree.fit <- metric.mds(
+  edges = tree.graph$edges,
+  n = tree.graph$n,
+  edge.weights = tree.graph$edge_weights,
+  dim = 3,
+  seed = 6,
+  backend = "sgd", pair.weights = "uniform",
+  max.iter = 1000, diagnostics = FALSE
+)
+tree.coords <- tree.fit$coords
+
+knitr::kable(
+  head(tree.graph$edge_table[, c(
+    "parent",
+    "child",
+    "child_depth",
+    "branch_index",
+    "edge_weight"
+  )]),
+  digits = 3
+)
+```
+
+```{r tree-interactive}
+documentation.view(
+  list(`SGD metric MDS`=tree.coords),
+  edges=tree.graph$edges, aligned=TRUE,
+  description="Tree: drag to rotate, scroll to zoom; use the selector to compare geometries."
+)
+```
+
+These tree families are useful because they separate intrinsic weighted
+geometry from any arbitrary 3D embedding choice.
+
+## Stopping status
+
+The table records each fit's starts. An iteration-limit warning means that
+coordinates were returned without meeting the stopping criterion; it does not
+establish convergence or an optimum. Assess graph-distance error and stability
+across starts before interpreting a layout as evidence about geometry.
+
+```{r stopping-status, results='asis'}
+fits <- list(Saddle=mesh.fit, Torus=torus.fit, Vicsek=vicsek.fit,
+             Annulus=annulus.fit, Porous=cube.fit, Tree=tree.fit)
+for (name in names(fits)) {
+  cat("\n\n### ", name, "\n\n", sep="")
+  print(knitr::kable(fits[[name]]$metadata$starts, digits=5))
+}
+```
+
+## Learn more
+
+- [Multiscale GRIP versions of these examples](gallery_grip.html).
+- [SGD, SMACOF and stress weights](metric-mds-backends.html).
+- [Sparse SGD for larger graphs](sparse-metric-mds.html).
+- [Interactive synthetic graph comparisons](synthetic-graph-families.html).

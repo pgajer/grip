@@ -80,12 +80,27 @@ knitr::kable(mesh.trace$diagnostics[, c(
 ```
 
 ```{r trace-view, echo=FALSE}
-documentation.trace(mesh.trace,mesh.edges)
+htmltools::tagList(lapply(seq_along(mesh.trace$frames), function(i) {
+  z <- mesh.trace$frames[[i]]
+  active <- stats::complete.cases(z)
+  e <- mesh.edges[active[mesh.edges[,1]] & active[mesh.edges[,2]],,drop=FALSE]
+  ids <- integer(nrow(z)); ids[active] <- seq_len(sum(active))
+  e <- matrix(ids[e],ncol=2)
+  z <- z[active,,drop=FALSE]
+  if (ncol(z)==2L) z <- cbind(z,0)
+  htmltools::tagList(
+    htmltools::tags$h3(paste('Recorded stage',i,'of',length(mesh.trace$frames))),
+    ivue::plot3D.plain(z,layers=list(ivue::layer3D.edges(e)),
+      axes=FALSE,aspect='equal',width=900,height=420,
+      description=paste('Stage',i,':',sum(active),'active vertices. Original planar coordinates.'))
+  )
+}))
 ```
 
-Move the slider to inspect recorded stages of the construction. Bounds stay
-fixed, and each stage shows only its active vertices and edges. This is a
-planar graph, so a 2D view makes its recursive holes easier to inspect.
+Each recorded stage has an ivue viewer showing its active vertices and edges.
+Drag to rotate or scroll to zoom. Original planar coordinates are retained at
+z = 0; each viewer fits its own bounds, so apparent size across stages is not
+a measure of expansion.
 
 
 The two most useful tables are:
