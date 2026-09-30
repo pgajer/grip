@@ -17,9 +17,13 @@ Description: Implements GRIP multiscale graph layout with a unified choice
     and advanced experimental geodesic-KK utilities for weighted-layout
     evaluation and polish. Based on Gajer and Kobourov (2002)
     <doi:10.7155/jgaa.00052> and Gajer, Goodrich and Kobourov (2004)
-    <doi:10.1016/j.comgeo.2004.03.014>.
+    <doi:10.1016/j.comgeo.2004.03.014>. Includes derived graph datasets from
+    the SuiteSparse Matrix Collection, with source attribution and
+    transformation metadata.
 License: GPL (>= 3)
-Copyright: file inst/COPYRIGHTS
+Copyright: See inst/COPYRIGHTS for software and dataset attribution.
+    Bundled SuiteSparse-derived graph data are distributed under
+    CC BY 4.0; see inst/extdata/suitesparse/PROVENANCE.md.
 URL: https://pgajer.github.io/grip/, https://github.com/pgajer/grip
 BugReports: https://github.com/pgajer/grip/issues
 Encoding: UTF-8
