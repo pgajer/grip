@@ -1,7 +1,7 @@
 # Public, installed recipes for the Graph examples vignette. No fitting on source().
 graph_example_cases <- function() {
-  data <- new.env()
-  utils::data('zheng.graphs', package = 'grip', envir = data)
+  ids <- c('dwt_66', 'lesmis', 'dwt_307', '494_bus', 'dwt_1005', '1138_bus')
+  examples <- stats::setNames(lapply(ids, grip::suitesparse.graph), ids)
   generated <- list(
     tree = grip::kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
                                          branch.spread = .2, normalize = 'none'),
@@ -20,7 +20,7 @@ graph_example_cases <- function() {
     '1138_bus' = '1138_bus: a power network')
   karate.edges <- as.matrix(utils::read.csv(system.file('extdata', 'karate-club-edges.csv', package = 'grip')))
   cases <- c(generated, list(karate = list(n = 34L, edges = karate.edges,
-                  edge_weights = rep(1, nrow(karate.edges)))), data$zheng.graphs)
+                  edge_weights = rep(1, nrow(karate.edges)))), examples)
   for (id in names(cases)) {
     cases[[id]]$id <- id; cases[[id]]$label <- unname(labels[id])
     cases[[id]]$group <- if (id %in% names(generated)) 'Generated graphs' else 'Graphs from applications'

@@ -34,8 +34,7 @@ This walkthrough uses the same **dwt_307** graph as Getting Started. Two presets
 and two seeds provide a small collection to browse.
 
 ```{r compare-example}
-data(zheng.graphs)
-g <- zheng.graphs[['dwt_307']]
+g <- suitesparse.graph('dwt_307')
 cmp <- compare.layouts(edges=g$edges,n=g$n,dim=3,
   candidates=c('default','tree'),seeds=1:2,return.layouts=TRUE,
   edge.crossings='never')

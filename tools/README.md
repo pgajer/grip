@@ -47,9 +47,12 @@ The reviewed bundle, images and recipes are public vignette artifacts.
 
 ## Graph examples gallery
 
-The six SuiteSparse graphs are installed as `zheng.graphs`. Rebuild them
-without downloading anything using `Rscript data-raw/zheng_graphs.R`; the
-archived matrices and attribution are in `inst/extdata/zheng-graphs/`.
+The 85 bundled SuiteSparse graphs are available through `suitesparse.graph()`
+and `suitesparse.graphs()`. Rebuild with `python3 data-raw/build-suitesparse.py
+/path/to/suitesparse_embedding_comparison` (NumPy/SciPy and R jsonlite required
+only for rebuilding). The frozen selection and provenance are in
+`inst/extdata/suitesparse/`; the original six matrices remain in
+`inst/extdata/zheng-graphs/`.
 
 The gallery includes six generated graphs, karate club, and these six datasets.
 To recreate all 3D layouts, install this checkout into a separate library and run:

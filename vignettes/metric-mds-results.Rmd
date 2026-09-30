@@ -318,8 +318,7 @@ it is separate from the edge lengths used to compute graph shortest paths.
 Select the same weighting for either backend:
 
 ```{r weighted-api, eval=FALSE}
-data(zheng.graphs)
-g <- zheng.graphs[['dwt_307']]
+g <- suitesparse.graph('dwt_307')
 prepared <- prepare.graph.geodesic.mds(edges=g$edges,n=g$n,edge.weights=g$edge_weights)
 start <- withr::with_seed(1,matrix(rnorm(g$n*3),g$n,3))
 sgd <- metric.mds(prepared = prepared, dim = 3, init = start,

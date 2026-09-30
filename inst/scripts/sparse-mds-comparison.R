@@ -3,8 +3,7 @@
 # sourcing never runs a benchmark.
 sparse_comparison_cases <- function() {
   cases <- comparison_cases(8L)[c('saddle_graph-64','paraboloid_graph-64','helix_graph-64')]
-  env <- new.env(); utils::data('zheng.graphs',package='grip',envir=env)
-  g <- env$zheng.graphs[['dwt_307']]
+  g <- grip::suitesparse.graph('dwt_307')
   cases[['dwt_307']] <- list(id='dwt_307',label='Structural graph dwt_307',n=g$n,
     dimension=3L,edges=g$edges,weights=g$edge_weights,draw_edges=g$edges,
     X=NULL,triangles=NULL,target='Graph shortest paths')

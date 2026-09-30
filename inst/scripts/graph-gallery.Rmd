@@ -29,9 +29,11 @@ for (group in c('Graphs from applications', 'Generated graphs')) {
     fits <- bundle$fits[[id]]
     cat('\n\n### ', graph$label, ' {#graph-',id,'}\n\n', descriptions[[id]], '\n\n', sep = '')
     cat(sprintf('**%s vertices; %s edges. %s.**\n\n', graph$n, nrow(graph$edges), graph$lengths))
-    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- zheng.graphs[['%s']]", id)
+    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- suitesparse.graph('%s')", id)
     cat('```r\n', recipe, '\n```\n\n', sep = '')
-    if (!is.null(graph$graph_info$source_url)) cat('[Source and metadata](', graph$graph_info$source_url, ').\n\n', sep = '')
+    source.url <- graph$provenance$source_url
+    if (is.null(source.url)) source.url <- graph$graph_info$source_url
+    if (!is.null(source.url)) cat('[Source and metadata](', source.url, ').\n\n', sep = '')
     if (!is.null(fits$error)) { cat('Layout unavailable: ', fits$error, '\n\n', sep = ''); next }
     tab <- do.call(rbind, lapply(c('mds','refined'), function(method) {
       f <- fits[[method]]

@@ -59,8 +59,7 @@ explains distance-valued edges.
 ## Compare alternative GRIP settings across seeds
 
 ```{r candidates}
-data(zheng.graphs)
-g <- zheng.graphs[['494_bus']]
+g <- suitesparse.graph('494_bus')
 cmp <- compare.layouts(edges=g$edges,n=g$n,dim=3,
   candidates=c('default','tree','mesh'),seeds=1:3,
   sample.size.stress=2000L,sample.size.nonedge=3000L,

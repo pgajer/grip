@@ -320,8 +320,8 @@ classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
 
-This guide covers **106 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 108
+This guide covers **108 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 110
 unique exported or registered function names, not 106. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
 through their objects below. Internal helpers are not public entry points.
@@ -412,6 +412,8 @@ method accounting, and help targets against the current namespace.
 
 | Function | Purpose | Details |
 |---|---|---|
+| `suitesparse.graph()` | Load one bundled SuiteSparse graph by full ID or unique short name. | [Help](`r help_url("suitesparse.graph")`) |
+| `suitesparse.graphs()` | Browse the frozen catalogue and gallery membership. | [Help](`r help_url("suitesparse.graph")`) |
 | `edges.path()` | Return consecutive edges of a path. | [Help](`r help_url("graph_generators")`) |
 | `edges.cycle()` | Return edges of a closed cycle. | [Help](`r help_url("graph_generators")`) |
 | `edges.mesh()` | Return edges of a rectangular grid. | [Help](`r help_url("graph_generators")`) |

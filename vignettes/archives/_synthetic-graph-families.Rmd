@@ -74,14 +74,13 @@ settings, not settings chosen to make either stage win. All fits use seed 2026.
 For the six new datasets, replace the graph-construction line with:
 
 ```{r supplied-data}
-data(zheng.graphs)
-names(zheng.graphs)
-g <- zheng.graphs[['lesmis']]
+suitesparse.graphs()
+g <- suitesparse.graph('lesmis')
 head(g$vertex_data)
 ```
 
 Each dataset supplies `n`, `edges`, `edge_weights`, `vertex_data`, and
-`graph_info`. Vertex indices follow the original matrix rows. The six graphs
+`provenance`. For these six examples, vertex indices follow the original matrix rows. The six graphs
 are connected; no vertices were dropped or connecting edges added. We use
 unit edge lengths and preserve the original matrix values separately.
 For example, Les Miserables coappearance counts describe connection strength,
@@ -145,7 +144,7 @@ for (group in c('Generated graphs', 'Graphs from applications')) {
     fits <- bundle$fits[[id]]
     cat('\n\n### ', graph$label, '\n\n', descriptions[[id]], '\n\n', sep = '')
     cat(sprintf('**%s vertices; %s edges. %s.**\n\n', graph$n, nrow(graph$edges), graph$lengths))
-    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- zheng.graphs[['%s']]", id)
+    recipe <- if (id %in% names(recipes)) recipes[[id]] else sprintf("g <- suitesparse.graph('%s')", id)
     cat('```r\n', recipe, '\n```\n\n', sep = '')
     if (!is.null(graph$graph_info$source_url)) cat('[Source and metadata](', graph$graph_info$source_url, ').\n\n', sep = '')
     if (!is.null(fits$error)) { cat('Layout unavailable: ', fits$error, '\n\n', sep = ''); next }
@@ -210,7 +209,7 @@ The six new graph datasets are derived from the
 [SuiteSparse Matrix Collection](https://sparse.tamu.edu/), distributed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original matrices,
 author credits, character labels, and descriptions of the conversion are
-included in `extdata/zheng-graphs/`. See `help('zheng.graphs')` for details.
+included in `extdata/zheng-graphs/`. See `help('suitesparse.graph')` for details.
 
 - Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018).
   *Graph Drawing by Stochastic Gradient Descent*.

@@ -1,5 +1,10 @@
 # grip 0.2.0.9001 (development version)
 
+- Replace the six-example dataset with offline `suitesparse.graph()` and
+  `suitesparse.graphs()` accessors for 85 source-validated graphs, including
+  the 80 curated gallery selections. Preserve labels, source credits, and
+  component mappings in a frozen xz bundle.
+
 - Breaking API change: public function and argument names now use lowercase words
   separated by dots, including control-list keys (`pair.weights`, `sgd.control`,
   `learning.rate`, and `n.pivots`). The nine `gripui_`/`run_gripui` entry points

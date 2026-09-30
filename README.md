@@ -48,14 +48,15 @@ them; install `smacof` to use `metric.mds(backend = "smacof")`.
 
 Draw a 494-vertex power network from the SuiteSparse Matrix Collection.
 The graph is bundled with grip: no download or matrix conversion is
-needed. Edges come from the matrix’s nonzero off-diagonal pattern and
-have unit length; matrix coefficients are not used as distances. Targets
-are shortest-path hop counts.
+needed. Browse all 85 bundled graphs with `suitesparse.graphs()`; its
+`gallery` column identifies the 80 curated comparison graphs. Edges come
+from the matrix’s nonzero off-diagonal pattern and have unit length;
+matrix coefficients are not used as distances. Targets are shortest-path
+hop counts.
 
 ``` r
 library(grip)
-data(zheng.graphs)
-g <- zheng.graphs[["494_bus"]]
+g <- suitesparse.graph("494_bus")
 
 fit <- metric.mds(
   edges = g$edges, n = g$n, dim = 3,

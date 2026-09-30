@@ -1,10 +1,9 @@
 test_that('SuiteSparse graph examples preserve source patterns and vertex identities', {
-  env <- new.env(); data('zheng.graphs', package = 'grip', envir = env)
   expected <- c(dwt_66 = 66, lesmis = 77, dwt_307 = 307, '494_bus' = 494, dwt_1005 = 1005, '1138_bus' = 1138)
   edge.counts <- c(127,254,1108,586,3808,1458)
-  expect_identical(names(env$zheng.graphs), names(expected))
+  expect_setequal(suitesparse.graphs()$name[suitesparse.graphs()$original_six], names(expected))
   for (i in seq_along(expected)) {
-    id <- names(expected)[i]; g <- env$zheng.graphs[[id]]
+    id <- names(expected)[i]; g <- suitesparse.graph(id)
     expect_equal(g$n, unname(expected[i])); expect_equal(nrow(g$edges), edge.counts[i])
     expect_identical(g$vertex_data$source_index, seq_len(g$n))
     expect_true(all(g$edge_weights == 1))
@@ -26,7 +25,7 @@ test_that('SuiteSparse graph examples preserve source patterns and vertex identi
     }
     expect_identical(seen, seq_len(g$n))
   }
-  expect_identical(env$zheng.graphs$lesmis$vertex_data$label[1], 'Myriel')
+  expect_identical(suitesparse.graph('lesmis')$vertex_data$label[1], 'Myriel')
 })
 
 test_that('gallery scores distinguish global distances from edge lengths', {

@@ -38,8 +38,7 @@ More pivots cost more; improvement in every individual run is not guaranteed.
 ## Use sparse SGD
 
 ```{r sparse-recipe, eval=FALSE}
-data(zheng.graphs)
-g <- zheng.graphs[['dwt_307']]
+g <- suitesparse.graph('dwt_307')
 fit <- metric.mds(edges=g$edges,n=g$n,edge.weights=g$edge_weights,
   dim=3,approximation='sparse',backend='sgd',seed=1,
   sparse.control=list(n.pivots=32),max.iter=100)

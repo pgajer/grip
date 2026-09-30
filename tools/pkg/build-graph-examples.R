@@ -8,7 +8,7 @@ out <- normalizePath(args[1]); lib <- normalizePath(args[2], mustWork = TRUE)
 .libPaths(c(lib, .libPaths()))
 library(grip, lib.loc = lib)
 source('inst/scripts/graph-examples.R')
-# The installed candidate must contain zheng.graphs; install before running this script.
+# The installed candidate must provide suitesparse.graph(); install before running this script.
 cases <- graph_example_cases()
 recipe <- file.path(out, 'executed-recipe.R')
 file.copy('inst/scripts/graph-examples.R', recipe)
@@ -22,7 +22,7 @@ bundle <- list(cases = cases, fits = list(), protocol = list(
   fitting_recipe_source = lapply(c('graph_example_cases','graph_example_fit','graph_example_scores'),
     function(name) list(name = name, source = deparse(get(name)))),
   source_md5 = as.list(tools::md5sum(c('inst/scripts/graph-examples.R', 'R/metric_mds.R',
-    'R/metric_mds_sgd.R', 'src/metric_mds_sgd.cpp', 'R/gmds_layout_interface.R', 'data/zheng.graphs.rda')))))
+    'R/metric_mds_sgd.R', 'src/metric_mds_sgd.cpp', 'R/gmds_layout_interface.R', 'inst/extdata/suitesparse/graphs.rds')))))
 saveRDS(bundle, file.path(out, 'progress.rds'))
 for (id in names(cases)) {
   cat('Fitting', id, 'with', cases[[id]]$n, 'vertices\n'); flush.console()

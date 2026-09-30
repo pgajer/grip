@@ -42,8 +42,7 @@ results, and reproduction instructions.
 ## Fit a graph with either backend
 
 ```{r recipe, eval=FALSE}
-data(zheng.graphs)
-g <- zheng.graphs[['dwt_307']]
+g <- suitesparse.graph('dwt_307')
 sgd <- metric.mds(edges=g$edges,n=g$n,dim=3,seed=1,
                   init='random',max.iter=100,diagnostics=FALSE)
 smacof.fit <- metric.mds(edges=g$edges,n=g$n,dim=3,seed=1,

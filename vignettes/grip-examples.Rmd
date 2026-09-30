@@ -34,8 +34,7 @@ reference that the layout must recover.
 ## Load a graph and draw it
 
 ```{r first-layout}
-data(zheng.graphs)
-g <- zheng.graphs[['dwt_307']]
+g <- suitesparse.graph('dwt_307')
 fit <- metric.mds(edges=g$edges, n=g$n, dim=3, backend="sgd",
                   seed=1, diagnostics=FALSE)
 coords <- fit$coords

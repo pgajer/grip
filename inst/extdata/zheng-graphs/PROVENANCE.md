@@ -24,7 +24,7 @@ SuiteSparse distributes the matrices under
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/),
 as stated in the [collection's license policy](https://sparse.tamu.edu/about).
 This license applies to these matrices, their metadata and the derived
-`zheng.graphs` dataset, separately from grip's software license.
+graphs returned by `suitesparse.graph()`, separately from grip's software license.
 
 Please credit the original authors above and cite Davis, T. A. and Hu, Y.
 (2011), *The University of Florida Sparse Matrix Collection*, ACM Transactions
@@ -39,8 +39,8 @@ https://doi.org/10.1109/TVCG.2018.2859997.
 
 ## Derived graphs
 
-`data-raw/zheng_graphs.R` rebuilds `data/zheng.graphs.rda` offline from these
-files. Derived names end in `_unweighted_graph`. The conversion removes diagonal
+`data-raw/original_six.R` reconstructs the six examples offline from these
+files as part of `data-raw/build-suitesparse.py`. Derived names end in `_unweighted_graph`. The conversion removes diagonal
 entries, discards explicit zeros, combines symmetric/duplicate edges, and assigns
 unit traversal lengths. All vertices and original row indices are retained.
 All six graphs are connected; no component was dropped or repaired. Original

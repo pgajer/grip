@@ -3,7 +3,7 @@
 root <- 'inst/extdata/zheng-graphs'
 names <- c('dwt_66', 'lesmis', 'dwt_307', '494_bus', 'dwt_1005', '1138_bus')
 groups <- c('HB', 'Newman', 'HB', 'HB', 'HB', 'HB')
-zheng.graphs <- setNames(lapply(seq_along(names), function(k) {
+original.six <- setNames(lapply(seq_along(names), function(k) {
   name <- names[k]
   file <- file.path(root, paste0(name, '.mtx.gz'))
   con <- gzfile(file, 'rt'); lines <- readLines(con); close(con)
@@ -30,4 +30,3 @@ zheng.graphs <- setNames(lapply(seq_along(names), function(k) {
       diagonal_entries_removed = sum(entries[,1] == entries[,2]),
       modifications = 'Nonzero off-diagonal pattern converted to unique undirected edges with unit traversal lengths. All vertices and source indices retained; no component selection or added edges. Original values and metadata retained in the archived matrix.'))
 }), names)
-save(zheng.graphs, file = 'data/zheng.graphs.rda', compress = 'xz', version = 2)

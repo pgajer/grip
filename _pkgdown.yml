@@ -199,7 +199,7 @@ reference:
       - print.grip_misf
   - title: Data
     contents:
-      - zheng.graphs
+      - suitesparse.graph
       - hmp.gc
       - hmp.u01.gc.coarse
   - title: Package and migration
