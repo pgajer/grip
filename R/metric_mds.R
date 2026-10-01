@@ -105,6 +105,11 @@ grip.mds.has.smacof <- function() {
 #'   in selection order. Explicit pivots override the default count; supplying
 #'   an inconsistent count is an error. The default count is a provisional
 #'   calibration choice; increasing it increases memory and work per epoch.
+#' @param distance.matrix Optional square numeric matrix of supplied distances for
+#'   full MDS. Values are used directly, without graph shortest paths. Must be
+#'   finite, symmetric and nonnegative with zero diagonal. Cannot accompany
+#'   graph inputs, prepared objects or constraints. Graph diagnostics are not
+#'   available: `diagnostics` defaults to FALSE and TRUE is rejected.
 #' @param constraints Optional list for sparse SGD with explicit distance
 #'   targets: `pairs` is a two-column matrix of distinct unordered vertex pairs;
 #'   `targets` contains positive finite distances. Optional `count_i` and
@@ -241,7 +246,20 @@ metric.mds <- function(prepared = NULL,
                        sgd.control = list(),
                        pair.weights = c("uniform", "inverse_squared"),
                        approximation = c("full", "sparse"),
-                       sparse.control = list(), constraints = NULL) {
+                       sparse.control = list(), constraints = NULL,
+                       distance.matrix = NULL) {
+  if (!is.null(distance.matrix)) {
+    if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared, constraints), is.null, logical(1))))
+      stop("distance.matrix cannot accompany graph inputs, prepared objects or constraints", call. = FALSE)
+    if (!is.matrix(distance.matrix) || !is.numeric(distance.matrix) ||
+        nrow(distance.matrix) != ncol(distance.matrix) || nrow(distance.matrix) < 3L)
+      stop("distance.matrix must be a square numeric matrix with at least three samples", call. = FALSE)
+    if (!is.null(n) && !identical(grip.validate.vertex.count(n), as.integer(nrow(distance.matrix))))
+      stop("n must match distance.matrix", call. = FALSE)
+    if (missing(diagnostics)) diagnostics <- FALSE
+    if (!identical(diagnostics, FALSE))
+      stop("distance.matrix requires diagnostics = FALSE; graph path diagnostics are unavailable", call. = FALSE)
+  }
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   if (!is.null(constraints)) {
     if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared), is.null, logical(1))))
@@ -250,6 +268,8 @@ metric.mds <- function(prepared = NULL,
   }
   backend <- match.arg(backend)
   approximation <- match.arg(approximation)
+  if (!is.null(distance.matrix) && approximation != "full")
+    stop("distance.matrix requires full approximation; use landmark.mds.constraints for sparse targets", call. = FALSE)
   if (!is.list(sparse.control) ||
       (length(sparse.control) && (is.null(names(sparse.control)) ||
         anyNA(names(sparse.control)) || any(!nzchar(names(sparse.control))) ||
@@ -327,7 +347,12 @@ metric.mds <- function(prepared = NULL,
       !is.finite(seed) || seed != floor(seed) || abs(seed) > .Machine$integer.max)) {
     stop("seed must be an integer or NULL", call. = FALSE)
   }
-  prepared <- if (is.null(prepared) && !diagnostics) {
+  prepared <- if (!is.null(distance.matrix)) {
+    structure(list(n = nrow(distance.matrix), distance_matrix = distance.matrix,
+      edges = matrix(integer(), ncol = 2L), graph_build_mode = "supplied_distances",
+      pair_mode = "distance_matrix_only"),
+      class = c("grip_metric_mds_prepared", "grip_gmds_prepared", "grip_geodesic_kk_prepared", "list"))
+  } else if (is.null(prepared) && !diagnostics) {
     grip.metric.mds.distance.prepared(edges, n, adj.list, weight.list, edge.weights)
   } else {
     grip.gmds.require.prepared(prepared = prepared, edges = edges, n = n,
@@ -476,6 +501,7 @@ metric.mds <- function(prepared = NULL,
             "; inspect metadata$starts", call. = FALSE)
   }
   coords <- best$coords * target.rms
+  if (!is.null(distance.matrix)) rownames(coords) <- rownames(distance.matrix)
   d <- as.double(stats::dist(best$coords))
   target.scale <- sum(pair.stiffness * d * target.normalized) / target.energy
   diag <- if (diagnostics) score.gmds(coords = coords, prepared = prepared,

@@ -27,7 +27,8 @@ metric.mds(
   pair.weights = c("uniform", "inverse_squared"),
   approximation = c("full", "sparse"),
   sparse.control = list(),
-  constraints = NULL
+  constraints = NULL,
+  distance.matrix = NULL
 )
 }
 \arguments{
@@ -128,6 +129,12 @@ multiplicities give ordinary sparse inverse-squared stress; asymmetric
 multiplicities use the existing sparse endpoint updates. Zero distances
 are unsupported: consolidate duplicate observations before constructing
 inverse-squared constraints. No triangle-inequality validation is performed.}
+
+\item{distance.matrix}{Optional square numeric matrix of supplied distances for
+full MDS. Values are used directly, without graph shortest paths. Must be
+finite, symmetric and nonnegative with zero diagonal. Cannot accompany
+graph inputs, prepared objects or constraints. Graph diagnostics are not
+available: \code{diagnostics} defaults to FALSE and TRUE is rejected.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.

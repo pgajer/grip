@@ -51,6 +51,7 @@ test_that("the public API matches the documented development contract", {
     "keep.staggered.windows",
     "kernel.gram.gkk",
     "landmark.geodesic.kk",
+    "landmark.mds.constraints",
     "legacy.grip",
     "mask.asymmetric.holes",
     "mask.border",
@@ -110,7 +111,7 @@ test_that("the public API matches the documented development contract", {
     "weighted.grip.nd"
   ))
 
-  expect_length(expected, 108L)
+  expect_length(expected, 109L)
   expect_identical(sort(getNamespaceExports("grip")), expected)
 })
 

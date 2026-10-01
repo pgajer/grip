@@ -1,5 +1,13 @@
 # grip 0.2.0.9001 (development version)
 
+- Added direct `metric.mds(distance.matrix = D)` input for full SGD or SMACOF
+  fitting without graph shortest-path reconstruction. Supplied targets remain
+  unchanged; graph path diagnostics are unavailable for this input.
+- Added `landmark.mds.constraints()` to convert landmark-by-sample distances
+  and optional local pair distances into explicit sparse MDS targets. Supports
+  symmetric uniform endpoint weights or the existing region-based endpoint
+  updates, with validation of duplicated target distances.
+
 - Added explicit distance constraints to sparse `metric.mds()`. Supplied pair
   targets bypass graph shortest paths, with optional endpoint multiplicities,
   connectedness and workspace checks, and preserved target metadata.

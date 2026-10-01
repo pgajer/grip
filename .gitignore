@@ -122,3 +122,5 @@ man/figures/*.png
 !man/figures/readme-saddle-overlay-rotation.gif
 pkgdown/favicon/*.png
 pkgdown/favicon/*.ico
+
+/build/

@@ -33,6 +33,7 @@ Imports: Rcpp
 Suggests:
     bslib,
     DT,
+    dgraphs,
     FNN,
     geometry,
     igraph,
@@ -41,6 +42,7 @@ Suggests:
     httpuv,
     knitr,
     later,
+    plotly,
     rmarkdown,
     rgl,
     shiny,

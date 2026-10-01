@@ -57,3 +57,5 @@
 ^vignettes/archives($|/)
 ^vignettes/.*\.html$
 ^gmds_.*\.(aux|fdb_latexmk|fls|log|pdf|synctex\.gz)$
+
+^build$
