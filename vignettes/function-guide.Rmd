@@ -213,7 +213,11 @@ distance matrix. `metric.mds()` minimizes distance stress, using native SGD by
 default or `backend="smacof"`. It also offers `approximation="sparse"` with SGD.
 Use [Metric MDS](metric-mds-backends.html) for executable examples, the method
 references, and stress weighting; use [Sparse SGD](sparse-metric-mds.html) when
-all-pairs preparation is too costly.
+all-pairs preparation is too costly. Supply a dense matrix directly with
+`metric.mds(distance.matrix = D)`, without graph shortest-path reconstruction.
+For supplied landmark-by-sample distances, `landmark.mds.constraints()` creates
+the explicit targets for sparse fitting. See [Fermat surface embeddings](fermat-surface-embeddings.html)
+for a direct-distance example.
 
 
 ## Choose a score
@@ -320,8 +324,8 @@ classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
 
-This guide covers **108 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 110
+This guide covers **109 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 111
 unique exported or registered function names, not 106. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
 through their objects below. Internal helpers are not public entry points.
@@ -339,7 +343,8 @@ method accounting, and help targets against the current namespace.
 | `grip()` | Compute a multiscale layout using hop counts or positive edge lengths. | [Help](`r help_url("grip")`) |
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
-| `metric.mds()` | Fit full metric MDS with SGD or SMACOF, or a pivot-based sparse approximation with SGD. | [Help](`r help_url("metric.mds")`) |
+| `metric.mds()` | Fit graph or supplied distance targets with full SGD/SMACOF, or sparse SGD. | [Help](`r help_url("metric.mds")`) |
+| `landmark.mds.constraints()` | Convert supplied landmark and optional local distances into sparse fitting targets. | [Help](`r help_url("landmark.mds.constraints")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |
 | `legacy.grip()` | Fit the alternative GRIP optimization profile. | [Help](`r help_url("legacy.grip")`) |
