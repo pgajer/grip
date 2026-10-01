@@ -1,5 +1,10 @@
 # grip 0.2.0.9001 (development version)
 
+- Added explicit distance constraints to sparse `metric.mds()`. Supplied pair
+  targets bypass graph shortest paths, with optional endpoint multiplicities,
+  connectedness and workspace checks, and preserved target metadata.
+
+
 - Replace the six-example dataset with offline `suitesparse.graph()` and
   `suitesparse.graphs()` accessors for 85 source-validated graphs, including
   the 80 curated gallery selections. Preserve labels, source credits, and

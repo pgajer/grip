@@ -26,7 +26,8 @@ metric.mds(
   sgd.control = list(),
   pair.weights = c("uniform", "inverse_squared"),
   approximation = c("full", "sparse"),
-  sparse.control = list()
+  sparse.control = list(),
+  constraints = NULL
 )
 }
 \arguments{
@@ -114,6 +115,19 @@ arguments; explicitly incompatible choices produce errors.}
 in selection order. Explicit pivots override the default count; supplying
 an inconsistent count is an error. The default count is a provisional
 calibration choice; increasing it increases memory and work per epoch.}
+
+\item{constraints}{Optional list for sparse SGD with explicit distance
+targets: \code{pairs} is a two-column matrix of distinct unordered vertex pairs;
+\code{targets} contains positive finite distances. Optional \code{count_i} and
+\code{count_j} contain nonnegative endpoint multiplicities (both default to one),
+divided by squared target distance during fitting. Each pair must have
+positive total multiplicity. Supply \code{n}; the constraint network must be
+connected. Cannot accompany graph inputs, prepared objects or pivot controls.
+Targets are used unchanged, with no shortest-path calculation. Symmetric
+multiplicities give ordinary sparse inverse-squared stress; asymmetric
+multiplicities use the existing sparse endpoint updates. Zero distances
+are unsupported: consolidate duplicate observations before constructing
+inverse-squared constraints. No triangle-inequality validation is performed.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.

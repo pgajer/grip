@@ -105,6 +105,18 @@ grip.mds.has.smacof <- function() {
 #'   in selection order. Explicit pivots override the default count; supplying
 #'   an inconsistent count is an error. The default count is a provisional
 #'   calibration choice; increasing it increases memory and work per epoch.
+#' @param constraints Optional list for sparse SGD with explicit distance
+#'   targets: `pairs` is a two-column matrix of distinct unordered vertex pairs;
+#'   `targets` contains positive finite distances. Optional `count_i` and
+#'   `count_j` contain nonnegative endpoint multiplicities (both default to one),
+#'   divided by squared target distance during fitting. Each pair must have
+#'   positive total multiplicity. Supply `n`; the constraint network must be
+#'   connected. Cannot accompany graph inputs, prepared objects or pivot controls.
+#'   Targets are used unchanged, with no shortest-path calculation. Symmetric
+#'   multiplicities give ordinary sparse inverse-squared stress; asymmetric
+#'   multiplicities use the existing sparse endpoint updates. Zero distances
+#'   are unsupported: consolidate duplicate observations before constructing
+#'   inverse-squared constraints. No triangle-inequality validation is performed.
 #' @return A `"grip_gmds_layout"` object with method `"metric_mds"`.
 #'   `metadata$engine` and `metadata$approximation` identify both choices.
 #'   In full mode, `metadata` records the objective, backend/version, achieved raw stress,
@@ -229,8 +241,13 @@ metric.mds <- function(prepared = NULL,
                        sgd.control = list(),
                        pair.weights = c("uniform", "inverse_squared"),
                        approximation = c("full", "sparse"),
-                       sparse.control = list()) {
+                       sparse.control = list(), constraints = NULL) {
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  if (!is.null(constraints)) {
+    if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared), is.null, logical(1))))
+      stop("constraints cannot accompany graph inputs or prepared objects", call. = FALSE)
+    if (is.null(n)) stop("constraints requires n", call. = FALSE)
+  }
   backend <- match.arg(backend)
   approximation <- match.arg(approximation)
   if (!is.list(sparse.control) ||
@@ -244,6 +261,8 @@ metric.mds <- function(prepared = NULL,
   if (approximation == "full" && length(sparse.control)) {
     stop("sparse.control requires approximation = 'sparse'", call. = FALSE)
   }
+  if (!is.null(constraints) && (approximation != "sparse" || length(sparse.control)))
+    stop("constraints requires sparse approximation without pivot controls", call. = FALSE)
   # Dispatch before any dense preparation, initialization, or diagnostics.
   if (approximation == "sparse") {
     if (backend != "sgd")
@@ -271,7 +290,7 @@ metric.mds <- function(prepared = NULL,
     return(.grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
       adj_list = adj.list, weight_list = weight.list, edge_weights = edge.weights,
       dim = dim, init = init, max_iter = max.iter, seed = seed,
-      sgd_control = sgd.control), sparse.control)))
+      sgd_control = sgd.control, constraints = constraints), sparse.control)))
   }
   pair.weights <- match.arg(pair.weights)
   if (backend == "sgd" && !missing(eps)) {

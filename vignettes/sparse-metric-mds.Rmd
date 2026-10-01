@@ -121,3 +121,35 @@ including the smaller saddle, paraboloid, and helix, all outcomes, numerical
 protocol, resource limits, and reproduction commands. A returned fit does not
 establish convergence. Compare independently evaluated error rather than
 sparse proxy values from different pivot counts.
+
+## Explicit distance constraints
+
+Sparse SGD also accepts distances already computed by another method. Supply
+`n` and a `constraints` list instead of graph edges. Targets are used as given;
+no shortest-path calculation or automatic pivot selection is performed.
+This is useful for exact complete-graph Fermat distances computed at selected
+pairs without storing a complete graph.
+
+```{r explicit-constraints}
+constraints <- list(pairs = rbind(c(1, 2), c(2, 3), c(1, 3)),
+                    targets = c(1, 1, 2))
+fit <- metric.mds(n = 3, approximation = "sparse", constraints = constraints,
+                  seed = 1, max.iter = 30)
+fit$metadata$constraint_source
+```
+
+Unordered pairs must be unique and form a connected network. Targets must be
+positive and finite; inverse-squared weighting cannot represent zero distances.
+Optional `count_i` and `count_j` give nonnegative endpoint multiplicities;
+both default to one. They are divided by squared target distance for updates.
+The defaults give symmetric sparse stress. Supplying asymmetric multiplicities
+supports the pivot-region weighting used by the graph-based sparse method,
+but the caller must compute those multiplicities consistently with its metric.
+The returned metadata preserves the targets and multiplicities.
+
+For Fermat geometry, local constraints also need shortest-path targets: powered
+direct-edge lengths can exceed them. The dgraphs Fermat vignette includes an
+implicit-distance example and a helper constructing exact local and pivot
+constraints. The graph-based interface remains unchanged and continues to use
+supplied edge lengths for its local targets. Sparse fitting does not certify
+unmeasured distances or recover full stress; evaluate on independent pairs.
