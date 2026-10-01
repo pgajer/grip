@@ -49,8 +49,9 @@ object, it must match the stored graph size.}
 
 \item{edge.weights}{Optional positive edge weights parallel to \code{edges}.}
 
-\item{dim}{Target embedding dimension. Values greater than 3 are supported
-for GMDS and edge-KK workflows.}
+\item{dim}{Embedding dimension. Full MDS supports two or three dimensions;
+sparse SGD supports integer dimensions of at least two, including 10D
+fits for subsequent projection or initialization of a 3D fit.}
 
 \item{init}{\code{"classical"} (full default), \code{"random"} (sparse default), or a finite numeric
 matrix with \code{n} rows and \code{dim} columns in input-distance units. Sparse MDS

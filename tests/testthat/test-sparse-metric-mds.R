@@ -120,7 +120,7 @@ test_that('sparse invalid inputs and resource limits fail explicitly', {
   expect_error(metric.mds(approximation="sparse",dim=3,sparse.control=list(pivots=c(1,1)),edges=E),'distinct')
   expect_error(metric.mds(approximation="sparse",dim=3,sparse.control=list(pivots=c(1,6)),edges=E),'vertex')
   expect_error(metric.mds(approximation="sparse",dim=3,sparse.control=list(pivots=c(1,3),n.pivots=3),edges=E),'match')
-  expect_error(metric.mds(approximation="sparse",edges=E,dim=4),'dim')
+  expect_error(metric.mds(approximation="sparse",edges=E,dim=1.5),'dim')
   expect_error(metric.mds(approximation="sparse",dim=3,edges=E,max.iter=0),'positive')
   expect_error(metric.mds(approximation="sparse",dim=3,edges=E,init='classical'),'init')
   expect_true(all(is.finite(metric.mds(approximation="sparse",dim=3,edges=E,init=matrix(0,5,3),max.iter=2)$coords)))

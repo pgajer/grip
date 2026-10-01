@@ -56,6 +56,9 @@ grip.mds.has.smacof <- function() {
 #' when that preparation is too large. Sparse behavior is described below.
 #'
 #' @inheritParams classical.mds
+#' @param dim Embedding dimension. Full MDS supports two or three dimensions;
+#'   sparse SGD supports integer dimensions of at least two, including 10D
+#'   fits for subsequent projection or initialization of a 3D fit.
 #' @param prepared An all-pairs prepared graph object containing
 #'   `distance.matrix`, for full MDS only. Sparse MDS requires raw graph inputs.
 #'   Edge-only preparations are not supported as inputs to either mode.

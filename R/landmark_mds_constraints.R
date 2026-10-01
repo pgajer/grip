@@ -55,6 +55,23 @@ landmark.mds.constraints <- function(distance.matrix, landmarks,
   close <- function(a, b) abs(a-b) <= 1e-10 * pmax(abs(a), abs(b))
   if (any(!close(D[, landmarks, drop = FALSE], t(D[, landmarks, drop = FALSE]))))
     stop("Opposite landmark distances must agree", call. = FALSE)
+  # Avoid materializing and sorting a six-column double table for tens of
+  # millions of landmark targets. Emit each unordered pair once, in the same
+  # lexicographic order as the general adapter below.
+  if(weighting == "uniform" && is.null(local.pairs)) {
+    h <- length(landmarks); size <- as.double(h)*n-h*(h+1)/2
+    if(size>.Machine$integer.max)stop("Too many landmark pairs for an R matrix",call.=FALSE)
+    pairs<-matrix(0L,size,2L);targets<-numeric(size)
+    landmark.row<-match(seq_len(n),landmarks);sorted<-sort(landmarks);cursor<-0L
+    for(i in seq_len(n-1L)) {
+      js<-if(!is.na(landmark.row[i]))seq.int(i+1L,n) else sorted[sorted>i]
+      if(!length(js))next
+      rows<-seq.int(cursor+1L,cursor+length(js));pairs[rows,1]<-i;pairs[rows,2]<-js
+      targets[rows]<-if(!is.na(landmark.row[i]))D[landmark.row[i],js] else D[landmark.row[js],i]
+      cursor<-cursor+length(js)
+    }
+    return(list(pairs=pairs,targets=targets,count_i=rep(1,size),count_j=rep(1,size)))
+  }
   owner <- if (weighting == "region") max.col(-t(D), ties.method = "first") else NULL
   rows <- lapply(seq_along(landmarks), function(j) {
     pivot <- landmarks[j]

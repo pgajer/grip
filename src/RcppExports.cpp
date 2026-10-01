@@ -737,6 +737,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_constraint_graph_cpp
+Rcpp::List grip_constraint_graph_cpp(int n, Rcpp::IntegerMatrix pairs, Rcpp::NumericVector targets);
+RcppExport SEXP _grip_grip_constraint_graph_cpp(SEXP nSEXP, SEXP pairsSEXP, SEXP targetsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type pairs(pairsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type targets(targetsSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_constraint_graph_cpp(n, pairs, targets));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_sgd_mds_cpp
 Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle, Rcpp::Nullable<Rcpp::NumericVector> weights, Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints, Rcpp::Nullable<Rcpp::NumericVector> reverse_weights, bool retain_best);
 RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP, SEXP weightsSEXP, SEXP endpointsSEXP, SEXP reverse_weightsSEXP, SEXP retain_bestSEXP) {
@@ -816,6 +829,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
+    {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 3},
     {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 11},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
     {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 7},

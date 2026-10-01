@@ -46,3 +46,17 @@ test_that("landmark adapter deduplicates exact targets with explicit weights", {
   bad <- D[c(1,5),]; bad[1,2] <- 0
   expect_error(landmark.mds.constraints(bad,c(1,5)), "consolidate")
 })
+
+test_that("uniform landmark adapter matches the general path and supports 10D refinement", {
+ set.seed(27);D<-as.matrix(dist(matrix(rnorm(90),30,3)));landmarks<-c(23L,1L,9L,17L)
+ a<-landmark.mds.constraints(D[landmarks,],landmarks)
+ b<-landmark.mds.constraints(D[landmarks,],landmarks,matrix(c(1,23),1),D[1,23])
+ expect_identical(a,b)
+ fit<-metric.mds(n=30L,constraints=a,approximation="sparse",dim=10L,max.iter=3,seed=29)
+ expect_equal(dim(fit$coords),c(30L,10L));expect_true(all(is.finite(fit$coords)))
+ init<-prcomp(fit$coords,rank.=3)$x[,1:3]
+ refined<-metric.mds(n=30L,constraints=a,approximation="sparse",dim=3L,init=init,max.iter=3,seed=29)
+ expect_equal(refined$metadata$sparse$targets,fit$metadata$sparse$targets)
+ expect_equal(dim(refined$coords),c(30L,3L))
+ expect_error(metric.mds(n=30L,constraints=a,approximation="sparse",dim=2.5),"dim")
+})

@@ -7,8 +7,8 @@
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   n <- grip.resolve.graph.n(n, edges, adj.list)
   if (n < 2L) stop("Sparse SGD needs at least two vertices", call. = FALSE)
-  if (!is.numeric(dim) || length(dim) != 1L || !is.finite(dim) || !dim %in% c(2,3))
-    stop("dim must be 2 or 3", call. = FALSE)
+  if (!is.numeric(dim) || length(dim) != 1L || !is.finite(dim) || dim < 2 || dim != trunc(dim) || dim > .Machine$integer.max)
+    stop("dim must be an integer at least 2", call. = FALSE)
   dim <- as.integer(dim)
   supplied.n_pivots <- !missing(n.pivots)
   n.pivots <- min(n, grip.validate.vertex.count(n.pivots))
@@ -48,9 +48,13 @@
       n.pivots, as.integer(pivots), preparation.seed, control$max.workspace.bytes)
   } else {
     sparse <- .metric.mds.validate.constraints(constraints, n, control$max.workspace.bytes)
-    prepared <- prepare.edge.kk(edges = sparse$pairs, n = n, edge.weights = sparse$targets)
+    prepared <- grip_constraint_graph_cpp(n,sparse$pairs,sparse$targets)
     if (prepared$n_components != 1L) stop("Sparse constraints must form a connected network", call. = FALSE)
-    prepared$graph_build_mode <- "distance_constraints"
+    prepared <- c(prepared,list(n=n,edges=sparse$pairs,edge_targets=sparse$targets,
+      pair_matrix=matrix(integer(),ncol=2L),pair_graph_distance=numeric(),
+      path_vertices=list(),path_edges=list(),path_edge_weights=list(),pair_path_count_log=numeric(),
+      graph_diameter=NA_real_,distance_matrix=NULL,pair_mode="edge_only",graph_build_mode="distance_constraints"))
+    class(prepared)<-c("grip_edge_kk_prepared","grip_gmds_prepared","grip_gkk_prepared","grip_geodesic_kk_prepared","list")
   }
   preparation.seconds <- proc.time()[["elapsed"]] - began
   began <- proc.time()[["elapsed"]]
@@ -133,8 +137,10 @@
   reverse <- pairs[,1] > pairs[,2]
   pairs[reverse,] <- pairs[reverse,2:1,drop=FALSE]
   tmp <- a[reverse]; a[reverse] <- b[reverse]; b[reverse] <- tmp
-  if (anyDuplicated(data.frame(pairs))) stop("constraints pairs must be unique", call. = FALSE)
   order <- order(pairs[,1],pairs[,2])
+  a.ids <- pairs[order,1]; b.ids <- pairs[order,2]
+  if(m>1L && any(a.ids[-1L]==a.ids[-m] & b.ids[-1L]==b.ids[-m]))
+    stop("constraints pairs must be unique", call. = FALSE)
   storage.mode(pairs) <- "integer"
   list(pairs=pairs[order,,drop=FALSE], targets=targets[order],
        count_i=a[order], count_j=b[order], pivots=integer(), region=integer(),

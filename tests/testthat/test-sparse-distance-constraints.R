@@ -40,3 +40,13 @@ test_that('invalid and ambiguous explicit constraints fail before fitting', {
   expect_error(run(sgd.control=list(max.workspace.bytes=1)),'workspace')
   expect_error(run(modifyList(cst,list(pairs=rbind(c(1.5,2),c(2,3))))),'integer vertex')
 })
+
+test_that('linear constraint graph preparation preserves edge metadata and components', {
+ E<-rbind(c(1L,2L),c(1L,4L),c(2L,3L),c(3L,4L));w<-c(2,4,1,3)
+ a<-grip_constraint_graph_cpp(4L,E,w)
+ b<-prepare.edge.kk(edges=E,n=4,edge.weights=w)
+ expect_equal(a$adj_list,b$adj_list);expect_equal(a$weight_list,b$weight_list)
+ expect_equal(a$component_id,b$component_id);expect_equal(a$n_components,b$n_components)
+ x<-grip_constraint_graph_cpp(5L,matrix(c(1L,2L),1),2)
+ expect_equal(x$n_components,4L)
+})

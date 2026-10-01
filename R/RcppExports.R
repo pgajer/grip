@@ -105,6 +105,10 @@ grip_optimize_kernel_gram_gkk_layout_cpp <- function(edges, edge_weights, edge_s
     .Call(`_grip_grip_optimize_kernel_gram_gkk_layout_cpp`, edges, edge_weights, edge_stiffness, star_center, star_v1, star_v2, star_w1, star_w2, star_cos, star_weight, coords, max_iter, scale_mode, scale, lambda_edge, lambda_gram, edge_length_epsilon, initial_step, step_shrink, armijo_factor, grad_tol, min_step, distance_floor, recenter, return_trace)
 }
 
+grip_constraint_graph_cpp <- function(n, pairs, targets) {
+    .Call(`_grip_grip_constraint_graph_cpp`, n, pairs, targets)
+}
+
 grip_sgd_mds_cpp <- function(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle = TRUE, weights = NULL, endpoints = NULL, reverse_weights = NULL, retain_best = TRUE) {
     .Call(`_grip_grip_sgd_mds_cpp`, start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best)
 }
