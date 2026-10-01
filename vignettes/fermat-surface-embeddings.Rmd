@@ -65,7 +65,8 @@ supplied as a dense matrix; this isolates **graph restriction**, without adding
 a landmark approximation to this small example.
 
 ```{r shared, include=FALSE}
-source(system.file('examples','fermat-surfaces.R',package='dgraphs'))
+source(Sys.getenv('FERMAT_SURFACE_HELPER',
+  unset=system.file('examples','fermat-surfaces.R',package='dgraphs')))
 cache.root <- Sys.getenv('FERMAT_SURFACE_RESULTS')
 results <- lapply(c('paraboloid','saddle','helix'),function(shape) {
   path <- file.path(cache.root,paste0(shape,'_4101.rds'))
@@ -138,7 +139,11 @@ The reference surface is translucent gray, original observations are gray points
 and fitted coordinates are colored by their first latent coordinate. Thin blue
 lines show the selected shortest-path edges for the complete graph, or Fermat
 neighbor edges for the restricted graph. Views are aligned to the observations
-using translation, an orthogonal transformation and one global scale. Alignment
+using least-squares similarity Procrustes alignment: translation, rotation or
+reflection, and one uniform scale, matching each embedded point to its original
+observation. Plot titles report the root mean squared Euclidean alignment
+residual per retained sample, in target-coordinate units (zero is exact overlap).
+Alignment
 changes only display coordinates; numerical errors above use the original fits.
 
 ```{r paraboloid,echo=FALSE}
