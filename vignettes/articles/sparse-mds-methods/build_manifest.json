@@ -1,0 +1,93 @@
+{
+  "build_time": "2026-10-07 13:06:51 EDT",
+  "result_generation_time": "2026-10-07 12:47:48 EDT",
+  "fits": 288,
+  "pdf_exported": true,
+  "documentation_only_source_revisions": [
+    {
+      "path": "/Users/pgajer/current_projects/grip/R/metric_mds.R",
+      "archived": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/documentation_revision_2026-10-07/metric_mds.before_schedule_documentation.R",
+      "benchmark_md5": "b5a3916729fc8c63e47ae4592de44910",
+      "current_md5": "46569132875ba87fc065befbb69929ea",
+      "verification": "identical parsed R expressions; documentation-only change"
+    }
+  ],
+  "files": [
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/methods.tex",
+      "sha256": "1b6993e69bb96c49153842d38e114d31fbb4c413cb22403d6b05dbd8dc563db6"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/build_report.py",
+      "sha256": "472a5e3f3dfddf127833b9bcf67e196ccf520481a433d038431b4beec94f7599"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/README.md",
+      "sha256": "98ab0a6b69097449ff44cdd40b00f8f3b632ee43ef7f4dd2b04ed5892085c6ba"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/Makefile",
+      "sha256": "82bd170b3c3d0c66494794521679fbc0947e065570152a3277311040447de3f2"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/dgraphs_tests_final_corrected.log",
+      "sha256": "b5a9dd09a00a12a020d2491b789a33145a6294b44844e4560d4d47a24e96bcde"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/references.bib",
+      "sha256": "a51cef222c21f2559458c3559359433d2ac64d8353cffac00754d6819efb46a6"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/citation_verification.html",
+      "sha256": "6f35a5e69e31d7c1e8d27a7736c800f75afe373f0ecb6fc16a1fac9d9528b7be"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/validation_2026-10-07_final/source_manifest.csv",
+      "sha256": "749e8b99c566e507368341e23cf48a2e6637b6d49714c5c689829291dc7dffac"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/validation_2026-10-07_final/fits.csv",
+      "sha256": "bb8612f1013a1ebf4a1fefe5dabba571f5af6e63b5ec8cce15e5d3c533affb8e"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/validation_2026-10-07_final/graphs.csv",
+      "sha256": "319d7b483578d507c318e568d3245a21d862fe4f1ce53f0978a4976c5b2fef58"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/validation_2026-10-07_final/validation.rds",
+      "sha256": "0bac02bbdc2db96f872245965e63ab69c8429c4301a8dae06609dfb51e255a8a"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/tools/pkg/summarize-sparse-methods.R",
+      "sha256": "7047daacb1403ab12289ff6dbba61230eb0051841810ebb02b9ada808ea72c26"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/error-comparison.pdf",
+      "sha256": "b35023d1c11dc671679a1746a94cacbc63525e17cff5ca3e7c303bf3a06121c1"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/neighborhood-sensitivity.pdf",
+      "sha256": "6b0be1f26f9373f24a8a0f2ecfb1fd57fde11301fb553722b589bd9d51aeea33"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/paired_comparisons.csv",
+      "sha256": "61f97f9047106eff4cb09a6d86932010ddc4c647af8e0d6743574fc52ee27234"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/pca-baselines.csv",
+      "sha256": "572d6126f102edd0acf4749f7fb60d07f9abe00aa153eca0e10083b69cc190ce"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/grip_full_tests_final.log",
+      "sha256": "ec6d1ec76cb9c7ecf72877dd1c7a8c7804006e9314dbc1cc23d003acb04c50d3"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/output/sparse-mds-methods/documentation_revision_2026-10-07/metric_mds.before_schedule_documentation.R",
+      "sha256": "95296ed46e2fdea0daafaf7e1f5563a41a766900852799e06f6211118911adbe"
+    },
+    {
+      "path": "/Users/pgajer/current_projects/grip/vignettes/articles/sparse-mds-methods/methods.pdf",
+      "sha256": "96df6b904915fa022b30f689aff31bb6d786fd0d22fd0bfe345b93331545bba5"
+    }
+  ]
+}

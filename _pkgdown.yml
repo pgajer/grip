@@ -49,6 +49,8 @@ navbar:
           href: articles/weighted-grip-intro.html
         - text: Metric MDS
           href: articles/metric-mds-backends.html
+        - text: Higher-dimensional MDS to 3D
+          href: articles/high-dimensional-mds.html
         - text: Fermat surface embeddings
           href: articles/fermat-surface-embeddings.html
         - text: Sparse SGD
@@ -76,7 +78,7 @@ articles:
   - title: Start here
     contents: [grip-examples, function-guide, gallery, synthetic-graph-families]
   - title: Choose and understand layouts
-    contents: [grip-real-data, weighted-grip-intro, metric-mds-backends, fermat-surface-embeddings, sparse-metric-mds, grip-trace-and-diagnostics]
+    contents: [grip-real-data, weighted-grip-intro, metric-mds-backends, high-dimensional-mds, fermat-surface-embeddings, sparse-metric-mds, grip-trace-and-diagnostics]
   - title: Case study and exploration
     contents: [hmp-u01-case-study, gripui-explorer]
   - title: Complete results and further examples
@@ -92,6 +94,7 @@ reference:
       - weighted.grip.nd
       - classical.mds
       - metric.mds
+      - prepare.sparse.mds
       - landmark.mds.constraints
       - globalrep.grip
       - globalrep.weighted.grip

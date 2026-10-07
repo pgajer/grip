@@ -27,8 +27,11 @@ source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 `metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
 The default `backend='sgd'` moves pairs of vertices in shuffled order, following
 [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
-with the learning-rate schedule of
-[Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641).
+with a selectable learning-rate schedule. Legacy graph calls default to the
+hybrid schedule adapted from the implementation of
+[Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641);
+`prepare.sparse.mds()` inputs default to Zheng's weight-dependent fixed-budget
+exponential schedule (`scheduler="zheng"`).
 `backend='smacof'` updates the full configuration using the optional
 [smacof package](https://doi.org/10.18637/jss.v102.i10). Its majorization steps
 are designed to reduce total stress; individual SGD pair adjustments need not.
@@ -38,6 +41,9 @@ For a broader comparison of the methods, see Hangan, Kobourov and Miller (2026).
 The [complete experiment](metric-mds-results.html) retains all 420 original
 fits, the separate 60-fit weighting comparison, failed outcomes, numerical
 results, and reproduction instructions.
+
+For higher-dimensional fitting followed by PCA and optional free 3D refinement,
+see [Higher-dimensional metric MDS for 3D visualization](high-dimensional-mds.html).
 
 ## Fit a graph with either backend
 
@@ -55,7 +61,13 @@ uniform and inverse-squared stress weights. The default full mode uses uniform
 weights. An SGD pass and a SMACOF iteration are different amounts of work;
 compare achieved error and elapsed time, not iteration counts alone. SGD's
 schedule completion reports `iteration_limit`, which does not certify
-convergence. Its schedule defaults remain provisional calibration choices.
+convergence. The hybrid tuning defaults remain provisional calibration choices.
+The saved backend comparisons do not isolate the learning-rate schedule and
+therefore do not establish that hybrid is better than `"zheng"`. Hangan et al.'s
+fixed-switch rationale concerns the usual uniform-weight MDS setting; it is not
+evidence of superiority for inverse-squared regional sparse stress. See
+`?metric.mds`, under “Learning-rate schedules and evidence,” for the provenance,
+precise defaults and published-schedule controls.
 
 ## Two distance targets on the same saddle
 

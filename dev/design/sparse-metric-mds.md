@@ -8,7 +8,7 @@ unexported `.sparse.metric.mds()` before dense preparation. `approximation =
 preserved. Both modes default to `dim = 2`. Only omitted sparse arguments take
 mode-specific defaults: random initialization, inverse-squared weighting,
 30 epochs, and diagnostics disabled. Sparse mode rejects SMACOF, classical
-starts, uniform weights, `n.init != 1`, non-NULL prepared objects, enabled dense
+starts, uniform weights, `n.init != 1`, dense prepared objects, enabled dense
 diagnostics, and explicitly supplied dense diagnostic controls. Pivot controls
 are a strictly named `sparse.control` list (`n.pivots`, `pivots`); nonempty sparse
 controls are rejected in full mode. Both results use method `metric_mds` and
@@ -17,14 +17,14 @@ record `metadata$engine` and `metadata$approximation`.
 ## Sparse contract
 
  Inputs are a connected simple undirected graph, positive finite edge
-lengths (or unit lengths), and 2D or 3D output. Use the existing edge-only graph
+lengths (or unit lengths), and positive-dimensional output. Use the existing edge-only graph
 preparation; never build all-pairs distances, path caches, or classical MDS.
 Reject disconnected inputs; do not repair or silently select a component.
 
 The reference is Zheng, Pawar and Goodman (2018), Algorithm 2, adapting Ortmann,
 Klimenta and Brandes (2017). Pinned C++ reference: jxz12/s_gd2 revision
 52ab0a5bee183b45eed60061cabe8e63f006e8a0, cpp/s_gd2/sparse.cpp. MIT notice in
-inst/COPYRIGHTS. Our native implementation supports both 2D and 3D and uses
+inst/COPYRIGHTS. Our native implementation supports positive output dimensions and uses
 explicit mt19937_64 sampling, not upstream randomkit.
 
 ## Preparation and deterministic choices
@@ -83,6 +83,9 @@ and trace; do not put this number in `raw_stress` or label it full stress.
 Default 30 epochs, existing hybrid schedule (.5, .01, switch .4), checkpoint
 every epoch, all provisional calibration choices. This intentionally retains
 grip's schedule rather than reproducing the paper's weight-dependent annealing.
+This was reuse of the existing backend, not a result showing a better schedule;
+see the dated observation extension below and the schedule evidence in
+`metric-mds-sgd.md` for the current defaults.
 Return iteration_limit, converged=FALSE. Full stress is only computed by
 explicit external evaluation on small examples; sampled evaluation must use
 independent pairs on large examples. No automatic dense diagnostics.
@@ -119,3 +122,25 @@ it was not used to choose settings or rerun fitting. The assessment distances
 for the 4096-vertex case are all targets from 32 separately seeded random source
 vertices; these sources are shared across methods and independent of pivots.
 The profiled score fits scale on that same sample, not a held-out scaling set.
+
+## Observation preparation extension (October 7, 2026)
+
+The graph contract above is retained. A new exported `prepare.sparse.mds()`
+constructs uniform-landmark, Euclidean regional or graph-geodesic regional
+preparations from observations. `metric.mds(prepared=prep,
+approximation="sparse", backend="sgd")` accepts that specific sparse class.
+Euclidean pivots use on-demand rows; the qNN graph supplies local interactions.
+Graph-geodesic mode repairs components with streamed exact component-MST bridges.
+Neither sparse production path constructs an all-pairs matrix.
+
+The observation preparation selects pivots and half-radius region counts
+internally. Defaults are distance-proportional randomized selection, q=10,
+and smallest PCA search projection attaining 90% variance; optional Euclidean
+farthest-first changes only pivot selection. Search coordinates do not define
+edge lengths or Euclidean targets. The new preparation defaults to the named
+`zheng` weight-dependent exponential schedule, with epsilon=0.1. Existing graph
+callers retain their previous schedule default.
+
+See the [methods note](../../vignettes/articles/sparse-mds-methods/methods.tex)
+and its [reproduction record](../../vignettes/articles/sparse-mds-methods/README.md)
+for algorithms, assumptions, synthetic validation and package-check limitations.

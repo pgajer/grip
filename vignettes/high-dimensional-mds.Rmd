@@ -1,0 +1,337 @@
+---
+title: "Higher-dimensional metric MDS for 3D visualization"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Higher-dimensional metric MDS for 3D visualization}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.rglWebGL { max-width: 100%; }
+.grip-layout-selector { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(collapse=TRUE,comment='#>')
+source(system.file('scripts','high-dimensional-mds.R',package='grip'),local=TRUE)
+bundle <- readRDS(system.file('extdata','high-dimensional-mds','examples.rds',package='grip'))
+```
+
+Can fitting distances in more than three dimensions give a better **final 3D
+drawing**? This vignette compares direct 3D metric MDS with a higher-dimensional
+fit followed by principal component analysis (PCA), with or without a further
+3D metric-MDS fit. Higher-dimensional fitting provides another initialization
+strategy; it does not guarantee a better drawing or a faster calculation.
+
+The small recipe below runs with grip's public interfaces. The interactive
+examples and repeated-start tables use a compact subset of a saved experiment,
+so rebuilding this vignette does not repeat the larger fits. Every figure is
+an interactive **ivue** 3D view. Its **Layout** dropdown selects the method and
+intermediate dimension while retaining the camera. Drag to rotate and scroll
+to zoom. If ivue is unavailable, explanatory text replaces the viewer and the
+numerical tables remain; no static projection is substituted.
+
+This guide uses the development metric-MDS interface, introduced after grip
+0.2.0. For backend and weighting choices, see [Metric MDS](metric-mds-backends.html).
+
+## Three routes to a 3D drawing
+
+1. **Direct 3D:** minimize metric-MDS stress with three coordinates per vertex.
+2. **Higher-dimensional MDS + PCA:** fit, for example, ten coordinates per
+   vertex; center them and retain the first three principal components.
+3. **Higher-dimensional MDS + PCA + 3D refinement:** use those three PCA
+   coordinates as the starting configuration for another metric-MDS fit.
+   Every vertex can then move freely in 3D.
+
+PCA chooses a three-dimensional linear subspace that retains coordinate
+variance. It does not minimize error against the original distance targets.
+Free 3D refinement optimizes those original targets again; the result need
+not remain a linear projection of the higher-dimensional coordinates. This
+is different from the optional `edge.kk()` stage in the
+[synthetic graph gallery](synthetic-graph-families.html#optional-edge-length-comparison),
+which fits directly connected vertices rather than all finite pairs.
+
+An optimized higher-dimensional fit can have low stress while its PCA
+projection has much higher stress. Evaluate the actual three-column result,
+not just the higher-dimensional fit. Also compare a **classical-MDS start
+followed by 3D metric MDS**: a useful initialization need not require a
+higher-dimensional iterative fit.
+
+## A runnable 10D example
+
+We use the bundled 200-point paraboloid with Euclidean edge lengths on a
+symmetric six-nearest-neighbor graph. Its targets are shortest-path distances.
+Preparing the graph once lets every route use exactly the same target matrix.
+
+```{r recipe-input}
+library(grip)
+bundle <- readRDS(system.file('extdata','high-dimensional-mds','examples.rds',package='grip'))
+example <- bundle$cases[['paraboloid_17_6']]
+prepared <- prepare.graph.geodesic.mds(
+  edges=example$edges, n=example$n, edge.weights=example$weights)
+D <- prepared$distance_matrix
+stopifnot(isTRUE(all.equal(unname(D),unname(example$distances),tolerance=1e-10)))
+```
+
+The following is a short usage demonstration, with 20 SGD passes per fitted
+stage and one start. It is not a convergence study or an equal-time benchmark.
+The 10D route performs an additional fitting stage. To expose the initialization,
+we supply random matrices explicitly; the direct start uses the first three
+columns of the same draw. Internal scale adjustment differs between dimensions.
+
+```{r recipe-fit}
+set.seed(17)
+start10 <- matrix(rnorm(example$n * 10),example$n,10)
+fit <- function(dimension, initial) {
+  # Record schedule termination below; suppress its expected warning here.
+  withCallingHandlers(
+    metric.mds(prepared=prepared, dim=dimension, init=initial,
+      backend='sgd', approximation='full', pair.weights='uniform',
+      n.init=1, max.iter=20, seed=17, diagnostics=FALSE,
+      sgd.control=list(checkpoint.every=1L)),
+    warning=function(w) {
+      if (grepl('iteration_limit',conditionMessage(w),fixed=TRUE))
+        invokeRestart('muffleWarning')
+    })
+}
+direct <- fit(3,start10[,1:3])
+high <- fit(10,start10)
+pca3 <- prcomp(high$coords,center=TRUE,scale.=FALSE,rank.=3)$x[,1:3,drop=FALSE]
+refined <- fit(3,pca3)
+classical.start <- fit(3,'classical')
+```
+
+Use `scale.=FALSE`: rescaling the ten coordinate axes to unit variance would
+change their Euclidean geometry before projection. `project.3d()` is a drawing
+helper, not PCA; it uses the first three coordinate columns.
+
+We score the returned coordinates without an additional fitted scale:
+
+\[
+S_{\mathrm{norm}}(Z)=
+\frac{\sum_{i<j:\ d_{ij}<\infty}(\lVert z_i-z_j\rVert-d_{ij})^2}
+     {\sum_{i<j:\ d_{ij}<\infty}d_{ij}^{2}}.
+\]
+
+Lower is better; zero is an exact realization. This dimensionless **normalized
+stress** is the square of the **normalized error** reported in the
+[backend comparison](metric-mds-backends.html). The metric-MDS solver itself
+fits an overall scale when returning coordinates. Here we evaluate those
+coordinates as returned, and the PCA coordinates as projected, without another
+rescaling during evaluation.
+
+```{r recipe-score}
+normalized.stress <- function(z,D) {
+  target <- as.vector(as.dist(D))
+  keep <- is.finite(target)
+  sum((as.vector(dist(z))[keep]-target[keep])^2)/sum(target[keep]^2)
+}
+layouts <- list('Direct 3D'=direct$coords, '10D before projection'=high$coords,
+  '10D + PCA'=pca3, '10D + PCA + 3D refinement'=refined$coords,
+  'Classical + 3D refinement'=classical.start$coords)
+knitr::kable(data.frame(Route=names(layouts),
+  Dimensions=vapply(layouts,ncol,0L),
+  `Normalized stress`=vapply(layouts,normalized.stress,0,D=D),
+  check.names=FALSE),digits=7,row.names=FALSE)
+```
+
+```{r recipe-termination, echo=FALSE}
+knitr::kable(data.frame(Stage=c('Direct 3D','10D','3D refinement','Classical-start 3D'),
+  Termination=vapply(list(direct,high,refined,classical.start),function(f) f$metadata$termination,'')),
+  row.names=FALSE)
+```
+
+`iteration_limit` means that the prescribed schedule ended, not that an optimum
+was reached. These fresh demonstration fits are separate from the saved results
+below; their starts and implementation wrapper are not identical.
+
+## Saved examples and comparison conditions
+
+The saved study used full, uniformly weighted SGD-MDS on nine 200-point clouds
+(plane, paraboloid, saddle; three data seeds), each with five distance targets,
+plus six SuiteSparse graphs. It retained dimensions 4–20 and optimization
+starts 17, 29, and 43. Here we show four target datasets and dimensions
+4, 6, 8, 10, 15, and 20. The examples were selected **after examining the study**
+to teach contrasting outcomes; they are not an unbiased success-rate sample.
+Every displayed fit uses start 17, without choosing its appearance or score.
+Tables retain all three starts; classical MDS is deterministic and appears once.
+
+Synthetic fits allowed 20 passes per stage; SuiteSparse fits allowed four.
+The PCA-refined route therefore includes both the higher-dimensional stage and
+a second 3D stage. **Route seconds** include the preceding fitting stages,
+their initialization and projection, but exclude shared target preparation and
+subsequent evaluation/rendering. Equal pass counts across dimensions do not
+mean equal time or arithmetic work.
+
+To compare cost, the study also continued direct 3D SGD and retained its best
+scored checkpoint within each refined route's charged time allowance. The
+dimension tables compare against that stronger direct baseline. The allowance
+includes some archival overhead absent from direct continuation, favoring the
+direct method. Times describe these short recorded runs on one machine, not
+isolated solver speed or performance on an idle machine. Neither route is
+claimed to have converged.
+
+The viewers show the saved initial direct stage, whose coordinates exist.
+The time-matched direct checkpoints have saved scores but not saved coordinates;
+their scores appear only in tables. A displayed direct drawing must therefore
+not be mistaken for the time-matched comparator.
+
+All views preserve coordinate scale. Display alignment permits translation,
+rotation and reflection using corresponding vertex identities. It does not
+deform the drawing or affect scores. Gray reference points, where present,
+show the generating cloud; similarity to that cloud is a different question
+from fitting graph-path distances. Blue denotes direct/classical fits, orange
+PCA projections, and green refined fits. Use individual selections before
+overlaying all layouts.
+
+## One paraboloid, two distance targets
+
+The 200 points have data seed 17 and satisfy \(z=x^2+y^2\), with parameters
+sampled uniformly from the unit disk. This samples the parameter domain rather
+than surface area uniformly.
+
+### Ambient Euclidean distances
+
+These are straight-line distances between the generating points. An exact 3D
+realization exists. Additional fitting dimensions are not needed to represent
+the target; this case is a useful check on projection and optimization error.
+No edges are drawn in this view.
+
+```{r ambient-view, echo=FALSE}
+highdim.view(bundle$cases[['paraboloid_17_ambient']])
+```
+
+```{r ambient-scores, echo=FALSE}
+highdim.table(highdim.routes(bundle$cases[['paraboloid_17_ambient']]))
+```
+
+### Shortest paths on the six-neighbor graph
+
+The same points define a symmetric nearest-neighbor graph with Euclidean edge
+lengths. The graph construction permits minimum-spanning-tree repair between
+components. These finite graph-path distances differ from ambient distances
+and from exact geodesics on the continuous paraboloid. A best-fitting 3D
+configuration need not reproduce the generating surface.
+
+```{r graph-view, echo=FALSE}
+highdim.view(bundle$cases[['paraboloid_17_6']])
+```
+
+```{r graph-scores, echo=FALSE}
+highdim.table(highdim.routes(bundle$cases[['paraboloid_17_6']]))
+```
+
+Compare the higher-dimensional stress with the PCA-only row, then with free
+3D refinement. The first change measures the cost of projection; the second
+shows how much a subsequent 3D fit recovers. The following table changes the
+intermediate dimension and uses the time-matched direct baseline.
+
+```{r graph-dimensions, echo=FALSE}
+highdim.table(highdim.dimensions(bundle$cases[['paraboloid_17_6']]))
+```
+
+**Paired gain** is \(100(S_{\mathrm{direct}}-S_{\mathrm{refined}})/S_{\mathrm{direct}}\)
+for each start, comparing the refined result with its time-matched direct
+checkpoint. Positive values favor refinement. The mean is the mean of these
+three percentages, and the range shows variation across starts. Near zero
+stress, relative percentages can exaggerate negligible absolute differences;
+inspect the stress values as well.
+
+## SuiteSparse: an improvement and a counterexample
+
+These are unweighted graph conversions of HB/illc1033 and HB/lock_700 from the
+SuiteSparse Matrix Collection, not embeddings of their original numeric matrix
+values. HB/illc1033 uses distinct row and column vertices with an edge for each
+nonzero matrix entry. HB/lock_700 uses symmetrized off-diagonal support. Every
+edge has unit traversal length. The package's `suitesparse.graph()` catalogue
+retains the original source attribution and conversion metadata.
+
+Disconnected components were fitted separately, and pairs in different
+components are excluded from stress. All vertices are retained. HB/lock_700's
+nine isolates are placed in a separate display row; their positions relative
+to the main component have no distance-based interpretation. For legibility,
+each dense graph view draws at most 2,500 edges, selected at evenly spaced
+indices in the saved edge order. Fitting and scoring use the full graph.
+
+### HB/illc1033
+
+```{r illc-view, echo=FALSE}
+highdim.view(bundle$cases[['HB__illc1033']])
+```
+
+```{r illc-scores, echo=FALSE}
+highdim.table(highdim.routes(bundle$cases[['HB__illc1033']]))
+highdim.table(highdim.dimensions(bundle$cases[['HB__illc1033']]))
+```
+
+### HB/lock_700
+
+```{r lock-view, echo=FALSE}
+highdim.view(bundle$cases[['HB__lock_700']])
+```
+
+```{r lock-scores, echo=FALSE}
+highdim.table(highdim.routes(bundle$cases[['HB__lock_700']]))
+highdim.table(highdim.dimensions(bundle$cases[['HB__lock_700']]))
+```
+
+```{r contrast, echo=FALSE, results='asis'}
+a <- highdim.dimensions(bundle$cases[['HB__illc1033']])
+b <- highdim.dimensions(bundle$cases[['HB__lock_700']])
+cat(sprintf('\nAt intermediate dimension 10, mean paired time-matched gain is **%.2f%%** for HB/illc1033 and **%.2f%%** for HB/lock_700. These examples show why an additional fitting stage should be evaluated at its total cost, rather than compared only with one short direct stage.\n',
+  a$`Mean paired gain (%)`[a$Dimension==10],b$`Mean paired gain (%)`[b$Dimension==10]))
+```
+
+## Choosing a workflow
+
+Start with direct 3D MDS and a classical-initialized 3D control. Try several
+random starts before attributing a difference to dimension. If higher-dimensional
+fitting is promising, compare PCA-only and refined results at a few dimensions
+and include the total route cost. Ten is an example, not a recommended optimum;
+the original study's preselected summary dimension was eight.
+
+Across all six study graphs, refinement at dimension eight lowered mean
+time-matched stress by more than 1% on three graphs. The short schedules and
+small number of starts limit that finding. Choosing the best dimension after
+examining these tables is an exploratory choice, not independent validation.
+Stress also does not determine visual usefulness: inspect neighborhoods,
+overlap and recognizable structure in the interactive views.
+
+Full MDS requires dense all-pairs distances and quadratic work/storage. Larger
+problems may need [sparse MDS](sparse-metric-mds.html). Sparse fitting has a
+different pair set and objective; its proxy score cannot be substituted for
+the full uniform stress used here. Higher-dimensional sparse fitting is
+supported, but its performance is not tested by these saved comparisons.
+
+## Reproduction and saved evidence
+
+`inst/extdata/high-dimensional-mds/examples.rds` contains the four graph
+fixtures, two small synthetic distance matrices, the displayed 3D coordinates,
+and selected three-start scores/timings. Its source-hash table records the
+original study files. The saved study used a timing-instrumented SGD wrapper
+with component handling; the short public-API recipe above does not reproduce
+its exact starts, checkpoints or timings.
+
+From a source checkout, the maintainer can extract this subset from the retained
+study archive, verifying its hashes and independently rescoring every included
+3D layout, with:
+
+```{bash extract, eval=FALSE}
+Rscript data-raw/build-high-dimensional-mds.R /path/to/high_dimensional_mds_to_3d
+make high-dimensional-vignette
+```
+
+The extraction runs no optimization. Rebuilding the vignette runs only the
+small public-API demonstration; the saved tables and 3D views require no
+external archive, server, or gflowui installation. The bundle's provenance
+document describes selection, timing and attribution. See also the
+[function guide](function-guide.html#dimensions-result-objects-and-methods)
+for dimension support and drawing conventions.

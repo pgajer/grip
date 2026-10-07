@@ -56,12 +56,14 @@ grip.mds.has.smacof <- function() {
 #' when that preparation is too large. Sparse behavior is described below.
 #'
 #' @inheritParams classical.mds
-#' @param dim Embedding dimension. Full MDS supports two or three dimensions;
-#'   sparse SGD supports integer dimensions of at least two, including 10D
-#'   fits for subsequent projection or initialization of a 3D fit.
+#' @param dim Embedding dimension. Full MDS supports integer dimensions of at
+#'   least two and smaller than the vertex count. Sparse SGD supports integer
+#'   dimensions of at least two. Both support 10D fits for subsequent PCA
+#'   projection or initialization of a 3D fit.
 #' @param prepared An all-pairs prepared graph object containing
 #'   `distance.matrix`, for full MDS only. Sparse MDS requires raw graph inputs.
-#'   Edge-only preparations are not supported as inputs to either mode.
+#'   A [prepare.sparse.mds()] result is accepted with sparse approximation.
+#'   Other edge-only preparations are not supported as input.
 #' @param diagnostics Attach the common GMDS diagnostic panel. With `FALSE`
 #'   and raw graph inputs in full mode, prepare only the distance matrix, without
 #'   path caches. Defaults to `TRUE` for full MDS and `FALSE` for sparse MDS.
@@ -91,11 +93,14 @@ grip.mds.has.smacof <- function() {
 #'   applies the paper's inverse-squared shortest-path-distance weights in either
 #'   backend. This is separate from the graph's `edge.weights`.
 #' @param sgd.control Named list used only with `backend = "sgd"`:
-#'   `scheduler` (`"hybrid"` or `"exponential"`), `learning.rate` (0.5),
-#'   `final.rate` (0.01), `switch.ratio` (0.4), `checkpoint.every` (1), and
+#'   `scheduler` (`"hybrid"`, `"exponential"` or `"zheng"`), `learning.rate` (0.5),
+#'   `final.rate` (0.01), `switch.ratio` (0.4), `schedule.epsilon` (0.1),
+#'   `checkpoint.every` (1), and
 #'   `max.workspace.bytes` (256 MiB for full MDS, 512 MiB for sparse MDS).
-#'   These defaults are provisional calibration
-#'   choices. Rates must be positive with `final.rate <= learning.rate`;
+#'   The schedule defaults to `"zheng"` for [prepare.sparse.mds()] inputs and
+#'   `"hybrid"` otherwise. See Learning-rate schedules and evidence below.
+#'   The hybrid/exponential tuning defaults are provisional calibration
+#'   choices. Their rates must be positive with `final.rate <= learning.rate`;
 #'   `switch.ratio` is between zero and one inclusive. The memory allowance covers native workspace,
 #'   not the R input matrices or total process memory.
 #' @param approximation `"full"` (default) or `"sparse"`. This selects the
@@ -152,7 +157,7 @@ grip.mds.has.smacof <- function() {
 #' independently scored checkpoint, including initialization, is retained using
 #' scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
 #' The R wrapper independently rescales and recomputes its returned stress.
-#' The exponential schedule's final rate is its boundary value after the planned
+#' The legacy user-controlled exponential schedule's final rate is its boundary value after the planned
 #' passes, not its last applied rate. The hybrid schedule switches after
 #' `floor(switch.ratio * max.iter)` passes, at one tenth the initial rate
 #' (or the initial rate if the switch is immediate). Its harmonic segment
@@ -185,8 +190,10 @@ grip.mds.has.smacof <- function() {
 #' unit lengths or Euclidean chord lengths, and matched starts, rates and order.
 #'
 #' Targets are normalized by RMS over the retained unordered pairs; endpoint
-#' weights use the same units. The default hybrid schedule is grip's existing
-#' schedule, not the paper's weight-dependent annealing. The terminal iterate is
+#' weights use the same units. Legacy graph calls default to grip's hybrid
+#' schedule; [prepare.sparse.mds()] inputs default to the published fixed-budget
+#' `"zheng"` schedule. Select the schedule explicitly when comparing methods.
+#' The terminal iterate is
 #' returned, centered and converted back to input units, with no fitted scale.
 #' A checkpoint proxy averages the two endpoint weights for each pair. Asymmetric
 #' updates are not claimed to follow the gradient of that proxy, or to decrease
@@ -221,7 +228,53 @@ grip.mds.has.smacof <- function() {
 #' sparse <- metric.mds(edges = edges.path(30), dim = 3,
 #'   approximation = "sparse", sparse.control = list(n.pivots = 5))
 #' sparse$metadata$sparse_proxy_stress
-#' @seealso [classical.mds()], [edge.kk()], [smacof::mds()]
+#' @section Learning-rate schedules and evidence:
+#' The original full-SGD backend adapted exponential and hybrid schedules from
+#' the implementation accompanying Hangan et al. (2026). The graph sparse-SGD
+#' extension retained those controls. The hybrid default is preserved for
+#' existing callers; it is not a demonstrated improvement over Zheng et al.'s
+#' weight-dependent schedule. The original package design records its settings
+#' as provisional calibration choices.
+#'
+#' `scheduler = "hybrid"` starts at `learning.rate` (0.5), uses exponential
+#' decay during the first `floor(switch.ratio * max.iter)` epochs (default
+#' fraction 0.4), then a harmonic tail toward `final.rate` (0.01).
+#' The switch and rate endpoints are user controls, not derived from endpoint
+#' weight extrema. `scheduler = "exponential"` instead uses the controlled
+#' rates in a single exponential phase. For these legacy schedules, the final
+#' rate is a planned boundary value at epoch `max.iter`, not necessarily the
+#' last applied rate. These schedules are distinct from `"zheng"`.
+#'
+#' Hangan et al. motivate a fixed switch for the usual uniform-weight MDS
+#' setting, where the weight ratio does not distinguish pairs. That rationale
+#' does not establish better performance for inverse-squared, region-weighted
+#' sparse stress. Package backend comparisons and the earlier sparse-MDS
+#' comparison used hybrid controls; they did not isolate schedule effects.
+#' The October 2026 observation-method validation used `"zheng"` throughout.
+#' These experiments do not establish that either schedule outperforms the
+#' other. A schedule comparison must hold targets, pivots, endpoint weights,
+#' starting coordinates, update-order seeds and budgets fixed, and report
+#' independently evaluated error and runtime.
+#'
+#' Set `sgd.control = list(scheduler = "zheng", schedule.epsilon = 0.1)`
+#' to use Zheng et al.'s Section II-A1 fixed-budget exponential schedule.
+#' Its rates run from `1 / min(positive endpoint weights)` to
+#' `schedule.epsilon / max(positive endpoint weights)`, including both
+#' endpoints; one epoch uses the first rate. Weights are computed after grip's
+#' target normalization. `schedule.epsilon` defaults to 0.1; `learning.rate`,
+#' `final.rate` and `switch.ratio` must be omitted with this schedule.
+#' This is the default for [prepare.sparse.mds()] inputs, including uniform,
+#' Euclidean regional and geodesic regional preparations. Other inputs retain
+#' the hybrid default, including raw graphs and explicit constraints.
+#'
+#' Choosing `"zheng"` reproduces that schedule's rule, not every published
+#' solver setting or trajectory: epoch budget, initialization and scale,
+#' random-number generator and update order can differ. It does not implement
+#' the paper's separate Section II-A2 unlimited-iteration schedule or certify
+#' convergence. Prefer the named published schedule when the purpose is
+#' sparse-stress analysis following Zheng et al.; label hybrid runs as an
+#' alternative configuration rather than assuming they are better.
+#' @seealso [prepare.sparse.mds()], [classical.mds()], [edge.kk()], [smacof::mds()]
 #' @md
 #' @export
 #' @section Workflow guides:
@@ -251,6 +304,18 @@ metric.mds <- function(prepared = NULL,
                        approximation = c("full", "sparse"),
                        sparse.control = list(), constraints = NULL,
                        distance.matrix = NULL) {
+  observation.preparation <- NULL
+  if (inherits(prepared, "grip_sparse_mds_preparation")) {
+    if (!identical(match.arg(approximation), "sparse"))
+      stop("Sparse preparation requires approximation = 'sparse'", call. = FALSE)
+    if (any(!vapply(list(edges,adj.list,weight.list,edge.weights,constraints,distance.matrix),is.null,logical(1))))
+      stop("Sparse preparation cannot accompany other data inputs",call.=FALSE)
+    if (!is.null(n) && !identical(as.integer(n),as.integer(prepared$n)))
+      stop("n must match sparse preparation",call.=FALSE)
+    observation.preparation <- prepared
+    n <- prepared$n; constraints <- prepared$constraints; prepared <- NULL
+    if (is.list(sgd.control) && is.null(sgd.control$scheduler)) sgd.control$scheduler <- "zheng"
+  }
   if (!is.null(distance.matrix)) {
     if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared, constraints), is.null, logical(1))))
       stop("distance.matrix cannot accompany graph inputs, prepared objects or constraints", call. = FALSE)
@@ -310,10 +375,18 @@ metric.mds <- function(prepared = NULL,
     if (!missing(scale.mode) || !missing(distance.floor) ||
         !missing(edge.length.epsilon) || !missing(band.quantiles))
       stop("scale_mode, distance_floor, edge_length_epsilon and band_quantiles are full-MDS diagnostic controls; omit them for sparse MDS", call. = FALSE)
-    return(.grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
+    result <- .grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
       adj_list = adj.list, weight_list = weight.list, edge_weights = edge.weights,
       dim = dim, init = init, max_iter = max.iter, seed = seed,
-      sgd_control = sgd.control, constraints = constraints), sparse.control)))
+      sgd_control = sgd.control, constraints = constraints), sparse.control))
+    if (!is.null(observation.preparation)) {
+      result$metadata$data_preparation <- observation.preparation$metadata
+      result$metadata$constraint_source <- "observation_preparation"
+      result$metadata$sparse$pivots <- observation.preparation$pivots
+      result$metadata$sparse$region <- observation.preparation$region
+      result$metadata$settings$n.pivots <- length(observation.preparation$pivots)
+    }
+    return(result)
   }
   pair.weights <- match.arg(pair.weights)
   if (backend == "sgd" && !missing(eps)) {
@@ -340,7 +413,6 @@ metric.mds <- function(prepared = NULL,
   if (dim < 2L) stop("dim must be at least 2", call. = FALSE)
   if (backend == "sgd") {
     sgd.control <- grip.mds.sgd.control(sgd.control, max.iter)
-    rates <- grip.mds.sgd.rates(sgd.control, max.iter)
   }
   grip.validate.scalar(eps, "eps", lower = 0, open.lower = TRUE)
   if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
@@ -389,6 +461,7 @@ metric.mds <- function(prepared = NULL,
   if (any(!is.finite(pair.stiffness)) || any(pair.stiffness <= 0)) {
     stop("inverse_squared pair weights are outside the representable numeric range", call. = FALSE)
   }
+  if (backend == "sgd") rates <- grip.mds.sgd.rates(sgd.control,max.iter,pair.stiffness)
   # Public inverse-squared stress is dimensionless; normalized-distance weights
   # absorb RMS^2. Uniform stress is converted back to squared input units.
   loss.units <- if (pair.weights == "uniform") target.rms^2 else 1

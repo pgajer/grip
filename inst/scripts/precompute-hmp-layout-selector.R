@@ -1,5 +1,7 @@
 # Fresh weighted fits; the historical vignette_results.rds is never overwritten.
-pkgload::load_all('.',quiet=TRUE)
+# Run from the source checkout with an optimized native build already available.
+source('inst/scripts/portable-session-info.R')
+pkgload::load_all('.',recompile=FALSE,quiet=TRUE)
 data(hmp.u01.gc.coarse)
 g <- hmp.u01.gc.coarse
 fit_one <- function(expr) {
@@ -23,7 +25,7 @@ record <- list(sgd=mds,weighted_grip=weighted,
   script_md5=tools::md5sum('inst/scripts/precompute-hmp-layout-selector.R'),
   source_md5=tools::md5sum(c(list.files('R',full.names=TRUE,pattern='[.]R$'),
     list.files('src',full.names=TRUE,pattern='[.](cpp|h)$'))),
-  session=sessionInfo())
+  session=portable_session_info())
 stopifnot(identical(dim(mds$value$coords),c(1828L,3L)),
   identical(dim(weighted$value),c(1828L,3L)),
   all(is.finite(mds$value$coords)),all(is.finite(weighted$value)))

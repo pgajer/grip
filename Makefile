@@ -117,4 +117,9 @@ vignette-previews: audit-api-guide
 documentation-assets:
 	Rscript tools/pkg/build-documentation-assets.R
 
+.PHONY: high-dimensional-vignette
+high-dimensional-vignette:
+	Rscript tools/pkg/render-high-dimensional-vignette.R
+	node tools/tests/test-comparison-controls.cjs output/vignette-previews/doc/high-dimensional-mds.html
+
 check check-clean check-fast: audit-api-guide

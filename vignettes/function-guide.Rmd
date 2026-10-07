@@ -146,6 +146,10 @@ how the drawing was fitted.
 
 ## Dimensions, result objects, and methods
 
+For a worked comparison of direct 3D MDS, higher-dimensional MDS followed by
+PCA, and free 3D refinement, see
+[Higher-dimensional metric MDS for 3D visualization](high-dimensional-mds.html).
+
 | Operation | Coordinate dimensions and result |
 |---|---|
 | `grip()`, global-repulsion variants, legacy layouts | 2 or 3 columns; coordinate matrix. |
@@ -324,8 +328,8 @@ classical scaling. Initializer names are not a uniform package-wide vocabulary.
 
 ## Function catalog
 
-This guide covers **109 explicit public exports and three registered S3
-methods**. `plot.layout()` is both exported and registered, so there are 111
+This guide covers **110 explicit public exports and three registered S3
+methods**. `plot.layout()` is both exported and registered, so there are 112
 unique exported or registered function names, not 106. The catalog gives each
 export exactly one row. Methods selected by R's generic functions are explained
 through their objects below. Internal helpers are not public entry points.
@@ -344,6 +348,7 @@ method accounting, and help targets against the current namespace.
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
 | `metric.mds()` | Fit graph or supplied distance targets with full SGD/SMACOF, or sparse SGD. | [Help](`r help_url("metric.mds")`) |
+| `prepare.sparse.mds()` | Prepare Euclidean or graph-geodesic sparse MDS from observations; internal pivots, regional weights and PCA-assisted neighbors. | [Help](`r help_url("prepare.sparse.mds")`) |
 | `landmark.mds.constraints()` | Convert supplied landmark and optional local distances into sparse fitting targets. | [Help](`r help_url("landmark.mds.constraints")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |

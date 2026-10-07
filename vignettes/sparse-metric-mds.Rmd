@@ -52,12 +52,50 @@ inverse-squared stress weights. Its defaults are random initialization, up to
 with positive lengths; disconnected graphs are rejected without adding edges.
 
 Sparse mode accepts supplied starting coordinates but does not accept classical
-initialization, uniform weights, multiple starts, prepared objects, or dense
-diagnostics. These restrictions avoid an unexpected all-pairs calculation.
+initialization, uniform weights, multiple starts, dense prepared objects, or dense
+diagnostics. Observation-based sparse preparations are supported as described below. These restrictions avoid an unexpected all-pairs calculation.
 Its `sparse_proxy_stress` describes the fitted sparse constraints, not full stress.
 When a supplied edge is longer than an alternative route, sparse and full MDS
 can use different targets for that edge. That distinction does not arise for
 the unit and Euclidean chord lengths used in this experiment.
+
+## Prepare directly from observations
+
+`prepare.sparse.mds()` constructs the pivots and weights internally, without
+an all-pairs distance matrix. The default `method="euclidean"` uses original-space
+Euclidean pivot distances, published distance-proportional randomized pivot
+selection, regional endpoint weights and symmetric nearest-neighbor local pairs.
+Neighbor search uses the smallest ordinary PCA projection reaching 90% variance;
+all edge lengths and fitting targets still use the original observations.
+
+```{r observation-sparse-recipe, eval=FALSE}
+prep <- prepare.sparse.mds(X, method="euclidean", n.pivots=200,
+  q=10, neighbor.variance.target=0.90, seed=1)
+fit <- metric.mds(prepared=prep, approximation="sparse", backend="sgd",
+  dim=3, max.iter=100, seed=1,
+  sgd.control=list(scheduler="zheng", schedule.epsilon=0.1))
+```
+
+Use `pivot.selection="farthest"` for the Euclidean farthest-first alternative.
+`method="uniform"` uses uniform landmarks without regional multipliers or local
+edges, but retains inverse-squared distance weights. `method="geodesic"` instead
+uses shortest-path targets on a connected neighbor graph. Its exact component-MST
+repair evaluates distances as needed and never stores their full matrix;
+worst-case repair time can nevertheless be quadratic.
+
+This interface requires the accompanying `dgraphs` support for `search.data` and
+streaming component repair. Input rows must be distinct. Requested pivot counts
+are capped at `nrow(X)-1`; keep the count small relative to the data size for
+useful storage savings. The preparation can be reused across dimensions and
+fit seeds. Its default schedule is `"zheng"`, using the published weight-based
+endpoints; the legacy graph interface keeps its existing default schedule.
+Completing the epoch budget does not certify convergence. See
+`?prepare.sparse.mds` for returned audit information and controls.
+
+The October 2026 source-tree methods note under
+`vignettes/articles/sparse-mds-methods/` documents formulas and a separate
+288-fit quadratic-form validation. The existing experiment below concerns the
+legacy graph interface and its recorded settings.
 
 ## Quality, time, and memory on existing examples
 

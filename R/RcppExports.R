@@ -117,7 +117,7 @@ grip_surface_distances_cpp <- function(points, vertices, triangles) {
     .Call(`_grip_grip_surface_distances_cpp`, points, vertices, triangles)
 }
 
-grip_sparse_prepare_cpp <- function(n, edges, lengths, h, supplied, seed, max_workspace_bytes) {
-    .Call(`_grip_grip_sparse_prepare_cpp`, n, edges, lengths, h, supplied, seed, max_workspace_bytes)
+grip_sparse_prepare_cpp <- function(n, edges, lengths, h, supplied, seed, max_workspace_bytes, observations = NULL, selection = "randomized", region_weighting = TRUE, save_distances = FALSE) {
+    .Call(`_grip_grip_sparse_prepare_cpp`, n, edges, lengths, h, supplied, seed, max_workspace_bytes, observations, selection, region_weighting, save_distances)
 }
 

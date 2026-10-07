@@ -47,20 +47,33 @@ std::uint64_t sample_index(std::mt19937_64& rng, std::uint64_t bound) {
 // [[Rcpp::export]]
 Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
     Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed,
-    double max_workspace_bytes) {
+    double max_workspace_bytes, Rcpp::Nullable<Rcpp::NumericMatrix> observations = R_NilValue,
+    std::string selection = "randomized", bool region_weighting = true,
+    bool save_distances = false) {
     if (n < 2 || h < 1 || h > n || seed < 0 || edges.ncol() != 2 ||
         lengths.size() != edges.nrow() || (supplied.size() && supplied.size() != h) ||
         !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
         Rcpp::stop("Invalid sparse preparation controls");
+    const bool euclidean = observations.isNotNull();
+    Rcpp::NumericMatrix X;
+    if (euclidean) {
+        X = Rcpp::NumericMatrix(observations);
+        if (X.nrow()!=n || X.ncol()<1) Rcpp::stop("Invalid observation dimensions");
+        for (double z : X) if (!std::isfinite(z)) Rcpp::stop("Nonfinite observation");
+    }
+    if (selection!="randomized" && selection!="farthest" && selection!="uniform")
+        Rcpp::stop("Unknown pivot selection rule");
     const std::size_t m = edges.nrow();
     const long double nh = static_cast<long double>(n) * h;
     // Conservative bound: distances, graph/queue, reserved terms, output, scratch.
-    const long double estimate = 8 * nh + 128 * m + 96 * n +
+    const long double estimate = (save_distances ? 16 : 8) * nh + 128 * m + 96 * n +
         96 * (nh + m);
     if (estimate > max_workspace_bytes || nh + m > std::numeric_limits<int>::max())
         Rcpp::stop("Sparse preparation exceeds max_workspace_bytes or constraint index range");
-    if (m == 0) Rcpp::stop("Sparse SGD requires a connected graph");
-    const double unit = *std::max_element(lengths.begin(),lengths.end());
+    if (m == 0 && !euclidean) Rcpp::stop("Sparse SGD requires a connected graph");
+    double unit = m ? *std::max_element(lengths.begin(),lengths.end()) : 0;
+    if (euclidean) for (double z : X) unit=std::max(unit,std::abs(z));
+    if (!std::isfinite(unit) || unit<=0) Rcpp::stop("Invalid distance scale");
     std::vector<std::vector<Link>> graph(n);
     for (std::size_t e = 0; e < m; ++e) {
         if (edges(e,0) == NA_INTEGER || edges(e,1) == NA_INTEGER) Rcpp::stop("Invalid sparse graph edge");
@@ -92,7 +105,12 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
         int p = -1;
         if (supplied.size()) p = supplied[k]-1;
         else if (k == 0) p = sample_index(rng, n);
-        else {
+        else if (selection == "uniform") {
+            int rank = sample_index(rng,n-k);
+            for (int i=0; i<n; ++i) if (!selected[i] && rank-- == 0) { p=i; break; }
+        } else if (selection == "farthest") {
+            for (int i=0; i<n; ++i) if (!selected[i] && (p<0 || nearest[i]>nearest[p])) p=i;
+        } else {
             double largest = *std::max_element(nearest.begin(), nearest.end());
             long double total = 0;
             for (int i=0; i<n; ++i) if (!selected[i]) total += nearest[i]/largest;
@@ -105,7 +123,18 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
         }
         if (p < 0 || selected[p]) Rcpp::stop("Sparse pivot sampling failed");
         selected[p] = true; pivots[k] = p;
-        all.push_back(distances(graph,p));
+        if (euclidean) {
+            std::vector<double> row(n,0);
+            for (int i=0; i<n; ++i) if (i!=p) {
+                double distance=0;
+                for (int col=0; col<X.ncol(); ++col)
+                    distance=std::hypot(distance,(X(i,col)-X(p,col))/unit);
+                if (!std::isfinite(distance) || distance<=0)
+                    Rcpp::stop("Euclidean distances must be positive and representable; consolidate duplicates");
+                row[i]=distance;
+            }
+            all.push_back(std::move(row));
+        } else all.push_back(distances(graph,p));
         for (int i=0; i<n; ++i) if (all.back()[i] < nearest[i]) {
             nearest[i] = all.back()[i]; owner[i] = k;
         }
@@ -128,10 +157,13 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
             const auto found = std::lower_bound(graph[p].begin(),graph[p].end(),Link(i,0));
             if (found != graph[p].end() && found->first == i) continue;
             const double d = all[k][i];
-            const double s = std::upper_bound(region[k].begin(),region[k].end(),d/2)-region[k].begin();
+            const double s = region_weighting ?
+                std::upper_bound(region[k].begin(),region[k].end(),d/2)-region[k].begin() : 1;
+            if (!region_weighting && selected[i] && i<p) continue;
             const double target = d * unit;
             if (!std::isfinite(target) || target <= 0) Rcpp::stop("Sparse target distances exceed numeric range");
-            if (i<p) terms.push_back({i,p,target,s,0});
+            if (!region_weighting) terms.push_back({std::min(i,p),std::max(i,p),target,1,1});
+            else if (i<p) terms.push_back({i,p,target,s,0});
             else terms.push_back({p,i,target,0,s});
         }
     }
@@ -156,8 +188,14 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
     Rcpp::IntegerVector p(h), r(n);
     for (int k=0; k<h; ++k) p[k]=pivots[k]+1;
     for (int i=0; i<n; ++i) r[i]=pivots[owner[i]]+1;
-    return Rcpp::List::create(Rcpp::Named("pairs")=pairs,Rcpp::Named("targets")=target,
+    Rcpp::List out = Rcpp::List::create(Rcpp::Named("pairs")=pairs,Rcpp::Named("targets")=target,
         Rcpp::Named("count_i")=ci,Rcpp::Named("count_j")=cj,
         Rcpp::Named("pivots")=p,Rcpp::Named("region")=r,
         Rcpp::Named("workspace_estimate_bytes")=static_cast<double>(estimate));
+    if (save_distances) {
+        Rcpp::NumericMatrix rows(h,n);
+        for (int k=0; k<h; ++k) for (int i=0; i<n; ++i) rows(k,i)=all[k][i]*unit;
+        out["distance_rows"]=rows;
+    }
+    return out;
 }

@@ -135,3 +135,21 @@ These were small Euclidean-cloud, weighted-graph and karate-club cases, with
 two and three dimensions and five matched starts, evaluated retrospectively
 over three separately restarted schedules. The comparison does not validate
 geometry recovery, larger datasets, or the tuning defaults.
+
+## Schedule provenance and evidence clarification (October 7, 2026)
+
+The historical hybrid/exponential schedules above came from the pinned Hangan
+implementation, initially used for full, uniform-weight MDS. They were retained
+when inverse-squared weights and the graph sparse backend were added. This
+records implementation reuse, not a schedule-comparison result. Hangan et al.
+Section 3 motivates a fixed switch for typically uniform weights and reports an
+initial-rate grid search; those findings do not establish superiority for
+regional sparse stress with heterogeneous endpoint weights.
+
+No matched hybrid-versus-Zheng comparison is provided by the backend pilot,
+the earlier sparse comparison, or the October 2026 observation-method validation.
+The first two used hybrid controls; the last used Zheng throughout. The current
+`zheng` option implements the Section II-A1 fixed-budget weight-dependent rule
+and is the default for observation preparations. Legacy calls preserve hybrid
+for compatibility. Neither choice is an experimentally established winner over
+the other in this package. Public help now makes that distinction explicit.

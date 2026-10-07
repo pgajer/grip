@@ -1,7 +1,7 @@
 # Internal controls for the native stress backend.
 grip.mds.sgd.control <- function(control, max.iter) {
   defaults <- list(scheduler = "hybrid", learning.rate = 0.5,
-                   final.rate = 0.01, switch.ratio = 0.4,
+                   final.rate = 0.01, switch.ratio = 0.4, schedule.epsilon = 0.1,
                    checkpoint.every = 1L, max.workspace.bytes = 256 * 1024^2)
   if (!is.list(control) || (length(control) &&
       (is.null(names(control)) || anyNA(names(control)) || any(names(control) == "") ||
@@ -11,9 +11,12 @@ grip.mds.sgd.control <- function(control, max.iter) {
   defaults[names(control)] <- control
   z <- defaults
   if (!is.character(z$scheduler) || length(z$scheduler) != 1L ||
-      is.na(z$scheduler) || !z$scheduler %in% c("hybrid", "exponential")) {
-    stop("sgd.control$scheduler must be 'hybrid' or 'exponential'", call. = FALSE)
+      is.na(z$scheduler) || !z$scheduler %in% c("hybrid", "exponential", "zheng")) {
+    stop("sgd.control$scheduler must be 'hybrid', 'exponential' or 'zheng'", call. = FALSE)
   }
+  if (z$scheduler == "zheng" && any(c("learning.rate","final.rate","switch.ratio") %in% names(control)))
+    stop("zheng schedule derives rates from weights; omit learning.rate, final.rate and switch.ratio",call.=FALSE)
+  grip.validate.scalar(z$schedule.epsilon,"sgd.control$schedule.epsilon",lower=0,upper=1,open.lower=TRUE)
   for (key in c("learning.rate", "final.rate", "max.workspace.bytes")) {
     grip.validate.scalar(z[[key]], paste0("sgd.control$", key), lower = 0, open.lower = TRUE)
   }
@@ -32,7 +35,15 @@ grip.mds.sgd.control <- function(control, max.iter) {
   z
 }
 
-grip.mds.sgd.rates <- function(control, max.iter) {
+grip.mds.sgd.rates <- function(control, max.iter, weights = NULL) {
+  if (control$scheduler == "zheng") {
+    positive <- weights[is.finite(weights) & weights > 0]
+    if (!length(positive)) stop("zheng schedule requires positive weights",call.=FALSE)
+    top <- -log(min(positive)); bottom <- log(control$schedule.epsilon)-log(max(positive))
+    rates <- exp(if(max.iter==1L) top else seq(top,bottom,length.out=max.iter))
+    if (any(!is.finite(rates)) || any(rates<=0)) stop("Published schedule rates are not representable",call.=FALSE)
+    return(rates)
+  }
   t <- seq_len(max.iter) - 1
   a <- control$learning.rate
   final <- control$final.rate

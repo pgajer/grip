@@ -27,7 +27,6 @@
   if (is.list(sgd.control) && is.null(sgd.control[["max.workspace.bytes"]]))
     sgd.control$max.workspace.bytes <- 512 * 1024^2
   control <- grip.mds.sgd.control(sgd.control, max.iter)
-  rates <- grip.mds.sgd.rates(control, max.iter)
   if (!is.null(seed)) {
     had.seed <- exists(".Random.seed", envir=.GlobalEnv, inherits=FALSE)
     old.seed <- if (had.seed) get(".Random.seed", envir=.GlobalEnv) else NULL
@@ -67,6 +66,7 @@
   if (any(!is.finite(wi)) || any(!is.finite(wj)) ||
       any(wi[sparse$count_i > 0] <= 0) || any(wj[sparse$count_j > 0] <= 0))
     stop("Sparse weights are outside the representable numeric range", call. = FALSE)
+  rates <- grip.mds.sgd.rates(control,max.iter,c(wi,wj))
   if (is.matrix(init)) {
     if (!is.numeric(init) || !identical(base::dim(init), c(n,dim)) || any(!is.finite(init)))
       stop("init must be a finite n by dim matrix", call. = FALSE)

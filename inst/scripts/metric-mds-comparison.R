@@ -152,7 +152,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
                             legend = TRUE, controls = TRUE, weighting = FALSE, limits = NULL,
                             series_labels = NULL, series_colors = NULL,
                             reference = TRUE, description = NULL, layout_selector = controls,
-                            surface.alignments = NULL) {
+                            surface.alignments = NULL, camera = NULL) {
   show <- match.arg(show)
   stopifnot(case$dimension == 3L)
   coordinates <- if (reference) list(Reference = case$X) else list()
@@ -212,8 +212,8 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     scale = ivue::color.scale.groups(names(palette), colors = palette),
     point.type = 'point', point.size = 4, alpha = .8, axes = FALSE,
     xlab = '', ylab = '', zlab = '', aspect = 'equal',
-    camera = ivue::camera.zup(elevation = 22, turn = -125,
-                            zoom = .85),
+    camera = if (is.null(camera)) ivue::camera.zup(elevation = 22, turn = -125,
+                            zoom = .85) else camera,
     limits = bounds, legend.show = legend, controls = controls && !layout_selector,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (!is.null(description)) description else if (controls && !is.null(surface.alignments))

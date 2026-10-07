@@ -785,8 +785,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_sparse_prepare_cpp
-Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges, Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed, double max_workspace_bytes);
-RcppExport SEXP _grip_grip_sparse_prepare_cpp(SEXP nSEXP, SEXP edgesSEXP, SEXP lengthsSEXP, SEXP hSEXP, SEXP suppliedSEXP, SEXP seedSEXP, SEXP max_workspace_bytesSEXP) {
+Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges, Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed, double max_workspace_bytes, Rcpp::Nullable<Rcpp::NumericMatrix> observations, std::string selection, bool region_weighting, bool save_distances);
+RcppExport SEXP _grip_grip_sparse_prepare_cpp(SEXP nSEXP, SEXP edgesSEXP, SEXP lengthsSEXP, SEXP hSEXP, SEXP suppliedSEXP, SEXP seedSEXP, SEXP max_workspace_bytesSEXP, SEXP observationsSEXP, SEXP selectionSEXP, SEXP region_weightingSEXP, SEXP save_distancesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -797,7 +797,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type supplied(suppliedSEXP);
     Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< double >::type max_workspace_bytes(max_workspace_bytesSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_sparse_prepare_cpp(n, edges, lengths, h, supplied, seed, max_workspace_bytes));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type observations(observationsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type selection(selectionSEXP);
+    Rcpp::traits::input_parameter< bool >::type region_weighting(region_weightingSEXP);
+    Rcpp::traits::input_parameter< bool >::type save_distances(save_distancesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sparse_prepare_cpp(n, edges, lengths, h, supplied, seed, max_workspace_bytes, observations, selection, region_weighting, save_distances));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -832,7 +836,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 3},
     {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 11},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
-    {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 7},
+    {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 11},
     {NULL, NULL, 0}
 };
 

@@ -34,7 +34,8 @@ metric.mds(
 \arguments{
 \item{prepared}{An all-pairs prepared graph object containing
 \code{distance.matrix}, for full MDS only. Sparse MDS requires raw graph inputs.
-Edge-only preparations are not supported as inputs to either mode.}
+A \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} result is accepted with sparse approximation.
+Other edge-only preparations are not supported as input.}
 
 \item{edges}{Two-column integer edge matrix used when \code{prepared} is omitted.
 Supply either edges/edge.weights or adj.list/weight.list, not both.
@@ -49,9 +50,10 @@ object, it must match the stored graph size.}
 
 \item{edge.weights}{Optional positive edge weights parallel to \code{edges}.}
 
-\item{dim}{Embedding dimension. Full MDS supports two or three dimensions;
-sparse SGD supports integer dimensions of at least two, including 10D
-fits for subsequent projection or initialization of a 3D fit.}
+\item{dim}{Embedding dimension. Full MDS supports integer dimensions of at
+least two and smaller than the vertex count. Sparse SGD supports integer
+dimensions of at least two. Both support 10D fits for subsequent PCA
+projection or initialization of a 3D fit.}
 
 \item{init}{\code{"classical"} (full default), \code{"random"} (sparse default), or a finite numeric
 matrix with \code{n} rows and \code{dim} columns in input-distance units. Sparse MDS
@@ -93,11 +95,14 @@ mid, and long bands.}
 \item{backend}{\code{"sgd"} (default) or \code{"smacof"}. No automatic fallback occurs.}
 
 \item{sgd.control}{Named list used only with \code{backend = "sgd"}:
-\code{scheduler} (\code{"hybrid"} or \code{"exponential"}), \code{learning.rate} (0.5),
-\code{final.rate} (0.01), \code{switch.ratio} (0.4), \code{checkpoint.every} (1), and
+\code{scheduler} (\code{"hybrid"}, \code{"exponential"} or \code{"zheng"}), \code{learning.rate} (0.5),
+\code{final.rate} (0.01), \code{switch.ratio} (0.4), \code{schedule.epsilon} (0.1),
+\code{checkpoint.every} (1), and
 \code{max.workspace.bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
-These defaults are provisional calibration
-choices. Rates must be positive with \code{final.rate <= learning.rate};
+The schedule defaults to \code{"zheng"} for \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs and
+\code{"hybrid"} otherwise. See Learning-rate schedules and evidence below.
+The hybrid/exponential tuning defaults are provisional calibration
+choices. Their rates must be positive with \code{final.rate <= learning.rate};
 \code{switch.ratio} is between zero and one inclusive. The memory allowance covers native workspace,
 not the R input matrices or total process memory.}
 
@@ -220,7 +225,7 @@ follows Hangan et al. (2026). The terminal epoch is always scored. The best
 independently scored checkpoint, including initialization, is retained using
 scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
 The R wrapper independently rescales and recomputes its returned stress.
-The exponential schedule's final rate is its boundary value after the planned
+The legacy user-controlled exponential schedule's final rate is its boundary value after the planned
 passes, not its last applied rate. The hybrid schedule switches after
 \code{floor(switch.ratio * max.iter)} passes, at one tenth the initial rate
 (or the initial rate if the switch is immediate). Its harmonic segment
@@ -256,8 +261,10 @@ full-pivot update parity requires every edge to be a shortest path, as with
 unit lengths or Euclidean chord lengths, and matched starts, rates and order.
 
 Targets are normalized by RMS over the retained unordered pairs; endpoint
-weights use the same units. The default hybrid schedule is grip's existing
-schedule, not the paper's weight-dependent annealing. The terminal iterate is
+weights use the same units. Legacy graph calls default to grip's hybrid
+schedule; \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs default to the published fixed-budget
+\code{"zheng"} schedule. Select the schedule explicitly when comparing methods.
+The terminal iterate is
 returned, centered and converted back to input units, with no fitted scale.
 A checkpoint proxy averages the two endpoint weights for each pair. Asymmetric
 updates are not claimed to follow the gradient of that proxy, or to decrease
@@ -274,6 +281,55 @@ native workspace estimates (separately checked for preparation and fitting),
 \code{sparse_proxy_stress}, its normalized root
 error, and \code{termination = "iteration_limit"}, \code{converged = FALSE}.
 \code{trace} reports checkpoint proxy stress, epochs, rates and pair updates.
+}
+
+\section{Learning-rate schedules and evidence}{
+
+The original full-SGD backend adapted exponential and hybrid schedules from
+the implementation accompanying Hangan et al. (2026). The graph sparse-SGD
+extension retained those controls. The hybrid default is preserved for
+existing callers; it is not a demonstrated improvement over Zheng et al.'s
+weight-dependent schedule. The original package design records its settings
+as provisional calibration choices.
+
+\code{scheduler = "hybrid"} starts at \code{learning.rate} (0.5), uses exponential
+decay during the first \code{floor(switch.ratio * max.iter)} epochs (default
+fraction 0.4), then a harmonic tail toward \code{final.rate} (0.01).
+The switch and rate endpoints are user controls, not derived from endpoint
+weight extrema. \code{scheduler = "exponential"} instead uses the controlled
+rates in a single exponential phase. For these legacy schedules, the final
+rate is a planned boundary value at epoch \code{max.iter}, not necessarily the
+last applied rate. These schedules are distinct from \code{"zheng"}.
+
+Hangan et al. motivate a fixed switch for the usual uniform-weight MDS
+setting, where the weight ratio does not distinguish pairs. That rationale
+does not establish better performance for inverse-squared, region-weighted
+sparse stress. Package backend comparisons and the earlier sparse-MDS
+comparison used hybrid controls; they did not isolate schedule effects.
+The October 2026 observation-method validation used \code{"zheng"} throughout.
+These experiments do not establish that either schedule outperforms the
+other. A schedule comparison must hold targets, pivots, endpoint weights,
+starting coordinates, update-order seeds and budgets fixed, and report
+independently evaluated error and runtime.
+
+Set \code{sgd.control = list(scheduler = "zheng", schedule.epsilon = 0.1)}
+to use Zheng et al.'s Section II-A1 fixed-budget exponential schedule.
+Its rates run from \verb{1 / min(positive endpoint weights)} to
+\verb{schedule.epsilon / max(positive endpoint weights)}, including both
+endpoints; one epoch uses the first rate. Weights are computed after grip's
+target normalization. \code{schedule.epsilon} defaults to 0.1; \code{learning.rate},
+\code{final.rate} and \code{switch.ratio} must be omitted with this schedule.
+This is the default for \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs, including uniform,
+Euclidean regional and geodesic regional preparations. Other inputs retain
+the hybrid default, including raw graphs and explicit constraints.
+
+Choosing \code{"zheng"} reproduces that schedule's rule, not every published
+solver setting or trajectory: epoch budget, initialization and scale,
+random-number generator and update order can differ. It does not implement
+the paper's separate Section II-A2 unlimited-iteration schedule or certify
+convergence. Prefer the named published schedule when the purpose is
+sparse-stress analysis following Zheng et al.; label hybrid runs as an
+alternative configuration rather than assuming they are better.
 }
 
 \section{Workflow guides}{
@@ -309,5 +365,5 @@ Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
 Optimization. \url{https://arxiv.org/abs/2605.00641}.
 }
 \seealso{
-\code{\link[=classical.mds]{classical.mds()}}, \code{\link[=edge.kk]{edge.kk()}}, \code{\link[smacof:mds]{smacof::mds()}}
+\code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}}, \code{\link[=classical.mds]{classical.mds()}}, \code{\link[=edge.kk]{edge.kk()}}, \code{\link[smacof:mds]{smacof::mds()}}
 }
