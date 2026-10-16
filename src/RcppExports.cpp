@@ -751,8 +751,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_sgd_mds_cpp
-Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle, Rcpp::Nullable<Rcpp::NumericVector> weights, Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints, Rcpp::Nullable<Rcpp::NumericVector> reverse_weights, bool retain_best);
-RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP, SEXP weightsSEXP, SEXP endpointsSEXP, SEXP reverse_weightsSEXP, SEXP retain_bestSEXP) {
+Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start, Rcpp::NumericVector targets, Rcpp::NumericVector rates, int seed, int checkpoint_every, double max_workspace_bytes, bool shuffle, Rcpp::Nullable<Rcpp::NumericVector> weights, Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints, Rcpp::Nullable<Rcpp::NumericVector> reverse_weights, bool retain_best, Rcpp::Nullable<Rcpp::List> state, Rcpp::Nullable<Rcpp::List> stopping, int schedule_epochs, bool keep_state);
+RcppExport SEXP _grip_grip_sgd_mds_cpp(SEXP startSEXP, SEXP targetsSEXP, SEXP ratesSEXP, SEXP seedSEXP, SEXP checkpoint_everySEXP, SEXP max_workspace_bytesSEXP, SEXP shuffleSEXP, SEXP weightsSEXP, SEXP endpointsSEXP, SEXP reverse_weightsSEXP, SEXP retain_bestSEXP, SEXP stateSEXP, SEXP stoppingSEXP, SEXP schedule_epochsSEXP, SEXP keep_stateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -767,7 +767,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type endpoints(endpointsSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type reverse_weights(reverse_weightsSEXP);
     Rcpp::traits::input_parameter< bool >::type retain_best(retain_bestSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_sgd_mds_cpp(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type state(stateSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type stopping(stoppingSEXP);
+    Rcpp::traits::input_parameter< int >::type schedule_epochs(schedule_epochsSEXP);
+    Rcpp::traits::input_parameter< bool >::type keep_state(keep_stateSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_mds_cpp(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best, state, stopping, schedule_epochs, keep_state));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_sgd_state_hash_cpp
+std::string grip_sgd_state_hash_cpp(Rcpp::RawVector bytes);
+RcppExport SEXP _grip_grip_sgd_state_hash_cpp(SEXP bytesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::RawVector >::type bytes(bytesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_state_hash_cpp(bytes));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -834,7 +849,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
     {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 3},
-    {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 11},
+    {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 15},
+    {"_grip_grip_sgd_state_hash_cpp", (DL_FUNC) &_grip_grip_sgd_state_hash_cpp, 1},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
     {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 11},
     {NULL, NULL, 0}

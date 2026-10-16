@@ -1,5 +1,14 @@
 # grip 0.2.0.9001 (development version)
 
+- SGD `metric.mds()` now distinguishes epoch-budget exhaustion, schedule
+  completion and opt-in practical stabilization, with no convergence claim.
+  Checkpoint histories also survive in metadata. Optional saved state supports
+  genuine continuation of terminal coordinates, RNG, frozen targets and rate
+  schedules, including an explicitly labeled harmonic extension. Practical
+  stopping requires sustained diagnostic stability, small centered motion and
+  a learning-rate-independent endpoint update residual. Default fitting
+  trajectories and full/sparse returned-iterate policies are unchanged.
+
 - Added direct `metric.mds(distance.matrix = D)` input for full SGD or SMACOF
   fitting without graph shortest-path reconstruction. Supplied targets remain
   unchanged; graph path diagnostics are unavailable for this input.

@@ -59,6 +59,7 @@ test_that("pair movement clips overshoot and zero targets are not floored", {
 
 test_that("schedule values have explicit boundary and small-budget conventions", {
   control <- grip.mds.sgd.control(list(), 10)
+  control$schedule.epochs <- NULL # This test varies the planned horizon itself.
   rate <- grip.mds.sgd.rates(control, 10)
   expect_equal(rate[1], .5)
   expect_equal(rate[5], .05)
@@ -166,7 +167,7 @@ test_that("SGD recovers exact Euclidean distances and improves imperfect starts"
   expect_equal(random$metadata$raw_stress,
                sum((as.double(dist(random$coords))-as.double(as.dist(p$distance_matrix)))^2))
   expect_equal(random$metadata$engine, "sgd")
-  expect_equal(random$metadata$backend_version, "grip-sgd-mds-v2")
+  expect_equal(random$metadata$backend_version, "grip-sgd-mds-v3")
 })
 
 test_that("distance units and all supported dimensions are respected", {

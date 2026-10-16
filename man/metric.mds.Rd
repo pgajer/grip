@@ -28,7 +28,8 @@ metric.mds(
   approximation = c("full", "sparse"),
   sparse.control = list(),
   constraints = NULL,
-  distance.matrix = NULL
+  distance.matrix = NULL,
+  resume = NULL
 )
 }
 \arguments{
@@ -66,7 +67,8 @@ Sparse MDS currently requires one start.}
 \item{max.iter}{Positive integer iteration limit per start. For SGD, the
 number of complete passes over full or retained sparse pairs. Defaults to
 1000 for full MDS and 30 for sparse MDS. The sparse default is a provisional
-calibration choice, not a convergence criterion.}
+calibration choice, not a convergence criterion. With \code{resume}, this is
+the additional epoch budget (default 1000).}
 
 \item{eps}{Positive SMACOF tolerance for the change in normalized stress.
 Do not supply this argument for SGD, which runs its prescribed schedule.}
@@ -97,14 +99,16 @@ mid, and long bands.}
 \item{sgd.control}{Named list used only with \code{backend = "sgd"}:
 \code{scheduler} (\code{"hybrid"}, \code{"exponential"} or \code{"zheng"}), \code{learning.rate} (0.5),
 \code{final.rate} (0.01), \code{switch.ratio} (0.4), \code{schedule.epsilon} (0.1),
-\code{checkpoint.every} (1), and
+\code{checkpoint.every} (1), \code{schedule.epochs} (initial \code{max.iter}),
+\code{keep.state} (\code{FALSE}), \code{stopping} (\code{NULL}, disabled), and
 \code{max.workspace.bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
 The schedule defaults to \code{"zheng"} for \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs and
 \code{"hybrid"} otherwise. See Learning-rate schedules and evidence below.
 The hybrid/exponential tuning defaults are provisional calibration
 choices. Their rates must be positive with \code{final.rate <= learning.rate};
 \code{switch.ratio} is between zero and one inclusive. The memory allowance covers native workspace,
-not the R input matrices or total process memory.}
+not the R input matrices, retained continuation state, serialization copies
+or total process memory. See Stopping, histories and continuation below.}
 
 \item{pair.weights}{\code{"uniform"} (full default) or \code{"inverse_squared"} (sparse
 default and the only supported sparse choice). The latter
@@ -141,6 +145,12 @@ full MDS. Values are used directly, without graph shortest paths. Must be
 finite, symmetric and nonnegative with zero diagonal. Cannot accompany
 graph inputs, prepared objects or constraints. Graph diagnostics are not
 available: \code{diagnostics} defaults to FALSE and TRUE is rejected.}
+
+\item{resume}{A prior SGD result created with \code{keep.state = TRUE}. When
+supplied, only \code{resume} and \code{max.iter} may be specified; targets, weights,
+preparation, initialization, seeds and controls are frozen in saved state.
+Requires \code{n.init = 1} in the original fit. Historical fits without retained
+state cannot be resumed from their returned coordinates.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"metric_mds"}.
@@ -227,7 +237,7 @@ scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
 The R wrapper independently rescales and recomputes its returned stress.
 The legacy user-controlled exponential schedule's final rate is its boundary value after the planned
 passes, not its last applied rate. The hybrid schedule switches after
-\code{floor(switch.ratio * max.iter)} passes, at one tenth the initial rate
+\code{floor(switch.ratio * schedule.epochs)} passes, at one tenth the initial rate
 (or the initial rate if the switch is immediate). Its harmonic segment
 approaches \code{final.rate} at the boundary only when the switch rate exceeds
 \code{final.rate}; otherwise that segment stays constant at the switch rate.
@@ -279,8 +289,66 @@ original-unit targets, endpoint multiplicities, selected pivots and region
 owners. Metadata also records seeds, controls, preparation/fitting seconds,
 native workspace estimates (separately checked for preparation and fitting),
 \code{sparse_proxy_stress}, its normalized root
-error, and \code{termination = "iteration_limit"}, \code{converged = FALSE}.
+error, and stopping status. By default \code{termination = "iteration_limit"}
+and \code{converged = FALSE}.
 \code{trace} reports checkpoint proxy stress, epochs, rates and pair updates.
+}
+
+\section{Stopping, histories and continuation}{
+
+Default SGD calls still exhaust the prescribed epoch budget. This is reported
+as \code{metadata$stopping$reason = "epoch_budget"}, separately from whether the
+planned schedule has completed or a stopping rule was assessed. SGD always
+reports \code{converged = FALSE} and \code{stopping$certified = FALSE}: neither budget
+exhaustion nor practical stabilization certifies convergence or optimality.
+Full SGD returns its best scale-profiled checkpoint; sparse SGD returns its
+terminal iterate. Stopping uses current checkpoint diagnostics, not the
+running best. Metadata identifies the returned iterate and reports both
+best and terminal diagnostics in normalized target units.
+
+Checkpoint history is preserved in both \code{trace} and \code{metadata$history};
+full multi-start runs also retain every start's trace in \code{metadata$sgd}.
+History includes global epoch, diagnostic, learning rate, pair updates,
+checkpoint type, relative diagnostic change, centered motion, update residual
+and consecutive successful checks. Unassessed quantities are \code{NA}.
+
+Opt in with \code{stopping = list()} inside \code{sgd.control}, or supply any of
+\code{relative.tol} (1e-6), \code{motion.tol} (1e-5), \code{residual.tol} (1e-5),
+\code{patience} (5), and \code{min.epochs} (10). At scheduled checkpoints after at
+least \code{min.epochs}, all three diagnostics must pass for \code{patience}
+consecutive checks. Relative change is the absolute change in current
+diagnostic divided by \code{max(abs(previous), 1e-12)}. Motion is RMS point
+displacement after removing translation, without rotation alignment.
+The residual is the largest norm of each vertex's endpoint-weighted mean
+distance-error vector. Motion and residual use RMS-normalized target units.
+The residual is independent of learning rate, preventing a tiny rate alone
+from passing the rule. Positive-target collisions fail the residual check.
+For asymmetric sparse updates it is an update-field diagnostic, not a
+gradient certificate; the sparse stress proxy need not decrease. Defaults
+are practical safeguards, not universally calibrated scientific thresholds.
+
+With \code{keep.state = TRUE}, the result retains terminal coordinates, native
+RNG, normalized targets and endpoint weights, schedule, checkpoint/stopping
+state, best checkpoint and preparation provenance. \code{saveRDS()}/\code{readRDS()}
+preserve this state. Resume with \code{metric.mds(resume = fit, max.iter = extra)}.
+State version, platform and an integrity fingerprint are checked; the
+fingerprint detects accidental edits and is not a security mechanism.
+Reproducibility is supported on the same platform with a compatible state
+version. Already stabilized runs cannot resume under altered controls.
+
+\code{schedule.epochs} fixes the initial schedule horizon, independently of call
+size. Pausing and resuming continues the same RNG and rate sequence without
+restarting or stretching its prefix. Beyond this horizon, rate at extra
+epoch \code{j} is \code{last.rate / (1 + j / schedule.epochs)}. This extension is a
+practical harmonic tail, not the published unlimited-iteration schedule or
+a convergence guarantee. A larger fresh horizon is a different experiment.
+Checkpoints occur at global multiples of \code{checkpoint.every} and at the
+schedule horizon. Other call boundaries are recorded with \code{scheduled = 0};
+they do not affect stopping or checkpoint selection in a continued run.
+Full fits may return such a boundary when it improves the best diagnostic
+for that call, but continuation always uses terminal solver state. With the
+same horizon and final budget, split and uninterrupted runs match; split
+histories additionally preserve intermediate call boundaries.
 }
 
 \section{Learning-rate schedules and evidence}{
@@ -293,12 +361,12 @@ weight-dependent schedule. The original package design records its settings
 as provisional calibration choices.
 
 \code{scheduler = "hybrid"} starts at \code{learning.rate} (0.5), uses exponential
-decay during the first \code{floor(switch.ratio * max.iter)} epochs (default
+decay during the first \code{floor(switch.ratio * schedule.epochs)} epochs (default
 fraction 0.4), then a harmonic tail toward \code{final.rate} (0.01).
 The switch and rate endpoints are user controls, not derived from endpoint
 weight extrema. \code{scheduler = "exponential"} instead uses the controlled
 rates in a single exponential phase. For these legacy schedules, the final
-rate is a planned boundary value at epoch \code{max.iter}, not necessarily the
+rate is a planned boundary value at epoch \code{schedule.epochs}, not necessarily the
 last applied rate. These schedules are distinct from \code{"zheng"}.
 
 Hangan et al. motivate a fixed switch for the usual uniform-weight MDS
@@ -353,6 +421,13 @@ fit$metadata$target_normalized_rmse
 sparse <- metric.mds(edges = edges.path(30), dim = 3,
   approximation = "sparse", sparse.control = list(n.pivots = 5))
 sparse$metadata$sparse_proxy_stress
+# Pause after 5 epochs of a 20-epoch schedule, then continue the same run.
+first <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
+  diagnostics = FALSE, max.iter = 5,
+  sgd.control = list(keep.state = TRUE, schedule.epochs = 20)))
+continued <- metric.mds(resume = first, max.iter = 15)
+continued$metadata$stopping
+tail(continued$metadata$history)
 }
 \references{
 Ortmann, M., Klimenta, M. and Brandes, U. (2017).

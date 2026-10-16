@@ -79,15 +79,16 @@
   }
   fit <- grip_sgd_mds_cpp(start, targets, rates, fitting.seed,
     control$checkpoint.every, control$max.workspace.bytes, TRUE,
-    wi, sparse$pairs, wj, FALSE)
+    wi, sparse$pairs, wj, FALSE, stopping=control$stopping,
+    schedule_epochs=control$schedule.epochs,keep_state=control$keep.state)
   coords <- sweep(fit$terminal_conf,2L,colMeans(fit$terminal_conf),"-") * rms
   if (any(!is.finite(coords))) stop("Sparse coordinates exceed the numeric range", call. = FALSE)
   proxy <- utils::tail(fit$trace$raw_stress,1L)
   energy <- sum((sparse$count_i + sparse$count_j)/2)
   trace <- fit$trace[, c("epoch","raw_stress","pair_updates","learning_rate")]
   names(trace)[2L] <- "sparse_proxy_stress"
-  gmds.result(coords, "metric_mds", prepared=prepared, trace=trace,
-    metadata=list(engine="sgd", approximation="sparse", backend_version="grip-sparse-sgd-v1",
+  output <- gmds.result(coords, "metric_mds", prepared=prepared, trace=trace,
+    metadata=list(engine="sgd", approximation="sparse", backend_version="grip-sparse-sgd-v2",
       constraint_source=if (is.null(constraints)) "graph_pivots" else "explicit_distances",
       objective=if (all(sparse$count_i == sparse$count_j)) "symmetric sparse inverse-squared stress" else
         "asymmetric sparse constraints (endpoint-average proxy reported separately)",
@@ -101,6 +102,11 @@
       termination="iteration_limit", converged=FALSE,
       settings=list(dim=dim,n.pivots=if (is.null(constraints)) n.pivots else NULL,init=initialization,
                     max_iter=max.iter,seed=seed,sgd_control=control)))
+  output <- .metric.mds.sgd.status(output,fit,control,"sparse")
+  arguments <- list(targets=targets,seed=fitting.seed,checkpoint_every=control$checkpoint.every,
+    max_workspace_bytes=control$max.workspace.bytes,shuffle=TRUE,
+    weights=wi,endpoints=sparse$pairs,reverse_weights=wj,retain_best=FALSE)
+  .metric.mds.keep.state(output,fit,control,arguments,list(kind="sparse",rms=rms,energy=energy))
 }
 
 # Canonicalize explicit constraints without interpreting them as graph lengths.

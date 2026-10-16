@@ -11,7 +11,9 @@ test_that("saved metric results retain objective and stopping information when p
   expect_identical(returned, restored)
   expect_true(any(grepl("objective: raw distance stress", output, fixed = TRUE)))
   expect_true(any(grepl("squared input-distance units", output, fixed = TRUE)))
-  expect_true(any(grepl("converged: no", output, fixed = TRUE)))
+  expect_true(any(grepl("convergence: not certified", output, fixed = TRUE)))
+  expect_true(any(grepl("stopping: epoch budget exhausted", output, fixed = TRUE)))
+  expect_true(any(grepl("stopping rule: disabled", output, fixed = TRUE)))
   expect_true(any(grepl("termination: iteration_limit", output, fixed = TRUE)))
   expect_true(any(grepl("selected start: 1 of 1", output, fixed = TRUE)))
   expect_true(any(grepl(format(restored$metadata$raw_stress, digits = 6, trim = TRUE),

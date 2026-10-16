@@ -224,6 +224,18 @@ the explicit targets for sparse fitting. See [Fermat surface embeddings](fermat-
 for a direct-distance example.
 
 
+SGD budget exhaustion does not certify convergence. Inspect
+`fit$metadata$stopping` and `fit$metadata$history` for status and checkpoint
+history. To continue a run, create it with
+`sgd.control = list(keep.state = TRUE, schedule.epochs = planned_epochs)`;
+then call `metric.mds(resume = fit, max.iter = additional_epochs)`.
+The saved terminal solver state preserves targets, preparation, native RNG
+and the original rate schedule. A fresh fit initialized from returned
+coordinates is a different run. Practical stopping is opt-in through
+`sgd.control$stopping`; see the function help for its three checks, tolerance
+units and limitations. Keep these settings and the backend version in cache
+identities. Older fits without saved solver state cannot be resumed.
+
 ## Choose a score
 
 A *chord* is the Euclidean separation between two drawn vertices. A *path

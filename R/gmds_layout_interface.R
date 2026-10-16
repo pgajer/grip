@@ -496,7 +496,17 @@ print.grip_gmds_layout <- function(x, ...) {
   if (!is.null(meta$raw_stress)) cat("  raw stress:", number(meta$raw_stress), "\n")
   if (!is.null(meta$sparse_proxy_stress))
     cat("  sparse proxy stress (not full stress):", number(meta$sparse_proxy_stress), "\n")
-  if (!is.null(meta$converged)) {
+  if (!is.null(meta$stopping)) {
+    status <- meta$stopping
+    cat("  stopping:", switch(status$reason,
+      epoch_budget = "epoch budget exhausted",
+      practical_stabilization = "practical stabilization rule met",
+      status$reason), "after", status$epochs_completed, "epochs\n")
+    cat("  stopping rule:", if (is.null(status$rule)) "disabled" else
+      if (isTRUE(status$assessed)) "assessed" else "not yet assessed", "\n")
+    cat("  convergence: not certified\n")
+    cat("  returned iterate:", status$returned_iterate, "\n")
+  } else if (!is.null(meta$converged)) {
     cat("  converged:", if (isTRUE(meta$converged)) "yes" else "no", "\n")
   } else {
     cat("  convergence:", if (identical(x$method, "classical_mds"))

@@ -2,7 +2,8 @@
 grip.mds.sgd.control <- function(control, max.iter) {
   defaults <- list(scheduler = "hybrid", learning.rate = 0.5,
                    final.rate = 0.01, switch.ratio = 0.4, schedule.epsilon = 0.1,
-                   checkpoint.every = 1L, max.workspace.bytes = 256 * 1024^2)
+                   checkpoint.every = 1L, max.workspace.bytes = 256 * 1024^2,
+                   keep.state = FALSE, schedule.epochs = max.iter, stopping = NULL)
   if (!is.list(control) || (length(control) &&
       (is.null(names(control)) || anyNA(names(control)) || any(names(control) == "") ||
        anyDuplicated(names(control)) || any(!names(control) %in% names(defaults))))) {
@@ -29,13 +30,37 @@ grip.mds.sgd.control <- function(control, max.iter) {
     stop("checkpoint.every must be a positive integer", call. = FALSE)
   }
   z$checkpoint.every <- as.integer(z$checkpoint.every)
-  if (max.iter * 8 > z$max.workspace.bytes) {
+  if (!is.logical(z$keep.state) || length(z$keep.state)!=1L || is.na(z$keep.state))
+    stop("sgd.control$keep.state must be TRUE or FALSE",call.=FALSE)
+  z$schedule.epochs <- grip.validate.vertex.count(z$schedule.epochs)
+  if (!is.null(z$stopping)) {
+    allowed <- c("relative.tol","motion.tol","residual.tol","patience","min.epochs")
+    if (!is.list(z$stopping) || (length(z$stopping) &&
+        (is.null(names(z$stopping)) || anyNA(names(z$stopping)) ||
+         anyDuplicated(names(z$stopping)) || any(!names(z$stopping) %in% allowed))))
+      stop("stopping must be NULL or a named list of relative.tol, motion.tol, residual.tol, patience and min.epochs",call.=FALSE)
+    rule <- list(relative.tol=1e-6,motion.tol=1e-5,residual.tol=1e-5,patience=5L,min.epochs=10L)
+    rule[names(z$stopping)] <- z$stopping
+    for (key in allowed[1:3]) grip.validate.scalar(rule[[key]],paste0("stopping$",key),lower=0)
+    for (key in allowed[4:5]) rule[[key]] <- grip.validate.vertex.count(rule[[key]])
+    z$stopping <- rule
+  }
+  if (as.double(max(max.iter,z$schedule.epochs)) * 8 > z$max.workspace.bytes) {
     stop("SGD rate vector alone exceeds max.workspace.bytes", call. = FALSE)
   }
   z
 }
 
 grip.mds.sgd.rates <- function(control, max.iter, weights = NULL) {
+  horizon <- if (is.null(control$schedule.epochs)) max.iter else control$schedule.epochs
+  # Compute the original schedule once; extending never stretches its prefix.
+  if (horizon != max.iter) {
+    base <- control; base$schedule.epochs <- horizon
+    rates <- grip.mds.sgd.rates(base,horizon,weights)
+    if (max.iter <= horizon) return(rates[seq_len(max.iter)])
+    tail <- utils::tail(rates,1L) / (1 + seq_len(max.iter-horizon)/horizon)
+    return(c(rates,tail))
+  }
   if (control$scheduler == "zheng") {
     positive <- weights[is.finite(weights) & weights > 0]
     if (!length(positive)) stop("zheng schedule requires positive weights",call.=FALSE)
@@ -69,5 +94,7 @@ grip.mds.sgd.rates <- function(control, max.iter, weights = NULL) {
 
 grip.mds.sgd.fit <- function(start, target, rates, control, native.seed, weights = NULL) {
   grip_sgd_mds_cpp(start, target, rates, native.seed,
-                   control$checkpoint.every, control$max.workspace.bytes, TRUE, weights)
+                   control$checkpoint.every, control$max.workspace.bytes, TRUE, weights,
+                   stopping=control$stopping, schedule_epochs=control$schedule.epochs,
+                   keep_state=control$keep.state)
 }

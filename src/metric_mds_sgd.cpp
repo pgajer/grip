@@ -9,6 +9,8 @@
 #include <numeric>
 #include <random>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace {
 struct Pair { int i, j; double target, weight, reverse; };
@@ -68,6 +70,45 @@ Score score(const Rcpp::NumericMatrix& x, const std::vector<Pair>& pairs, bool p
         Rcpp::stop("Nonfinite SGD checkpoint stress");
     return result;
 }
+// Weighted mean update field, independent of the current learning rate.
+// This is a practical stationarity diagnostic, not a gradient certificate for
+// asymmetric endpoint weights. A positive-target collision cannot pass it.
+double update_residual(const Rcpp::NumericMatrix& x, const std::vector<Pair>& pairs) {
+    const int n=x.nrow(), dim=x.ncol();
+    std::vector<long double> total(n,0), force(static_cast<std::size_t>(n)*dim,0);
+    for (const auto& p : pairs) { total[p.i]+=p.weight; total[p.j]+=p.reverse; }
+    for (std::size_t k=0;k<pairs.size();++k) {
+        if ((k & 16383)==0) Rcpp::checkUserInterrupt();
+        const auto& p=pairs[k]; const double d=separation(x,p.i,p.j);
+        if (d==0) { if (p.target>0) return R_PosInf; else continue; }
+        for (int j=0;j<dim;++j) {
+            const long double r=(d-p.target)*((x(p.i,j)-x(p.j,j))/d);
+            if (total[p.i]>0) force[p.i*dim+j]-=(p.weight/total[p.i])*r;
+            if (total[p.j]>0) force[p.j*dim+j]+=(p.reverse/total[p.j])*r;
+        }
+    }
+    double maximum=0;
+    for (int i=0;i<n;++i) {
+        double norm=0;
+        for (int j=0;j<dim;++j) norm=std::hypot(norm,static_cast<double>(force[i*dim+j]));
+        maximum=std::max(maximum,norm);
+    }
+    return maximum;
+}
+
+double centered_motion(const Rcpp::NumericMatrix& x,const Rcpp::NumericMatrix& previous) {
+    long double sum=0;
+    for(int j=0;j<x.ncol();++j) {
+        long double mean=0;
+        for(int i=0;i<x.nrow();++i) mean+=x(i,j)-previous(i,j);
+        mean/=x.nrow();
+        for(int i=0;i<x.nrow();++i) {
+            const long double d=x(i,j)-previous(i,j)-mean; sum+=d*d;
+        }
+    }
+    return std::sqrt(static_cast<double>(sum/x.nrow()));
+}
+
 }
 
 // Internal Rcpp entry point; shuffle=false exists for deterministic kernel tests.
@@ -80,7 +121,10 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
                           Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue,
                           Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints = R_NilValue,
                           Rcpp::Nullable<Rcpp::NumericVector> reverse_weights = R_NilValue,
-                          bool retain_best = true) {
+                          bool retain_best = true,
+                          Rcpp::Nullable<Rcpp::List> state = R_NilValue,
+                          Rcpp::Nullable<Rcpp::List> stopping = R_NilValue,
+                          int schedule_epochs = 0, bool keep_state = false) {
     const int n = start.nrow(), dim = start.ncol();
     if (n < 2 || dim < 1 || checkpoint_every < 1 || rates.size() < 1 || seed < 0 ||
         !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
@@ -101,11 +145,27 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
     if (reverse_weights.isNotNull() && (!weighted || static_cast<std::uint64_t>(reverse.size()) != count))
         Rcpp::stop("SGD reverse weight count does not match the configuration");
     const int epochs = static_cast<int>(rates.size());
-    const std::size_t checkpoints = 1 + static_cast<std::size_t>(epochs / checkpoint_every) +
-        (epochs % checkpoint_every != 0);
+    Rcpp::List saved = state.isNotNull() ? Rcpp::List(state) : Rcpp::List();
+    const int offset = state.isNotNull() ? Rcpp::as<int>(saved["epoch"]) : 0;
+    if (offset<0 || offset>std::numeric_limits<int>::max()-epochs)
+        Rcpp::stop("Invalid continuation epoch range");
+    if (schedule_epochs<=0) schedule_epochs=offset+epochs;
+    const bool assess=stopping.isNotNull();
+    Rcpp::List rule=assess ? Rcpp::List(stopping) : Rcpp::List();
+    const double rel_tol=assess ? Rcpp::as<double>(rule["relative.tol"]) : 0;
+    const double motion_tol=assess ? Rcpp::as<double>(rule["motion.tol"]) : 0;
+    const double residual_tol=assess ? Rcpp::as<double>(rule["residual.tol"]) : 0;
+    const int patience=assess ? Rcpp::as<int>(rule["patience"]) : 1;
+    const int min_epochs=assess ? Rcpp::as<int>(rule["min.epochs"]) : 1;
+    if (assess && (!std::isfinite(rel_tol)||rel_tol<0 || !std::isfinite(motion_tol)||motion_tol<0 ||
+        !std::isfinite(residual_tol)||residual_tol<0 || patience<1 || min_epochs<1))
+        Rcpp::stop("Invalid native stopping rule");
+    // Two extra rows cover a schedule endpoint and a non-checkpoint call boundary.
+    const std::size_t checkpoints = 3 + static_cast<std::size_t>(epochs / checkpoint_every);
     const long double workspace = static_cast<long double>(checked_product(count, sizeof(Pair) + sizeof(std::size_t))) +
-        2.0L * checked_product(static_cast<std::size_t>(start.size()), sizeof(double)) +
-        checked_product(checkpoints, 5 * sizeof(double)) + dim * sizeof(double);
+        (assess ? 5.0L : 3.0L) * checked_product(static_cast<std::size_t>(start.size()), sizeof(double)) +
+        checked_product(checkpoints, 10 * sizeof(double)) + dim * sizeof(double) +
+        (assess ? static_cast<long double>(n)*(dim+1)*sizeof(long double) : 0);
     if (workspace > max_workspace_bytes)
         Rcpp::stop("SGD native workspace exceeds max_workspace_bytes; R input matrices require additional memory");
     for (R_xlen_t k = 0; k < start.size(); ++k) {
@@ -136,18 +196,42 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
     }
     Rcpp::NumericMatrix x = Rcpp::clone(start), best = Rcpp::clone(start);
     Score initial = score(x, pairs, retain_best);
-    double best_loss = initial.profiled;
-    int best_epoch = 0;
+    double best_loss = retain_best ? initial.profiled : initial.raw;
+    int best_epoch = 0, stable_count=0, assessments=0;
+    double previous_score=best_loss;
+    Rcpp::NumericMatrix previous = assess ? Rcpp::clone(x) : Rcpp::NumericMatrix(0,0);
     std::vector<std::size_t> order(count);
     std::vector<double> direction(dim);
     std::mt19937_64 rng(static_cast<std::uint64_t>(seed));
-    Rcpp::NumericVector epoch_trace(checkpoints), raw_trace(checkpoints),
-        profiled_trace(checkpoints), updates_trace(checkpoints), rate_trace(checkpoints);
-    raw_trace[0] = initial.raw;
-    profiled_trace[0] = initial.profiled;
-    rate_trace[0] = NA_REAL;
-    std::size_t row = 1;
-    double updates = 0;
+    if (state.isNotNull()) {
+        Rcpp::NumericMatrix old_best=saved["best"];
+        if(old_best.nrow()!=n || old_best.ncol()!=dim) Rcpp::stop("Invalid continuation shape");
+        best=Rcpp::clone(old_best); best_loss=Rcpp::as<double>(saved["best_loss"]);
+        best_epoch=Rcpp::as<int>(saved["best_epoch"]);
+        stable_count=Rcpp::as<int>(saved["stable_count"]);
+        assessments=Rcpp::as<int>(saved["assessments"]);
+        previous_score=Rcpp::as<double>(saved["checkpoint_score"]);
+        if(assess) {
+            Rcpp::NumericMatrix old_previous=saved["checkpoint_coords"];
+            if(old_previous.nrow()!=n || old_previous.ncol()!=dim) Rcpp::stop("Invalid stopping state shape");
+            previous=Rcpp::clone(old_previous);
+        }
+        std::istringstream stream(Rcpp::as<std::string>(saved["rng"]));
+        if (!(stream>>rng)) Rcpp::stop("Invalid continuation RNG state");
+    }
+    std::vector<double> epoch_trace,raw_trace,profiled_trace,updates_trace,rate_trace,
+        motion_trace,residual_trace,relative_trace;
+    std::vector<int> scheduled_trace,streak_trace;
+    auto record = [&](int epoch, Score value, double rate, bool scheduled,
+                      double motion, double residual, double relative) {
+        epoch_trace.push_back(epoch); raw_trace.push_back(value.raw); profiled_trace.push_back(value.profiled);
+        updates_trace.push_back(static_cast<double>(epoch)*count);rate_trace.push_back(rate);
+        scheduled_trace.push_back(scheduled);motion_trace.push_back(motion);residual_trace.push_back(residual);
+        relative_trace.push_back(relative);streak_trace.push_back(stable_count);
+    };
+    if (!state.isNotNull()) record(0,initial,NA_REAL,true,NA_REAL,NA_REAL,NA_REAL);
+    double updates=static_cast<double>(offset)*count;
+    int completed=offset;bool stabilized=false;
     for (int epoch = 0; epoch < epochs; ++epoch) {
         Rcpp::checkUserInterrupt();
         std::iota(order.begin(), order.end(), std::size_t(0));
@@ -189,35 +273,64 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
             }
         }
         updates += static_cast<double>(count); // Includes examined zero/zero pairs.
-        const int completed = epoch + 1;
-        if (completed % checkpoint_every == 0 || completed == epochs) {
-            const Score current = score(x, pairs, retain_best);
-            epoch_trace[row] = completed;
-            raw_trace[row] = current.raw;
-            profiled_trace[row] = current.profiled;
-            updates_trace[row] = updates;
-            rate_trace[row++] = rates[epoch];
-            if (current.profiled < best_loss) {
-                std::copy(x.begin(), x.end(), best.begin());
-                best_loss = current.profiled;
-                best_epoch = completed;
+        completed = offset + epoch + 1;
+        const bool scheduled=completed % checkpoint_every==0 || completed==schedule_epochs;
+        if (scheduled || epoch+1==epochs) {
+            const Score current=score(x,pairs,retain_best);
+            const double diagnostic=retain_best ? current.profiled : current.raw;
+            double motion=NA_REAL,residual=NA_REAL,relative=NA_REAL;
+            if (scheduled && diagnostic<best_loss) {
+                std::copy(x.begin(),x.end(),best.begin());best_loss=diagnostic;best_epoch=completed;
             }
+            if (assess && scheduled) {
+                motion=centered_motion(x,previous);residual=update_residual(x,pairs);
+                relative=std::abs(diagnostic-previous_score)/std::max(std::abs(previous_score),1e-12);
+                ++assessments;
+                stable_count = completed>=min_epochs && relative<=rel_tol && motion<=motion_tol && residual<=residual_tol ? stable_count+1 : 0;
+                previous=Rcpp::clone(x);previous_score=diagnostic;
+                stabilized=stable_count>=patience;
+            }
+            record(completed,current,rates[epoch],scheduled,motion,residual,relative);
+            if(stabilized) break;
         }
     }
-    if (!retain_best) { best = x; best_epoch = epochs; best_loss = score(x,pairs,retain_best).profiled; }
+    Rcpp::List next;
+    if (keep_state) {
+        std::ostringstream stream;stream<<rng;
+        next=Rcpp::List::create(Rcpp::Named("coords")=Rcpp::clone(x),Rcpp::Named("epoch")=completed,
+          Rcpp::Named("rng")=stream.str(),Rcpp::Named("best")=Rcpp::clone(best),
+          Rcpp::Named("best_loss")=best_loss,Rcpp::Named("best_epoch")=best_epoch,
+          Rcpp::Named("checkpoint_coords")=previous,Rcpp::Named("checkpoint_score")=previous_score,
+          Rcpp::Named("stable_count")=stable_count,Rcpp::Named("assessments")=assessments);
+    }
+    // A chunk-boundary candidate may be returned, but must not affect the
+    // canonical best checkpoint used when the same run is resumed later.
+    const Score terminal=score(x,pairs,retain_best);
+    const double terminal_loss=retain_best ? terminal.profiled : terminal.raw;
+    const double diagnostic_best=std::min(best_loss,terminal_loss);
+    const int diagnostic_epoch=terminal_loss<best_loss ? completed : best_epoch;
+    if (retain_best && terminal_loss<best_loss) { best=Rcpp::clone(x);best_loss=terminal_loss;best_epoch=completed; }
+    if (!retain_best) { best=x;best_epoch=completed;best_loss=NA_REAL; }
     return Rcpp::List::create(
-        Rcpp::Named("conf") = best,
-        Rcpp::Named("terminal_conf") = x,
-        Rcpp::Named("niter") = epochs,
-        Rcpp::Named("stress") = best_loss,
-        Rcpp::Named("best_epoch") = best_epoch,
-        Rcpp::Named("pair_updates") = updates,
-        Rcpp::Named("native_seed") = seed,
-        Rcpp::Named("workspace_bytes") = static_cast<double>(workspace),
-        Rcpp::Named("trace") = Rcpp::DataFrame::create(
-            Rcpp::Named("epoch") = epoch_trace,
-            Rcpp::Named("raw_stress") = raw_trace,
-            Rcpp::Named("profiled_stress") = profiled_trace,
-            Rcpp::Named("pair_updates") = updates_trace,
-            Rcpp::Named("learning_rate") = rate_trace));
+        Rcpp::Named("conf")=best,Rcpp::Named("terminal_conf")=x,Rcpp::Named("niter")=completed,
+        Rcpp::Named("stress")=best_loss,Rcpp::Named("best_epoch")=best_epoch,
+        Rcpp::Named("pair_updates")=updates,Rcpp::Named("native_seed")=seed,
+        Rcpp::Named("workspace_bytes")=static_cast<double>(workspace),
+        Rcpp::Named("state")=next,Rcpp::Named("stabilized")=stabilized,
+        Rcpp::Named("assessments")=assessments,Rcpp::Named("best_diagnostic")=diagnostic_best,
+        Rcpp::Named("best_diagnostic_epoch")=diagnostic_epoch,
+        Rcpp::Named("trace")=Rcpp::DataFrame::create(
+          Rcpp::Named("epoch")=epoch_trace,Rcpp::Named("raw_stress")=raw_trace,
+          Rcpp::Named("profiled_stress")=profiled_trace,Rcpp::Named("pair_updates")=updates_trace,
+          Rcpp::Named("learning_rate")=rate_trace,Rcpp::Named("scheduled")=scheduled_trace,
+          Rcpp::Named("relative_change")=relative_trace,Rcpp::Named("centered_motion")=motion_trace,
+          Rcpp::Named("update_residual")=residual_trace,Rcpp::Named("stable_checkpoints")=streak_trace));
+}
+
+// Integrity check for serialized continuation data; not a security primitive.
+// [[Rcpp::export]]
+std::string grip_sgd_state_hash_cpp(Rcpp::RawVector bytes) {
+    std::uint64_t value=14695981039346656037ULL;
+    for(Rbyte byte:bytes) { value^=byte;value*=1099511628211ULL; }
+    std::ostringstream out;out<<std::hex<<value;return out.str();
 }

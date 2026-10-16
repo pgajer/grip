@@ -33,7 +33,8 @@ to preserve a SMACOF initializer.
 The new C++ implementation adapts the pair update and the exponential/hybrid
 schedules. It does not vendor the Python estimator, upstream PRNG, graph-distance
 code, or sparse methods. MIT and BSD notices are retained in `inst/COPYRIGHTS`.
-Algorithm identity: `grip-sgd-mds-v2` (adds pair weights; v1 was uniform only). Matching upstream random seeds does not
+Current full algorithm identity: `grip-sgd-mds-v3` (adds continuation and
+opt-in stopping; v2 added pair weights and v1 was uniform only). Matching upstream random seeds does not
 imply identical trajectories.
 
 ## Exact optimization rules
@@ -153,3 +154,58 @@ The first two used hybrid controls; the last used Zheng throughout. The current
 and is the default for observation preparations. Legacy calls preserve hybrid
 for compatibility. Neither choice is an experimentally established winner over
 the other in this package. Public help now makes that distinction explicit.
+
+
+## Resumable SGD and practical stopping (October 2026)
+
+Backend identities are now `grip-sgd-mds-v3` (full) and
+`grip-sparse-sgd-v2` (sparse). Defaults keep the previous numerical trajectory:
+no stopping rule and no retained continuation state. Richer checkpoint records
+and stopping metadata are additive. `iteration_limit` remains available to old
+consumers; the structured reason is `epoch_budget`, never a convergence claim.
+Both the top-level trace and metadata retain the selected history, and full
+multi-start metadata retains every start's history.
+
+A saved continuation contains the terminal normalized coordinates, the
+`mt19937_64` stream state, fixed targets and endpoint weights, native controls,
+original schedule horizon, canonical best checkpoint, previous stopping
+checkpoint, consecutive-check count and accumulated history. The original
+prepared graph and observation-preparation metadata remain available.
+The state format has a version/platform guard and a non-security FNV-1a
+fingerprint over the serialized capsule. Serialization and retained inputs
+cost additional memory; the native workspace limit is not a process cap.
+The public entry point is `metric.mds(resume=fit, max.iter=additional_epochs)`.
+Other arguments are rejected. The initial fit must request `keep.state=TRUE`
+and use one start; old coordinate-only fits cannot be reconstructed.
+
+`sgd.control$schedule.epochs` fixes the finite schedule horizon H. Chunking
+never restarts or stretches that sequence. Extra epoch j uses
+`eta_H / (1 + j/H)`. This harmonic continuation is an explicit practical choice,
+not Zheng et al.'s unlimited schedule or a claim of convergence. Global
+checkpoint multiples and H are canonical. Other call boundaries are logged
+but do not affect future stopping or best-checkpoint selection. Such a boundary
+can be returned as the best for that call; resumption uses the saved terminal
+state and canonical best. Thus extra pause points do not alter an uninterrupted
+trajectory or its final selected result. Histories preserve the extra rows.
+
+The opt-in rule checks the **current**, not running-minimum, checkpoint
+objective/proxy. It requires absolute relative change (denominator floored at
+1e-12), centered RMS coordinate motion, and a learning-rate-independent update
+residual below their tolerances for consecutive checkpoints after the minimum
+epoch count. Failed checks reset the streak. For vertex i, form the sum of
+endpoint-weighted vectors `(distance-target)*unit_direction`, divide by its
+incident endpoint weight, and take the largest vertex norm. A positive-target
+collision gives infinite residual. This avoids a false stop caused solely by
+a tiny learning rate. It is not a global optimum test; in asymmetric sparse
+mode it is not even a proxy-gradient certificate. Defaults are conservative
+engineering controls, not validated universal tolerances.
+
+Tests compare saved/RDS-resumed and uninterrupted trajectories exactly across
+all three schedulers and both dense weight choices, graph and observation
+sparse preparations, schedule extensions, off-grid pauses, native collision
+randomness, optional graph diagnostics, and caller RNG preservation. Independent
+small calculations check asymmetric residuals. Exact-target, tiny-rate,
+minimum-epoch, patience, failed-check/reset and target-unit tests exercise the
+stopping rule. Existing independent update/reference tests protect default
+behavior. Current VME production caches and frozen runtime are outside this
+change; future caches must use the new backend identity and full controls.

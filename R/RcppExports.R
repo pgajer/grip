@@ -109,8 +109,12 @@ grip_constraint_graph_cpp <- function(n, pairs, targets) {
     .Call(`_grip_grip_constraint_graph_cpp`, n, pairs, targets)
 }
 
-grip_sgd_mds_cpp <- function(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle = TRUE, weights = NULL, endpoints = NULL, reverse_weights = NULL, retain_best = TRUE) {
-    .Call(`_grip_grip_sgd_mds_cpp`, start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best)
+grip_sgd_mds_cpp <- function(start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle = TRUE, weights = NULL, endpoints = NULL, reverse_weights = NULL, retain_best = TRUE, state = NULL, stopping = NULL, schedule_epochs = 0L, keep_state = FALSE) {
+    .Call(`_grip_grip_sgd_mds_cpp`, start, targets, rates, seed, checkpoint_every, max_workspace_bytes, shuffle, weights, endpoints, reverse_weights, retain_best, state, stopping, schedule_epochs, keep_state)
+}
+
+grip_sgd_state_hash_cpp <- function(bytes) {
+    .Call(`_grip_grip_sgd_state_hash_cpp`, bytes)
 }
 
 grip_surface_distances_cpp <- function(points, vertices, triangles) {
