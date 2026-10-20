@@ -60,3 +60,54 @@ and exact continuation equivalence.
 The current pilot varies landmark count and initialization only. It is not an
 ablation of endpoint asymmetry, schedule choice, or preparation randomness,
 and is not a CRAN-readiness check.
+
+## Output-Dimension Experiment
+
+The companion `dimension-sweep.py` and `dimension-sweep.R` scripts test output
+dimensions 300, 200, 100, 50, 25, 20, 10, 5, 4, and 3 on the same 1,500 cells.
+This is a separate experiment: its targets are Euclidean distances in the
+saved 1,814-PC matrix, not the earlier 20-PC matrix. The full-population PCA
+retains 99.002% of variance in the centered, unscaled transformed gene matrix.
+
+Each dimension receives one seeded regional sparse SGD fit with 200 internally
+selected distance-proportional landmarks, ten local neighbors, and a shared
+preparation. Neighbor search uses a subset PCA retaining at least 90% of
+variance; all target distances still use the complete 1,814-PC input.
+The Zheng schedule spans exactly 100 epochs with epsilon 0.1. Initial normal
+coordinates share nested columns across dimensions and are centered and
+scale-fitted before optimization; the fitted coordinates are not rescaled.
+All 1,124,250 pairs are evaluated, separately from the sparse fitting proxy.
+An unrescaled subset-PCA projection provides a reference, not an optimizer
+of relative-distance error.
+
+The runner verifies the existing projection hash and subset cell order, then
+launches ten single-threaded workers. Its two-second watchdog limits aggregate
+process-tree resident memory to 50 GiB; this is a sampled stop threshold, not
+an operating-system allocation reservation. Individual fitting workspace
+allowances are 4 GiB. Completed ten-epoch checkpoints are saved atomically.
+It does not load or resume the paused full-population embedding.
+
+```sh
+python3 vignettes/articles/retinal-relative-stress/dimension-sweep.py \
+  --root "$PWD" --input-dir "$PC1814_INPUT_DIR" \
+  --prior-protocol "$PRIOR_RESULT_DIR/protocol.rds" --out "$DIMENSION_RESULT_DIR"
+env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
+  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
+  Rscript vignettes/articles/retinal-relative-stress/dimension-validate.R \
+  "$DIMENSION_RESULT_DIR"
+```
+
+`PC1814_INPUT_DIR` contains `pc1814.npy`, `projection.json`, and
+`annotations.csv` from the previously validated projection. The validator
+independently recomputes final distance errors through Gram matrices and
+writes a summary table and dimension-error figure. One start and one
+preparation per dimension do not establish convergence, robustness to random
+initialization, or the dataset's intrinsic dimension.
+
+The [completed dimension sweep](dimension-summary.csv) gives all-pairs RMS
+relative errors of 30.16% in 3D, 10.00% in 20D, 4.52% in 100D, 5.02% in 200D,
+and 2.68% in 300D. These are terminal 100-epoch results from one start per
+dimension, not best achievable errors. The increase from 100D to 200D is real
+in these fits, even though the sparse proxy falls from 2.37% to 0.83%.
+The subset PCA reference and its variance fractions appear in the same table;
+those fractions describe this subset, not the full-population variance spectrum.
