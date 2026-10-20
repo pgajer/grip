@@ -1,0 +1,436 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,amsmath,amssymb,booktabs,graphicx}
+\usepackage{xcolor,hyperref,url}
+\usepackage{placeins}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\providecommand{\reportbuilddatetime}{unknown}
+\InputIfFileExists{build-info.tex}{}{}
+\input{results-info.tex}
+\title{Relative-distance error and regional sparse SGD\\
+in three-dimensional retinal embeddings}
+\author{\small\begin{minipage}{0.94\textwidth}\centering
+Source: \path{~/current_projects/grip/vignettes/articles/retinal-relative-stress/main.tex}
+\end{minipage}}
+\date{Build: \reportbuilddatetime}
+\begin{document}
+\maketitle
+
+\section{The question}
+An embedding of 120,804 retinal cells, fitted by stochastic gradient descent
+(SGD) using 2,000 landmarks, did not show a steady decrease in independently
+evaluated relative-distance error during its first 110 epochs. Does this
+indicate an optimization failure, or are the fitting procedure and evaluation
+measuring different things?
+
+There are two separate issues. Sequential pair corrections need not decrease a
+whole-data error after every pass. More importantly, the regional sparse method
+uses selected pairs and unequal endpoint weights. It is therefore not the same
+calculation as minimizing the equally weighted, all-pairs relative stress.
+The scalar sparse diagnostic reported by the implementation is a useful
+summary, but is not generally a potential function for its asymmetric updates.
+
+This article derives that distinction and tests it on a deliberately small
+retinal subset. Three methods are compared: regional sparse SGD with 25
+landmarks, regional sparse SGD with 200 landmarks, and all-pairs SGD with
+inverse-squared distance weights. All methods use the same three starting
+configurations, original-space targets, and evaluation pairs.
+The full 120,804-cell run remains paused at epoch 110; the experiment below
+neither continues nor replaces it.
+
+This is an implementation study and a preliminary basis for a package vignette,
+not a literature review or a claim of optimality. Mathematical statements below
+are derived from the recorded update rule; empirical statements concern this
+one subset and these starts. Results were generated at \resultgenerated.
+This PDF reads the completed result tables; rendering does not rerun fits.
+
+\section{Distances and the quantity of interest}
+Let $x_i\in\mathbb R^{20}$ denote the retained principal-component (PC) scores
+of cell $i$, for $i=1,\ldots,n$. In this experiment $n=1,500$.
+The target and embedding distances are
+\begin{equation}
+d_{ij}=\|x_i-x_j\|_2,\qquad
+r_{ij}(Y)=\|y_i-y_j\|_2,\qquad y_i\in\mathbb R^3.
+\end{equation}
+Thus ``ambient'' means Euclidean distance in the fixed 20-PC matrix.
+It does not mean distance in all 3,290 transformed gene coordinates, nor
+shortest-path distance on a graph. No biological labels enter the fits.
+All off-diagonal target distances are strictly positive in the selected data.
+
+The requested score is
+\begin{equation}\label{eq:full}
+S_{\rm rel}(Y)=\frac1M\sum_{1\leq i<j\leq n}
+\left(\frac{r_{ij}(Y)-d_{ij}}{d_{ij}}\right)^2,\qquad
+M=\frac{n(n-1)}2,
+\quad R(Y)=100\sqrt{S_{\rm rel}(Y)}.
+\end{equation}
+$R$ is the root-mean-square (RMS) relative distance error, expressed as a
+percentage. Zero means that every target distance is reproduced; lower is
+better. A value of 20 means an RMS fractional error of 0.20, not a 20-percent
+error for each pair. Taking the square root and multiplying by 100 do not
+change which configuration minimizes the score.
+
+Equation~\eqref{eq:full} equals ordinary weighted squared distance error with
+weights $w_{ij}=d_{ij}^{-2}$, divided by $M$. Every pair has equal importance
+\emph{in relative-error units}; small distances have larger weights in
+absolute-error units. This distinction explains why ``inverse-squared
+weights'' is consistent with an equally weighted mean of relative errors.
+
+For the subset, all $M=1,124,250$ unordered pairs are evaluated at every
+checkpoint. There is no evaluation-pair sampling error. In the earlier full
+run, the same 1,048,576 sampled pairs were reused at every checkpoint.
+Consequently, even there, changing the evaluation sample cannot explain the
+observed temporal fluctuations.
+
+\section{What the regional approximation changes}
+\subsection{Selected interactions and regional counts}
+Let $E$ be the fixed set of fitting pairs. The regional method includes
+landmark--cell pairs and local-neighbor pairs, rather than all possible pairs.
+Landmarks are selected internally: the first is uniform among cells and
+subsequent selection probabilities are proportional to distance to the
+nearest chosen landmark. This is distance-proportional, not
+squared-distance-proportional selection.
+
+Each cell belongs to the region $V_p$ of its nearest landmark $p$, with the
+implementation's deterministic tie handling. For a nonlocal cell--landmark
+interaction, the regional count is
+\begin{equation}
+s_{ip}=\#\{j\in V_p:\ d_{jp}\leq d_{ip}/2\}.
+\end{equation}
+Here $\#$ denotes set cardinality. The count represents nearby members of the
+landmark's region when updating cell $i$. The corresponding interaction need
+not move landmark $p$. Local pairs override regional counts with unit
+multipliers at both endpoints. Repeated representations of a canonical
+unordered pair are combined.
+
+Write the resulting nonnegative multipliers as $a_{ij}$ for the update of
+endpoint $i$ and $b_{ij}$ for endpoint $j$. They need not be equal; one may
+be zero. All-pairs SGD in this comparison instead sets
+$E=\{\{i,j\}:i<j\}$ and $a_{ij}=b_{ij}=1$.
+
+The sparse diagnostic is the endpoint-average relative error
+\begin{equation}\label{eq:proxy}
+S_{\rm proxy}(Y)=
+\frac{\sum_{\{i,j\}\in E} c_{ij}
+       \{(r_{ij}(Y)-d_{ij})/d_{ij}\}^2}
+     {\sum_{\{i,j\}\in E}c_{ij}},
+\qquad c_{ij}=\frac{a_{ij}+b_{ij}}2.
+\end{equation}
+The plotted proxy is $100\sqrt{S_{\rm proxy}}$. Pairs with $c_{ij}=0$
+contribute nothing; the denominator is positive. The proxy equals
+$S_{\rm rel}$ for the all-pairs, unit-multiplier reference. In general it
+does not: both the set of pairs and their relative importance differ.
+A smaller proxy than all-pairs error is not evidence of greater accuracy.
+
+\subsection{The endpoint updates}
+The implementation divides targets and coordinates by the fixed positive
+RMS target-distance scale
+$\rho=\sqrt{|E|^{-1}\sum_{\{i,j\}\in E}d_{ij}^{\,2}}$ before fitting,
+where $|E|$ is the number of fitting pairs:
+$t_{ij}=d_{ij}/\rho$ and $z_i=y_i/\rho$. It restores input units afterward.
+For a currently noncoincident pair define
+$\ell_{ij}=\|z_i-z_j\|_2$, $e_{ij}=\ell_{ij}-t_{ij}$, and
+$u_{ij}=(z_i-z_j)/\ell_{ij}$. At epoch $t$, the two gains and updates are
+\begin{align}
+\mu_i&=\min\{1,\eta_t a_{ij}/t_{ij}^2\},&
+\mu_j&=\min\{1,\eta_t b_{ij}/t_{ij}^2\},\\
+z_i&\leftarrow z_i-\tfrac12\mu_i e_{ij}u_{ij},&
+z_j&\leftarrow z_j+\tfrac12\mu_j e_{ij}u_{ij}.
+\end{align}
+Both moves use the pre-update direction and error. A zero multiplier gives
+zero motion at that endpoint. At a positive-target coincidence the code
+selects a random direction; the displayed formula assumes $\ell_{ij}>0$.
+
+With unit endpoint multipliers and no clipping, a pair update is a negative
+gradient step on its squared relative error, with step size $\eta_t/4$.
+Clipping caps large pair corrections. It does not introduce a whole-objective
+line search or guarantee that the sum over other pairs decreases.
+
+With unequal endpoint multipliers, the two moves are not the gradient of the
+endpoint-average pair term in Equation~\eqref{eq:proxy}. One can see this in
+one dimension, away from coincidence and clipping. If $z_i>z_j$, the update
+field has cross derivatives
+\begin{equation}
+\frac{\partial F_i}{\partial z_j}
+ =\frac{a_{ij}}{2t_{ij}^2},\qquad
+\frac{\partial F_j}{\partial z_i}
+ =\frac{b_{ij}}{2t_{ij}^2},
+\end{equation}
+after factoring out the common learning rate. When $a_{ij}\ne b_{ij}$,
+these derivatives differ. A twice differentiable scalar potential would
+have equal mixed derivatives. This demonstrates the mismatch for the
+pair field in the ordinary coordinate metric; it does not rule out every
+possible preconditioned interpretation of special cases.
+
+The practical conclusion is narrower and important: a decrease of the
+reported endpoint-average proxy is not guaranteed by the regional update
+rule, even when the step size is small. Calling that diagnostic the exact
+objective being minimized would overstate what the implementation does.
+
+\subsection{Why more epochs need not give a monotone curve}
+Each epoch visits the fixed constraints in a newly shuffled order. Correcting
+one pair can spoil another. Reducing all distances from a 20-dimensional
+cloud to three dimensions also leaves competing constraints.
+
+The weight-dependent exponential schedule, called \texttt{zheng} in the
+implementation, uses positive normalized endpoint weights $w$:
+\begin{equation}\label{eq:schedule}
+\eta_t=\exp\left[
+(1-\lambda_t)\log(1/w_{\min})
+{}+\lambda_t\log(\epsilon/w_{\max})\right],
+\quad \lambda_t=\frac{t-1}{T-1},\quad t=1,\ldots,T.
+\end{equation}
+Here $T=500$, $\epsilon=0.1$, and extrema exclude zero endpoint weights.
+At the last epoch every gain is at most 0.1. The schedule is fixed at the
+start; checkpointing does not restart it. The rates differ between methods
+because their weights differ. Early checkpoints are not equivalent to
+completed, separately scheduled short fits.
+
+Neither sequential SGD nor this asymmetric sparse variant promises monotone
+whole-data error. A falling learning rate is a reason to examine later
+behavior, not a convergence certificate. For the regional method there is
+the additional distinction between its proxy, its update field, and the
+all-pairs evaluation.
+
+\section{A controlled retinal-subset experiment}
+The subset consists of 1,500 cells drawn uniformly without replacement from
+the same 120,804-row, 20-PC matrix used in the paused experiment. The PC
+matrix is subsetted, not refitted to the smaller population. Its upstream
+construction used centered, unscaled PCA of log-transformed normalized
+expression; this article does not revalidate that upstream reconstruction
+or assert bitwise identity to the published study's PC coordinates.
+
+Twenty-five landmarks give a 1.67-percent landmark fraction, close to
+2,000/120,804 (1.66 percent). Two hundred landmarks give 13.33 percent and
+provide a within-subset landmark-count sensitivity check. Equal fractions
+do not make the small and large problems equivalent.
+
+Both regional preparations use symmetric union-of-10-nearest-neighbor
+local interactions. Neighbor search uses the smallest centered, unscaled
+PCA projection retaining 90 percent of the variance \emph{within these
+20 PCs}. It retains 13 dimensions and 91.495 percent. That search projection
+does not change any target distances: landmark, regional, and local-pair
+targets remain Euclidean distances in the original 20-PC coordinates.
+Preparations are fixed across fitting starts; their common preparation seed
+is 20261021. Preparation variability is not estimated.
+
+The fitting sets contain 47,092 pairs with 25 landmarks and 287,678 with
+200 landmarks, compared with 1,124,250 pairs in the reference.
+Unequal endpoint counts occur for 78.15 and 95.67 percent of the respective
+sparse pairs. At least one endpoint count is zero for 77.56 and 89.57 percent.
+These percentages describe the fitting arrays, not the importance or error
+of those pairs.
+
+For each of three seeds, a centered Gaussian random configuration
+$G\in\mathbb R^{1500\times3}$ is generated. Its scale is chosen once, for all
+methods, using
+\begin{equation}
+\alpha=\frac{\sum_{i<j}g_{ij}/d_{ij}}
+              {\sum_{i<j}(g_{ij}/d_{ij})^2},\qquad
+g_{ij}=\|G_i-G_j\|_2,\qquad Y_0=\alpha G.
+\end{equation}
+This scalar minimizes the all-pairs relative stress of the starting shape.
+It does not optimize the shape. The same $Y_0$ is passed to every method
+within a seed. Initialization and fitting seeds are 20190619--20190621;
+there is one start per call, three matched calls per method.
+
+All fits use the SGD backend, three output dimensions, inverse-squared
+targets, the 500-epoch schedule of Equation~\eqref{eq:schedule}, and no
+edge-KK refinement. The per-call workspace allowance is 32 GiB; it is not
+a measured total-memory requirement. Runs execute serially with numerical
+thread limits of one.
+
+The all-pairs reference uses the explicit-constraint interface of
+\texttt{grip::metric.mds()}, with every unordered pair and unit endpoint
+multipliers. Although this routes through the sparse-capable kernel, its
+mathematical fitting objective is the full all-pairs objective. This
+established validation pattern makes both methods return their terminal
+coordinates without post-fit scale adjustment. The ordinary full-MDS wrapper
+instead returns its best scale-profiled checkpoint; comparing that directly
+with a sparse terminal iterate would mix two output policies.
+
+Checks confirm that returned coordinates equal the saved terminal state
+in input units and that initial scores match the shared starts.
+Each method uses the same shuffle seed within a matched start, but a
+different number of pairs means the permutations are not identical.
+The experiment matches start, targets, evaluation, epoch budget, and schedule
+rule, not numeric rate vectors, update counts, or elapsed time.
+It compares complete methods, not a single-factor ablation of asymmetry.
+
+\section{Results}
+All nine planned fits completed 500 epochs: nine succeeded, none failed,
+none were skipped or excluded. No report-only fits are counted.
+The main score below is the exact all-pairs $R$ of
+Equation~\eqref{eq:full}, without any fitted evaluation scale.
+
+\begin{table}[htbp]
+\centering\input{error-table.tex}
+\caption{Mean RMS relative distance error (percent) over the three matched
+starts at selected checkpoints. Columns distinguish the two landmark counts
+and the all-pairs reference. These are means of three RMS values, not the
+root of a pooled loss. Every checkpoint uses all 1,124,250 pairs; lower is
+better.}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{error-trajectories.pdf}
+\caption{Exact all-pairs RMS relative error across the fixed 500-epoch
+schedule. Thin curves show individual starts; thick curves show their
+arithmetic means. Color and line style distinguish methods. The initial
+configuration at epoch zero is omitted to make changes during fitting
+readable. No confidence band is shown along the trajectories because three
+starts provide limited information; final paired intervals are shown below.}
+\end{figure}
+\FloatBarrier
+
+The trajectories answer two different questions. Early fluctuation occurs
+even for the all-pairs reference, whose fitting terms exactly match the
+evaluation objective. Thus objective mismatch is not necessary for
+nonmonotonicity. Nevertheless, the regional methods and reference do not
+end at the same error. Their final differences must be interpreted alongside
+the sparse approximation, endpoint weighting, and method-specific rates,
+not attributed to stochastic fluctuations alone.
+
+\begin{table}[htbp]
+\centering\input{final-table.tex}
+\caption{RMS relative distance error (percent) at epoch 500 for each
+individual start. Starts 1--3 correspond to seeds 20190619--20190621.
+Each column shares one starting configuration across methods.}
+\end{table}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{paired-differences.pdf}
+\caption{Final paired differences: regional error minus the all-pairs error
+from the same start, in percentage points. Positive values favor the
+all-pairs reference. Three open symbols show the individual differences;
+black diamonds and bars show the mean and a 95-percent paired $t$ interval
+with two degrees of freedom. These intervals concern initialization
+variability on this fixed subset and preparation, not generalization to
+other cell samples or the full dataset.}
+\end{figure}
+\FloatBarrier
+
+For three differences $\Delta_s=R_{{\rm regional},s}-R_{{\rm all},s}$,
+$s=1,2,3$, the interval is
+\begin{equation}
+\bar\Delta\ \pm\ t_{0.975,2}\,
+\frac{\sqrt{\sum_{s=1}^3(\Delta_s-\bar\Delta)^2/2}}{\sqrt3}.
+\end{equation}
+$\bar\Delta$ is the arithmetic mean and $t_{0.975,2}\simeq4.303$ is the
+Student-$t$ quantile. With only three starts the approximate normality
+assumption cannot be checked usefully. Individual values are therefore
+shown, and the comparison is treated as a descriptive pilot.
+\input{interpretation.tex}
+
+\begin{figure}[htbp]
+\centering\includegraphics[width=\linewidth]{proxy-trajectories.pdf}
+\caption{For each regional method, mean all-pairs evaluation and mean
+endpoint-average proxy across the same three starts. Both are expressed
+as RMS percentages, but have different pairs and weights. A gap is not
+an optimization tolerance or a Monte Carlo error bar.}
+\end{figure}
+\FloatBarrier
+
+\section{Checks and limits of interpretation}
+The runner independently recomputes the proxy from coordinates and endpoint
+counts at every checkpoint. For the all-pairs reference, that proxy equals
+the independently computed full relative error to within $10^{-8}$
+percentage points. The initial scalar scores match their common starting
+configurations. A separate small test verifies that a four-epoch run followed
+by six resumed epochs produces exactly the same coordinates as one
+ten-epoch run with the same schedule.
+
+Regional target distances are checked against the original PC20 Euclidean
+distance matrix. A second script recomputes all 108 post-fit evaluations
+row by row, independently of the runner's distance-vector calculation,
+and checks agreement within $10^{-9}$ percentage points. Cache keys,
+method identities, and seeds are also checked.
+The nearest-neighbor diagnostic is
+$n^{-1}\sum_i |N_i^{20}\cap N_i^{13}|/10$, where the sets contain the ten
+nearest other cells in original and search coordinates, respectively.
+It measures how much neighbor selection changes under projection; it
+does not assess embedding quality. The projection affects the regional
+local-pair set but not the all-pairs targets.
+\input{neighbor-check.tex}
+
+These tests establish consistency between the formulas, saved coordinates,
+and reported numbers. They do not certify a global minimum, convergence,
+or fidelity to an unknown biological manifold. Euclidean geometry in 20 PCs
+is an explicit target here, not a claim about biological truth.
+All evaluation pairs are also fitting pairs in the reference, so this is
+an objective-recovery comparison, not prediction on held-out cells.
+
+Only one cell subset and one preparation per landmark count were used.
+More landmarks change both the represented interactions and the regional
+partition. The schedules also change with the endpoint-weight range.
+Therefore the result cannot isolate asymmetry, landmark number, or schedule
+as the sole cause of a difference. A follow-up ablation would hold the pair
+set fixed while comparing regional asymmetric counts, symmetric
+endpoint-average counts, and unit counts, with clearly defined schedule
+controls. Those fits are not included here.
+
+\section{Consequences for grip and the full retinal experiment}
+The distinction should be visible wherever sparse metric-MDS results are
+reported: target geometry, update rule, sparse proxy, and independently
+evaluated relative error are separate pieces of information.
+For asymmetric regional fits, ``proxy'' is the appropriate label for the
+endpoint-average scalar. For the all-pairs, unit-multiplier reference, the
+same scalar really is the full relative-stress objective.
+
+For fair comparisons of optimization trajectories, both methods should
+report current, unrescaled coordinates at the same epoch. Best-checkpoint
+selection and post-fit scale optimization may be useful output policies,
+but must be identified and applied consistently if compared.
+This experiment uses the current-state policy throughout.
+
+The small experiment tests the reason for fluctuations without restarting
+the full job. It shows why stopping at epoch 100 need not reveal the outcome
+of a 500-epoch schedule. It does not predict the final error of the paused
+120,804-cell fit, nor show that increasing its landmark count is the right
+next intervention. Its saved state at epoch 110 remains the valid restart
+point; continuation should retain its original inputs, implementation
+identity checks, random state, and schedule.
+
+\appendix
+\section{Evidence and reproduction}
+The exact input hash, cell indices, preparation objects, starting
+coordinates, solver settings, and saved checkpoint coordinates are in the
+private result bundle \path{retinal-relative-stress-20261020}.
+Its protocol key begins \resultkey. Cell identifiers and raw expression
+data are not distributed with this article. The compact
+\texttt{scores.csv}, \texttt{fit-status.csv}, \texttt{preparations.csv},
+and \texttt{paired-summary.csv} beside this source support the tables
+and figures. The full source manifest and session information remain with
+the private result bundle.
+
+The experiment used the current optimized local grip and dgraphs builds.
+The grip source baseline is commit \texttt{f3e570e1}; no solver code was
+modified for this comparison. The paused large fit instead uses its
+recorded frozen grip source, \texttt{348b16bb}. The intervening grip changes
+add optional update tracing; tracing is disabled here. These are separate
+experiments, not interchangeable checkpoints. Source fingerprints are
+checked before and after the subset fits.
+
+Implementation evidence is in \path{R/sparse_metric_mds.R} (weights,
+normalization, proxy and terminal-coordinate policy),
+\path{R/metric_mds_sgd.R} (schedule),
+\path{src/sparse_metric_mds.cpp} (regional counts and local overrides),
+\path{src/metric_mds_sgd.cpp} (pair updates and proxy),
+and \path{R/metric_mds_continuation.R} (state integrity and resumption).
+This note makes no literature-priority claim for these algorithms.
+
+The reproducible scripts have separate roles.
+\texttt{compare.R} generates fits; \texttt{validate.R} independently checks
+their scores and neighbor retention; \texttt{summarize.R} creates tables and
+figures; \texttt{build.R} refreshes the Eastern build timestamp and compiles
+the PDF twice. The adjacent README gives arguments and commands.
+The result-generation timestamp is \resultgenerated; the PDF build timestamp
+is \reportbuilddatetime.
+
+The recorded \texttt{fit.seconds} values measure accumulated elapsed time
+inside the initial fitting call and subsequent continuation calls. They
+include interface validation and saved-state integrity work, but exclude
+separate data/preparation construction, external evaluation, output writing,
+and figure rendering. They are not end-to-end runtime benchmarks.
+\end{document}

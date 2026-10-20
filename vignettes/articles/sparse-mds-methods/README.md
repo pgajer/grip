@@ -15,6 +15,12 @@ latent dimensions 2 and 3, index 0 and 1, outputs 2 and 3, three seeds,
 The report shows all cases and distinguishes Euclidean from geodesic targets.
 It does not establish convergence, large-data performance or V4 parameter adequacy.
 
+A [retinal relative-stress article](../retinal-relative-stress/README.md)
+examines a separate question: how the asymmetric regional update rule and its
+reported proxy differ from all-pairs relative stress. Its small-data comparison
+uses common starting coordinates, exact all-pairs evaluation, and 500-epoch
+SGD trajectories.
+
 ## Evidence
 
 - [Final results and saved preparations](../../../output/sparse-mds-methods/validation_2026-10-07_final/validation.rds), [288 scores](../../../output/sparse-mds-methods/validation_2026-10-07_final/fits.csv), [source fingerprints](../../../output/sparse-mds-methods/validation_2026-10-07_final/source_manifest.csv), [session information](../../../output/sparse-mds-methods/validation_2026-10-07_final/session-info.txt).

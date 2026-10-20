@@ -1,0 +1,6 @@
+At epoch 500, mean error is 26.596\% for 25 landmarks, 21.353\% for 200 landmarks, and 20.474\% for the all-pairs reference. Both regional methods have higher error than the reference in all three matched starts (zero better, zero tied, three worse for each comparison). For 25 landmarks the mean excess is 6.122 percentage points, with a paired 95-percent interval [3.259, 8.986]. For 200 landmarks it is 0.879 percentage points, with interval [0.875, 0.883]. The very narrow latter interval reflects similar final results across these three starts; it does not include cell-sampling or preparation uncertainty.
+
+Increasing the landmark count reduces the observed approximation gap in this subset, but does not eliminate it. The experiment does not show that 200 landmarks are sufficient for another population, nor that the 2,000-landmark full fit will achieve these errors.
+
+
+The proxy illustrates why the distinction matters: the 25-landmark method has a mean proxy RMS of 14.602\%, below 17.499\% for 200 landmarks, even though its all-pairs error is higher. Ranking these two fits by their own proxies would reverse the ranking given by the common evaluation metric. The all-pairs reference has equal proxy and evaluation values, 20.474\%, as required by the unit-multiplier identity.

@@ -1,0 +1,8 @@
+main.pdf
+build-info.tex
+build-console.log
+build-errors.log
+page-*.png
+!error-trajectories.pdf
+!paired-differences.pdf
+!proxy-trajectories.pdf
