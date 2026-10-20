@@ -123,3 +123,38 @@ test_that("PCA search handles ambient lifting and collapsed projected pairs", {
   expect_true(all(dgraphs::graph.edges(g)$length>0))
   expect_false(g$metadata$dense_distance_matrix_allocated)
 })
+
+test_that("bounded preparation validation preserves fits and continuation", {
+  skip_if_not_installed("dgraphs")
+  X <- observation_fixture()
+  prep <- prepare.sparse.mds(X, method="euclidean", n.pivots=7, q=5, seed=19)
+  control <- list(scheduler="zheng", schedule.epochs=6, keep.state=TRUE)
+  a <- metric.mds(prepared=prep, approximation="sparse", dim=3,
+    max.iter=2, seed=31, sgd.control=control)
+  b <- metric.mds(n=nrow(X), constraints=prep$constraints,
+    approximation="sparse", dim=3, max.iter=2, seed=31, sgd.control=control)
+  expect_identical(a$coords, b$coords)
+  expect_identical(a$metadata$sparse_proxy_stress, b$metadata$sparse_proxy_stress)
+  expect_null(a$prepared$adj_list)
+  expect_equal(a$prepared$component_id, b$prepared$component_id)
+  aa <- metric.mds(resume=a, max.iter=4)
+  bb <- metric.mds(resume=b, max.iter=4)
+  expect_identical(aa$coords, bb$coords)
+  expect_identical(aa$metadata$data_preparation$target_metric, "euclidean")
+})
+
+test_that("bounded validation still rejects malformed preparation constraints", {
+  prep <- prepare.sparse.mds(observation_fixture(), method="uniform", n.pivots=7)
+  C <- prep$constraints
+  validate <- function(x) .metric.mds.validate.prepared.constraints(x, prep$n, 1e8, 3L)
+  expect_equal(validate(C)$targets, C$targets)
+  bad <- C; bad$pairs[4,] <- bad$pairs[3,]
+  expect_error(validate(bad), "unique")
+  bad <- C; bad$pairs[1,] <- rev(bad$pairs[1,])
+  expect_error(validate(bad), "canonical")
+  bad <- C; bad$targets[4] <- NaN
+  expect_error(validate(bad), "positive finite")
+  bad <- C; bad$count_i[4] <- -1
+  expect_error(validate(bad), "nonnegative")
+  expect_error(.metric.mds.validate.prepared.constraints(C, prep$n, 1), "workspace")
+})

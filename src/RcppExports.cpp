@@ -738,15 +738,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_constraint_graph_cpp
-Rcpp::List grip_constraint_graph_cpp(int n, Rcpp::IntegerMatrix pairs, Rcpp::NumericVector targets);
-RcppExport SEXP _grip_grip_constraint_graph_cpp(SEXP nSEXP, SEXP pairsSEXP, SEXP targetsSEXP) {
+Rcpp::List grip_constraint_graph_cpp(int n, Rcpp::IntegerMatrix pairs, Rcpp::NumericVector targets, bool include_adjacency);
+RcppExport SEXP _grip_grip_constraint_graph_cpp(SEXP nSEXP, SEXP pairsSEXP, SEXP targetsSEXP, SEXP include_adjacencySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type pairs(pairsSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type targets(targetsSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_constraint_graph_cpp(n, pairs, targets));
+    Rcpp::traits::input_parameter< bool >::type include_adjacency(include_adjacencySEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_constraint_graph_cpp(n, pairs, targets, include_adjacency));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -848,7 +849,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_layout_globalrep_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_trace_adj_cpp, 36},
     {"_grip_grip_layout_globalrep_weighted_trace_adj_cpp", (DL_FUNC) &_grip_grip_layout_globalrep_weighted_trace_adj_cpp, 42},
     {"_grip_grip_optimize_kernel_gram_gkk_layout_cpp", (DL_FUNC) &_grip_grip_optimize_kernel_gram_gkk_layout_cpp, 25},
-    {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 3},
+    {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 4},
     {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 15},
     {"_grip_grip_sgd_state_hash_cpp", (DL_FUNC) &_grip_grip_sgd_state_hash_cpp, 1},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},

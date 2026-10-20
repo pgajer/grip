@@ -336,6 +336,9 @@ grip.mds.has.smacof <- function() {
 #' This is the default for [prepare.sparse.mds()] inputs, including uniform,
 #' Euclidean regional and geodesic regional preparations. Other inputs retain
 #' the hybrid default, including raw graphs and explicit constraints.
+#' Fits from observation preparations retain constraint pairs and connectivity
+#' metadata but omit duplicate constraint adjacency lists. The local-neighbor
+#' graph remains available in the original preparation's `graph` field.
 #'
 #' Choosing `"zheng"` reproduces that schedule's rule, not every published
 #' solver setting or trajectory: epoch budget, initialization and scale,
@@ -453,7 +456,8 @@ metric.mds <- function(prepared = NULL,
     result <- .grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
       adj_list = adj.list, weight_list = weight.list, edge_weights = edge.weights,
       dim = dim, init = init, max_iter = max.iter, seed = seed,
-      sgd_control = sgd.control, constraints = constraints), sparse.control))
+      sgd_control = sgd.control, constraints = constraints,
+      prepared_constraints = !is.null(observation.preparation)), sparse.control))
     if (!is.null(observation.preparation)) {
       result$metadata$data_preparation <- observation.preparation$metadata
       result$metadata$constraint_source <- "observation_preparation"

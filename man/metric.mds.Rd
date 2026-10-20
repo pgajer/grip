@@ -390,6 +390,9 @@ target normalization. \code{schedule.epsilon} defaults to 0.1; \code{learning.ra
 This is the default for \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs, including uniform,
 Euclidean regional and geodesic regional preparations. Other inputs retain
 the hybrid default, including raw graphs and explicit constraints.
+Fits from observation preparations retain constraint pairs and connectivity
+metadata but omit duplicate constraint adjacency lists. The local-neighbor
+graph remains available in the original preparation's \code{graph} field.
 
 Choosing \code{"zheng"} reproduces that schedule's rule, not every published
 solver setting or trajectory: epoch budget, initialization and scale,

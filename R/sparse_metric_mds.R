@@ -3,7 +3,8 @@
                               weight.list = NULL, edge.weights = NULL,
                               dim = 2L, n.pivots = 200L, pivots = NULL,
                               init = "random", max.iter = 30L, seed = 1L,
-                              sgd.control = list(), constraints = NULL) {
+                              sgd.control = list(), constraints = NULL,
+                              prepared.constraints = FALSE) {
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   n <- grip.resolve.graph.n(n, edges, adj.list)
   if (n < 2L) stop("Sparse SGD needs at least two vertices", call. = FALSE)
@@ -46,8 +47,11 @@
     sparse <- grip_sparse_prepare_cpp(n, prepared$edges, prepared$edge_targets,
       n.pivots, as.integer(pivots), preparation.seed, control$max.workspace.bytes)
   } else {
-    sparse <- .metric.mds.validate.constraints(constraints, n, control$max.workspace.bytes)
-    prepared <- grip_constraint_graph_cpp(n,sparse$pairs,sparse$targets)
+    sparse <- if (prepared.constraints)
+      .metric.mds.validate.prepared.constraints(constraints, n, control$max.workspace.bytes) else
+      .metric.mds.validate.constraints(constraints, n, control$max.workspace.bytes)
+    prepared <- grip_constraint_graph_cpp(n,sparse$pairs,sparse$targets,
+      include_adjacency = !prepared.constraints)
     if (prepared$n_components != 1L) stop("Sparse constraints must form a connected network", call. = FALSE)
     prepared <- c(prepared,list(n=n,edges=sparse$pairs,edge_targets=sparse$targets,
       pair_matrix=matrix(integer(),ncol=2L),pair_graph_distance=numeric(),
@@ -107,6 +111,38 @@
     max_workspace_bytes=control$max.workspace.bytes,shuffle=TRUE,
     weights=wi,endpoints=sparse$pairs,reverse_weights=wj,retain_best=FALSE)
   .metric.mds.keep.state(output,fit,control,arguments,list(kind="sparse",rms=rms,energy=energy))
+}
+
+# Observation preparation already returns canonical pairs. Validate in bounded
+# blocks, retaining the original arrays rather than sorting a second full copy.
+.metric.mds.validate.prepared.constraints <- function(x, n, budget, block.size = 100000L) {
+  if (!is.list(x) || !identical(sort(names(x)), sort(c("pairs","targets","count_i","count_j"))) ||
+      !is.matrix(x$pairs) || !is.integer(x$pairs) || ncol(x$pairs) != 2L ||
+      nrow(x$pairs) < 1L)
+    stop("Invalid canonical preparation constraints", call. = FALSE)
+  m <- nrow(x$pairs)
+  for (key in c("targets", "count_i", "count_j")) {
+    if (!is.numeric(x[[key]]) || !is.null(dim(x[[key]])) || length(x[[key]]) != m)
+      stop("Invalid canonical preparation constraints", call. = FALSE)
+  }
+  estimate <- 64 * as.double(m) + 256 * min(m, block.size) + 128 * as.double(n)
+  if (estimate > budget)
+    stop("Canonical constraint preparation exceeds max.workspace.bytes", call. = FALSE)
+  previous <- c(0L, 0L)
+  for (first in seq.int(1L, m, by = block.size)) {
+    ids <- seq.int(first, min(m, first + block.size - 1L))
+    block <- list(pairs = x$pairs[ids,,drop=FALSE], targets = x$targets[ids],
+      count_i = x$count_i[ids], count_j = x$count_j[ids])
+    checked <- .metric.mds.validate.constraints(block, n, budget)
+    if (!identical(block$pairs, checked$pairs) ||
+        block$pairs[1L,1L] < previous[1L] ||
+        (block$pairs[1L,1L] == previous[1L] && block$pairs[1L,2L] <= previous[2L]))
+      stop("Preparation pairs must be unique, canonical and sorted", call. = FALSE)
+    previous <- block$pairs[nrow(block$pairs),]
+  }
+  if (!is.finite(sum(x$count_i) + sum(x$count_j)))
+    stop("Preparation multiplicities exceed the numeric range", call. = FALSE)
+  c(x, list(pivots = integer(), region = integer(), workspace_estimate_bytes = estimate))
 }
 
 # Canonicalize explicit constraints without interpreting them as graph lengths.

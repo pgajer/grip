@@ -64,9 +64,12 @@ prepare.sparse.mds <- function(X, method = c("euclidean", "uniform", "geodesic")
   grip.validate.scalar(max.workspace.bytes,"max.workspace.bytes",lower=0,open.lower=TRUE)
   if (!is.null(neighbor.variance.target))
     grip.validate.scalar(neighbor.variance.target,"neighbor.variance.target",lower=0,upper=1,open.lower=TRUE)
-  # Include input/search copies, PCA work, saved rows, native terms and output.
+  # The native bound is 112*n*h + 224*m + 96*n when distance rows are saved.
+  # Allow input/PCA copies and round up, with at most n extra repair edges.
   estimate <- 64 * as.double(n) * ncol(X) +
-    64 * min(n,ncol(X))^2 + 512 * as.double(n) * (n.pivots + if(method=="uniform") 0 else q)
+    64 * min(n,ncol(X))^2 + 128 * as.double(n) * n.pivots +
+    256 * as.double(n) * (if(method=="uniform") 0 else q + (method=="geodesic")) +
+    96 * as.double(n)
   if (!is.finite(estimate) || estimate > max.workspace.bytes)
     stop("Sparse preparation exceeds max.workspace.bytes before allocation", call. = FALSE)
   began <- proc.time()[["elapsed"]]
