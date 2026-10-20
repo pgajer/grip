@@ -3,7 +3,7 @@ grip.mds.sgd.control <- function(control, max.iter) {
   defaults <- list(scheduler = "hybrid", learning.rate = 0.5,
                    final.rate = 0.01, switch.ratio = 0.4, schedule.epsilon = 0.1,
                    checkpoint.every = 1L, max.workspace.bytes = 256 * 1024^2,
-                   keep.state = FALSE, schedule.epochs = max.iter, stopping = NULL)
+                   keep.state = FALSE, schedule.epochs = max.iter, stopping = NULL, trace = NULL)
   if (!is.list(control) || (length(control) &&
       (is.null(names(control)) || anyNA(names(control)) || any(names(control) == "") ||
        anyDuplicated(names(control)) || any(!names(control) %in% names(defaults))))) {
@@ -45,6 +45,17 @@ grip.mds.sgd.control <- function(control, max.iter) {
     for (key in allowed[4:5]) rule[[key]] <- grip.validate.vertex.count(rule[[key]])
     z$stopping <- rule
   }
+  if (!is.null(z$trace)) {
+    if (!is.list(z$trace) || (length(z$trace) &&
+        (is.null(names(z$trace)) || anyNA(names(z$trace)) || anyDuplicated(names(z$trace)) ||
+         any(!names(z$trace) %in% c("every","max.bytes")))))
+      stop("sgd.control$trace must be NULL or a named list of every and max.bytes",call.=FALSE)
+    recording <- list(every=100L,max.bytes=64*1024^2)
+    recording[names(z$trace)] <- z$trace
+    recording$every <- grip.validate.vertex.count(recording$every)
+    grip.validate.scalar(recording$max.bytes,"trace$max.bytes",lower=0,open.lower=TRUE)
+    z$trace <- recording
+  } else z$trace <- NULL # Preserve historical untraced settings exactly.
   if (as.double(max(max.iter,z$schedule.epochs)) * 8 > z$max.workspace.bytes) {
     stop("SGD rate vector alone exceeds max.workspace.bytes", call. = FALSE)
   }
@@ -96,5 +107,5 @@ grip.mds.sgd.fit <- function(start, target, rates, control, native.seed, weights
   grip_sgd_mds_cpp(start, target, rates, native.seed,
                    control$checkpoint.every, control$max.workspace.bytes, TRUE, weights,
                    stopping=control$stopping, schedule_epochs=control$schedule.epochs,
-                   keep_state=control$keep.state)
+                   keep_state=control$keep.state,update_trace=control$trace)
 }

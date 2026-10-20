@@ -209,3 +209,60 @@ minimum-epoch, patience, failed-check/reset and target-unit tests exercise the
 stopping rule. Existing independent update/reference tests protect default
 behavior. Current VME production caches and frozen runtime are outside this
 change; future caches must use the new backend identity and full controls.
+
+## Optional individual-update recording (October 2026)
+
+`sgd.control = list(trace = list(every = 100L, max.bytes = 64 * 1024^2))`
+records selected raw solver states in `update_trace`, separately from the existing
+epoch diagnostic `trace`. The initial state, every `every` examined pairs within
+each epoch, and every epoch endpoint are included. `every = 1L` includes every
+pair, including zero/zero no-ops. The recorder does not score intermediate frames,
+consume random numbers, apply alignment, or alter arithmetic. The public frames
+are multiplied by the input RMS distance to restore input-distance units; they
+are not recentered or subjected to the final best-checkpoint scale adjustment.
+
+The exported native function selects `sgd_mds_impl<false>` or
+`sgd_mds_impl<true>` once. All recorder operations are guarded by `if constexpr`;
+the false recorder specialization is empty. There is no per-pair runtime tracing
+condition, coordinate copy, or tracing buffer in the disabled specialization.
+Both specializations share the solver body. This provides a structural guarantee
+about tracing work, not a claim that compiler layout or wall-clock timings must
+be numerically identical on every machine.
+
+Before allocation, the traced specialization checks the planned frame count and
+coordinate payload plus a conservative per-frame overhead allowance against both
+`trace$max.bytes` and the existing native workspace allowance. It budgets the
+requested call length even if practical stopping ends early. R-side unit
+conversion, result retention, and serialization require additional memory.
+Resumption retains the solver's absolute epoch and update counts but returns only
+that call's frames, starting with the saved terminal configuration. Users retain
+earlier fit objects when they need the complete multi-call animation. Old
+untraced continuation capsules remain usable.
+
+Validation is in `tests/testthat/test-metric-mds-update-trace.R` and
+`tools/validation/sgd-update-tracing.R`. The latter compiles the original native
+source from revision `69c533bc` and the modified source using the same optimized
+C++17 flags, records exact comparisons, and benchmarks randomized paired blocks.
+Default-disabled native results, including checkpoint histories, best/terminal
+coordinates, stopping state, workspace estimates, and RNG state, were identical
+to the original. Tracing enabled produced identical numerical and RNG results;
+its additional output and workspace accounting are intentionally different.
+Dense and asymmetric sparse cases, collisions, practical stopping, and
+continuation were included. Independent R pair updates check individual frames.
+
+Initial Apple Silicon measurements used `-O2`, one R process, 25 randomized
+paired blocks per case, and repeated fits within each block. Recorded medians:
+
+| Case | Original | Tracing off | Paired median ratio | Bootstrap 95% interval |
+|---|---:|---:|---:|---:|
+| Dense: 250 points, 3D, 10 epochs | 23.909 ms | 23.909 ms | 1.000 | 0.996–1.004 |
+| Dense: 500 points, 5D, 10 epochs | 139.000 ms | 139.000 ms | 1.000 | 0.993–1.000 |
+| Sparse: 600 points, 4,000 pairs, 3D, 30 epochs | 7.375 ms | 7.469 ms | 1.008 | 1.004–1.025 |
+
+These tests show no material slowdown; the sparse case measured a small positive
+difference rather than exact timing equality. Intervals resample paired timing
+blocks and do not establish performance equivalence on other hardware or
+workloads. Local raw timings, source hashes, compiler output, session details,
+and numerical comparisons are kept under `output/sgd-tracing/`; the reproducible
+script is tracked, generated evidence is not. Epoch completion is not certified
+convergence.

@@ -109,11 +109,68 @@ double centered_motion(const Rcpp::NumericMatrix& x,const Rcpp::NumericMatrix& p
     return std::sqrt(static_cast<double>(sum/x.nrow()));
 }
 
+// The false specialization is empty. if constexpr removes every trace operation
+// from the untraced instantiation, including checks in the pair-update loop.
+template<bool Trace> struct UpdateRecorder {};
+template<> struct UpdateRecorder<true> {
+    std::size_t every = 1, used = 0;
+    Rcpp::List coordinates;
+    std::vector<int> epochs;
+    std::vector<double> within, totals;
+    long double bytes = 0;
+
+    void prepare(Rcpp::List control, std::size_t cells, std::size_t pairs,
+                 int count, int offset) {
+        if (!control.containsElementNamed("every") || !control.containsElementNamed("max.bytes"))
+            Rcpp::stop("Native tracing requires every and max.bytes");
+        const double interval = Rcpp::as<double>(control["every"]);
+        const double budget = Rcpp::as<double>(control["max.bytes"]);
+        if (!std::isfinite(interval) || interval < 1 || interval != std::floor(interval) ||
+            interval > std::numeric_limits<int>::max() || !std::isfinite(budget) || budget <= 0)
+            Rcpp::stop("Invalid native tracing controls");
+        every = static_cast<std::size_t>(interval);
+        const std::size_t per_epoch = pairs / every + (pairs % every != 0);
+        const std::size_t body = checked_product(per_epoch, static_cast<std::size_t>(count));
+        if (body >= static_cast<std::size_t>(R_XLEN_T_MAX)) Rcpp::stop("Too many trace frames");
+        const std::size_t capacity = body + 1;
+        // Coordinates plus a conservative allowance for matrix/list headers,
+        // metadata, and the temporary pointer list used when stopping early.
+        bytes = static_cast<long double>(capacity) *
+            (static_cast<long double>(checked_product(cells, sizeof(double))) + 512.0L);
+        if (bytes > budget) Rcpp::stop("SGD update trace exceeds trace$max.bytes; increase every or the budget");
+        if (static_cast<long double>(offset + count) * pairs > 9007199254740992.0L)
+            Rcpp::stop("Trace pair-update counts exceed exact numeric representation");
+        // Allocation happens only after the combined workspace check.
+    }
+    void allocate(std::size_t pairs, int count) {
+        const std::size_t capacity = 1 + (pairs / every + (pairs % every != 0)) * count;
+        coordinates = Rcpp::List(static_cast<R_xlen_t>(capacity));
+        epochs.reserve(capacity); within.reserve(capacity); totals.reserve(capacity);
+    }
+    void save(const Rcpp::NumericMatrix& x, int epoch, std::size_t pos, double total) {
+        coordinates[used++] = Rcpp::clone(x);
+        epochs.push_back(epoch); within.push_back(static_cast<double>(pos)); totals.push_back(total);
+    }
+    void after(const Rcpp::NumericMatrix& x, int epoch, std::size_t pos, std::size_t pairs) {
+        if (pos % every == 0 || pos == pairs)
+            save(x, epoch, pos, static_cast<double>(epoch - 1) * pairs + pos);
+    }
+    Rcpp::List result() const {
+        Rcpp::List frames(static_cast<R_xlen_t>(used));
+        for (std::size_t i=0; i<used; ++i) frames[i]=coordinates[i];
+        return Rcpp::List::create(Rcpp::Named("coordinates")=frames,
+            Rcpp::Named("steps")=Rcpp::DataFrame::create(Rcpp::Named("epoch")=epochs,
+                Rcpp::Named("update_in_epoch")=within,Rcpp::Named("pair_updates")=totals),
+            Rcpp::Named("every")=static_cast<double>(every),
+            Rcpp::Named("workspace_bytes")=static_cast<double>(bytes));
+    }
+};
+
 }
 
 // Internal Rcpp entry point; shuffle=false exists for deterministic kernel tests.
-// [[Rcpp::export]]
-Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
+template<bool Trace>
+Rcpp::List sgd_mds_impl(Rcpp::NumericMatrix start,
                           Rcpp::NumericVector targets,
                           Rcpp::NumericVector rates, int seed,
                           int checkpoint_every, double max_workspace_bytes,
@@ -124,7 +181,8 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
                           bool retain_best = true,
                           Rcpp::Nullable<Rcpp::List> state = R_NilValue,
                           Rcpp::Nullable<Rcpp::List> stopping = R_NilValue,
-                          int schedule_epochs = 0, bool keep_state = false) {
+                          int schedule_epochs = 0, bool keep_state = false,
+                          Rcpp::Nullable<Rcpp::List> update_trace = R_NilValue) {
     const int n = start.nrow(), dim = start.ncol();
     if (n < 2 || dim < 1 || checkpoint_every < 1 || rates.size() < 1 || seed < 0 ||
         !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
@@ -162,12 +220,16 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
         Rcpp::stop("Invalid native stopping rule");
     // Two extra rows cover a schedule endpoint and a non-checkpoint call boundary.
     const std::size_t checkpoints = 3 + static_cast<std::size_t>(epochs / checkpoint_every);
-    const long double workspace = static_cast<long double>(checked_product(count, sizeof(Pair) + sizeof(std::size_t))) +
+    UpdateRecorder<Trace> recorder;
+    if constexpr (Trace) recorder.prepare(Rcpp::List(update_trace), start.size(), count, epochs, offset);
+    long double workspace = static_cast<long double>(checked_product(count, sizeof(Pair) + sizeof(std::size_t))) +
         (assess ? 5.0L : 3.0L) * checked_product(static_cast<std::size_t>(start.size()), sizeof(double)) +
         checked_product(checkpoints, 10 * sizeof(double)) + dim * sizeof(double) +
         (assess ? static_cast<long double>(n)*(dim+1)*sizeof(long double) : 0);
+    if constexpr (Trace) workspace += recorder.bytes;
     if (workspace > max_workspace_bytes)
         Rcpp::stop("SGD native workspace exceeds max_workspace_bytes; R input matrices require additional memory");
+    if constexpr (Trace) recorder.allocate(count, epochs);
     for (R_xlen_t k = 0; k < start.size(); ++k) {
         if ((k & 16383) == 0) Rcpp::checkUserInterrupt();
         if (!std::isfinite(start[k])) Rcpp::stop("Nonfinite SGD start");
@@ -232,6 +294,7 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
     if (!state.isNotNull()) record(0,initial,NA_REAL,true,NA_REAL,NA_REAL,NA_REAL);
     double updates=static_cast<double>(offset)*count;
     int completed=offset;bool stabilized=false;
+    if constexpr (Trace) recorder.save(x, offset, 0, updates);
     for (int epoch = 0; epoch < epochs; ++epoch) {
         Rcpp::checkUserInterrupt();
         std::iota(order.begin(), order.end(), std::size_t(0));
@@ -248,7 +311,10 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
             const double mu = p.weight == 0 ? 0 : (rates[epoch] >= 1.0 / p.weight ? 1.0 : rates[epoch] * p.weight);
             const double mu_reverse = p.reverse == 0 ? 0 : (rates[epoch] >= 1.0 / p.reverse ? 1.0 : rates[epoch] * p.reverse);
             const double distance = separation(x, p.i, p.j);
-            if (distance == 0 && p.target == 0) continue;
+            if (distance == 0 && p.target == 0) {
+                if constexpr (Trace) recorder.after(x, offset + epoch + 1, pos + 1, count);
+                continue;
+            }
             if (distance == 0) {
                 double norm = 0;
                 do {
@@ -271,6 +337,7 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
                 if (!std::isfinite(x(p.i, d)) || !std::isfinite(x(p.j, d)))
                     Rcpp::stop("Nonfinite SGD coordinate update");
             }
+            if constexpr (Trace) recorder.after(x, offset + epoch + 1, pos + 1, count);
         }
         updates += static_cast<double>(count); // Includes examined zero/zero pairs.
         completed = offset + epoch + 1;
@@ -311,7 +378,7 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
     const int diagnostic_epoch=terminal_loss<best_loss ? completed : best_epoch;
     if (retain_best && terminal_loss<best_loss) { best=Rcpp::clone(x);best_loss=terminal_loss;best_epoch=completed; }
     if (!retain_best) { best=x;best_epoch=completed;best_loss=NA_REAL; }
-    return Rcpp::List::create(
+    Rcpp::List result = Rcpp::List::create(
         Rcpp::Named("conf")=best,Rcpp::Named("terminal_conf")=x,Rcpp::Named("niter")=completed,
         Rcpp::Named("stress")=best_loss,Rcpp::Named("best_epoch")=best_epoch,
         Rcpp::Named("pair_updates")=updates,Rcpp::Named("native_seed")=seed,
@@ -325,6 +392,31 @@ Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
           Rcpp::Named("learning_rate")=rate_trace,Rcpp::Named("scheduled")=scheduled_trace,
           Rcpp::Named("relative_change")=relative_trace,Rcpp::Named("centered_motion")=motion_trace,
           Rcpp::Named("update_residual")=residual_trace,Rcpp::Named("stable_checkpoints")=streak_trace));
+    if constexpr (Trace) result["update_trace"]=recorder.result();
+    return result;
+}
+
+// Dispatch once, before the optimizer. The false specialization has no tracing
+// branches, buffers or copies in its update loop.
+// [[Rcpp::export]]
+Rcpp::List grip_sgd_mds_cpp(Rcpp::NumericMatrix start,
+                          Rcpp::NumericVector targets,
+                          Rcpp::NumericVector rates, int seed,
+                          int checkpoint_every, double max_workspace_bytes,
+                          bool shuffle = true,
+                          Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue,
+                          Rcpp::Nullable<Rcpp::IntegerMatrix> endpoints = R_NilValue,
+                          Rcpp::Nullable<Rcpp::NumericVector> reverse_weights = R_NilValue,
+                          bool retain_best = true,
+                          Rcpp::Nullable<Rcpp::List> state = R_NilValue,
+                          Rcpp::Nullable<Rcpp::List> stopping = R_NilValue,
+                          int schedule_epochs = 0, bool keep_state = false,
+                          Rcpp::Nullable<Rcpp::List> update_trace = R_NilValue) {
+    if (update_trace.isNull())
+        return sgd_mds_impl<false>(start,targets,rates,seed,checkpoint_every,max_workspace_bytes,
+            shuffle,weights,endpoints,reverse_weights,retain_best,state,stopping,schedule_epochs,keep_state);
+    return sgd_mds_impl<true>(start,targets,rates,seed,checkpoint_every,max_workspace_bytes,
+        shuffle,weights,endpoints,reverse_weights,retain_best,state,stopping,schedule_epochs,keep_state,update_trace);
 }
 
 // Integrity check for serialized continuation data; not a security primitive.

@@ -11,6 +11,14 @@
     trace$profiled_stress <- NULL
     names(trace)[names(trace)=="raw_stress"] <- "sparse_proxy_stress"
   }
+  if (!is.null(fit$update_trace)) {
+    output$update_trace <- fit$update_trace
+    output$update_trace$coordinates <- lapply(fit$update_trace$coordinates,
+      function(x) x * output$metadata$input_rms_distance)
+    output$update_trace$coordinate_units <- "input_distance"
+    output$update_trace$alignment <- "none"
+    output$update_trace$scope <- "current_call"
+  }
   output$trace <- trace
   # Consumers that retain metadata but omit top-level trace still keep history.
   output$metadata$history <- trace
@@ -75,6 +83,7 @@
   args$start <- state$native$coords;args$rates <- rates[seq.int(offset+1L,total)]
   args$state <- state$native;args$stopping <- control$stopping
   args$schedule_epochs <- control$schedule.epochs;args$keep_state <- TRUE
+  args$update_trace <- control$trace
   began <- proc.time()[["elapsed"]]
   fit <- do.call(grip_sgd_mds_cpp,args)
   elapsed <- proc.time()[["elapsed"]]-began

@@ -84,7 +84,7 @@
   fit <- grip_sgd_mds_cpp(start, targets, rates, fitting.seed,
     control$checkpoint.every, control$max.workspace.bytes, TRUE,
     wi, sparse$pairs, wj, FALSE, stopping=control$stopping,
-    schedule_epochs=control$schedule.epochs,keep_state=control$keep.state)
+    schedule_epochs=control$schedule.epochs,keep_state=control$keep.state,update_trace=control$trace)
   coords <- sweep(fit$terminal_conf,2L,colMeans(fit$terminal_conf),"-") * rms
   if (any(!is.finite(coords))) stop("Sparse coordinates exceed the numeric range", call. = FALSE)
   proxy <- utils::tail(fit$trace$raw_stress,1L)

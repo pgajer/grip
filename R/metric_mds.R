@@ -97,7 +97,7 @@ grip.mds.has.smacof <- function() {
 #'   `scheduler` (`"hybrid"`, `"exponential"` or `"zheng"`), `learning.rate` (0.5),
 #'   `final.rate` (0.01), `switch.ratio` (0.4), `schedule.epsilon` (0.1),
 #'   `checkpoint.every` (1), `schedule.epochs` (initial `max.iter`),
-#'   `keep.state` (`FALSE`), `stopping` (`NULL`, disabled), and
+#'   `keep.state` (`FALSE`), `stopping` (`NULL`, disabled), `trace` (`NULL`, disabled), and
 #'   `max.workspace.bytes` (256 MiB for full MDS, 512 MiB for sparse MDS).
 #'   The schedule defaults to `"zheng"` for [prepare.sparse.mds()] inputs and
 #'   `"hybrid"` otherwise. See Learning-rate schedules and evidence below.
@@ -219,6 +219,33 @@ grip.mds.has.smacof <- function() {
 #'   error, and stopping status. By default `termination = "iteration_limit"`
 #'   and `converged = FALSE`.
 #'   `trace` reports checkpoint proxy stress, epochs, rates and pair updates.
+#' @section Recording individual SGD updates:
+#' Set `sgd.control = list(trace = list(every = 100L))` to record coordinates
+#' after every 100 examined pairs in each epoch, plus the initial state and each
+#' epoch endpoint. Set `every = 1L` to record every pair, including no-op pairs.
+#' Tracing requires `n.init = 1`. It is independent of `checkpoint.every`.
+#' The native solver dispatches once to a compile-time specialization: when
+#' tracing is disabled, no tracing checks, copies or buffers occur in the update
+#' loop. When enabled, recording adds time and memory but never changes solver
+#' arithmetic, the random stream, stopping or the selected result.
+#'
+#' `fit$update_trace$coordinates` is a list of matrices in input-distance units;
+#' `fit$update_trace$steps` gives the epoch, examined pairs within that epoch,
+#' and cumulative `pair_updates`. These are raw iterates, without Procrustes
+#' alignment, recentering or the final best-checkpoint scale adjustment; the last
+#' frame can therefore differ from `fit$coords`. Stress is not recomputed at each
+#' frame. The existing `fit$trace` remains the epoch-level diagnostic history.
+#' A resumed fit records only its new call, starting at the saved terminal state,
+#' with absolute epoch/update counts. Keep earlier fits to retain their frames.
+#'
+#' `trace$max.bytes` defaults to 64 MiB. Before fitting, the solver checks an
+#' upper-bound allocation for the requested epoch budget (even with early
+#' stopping), including coordinate payloads and a conservative per-frame
+#' allowance. This allocation also counts against `max.workspace.bytes`.
+#' R result conversion, older retained traces and serialization need additional
+#' memory. Increase `every` to reduce the number of frames. Completing the epoch
+#' budget is not a convergence certificate.
+#'
 #' @section Stopping, histories and continuation:
 #' Default SGD calls still exhaust the prescribed epoch budget. This is reported
 #' as `metadata$stopping$reason = "epoch_budget"`, separately from whether the
@@ -498,6 +525,8 @@ metric.mds <- function(prepared = NULL,
   if (dim < 2L) stop("dim must be at least 2", call. = FALSE)
   if (backend == "sgd") {
     sgd.control <- grip.mds.sgd.control(sgd.control, max.iter)
+    if (!is.null(sgd.control$trace) && n.init!=1L)
+      stop("update tracing requires n.init=1; trace separate seeded fits for multiple starts",call.=FALSE)
     if (sgd.control$keep.state && n.init!=1L)
       stop("keep.state requires n.init=1; run separate seeded fits for independently resumable starts",call.=FALSE)
   }

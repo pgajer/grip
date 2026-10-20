@@ -100,7 +100,7 @@ mid, and long bands.}
 \code{scheduler} (\code{"hybrid"}, \code{"exponential"} or \code{"zheng"}), \code{learning.rate} (0.5),
 \code{final.rate} (0.01), \code{switch.ratio} (0.4), \code{schedule.epsilon} (0.1),
 \code{checkpoint.every} (1), \code{schedule.epochs} (initial \code{max.iter}),
-\code{keep.state} (\code{FALSE}), \code{stopping} (\code{NULL}, disabled), and
+\code{keep.state} (\code{FALSE}), \code{stopping} (\code{NULL}, disabled), \code{trace} (\code{NULL}, disabled), and
 \code{max.workspace.bytes} (256 MiB for full MDS, 512 MiB for sparse MDS).
 The schedule defaults to \code{"zheng"} for \code{\link[=prepare.sparse.mds]{prepare.sparse.mds()}} inputs and
 \code{"hybrid"} otherwise. See Learning-rate schedules and evidence below.
@@ -292,6 +292,35 @@ native workspace estimates (separately checked for preparation and fitting),
 error, and stopping status. By default \code{termination = "iteration_limit"}
 and \code{converged = FALSE}.
 \code{trace} reports checkpoint proxy stress, epochs, rates and pair updates.
+}
+
+\section{Recording individual SGD updates}{
+
+Set \code{sgd.control = list(trace = list(every = 100L))} to record coordinates
+after every 100 examined pairs in each epoch, plus the initial state and each
+epoch endpoint. Set \code{every = 1L} to record every pair, including no-op pairs.
+Tracing requires \code{n.init = 1}. It is independent of \code{checkpoint.every}.
+The native solver dispatches once to a compile-time specialization: when
+tracing is disabled, no tracing checks, copies or buffers occur in the update
+loop. When enabled, recording adds time and memory but never changes solver
+arithmetic, the random stream, stopping or the selected result.
+
+\code{fit$update_trace$coordinates} is a list of matrices in input-distance units;
+\code{fit$update_trace$steps} gives the epoch, examined pairs within that epoch,
+and cumulative \code{pair_updates}. These are raw iterates, without Procrustes
+alignment, recentering or the final best-checkpoint scale adjustment; the last
+frame can therefore differ from \code{fit$coords}. Stress is not recomputed at each
+frame. The existing \code{fit$trace} remains the epoch-level diagnostic history.
+A resumed fit records only its new call, starting at the saved terminal state,
+with absolute epoch/update counts. Keep earlier fits to retain their frames.
+
+\code{trace$max.bytes} defaults to 64 MiB. Before fitting, the solver checks an
+upper-bound allocation for the requested epoch budget (even with early
+stopping), including coordinate payloads and a conservative per-frame
+allowance. This allocation also counts against \code{max.workspace.bytes}.
+R result conversion, older retained traces and serialization need additional
+memory. Increase \code{every} to reduce the number of frames. Completing the epoch
+budget is not a convergence certificate.
 }
 
 \section{Stopping, histories and continuation}{

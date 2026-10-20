@@ -1,5 +1,11 @@
 # grip 0.2.0.9001 (development version)
 
+- Added opt-in individual-update recording for SGD `metric.mds()` through
+  `sgd.control$trace`. Frames and absolute update counts are returned separately
+  in `update_trace`, with a configurable cadence, memory limits, and support
+  for continuation. Compile-time specialization removes tracing work from the
+  update loop when disabled; recording preserves numerical and RNG results.
+
 - SGD `metric.mds()` now distinguishes epoch-budget exhaustion, schedule
   completion and opt-in practical stabilization, with no convergence claim.
   Checkpoint histories also survive in metadata. Optional saved state supports
