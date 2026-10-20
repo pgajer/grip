@@ -1,0 +1,302 @@
+---
+title: "Animating metric MDS: paraboloid and saddle"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    math_method: mathml
+vignette: >
+  %\VignetteIndexEntry{Animating metric MDS: paraboloid and saddle}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.rglWebGL { max-width: 100%; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+options(rgl.useNULL = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+source(system.file("scripts", "metric-mds-animation.R", package = "grip"),
+       local = TRUE)
+```
+
+How does a random cloud become a curved surface when only its pairwise
+distances are known? The SGD backend of `metric.mds()` adjusts a pair of
+points at a time. Its optional **update trace** lets us inspect those actual
+states and animate the reconstruction.
+
+This example reconstructs a paraboloid and a saddle from the ambient distances
+between 250 points. Both have two intrinsic dimensions, but preserving their
+straight-line distances generally requires three embedding dimensions.
+Distances along the surface would define a different reconstruction problem.
+
+The vignette uses the tracing interface in the development version of grip
+(after 0.2.0). It rebuilds the fits from public R calls, without a separate
+instrumented solver or saved fitting results. The optional **ivue** and **rgl**
+packages provide the interactive view; numerical examples still run without
+them. See [Metric MDS](metric-mds-backends.html) for other weighting choices.
+
+## Sample the same points on two surfaces
+
+On the unit disk, take \(z=x^2+y^2\) for the paraboloid and
+\(z=x^2-y^2\) for the saddle. Both have area element
+\(\sqrt{1+4r^2}\,r\,dr\,d\theta\). To sample uniformly over surface area, draw
+\(U\) uniformly on \([0,1]\), an independent uniform angle, and use
+
+\[
+ r=\sqrt{\frac{\{1+U(5^{3/2}-1)\}^{2/3}-1}{4}}.
+\]
+
+Thus the same sampled \(x,y\) positions give a surface-area sample on either
+surface. Only heights and target distances change.
+
+```{r sample}
+set.seed(20261020)
+n <- 250L
+u <- runif(n)
+theta <- runif(n, 0, 2*pi)
+r <- sqrt(((1 + u*(5^(3/2) - 1))^(2/3) - 1)/4)
+paraboloid <- cbind(x = r*cos(theta), y = r*sin(theta), z = r^2)
+saddle <- paraboloid
+saddle[, "z"] <- saddle[, "x"]^2 - saddle[, "y"]^2
+stopifnot(identical(paraboloid[, 1:2], saddle[, 1:2]))
+```
+
+We fit all \(250\times249/2=31{,}125\) unordered pairs. The view draws only
+1,000 sampled chords to keep the surface visible; this display subset does
+not change the fit.
+
+## Choose the target error and the initial cloud
+
+Let \(d_{ij}>0\) be a target distance and \(\widehat d_{ij}\) the distance in
+the current embedding. We display the mean squared relative error
+
+\[
+ S=\frac{1}{m}\sum_{i<j}
+       \left(\frac{\widehat d_{ij}-d_{ij}}{d_{ij}}\right)^2,
+ \qquad m=31{,}125.
+\]
+
+`pair.weights = "inverse_squared"` weights each squared distance residual by
+\(1/d_{ij}^2\), giving this relative-error objective up to a constant factor.
+The chart shows **\(100S\)**; the supplementary readout shows **\(100\sqrt S\)**,
+the RMS relative error in percent. Neither is the aggregate relative RMS
+error \(\sqrt{\sum(\widehat d-d)^2/\sum d^2}\). We recompute \(S\) from each
+saved state rather than substituting the solver's diagnostic stress.
+
+```{r initial}
+truth <- paraboloid
+target <- as.numeric(dist(truth))
+relative.stress <- function(X) mean((as.numeric(dist(X))/target - 1)^2)
+
+set.seed(20261021)
+initial <- matrix(rnorm(n*3L), n, 3L)
+initial <- sweep(initial, 2, colMeans(initial))
+ratio <- as.numeric(dist(initial))/target
+initial <- initial * sum(ratio)/sum(ratio^2)
+```
+
+The final line chooses the positive scale minimizing the initial cloud's
+relative error. This initialization uses target distances, not the true
+coordinates. Display alignment below is a separate operation.
+
+## Record genuine SGD states
+
+Enable recording through `sgd.control$trace`. The call below records every
+32nd examined pair, plus the initial state and the epoch endpoint. One start
+is required. `keep.state = TRUE` allows the next call to continue the same
+trajectory, including the random-generator state and learning-rate schedule.
+
+```{r one-epoch}
+control <- list(
+  scheduler = "hybrid", learning.rate = 0.5, final.rate = 0.01,
+  switch.ratio = 0.4, schedule.epochs = 500L,
+  checkpoint.every = 1L, keep.state = TRUE,
+  trace = list(every = 32L, max.bytes = 64*1024^2)
+)
+fit <- surface.epoch(
+  distance.matrix = as.matrix(dist(truth)), init = initial, dim = 3L,
+  backend = "sgd", n.init = 1L, max.iter = 1L, seed = 20261022L,
+  pair.weights = "inverse_squared", diagnostics = FALSE,
+  sgd.control = control
+)
+head(fit$update_trace$steps)
+```
+
+`surface.epoch()` is a small wrapper around `grip::metric.mds()` supplied by
+the helper script loaded above. It suppresses only the expected
+`iteration_limit` warning for these deliberately short calls; other warnings
+remain visible. Calling `metric.mds()` directly gives the same result.
+
+`fit$update_trace$coordinates` contains raw matrices in **input-distance
+units**, with no alignment. Its `steps` table records the epoch, the position
+within that epoch, and the absolute number of examined pairs (`pair_updates`).
+An examined pair can produce no movement; recording it does not change the
+algorithm or consume extra random numbers. The existing `fit$trace` is the
+separate epoch-level diagnostic history.
+
+```{r inspect}
+recorded <- fit$update_trace
+first <- recorded$coordinates[[1L]]
+last <- tail(recorded$coordinates, 1L)[[1L]]
+c(initial = relative.stress(first), after_one_epoch = relative.stress(last))
+```
+
+The last raw state need not equal `fit$coords`: the returned fit can select
+and scale-profile a best checkpoint. For an honest animation of the solver,
+use `update_trace$coordinates` consistently.
+
+## Continue, stop, and keep a compact playback sequence
+
+The next call adds one epoch without restarting:
+
+```{r continue}
+next.fit <- surface.epoch(resume = fit, max.iter = 1L)
+stopifnot(identical(next.fit$update_trace$coordinates[[1L]], last))
+tail(next.fit$update_trace$steps, 1L)
+```
+
+Each update trace covers **only that call**. Save wanted frames before
+replacing the fit, and omit the duplicated initial frame on continuation.
+The helper `surface.trace()` repeats this process for at most ten epochs,
+stopping earlier when \(100S\leq10^{-12}\), evaluated at epoch endpoints.
+It preserves the demonstration's 500-epoch hybrid rate schedule; stopping
+early does not compress that schedule into ten epochs.
+
+For playback, it retains every 32nd update through update 1,024 of each
+epoch, then every 256th update, and every endpoint. All retained coordinates
+and errors are actual evaluated states, not interpolations. Individual
+updates can increase all-pair error even while an epoch improves the fit.
+
+```{r fit-surfaces}
+cases <- list(
+  paraboloid = surface.trace(paraboloid),
+  saddle = surface.trace(saddle)
+)
+```
+
+Completing an epoch budget is not a convergence certificate. Here the
+external stopping rule establishes only that the specified error threshold
+was reached on these synthetic targets.
+
+## Align for display, without changing the fit
+
+Each frame, including the initial cloud, is translated and orthogonally
+rotated or reflected to align corresponding points with the truth:
+
+```{r align}
+align <- function(X, truth) {
+  center <- colMeans(truth)
+  centered <- sweep(X, 2, colMeans(X))
+  decomposition <- svd(crossprod(centered, sweep(truth, 2, center)))
+  sweep(centered %*% decomposition$u %*% t(decomposition$v), 2, center, "+")
+}
+aligned <- align(last, truth)
+stopifnot(max(abs(as.numeric(dist(aligned)) - as.numeric(dist(last)))) < 1e-12)
+```
+
+There is **no rescaling** in this Procrustes alignment. It preserves distances
+and stress and is never fed back to the optimizer. It uses the known truth
+only to make the animation easier to follow; real datasets may lack such a
+reference. Independent alignment can rotate the whole displayed cloud even
+though a single raw SGD update moves at most two points.
+
+## Watch the reconstruction
+
+Choose a **Surface**, then press **Start**. The stages show the surface, the
+sample, the chords, the aligned random cloud, and saved SGD updates. The
+first epoch takes 16 seconds; subsequent epochs take four seconds at normal
+speed. **Stop**, **Reset**, the stage selector and the saved-update slider
+allow inspection. Point spheres keep their original height colors; reference
+points and chords can be toggled. The transparent surface stays in the
+original coordinate system.
+
+```{r animation, echo=FALSE}
+surface.animation(cases)
+```
+
+The chart uses a logarithmic vertical axis, with values below \(10^{-15}\)
+placed at that display floor. The numerical readout retains the actual
+value. The dashed line marks the stopping threshold. Rendering happens in
+the browser; fitting and error evaluation have already happened in R.
+
+```{r results, echo=FALSE}
+knitr::kable(do.call(rbind, lapply(names(cases), function(name) {
+  case <- cases[[name]]
+  data.frame(Surface = name, Epochs = case$epochs,
+             `Saved frames` = length(case$aligned),
+             `Final 100 S` = sprintf("%.6g", 100*tail(case$errors, 1L)),
+             `RMS relative error (%)` =
+               sprintf("%.6g", 100*sqrt(tail(case$errors, 1L))),
+             Stop = case$stop.reason, check.names = FALSE)
+})), row.names = FALSE)
+```
+
+Both examples use SGD, one start, sampling seed 20261020, initialization seed
+20261021, fitting seed 20261022, and chord-display seed 20261023. The same
+Gaussian draw is scaled separately for the two target matrices. Results
+describe these realizations, not a comparison of optimizer performance.
+
+## Record every pair, or reduce memory further
+
+Set `trace = list(every = 1L, max.bytes = 256*1024^2)` to capture every
+examined pair. At 250 points in 3D, one epoch alone contains 31,126 coordinate
+matrices, roughly 178 MiB of coordinate payload. R objects, conversion and
+retained continuation state require additional memory. The trace cap bounds
+native recording allocation, not total process memory, and also counts
+against `sgd.control$max.workspace.bytes`.
+
+The recorder plans allocation for the full **requested call budget**, even
+if a stopping rule could end sooner. Recording one epoch at a time avoids
+allocating ten epochs in advance. Our default `every = 32L` needs roughly
+5.6 MiB of coordinate payload per epoch. Increasing `every` further saves
+memory without changing the fit.
+
+For the original demonstration's finer opening detail, run:
+
+```{r every-update, eval=FALSE}
+# Run sequentially: allow room for R objects as well as native recording.
+cases <- list(
+  paraboloid = surface.trace(paraboloid, every = 1L, max.bytes = 256*1024^2),
+  saddle = surface.trace(saddle, every = 1L, max.bytes = 256*1024^2)
+)
+surface.animation(cases)
+```
+
+This retains each of the first 32 updates, every 32nd update through 1,024,
+every 256th update thereafter, and each endpoint, throughout every epoch.
+Discarding unneeded frames affects playback density only. Leave `trace`
+unset (or set it to `NULL`) for ordinary fits: the untraced native update
+loop has no recording branches, copies, or buffers.
+
+## Reuse the example and save an offline HTML file
+
+The helper script and browser playback code are installed with grip:
+
+```{r helper-files}
+basename(system.file("scripts", c("metric-mds-animation.R",
+                                 "metric-mds-animation.js"), package = "grip"))
+```
+
+The complete surface, sphere styling, controls and stress curve can be saved
+as a self-contained widget. Install ivue, rgl, htmlwidgets and Pandoc first:
+
+```{r save, eval=FALSE}
+source(system.file("scripts", "metric-mds-animation.R", package = "grip"))
+X <- surface.sample()
+Y <- X
+Y[, "z"] <- Y[, "x"]^2 - Y[, "y"]^2
+cases <- list(paraboloid = surface.trace(X), saddle = surface.trace(Y))
+widget <- surface.animation(cases)
+htmlwidgets::saveWidget(widget, "metric-mds-surfaces.html", selfcontained = TRUE)
+```
+
+Only synthetic coordinates and recorded states are embedded. The saved
+HTML needs no R session or network connection for playback. To inspect the
+numerical trace without graphics, use `cases$paraboloid$raw`,
+`cases$paraboloid$steps`, and `cases$paraboloid$errors`.

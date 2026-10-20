@@ -45,6 +45,9 @@ results, and reproduction instructions.
 For higher-dimensional fitting followed by PCA and optional free 3D refinement,
 see [Higher-dimensional metric MDS for 3D visualization](high-dimensional-mds.html).
 
+To record and animate actual SGD pair updates, see
+[Animating metric MDS: paraboloid and saddle](metric-mds-animation.html).
+
 ## Fit a graph with either backend
 
 ```{r recipe, eval=FALSE}

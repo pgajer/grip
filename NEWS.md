@@ -1,5 +1,10 @@
 # grip 0.2.0.9001 (development version)
 
+- Added an executable vignette animating metric-MDS update traces on matched
+  surface-area samples of a paraboloid and saddle. It demonstrates continuation,
+  bounded recording, relative-error evaluation, rigid display alignment, and
+  self-contained ivue playback with spheres and transparent reference surfaces.
+
 - Added opt-in individual-update recording for SGD `metric.mds()` through
   `sgd.control$trace`. Frames and absolute update counts are returned separately
   in `update_trace`, with a configurable cadence, memory limits, and support

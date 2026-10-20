@@ -123,3 +123,7 @@ high-dimensional-vignette:
 	node tools/tests/test-comparison-controls.cjs output/vignette-previews/doc/high-dimensional-mds.html
 
 check check-clean check-fast: audit-api-guide
+
+.PHONY: mds-animation-vignette
+mds-animation-vignette:
+	Rscript tools/pkg/render-mds-animation-vignette.R
