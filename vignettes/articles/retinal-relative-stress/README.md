@@ -132,7 +132,50 @@ Rscript vignettes/articles/retinal-relative-stress/build.R \
   vignettes/articles/retinal-relative-stress
 ```
 
-The final section proposes a balanced developmental-stage comparison: 1,500
-cells per stage, the same global 1,814-PC input coordinates, 200 landmarks,
-100 epochs, and dimensions 3, 4, 5, 10, 20, 25, and 50. All ten stages have
-enough cells. These 70 stage-specific fits are proposed, not completed.
+## Developmental-Stage Comparison
+
+The completed comparison uses 1,500 newly sampled cells from each of ten
+developmental stages, the same global 1,814-PC coordinates, 200 landmarks,
+100 epochs, and dimensions 3, 4, 5, 10, 20, 25, and 50. All 70 fits succeeded.
+The independent validator checks every final all-pairs error, proxy and
+fitted/remaining-pair decomposition, along with saved-state and cache metadata.
+
+The stage curves are similar to the pooled curve. At 3D, every stage has
+higher error (30.626--33.116%) than the pooled sample (30.164%). Across all
+dimensions, 68 of 70 stage fits have higher error than their pooled reference;
+E12 at 25D and 50D are the only exceptions. These descriptive results do not
+establish age effects or intrinsic dimension: pair populations, preparations
+and cell-type mixtures differ, and each stage has only one sampled cohort
+and initialization.
+
+[Final scores](stage-summary.csv), [preparation diagnostics](stage-preparations.csv),
+[stage curves](stage-error-curves.pdf), and
+[differences from pooled](stage-pooled-differences.pdf) accompany the updated article.
+
+The new runner verifies the input projection and optimized source fingerprints
+against the pooled experiment. It starts up to ten single-threaded preparation
+or fitting workers, releases fits as their stage preparations finish, saves
+states every ten epochs, and watches aggregate process-tree RSS against 50 GiB.
+The monitored pipeline finished in 2.88 minutes with a 7.14 GiB sampled peak;
+these figures exclude independent validation and report rendering. The full
+retinal experiment's pause and checkpoint records were unchanged.
+
+```sh
+python3 vignettes/articles/retinal-relative-stress/stage-sweep.py \
+  --root "$PWD" --input-dir "$PC1814_INPUT_DIR" \
+  --baseline "$DIMENSION_RESULT_DIR" --paused-run "$PAUSED_FULL_RUN" \
+  --out "$STAGE_RESULT_DIR"
+env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
+  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
+  Rscript vignettes/articles/retinal-relative-stress/stage-report.R \
+  "$STAGE_RESULT_DIR" "$DIMENSION_RESULT_DIR" \
+  vignettes/articles/retinal-relative-stress
+Rscript vignettes/articles/retinal-relative-stress/build.R \
+  vignettes/articles/retinal-relative-stress
+```
+
+The stage output directory must be new. Sampling uses NumPy PCG64 seeds
+2026102001--2026102010 in developmental order; preparation uses seeds
+20261101--20261110. The shared initialization/fitting seed is 20190619.
+Large input subsets, exact cell identities, restartable states and internal
+logs remain in the private result directory.

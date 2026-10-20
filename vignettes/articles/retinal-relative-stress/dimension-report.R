@@ -72,11 +72,11 @@ annotations <- read.csv(args[3L])
 stages <- c("E11", "E12", "E14", "E16", "E18", "P0", "P2", "P5", "P8", "P14")
 stopifnot(nrow(annotations) == 120804L, setequal(unique(annotations$stage), stages))
 counts <- data.frame(stage = stages, available = as.integer(table(annotations$stage)[stages]),
-                     proposed.sample = 1500L)
-stopifnot(all(counts$available >= counts$proposed.sample))
+                     sample = 1500L)
+stopifnot(all(counts$available >= counts$sample))
 write.csv(counts, file.path(article, "stage-counts.csv"), row.names = FALSE)
 writeLines(c("\\begin{tabular}{lrr}\\toprule",
-  "Stage & Available cells & Proposed sample \\\\ \\midrule",
+  "Stage & Available cells & Stage sample \\\\ \\midrule",
   sprintf("%s & %s & 1,500 \\\\", counts$stage, format(counts$available, big.mark = ",", trim = TRUE)),
   "\\bottomrule\\end{tabular}"), file.path(article, "stage-counts.tex"))
 print(decomposition, row.names = FALSE)

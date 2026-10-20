@@ -13,6 +13,7 @@
 \InputIfFileExists{build-info.tex}{}{}
 \input{results-info.tex}
 \input{dimension-info.tex}
+\input{stage-info.tex}
 \title{Relative-distance error and regional sparse SGD\\
 in retinal embeddings}
 \author{\small\begin{minipage}{0.94\textwidth}\centering
@@ -45,6 +46,8 @@ An additional experiment varies output dimension from 3 to 300 on the same
 cells, now using distances in 1,814 PCs. It asks how much error falls when
 more output coordinates are available, and why the fitting proxy can still
 give a different ranking from the all-pairs score.
+A follow-up fits the same seven lower output dimensions separately in ten
+developmental stages, using 1,500 cells per stage.
 The full 120,804-cell run remains paused at epoch 110; the experiment below
 neither continues nor replaces it.
 
@@ -52,7 +55,8 @@ This is an implementation study and a preliminary basis for a package vignette,
 not a literature review or a claim of optimality. Mathematical statements below
 are derived from the recorded update rule; empirical statements concern this
 one subset and these starts. The first experiment's results were generated
-at \resultgenerated; the dimension sweep completed at \dimensiongenerated.
+at \resultgenerated; the dimension sweep completed at \dimensiongenerated,
+and the stage comparison at \stagegenerated.
 This PDF reads the completed result tables; rendering does not rerun fits.
 
 \section{Distances and the quantity of interest}
@@ -409,7 +413,7 @@ next intervention. Its saved state at epoch 110 remains the valid restart
 point; continuation should retain its original inputs, implementation
 identity checks, random state, and schedule.
 
-\input{stage-proposal.tex}
+\input{stage-study.tex}
 
 \appendix
 \section{Evidence and reproduction}
@@ -467,5 +471,15 @@ tables, pair-set decomposition, and stage counts. The scores are in
 \texttt{dimension-summary.csv}; companion CSV files give the decomposition
 and stage counts. These compact results accompany the source; cell identifiers,
 large objects and logs remain private. The README gives reproduction commands.
-Rendering neither reruns fits nor launches the proposed stage comparison.
+Rendering does not rerun optimization.
+
+The completed stage comparison is in the separate private bundle
+\begin{quote}\small\path{retinal-stage-sweep-pc1814-20261020}\end{quote}
+Each stage directory stores its exact sampled cells, input coordinates,
+shared preparation, and seven final optimizer states with score histories.
+The stage runner consists of \texttt{stage-sweep.py} and
+\texttt{stage-sweep.R}; \texttt{stage-report.R} independently validates
+scores and generates the figures and tables. Compact stage summary and
+preparation CSV files accompany the article. The fits completed at
+\stagegenerated. No solver code changed, and the full run stayed paused.
 \end{document}
