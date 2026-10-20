@@ -111,3 +111,28 @@ dimension, not best achievable errors. The increase from 100D to 200D is real
 in these fits, even though the sparse proxy falls from 2.37% to 0.83%.
 The subset PCA reference and its variance fractions appear in the same table;
 those fractions describe this subset, not the full-population variance spectrum.
+
+The article now includes the dimension results and their error plot. A
+report-only diagnostic decomposes the 100D and 200D scores into directly
+fitted pairs and the remaining pairs. The former improve from 2.545% to
+0.896% RMS error; the latter worsen from 5.023% to 5.801%. Remaining pairs
+account for 74.18% of all pairs, explaining the higher overall 200D error.
+This diagnoses where the error increases, not why a particular optimizer
+trajectory reaches that configuration.
+
+Regenerate this material without rerunning fits:
+
+```sh
+env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
+  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
+  Rscript vignettes/articles/retinal-relative-stress/dimension-report.R \
+  "$DIMENSION_RESULT_DIR" vignettes/articles/retinal-relative-stress \
+  "$PC1814_INPUT_DIR/annotations.csv"
+Rscript vignettes/articles/retinal-relative-stress/build.R \
+  vignettes/articles/retinal-relative-stress
+```
+
+The final section proposes a balanced developmental-stage comparison: 1,500
+cells per stage, the same global 1,814-PC input coordinates, 200 landmarks,
+100 epochs, and dimensions 3, 4, 5, 10, 20, 25, and 50. All ten stages have
+enough cells. These 70 stage-specific fits are proposed, not completed.

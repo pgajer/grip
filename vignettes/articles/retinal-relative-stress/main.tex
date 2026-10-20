@@ -4,12 +4,17 @@
 \usepackage{lmodern,microtype,amsmath,amssymb,booktabs,graphicx}
 \usepackage{xcolor,hyperref,url}
 \usepackage{placeins}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 \providecommand{\reportbuilddatetime}{unknown}
 \InputIfFileExists{build-info.tex}{}{}
 \input{results-info.tex}
+\input{dimension-info.tex}
 \title{Relative-distance error and regional sparse SGD\\
-in three-dimensional retinal embeddings}
+in retinal embeddings}
 \author{\small\begin{minipage}{0.94\textwidth}\centering
 Source: \path{~/current_projects/grip/vignettes/articles/retinal-relative-stress/main.tex}
 \end{minipage}}
@@ -36,17 +41,22 @@ retinal subset. Three methods are compared: regional sparse SGD with 25
 landmarks, regional sparse SGD with 200 landmarks, and all-pairs SGD with
 inverse-squared distance weights. All methods use the same three starting
 configurations, original-space targets, and evaluation pairs.
+An additional experiment varies output dimension from 3 to 300 on the same
+cells, now using distances in 1,814 PCs. It asks how much error falls when
+more output coordinates are available, and why the fitting proxy can still
+give a different ranking from the all-pairs score.
 The full 120,804-cell run remains paused at epoch 110; the experiment below
 neither continues nor replaces it.
 
 This is an implementation study and a preliminary basis for a package vignette,
 not a literature review or a claim of optimality. Mathematical statements below
 are derived from the recorded update rule; empirical statements concern this
-one subset and these starts. Results were generated at \resultgenerated.
+one subset and these starts. The first experiment's results were generated
+at \resultgenerated; the dimension sweep completed at \dimensiongenerated.
 This PDF reads the completed result tables; rendering does not rerun fits.
 
 \section{Distances and the quantity of interest}
-Let $x_i\in\mathbb R^{20}$ denote the retained principal-component (PC) scores
+For the first experiment, let $x_i\in\mathbb R^{20}$ denote the retained principal-component (PC) scores
 of cell $i$, for $i=1,\ldots,n$. In this experiment $n=1,500$.
 The target and embedding distances are
 \begin{equation}
@@ -370,6 +380,8 @@ set fixed while comparing regional asymmetric counts, symmetric
 endpoint-average counts, and unit counts, with clearly defined schedule
 controls. Those fits are not included here.
 
+\input{dimension-study.tex}
+
 \section{Consequences for grip and the full retinal experiment}
 The distinction should be visible wherever sparse metric-MDS results are
 reported: target geometry, update rule, sparse proxy, and independently
@@ -384,6 +396,11 @@ selection and post-fit scale optimization may be useful output policies,
 but must be identified and applied consistently if compared.
 This experiment uses the current-state policy throughout.
 
+The dimension sweep adds a concrete example of the distinction: a 200D
+fit reproduces its selected interactions more closely than the 100D fit,
+yet reproduces the remaining distances less accurately. Reporting only
+the sparse proxy would reverse the ranking on the requested all-pairs score.
+
 The small experiment tests the reason for fluctuations without restarting
 the full job. It shows why stopping at epoch 100 need not reveal the outcome
 of a 500-epoch schedule. It does not predict the final error of the paused
@@ -391,6 +408,8 @@ of a 500-epoch schedule. It does not predict the final error of the paused
 next intervention. Its saved state at epoch 110 remains the valid restart
 point; continuation should retain its original inputs, implementation
 identity checks, random state, and schedule.
+
+\input{stage-proposal.tex}
 
 \appendix
 \section{Evidence and reproduction}
@@ -433,4 +452,20 @@ inside the initial fitting call and subsequent continuation calls. They
 include interface validation and saved-state integrity work, but exclude
 separate data/preparation construction, external evaluation, output writing,
 and figure rendering. They are not end-to-end runtime benchmarks.
+
+The additional dimension experiment has a separate private result bundle:
+\begin{quote}\small\path{retinal-dimension-sweep-pc1814-20261020}\end{quote}
+Its \texttt{prepared.rds} stores the input and shared preparation;
+dimension-specific fits store restartable states and ten-epoch score histories.
+The coordinator \texttt{dimension-sweep.py} manages workers and memory;
+\texttt{dimension-sweep.R} fits embeddings, and
+\texttt{dimension-validate.R} independently checks final errors.
+Fits completed at \dimensiongenerated, without solver changes.
+
+The report-only script \texttt{dimension-report.R} generates the vector plot,
+tables, pair-set decomposition, and stage counts. The scores are in
+\texttt{dimension-summary.csv}; companion CSV files give the decomposition
+and stage counts. These compact results accompany the source; cell identifiers,
+large objects and logs remain private. The README gives reproduction commands.
+Rendering neither reruns fits nor launches the proposed stage comparison.
 \end{document}

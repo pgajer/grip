@@ -1,0 +1,62 @@
+\section{Proposed comparison within developmental stages}
+The pooled sample mixes developmental stages. Its dimension--error curve
+therefore combines variation within stages with differences between them.
+A natural next question is whether the curve is lower or has a different
+shape within each stage. This section specifies a proposed experiment;
+no stage-specific embeddings have yet been fitted.
+
+There are ten annotated stages. Labels beginning with E denote embryonic
+stages; labels beginning with P denote postnatal stages. Table~\ref{tab:stages}
+shows the available cells. All stages contain at least 1,500 cells, so a
+balanced comparison can draw a new uniform sample of 1,500 cells without
+replacement \emph{within each stage}. Splitting the existing pooled
+1,500-cell sample would instead give highly unequal, sometimes very small
+groups (only 19 E12 cells), which is unsuitable for this comparison.
+
+\begin{table}[htbp]
+\centering\input{stage-counts.tex}
+\caption{Available developmental-stage annotations in the 120,804-cell
+input and the proposed sample size per stage. Counts are cells, not
+biological replicates. Stages are ordered developmentally. No stage is
+excluded under the proposed balanced sampling rule.}
+\label{tab:stages}
+\end{table}
+
+For each sampled stage, keep the same full-population 1,814-PC coordinate
+system and unscaled Euclidean target metric. Do not refit the input PCs,
+whiten coordinates, or standardize each stage separately. The global
+99.002235-percent variance retention does not imply that this exact fraction
+holds within every stage. A stage-specific neighbor-search PCA retaining
+90 percent of that stage sample's variance may still select local
+interactions; as before, it must not change target distances.
+
+Fit dimensions $d\in\{3,4,5,10,20,25,50\}$, with one shared preparation
+per stage: 200 internally selected distance-proportional landmarks,
+ten-neighbor local interactions, regional endpoint counts, and 100 SGD
+epochs on a 100-epoch schedule with $\epsilon=0.1$. Use one explicitly
+seeded start per stage and dimension for the first pass, with nested
+starting-coordinate columns within a stage. Record sampling, preparation
+and fitting seeds separately. This gives 70 planned fits, with no
+resumption or modification of the paused full-population run.
+
+Evaluate every within-stage unordered pair: 1,124,250 pairs per sample.
+Report the all-pairs score and sparse proxy separately, retaining
+ten-epoch histories and terminal coordinates without post-fit rescaling.
+Show stage-specific curves on common axes, together with the existing
+pooled-sample curve over the same dimensions. Retain directly fitted and
+remaining-pair diagnostics when the scores disagree. A replenished queue
+can use up to ten single-threaded workers under the same 50 GiB aggregate
+resident-memory watchdog; preparation and fitting must share both this
+memory allowance and the ten-thread CPU budget.
+
+Interpret differences descriptively. The relative score divides each
+residual by that stage sample's own target distance; target-distance
+distributions can differ across stages. Lower error within a stage would
+show easier reconstruction of that sample's Euclidean distances under
+this method, not by itself lower biological intrinsic dimension or a
+causal effect of age. Cell-type composition and sample or batch structure
+may also differ. Equal cell counts control the number of pairs and the
+landmark fraction, but do not remove these differences. Multiple starts
+and independent cell subsamples should follow before making robust
+comparisons between stages.
+\FloatBarrier
