@@ -55,7 +55,6 @@ library(grip)
 
 ```{r view-helpers, include=FALSE}
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
-stopifnot(documentation.interactive())
 ```
 
 The views rotate and zoom. Reference and fitted coordinates are displayed

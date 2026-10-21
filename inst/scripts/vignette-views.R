@@ -115,7 +115,7 @@ documentation.trace <- function(trace, edges) {
 
 # Switch layouts while retaining vertex-level biological colors and camera.
 documentation.group.layouts <- function(layouts, edges, groups, description='') {
-  stopifnot(documentation.interactive(),length(layouts)>0)
+  stopifnot(length(layouts)>0)
   groups <- as.character(groups);groups[is.na(groups)] <- 'Unclassified'
   levels <- sort(unique(groups))
   colors <- setNames(grDevices::hcl.colors(length(levels),'Dark 3'),levels)
@@ -127,6 +127,15 @@ documentation.group.layouts <- function(layouts, edges, groups, description='') 
   layouts <- Map(function(z,radius) z/radius,layouts,radii)
   description <- paste(description,
     'Display only: each layout is centered and scaled to unit RMS radius; saved fits and scores are unchanged.')
+  if (!documentation.interactive()) {
+    old <- graphics::par(mfrow=c(1,length(layouts)))
+    on.exit(graphics::par(old),add=TRUE)
+    for (name in names(layouts)) {
+      documentation.groups(layouts[[name]],edges,groups)
+      graphics::title(main=name)
+    }
+    return(knitr::asis_output(paste0('\n\n',description,'\n\n')))
+  }
   bounds <- t(apply(do.call(rbind,layouts),2,range))
   padding <- pmax(bounds[,2]-bounds[,1],1e-8)*.04
   bounds <- bounds+cbind(-padding,padding)

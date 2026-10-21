@@ -129,6 +129,16 @@ comparison.surface.audit <- function(coords, reference, triangles, registered,
   }))
 }
 
+# Hash the XDR version-2 payload, excluding its 14-byte serialization header.
+# That header contains the writer's R version, which is not an input to the
+# registration. Keep the numerical inputs and algorithm bodies in the key.
+comparison.surface.fingerprint <- function(input) {
+  payload <- serialize(input, NULL, ascii=FALSE, version=2)
+  temp <- tempfile(); on.exit(unlink(temp), add=TRUE)
+  writeBin(payload[-seq_len(14L)], temp)
+  unname(tools::md5sum(temp))
+}
+
 # Saved display registrations are separate from the frozen fitted coordinates.
 # Normal documentation builds verify the inputs and reuse these registrations.
 comparison.surface.saved <- function(case, fits, kind=c('full','sparse')) {
@@ -138,9 +148,7 @@ comparison.surface.saved <- function(case, fits, kind=c('full','sparse')) {
     coordinates=lapply(fits, `[[`, 'coords'), kind=kind,
     algorithm=lapply(list(comparison.surface.align, comparison.surface.example,
       comparison.surface.audit, comparison.surface.samples, comparison.surface.matches),body))
-  temp <- tempfile(); on.exit(unlink(temp),add=TRUE)
-  saveRDS(input,temp,version=2)
-  fingerprint <- unname(tools::md5sum(temp))
+  fingerprint <- comparison.surface.fingerprint(input)
   directory <- getOption('grip.documentation.display.dir',
     system.file('extdata','documentation-display',package='grip'))
   filename <- file.path(directory,paste0(kind,'-',case$id,'-',

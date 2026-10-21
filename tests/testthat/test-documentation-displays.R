@@ -30,3 +30,47 @@ test_that('teaching views center without changing pairwise distances', {
   expect_equal(as.vector(dist(same.size$fits$GRIP$coords)),as.vector(dist(x)),tolerance=1e-10)
   expect_match(same.size$options$description,'Display multipliers',fixed=TRUE)
 })
+
+test_that('display fingerprints ignore the serialization writer version', {
+  e <- new.env()
+  sys.source(system.file('scripts','metric-mds-surface-alignment.R',package='grip'),e)
+  input <- list(x=matrix(seq_len(12),4,3),algorithm=quote(x + 1))
+  fingerprint <- e$comparison.surface.fingerprint(input)
+  e$serialize <- function(...) {
+    bytes <- base::serialize(...)
+    # XDR version-2 header: format, serialization version, writer, minimum reader.
+    bytes[7:10] <- as.raw(c(0,4,5,0))
+    bytes
+  }
+  expect_identical(e$comparison.surface.fingerprint(input),fingerprint)
+  input$x[1,1] <- 2L
+  expect_false(identical(e$comparison.surface.fingerprint(input),fingerprint))
+  input$x[1,1] <- 1L
+  input$algorithm <- quote(x + 2)
+  expect_false(identical(e$comparison.surface.fingerprint(input),fingerprint))
+})
+
+test_that('grouped documentation layouts have a non-ivue fallback', {
+  e <- new.env()
+  sys.source(system.file('scripts','vignette-views.R',package='grip'),e)
+  e$documentation.interactive <- function() FALSE
+  seen <- list()
+  e$documentation.groups <- function(coords,edges,groups,...) {
+    seen[[length(seen)+1L]] <<- list(coords=coords,groups=groups)
+    graphics::plot.new()
+  }
+  file <- tempfile(fileext='.pdf')
+  grDevices::pdf(file)
+  on.exit({grDevices::dev.off(); unlink(file)},add=TRUE)
+  x <- rbind(c(10,20,30),c(11,20,30),c(10,22,30),c(10,20,33))
+  groups <- c('A','B',NA,'A')
+  result <- e$documentation.group.layouts(list(First=x,Second=2*x),
+    matrix(c(1,2),1,2),groups)
+  expect_length(seen,2L)
+  for (view in seen) {
+    expect_equal(unname(colMeans(view$coords)),rep(0,3),tolerance=1e-12)
+    expect_equal(mean(rowSums(view$coords^2)),1)
+    expect_identical(view$groups,c('A','B','Unclassified','A'))
+  }
+  expect_match(as.character(result),'saved fits and scores are unchanged',fixed=TRUE)
+})
