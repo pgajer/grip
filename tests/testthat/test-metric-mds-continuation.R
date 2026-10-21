@@ -47,8 +47,7 @@ test_that("sparse graph continuation does not reprepare pivots or reset the seed
 })
 
 test_that("observation preparation metadata survives continuation", {
-  skip_if_not_installed("dgraphs")
-  if(!"search.data" %in% names(formals(dgraphs::create.sknn.graph)))skip("new dgraphs required")
+  skip_if_no_observation_graphs()
   z<-continuation_fixture()
   p<-prepare.sparse.mds(z$x,n.pivots=3,q=2,neighbor.variance.target=NULL,seed=7)
   control<-list(keep.state=TRUE,schedule.epochs=11)

@@ -22,5 +22,7 @@ build-manifest.tsv with checksums of sources and all saved RDS inputs.
 Fingerprints use the uncompressed XDR version-2 serialization payload, excluding
 its header (which contains the writer's R version). R release and R-devel
 therefore verify the same numerical inputs and algorithm bodies against the
-same keys. The October 2026 key migration preserved all five saved results
+same keys. Source-location attributes are removed from the algorithm bodies,
+so retaining source references during package checks does not change the key.
+The October 2026 key migration preserved all five saved results
 exactly; it did not rerun registration or embedding fits.

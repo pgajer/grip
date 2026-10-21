@@ -94,6 +94,7 @@ test_that("public tracing preserves fits and continues with absolute counts", {
 })
 
 test_that("sparse tracing uses input units and practical stopping trims frames", {
+  skip_if_no_observation_graphs()
   set.seed(28);x<-matrix(rnorm(36),12,3)
   prep<-prepare.sparse.mds(x,method="euclidean",n.pivots=3,q=3,seed=1)
   args<-list(prepared=prep,approximation="sparse",backend="sgd",dim=2,

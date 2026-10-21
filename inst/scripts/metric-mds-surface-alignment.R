@@ -147,7 +147,8 @@ comparison.surface.saved <- function(case, fits, kind=c('full','sparse')) {
   input <- list(reference=case$X, triangles=case$triangles,
     coordinates=lapply(fits, `[[`, 'coords'), kind=kind,
     algorithm=lapply(list(comparison.surface.align, comparison.surface.example,
-      comparison.surface.audit, comparison.surface.samples, comparison.surface.matches),body))
+      comparison.surface.audit, comparison.surface.samples, comparison.surface.matches),
+      function(f) body(utils::removeSource(f))))
   fingerprint <- comparison.surface.fingerprint(input)
   directory <- getOption('grip.documentation.display.dir',
     system.file('extdata','documentation-display',package='grip'))

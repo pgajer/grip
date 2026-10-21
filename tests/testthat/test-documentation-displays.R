@@ -74,3 +74,14 @@ test_that('grouped documentation layouts have a non-ivue fallback', {
   }
   expect_match(as.character(result),'saved fits and scores are unchanged',fixed=TRUE)
 })
+
+test_that('saved displays also validate when package source references are kept', {
+  e <- new.env()
+  for (file in c('metric-mds-comparison.R','metric-mds-surface-alignment.R')) {
+    sys.source(system.file('scripts',file,package='grip'),e,keep.source=TRUE)
+  }
+  bundle <- readRDS(system.file('extdata','metric-mds-comparison','benchmark.rds',package='grip'))
+  case <- bundle$cases[['saddle_graph-64']]
+  fits <- e$comparison_representative(bundle,case$id)
+  expect_no_error(e$comparison.surface.saved(case,fits))
+})
