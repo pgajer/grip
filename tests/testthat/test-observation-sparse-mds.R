@@ -4,7 +4,7 @@ observation_fixture <- function() {
 }
 
 test_that("on-demand distances and region counts match independent dense calculations", {
-  skip_if_not_installed("dgraphs")
+  skip_if_no_observation_graphs()
   X <- observation_fixture(); D <- as.matrix(dist(X))
   for (method in c("uniform","euclidean","geodesic")) {
     a <- prepare.sparse.mds(X,method=method,n.pivots=7,q=5,seed=19)
@@ -33,7 +33,7 @@ test_that("on-demand distances and region counts match independent dense calcula
 })
 
 test_that("selection is reproducible, spread-out, unit invariant and RNG preserving", {
-  skip_if_not_installed("dgraphs")
+  skip_if_no_observation_graphs()
   X <- observation_fixture()
   set.seed(122); state <- .Random.seed
   a <- prepare.sparse.mds(X,n.pivots=6,q=5,seed=13,pivot.selection="farthest")
@@ -56,7 +56,7 @@ test_that("selection is reproducible, spread-out, unit invariant and RNG preserv
 })
 
 test_that("PCA selection is minimal and local targets retain original geometry", {
-  skip_if_not_installed("dgraphs")
+  skip_if_no_observation_graphs()
   X <- observation_fixture()
   a <- prepare.sparse.mds(X,n.pivots=6,q=5,neighbor.variance.target=.9)
   cv <- cumsum(a$pca$variance)/sum(a$pca$variance); r <- a$pca$dimension
@@ -108,7 +108,7 @@ test_that("observation preparations fit both dimensions and refuse invalid input
 })
 
 test_that("PCA search handles ambient lifting and collapsed projected pairs", {
-  skip_if_not_installed("dgraphs")
+  skip_if_no_observation_graphs()
   set.seed(88)
   U <- matrix(runif(80,-1,1),40,2)
   X <- cbind(U,.2*rowSums(U^2))
@@ -125,7 +125,7 @@ test_that("PCA search handles ambient lifting and collapsed projected pairs", {
 })
 
 test_that("bounded preparation validation preserves fits and continuation", {
-  skip_if_not_installed("dgraphs")
+  skip_if_no_observation_graphs()
   X <- observation_fixture()
   prep <- prepare.sparse.mds(X, method="euclidean", n.pivots=7, q=5, seed=19)
   control <- list(scheduler="zheng", schedule.epochs=6, keep.state=TRUE)

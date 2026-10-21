@@ -46,7 +46,6 @@ library(grip)
 
 ```{r view-helpers, include=FALSE}
 source(system.file('scripts', 'vignette-views.R', package='grip'), local=TRUE)
-stopifnot(documentation.interactive())
 ```
 
 <style>

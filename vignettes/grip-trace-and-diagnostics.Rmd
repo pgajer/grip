@@ -80,7 +80,9 @@ knitr::kable(mesh.trace$diagnostics[, c(
 ```
 
 ```{r trace-view, echo=FALSE}
-htmltools::tagList(lapply(seq_along(mesh.trace$frames), function(i) {
+if (!documentation.interactive()) {
+  documentation.trace(mesh.trace, mesh.edges)
+} else htmltools::tagList(lapply(seq_along(mesh.trace$frames), function(i) {
   z <- mesh.trace$frames[[i]]
   active <- stats::complete.cases(z)
   e <- mesh.edges[active[mesh.edges[,1]] & active[mesh.edges[,2]],,drop=FALSE]
@@ -101,6 +103,8 @@ Each recorded stage has an ivue viewer showing its active vertices and edges.
 Drag to rotate or scroll to zoom. Original planar coordinates are retained at
 z = 0; each viewer fits its own bounds, so apparent size across stages is not
 a measure of expansion.
+When `ivue` is unavailable, a planar stage selector shows the same recorded
+vertices and edges with common bounds across stages.
 
 
 The two most useful tables are:

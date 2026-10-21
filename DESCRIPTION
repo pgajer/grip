@@ -50,6 +50,7 @@ Suggests:
     testthat (>= 3.0.0),
     withr
 Enhances: ivue (>= 0.1.0)
+Config/Needs/check: pgajer/dgraphs@3e4dd1486a6d1dc0933a6f79448492095afd8ea5
 Config/Needs/website: pgajer/ivue@4bc38526c334441e29fa761382d06aad67a25dcb
 LinkingTo: Rcpp
 SystemRequirements: C++17
