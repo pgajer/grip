@@ -1,5 +1,10 @@
 # grip 0.2.0.9001 (development version)
 
+- Added `prepare.sparse.mds(method = "linf")` with exact original-coordinate
+  nearest neighbors, internal randomized or farthest pivots, and regional
+  endpoint weights. PCA search is rejected for this metric; existing Euclidean
+  defaults are unchanged.
+
 - Added an executable vignette animating metric-MDS update traces on matched
   surface-area samples of a paraboloid and saddle. It demonstrates continuation,
   bounded recording, relative-error evaluation, rigid display alignment, and

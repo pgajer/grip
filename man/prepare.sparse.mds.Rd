@@ -6,7 +6,7 @@
 \usage{
 prepare.sparse.mds(
   X,
-  method = c("euclidean", "uniform", "geodesic"),
+  method = c("euclidean", "uniform", "geodesic", "linf"),
   n.pivots = 200L,
   pivot.selection = c("randomized", "farthest"),
   q = 10L,
@@ -20,13 +20,14 @@ prepare.sparse.mds(
 
 \item{method}{`"euclidean"` uses regional Euclidean sparse stress;
 `"uniform"` uses uniformly selected landmarks without regional multipliers
-or local edges; `"geodesic"` uses graph shortest-path targets and regions.}
+or local edges; `"geodesic"` uses graph shortest-path targets and regions;
+`"linf"` uses regional L-infinity (maximum absolute difference) targets.}
 
 \item{n.pivots}{Positive pivot count, capped at `nrow(X) - 1` to retain a
 strictly sparse preparation. All-pivot reduction is tested internally.}
 
 \item{pivot.selection}{Distance-proportional `"randomized"` selection or
-`"farthest"` (Euclidean regional method only). Uniform mode selects
+`"farthest"` (Euclidean and L-infinity regional methods only). Uniform mode selects
 uniformly without replacement regardless of the omitted default.}
 
 \item{q}{Number of non-self neighbors for the symmetric union graph.}
@@ -34,7 +35,9 @@ uniformly without replacement regardless of the omitted default.}
 \item{neighbor.variance.target}{Fraction of PCA variance retained for neighbor
 search, default 0.9; `NULL` searches original coordinates. Scores are not
 whitened. Only search changes: edge lengths and bridges use original `X`.
-A target of one retains all numerically resolved components.}
+A target of one retains all numerically resolved components. For `"linf"`,
+the omitted default becomes `NULL`; an explicit non-NULL target is rejected
+because PCA rotation does not preserve L-infinity distances.}
 
 \item{seed}{Nonnegative integer preparation seed. The caller's RNG is untouched.}
 
@@ -44,7 +47,10 @@ this is not a total process memory cap.}
 \value{
 A `grip_sparse_mds_preparation` list containing constraints, pivot
   distance rows, pivots, regions, graph (when used), PCA information and
-  metadata. Input coordinates and settings are retained for cache validation.
+  metadata. For `"linf"`, `graph` is a list with an `edges` data frame
+  (`from`, `to`, `length`) and search `metadata`; Euclidean and geodesic
+  methods return a `dgraphs` graph. Input coordinates and settings are
+  retained for cache validation.
 }
 \description{
 Selects pivots and computes fitting weights internally, without constructing
@@ -58,6 +64,11 @@ The geodesic method uses exact component-MST repair in `dgraphs`.
   never retains their full matrix. A recent local `dgraphs` implementation
   supporting `search.data` and streaming component repair is required.
   Uniform and Euclidean modes compute one Euclidean distance row per pivot.
+  L-infinity mode performs exact neighbor search in the supplied coordinates,
+  breaking equal-distance ties by row index, and computes L-infinity pivot
+  distances. Search streams candidates, with quadratic worst-case work but
+  no full distance matrix, and does not require `dgraphs`. No normalization
+  is applied internally; normalize observations before preparation if needed.
   All modes use inverse-squared target weights. Regional counts are asymmetric
   endpoint multipliers, not ordinary symmetric stress weights.
 }

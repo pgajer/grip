@@ -360,7 +360,7 @@ method accounting, and help targets against the current namespace.
 | `weighted.grip.nd()` | Compute a weighted multiscale layout in two or more dimensions. | [Help](`r help_url("weighted.grip.nd")`) |
 | `classical.mds()` | Fit a classical-scaling baseline from graph shortest-path distances. | [Help](`r help_url("classical.mds")`) |
 | `metric.mds()` | Fit graph or supplied distance targets with full SGD/SMACOF, or sparse SGD. | [Help](`r help_url("metric.mds")`) |
-| `prepare.sparse.mds()` | Prepare Euclidean or graph-geodesic sparse MDS from observations; internal pivots, regional weights and PCA-assisted neighbors. | [Help](`r help_url("prepare.sparse.mds")`) |
+| `prepare.sparse.mds()` | Prepare Euclidean, L-infinity or graph-geodesic sparse MDS from observations; internal pivots, regional weights and PCA-assisted neighbors. | [Help](`r help_url("prepare.sparse.mds")`) |
 | `landmark.mds.constraints()` | Convert supplied landmark and optional local distances into sparse fitting targets. | [Help](`r help_url("landmark.mds.constraints")`) |
 | `globalrep.grip()` | Use the explicit coarse-global-repulsion hop-layout interface. | [Help](`r help_url("globalrep.grip")`) |
 | `globalrep.weighted.grip()` | Use the explicit coarse-global-repulsion weighted-layout interface. | [Help](`r help_url("globalrep.weighted.grip")`) |

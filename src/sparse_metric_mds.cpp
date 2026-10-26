@@ -49,14 +49,16 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
     Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed,
     double max_workspace_bytes, Rcpp::Nullable<Rcpp::NumericMatrix> observations = R_NilValue,
     std::string selection = "randomized", bool region_weighting = true,
-    bool save_distances = false) {
+    bool save_distances = false, std::string metric = "euclidean") {
     if (n < 2 || h < 1 || h > n || seed < 0 || edges.ncol() != 2 ||
         lengths.size() != edges.nrow() || (supplied.size() && supplied.size() != h) ||
         !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
         Rcpp::stop("Invalid sparse preparation controls");
-    const bool euclidean = observations.isNotNull();
+    const bool observation_input = observations.isNotNull();
+    if (metric != "euclidean" && metric != "linf") Rcpp::stop("Unknown observation metric");
+    if (metric == "linf" && !observation_input) Rcpp::stop("linf requires observations");
     Rcpp::NumericMatrix X;
-    if (euclidean) {
+    if (observation_input) {
         X = Rcpp::NumericMatrix(observations);
         if (X.nrow()!=n || X.ncol()<1) Rcpp::stop("Invalid observation dimensions");
         for (double z : X) if (!std::isfinite(z)) Rcpp::stop("Nonfinite observation");
@@ -70,9 +72,9 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
         96 * (nh + m);
     if (estimate > max_workspace_bytes || nh + m > std::numeric_limits<int>::max())
         Rcpp::stop("Sparse preparation exceeds max_workspace_bytes or constraint index range");
-    if (m == 0 && !euclidean) Rcpp::stop("Sparse SGD requires a connected graph");
+    if (m == 0 && !observation_input) Rcpp::stop("Sparse SGD requires a connected graph");
     double unit = m ? *std::max_element(lengths.begin(),lengths.end()) : 0;
-    if (euclidean) for (double z : X) unit=std::max(unit,std::abs(z));
+    if (observation_input) for (double z : X) unit=std::max(unit,std::abs(z));
     if (!std::isfinite(unit) || unit<=0) Rcpp::stop("Invalid distance scale");
     std::vector<std::vector<Link>> graph(n);
     for (std::size_t e = 0; e < m; ++e) {
@@ -123,16 +125,22 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
         }
         if (p < 0 || selected[p]) Rcpp::stop("Sparse pivot sampling failed");
         selected[p] = true; pivots[k] = p;
-        if (euclidean) {
+        if (observation_input) {
             std::vector<double> row(n,0);
-            for (int i=0; i<n; ++i) if (i!=p) {
-                double distance=0;
-                for (int col=0; col<X.ncol(); ++col)
-                    distance=std::hypot(distance,(X(i,col)-X(p,col))/unit);
-                if (!std::isfinite(distance) || distance<=0)
-                    Rcpp::stop("Euclidean distances must be positive and representable; consolidate duplicates");
-                row[i]=distance;
+            if (metric == "linf") {
+                // R matrices are column-major: stream each feature contiguously.
+                for (int col=0; col<X.ncol(); ++col) {
+                    const double pivot_value = X(p,col);
+                    for (int i=0; i<n; ++i)
+                        row[i] = std::max(row[i],std::abs((X(i,col)-pivot_value)/unit));
+                }
+            } else {
+                for (int i=0; i<n; ++i) if (i!=p)
+                    for (int col=0; col<X.ncol(); ++col)
+                        row[i]=std::hypot(row[i],(X(i,col)-X(p,col))/unit);
             }
+            for (int i=0; i<n; ++i) if (i!=p && (!std::isfinite(row[i]) || row[i]<=0))
+                Rcpp::stop("Observation distances must be positive and representable; consolidate duplicates");
             all.push_back(std::move(row));
         } else all.push_back(distances(graph,p));
         for (int i=0; i<n; ++i) if (all.back()[i] < nearest[i]) {
@@ -198,4 +206,63 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
         out["distance_rows"]=rows;
     }
     return out;
+}
+
+// Exact L-infinity kNN, with O(n*p + n*q) storage and deterministic ties.
+// [[Rcpp::export]]
+Rcpp::List grip_linf_knn_cpp(Rcpp::NumericMatrix X, int q, double max_workspace_bytes) {
+    const int n = X.nrow(), p = X.ncol();
+    if (n < 2 || p < 1 || q < 1 || q >= n ||
+        !std::isfinite(max_workspace_bytes) || max_workspace_bytes <= 0)
+        Rcpp::stop("Invalid L-infinity neighbor controls");
+    const long double nq = static_cast<long double>(n)*q;
+    const long double estimate = 8*static_cast<long double>(n)*p + 64*nq + 32*n;
+    if (estimate > max_workspace_bytes || nq > std::numeric_limits<int>::max())
+        Rcpp::stop("L-infinity neighbor search exceeds workspace or edge index range");
+    // Contiguous observations allow early rejection once a coordinate exceeds
+    // the current kth distance. This pruning never changes the exact result.
+    std::vector<double> rows(static_cast<std::size_t>(n)*p);
+    for (int col=0; col<p; ++col) for (int i=0; i<n; ++i) {
+        const double value = X(i,col);
+        if (!std::isfinite(value)) Rcpp::stop("Nonfinite observation");
+        rows[static_cast<std::size_t>(i)*p+col] = value;
+    }
+    std::vector<SparseTerm> edges; edges.reserve(static_cast<std::size_t>(nq));
+    for (int i=0; i<n; ++i) {
+        Rcpp::checkUserInterrupt();
+        std::priority_queue<Entry> nearest;
+        const double* a = &rows[static_cast<std::size_t>(i)*p];
+        for (int j=0; j<n; ++j) if (i != j) {
+            if ((j & 4095) == 0) Rcpp::checkUserInterrupt();
+            const double* b = &rows[static_cast<std::size_t>(j)*p];
+            double d = 0;
+            const double limit = nearest.size() == static_cast<std::size_t>(q) ?
+                nearest.top().first : std::numeric_limits<double>::infinity();
+            for (int col=0; col<p; ++col) {
+                d = std::max(d,std::abs(a[col]-b[col]));
+                if (d > limit) break;
+            }
+            if (d == 0) Rcpp::stop("Duplicate observations in L-infinity neighbor search");
+            const Entry candidate(d,j);
+            if (nearest.size() < static_cast<std::size_t>(q)) nearest.push(candidate);
+            else if (candidate < nearest.top()) { nearest.pop(); nearest.push(candidate); }
+        }
+        while (!nearest.empty()) {
+            const Entry e = nearest.top(); nearest.pop();
+            if (!std::isfinite(e.first)) Rcpp::stop("L-infinity edge distances exceed numeric range");
+            edges.push_back({std::min(i,e.second),std::max(i,e.second),e.first,1,1});
+        }
+    }
+    std::sort(edges.begin(),edges.end(),[](const SparseTerm& a,const SparseTerm& b) {
+        return a.i < b.i || (a.i == b.i && a.j < b.j);
+    });
+    edges.erase(std::unique(edges.begin(),edges.end(),[](const SparseTerm& a,const SparseTerm& b) {
+        return a.i == b.i && a.j == b.j;
+    }),edges.end());
+    Rcpp::IntegerMatrix pairs(edges.size(),2);
+    Rcpp::NumericVector lengths(edges.size());
+    for (std::size_t k=0; k<edges.size(); ++k) {
+        pairs(k,0)=edges[k].i+1; pairs(k,1)=edges[k].j+1; lengths[k]=edges[k].d;
+    }
+    return Rcpp::List::create(Rcpp::Named("pairs")=pairs,Rcpp::Named("lengths")=lengths);
 }

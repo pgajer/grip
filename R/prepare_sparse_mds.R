@@ -8,28 +8,39 @@
 #' @param X Finite numeric observation matrix with distinct rows.
 #' @param method `"euclidean"` uses regional Euclidean sparse stress;
 #'   `"uniform"` uses uniformly selected landmarks without regional multipliers
-#'   or local edges; `"geodesic"` uses graph shortest-path targets and regions.
+#'   or local edges; `"geodesic"` uses graph shortest-path targets and regions;
+#'   `"linf"` uses regional L-infinity (maximum absolute difference) targets.
 #' @param n.pivots Positive pivot count, capped at `nrow(X) - 1` to retain a
 #'   strictly sparse preparation. All-pivot reduction is tested internally.
 #' @param pivot.selection Distance-proportional `"randomized"` selection or
-#'   `"farthest"` (Euclidean regional method only). Uniform mode selects
+#'   `"farthest"` (Euclidean and L-infinity regional methods only). Uniform mode selects
 #'   uniformly without replacement regardless of the omitted default.
 #' @param q Number of non-self neighbors for the symmetric union graph.
 #' @param neighbor.variance.target Fraction of PCA variance retained for neighbor
 #'   search, default 0.9; `NULL` searches original coordinates. Scores are not
 #'   whitened. Only search changes: edge lengths and bridges use original `X`.
-#'   A target of one retains all numerically resolved components.
+#'   A target of one retains all numerically resolved components. For `"linf"`,
+#'   the omitted default becomes `NULL`; an explicit non-NULL target is rejected
+#'   because PCA rotation does not preserve L-infinity distances.
 #' @param seed Nonnegative integer preparation seed. The caller's RNG is untouched.
 #' @param max.workspace.bytes Conservative preparation allocation allowance;
 #'   this is not a total process memory cap.
 #' @return A `grip_sparse_mds_preparation` list containing constraints, pivot
 #'   distance rows, pivots, regions, graph (when used), PCA information and
-#'   metadata. Input coordinates and settings are retained for cache validation.
+#'   metadata. For `"linf"`, `graph` is a list with an `edges` data frame
+#'   (`from`, `to`, `length`) and search `metadata`; Euclidean and geodesic
+#'   methods return a `dgraphs` graph. Input coordinates and settings are
+#'   retained for cache validation.
 #' @details The geodesic method uses exact component-MST repair in `dgraphs`.
 #'   Its streaming implementation can evaluate quadratically many distances but
 #'   never retains their full matrix. A recent local `dgraphs` implementation
 #'   supporting `search.data` and streaming component repair is required.
 #'   Uniform and Euclidean modes compute one Euclidean distance row per pivot.
+#'   L-infinity mode performs exact neighbor search in the supplied coordinates,
+#'   breaking equal-distance ties by row index, and computes L-infinity pivot
+#'   distances. Search streams candidates, with quadratic worst-case work but
+#'   no full distance matrix, and does not require `dgraphs`. No normalization
+#'   is applied internally; normalize observations before preparation if needed.
 #'   All modes use inverse-squared target weights. Regional counts are asymmetric
 #'   endpoint multipliers, not ordinary symmetric stress weights.
 #' @seealso [metric.mds()], [landmark.mds.constraints()]
@@ -39,15 +50,20 @@
 #' fit <- metric.mds(prepared = prep, approximation = "sparse", max.iter = 5)
 #' fit$metadata$data_preparation$method
 #' @export
-prepare.sparse.mds <- function(X, method = c("euclidean", "uniform", "geodesic"),
+prepare.sparse.mds <- function(X, method = c("euclidean", "uniform", "geodesic", "linf"),
                                n.pivots = 200L,
                                pivot.selection = c("randomized", "farthest"),
                                q = 10L, neighbor.variance.target = 0.9,
                                seed = 1L, max.workspace.bytes = 512 * 1024^2) {
   method <- match.arg(method)
   pivot.selection <- match.arg(pivot.selection)
-  if (method != "euclidean" && pivot.selection != "randomized")
-    stop("farthest selection is supported only by the euclidean method", call. = FALSE)
+  if (method == "linf") {
+    if (missing(neighbor.variance.target)) neighbor.variance.target <- NULL
+    if (!is.null(neighbor.variance.target))
+      stop("linf requires neighbor.variance.target = NULL: PCA changes L-infinity distances", call. = FALSE)
+  }
+  if (!method %in% c("euclidean", "linf") && pivot.selection != "randomized")
+    stop("farthest selection is supported only by the euclidean and linf methods", call. = FALSE)
   if (!(is.matrix(X) || is.data.frame(X))) stop("X must be a numeric matrix", call. = FALSE)
   X <- as.matrix(X)
   if (!is.numeric(X) || nrow(X)<3L || ncol(X)<1L || any(!is.finite(X)))
@@ -75,7 +91,14 @@ prepare.sparse.mds <- function(X, method = c("euclidean", "uniform", "geodesic")
   began <- proc.time()[["elapsed"]]
   graph <- NULL; pca <- NULL
   edges <- matrix(integer(), ncol=2L); lengths <- numeric()
-  if (method != "uniform") {
+  if (method == "linf") {
+    local <- grip_linf_knn_cpp(X, q, max.workspace.bytes)
+    edges <- local$pairs; lengths <- local$lengths
+    graph <- list(edges=data.frame(from=edges[,1], to=edges[,2], length=lengths),
+      metadata=list(target_metric="linf", neighbor_method="exact",
+        neighbor_ties="distance_then_row_index", q=q,
+        dense_distance_matrix_allocated=FALSE))
+  } else if (method != "uniform") {
     if (!requireNamespace("dgraphs",quietly=TRUE)) stop("dgraphs is required for local graph construction",call.=FALSE)
     if (!"search.data" %in% names(formals(dgraphs::create.sknn.graph)))
       stop("Update dgraphs: search.data and streaming component repair are required",call.=FALSE)
@@ -109,14 +132,15 @@ prepare.sparse.mds <- function(X, method = c("euclidean", "uniform", "geodesic")
   selection <- if (method=="uniform") "uniform" else pivot.selection
   sparse <- grip_sparse_prepare_cpp(n,edges,lengths,n.pivots,integer(),as.integer(seed),
     max.workspace.bytes, observations=if(method=="geodesic") NULL else X,
-    selection=selection,region_weighting=method!="uniform",save_distances=TRUE)
+    selection=selection,region_weighting=method!="uniform",save_distances=TRUE,
+    metric=if(method=="linf") "linf" else "euclidean")
   constraints <- sparse[c("pairs","targets","count_i","count_j")]
-  metadata <- list(method=method,target_metric=if(method=="geodesic") "graph_geodesic" else "euclidean",
+  metadata <- list(method=method,target_metric=if(method=="geodesic") "graph_geodesic" else if(method=="linf") "linf" else "euclidean",
     pivot_selection=selection,n_pivots=n.pivots,q=if(method=="uniform") NULL else q,
     neighbor_variance_target=if(method=="uniform") NULL else neighbor.variance.target,
     seed=as.integer(seed),workspace_estimate_bytes=max(estimate,sparse$workspace_estimate_bytes),
     max_workspace_bytes=max.workspace.bytes,dense_distance_matrix_allocated=FALSE,
-    preparation_seconds=proc.time()[["elapsed"]]-began,algorithm_version="observation-sparse-v1")
+    preparation_seconds=proc.time()[["elapsed"]]-began,algorithm_version=if(method=="linf") "observation-sparse-linf-v1" else "observation-sparse-v1")
   structure(list(n=n,input=X,constraints=constraints,pivots=sparse$pivots,
     region=sparse$region,distance_rows=sparse$distance_rows,graph=graph,pca=pca,
     metadata=metadata),class="grip_sparse_mds_preparation")

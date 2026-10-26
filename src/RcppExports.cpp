@@ -802,8 +802,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // grip_sparse_prepare_cpp
-Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges, Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed, double max_workspace_bytes, Rcpp::Nullable<Rcpp::NumericMatrix> observations, std::string selection, bool region_weighting, bool save_distances);
-RcppExport SEXP _grip_grip_sparse_prepare_cpp(SEXP nSEXP, SEXP edgesSEXP, SEXP lengthsSEXP, SEXP hSEXP, SEXP suppliedSEXP, SEXP seedSEXP, SEXP max_workspace_bytesSEXP, SEXP observationsSEXP, SEXP selectionSEXP, SEXP region_weightingSEXP, SEXP save_distancesSEXP) {
+Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges, Rcpp::NumericVector lengths, int h, Rcpp::IntegerVector supplied, int seed, double max_workspace_bytes, Rcpp::Nullable<Rcpp::NumericMatrix> observations, std::string selection, bool region_weighting, bool save_distances, std::string metric);
+RcppExport SEXP _grip_grip_sparse_prepare_cpp(SEXP nSEXP, SEXP edgesSEXP, SEXP lengthsSEXP, SEXP hSEXP, SEXP suppliedSEXP, SEXP seedSEXP, SEXP max_workspace_bytesSEXP, SEXP observationsSEXP, SEXP selectionSEXP, SEXP region_weightingSEXP, SEXP save_distancesSEXP, SEXP metricSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -818,7 +818,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type selection(selectionSEXP);
     Rcpp::traits::input_parameter< bool >::type region_weighting(region_weightingSEXP);
     Rcpp::traits::input_parameter< bool >::type save_distances(save_distancesSEXP);
-    rcpp_result_gen = Rcpp::wrap(grip_sparse_prepare_cpp(n, edges, lengths, h, supplied, seed, max_workspace_bytes, observations, selection, region_weighting, save_distances));
+    Rcpp::traits::input_parameter< std::string >::type metric(metricSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sparse_prepare_cpp(n, edges, lengths, h, supplied, seed, max_workspace_bytes, observations, selection, region_weighting, save_distances, metric));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_linf_knn_cpp
+Rcpp::List grip_linf_knn_cpp(Rcpp::NumericMatrix X, int q, double max_workspace_bytes);
+RcppExport SEXP _grip_grip_linf_knn_cpp(SEXP XSEXP, SEXP qSEXP, SEXP max_workspace_bytesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< int >::type q(qSEXP);
+    Rcpp::traits::input_parameter< double >::type max_workspace_bytes(max_workspace_bytesSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_linf_knn_cpp(X, q, max_workspace_bytes));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -854,7 +868,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 16},
     {"_grip_grip_sgd_state_hash_cpp", (DL_FUNC) &_grip_grip_sgd_state_hash_cpp, 1},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
-    {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 11},
+    {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 12},
+    {"_grip_grip_linf_knn_cpp", (DL_FUNC) &_grip_grip_linf_knn_cpp, 3},
     {NULL, NULL, 0}
 };
 

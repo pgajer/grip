@@ -76,14 +76,32 @@ fit <- metric.mds(prepared=prep, approximation="sparse", backend="sgd",
   sgd.control=list(scheduler="zheng", schedule.epsilon=0.1))
 ```
 
-Use `pivot.selection="farthest"` for the Euclidean farthest-first alternative.
+Use `pivot.selection="farthest"` for the Euclidean or L-infinity farthest-first alternative.
 `method="uniform"` uses uniform landmarks without regional multipliers or local
 edges, but retains inverse-squared distance weights. `method="geodesic"` instead
 uses shortest-path targets on a connected neighbor graph. Its exact component-MST
 repair evaluates distances as needed and never stores their full matrix;
 worst-case repair time can nevertheless be quadratic.
 
-This interface requires the accompanying `dgraphs` support for `search.data` and
+For maximum absolute coordinate differences, use `method="linf"`. It computes
+exact neighbors in the original coordinates; equal distances are ordered by row
+index. Its default `neighbor.variance.target` is `NULL`, and explicit PCA targets
+are rejected because rotation changes this metric. No normalization is implicit.
+For nonnegative abundance rows with positive maxima, max normalization is:
+
+```{r linf-sparse-recipe, eval=FALSE}
+stopifnot(all(is.finite(X)), all(X >= 0), all(apply(X, 1, max) > 0))
+Xmax <- X / apply(X, 1, max)
+# Consolidate any duplicate normalized rows and retain their sample mapping.
+prep <- prepare.sparse.mds(Xmax, method="linf", n.pivots=200, q=10, seed=1)
+```
+
+Exact L-infinity search has quadratic worst-case work but does not store an
+all-pairs matrix. Its returned `graph$edges` table holds the symmetric union
+of nearest-neighbor pairs and their L-infinity lengths; `graph$metadata` records
+the search rule. It needs no `dgraphs` dependency.
+
+The Euclidean and geodesic methods require the accompanying `dgraphs` support for `search.data` and
 streaming component repair. Input rows must be distinct. Requested pivot counts
 are capped at `nrow(X)-1`; keep the count small relative to the data size for
 useful storage savings. The preparation can be reused across dimensions and
