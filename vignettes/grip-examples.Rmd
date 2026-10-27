@@ -90,14 +90,16 @@ mds$metadata$termination
 
 The 80-pass allowance is a short illustrative setting. Schedule completion
 reports `iteration_limit`; it does not establish convergence. The figure
-compares this fit with the GRIP layout above, allowing rotation, reflection,
-and translation, and matching the overall size for display. GRIP and MDS use
-different coordinate scales; one uniform multiplier per layout makes their
-shapes comparable. This does not change the fitted coordinates or scores.
+compares this random-start, 80-pass fit with the default-initialization MDS
+fit above, which uses the default 1,000-pass budget. The display allows rotation,
+reflection, and translation and matches overall size with one uniform multiplier
+per layout. This does not change the fitted coordinates or scores. Because both
+initialization and budget differ, this is an illustration, not an isolated test
+of either choice.
 
 ```{r methods-view, echo=FALSE}
-documentation.view(list('metric-MDS'=mds$coords,GRIP=coords),g$edges,common.size=TRUE,
-  description='dwt_307: metric-MDS and GRIP. Aligned at a common overall size for display. Seed 1.')
+documentation.view(list('Random start, 80 passes'=mds$coords,'Default initialization, 1000 passes'=coords),g$edges,common.size=TRUE,
+  description='dwt_307: two SGD metric-MDS runs with different initialization and pass budgets. Aligned at a common overall size for display. Seed 1.')
 ```
 
 Select a layout below the figure, or show both. For optimizer and weighting
@@ -111,6 +113,9 @@ benefit from [sparse metric MDS](sparse-metric-mds.html).
 | What functions are available? | [Finding your way around grip](function-guide.html) |
 | What other graphs can I draw? | [Graph gallery](synthetic-graph-families.html) |
 | Which settings or seeds should I use? | [Choosing and evaluating a layout](grip-real-data.html) |
+| How do normalization and distance affect a 3D fit? | [What does a 3D embedding preserve?](https://pgajer.github.io/grip/articles/embedding-fidelity.html) (website article) |
+| Should I refit a selection or keep its population coordinates? | [Local embeddings versus subsets of a global embedding](https://pgajer.github.io/grip/articles/local-global-embeddings.html) (website article) |
+| How do I compare views with consistent colors, scales and cameras? | [Comparing scientific views in ivue](https://pgajer.github.io/ivue/doc/ivue-introduction.html#comparing-scientific-views) |
 | My edges represent distances | [Layouts with meaningful edge lengths](weighted-grip-intro.html) |
 | How did the drawing develop? | [Tracing and diagnosing layouts](grip-trace-and-diagnostics.html) |
 | How do I explore saved results? | [Interactive exploration with gripui](gripui-explorer.html) |
