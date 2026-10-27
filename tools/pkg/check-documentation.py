@@ -9,8 +9,9 @@ v=root/'vignettes'
 sources={p.stem for p in v.glob('*.Rmd')}
 registered={name.strip() for group in re.findall(r'contents:\s*\[([^\]]*)\]',
     (root/'_pkgdown.yml').read_text()) for name in group.split(',')}
-assert sources==registered, f'Vignette source/navigation mismatch: {sources ^ registered}'
-assert not list((v/'articles').glob('*.Rmd')), 'Website-only tutorial sources remain'
+website_sources={'articles/'+p.stem for p in (v/'articles').glob('*.Rmd')}
+all_sources=sources | website_sources
+assert all_sources==registered, f'Guide source/navigation mismatch: {all_sources ^ registered}'
 for row in csv.DictReader((v/'archives/manifest.tsv').open(),delimiter='\t'):
     path=v/'archives'/row['archive_path']
     if path.exists():
@@ -20,7 +21,7 @@ for row in csv.DictReader((v/'archives/manifest.tsv').open(),delimiter='\t'):
 for p in v.glob('*.Rmd'):
     text=p.read_text()
     assert '%\\VignetteEngine{knitr::rmarkdown}' in text,p
-    assert not re.search(r'website-only article|depth_decay\s*=|branch_spread\s*=',text),p
+    assert not re.search(r'depth_decay\s*=|branch_spread\s*=',text),p
 class Page(HTMLParser):
     def __init__(self):super().__init__();self.links=[];self.ids=set()
     def handle_starttag(self,t,a):
@@ -48,4 +49,4 @@ for f in files:
 if errors:
     for e in errors:print(*e,sep=': ')
     raise SystemExit(1)
-print(f'Verified {len(sources)} installed sources, archived checksums, and documentation links/anchors.')
+print(f'Verified {len(sources)} installed sources, {len(website_sources)} website articles, archived checksums, and documentation links/anchors.')

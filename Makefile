@@ -135,3 +135,8 @@ embedding-fidelity-vignette:
 .PHONY: local-global-vignette
 local-global-vignette:
 	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 Rscript tools/pkg/render-representation-vignette.R local-global-embeddings
+
+# Refresh links and article listings without rerendering figures or fits.
+.PHONY: vignette-index
+vignette-index:
+	Rscript tools/pkg/render-vignette-previews.R --index-only

@@ -12,13 +12,15 @@ for(p in c('linf','ivue')) {
 }
 if(pkgbuild::needs_compile('.')) pkgbuild::compile_dll('.',debug=FALSE)
 pkgload::load_all('.',recompile=FALSE,quiet=TRUE)
-out<-file.path(root,'build','representation-guides')
+out<-if(length(args)>1L) normalizePath(args[2],mustWork=FALSE) else
+  file.path(root,'build','representation-guides')
+cache.root<-file.path(root,'build','representation-guides','cache')
 dir.create(out,recursive=TRUE,showWarnings=FALSE)
 source.files<-c(list.files('R',full.names=TRUE,pattern='[.]R$'),
   list.files('src',full.names=TRUE,pattern='[.](cpp|h|hpp|so|dll|dylib)$'),
   'vignettes/articles/embedding-study.R')
 fingerprint<-tools::md5sum(source.files)
-options(grip.article.fingerprint=fingerprint,grip.article.cache=file.path(out,'cache'))
+options(grip.article.fingerprint=fingerprint,grip.article.cache=cache.root)
 e<-new.env(parent=globalenv())
 rmarkdown::render(file.path('vignettes','articles',paste0(article,'.Rmd')),
   output_dir=out,envir=e,quiet=TRUE)

@@ -30,6 +30,13 @@ td code { white-space: normal; overflow-wrap: anywhere; }
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
                      fig.width = 6, fig.height = 4.5)
+# Website-only articles are not installed with the package.
+article_url <- function(name) {
+  prefix <- if (identical(Sys.getenv("IN_PKGDOWN"), "true")) "" else
+    if (isTRUE(getOption("grip.local.preview"))) "../articles/" else
+      "https://pgajer.github.io/grip/articles/"
+  paste0(prefix, name, ".html")
+}
 # Installed help and pkgdown have different reference-page locations.
 help_url <- function(topic) {
   prefix <- if (identical(Sys.getenv("IN_PKGDOWN"), "true")) {
@@ -53,12 +60,15 @@ helpers support different decisions around that drawing.
 | Which settings and seeds give useful drawings? | `compare.layouts()`, then `params.from.summary()` | [Choosing Layouts for Real Data](grip-real-data.html) |
 | Does my drawing preserve graph distances? | `score.layout()` or the more specialized `score.gmds()` | [Choose a score](#choose-a-score) |
 | Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
+| How do normalization and distance affect a 3D fit? | `metric.mds()` and original-space pair-distance diagnostics | [What does a 3D embedding preserve?](`r article_url("embedding-fidelity")`) (website article) |
+| Should a selected group be refitted locally? | Compare a population-coordinate subset with a fit to the same within-group targets | [Local embeddings versus subsets of a global embedding](`r article_url("local-global-embeddings")`) (website article) |
 | Where did a fold or collapse appear? | `trace.grip()` | [Tracing and Diagnosing Layouts](grip-trace-and-diagnostics.html) |
 | How do I construct a reproducible example? | An `edges.*()` generator or a complete `*.graph()` bundle | [Graph examples](synthetic-graph-families.html) |
 | How do I browse many saved results? | `gripui.project()` and `run.gripui()` in an interactive session | [Interactive exploration](gripui-explorer.html) |
 
-This overview and the linked guides are installed vignettes. The website
-publishes the same sources. Start with [Getting Started](grip-examples.html)
+This overview and most linked guides are installed vignettes. The two
+representation articles marked above are website-only, interactive companions.
+The website publishes both kinds of guide. Start with [Getting Started](grip-examples.html)
 for a first drawing, then use this categorized overview to explore the package.
 
 ## A first drawing and diagnostic
