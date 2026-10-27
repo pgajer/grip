@@ -131,3 +131,7 @@ mds-animation-vignette:
 .PHONY: embedding-fidelity-vignette
 embedding-fidelity-vignette:
 	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 Rscript tools/pkg/render-representation-vignette.R embedding-fidelity
+
+.PHONY: local-global-vignette
+local-global-vignette:
+	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 Rscript tools/pkg/render-representation-vignette.R local-global-embeddings

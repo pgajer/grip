@@ -10,6 +10,7 @@ for(p in c('linf','ivue')) {
   path<-Sys.getenv(paste0(toupper(p),'_SOURCE'),file.path('..',p))
   if(file.exists(file.path(path,'DESCRIPTION'))) pkgload::load_all(path,quiet=TRUE)
 }
+if(pkgbuild::needs_compile('.')) pkgbuild::compile_dll('.',debug=FALSE)
 pkgload::load_all('.',recompile=FALSE,quiet=TRUE)
 out<-file.path(root,'build','representation-guides')
 dir.create(out,recursive=TRUE,showWarnings=FALSE)
@@ -32,5 +33,13 @@ if(article=='embedding-fidelity') {
   stopifnot(e$study_score(check,as.matrix(dist(check)))[1]<1e-10)
   write.csv(e$real$scores,file.path(out,'fidelity-scores.csv'),row.names=FALSE)
   stopifnot(nrow(e$real$scores)==9L,all(is.finite(e$real$scores$RMS_percent)))
+}
+if(article=='local-global-embeddings') {
+  write.csv(e$comparison,file.path(out,'local-global-scores.csv'),row.names=FALSE)
+  write.csv(e$local.seed.table,file.path(out,'local-seed-scores.csv'),row.names=FALSE)
+  stopifnot(length(e$selected)==sum(e$z$selection),
+    all(e$comparison$Local<=e$comparison$Restricted+1e-7))
+  for(m in names(e$targets)) stopifnot(identical(e$local.targets[[m]],
+    e$targets[[m]][e$selected,e$selected,drop=FALSE]))
 }
 cat('PASS:',article,'rendered; embedded numerical assertions passed.\n')

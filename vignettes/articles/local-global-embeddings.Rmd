@@ -1,0 +1,284 @@
+---
+title: "Local embeddings versus subsets of a global embedding"
+author: "Pawel Gajer"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=8,fig.height=4.8,dpi=120)
+options(rgl.useNULL=TRUE)
+library(grip)
+stopifnot(requireNamespace('linf',quietly=TRUE),requireNamespace('ivue',quietly=TRUE))
+helper<-c('embedding-study.R','vignettes/articles/embedding-study.R')
+source(helper[file.exists(helper)][1],local=TRUE)
+z<-study_data();targets<-study_targets(z$P);global<-study_runs(targets)
+# Local selection is fixed from original abundance, before looking at any fit.
+selected<-which(z$selection)
+stopifnot(length(selected)>4)
+local.targets<-lapply(targets,function(D) D[selected,selected,drop=FALSE])
+restricted<-lapply(global$best,function(f) f$coords[selected,,drop=FALSE])
+local.random<-study_runs(local.targets)
+warm<-lapply(names(targets),function(m) study_fit(local.targets[[m]],59L,init=restricted[[m]]))
+names(warm)<-names(targets)
+local.best<-lapply(names(targets),function(m) {
+  candidates<-c(local.random$fits[[m]],list(warm[[m]]))
+  candidates[[which.min(vapply(candidates,function(f) study_score(f$coords,local.targets[[m]])[1],numeric(1)))]]
+});names(local.best)<-names(targets)
+comparison<-do.call(rbind,lapply(names(targets),function(m) data.frame(
+  Method=m,Population=study_score(global$best[[m]]$coords,targets[[m]])[1],
+  Restricted=study_score(restricted[[m]],local.targets[[m]])[1],
+  Local=study_score(local.best[[m]]$coords,local.targets[[m]])[1],
+  Warm=study_score(warm[[m]]$coords,local.targets[[m]])[1],row.names=NULL)))
+stopifnot(all(comparison$Warm<=comparison$Restricted+1e-7))
+# A neighborhood with exact planar geometry embedded in a higher-dimensional population.
+set.seed(20261029)
+theta<-seq(0,2*pi,length.out=25)[-25]
+local.X<-cbind(.18*cos(theta),.18*sin(theta),0,0,0)
+background.X<-matrix(rnorm(72*5),72,5);background.X[,3]<-background.X[,3]+2
+synthetic.X<-rbind(local.X,background.X)
+synthetic.D<-as.matrix(dist(synthetic.X))
+synthetic.global<-study_runs(list('Euclidean'=synthetic.D))
+synthetic.restricted<-synthetic.global$best[[1]]$coords[1:24,,drop=FALSE]
+synthetic.local<-study_fit(synthetic.D[1:24,1:24],59L,init=synthetic.restricted)
+# Shared display settings within each comparison; group meaning is explicit.
+selection.widgets<-function(coords,groups,descriptions,legend.title) {
+  aligned<-lapply(coords,study_align,reference=coords[[1]])
+  lim<-t(apply(do.call(rbind,aligned),2,range));span<-max(lim[,2]-lim[,1])
+  lim[,1]<-lim[,1]-.1*span;lim[,2]<-lim[,2]+.1*span
+  groups<-factor(groups,levels=sort(unique(groups)))
+  palette<-setNames(c('#0072B2','#D55E00','#009E73','#CC79A7','#E69F00')[seq_len(nlevels(groups))],levels(groups))
+  sc<-ivue::color.scale.groups(groups,colors=palette)
+  lapply(seq_along(coords),function(i) ivue::plot3D.groups(aligned[[i]],groups,
+    scale=sc,point.type='sphere',sphere.radius=.012*span,controls=FALSE,
+    legend.title=legend.title,legend.width=210,height=450L,
+    axes=FALSE,xlab='',ylab='',zlab='',aspect='equal',limits=lim,
+    camera=ivue::camera.zup(elevation=20,turn=-125,zoom=.65),description=descriptions[i]))
+}
+synthetic.score<-c(Restricted=study_score(synthetic.restricted,synthetic.D[1:24,1:24])[1],
+  Refit=study_score(synthetic.local$coords,synthetic.D[1:24,1:24])[1])
+names(synthetic.score)<-c("Restriction","Local refit")
+stopifnot(study_score(local.X[,1:3],synthetic.D[1:24,1:24])[1]<1e-10,
+          synthetic.score[2]<=synthetic.score[1]+1e-7)
+```
+
+<style>
+.figure {display:block;width:100%;max-width:100%}
+.figure > .caption {display:block;max-width:100%}
+.figure img {max-width:100%;height:auto}
+</style>
+
+## Selecting points is not fitting them again
+
+A **restriction of a population embedding** keeps the population coordinates
+for selected observations. A **local embedding** fits new coordinates using
+only distances between those selected observations. The rows can be identical
+while the optimization problem is different.
+
+This distinction matters when inspecting a dominant-taxon neighborhood in VME.
+A population fit spends its three dimensions representing the whole dataset.
+Its arrangement of one neighborhood can reflect compromises needed to
+represent relationships with observations outside that neighborhood.
+
+Here we compare the two views on a synthetic neighborhood with known geometry,
+then on the Li-maximal subset of the same 300 bundled compositions used in
+[What does a 3D embedding preserve?](embedding-fidelity.html).
+We use all three normalization/distance combinations from that article.
+No selection is made from the appearance of an embedding.
+
+## The comparison must use the same target pairs
+
+Let $S$ be a fixed selection and $\delta_{ij}$ the chosen original-space target.
+The full population objective includes within-S, outside-S, and cross-boundary
+pairs. The local objective includes only pairs with both endpoints in S.
+For comparison, evaluate both coordinate sets on exactly those within-S pairs:
+
+\[
+ E_S(Y)=100\sqrt{\frac{1}{\binom{|S|}{2}}
+  \sum_{i<j,\ i,j\in S}
+  \left(\frac{\|y_i-y_j\|_2-\delta_{ij}}{\delta_{ij}}\right)^2}.
+\]
+
+All targets here are positive. We use the same inverse-squared weighting for
+fitting and the same RMS relative-error definition for scoring. We do not
+compare the population-wide error directly with the local error as if they
+covered the same pairs. The restricted coordinates are not rescaled before
+evaluation. Each local result is evaluated at the scale returned by its solver.
+
+For exact global minimizers, the best local objective cannot exceed the
+restricted population objective: the restricted coordinates themselves are
+a feasible local solution. **A finite numerical run is not an exact global
+minimizer.** We therefore report several starts and retain a fit initialized
+from the restriction as a useful numerical check.
+
+## A known planar neighborhood inside a larger population
+
+The synthetic population has 96 observations in five dimensions. Twenty-four
+lie equally spaced on a radius-0.18 circle in the first two coordinates;
+the other 72 are a seeded five-dimensional Gaussian cloud shifted by two
+units in the third coordinate. These numbers define an illustrative geometry,
+not a microbiome model.
+
+The selected circle admits an exact three-dimensional representation: use its
+first two coordinates and a zero third coordinate. The surrounding population
+does not generally admit an exact 3D representation of all its Euclidean
+distances. We fit the full population with three random starts, then refit
+the circle starting from its restricted population coordinates.
+
+```{r synthetic-table}
+knitr::kable(data.frame(View=names(synthetic.score),RMS_percent=unname(synthetic.score)),
+  digits=4,row.names=FALSE,col.names=c('Within-circle view','RMS relative error (%)'))
+```
+
+The independently known planar coordinates have error below $10^{-10}$ percent.
+The restricted fit has **`r round(synthetic.score[1],4)`%** error and the local
+refit has **`r round(synthetic.score[2],4)`%**. These are measured outcomes under
+the stated budget, not an assertion that every local refit always improves.
+Both views below use the same coordinate limits and sphere radius.
+
+```{r synthetic-widgets, include=FALSE}
+stoy<-selection.widgets(list(synthetic.restricted,synthetic.local$coords),
+  rep('Selected circle',24),c('Circle: restriction of the 96-observation fit',
+  'Circle: local refit of the same 24 observations'),legend.title='Selected observations')
+```
+
+### Circle retained from the population fit
+
+```{r toy-restriction, echo=FALSE}
+stoy[[1]]
+```
+
+### Circle fitted locally
+
+```{r toy-local, echo=FALSE}
+stoy[[2]]
+```
+
+## A fixed Li neighborhood in bundled microbiome data
+
+We reuse the exact 300 distinct compositions and all 178 taxon coordinates
+from the fidelity article. The selection contains observations where
+*Lactobacillus iners* is a most abundant taxon, including exact dominance ties.
+This gives **`r length(selected)` compositions** and
+**`r format(choose(length(selected),2),big.mark=',',scientific=FALSE)` within-selection pairs**.
+It is a rank-based Li neighborhood, not a merged reference-state union.
+The original `valencia2k` sampling design is described in the
+[linf dataset guide](https://pgajer.github.io/linf/articles/example-datasets.html).
+
+For each target family, the population view is the best of the same three
+random starts used in the first article. Local fitting uses random-start
+seeds 11, 29 and 47 plus a restriction-initialized run with seed 59. Every run
+uses full-pair SGD, inverse-squared weights, 300 passes, and the Zheng schedule
+with `schedule.epsilon=0.01`, checking every ten passes. We report achieved
+results, not convergence certificates. The local result shown is the best
+of these four starts under the within-selection objective.
+
+```{r scope-comparison}
+knitr::kable(comparison,digits=2,row.names=FALSE,
+  col.names=c('Method','All population pairs (%)','Restriction (%)','Best local (%)','Warm start (%)'))
+```
+
+In this example, local refitting lowers within-selection error for all three
+target families. The reductions are
+**`r paste(round(comparison$Restricted-comparison$Local,2),collapse=", ")` percentage points**,
+respectively. The size of the improvement depends on the selection and geometry;
+this example does not guarantee the same outcome elsewhere.
+
+Only **Restriction**, **Best local**, and **Warm start** share the same pair
+set within a row. The population column is included to show why it is an
+inappropriate baseline for claiming local improvement. Columns are evaluated
+in each method's own target geometry, not against one universal metric.
+
+```{r local-seeds}
+local.seed.table<-rbind(local.random$scores[,1:3],do.call(rbind,lapply(names(warm),function(m)
+  data.frame(Method=m,Seed=59,RMS_percent=study_score(warm[[m]]$coords,local.targets[[m]])[1]))))
+knitr::kable(local.seed.table,digits=2,row.names=FALSE,
+  col.names=c('Method','Seed (59 starts from restriction)','Local RMS error (%)'))
+```
+
+The restriction-initialized runs also document whether the numerical
+procedure can improve the existing coordinates without depending on a lucky
+random initialization. More epochs or different schedules would be separate
+experiments, not silently substituted results.
+
+## Inspect one comparison with consistent display choices
+
+We illustrate **max normalization with Euclidean distance**, chosen as the
+middle case before comparing errors. The tables above cover all three methods.
+The population view highlights the selected Li neighborhood; the two following
+views contain exactly those selected observations.
+
+```{r population-widget, echo=FALSE}
+m<-'Max / Euclidean'
+Y<-scale(global$best[[m]]$coords,scale=FALSE)
+span<-max(apply(Y,2,function(x) diff(range(x))))
+selection.groups<-factor(ifelse(z$selection,'Selected Li neighborhood','Other observations'))
+selection.scale<-ivue::color.scale.groups(selection.groups,
+  colors=c('Selected Li neighborhood'='#A23B8F','Other observations'='#BBBBBB'))
+ivue::plot3D.groups(Y,selection.groups,scale=selection.scale,point.type='sphere',
+  sphere.radius=.006*span,axes=FALSE,xlab='',ylab='',zlab='',aspect='equal',
+  controls=FALSE,height=450L,legend.title='Population membership',legend.width=230,
+  camera=ivue::camera.zup(elevation=20,turn=-125,zoom=.9),
+  description='Full 300-composition population fit; purple spheres identify the Li selection used below.')
+```
+
+For the selected views, colors identify the most abundant **non-Li** taxon,
+with first-column tie handling. We translate and orthogonally align the local
+coordinates to the restriction, without changing scale or pair distances.
+Both selected views use identical limits, camera, colors and sphere radius.
+The population overview is framed separately because it shows more rows.
+
+```{r empirical-widgets, include=FALSE}
+nonli<-z$P[selected,-z$li,drop=FALSE]
+partner<-colnames(nonli)[max.col(nonli,ties.method='first')]
+major<-names(sort(table(partner),decreasing=TRUE))[1:4]
+partner[!partner %in% major]<-'Other secondary taxa'
+wlocal<-selection.widgets(list(restricted[[m]],local.best[[m]]$coords),partner,
+  c('Max / Euclidean: restriction of the population fit',
+    'Max / Euclidean: independently fitted local coordinates'),legend.title='Secondary taxon')
+```
+
+### Restriction of the population embedding
+
+```{r empirical-restriction, echo=FALSE}
+wlocal[[1]]
+```
+
+### Local embedding of the same selection
+
+```{r empirical-local, echo=FALSE}
+wlocal[[2]]
+```
+
+A displaced point between these two images has not moved biologically. The
+coordinate systems result from different optimization problems. Orthogonal
+alignment removes arbitrary rotation/reflection and translation; remaining
+differences reflect fitted deformation. A shared camera alone cannot align
+independently fitted coordinate systems.
+
+## What changes, and what should stay fixed?
+
+A useful interface names the scope explicitly: **population fit**, **restriction
+of a population fit**, or **local fit of the selection**. Selection membership,
+normalization, metric, weighting and color definitions should be recoverable
+from the figure or its methods. Background points cannot be appended to a
+local fit using their old population coordinates as if they shared the same
+frame; placing them requires a defined alignment or out-of-sample procedure.
+
+For longitudinal data, a trajectory within one jointly fitted coordinate
+system can be interpreted geometrically under its chosen targets. Connecting
+points from separately fitted visit or participant layouts would instead mix
+coordinate systems. Neither this example nor low local stress establishes
+a biological transition or participant-level uncertainty.
+
+## Reproduce this comparison
+
+Run `make local-global-vignette` in a grip source checkout. The shared
+`embedding-study.R` contains target construction, fitting, independent scoring,
+cache identity and distance-preserving alignment. The renderer records selected
+rows, implementation fingerprints, settings, scores and session information.
+It reuses compatible population fits from the fidelity article. These are
+small, exact all-pairs teaching examples, not newly computed VME dataset views.

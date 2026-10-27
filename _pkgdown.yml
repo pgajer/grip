@@ -51,6 +51,8 @@ navbar:
           href: articles/metric-mds-backends.html
         - text: What does a 3D embedding preserve?
           href: articles/embedding-fidelity.html
+        - text: Local versus population embeddings
+          href: articles/local-global-embeddings.html
         - text: Animate metric MDS updates
           href: articles/metric-mds-animation.html
         - text: Higher-dimensional MDS to 3D
@@ -84,7 +86,7 @@ articles:
   - title: Choose and understand layouts
     contents: [grip-real-data, weighted-grip-intro, metric-mds-backends, metric-mds-animation, high-dimensional-mds, fermat-surface-embeddings, sparse-metric-mds, grip-trace-and-diagnostics]
   - title: Representation and interpretation (website only)
-    contents: [articles/embedding-fidelity]
+    contents: [articles/embedding-fidelity, articles/local-global-embeddings]
   - title: Case study and exploration
     contents: [hmp-u01-case-study, gripui-explorer]
   - title: Complete results and further examples
