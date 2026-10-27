@@ -55,7 +55,7 @@ Rotate the graph to inspect its structure. All vertices and edges are shown.
 For a quick view in an interactive R session, use:
 
 ```{r plot-recipe, eval=FALSE}
-ivue::plot3D.plain(coords, layers=list(ivue::layer3D.edges(g$edges)))
+ivue::plot3D.plain(coords, layers=list(ivue::layer3D.edges(g$edges)), controls = FALSE)
 ```
 
 ## Assess the drawing

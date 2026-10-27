@@ -214,7 +214,7 @@ comparison_view <- function(case, fits, width = 900L, height = 460L,
     xlab = '', ylab = '', zlab = '', aspect = 'equal',
     camera = if (is.null(camera)) ivue::camera.zup(elevation = 22, turn = -125,
                             zoom = .85) else camera,
-    limits = bounds, legend.show = legend, controls = controls && !layout_selector,
+    limits = bounds, legend.show = legend, controls = FALSE,
     layers = layers, width = width, height = height, legend.width = 150,
     description = if (!is.null(description)) description else if (controls && !is.null(surface.alignments))
       paste(case$label, case$n, 'points. Surface-shape alignment; scale unchanged.',

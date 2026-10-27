@@ -94,7 +94,7 @@ if (!documentation.interactive()) {
     htmltools::tags$h3(paste('Recorded stage',i,'of',length(mesh.trace$frames))),
     ivue::plot3D.plain(z,layers=list(ivue::layer3D.edges(e)),
       axes=FALSE,aspect='equal',width=900,height=420,
-      description=paste('Stage',i,':',sum(active),'active vertices. Original planar coordinates.'))
+      description=paste('Stage',i,':',sum(active),'active vertices. Original planar coordinates.'), controls = FALSE)
   )
 }))
 ```

@@ -42,7 +42,7 @@ g <- suitesparse.graph('dwt_307')
 fit <- metric.mds(edges=g$edges,n=g$n,edge.weights=g$edge_weights,
   dim=3,approximation='sparse',backend='sgd',seed=1,
   sparse.control=list(n.pivots=32),max.iter=100)
-ivue::plot3D.plain(fit$coords, layers=list(ivue::layer3D.edges(g$edges)))
+ivue::plot3D.plain(fit$coords, layers=list(ivue::layer3D.edges(g$edges)), controls = FALSE)
 ```
 
 Full MDS remains the default. Sparse mode currently supports SGD only, with
