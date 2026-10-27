@@ -24,3 +24,26 @@ Rmd sources still depend on package functions, installed scripts, and saved
 results elsewhere in the repository. Use the recorded source commit to
 recover those dependencies. Existing relative links in the copied HTML have
 not been rewritten.
+
+Checksum repair — 27 October 2026
+
+The 30 September commit d213fe48de81953a96f8fb578bf8590aa7356ed1
+("Add offline SuiteSparse graph catalogue and replace six-example dataset")
+also edited _synthetic-graph-families.Rmd inside this archive. It replaced
+zheng.graphs examples and related wording with suitesparse.graph calls,
+without changing the original snapshot's manifest entry.
+
+The original _synthetic-graph-families.Rmd has now been restored byte-for-byte
+from the source commit recorded above; it matches its original SHA-256.
+The later content is preserved byte-for-byte at:
+  revisions/d213fe48/_synthetic-graph-families.Rmd
+Its separate manifest row records the same original guide path and a distinct
+archive path and checksum. Both versions are checked by check-documentation.py.
+No archived content or original checksum was discarded. The revision is a
+historical copy, not a maintained or independently validated runnable guide.
+
+The preview location above records the September snapshot's environment.
+Current maintained sources are under ~/current_projects/grip/; current local
+previews are under output/vignette-previews/ in that checkout. Keep frozen
+snapshot files unchanged; preserve any later variants separately with their
+provenance and a new manifest entry.
