@@ -1,0 +1,240 @@
+---
+title: "What does a 3D embedding preserve?"
+author: "Pawel Gajer"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=8,fig.height=4.8,dpi=120)
+options(rgl.useNULL=TRUE)
+library(grip)
+stopifnot(requireNamespace('linf',quietly=TRUE),requireNamespace('ivue',quietly=TRUE))
+helper<-c('embedding-study.R','vignettes/articles/embedding-study.R')
+source(helper[file.exists(helper)][1],local=TRUE)
+z<-study_data(); targets<-study_targets(z$P); toy.targets<-study_targets(z$toy)
+real<-study_runs(targets); toy<-study_runs(toy.targets)
+```
+
+<style>
+.figure {display:block;width:100%;max-width:100%}
+.figure > .caption {display:block;max-width:100%}
+.figure img {max-width:100%;height:auto}
+</style>
+
+## Three decisions, three different questions
+
+A 3D picture combines a representation of the observations, a distance rule,
+and a fitted approximation. Separating these decisions prevents a visually
+striking plot from becoming its own evidence.
+
+Here we hold the observations fixed and compare **L1 normalization with
+Euclidean distance**, **max normalization with Euclidean distance**, and
+**max normalization with L-infinity distance**. We measure each fit against
+its own original-space distances. We do not compare ecological validity.
+
+The [linf corner-geometry article](https://pgajer.github.io/linf/articles/simplex-corner-geometry.html)
+explains how normalization alone can separate directions away from a dominant
+taxon. This companion asks how much of the chosen distance geometry survives
+an additional reduction to three dimensions.
+
+## What is fitted, and what counts as success?
+
+We use two examples: 48 reproducible four-part synthetic compositions and a
+seeded sample of 300 distinct compositions from the 2,000 observations in
+`linf::valencia2k`. The latter is a stratified teaching subset of VALENCIA data,
+not a population-prevalence sample. See the
+[dataset guide](https://pgajer.github.io/linf/articles/example-datasets.html).
+All 178 taxon columns are retained. One distinct composition is one fit row;
+no participant weighting or clinical outcome enters the analysis.
+
+For each example and target, we fit three dimensions using `metric.mds()`
+with the **SGD backend**, inverse-squared target-distance weights, 300 full
+pair passes, and seeds 11, 29 and 47. Each seed gives one random start.
+The Zheng schedule uses `schedule.epsilon=0.01`; checkpoints occur every ten
+passes. The lowest achieved objective among these three runs supplies the
+illustration. All seed results are reported, including budget exhaustion;
+none is called a certified optimum.
+
+There are only `r format(choose(nrow(z$P),2),big.mark=",",scientific=FALSE)` empirical pairs, so these examples use
+full distance matrices and exact all-pairs evaluation. This is a teaching
+choice, not a prescription for large datasets. See the
+[sparse fitting guide](https://pgajer.github.io/grip/articles/sparse-metric-mds.html)
+for larger collections.
+
+The primary diagnostic is
+
+\[
+ E=100\sqrt{\frac{1}{|\mathcal P|}
+       \sum_{(i,j)\in\mathcal P}\left(\frac{d_{ij}-\delta_{ij}}{\delta_{ij}}\right)^2},
+ \qquad d_{ij}=\|y_i-y_j\|_2.
+\]
+
+Here $\delta_{ij}>0$ is the selected target distance, $y_i$ is a fitted 3D
+coordinate, and $\mathcal P$ contains all unordered pairs of distinct fit rows.
+Zero means exact reproduction; 10% means an RMS relative error of 0.10,
+**not** that every distance is accurate to 10%. No additional scale is fitted
+when calculating this diagnostic. The solver's returned coordinates already
+include its documented objective-based scale adjustment.
+
+There is no universal acceptable percentage. A successful evaluation computes
+the stated quantity correctly, reveals where errors occur, and exposes seed
+sensitivity. A lower value for one target family does not show that its
+normalization or metric is scientifically better than another.
+
+## Construct the targets explicitly
+
+For nonnegative rows with positive total, let $p=x/\sum_jx_j$ and
+$q=x/\max_jx_j$. The targets are respectively
+$\|p_i-p_j\|_2$, $\|q_i-q_j\|_2$, and
+$\|q_i-q_j\|_\infty=\max_k|q_{ik}-q_{jk}|$.
+Max normalization and L-infinity distance are separate operations.
+
+```{r target-recipe, eval=FALSE}
+P <- X / rowSums(X)
+Q <- X / apply(X, 1, max)
+D1 <- as.matrix(dist(P))
+D2 <- as.matrix(dist(Q))
+D3 <- as.matrix(dist(Q, method = 'maximum'))
+fit <- metric.mds(distance.matrix=D3, dim=3, backend='sgd',
+  pair.weights='inverse_squared', init='random', n.init=1,
+  max.iter=300, seed=11,
+  sgd.control=list(scheduler='zheng',schedule.epsilon=.01,checkpoint.every=10))
+```
+
+`distance.matrix` uses these values directly: no neighbor graph or shortest
+paths replace them. Remove duplicate normalized rows before using
+inverse-squared weights, and retain the mapping back to original observations.
+Near-zero positive targets are retained, not floored; they can make relative
+error demanding. In this empirical subset, the smallest positive target in
+each family is:
+
+```{r target-minima}
+knitr::kable(data.frame(Method=names(targets),Minimum=vapply(targets,
+  function(D) min(D[lower.tri(D)]),numeric(1))),digits=6,row.names=FALSE)
+```
+
+## A small example with a known reference
+
+Four-part L1 compositions lie in a three-dimensional affine hyperplane, so
+their Euclidean distances admit an exact 3D representation. We can construct
+one directly using an orthonormal basis, independent of MDS. Max-normalized
+points can span several faces in four dimensions, and L-infinity targets
+need not be Euclidean even before reducing dimension.
+
+```{r exact-toy}
+H<-qr.Q(qr(cbind(rep(1,4),diag(4)[,1:3]))) [,-1,drop=FALSE]
+exact<-z$toy%*%H
+exact.error<-study_score(exact,toy.targets[[1]])[1]
+stopifnot(exact.error<1e-10)
+knitr::kable(toy$scores[,1:6],digits=3,row.names=FALSE,
+  col.names=c("Method","Seed","RMS (%)","Short (%)","Long (%)","Median absolute (%)"))
+```
+
+The independently constructed exact L1 representation has RMS relative error
+below $10^{-10}$ percent. Any larger error in the fitted L1 rows above is
+optimization error under this budget. For the other targets, an observed
+residual can combine dimensional incompatibility and optimization error; these
+runs do not separate the two or establish the best achievable stress.
+
+## Results on the bundled microbiome example
+
+```{r all-seeds}
+knitr::kable(real$scores[,1:6],digits=2,row.names=FALSE,
+  col.names=c("Method","Seed","RMS (%)","Short (%)","Long (%)","Median absolute (%)"))
+```
+
+The best observed RMS errors are **`r paste(round(vapply(names(targets),function(m) min(real$scores$RMS_percent[real$scores$Method==m]),numeric(1)),2),collapse="%, ")`%**,
+in the method order shown above. These are achieved errors for different target
+families, not a ranking of biological usefulness. All 18 runs (both examples)
+ended at the iteration limit. Values printed as zero are rounded, not a claim
+of exact numerical equality.
+
+The columns for shortest and longest distances use each target's own bottom
+and top distance deciles, including boundary ties. Their membership can differ
+between target families. Every fit is checked against every pair; this measures
+training-distance fidelity, not generalization to unseen samples.
+
+```{r seed-variation, fig.cap="Each point is one recorded seed. Lower is better only relative to the target family on the same axis; differences between methods also reflect different distance geometries."}
+op<-par(mar=c(8,4,1,1))
+plot(NA,xlim=c(.6,3.4),ylim=range(c(0,real$scores$RMS_percent)),xaxt='n',
+     xlab='',ylab='RMS relative error (%)')
+axis(1,1:3,names(targets),las=2)
+for(i in 1:3) points(rep(i,3)+c(-.08,0,.08),real$scores$RMS_percent[real$scores$Method==names(targets)[i]],
+  pch=16,col=c('#0072B2','#D55E00','#009E73')[i])
+par(op)
+```
+
+## Where are distances distorted?
+
+The following plots use the best of the three recorded starts for each
+method. Every empirical pair is shown. The diagonal is exact preservation;
+vertical spread indicates errors hidden by a single RMS number.
+
+```{r distance-plots, fig.height=3.5, fig.cap="Target distance versus fitted Euclidean distance in 3D, in each target's own units. Axes within each panel have the same range."}
+op<-par(mfrow=c(1,3),mar=c(4,4,3,1))
+for(m in names(targets)) {
+  t<-as.numeric(as.dist(targets[[m]])); d<-as.numeric(dist(real$best[[m]]$coords))
+  lim<-range(c(0,t,d))
+  plot(t,d,pch=16,cex=.2,col=adjustcolor('#0072B2',alpha.f=.12),
+       xlim=lim,ylim=lim,asp=1,main=m,xlab='Target distance',ylab='3D distance')
+  abline(0,1,col='#D55E00',lwd=2)
+}
+par(op)
+```
+
+## Explore the three fitted views
+
+Drag to rotate and scroll to zoom. All views use the same observations, colors,
+sphere radius, camera and coordinate limits. We remove translation and align
+orientations to the first fit using an orthogonal transformation; **we do not
+rescale the drawings**. Alignment preserves all fitted pair distances and
+cannot remove deformation. Axes are arbitrary embedding coordinates.
+Different overall sizes may reflect different target-distance units.
+
+```{r make-widgets, include=FALSE}
+widgets<-study_widgets(lapply(real$best,`[[`,'coords'),z$groups,
+  paste(names(targets),'— best of three recorded full SGD fits'))
+```
+
+### L1 normalization, Euclidean distance
+
+```{r view-l1, echo=FALSE}
+widgets[[1]]
+```
+
+### Max normalization, Euclidean distance
+
+```{r view-max-euclidean, echo=FALSE}
+widgets[[2]]
+```
+
+### Max normalization, L-infinity distance
+
+```{r view-max-linf, echo=FALSE}
+widgets[[3]]
+```
+
+A visible arm or gap is a feature to investigate in the original data and
+selected targets. It is not, by itself, evidence of a community boundary.
+Colors describe the original dominant taxon; changing normalization or fitting
+does not reassign these labels.
+
+## Reproduce and interpret the comparison
+
+This is a website article for the development version of grip with direct
+`distance.matrix` support. It requires linf's bundled data and ivue/rgl for
+interactive figures. The source-visible `embedding-study.R` beside this
+article contains data selection, scoring, fitting, and alignment functions.
+From a source checkout, run `make embedding-fidelity-vignette`.
+The on-demand renderer records source fingerprints, session information,
+selected rows and every fit's settings; cached fits are keyed by inputs,
+solver settings and implementation fingerprints. It does not publish the site.
+
+The article reports the specified 300-pass experiment without extending runs
+until a preferred picture appears. More starts or longer schedules would be
+new experiments. The examples do not determine an optimal normalization,
+certify convergence, or provide participant-level uncertainty estimates.

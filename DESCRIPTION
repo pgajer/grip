@@ -51,7 +51,7 @@ Suggests:
     withr
 Enhances: ivue (>= 0.1.0)
 Config/Needs/check: pgajer/dgraphs@3e4dd1486a6d1dc0933a6f79448492095afd8ea5
-Config/Needs/website: pgajer/ivue@4bc38526c334441e29fa761382d06aad67a25dcb
+Config/Needs/website: pgajer/ivue@70ce17bb73f315da7565ce425405369c6a8edd48, pgajer/linf
 LinkingTo: Rcpp
 SystemRequirements: C++17
 Config/testthat/edition: 3

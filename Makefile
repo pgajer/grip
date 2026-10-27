@@ -127,3 +127,7 @@ check check-clean check-fast: audit-api-guide
 .PHONY: mds-animation-vignette
 mds-animation-vignette:
 	Rscript tools/pkg/render-mds-animation-vignette.R
+
+.PHONY: embedding-fidelity-vignette
+embedding-fidelity-vignette:
+	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 Rscript tools/pkg/render-representation-vignette.R embedding-fidelity
