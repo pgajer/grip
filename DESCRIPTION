@@ -1,7 +1,7 @@
 Package: grip
 Type: Package
 Title: Graph Drawing with Intelligent Placement (GRIP)
-Version: 0.2.0.9001
+Version: 0.2.0.9002
 Authors@R:
     c(person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre")),
       person("Jonathan", "Zheng", role = c("ctb", "cph"),

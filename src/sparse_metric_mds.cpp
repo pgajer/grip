@@ -135,9 +135,14 @@ Rcpp::List grip_sparse_prepare_cpp(int n, Rcpp::IntegerMatrix edges,
                         row[i] = std::max(row[i],std::abs((X(i,col)-pivot_value)/unit));
                 }
             } else {
-                for (int i=0; i<n; ++i) if (i!=p)
-                    for (int col=0; col<X.ncol(); ++col)
-                        row[i]=std::hypot(row[i],(X(i,col)-X(p,col))/unit);
+                // Interleave independent rows to read column-major observations
+                // contiguously. Each row retains the identical feature order,
+                // division and hypot operations used by the original loop.
+                for (int col=0; col<X.ncol(); ++col) {
+                    const double pivot_value = X(p,col);
+                    for (int i=0; i<n; ++i) if (i!=p)
+                        row[i]=std::hypot(row[i],(X(i,col)-pivot_value)/unit);
+                }
             }
             for (int i=0; i<n; ++i) if (i!=p && (!std::isfinite(row[i]) || row[i]<=0))
                 Rcpp::stop("Observation distances must be positive and representable; consolidate duplicates");

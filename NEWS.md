@@ -1,4 +1,14 @@
-# grip 0.2.0.9001 (development version)
+# grip 0.2.0.9002 (development version)
+
+- Reduced sparse `metric.mds()` temporary memory use by computing learning-rate
+  weight extrema without concatenating endpoint arrays and collecting discarded
+  scratch arrays before large allocations. Continuation fingerprints now stream
+  the same serialization bytes, preserving existing saved-state compatibility.
+  Euclidean sparse preparation reads observation columns contiguously while
+  preserving each distance's arithmetic order. The public interface, SGD updates,
+  and numerical results are unchanged.
+
+# grip 0.2.0.9001
 
 - Added `prepare.sparse.mds(method = "linf")` with exact original-coordinate
   nearest neighbors, internal randomized or farthest pivots, and regional

@@ -2,7 +2,7 @@
 .metric.mds.state.version <- function() "grip-sgd-continuation-v1"
 
 .metric.mds.state.hash <- function(x) {
-  grip_sgd_state_hash_cpp(serialize(x,NULL,version=2))
+  grip_sgd_state_hash_object_cpp(x)
 }
 
 .metric.mds.sgd.status <- function(output, fit, control, kind) {
@@ -78,7 +78,7 @@
   control <- state$control; context <- state$context; args <- state$arguments
   if (as.double(max(total,control$schedule.epochs))*8>control$max.workspace.bytes)
     stop("Continuation rate vector exceeds max.workspace.bytes",call.=FALSE)
-  weights <- if (context$kind=="full") context$weights else c(args$weights,args$reverse_weights)
+  weights <- if (context$kind=="full") context$weights else grip_sgd_weight_range_cpp(args$weights,args$reverse_weights)
   rates <- grip.mds.sgd.rates(control,total,weights)
   args$start <- state$native$coords;args$rates <- rates[seq.int(offset+1L,total)]
   args$state <- state$native;args$stopping <- control$stopping

@@ -426,3 +426,51 @@ std::string grip_sgd_state_hash_cpp(Rcpp::RawVector bytes) {
     for(Rbyte byte:bytes) { value^=byte;value*=1099511628211ULL; }
     std::ostringstream out;out<<std::hex<<value;return out.str();
 }
+
+// Hash exactly the version-2 XDR serialization used by serialize(x, NULL),
+// without retaining a raw vector proportional to the continuation state.
+namespace {
+struct StreamingStateHash { std::uint64_t value = 14695981039346656037ULL; };
+void state_hash_char(R_outpstream_t stream, int value) {
+    auto* state = static_cast<StreamingStateHash*>(stream->data);
+    state->value ^= static_cast<unsigned char>(value);
+    state->value *= 1099511628211ULL;
+}
+void state_hash_bytes(R_outpstream_t stream, void* bytes, int length) {
+    auto* state = static_cast<StreamingStateHash*>(stream->data);
+    const auto* input = static_cast<const unsigned char*>(bytes);
+    for (int i = 0; i < length; ++i) {
+        state->value ^= input[i]; state->value *= 1099511628211ULL;
+    }
+}
+}
+
+// [[Rcpp::export]]
+std::string grip_sgd_state_hash_object_cpp(SEXP object) {
+    StreamingStateHash state;
+    R_outpstream_st stream;
+    R_InitOutPStream(&stream, &state, R_pstream_xdr_format, 2,
+                    state_hash_char, state_hash_bytes, nullptr, R_NilValue);
+    R_Serialize(object, &stream);
+    std::ostringstream out; out << std::hex << state.value; return out.str();
+}
+
+// Zheng rates depend only on the positive finite minimum and maximum.
+// Preserve their exact values while avoiding concatenation and filtering copies.
+// [[Rcpp::export]]
+Rcpp::NumericVector grip_sgd_weight_range_cpp(Rcpp::NumericVector first,
+                                             Rcpp::NumericVector second) {
+    double smallest = std::numeric_limits<double>::infinity(), largest = 0;
+    for (const auto& input : {first, second}) {
+        R_xlen_t index = 0;
+        for (double value : input) {
+            if ((index++ & 1048575) == 0) Rcpp::checkUserInterrupt();
+            if (std::isfinite(value) && value > 0) {
+                smallest = std::min(smallest, value);
+                largest = std::max(largest, value);
+            }
+        }
+    }
+    if (!std::isfinite(smallest)) return Rcpp::NumericVector();
+    return Rcpp::NumericVector::create(smallest, largest);
+}

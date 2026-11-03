@@ -61,6 +61,8 @@
   }
   preparation.seconds <- proc.time()[["elapsed"]] - began
   began <- proc.time()[["elapsed"]]
+  # Validation creates bounded scratch blocks; release them before full-length weights.
+  if (nrow(sparse$pairs) >= 1000000L) gc(verbose = FALSE)
   target <- sparse$targets
   maximum <- max(target)
   rms <- maximum * sqrt(mean((target / maximum)^2))
@@ -70,7 +72,7 @@
   if (any(!is.finite(wi)) || any(!is.finite(wj)) ||
       any(wi[sparse$count_i > 0] <= 0) || any(wj[sparse$count_j > 0] <= 0))
     stop("Sparse weights are outside the representable numeric range", call. = FALSE)
-  rates <- grip.mds.sgd.rates(control,max.iter,c(wi,wj))
+  rates <- grip.mds.sgd.rates(control,max.iter,grip_sgd_weight_range_cpp(wi,wj))
   if (is.matrix(init)) {
     if (!is.numeric(init) || !identical(base::dim(init), c(n,dim)) || any(!is.finite(init)))
       stop("init must be a finite n by dim matrix", call. = FALSE)
@@ -81,6 +83,8 @@
     start <- matrix(stats::runif(n*dim),n,dim)
     initialization <- "random"
   }
+  # Keep discarded R arithmetic/validation temporaries out of the native peak.
+  if (nrow(sparse$pairs) >= 1000000L) gc(verbose = FALSE)
   fit <- grip_sgd_mds_cpp(start, targets, rates, fitting.seed,
     control$checkpoint.every, control$max.workspace.bytes, TRUE,
     wi, sparse$pairs, wj, FALSE, stopping=control$stopping,
@@ -130,6 +134,8 @@
     stop("Canonical constraint preparation exceeds max.workspace.bytes", call. = FALSE)
   previous <- c(0L, 0L)
   for (first in seq.int(1L, m, by = block.size)) {
+    # Bound uncollected scratch arrays independently of the retained input size.
+    if (m >= 1000000L && (as.double(first) - 1) %% (16 * block.size) == 0L) gc(verbose = FALSE)
     ids <- seq.int(first, min(m, first + block.size - 1L))
     block <- list(pairs = x$pairs[ids,,drop=FALSE], targets = x$targets[ids],
       count_i = x$count_i[ids], count_j = x$count_j[ids])

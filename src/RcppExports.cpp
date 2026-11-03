@@ -788,6 +788,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grip_sgd_state_hash_object_cpp
+std::string grip_sgd_state_hash_object_cpp(SEXP object);
+RcppExport SEXP _grip_grip_sgd_state_hash_object_cpp(SEXP objectSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type object(objectSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_state_hash_object_cpp(object));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grip_sgd_weight_range_cpp
+Rcpp::NumericVector grip_sgd_weight_range_cpp(Rcpp::NumericVector first, Rcpp::NumericVector second);
+RcppExport SEXP _grip_grip_sgd_weight_range_cpp(SEXP firstSEXP, SEXP secondSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type first(firstSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type second(secondSEXP);
+    rcpp_result_gen = Rcpp::wrap(grip_sgd_weight_range_cpp(first, second));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grip_surface_distances_cpp
 Rcpp::NumericVector grip_surface_distances_cpp(Rcpp::NumericMatrix points, Rcpp::NumericMatrix vertices, Rcpp::IntegerMatrix triangles);
 RcppExport SEXP _grip_grip_surface_distances_cpp(SEXP pointsSEXP, SEXP verticesSEXP, SEXP trianglesSEXP) {
@@ -867,6 +890,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_grip_grip_constraint_graph_cpp", (DL_FUNC) &_grip_grip_constraint_graph_cpp, 4},
     {"_grip_grip_sgd_mds_cpp", (DL_FUNC) &_grip_grip_sgd_mds_cpp, 16},
     {"_grip_grip_sgd_state_hash_cpp", (DL_FUNC) &_grip_grip_sgd_state_hash_cpp, 1},
+    {"_grip_grip_sgd_state_hash_object_cpp", (DL_FUNC) &_grip_grip_sgd_state_hash_object_cpp, 1},
+    {"_grip_grip_sgd_weight_range_cpp", (DL_FUNC) &_grip_grip_sgd_weight_range_cpp, 2},
     {"_grip_grip_surface_distances_cpp", (DL_FUNC) &_grip_grip_surface_distances_cpp, 3},
     {"_grip_grip_sparse_prepare_cpp", (DL_FUNC) &_grip_grip_sparse_prepare_cpp, 12},
     {"_grip_grip_linf_knn_cpp", (DL_FUNC) &_grip_grip_linf_knn_cpp, 3},

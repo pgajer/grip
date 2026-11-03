@@ -117,6 +117,14 @@ grip_sgd_state_hash_cpp <- function(bytes) {
     .Call(`_grip_grip_sgd_state_hash_cpp`, bytes)
 }
 
+grip_sgd_state_hash_object_cpp <- function(object) {
+    .Call(`_grip_grip_sgd_state_hash_object_cpp`, object)
+}
+
+grip_sgd_weight_range_cpp <- function(first, second) {
+    .Call(`_grip_grip_sgd_weight_range_cpp`, first, second)
+}
+
 grip_surface_distances_cpp <- function(points, vertices, triangles) {
     .Call(`_grip_grip_surface_distances_cpp`, points, vertices, triangles)
 }
