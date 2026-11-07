@@ -92,7 +92,8 @@ surface.animation <- function(cases) {
   if (!isTRUE(getOption("grip.vignette.interactive", FALSE)) ||
       !requireNamespace("ivue", quietly = TRUE) ||
       !requireNamespace("rgl", quietly = TRUE)) {
-    old <- graphics::par(mfrow = c(length(cases), 4L), mar = c(3, 3, 3, 1))
+    old <- graphics::par(mfrow = c(length(cases), 4L), mar = c(3, 3, 3, 1),
+                         mgp = c(1.8, .5, 0), cex.axis = .8, cex.lab = .8)
     on.exit(graphics::par(old), add = TRUE)
     for (name in names(cases)) {
       case <- cases[[name]]
