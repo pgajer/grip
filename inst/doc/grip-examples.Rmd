@@ -1,0 +1,131 @@
+---
+title: "Getting Started with grip"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Getting Started with grip}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=96, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+                     out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+Start with a graph whose structure you want to explore. This example uses
+**dwt_307**, a 307-vertex structural graph from the
+[SuiteSparse Matrix Collection](https://sparse.tamu.edu/HB/dwt_307), supplied
+with grip. Its edges describe connectivity; the drawing has no known spatial
+reference that the layout must recover.
+
+## Load a graph and draw it
+
+```{r first-layout}
+g <- suitesparse.graph('dwt_307')
+fit <- metric.mds(edges=g$edges, n=g$n, dim=3, backend="sgd",
+                  seed=1, diagnostics=FALSE)
+coords <- fit$coords
+```
+
+Each row of `g$edges` contains two vertex indices, numbered from 1 to `g$n`.
+Each row of `coords` gives the position of the corresponding vertex.
+Metric MDS with SGD fits Euclidean separations to graph shortest-path distances.
+Here all edges have unit length, so targets are hop distances. Inspect the fit
+diagnostics and termination status; a returned layout does not imply convergence.
+
+```{r first-view, echo=FALSE}
+documentation.view(list(`SGD metric MDS`=coords),g$edges,
+  description='dwt_307: 307 vertices. SGD metric MDS with seed 1.')
+```
+
+Rotate the graph to inspect its structure. All vertices and edges are shown.
+For a quick view in an interactive R session, use:
+
+```{r plot-recipe, eval=FALSE}
+ivue::plot3D.plain(coords, layers=list(ivue::layer3D.edges(g$edges)), controls = FALSE)
+```
+
+## Assess the drawing
+
+```{r score}
+quality <- score.layout(coords, edges=g$edges, n=g$n,
+                        edge.crossings='never')
+knitr::kable(quality[,c('sampled.stress','edge.length.cv',
+                       'sampled.nonedge.sep.ratio')],digits=3)
+```
+
+Sampled stress compares drawn distances with graph shortest paths after fitting
+one common scale; smaller values mean closer agreement. Edge-length variation
+shows how evenly the unit edges are drawn. Nonedge separation describes how
+far apart unconnected vertices lie relative to edges. These measures describe
+different aspects of a drawing; no single number captures readability.
+
+## Metric MDS controls
+
+`metric.mds()` directly fits Euclidean distances to graph shortest-path
+distances. Its default SGD backend adjusts pairs of vertices in shuffled order,
+following [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997)
+with the learning-rate schedule of
+[Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641).
+
+```{r metric-mds-default}
+mds <- suppressWarnings(metric.mds(
+  edges=g$edges, n=g$n, dim=3, init='random',
+  max.iter=80, seed=1, diagnostics=FALSE))
+mds$metadata$termination
+```
+
+The 80-pass allowance is a short illustrative setting. Schedule completion
+reports `iteration_limit`; it does not establish convergence. The figure
+compares this random-start, 80-pass fit with the default-initialization MDS
+fit above, which uses the default 1,000-pass budget. The display allows rotation,
+reflection, and translation and matches overall size with one uniform multiplier
+per layout. This does not change the fitted coordinates or scores. Because both
+initialization and budget differ, this is an illustration, not an isolated test
+of either choice.
+
+```{r methods-view, echo=FALSE}
+documentation.view(list('Random start, 80 passes'=mds$coords,'Default initialization, 1000 passes'=coords),g$edges,common.size=TRUE,
+  description='dwt_307: two SGD metric-MDS runs with different initialization and pass budgets. Aligned at a common overall size for display. Seed 1.')
+```
+
+Select a layout below the figure, or show both. For optimizer and weighting
+choices, continue to [Metric MDS](metric-mds-backends.html). Larger graphs may
+benefit from [sparse metric MDS](sparse-metric-mds.html).
+
+## Choose the next step
+
+| Your next question | Vignette |
+|---|---|
+| What functions are available? | [Finding your way around grip](function-guide.html) |
+| What other graphs can I draw? | [Graph gallery](synthetic-graph-families.html) |
+| Which settings or seeds should I use? | [Choosing and evaluating a layout](grip-real-data.html) |
+| How do normalization and distance affect a 3D fit? | [What does a 3D embedding preserve?](https://pgajer.github.io/grip/articles/embedding-fidelity.html) (website article) |
+| Should I refit a selection or keep its population coordinates? | [Local embeddings versus subsets of a global embedding](https://pgajer.github.io/grip/articles/local-global-embeddings.html) (website article) |
+| How do I compare views with consistent colors, scales and cameras? | [Comparing scientific views in ivue](https://pgajer.github.io/ivue/doc/ivue-introduction.html#comparing-scientific-views) |
+| My edges represent distances | [Layouts with meaningful edge lengths](weighted-grip-intro.html) |
+| How did the drawing develop? | [Tracing and diagnosing layouts](grip-trace-and-diagnostics.html) |
+| How do I explore saved results? | [Interactive exploration with gripui](gripui-explorer.html) |
+
+Edge values that describe connection strength are not automatically suitable
+as distances. In particular, the bundled SuiteSparse examples use unit traversal
+lengths and retain their original matrix values separately. The graph gallery
+provides source attribution and conversion details.

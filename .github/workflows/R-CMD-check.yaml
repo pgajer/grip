@@ -1,0 +1,145 @@
+# R-hub's generic GitHub Actions workflow file. Its canonical location is at
+# https://github.com/r-hub/actions/blob/v1/workflows/rhub.yaml
+
+name: Grip release checks
+run-name: "${{ github.event.inputs.id }}: ${{ github.event.inputs.name || format('Manually run by {0}', github.triggering_actor) }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: "A comma-separated list of R-hub platforms to use."
+        type: string
+        default: "mkl"
+      r_version:
+        description: "Optional R version for non-container checks."
+        type: string
+        default: ""
+      name:
+        description: "Optional run name."
+        type: string
+      id:
+        description: "Optional unique ID."
+        type: string
+
+env:
+  MAKEFLAGS: "-j1"
+  OMP_NUM_THREADS: "1"
+  OMP_THREAD_LIMIT: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+  VECLIB_MAXIMUM_THREADS: "1"
+  RGL_USE_NULL: "true"
+  GRIP_FULL_DEPENDENCIES: "true"
+  PKG_USE_BIOCONDUCTOR: "false"
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      containers: ${{ steps.rhub-setup.outputs.containers }}
+      platforms: ${{ steps.rhub-setup.outputs.platforms }}
+
+    steps:
+      - uses: r-hub/actions/setup@v1
+        with:
+          config: ${{ github.event.inputs.config }}
+        id: rhub-setup
+
+  linux-containers:
+    needs: setup
+    if: ${{ needs.setup.outputs.containers != '[]' }}
+    runs-on: ubuntu-latest
+    name: ${{ matrix.config.label }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        config: ${{ fromJson(needs.setup.outputs.containers) }}
+    container:
+      image: ${{ matrix.config.container }}
+
+    steps:
+      - uses: r-hub/actions/checkout@v1
+      - uses: r-hub/actions/platform-info@v1
+        with:
+          token: ${{ secrets.RHUB_TOKEN }}
+          job-config: ${{ matrix.config.job-config }}
+      - name: Use the primary CRAN source mirror
+        shell: Rscript {0}
+        run: |
+          cat('\nlocal({ r <- getOption("repos"); r["CRAN"] <- "https://cran.r-project.org"; options(repos = r) })\n',
+              file = path.expand("~/.Rprofile"), append = TRUE)
+      - uses: r-hub/actions/setup-deps@v1
+        with:
+          pak-version: stable
+          extra-packages: |
+            any::rcmdcheck
+            github::pgajer/dgraphs@6e389f4d19b972f233b93fd75530dc50498894f2
+          dependencies: 'c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")'
+          token: ${{ secrets.RHUB_TOKEN }}
+          job-config: ${{ matrix.config.job-config }}
+      - uses: r-hub/actions/run-check@v1
+        with:
+          token: ${{ secrets.RHUB_TOKEN }}
+          job-config: ${{ matrix.config.job-config }}
+
+      - name: Record classical-MDS geometry under the active BLAS
+        if: always()
+        shell: Rscript {0}
+        run: |
+          .libPaths(c(normalizePath("check/grip.Rcheck", mustWork=FALSE), .libPaths()))
+          library(grip)
+          prepared <- prepare.graph.geodesic.mds(edges=edges.mesh(6L,6L), n=36L)
+          full <- classical.mds(prepared=prepared, dim=2L, diagnostics=FALSE)
+          fast <- classical.mds(edges=edges.mesh(6L,6L), n=36L, dim=2L, diagnostics=FALSE)
+          cat("Original coordinate comparison:\n")
+          print(all.equal(fast$coords,full$coords,tolerance=1e-10))
+          print(c(target=max(abs(fast$prepared$distance_matrix-prepared$distance_matrix)),
+                  coordinate=max(abs(fast$coords-full$coords)),
+                  geometry=max(abs(dist(fast$coords)-dist(full$coords)))))
+          print(sessionInfo())
+          stopifnot(isTRUE(all.equal(fast$prepared$distance_matrix,prepared$distance_matrix,tolerance=0)),
+                    isTRUE(all.equal(as.numeric(dist(fast$coords)),as.numeric(dist(full$coords)),tolerance=1e-10)))
+
+  other-platforms:
+    needs: setup
+    if: ${{ needs.setup.outputs.platforms != '[]' }}
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (R-${{ github.event.inputs.r_version || 'devel' }})
+    env:
+      PKG_USE_BIOCONDUCTOR: "false"
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        config: ${{ fromJson(needs.setup.outputs.platforms) }}
+
+    steps:
+      - uses: r-hub/actions/checkout@v1
+      - uses: r-hub/actions/setup-r@v1
+        with:
+          job-config: ${{ github.event.inputs.r_version && format('{{"r-version":"{0}"}}', github.event.inputs.r_version) || matrix.config.job-config }}
+          token: ${{ secrets.RHUB_TOKEN }}
+      - uses: r-hub/actions/platform-info@v1
+        with:
+          token: ${{ secrets.RHUB_TOKEN }}
+          job-config: ${{ matrix.config.job-config }}
+      - name: Use the primary CRAN source mirror
+        shell: Rscript {0}
+        run: |
+          cat('\nlocal({ r <- getOption("repos"); r["CRAN"] <- "https://cran.r-project.org"; options(repos = r) })\n',
+              file = path.expand("~/.Rprofile"), append = TRUE)
+      - uses: r-hub/actions/setup-deps@v1
+        with:
+          pak-version: stable
+          extra-packages: |
+            any::rcmdcheck
+            github::pgajer/dgraphs@6e389f4d19b972f233b93fd75530dc50498894f2
+          dependencies: 'c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")'
+          job-config: ${{ matrix.config.job-config }}
+          token: ${{ secrets.RHUB_TOKEN }}
+      - uses: r-hub/actions/run-check@v1
+        with:
+          job-config: ${{ matrix.config.job-config }}
+          token: ${{ secrets.RHUB_TOKEN }}

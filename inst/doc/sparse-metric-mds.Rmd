@@ -1,0 +1,218 @@
+---
+title: "Sparse SGD for larger graphs"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Sparse SGD for larger graphs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=96, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Full metric MDS fits all vertex pairs. Sparse SGD keeps graph edges and
+approximates longer-range influences using representative vertices called
+**pivots**. It uses the sparse model of
+[Ortmann, Klimenta and Brandes (2017)](https://doi.org/10.7155/jgaa.00440)
+and the SGD updates of
+[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+
+With `n` vertices, `m` edges, and `h` pivots, storage and work per pass are
+roughly proportional to `m + n*h`, avoiding an all-pairs distance matrix.
+More pivots cost more; improvement in every individual run is not guaranteed.
+
+The installed benchmark bundle retains every attempted-fit summary, including
+failures, scores and timings, and the fixed seed-1 layouts shown here. Complete
+layouts and evaluation targets are retained in the source checkout under
+`tools/pkg/fixtures/documentation-data/` for independent recomputation.
+Static figures are used by default; set `options(grip.vignette.interactive = TRUE)`
+with ivue and rgl installed to render the interactive views.
+
+## Use sparse SGD
+
+```{r sparse-recipe, eval=FALSE}
+g <- suitesparse.graph('dwt_307')
+fit <- metric.mds(edges=g$edges,n=g$n,edge.weights=g$edge_weights,
+  dim=3,approximation='sparse',backend='sgd',seed=1,
+  sparse.control=list(n.pivots=32),max.iter=100)
+ivue::plot3D.plain(fit$coords, layers=list(ivue::layer3D.edges(g$edges)), controls = FALSE)
+```
+
+Full MDS remains the default. Sparse mode currently supports SGD only, with
+inverse-squared stress weights. Its defaults are random initialization, up to
+200 pivots, and 30 epochs: provisional calibration choices. The 32 pivots and
+100 epochs above are explicit illustrative choices. Supply connected graphs
+with positive lengths; disconnected graphs are rejected without adding edges.
+
+Sparse mode accepts supplied starting coordinates but does not accept classical
+initialization, uniform weights, multiple starts, dense prepared objects, or dense
+diagnostics. Observation-based sparse preparations are supported as described below. These restrictions avoid an unexpected all-pairs calculation.
+Its `sparse_proxy_stress` describes the fitted sparse constraints, not full stress.
+When a supplied edge is longer than an alternative route, sparse and full MDS
+can use different targets for that edge. That distinction does not arise for
+the unit and Euclidean chord lengths used in this experiment.
+
+## Prepare directly from observations
+
+`prepare.sparse.mds()` constructs the pivots and weights internally, without
+an all-pairs distance matrix. The default `method="euclidean"` uses original-space
+Euclidean pivot distances, published distance-proportional randomized pivot
+selection, regional endpoint weights and symmetric nearest-neighbor local pairs.
+Neighbor search uses the smallest ordinary PCA projection reaching 90% variance;
+all edge lengths and fitting targets still use the original observations.
+
+```{r observation-sparse-recipe, eval=FALSE}
+prep <- prepare.sparse.mds(X, method="euclidean", n.pivots=200,
+  q=10, neighbor.variance.target=0.90, seed=1)
+fit <- metric.mds(prepared=prep, approximation="sparse", backend="sgd",
+  dim=3, max.iter=100, seed=1,
+  sgd.control=list(scheduler="zheng", schedule.epsilon=0.1))
+```
+
+Use `pivot.selection="farthest"` for the Euclidean or L-infinity farthest-first alternative.
+`method="uniform"` uses uniform landmarks without regional multipliers or local
+edges, but retains inverse-squared distance weights. `method="geodesic"` instead
+uses shortest-path targets on a connected neighbor graph. Its exact component-MST
+repair evaluates distances as needed and never stores their full matrix;
+worst-case repair time can nevertheless be quadratic.
+
+For maximum absolute coordinate differences, use `method="linf"`. It computes
+exact neighbors in the original coordinates; equal distances are ordered by row
+index. Its default `neighbor.variance.target` is `NULL`, and explicit PCA targets
+are rejected because rotation changes this metric. No normalization is implicit.
+For nonnegative abundance rows with positive maxima, max normalization is:
+
+```{r linf-sparse-recipe, eval=FALSE}
+stopifnot(all(is.finite(X)), all(X >= 0), all(apply(X, 1, max) > 0))
+Xmax <- X / apply(X, 1, max)
+# Consolidate any duplicate normalized rows and retain their sample mapping.
+prep <- prepare.sparse.mds(Xmax, method="linf", n.pivots=200, q=10, seed=1)
+```
+
+Exact L-infinity search has quadratic worst-case work but does not store an
+all-pairs matrix. Its returned `graph$edges` table holds the symmetric union
+of nearest-neighbor pairs and their L-infinity lengths; `graph$metadata` records
+the search rule. It needs no `dgraphs` dependency.
+
+The Euclidean and geodesic methods require the accompanying `dgraphs` support for `search.data` and
+streaming component repair. Input rows must be distinct. Requested pivot counts
+are capped at `nrow(X)-1`; keep the count small relative to the data size for
+useful storage savings. The preparation can be reused across dimensions and
+fit seeds. Its default schedule is `"zheng"`, using the published weight-based
+endpoints; the legacy graph interface keeps its existing default schedule.
+Completing the epoch budget does not certify convergence. See
+`?prepare.sparse.mds` for returned audit information and controls.
+
+The October 2026 source-tree methods note under
+`vignettes/articles/sparse-mds-methods/` documents formulas and a separate
+288-fit quadratic-form validation. The existing experiment below concerns the
+legacy graph interface and its recorded settings.
+
+## Quality, time, and memory on existing examples
+
+The saved experiment compares full SGD, sparse SGD at several pivot counts,
+and weighted GRIP. Each setting uses seeds 1–3. SGD uses 100 epochs with the
+same random initial coordinates for paired runs; GRIP uses its own initialization.
+Full MDS retains its best checkpoint and fits scale; sparse SGD returns its
+terminal iterate without fitting scale. These are comparisons of the supplied
+methods, not equal work per epoch.
+
+The structural graph below connects this comparison to the
+[graph gallery](synthetic-graph-families.html). The larger saddle illustrates
+approximation at 4,096 vertices. Full SGD was not attempted above 512 vertices
+in this bounded experiment; that cutoff is not a measured capacity limit.
+
+```{r sparse-data, include=FALSE}
+source(system.file('scripts','sparse-mds-comparison.R',package='grip'),local=TRUE)
+bundle <- readRDS(system.file('extdata','sparse-mds-comparison','benchmark.rds',package='grip'))
+summary <- sparse_comparison_summary(bundle)
+method_label <- function(x) ifelse(x=='full','Full SGD',ifelse(x=='grip','Weighted GRIP',
+  paste('Sparse SGD:',sub('sparse','',x),'pivots')))
+```
+
+Errors are independently evaluated against graph shortest paths: all pairs for
+dwt_307, and all distances from 32 independently sampled source vertices for
+the larger saddle. **Original error** uses returned coordinates.
+**Scale-adjusted error** additionally fits one positive scalar, a diagnostic
+added after inspecting the original run; no layouts were refitted.
+
+**Total seconds** includes graph preparation and fitting. **Peak MiB** includes
+the entire isolated R process, including package loading. Tables report medians
+over returned runs and show both the returned and attempted counts.
+
+```{r selected-sparse, results='asis', echo=FALSE}
+for(id in c('dwt_307','saddle-4096')) {
+  case <- bundle$cases[[id]]
+  cat('\n\n### ',case$label,' (',case$n,' vertices)\n\n',sep='')
+  med <- summary[summary$case==id,];med$method <- method_label(med$method)
+  cat(knitr::kable(med[,c('method','returned','attempted','relative_error',
+    'profiled_relative_error','seconds','peak_mib')],digits=3,row.names=FALSE,
+    col.names=c('Method','Returned','Attempted','Original error','Scale-adjusted error','Total seconds','Peak MiB')),sep='\n')
+  selected <- Filter(function(f) f$row$case==id && f$row$seed==1,bundle$fits)
+  fits <- setNames(selected,vapply(selected,function(f) f$row$method,''))
+  child <- c(sprintf('```{r sparse-view-%s, echo=FALSE}',id),
+    'sparse_comparison_view(case,fits,saved.display=TRUE)','```')
+  cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
+  cat('\n\nSeed-1 display scale multipliers: ',paste(vapply(fits,function(f)
+    paste(method_label(f$row$method),format(f$row$relative_scale,digits=3)),''),collapse='; '),'.\n\n',sep='')
+}
+```
+
+The figures show seed 1 with each method's independently fitted scale multiplier.
+The saddle uses surface-shape alignment after scaling; the structural graph
+uses matched-vertex alignment to full SGD, which is a comparison reference,
+not a known true shape. The selector preserves the camera and scale.
+
+## Complete results and reproduction
+
+The [experiment appendix](sparse-mds-results.html) preserves every example,
+including the smaller saddle, paraboloid, and helix, all outcomes, numerical
+protocol, resource limits, and reproduction commands. A returned fit does not
+establish convergence. Compare independently evaluated error rather than
+sparse proxy values from different pivot counts.
+
+## Explicit distance constraints
+
+Sparse SGD also accepts distances already computed by another method. Supply
+`n` and a `constraints` list instead of graph edges. Targets are used as given;
+no shortest-path calculation or automatic pivot selection is performed.
+This is useful for exact complete-graph Fermat distances computed at selected
+pairs without storing a complete graph.
+
+```{r explicit-constraints}
+constraints <- list(pairs = rbind(c(1, 2), c(2, 3), c(1, 3)),
+                    targets = c(1, 1, 2))
+fit <- metric.mds(n = 3, approximation = "sparse", constraints = constraints,
+                  seed = 1, max.iter = 30)
+fit$metadata$constraint_source
+```
+
+Unordered pairs must be unique and form a connected network. Targets must be
+positive and finite; inverse-squared weighting cannot represent zero distances.
+Optional `count_i` and `count_j` give nonnegative endpoint multiplicities;
+both default to one. They are divided by squared target distance for updates.
+The defaults give symmetric sparse stress. Supplying asymmetric multiplicities
+supports the pivot-region weighting used by the graph-based sparse method,
+but the caller must compute those multiplicities consistently with its metric.
+The returned metadata preserves the targets and multiplicities.
+
+For Fermat geometry, local constraints also need shortest-path targets: powered
+direct-edge lengths can exceed them. The dgraphs Fermat vignette includes an
+implicit-distance example and a helper constructing exact local and pivot
+constraints. The graph-based interface remains unchanged and continues to use
+supplied edge lengths for its local targets. Sparse fitting does not certify
+unmeasured distances or recover full stress; evaluate on independent pairs.

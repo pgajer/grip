@@ -1,0 +1,138 @@
+---
+title: "Choosing and evaluating a layout"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Choosing and evaluating a layout}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=96, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+                     out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+A useful layout reveals graph structure while keeping distance distortion and
+sensitivity to initialization in view. This guide compares a small set of
+settings on **494_bus**, a 494-vertex power network supplied with grip.
+Its source electrical values are not layout distances: we use the bundled
+unit-length connectivity graph.
+
+## Recommended starting workflow
+
+Start with `metric.mds(backend="sgd")` for a graph-distance embedding.
+When full pairwise distances and fitting exceed the available resources, use
+`metric.mds(backend="sgd", approximation="sparse")`; sparse mode approximates
+the fitting objective and still needs independent distance-fidelity checks.
+Do not append edge-KK automatically: improving adjacent-edge lengths can worsen
+longer-range distance fidelity. This starting recommendation is not a claim
+that one optimizer wins on every graph.
+
+## Choose a method for the question
+
+| Question | Starting point |
+|---|---|
+| Explore graph connectivity | `grip(metric='hop')` |
+| Respect positive traversal lengths | `grip(metric='edge_length')` |
+| Fit all shortest-path distances directly | `metric.mds()`; SGD is the default backend |
+| Reduce the cost of full MDS | `metric.mds(approximation='sparse')` |
+| Adjust edge lengths of an existing drawing | `edge.kk(coords=...)`, followed by independent scoring |
+
+The [function overview](function-guide.html) explains input conventions and
+provides the complete categorized catalog. [Metric MDS](metric-mds-backends.html)
+compares its two optimizers; [weighted layouts](weighted-grip-intro.html)
+explains distance-valued edges.
+
+## Compare alternative GRIP settings across seeds
+
+```{r candidates}
+g <- suitesparse.graph('494_bus')
+cmp <- compare.layouts(edges=g$edges,n=g$n,dim=3,
+  candidates=c('default','tree','mesh'),seeds=1:3,
+  sample.size.stress=2000L,sample.size.nonedge=3000L,
+  edge.crossings='never',return.layouts=TRUE)
+knitr::kable(cmp$summary[,c('candidate','sampled.stress.mean',
+  'edge.length.cv.mean','sampled.nonedge.sep.ratio.mean',
+  'stability.procrustes.mean')],digits=3)
+```
+
+This section demonstrates an alternative algorithm, not the default SGD workflow.
+These are three GRIP presets with three seeds each. They are a teaching
+comparison, not tuned recommendations for power networks. Sampled stress is
+smaller when drawn distances better match graph shortest paths. Stability
+summarizes how much layouts vary after alignment. Use the same scoring samples
+and definitions across candidates.
+
+```{r candidate-view, echo=FALSE}
+layouts <- lapply(cmp$layouts,function(z) z[['1']])
+names(layouts) <- paste('GRIP:',names(layouts))
+documentation.view(layouts,g$edges,
+  description='494_bus: three GRIP presets, seed 1 in every view. Rigid alignment; no resizing.')
+```
+
+The figure always shows seed 1; the table summarizes all three seeds. Rotate
+and switch presets to inspect branches and crowded regions. Neither the
+matrix nor these layouts provide a known geographical reference.
+
+## Select settings without hiding variability
+
+`cmp$runs` retains the individual runs. A good average should be considered
+alongside variation among seeds and any unsuccessful attempts.
+
+```{r runs}
+knitr::kable(cmp$runs[,intersect(c('candidate','seed','status','sampled.stress'),
+                               names(cmp$runs))],digits=3)
+```
+
+Use `params.from.summary()` to recover a candidate's settings. If further
+improvement matters, try a small neighborhood of those settings and retain the
+initial comparison as a separate result. A composite score ranks candidates
+within its chosen criteria and weights; it is not a universal quality grade.
+
+## Choose an appropriate score
+
+| What matters? | Function | What the score means |
+|---|---|---|
+| Overall graph-distance agreement | `score.layout()` | Sampled drawn distances versus graph shortest paths, with fitted scale |
+| Edge, route, and endpoint errors separately | `score.gmds()` | Distinct residuals with an explicit scale policy |
+| Locations of corresponding vertices | `score.coordinates()` | Vertex displacement after the requested alignment |
+| Shape of an already aligned triangular surface | `score.surface()` | Area-weighted surface distance; does not align the surfaces |
+
+Score the original 3D coordinates, not their 2D projection. An improvement in
+edge lengths can accompany worse distances between distant vertices. Likewise,
+a close surface overlay does not establish recovery of corresponding vertices.
+See the [score definitions](function-guide.html#choose-a-score) for units,
+alignment choices, and the differences between these quantities.
+
+For graphs with meaningful labels, examine those labels alongside the geometry.
+The [HMP/U01 case study](hmp-u01-case-study.html) illustrates this with biological
+community labels. Label separation alone does not establish accurate geometry.
+
+## Keep computation proportional to the question
+
+Full MDS requires dense distances. Use `estimate.preparation()` before a large
+preparation; its matrix-size estimate is a lower bound, not peak memory.
+Start with a few seeds and candidates. Use [traces](grip-trace-and-diagnostics.html)
+to investigate a fold or collapse before increasing a search indiscriminately.
+
+The [layout-engine comparison](grip-vs-alternatives.html) illustrates common
+diagnostics for multiscale GRIP, igraph and graphlayouts on unweighted graphs.
+Those results do not benchmark the current metric-MDS backend.

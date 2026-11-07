@@ -1,0 +1,123 @@
+---
+title: "Layouts with meaningful edge lengths"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Layouts with meaningful edge lengths}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+For a new graph-distance embedding, start with SGD metric MDS and use
+[sparse mode](sparse-metric-mds.html) when full fitting is too costly.
+The weighted-GRIP and edge-KK examples here document alternatives or saved
+comparisons; they are not an automatic large-graph pipeline.
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=96, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+                     out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+An edge length specifies a desired traversal cost or separation. It differs
+from a connection strength, and from the weight assigned to a distance error
+inside an optimizer. This guide demonstrates the metric choice on a torus and
+then shows a tree whose lengths are defined without a generating surface.
+
+## The same lengths, two graph metrics
+
+A torus has two periodic directions. The constructor supplies 3D generating
+coordinates, edges, and Euclidean lengths between adjacent surface points.
+These lengths define paths on a finite graph, not exact continuous-surface
+geodesics.
+
+```{r torus-fits}
+g <- torus.surface.graph(12,8,normalize='none')
+hop <- grip(edges=g$edges,n=g$n,edge.weights=g$edge_weights,
+  dim=3,metric='hop',seed=1)
+weighted <- grip(edges=g$edges,n=g$n,edge.weights=g$edge_weights,
+  dim=3,metric='edge_length',length.normalization='none',seed=1)
+```
+
+Both fits receive the **same edge lengths**, topology, dimension, and seed.
+In hop mode, those lengths affect adjacent-edge attractions, while the standard
+hierarchy and neighborhoods use hop counts. In edge-length mode, sums of the
+lengths guide the multiscale graph searches. Omitting lengths from the hop call
+would instead give a purely unweighted baseline, which is a different comparison.
+
+```{r torus-view, echo=FALSE}
+documentation.view(list('GRIP: hop'=hop,'GRIP: edge lengths'=weighted),
+  g$edges,reference=g$coords_surface,common.size=TRUE,
+  description='Torus: identical input lengths in both fits. Gray: generating coordinates. Aligned at a common overall size for display.')
+```
+
+The gray torus shows how the graph was constructed. Graph shortest-path
+distances need not be realizable as straight-line distances on that surface.
+The views use matched-vertex rotation/reflection and translation, with a uniform display multiplier to match each fit to the
+reference's root-mean-square radius. This separates shape from overall size;
+the scores below use the original coordinates. A close overlay and low graph-distance stress answer different questions.
+
+```{r weighted-scores}
+fits <- list(Hop=hop,'Edge lengths'=weighted)
+scores <- do.call(rbind,lapply(fits,function(z)
+  score.layout(z,edges=g$edges,n=g$n,edge.weights=g$edge_weights,
+    sample.size.stress=2000L,edge.crossings='never')))
+knitr::kable(scores[,c('sampled.stress','edge.length.cv',
+                     'sampled.nonedge.sep.ratio')],digits=3)
+```
+
+Both layouts are evaluated against the same weighted graph distances.
+Unequal drawn edges can be appropriate here: low edge-length variation is not
+itself the objective for a graph with unequal target lengths.
+
+## Lengths without a reference surface
+
+This binary tree has shorter edges at greater depth and unequal sibling
+branches. Its lengths are intrinsic inputs; there is no generating 3D shape
+to recover.
+
+```{r tree}
+tree <- kary.tree.weighted.graph(k=2,depth=5,depth.decay=.85,
+  branch.spread=.2,normalize='none')
+tree.coords <- grip(edges=tree$edges,n=tree$n,edge.weights=tree$edge_weights,
+  dim=3,metric='edge_length',length.normalization='none',seed=1)
+```
+
+```{r tree-view, echo=FALSE}
+documentation.view(list('Weighted GRIP'=tree.coords),tree$edges,
+  description='An intrinsic weighted tree: shorter branches at greater depth. No generating reference.')
+```
+
+## Units, normalization, and stress weighting
+
+`length.normalization='none'` retains the numerical input lengths in the
+weighted GRIP engine; the default median normalization changes their common
+scale. It does not make the final coordinates an exact realization of every
+target length. Check the returned layout with a score appropriate to the task.
+
+For metric MDS, `edge.weights` determines the shortest-path targets, while
+`pair.weights` determines how errors at different distances influence the fit.
+The [uniform versus inverse-squared comparison](metric-mds-backends.html#the-effect-of-stress-weighting)
+illustrates this distinction. The two parameters serve different purposes.
+
+Use [Choosing and evaluating a layout](grip-real-data.html) to compare settings,
+[the graph gallery](synthetic-graph-families.html) for other surfaces and
+recursive constructions, and [HMP/U01](hmp-u01-case-study.html) for a biological
+graph with distance-valued edges. Specialized path-based refinements and their
+scores remain documented in the [function overview](function-guide.html#experimental-refinement-and-current-initializers).

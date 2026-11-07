@@ -1,0 +1,25 @@
+test_that("weighted ND trace parity diagnostics remain aligned", {
+  metrics <- grip_weighted_nd_trace_parity_run(dims = c(2L, 3L))
+  first <- grip_weighted_nd_trace_parity_first_divergence(metrics)
+  neighbors <- grip_weighted_nd_trace_parity_neighbor_run(dims = c(2L, 3L))
+
+  expect_s3_class(metrics, "data.frame")
+  expect_s3_class(first, "data.frame")
+  expect_s3_class(neighbors, "data.frame")
+  expect_true(nrow(metrics) > 0L)
+  expect_true(nrow(first) > 0L)
+  expect_true(nrow(neighbors) > 0L)
+  expect_true(all(metrics$metadata_match))
+  expect_true(all(metrics$frame_count_match))
+  expect_true(all(is.finite(metrics$direct_rmse)))
+  expect_true(all(is.finite(metrics$direct_max_abs)))
+  expect_true(all(is.finite(metrics$procrustes_rmse)))
+  expect_true(all(neighbors$neighbor_match))
+  expect_true(all(neighbors$distance_match))
+
+  if (identical(Sys.getenv("GRIP_ENFORCE_TRACE_PARITY"), "true")) {
+    expect_true(all(first$status == "within_tolerance"))
+    expect_lte(max(metrics$direct_max_abs), 1e-10)
+    expect_lte(max(metrics$procrustes_rmse), 1e-8)
+  }
+})

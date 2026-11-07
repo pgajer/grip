@@ -1,0 +1,9517 @@
+# Helper utilities shared by the exported graph generators.
+.empty.edge.matrix <- function() {
+  matrix(integer(), ncol = 2L)
+}
+
+.empty.face.matrix <- function() {
+  matrix(integer(), ncol = 3L)
+}
+
+.as.whole.number <- function(x, name, min = 0L) {
+  if (length(x) != 1L || is.na(x) || !is.finite(x) || x != as.integer(x) || x < min) {
+    stop(sprintf("%s must be a single integer >= %d", name, min), call. = FALSE)
+  }
+  as.integer(x)
+}
+
+.bind.edges <- function(edges) {
+  if (length(edges) == 0L) {
+    return(.empty.edge.matrix())
+  }
+  out <- do.call(rbind, edges)
+  storage.mode(out) <- "integer"
+  out
+}
+
+.bind.faces <- function(faces) {
+  if (length(faces) == 0L) {
+    return(.empty.face.matrix())
+  }
+  out <- do.call(rbind, faces)
+  storage.mode(out) <- "integer"
+  out
+}
+
+.normalize.undirected.edges <- function(edges) {
+  if (is.null(edges) || length(edges) == 0L || nrow(edges) == 0L) {
+    return(.empty.edge.matrix())
+  }
+  edges <- cbind(pmin(edges[, 1L], edges[, 2L]),
+                 pmax(edges[, 1L], edges[, 2L]))
+  edges <- edges[edges[, 1L] != edges[, 2L], , drop = FALSE]
+  if (nrow(edges) == 0L) {
+    return(.empty.edge.matrix())
+  }
+  storage.mode(edges) <- "integer"
+  unique(edges)
+}
+
+.as.finite.scalar <- function(x, name) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x)) {
+    stop(sprintf("%s must be a single finite numeric value", name), call. = FALSE)
+  }
+  as.double(x)
+}
+
+.as.positive.scalar <- function(x, name) {
+  x <- .as.finite.scalar(x, name)
+  if (x <= 0) {
+    stop(sprintf("%s must be > 0", name), call. = FALSE)
+  }
+  x
+}
+
+.grid.axis <- function(n) {
+  n <- .as.whole.number(n, "n", min = 1L)
+  if (n == 1L) {
+    return(0)
+  }
+  seq(-1, 1, length.out = n)
+}
+
+.mesh.param.coords <- function(h, w, x.scale = 1, y.scale = 1) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+
+  x_vals <- .grid.axis(w) * x.scale
+  y_vals <- rev(.grid.axis(h) * y.scale)
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(x_vals[[j]], y_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("u", "v")
+  coords
+}
+
+.irregular.rectangle.unit.scalar <- function(x, name, upper = 1) {
+  x <- .as.finite.scalar(x, name)
+  if (x < 0 || x > upper) {
+    stop(sprintf("%s must lie in [0, %s]", name, format(upper, trim = TRUE)),
+         call. = FALSE)
+  }
+  x
+}
+
+.irregular.rectangle.axis.breakpoints <- function(n,
+                                                  scale = 1,
+                                                  irregularity = 0.2,
+                                                  phase = 0,
+                                                  min.step.ratio = 0.3,
+                                                  axis = c("col", "row")) {
+  n <- .as.whole.number(n, "n", min = 1L)
+  scale <- .as.positive.scalar(scale, "scale")
+  irregularity <- .irregular.rectangle.unit.scalar(irregularity, "irregularity")
+  phase <- .as.finite.scalar(phase, "phase")
+  min.step.ratio <- .irregular.rectangle.unit.scalar(min.step.ratio, "min.step.ratio")
+  if (min.step.ratio <= 0) {
+    stop("min.step.ratio must be > 0", call. = FALSE)
+  }
+  axis <- match.arg(axis)
+
+  if (n == 1L) {
+    return(0)
+  }
+
+  s <- ((seq_len(n - 1L) - 0.5) / (n - 1L))
+  raw <- switch(
+    axis,
+    col = 1 + irregularity * (
+      0.65 * cos(2 * pi * s + phase) +
+        0.35 * sin(4 * pi * s + 0.5 * phase)
+    ),
+    row = 1 + irregularity * (
+      0.65 * sin(2 * pi * s + phase) +
+        0.35 * cos(4 * pi * s + 0.5 * phase)
+    )
+  )
+  steps <- pmax(as.double(raw), min.step.ratio)
+  cum <- c(0, cumsum(steps))
+  -scale + 2 * scale * cum / cum[[length(cum)]]
+}
+
+.irregular.rectangle.signed.area <- function(p0, p1, p2) {
+  (p1[[1L]] - p0[[1L]]) * (p2[[2L]] - p0[[2L]]) -
+    (p1[[2L]] - p0[[2L]]) * (p2[[1L]] - p0[[1L]])
+}
+
+.irregular.rectangle.validate.planar.coords <- function(coords,
+                                                        coords.regular,
+                                                        h,
+                                                        w) {
+  if (h < 2L || w < 2L) {
+    return(invisible(coords))
+  }
+
+  tol <- 1e-10
+  ref_area <- .irregular.rectangle.signed.area(
+    coords.regular[1L, ],
+    coords.regular[2L, ],
+    coords.regular[w + 1L, ]
+  )
+  ref_sign <- sign(ref_area)
+  if (!is.finite(ref_area) || ref_sign == 0) {
+    stop("regular rectangle reference orientation is degenerate", call. = FALSE)
+  }
+
+  for (i in seq_len(h - 1L)) {
+    for (j in seq_len(w - 1L)) {
+      id00 <- (i - 1L) * w + j
+      id10 <- id00 + 1L
+      id01 <- id00 + w
+      id11 <- id01 + 1L
+      area1 <- .irregular.rectangle.signed.area(
+        coords[id00, ],
+        coords[id10, ],
+        coords[id01, ]
+      )
+      area2 <- .irregular.rectangle.signed.area(
+        coords[id10, ],
+        coords[id11, ],
+        coords[id01, ]
+      )
+      if (!all(is.finite(c(area1, area2))) ||
+          abs(area1) <= tol || abs(area2) <= tol ||
+          sign(area1) != ref_sign || sign(area2) != ref_sign) {
+        stop(
+          "irregular rectangle parameters produce a locally inverted or degenerate cell; reduce interior_warp or shear",
+          call. = FALSE
+        )
+      }
+    }
+  }
+
+  invisible(coords)
+}
+
+.irregular.rectangle.param.details <- function(h,
+                                               w = h,
+                                               x.scale = 1,
+                                               y.scale = 1,
+                                               row.irregularity = 0.20,
+                                               col.irregularity = 0.20,
+                                               row.phase = 0.35,
+                                               col.phase = 0.65,
+                                               interior.warp = 0.08,
+                                               shear = 0,
+                                               min.step.ratio = 0.30) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+  row.irregularity <- .irregular.rectangle.unit.scalar(row.irregularity, "row.irregularity")
+  col.irregularity <- .irregular.rectangle.unit.scalar(col.irregularity, "col.irregularity")
+  row.phase <- .as.finite.scalar(row.phase, "row.phase")
+  col.phase <- .as.finite.scalar(col.phase, "col.phase")
+  interior.warp <- .irregular.rectangle.unit.scalar(interior.warp, "interior.warp")
+  shear <- .as.finite.scalar(shear, "shear")
+  min.step.ratio <- .irregular.rectangle.unit.scalar(min.step.ratio, "min.step.ratio")
+  if (min.step.ratio <= 0) {
+    stop("min.step.ratio must be > 0", call. = FALSE)
+  }
+
+  coords_regular <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  col_breaks <- .irregular.rectangle.axis.breakpoints(
+    n = w,
+    scale = x.scale,
+    irregularity = col.irregularity,
+    phase = col.phase,
+    min.step.ratio = min.step.ratio,
+    axis = "col"
+  )
+  row_breaks <- rev(.irregular.rectangle.axis.breakpoints(
+    n = h,
+    scale = y.scale,
+    irregularity = row.irregularity,
+    phase = row.phase,
+    min.step.ratio = min.step.ratio,
+    axis = "row"
+  ))
+
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(col_breaks[[j]], row_breaks[[i]])
+    }
+  }
+
+  if (interior.warp > 0) {
+    u_bar <- coords_regular[, 1L] / x.scale
+    v_bar <- coords_regular[, 2L] / y.scale
+    envelope <- (1 - u_bar^2) * (1 - v_bar^2)
+    coords[, 1L] <- coords[, 1L] +
+      interior.warp * x.scale * envelope *
+      sin(pi * v_bar) * cos(pi * u_bar + col.phase)
+    coords[, 2L] <- coords[, 2L] +
+      interior.warp * y.scale * envelope *
+      sin(pi * u_bar) * cos(pi * v_bar + row.phase)
+  }
+
+  if (shear != 0) {
+    coords[, 1L] <- coords[, 1L] + shear * coords[, 2L]
+  }
+
+  colnames(coords) <- c("u", "v")
+  .irregular.rectangle.validate.planar.coords(
+    coords = coords,
+    coords.regular = coords_regular,
+    h = h,
+    w = w
+  )
+
+  list(
+    coords = coords,
+    coords_regular = coords_regular,
+    row_breaks = as.double(row_breaks),
+    col_breaks = as.double(col_breaks)
+  )
+}
+
+.cylinder.param.coords <- function(h, w, radius = 1, height = 2) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  radius <- .as.positive.scalar(radius, "radius")
+  height <- .as.positive.scalar(height, "height")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  z_vals <- rev(.grid.axis(h) * (height / 2))
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(radius * theta_vals[[j]], z_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("theta_arc", "z")
+  coords
+}
+
+.torus.param.coords <- function(h, w, major.radius = 2, minor.radius = 0.75) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  major.radius <- .as.positive.scalar(major.radius, "major.radius")
+  minor.radius <- .as.positive.scalar(minor.radius, "minor.radius")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  phi_vals <- seq(0, 2 * pi * (1 - 1 / h), length.out = h)
+  coords <- matrix(0, nrow = h * w, ncol = 2L)
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(major.radius * theta_vals[[j]], minor.radius * phi_vals[[i]])
+    }
+  }
+  colnames(coords) <- c("theta_arc", "phi_arc")
+  coords
+}
+
+.sphere.param.coords <- function(h, w, radius = 1) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  radius <- .as.positive.scalar(radius, "radius")
+
+  ring.count <- h - 2L
+  n <- 2L + ring.count * w
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  lat_vals <- seq(pi / 2, -pi / 2, length.out = h)
+  coords <- matrix(0, nrow = n, ncol = 2L)
+  coords[1L, ] <- c(0, radius * lat_vals[[1L]])
+  if (ring.count > 0L) {
+    for (i in seq_len(ring.count)) {
+      lat <- lat_vals[[i + 1L]]
+      for (j in seq_len(w)) {
+        id <- 1L + (i - 1L) * w + j
+        coords[id, ] <- c(radius * theta_vals[[j]], radius * lat)
+      }
+    }
+  }
+  coords[n, ] <- c(0, radius * lat_vals[[h]])
+  colnames(coords) <- c("theta_arc", "latitude_arc")
+  coords
+}
+
+.as.square.keep.mask <- function(mask, name = "mask", min.size = 2L) {
+  if (!is.matrix(mask) || nrow(mask) != ncol(mask) || nrow(mask) < min.size) {
+    stop(sprintf("%s must be a square matrix with at least %d rows and columns",
+                 name, min.size),
+         call. = FALSE)
+  }
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric square matrix", name),
+         call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name),
+         call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  keep
+}
+
+.as.cube.keep.mask <- function(mask, name = "mask", min.size = 2L) {
+  if (!is.array(mask) || length(dim(mask)) != 3L) {
+    stop(sprintf("%s must be a 3D array", name), call. = FALSE)
+  }
+  dims <- dim(mask)
+  if (any(dims < min.size) || length(unique(dims)) != 1L) {
+    stop(sprintf("%s must be a cubic 3D array with side length at least %d",
+                 name, min.size),
+         call. = FALSE)
+  }
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric 3D array", name),
+         call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name),
+         call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  keep
+}
+
+.as.keep.grid <- function(keep, name = "keep", min.h = 1L, min.w = 1L) {
+  if (!is.matrix(keep) || nrow(keep) < min.h || ncol(keep) < min.w) {
+    stop(sprintf("%s must be a matrix with at least %d rows and %d columns",
+                 name, min.h, min.w),
+         call. = FALSE)
+  }
+  if (!(is.logical(keep) || is.numeric(keep) || is.integer(keep))) {
+    stop(sprintf("%s must be a logical or numeric matrix", name), call. = FALSE)
+  }
+  if (any(is.na(keep)) || (is.numeric(keep) && any(!is.finite(keep)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  out <- keep != 0
+  storage.mode(out) <- "logical"
+  if (!any(out)) {
+    stop(sprintf("%s must keep at least one cell", name), call. = FALSE)
+  }
+  out
+}
+
+.as.named.choice <- function(x, choices, name) {
+  if (!is.character(x) || length(x) != 1L || is.na(x)) {
+    stop(sprintf("%s must be a single character value", name), call. = FALSE)
+  }
+  if (!x %in% choices) {
+    stop(sprintf("%s must be one of %s",
+                 name,
+                 paste(sprintf('"%s"', choices), collapse = ", ")),
+         call. = FALSE)
+  }
+  x
+}
+
+.as.triangle.keep.mask <- function(mask, name = "mask") {
+  slots <- c("left", "right", "top", "center")
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric vector", name), call. = FALSE)
+  }
+  if (is.matrix(mask)) {
+    if (length(mask) != 4L) {
+      stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+    }
+    mask <- as.vector(mask)
+  }
+  if (length(mask) != 4L) {
+    stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!is.null(names(mask))) {
+    mask_names <- names(mask)
+    if (length(unique(mask_names)) != 4L || !all(slots %in% mask_names)) {
+      stop(sprintf("%s names must be exactly %s",
+                   name,
+                   paste(sprintf('"%s"', slots), collapse = ", ")),
+           call. = FALSE)
+    }
+    keep <- keep[match(slots, mask_names)]
+  }
+  names(keep) <- slots
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one subtriangle", name), call. = FALSE)
+  }
+  keep
+}
+
+.as.tetrahedron.keep.mask <- function(mask, name = "mask") {
+  slots <- c("base_left", "base_right", "base_back", "apex")
+  if (!(is.logical(mask) || is.numeric(mask) || is.integer(mask))) {
+    stop(sprintf("%s must be a logical or numeric vector", name), call. = FALSE)
+  }
+  if (is.matrix(mask)) {
+    if (length(mask) != 4L) {
+      stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+    }
+    mask <- as.vector(mask)
+  }
+  if (length(mask) != 4L) {
+    stop(sprintf("%s must have exactly 4 entries", name), call. = FALSE)
+  }
+  if (any(is.na(mask)) || (is.numeric(mask) && any(!is.finite(mask)))) {
+    stop(sprintf("%s must not contain NA or non-finite values", name), call. = FALSE)
+  }
+  keep <- mask != 0
+  storage.mode(keep) <- "logical"
+  if (!is.null(names(mask))) {
+    mask_names <- names(mask)
+    if (length(unique(mask_names)) != 4L || !all(slots %in% mask_names)) {
+      stop(sprintf("%s names must be exactly %s",
+                   name,
+                   paste(sprintf('"%s"', slots), collapse = ", ")),
+           call. = FALSE)
+    }
+    keep <- keep[match(slots, mask_names)]
+  }
+  names(keep) <- slots
+  if (!any(keep)) {
+    stop(sprintf("%s must keep at least one subtetrahedron", name), call. = FALSE)
+  }
+  keep
+}
+
+.as.odd.whole.number <- function(x, name, min = 1L) {
+  x <- .as.whole.number(x, name, min = min)
+  if ((x %% 2L) != 1L) {
+    stop(sprintf("%s must be odd", name), call. = FALSE)
+  }
+  x
+}
+
+.surface.z.from.uv <- function(u,
+                               v,
+                               surface,
+                               amplitude,
+                               freq.u,
+                               freq.v) {
+  switch(
+    surface,
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq.u * u) * cos(pi * freq.v * v)
+  )
+}
+
+.normalize.center.radius.coords <- function(coords) {
+  coords <- as.matrix(coords)
+  centered <- scale(coords, center = TRUE, scale = FALSE)
+  radius <- max(sqrt(rowSums(centered^2)))
+  if (!is.finite(radius) || radius <= 0) {
+    return(centered)
+  }
+  centered / radius
+}
+
+.normalize.row.coords <- function(coords) {
+  coords <- as.matrix(coords)
+  norms <- sqrt(rowSums(coords^2))
+  if (any(!is.finite(norms) | norms <= 0)) {
+    stop("coords must have positive finite row norms", call. = FALSE)
+  }
+  sweep(coords, 1L, norms, "/")
+}
+
+.occupied.mesh.cells <- function(keep) {
+  keep <- .as.keep.grid(keep, "keep", min.h = 1L, min.w = 1L)
+  h <- nrow(keep)
+  w <- ncol(keep)
+  grid <- expand.grid(row = seq_len(h), col = seq_len(w))
+  keep_idx <- keep[cbind(grid$row, grid$col)]
+  cells <- data.frame(
+    row = grid$row[keep_idx],
+    col = grid$col[keep_idx]
+  )
+  rownames(cells) <- NULL
+  list(
+    keep = keep,
+    h = h,
+    w = w,
+    cells = cells
+  )
+}
+
+.occupied.mesh.param.coords <- function(keep, x.scale = 1, y.scale = 1) {
+  spec <- .occupied.mesh.cells(keep)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+
+  x_vals <- .grid.axis(spec$w) * x.scale
+  y_vals <- rev(.grid.axis(spec$h) * y.scale)
+  coords <- cbind(
+    u = x_vals[spec$cells$col],
+    v = y_vals[spec$cells$row]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.mesh.connectivity.arg <- function(connectivity = c("orthogonal", "diagonal")) {
+  match.arg(connectivity)
+}
+
+.occupied.mesh.edges <- function(keep,
+                                 connectivity = c("orthogonal", "diagonal")) {
+  spec <- .occupied.mesh.cells(keep)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  cells <- spec$cells
+  id_map <- matrix(0L, nrow = spec$h, ncol = spec$w)
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$row[i], cells$col[i]] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    row <- cells$row[i]
+    col <- cells$col[i]
+    if (col < spec$w) {
+      nbr <- id_map[row, col + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (row < spec$h) {
+      nbr <- id_map[row + 1L, col]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  if (identical(connectivity, "diagonal") && spec$h >= 2L && spec$w >= 2L) {
+    for (row in seq_len(spec$h - 1L)) {
+      for (col in seq_len(spec$w - 1L)) {
+        block_ids <- c(
+          id_map[row, col],
+          id_map[row, col + 1L],
+          id_map[row + 1L, col],
+          id_map[row + 1L, col + 1L]
+        )
+        if (all(block_ids > 0L)) {
+          edges[[length(edges) + 1L]] <- c(block_ids[[1L]], block_ids[[4L]])
+          edges[[length(edges) + 1L]] <- c(block_ids[[2L]], block_ids[[3L]])
+        }
+      }
+    }
+  }
+
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+.recursive.mask.grid.cells <- function(mask, level) {
+  mask <- .as.square.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  base <- as.integer(nrow(mask))
+  side <- as.integer(base^level)
+  grid <- expand.grid(x = 0:(side - 1L), y = 0:(side - 1L))
+
+  keep.cell <- function(x, y) {
+    for (step in seq_len(level)) {
+      x_digit <- (x %% base) + 1L
+      y_digit <- (y %% base) + 1L
+      if (!mask[y_digit, x_digit]) {
+        return(FALSE)
+      }
+      x <- x %/% base
+      y <- y %/% base
+    }
+    TRUE
+  }
+
+  keep <- mapply(keep.cell, grid$x, grid$y)
+  cells <- grid[keep, , drop = FALSE]
+  rownames(cells) <- NULL
+  list(
+    level = level,
+    base = base,
+    side = side,
+    mask = mask,
+    cells = cells
+  )
+}
+
+.recursive.mask.grid.param.coords <- function(mask,
+                                              level,
+                                              x.scale = 1,
+                                              y.scale = 1) {
+  spec <- .recursive.mask.grid.cells(mask, level)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+
+  x_vals <- .grid.axis(spec$side) * x.scale
+  y_vals <- rev(.grid.axis(spec$side) * y.scale)
+  coords <- cbind(
+    u = x_vals[spec$cells$x + 1L],
+    v = y_vals[spec$cells$y + 1L]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.recursive.mask.grid.edges <- function(mask, level) {
+  spec <- .recursive.mask.grid.cells(mask, level)
+  side <- spec$side
+  cells <- spec$cells
+
+  id_map <- matrix(0L, nrow = side, ncol = side)
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$y[i] + 1L, cells$x[i] + 1L] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    x <- cells$x[i]
+    y <- cells$y[i]
+    if (x + 1L < side) {
+      nbr <- id_map[y + 1L, x + 2L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (y + 1L < side) {
+      nbr <- id_map[y + 2L, x + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  .bind.edges(edges)
+}
+
+.recursive.cube.mask.cells <- function(mask, level) {
+  mask <- .as.cube.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  base <- as.integer(dim(mask)[1L])
+  side <- as.integer(base^level)
+  grid <- expand.grid(col = 0:(side - 1L),
+                      row = 0:(side - 1L),
+                      layer = 0:(side - 1L))
+
+  keep.cell <- function(col, row, layer) {
+    for (step in seq_len(level)) {
+      col_digit <- (col %% base) + 1L
+      row_digit <- (row %% base) + 1L
+      layer_digit <- (layer %% base) + 1L
+      if (!mask[row_digit, col_digit, layer_digit]) {
+        return(FALSE)
+      }
+      col <- col %/% base
+      row <- row %/% base
+      layer <- layer %/% base
+    }
+    TRUE
+  }
+
+  keep <- mapply(keep.cell, grid$col, grid$row, grid$layer)
+  cells <- grid[keep, , drop = FALSE]
+  rownames(cells) <- NULL
+  list(
+    level = level,
+    base = base,
+    side = side,
+    mask = mask,
+    cells = cells
+  )
+}
+
+.recursive.cube.mask.param.coords <- function(mask,
+                                              level,
+                                              x.scale = 1,
+                                              y.scale = 1,
+                                              z.scale = 1) {
+  spec <- .recursive.cube.mask.cells(mask, level)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+  z.scale <- .as.positive.scalar(z.scale, "z.scale")
+
+  x_vals <- .grid.axis(spec$side) * x.scale
+  y_vals <- rev(.grid.axis(spec$side) * y.scale)
+  z_vals <- .grid.axis(spec$side) * z.scale
+  coords <- cbind(
+    x = x_vals[spec$cells$col + 1L],
+    y = y_vals[spec$cells$row + 1L],
+    z = z_vals[spec$cells$layer + 1L]
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.recursive.cube.mask.edges <- function(mask, level) {
+  spec <- .recursive.cube.mask.cells(mask, level)
+  side <- spec$side
+  cells <- spec$cells
+
+  id_map <- array(0L, dim = c(side, side, side))
+  for (i in seq_len(nrow(cells))) {
+    id_map[cells$row[i] + 1L, cells$col[i] + 1L, cells$layer[i] + 1L] <- i
+  }
+
+  edges <- list()
+  for (i in seq_len(nrow(cells))) {
+    col <- cells$col[i]
+    row <- cells$row[i]
+    layer <- cells$layer[i]
+    if (col + 1L < side) {
+      nbr <- id_map[row + 1L, col + 2L, layer + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (row + 1L < side) {
+      nbr <- id_map[row + 2L, col + 1L, layer + 1L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+    if (layer + 1L < side) {
+      nbr <- id_map[row + 1L, col + 1L, layer + 2L]
+      if (nbr > 0L) edges[[length(edges) + 1L]] <- c(i, nbr)
+    }
+  }
+
+  .bind.edges(edges)
+}
+
+.triangulated.polyhedron.base <- function(base = c("tetrahedron", "octahedron", "icosahedron")) {
+  base <- match.arg(base)
+  out <- switch(
+    base,
+    tetrahedron = list(
+      vertices = rbind(
+        c(1, 1, 1),
+        c(-1, -1, 1),
+        c(-1, 1, -1),
+        c(1, -1, -1)
+      ),
+      faces = matrix(
+        c(
+          1, 2, 3,
+          1, 4, 2,
+          1, 3, 4,
+          2, 4, 3
+        ),
+        ncol = 3L,
+        byrow = TRUE
+      )
+    ),
+    octahedron = list(
+      vertices = rbind(
+        c(1, 0, 0),
+        c(-1, 0, 0),
+        c(0, 1, 0),
+        c(0, -1, 0),
+        c(0, 0, 1),
+        c(0, 0, -1)
+      ),
+      faces = matrix(
+        c(
+          1, 3, 5,
+          3, 2, 5,
+          2, 4, 5,
+          4, 1, 5,
+          3, 1, 6,
+          2, 3, 6,
+          4, 2, 6,
+          1, 4, 6
+        ),
+        ncol = 3L,
+        byrow = TRUE
+      )
+    ),
+    icosahedron = {
+      phi <- (1 + sqrt(5)) / 2
+      list(
+        vertices = rbind(
+          c(-1, phi, 0),
+          c(1, phi, 0),
+          c(-1, -phi, 0),
+          c(1, -phi, 0),
+          c(0, -1, phi),
+          c(0, 1, phi),
+          c(0, -1, -phi),
+          c(0, 1, -phi),
+          c(phi, 0, -1),
+          c(phi, 0, 1),
+          c(-phi, 0, -1),
+          c(-phi, 0, 1)
+        ),
+        faces = matrix(
+          c(
+            1, 12, 6,
+            1, 6, 2,
+            1, 2, 8,
+            1, 8, 11,
+            1, 11, 12,
+            2, 6, 10,
+            6, 12, 5,
+            12, 11, 3,
+            11, 8, 7,
+            8, 2, 9,
+            4, 10, 5,
+            4, 5, 3,
+            4, 3, 7,
+            4, 7, 9,
+            4, 9, 10,
+            5, 10, 6,
+            3, 5, 12,
+            7, 3, 11,
+            9, 7, 8,
+            10, 9, 2
+          ),
+          ncol = 3L,
+          byrow = TRUE
+        )
+      )
+    }
+  )
+  out$vertices <- .normalize.row.coords(out$vertices)
+  storage.mode(out$vertices) <- "double"
+  storage.mode(out$faces) <- "integer"
+  out
+}
+
+.triangulated.polyhedron.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                               level = 1) {
+  base <- match.arg(base)
+  level <- .as.whole.number(level, "level")
+  spec <- .triangulated.polyhedron.base(base)
+  vertices <- spec$vertices
+  faces <- spec$faces
+  subdiv <- as.integer(2^level)
+
+  face.build <- function(a, b, c) {
+    id_map <- matrix(NA_integer_, nrow = subdiv + 1L, ncol = subdiv + 1L)
+    coords <- vector("list", ((subdiv + 1L) * (subdiv + 2L)) %/% 2L)
+    next_id <- 1L
+    for (i in 0:subdiv) {
+      for (j in 0:(subdiv - i)) {
+        id_map[i + 1L, j + 1L] <- next_id
+        point <- a + (i / subdiv) * (b - a) + (j / subdiv) * (c - a)
+        coords[[next_id]] <- point
+        next_id <- next_id + 1L
+      }
+    }
+
+    edges <- list()
+    faces <- list()
+    for (i in 0:subdiv) {
+      for (j in 0:(subdiv - i)) {
+        cur <- id_map[i + 1L, j + 1L]
+        if ((i + 1L + j) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 2L, j + 1L])
+        }
+        if ((i + j + 1L) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 1L, j + 2L])
+        }
+        if (j >= 1L && (i + 1L + j - 1L) <= subdiv) {
+          edges[[length(edges) + 1L]] <- c(cur, id_map[i + 2L, j])
+        }
+      }
+    }
+    if (subdiv >= 1L) {
+      for (i in 0:(subdiv - 1L)) {
+        for (j in 0:(subdiv - 1L - i)) {
+          v00 <- id_map[i + 1L, j + 1L]
+          v10 <- id_map[i + 2L, j + 1L]
+          v01 <- id_map[i + 1L, j + 2L]
+          faces[[length(faces) + 1L]] <- c(v00, v10, v01)
+          if (j <= (subdiv - i - 2L)) {
+            v11 <- id_map[i + 2L, j + 2L]
+            faces[[length(faces) + 1L]] <- c(v10, v11, v01)
+          }
+        }
+      }
+    }
+
+    list(
+      coords = do.call(rbind, coords),
+      edges = .bind.edges(edges),
+      faces = .bind.faces(faces)
+    )
+  }
+
+  coords_list <- list()
+  edges_list <- list()
+  faces_list <- list()
+  offset <- 0L
+  for (face_idx in seq_len(nrow(faces))) {
+    face <- faces[face_idx, ]
+    built <- face.build(vertices[face[1L], ],
+                        vertices[face[2L], ],
+                        vertices[face[3L], ])
+    coords_list[[face_idx]] <- built$coords
+    edges_list[[face_idx]] <- built$edges + offset
+    faces_list[[face_idx]] <- built$faces + offset
+    offset <- offset + nrow(built$coords)
+  }
+
+  merged <- .deduplicate.coordinate.graph(
+    edges = .bind.edges(edges_list),
+    coords = do.call(rbind, coords_list),
+    return.map = TRUE
+  )
+  coords <- merged$coords
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  faces_all <- .bind.faces(faces_list)
+  faces_new <- if (nrow(faces_all) == 0L) {
+    .empty.face.matrix()
+  } else {
+    mapped <- cbind(
+      merged$old_to_new[faces_all[, 1L]],
+      merged$old_to_new[faces_all[, 2L]],
+      merged$old_to_new[faces_all[, 3L]]
+    )
+    keep_face <- apply(mapped, 1L, function(row) length(unique(row)) == 3L)
+    mapped <- mapped[keep_face, , drop = FALSE]
+    if (nrow(mapped) == 0L) {
+      .empty.face.matrix()
+    } else {
+      unique(t(apply(mapped, 1L, sort)))
+    }
+  }
+  storage.mode(faces_new) <- "integer"
+  list(
+    edges = merged$edges,
+    faces = faces_new,
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    base = base,
+    subdivision = subdiv
+  )
+}
+
+.largest.connected.vertex.set <- function(edges, n) {
+  n <- .as.whole.number(n, "n", min = 1L)
+  if (n == 1L || nrow(edges) == 0L) {
+    return(seq_len(n))
+  }
+
+  neighbors <- vector("list", n)
+  for (i in seq_len(nrow(edges))) {
+    a <- edges[i, 1L]
+    b <- edges[i, 2L]
+    neighbors[[a]] <- c(neighbors[[a]], b)
+    neighbors[[b]] <- c(neighbors[[b]], a)
+  }
+
+  seen <- rep(FALSE, n)
+  best <- integer(0L)
+  for (start in seq_len(n)) {
+    if (seen[[start]]) {
+      next
+    }
+    queue <- start
+    seen[[start]] <- TRUE
+    component <- integer(0L)
+    head <- 1L
+    while (head <= length(queue)) {
+      v <- queue[[head]]
+      head <- head + 1L
+      component <- c(component, v)
+      for (nbr in neighbors[[v]]) {
+        if (!seen[[nbr]]) {
+          seen[[nbr]] <- TRUE
+          queue <- c(queue, nbr)
+        }
+      }
+    }
+    if (length(component) > length(best)) {
+      best <- component
+    }
+  }
+  sort(best)
+}
+
+.induce.subgraph.coords <- function(edges, coords, keep.idx) {
+  keep.idx <- sort(unique(as.integer(keep.idx)))
+  coords <- as.matrix(coords)
+  if (length(keep.idx) == 0L) {
+    stop("keep.idx must contain at least one vertex", call. = FALSE)
+  }
+
+  map <- integer(nrow(coords))
+  map[keep.idx] <- seq_along(keep.idx)
+  keep_edge <- edges[, 1L] %in% keep.idx & edges[, 2L] %in% keep.idx
+  edges_new <- if (!any(keep_edge)) {
+    .empty.edge.matrix()
+  } else {
+    cbind(
+      map[edges[keep_edge, 1L]],
+      map[edges[keep_edge, 2L]]
+    )
+  }
+  storage.mode(edges_new) <- "integer"
+  coords_new <- coords[keep.idx, , drop = FALSE]
+  rownames(coords_new) <- NULL
+  list(
+    edges = .normalize.undirected.edges(edges_new),
+    coords = coords_new
+  )
+}
+
+.triangular.lattice.region.canonical <- function(bbox, spacing, keep.fn) {
+  if (!is.numeric(bbox) || length(bbox) != 4L || any(!is.finite(bbox))) {
+    stop("bbox must be a finite numeric vector c(xmin, xmax, ymin, ymax)",
+         call. = FALSE)
+  }
+  spacing <- .as.positive.scalar(spacing, "spacing")
+  if (!is.function(keep.fn)) {
+    stop("keep.fn must be a function", call. = FALSE)
+  }
+  xmin <- bbox[[1L]]
+  xmax <- bbox[[2L]]
+  ymin <- bbox[[3L]]
+  ymax <- bbox[[4L]]
+  if (!(xmin < xmax && ymin < ymax)) {
+    stop("bbox must satisfy xmin < xmax and ymin < ymax", call. = FALSE)
+  }
+
+  dy <- spacing * sqrt(3) / 2
+  row_vals <- seq(ymin - dy, ymax + dy, by = dy)
+  col_count <- .as.whole.number(ceiling((xmax - xmin) / spacing) + 4L,
+                                "col_count",
+                                min = 3L)
+  n_rows <- length(row_vals)
+  x_mat <- matrix(0, nrow = n_rows, ncol = col_count)
+  y_mat <- matrix(0, nrow = n_rows, ncol = col_count)
+  keep <- matrix(FALSE, nrow = n_rows, ncol = col_count)
+  for (row in seq_len(n_rows)) {
+    x_offset <- 0.5 * ((row - 1L) %% 2L)
+    x_vals <- xmin - spacing + spacing * ((0:(col_count - 1L)) + x_offset)
+    y_val <- row_vals[[row]]
+    x_mat[row, ] <- x_vals
+    y_mat[row, ] <- y_val
+    keep[row, ] <- keep.fn(x_vals, rep(y_val, col_count))
+  }
+
+  positions <- which(keep, arr.ind = TRUE)
+  if (nrow(positions) == 0L) {
+    stop("shape and resolution keep no triangulation vertices", call. = FALSE)
+  }
+  positions <- positions[order(positions[, 1L], positions[, 2L]), , drop = FALSE]
+  id_map <- matrix(0L, nrow = n_rows, ncol = col_count)
+  id_map[positions] <- seq_len(nrow(positions))
+  coords <- cbind(
+    u = x_mat[positions],
+    v = y_mat[positions]
+  )
+  storage.mode(coords) <- "double"
+
+  edges <- list()
+  for (i in seq_len(nrow(positions))) {
+    row <- positions[i, 1L]
+    col <- positions[i, 2L]
+    if (col < col_count) {
+      nbr <- id_map[row, col + 1L]
+      if (nbr > 0L) {
+        edges[[length(edges) + 1L]] <- c(i, nbr)
+      }
+    }
+    if (row < n_rows) {
+      down_same <- id_map[row + 1L, col]
+      if (down_same > 0L) {
+        edges[[length(edges) + 1L]] <- c(i, down_same)
+      }
+      if (((row - 1L) %% 2L) == 0L) {
+        if (col > 1L) {
+          down_diag <- id_map[row + 1L, col - 1L]
+          if (down_diag > 0L) {
+            edges[[length(edges) + 1L]] <- c(i, down_diag)
+          }
+        }
+      } else if (col < col_count) {
+        down_diag <- id_map[row + 1L, col + 1L]
+        if (down_diag > 0L) {
+          edges[[length(edges) + 1L]] <- c(i, down_diag)
+        }
+      }
+    }
+  }
+
+  edges <- .normalize.undirected.edges(.bind.edges(edges))
+  if (nrow(edges) == 0L) {
+    stop("shape and resolution produce no triangulation edges", call. = FALSE)
+  }
+  keep_idx <- .largest.connected.vertex.set(edges, nrow(coords))
+  induced <- .induce.subgraph.coords(edges, coords, keep_idx)
+  colnames(induced$coords) <- c("u", "v")
+  list(
+    edges = induced$edges,
+    coords = induced$coords,
+    n = as.integer(nrow(induced$coords))
+  )
+}
+
+.triangulated.annulus.canonical <- function(resolution = 12,
+                                            outer.radius = 1,
+                                            inner.radius = 0.45) {
+  resolution <- .as.whole.number(resolution, "resolution", min = 4L)
+  outer.radius <- .as.positive.scalar(outer.radius, "outer.radius")
+  inner.radius <- .as.positive.scalar(inner.radius, "inner.radius")
+  if (inner.radius >= outer.radius) {
+    stop("inner.radius must be < outer.radius", call. = FALSE)
+  }
+  spacing <- outer.radius / resolution
+  if ((outer.radius - inner.radius) < (2 * spacing)) {
+    stop("annulus thickness is too small for the chosen resolution", call. = FALSE)
+  }
+
+  keep.fn <- function(x, y) {
+    r2 <- x^2 + y^2
+    r2 <= outer.radius^2 & r2 >= inner.radius^2
+  }
+  built <- .triangular.lattice.region.canonical(
+    bbox = c(-outer.radius, outer.radius, -outer.radius, outer.radius),
+    spacing = spacing,
+    keep.fn = keep.fn
+  )
+  built$resolution <- resolution
+  built$outer_radius <- outer.radius
+  built$inner_radius <- inner.radius
+  built
+}
+
+.triangulated.pair.of.pants.canonical <- function(resolution = 12,
+                                                  outer.radius = 1.1,
+                                                  hole.radius = 0.24,
+                                                  hole.offset = 0.38,
+                                                  hole.height = 0.18) {
+  resolution <- .as.whole.number(resolution, "resolution", min = 4L)
+  outer.radius <- .as.positive.scalar(outer.radius, "outer.radius")
+  hole.radius <- .as.positive.scalar(hole.radius, "hole.radius")
+  hole.offset <- .as.positive.scalar(hole.offset, "hole.offset")
+  hole.height <- .as.finite.scalar(hole.height, "hole.height")
+  if (hole.offset <= hole.radius) {
+    stop("hole.offset must exceed hole.radius so the two holes do not overlap",
+         call. = FALSE)
+  }
+  hole_center_radius <- sqrt(hole.offset^2 + hole.height^2)
+  if ((hole_center_radius + hole.radius) >= outer.radius) {
+    stop("holes must lie strictly inside the outer boundary", call. = FALSE)
+  }
+  spacing <- outer.radius / resolution
+  if ((outer.radius - hole_center_radius - hole.radius) < spacing) {
+    stop("pair-of-pants neck is too thin for the chosen resolution", call. = FALSE)
+  }
+
+  keep.fn <- function(x, y) {
+    outer <- (x^2 + y^2) <= outer.radius^2
+    left_hole <- ((x + hole.offset)^2 + (y - hole.height)^2) < hole.radius^2
+    right_hole <- ((x - hole.offset)^2 + (y - hole.height)^2) < hole.radius^2
+    outer & !left_hole & !right_hole
+  }
+  built <- .triangular.lattice.region.canonical(
+    bbox = c(-outer.radius, outer.radius, -outer.radius, outer.radius),
+    spacing = spacing,
+    keep.fn = keep.fn
+  )
+  built$resolution <- resolution
+  built$outer_radius <- outer.radius
+  built$hole_radius <- hole.radius
+  built$hole_offset <- hole.offset
+  built$hole_height <- hole.height
+  built
+}
+
+.normalize.angles <- function(theta) {
+  theta <- theta %% (2 * pi)
+  theta[theta < 0] <- theta[theta < 0] + 2 * pi
+  theta
+}
+
+.cyclic.ring.edges <- function(ids) {
+  ids <- as.integer(ids)
+  if (length(ids) < 3L) {
+    stop("cyclic rings require at least 3 vertices", call. = FALSE)
+  }
+  edges <- cbind(ids, c(ids[-1L], ids[1L]))
+  storage.mode(edges) <- "integer"
+  .normalize.undirected.edges(edges)
+}
+
+.cyclic.bracketing.indices <- function(theta, ring.angles) {
+  ring.angles <- .normalize.angles(ring.angles)
+  order_idx <- order(ring.angles)
+  sorted_angles <- ring.angles[order_idx]
+  theta <- .normalize.angles(theta)
+  if (length(sorted_angles) == 1L) {
+    return(rep(order_idx[[1L]], 2L))
+  }
+  aug <- c(sorted_angles, sorted_angles[1L] + 2 * pi)
+  theta_aug <- theta
+  if (theta_aug < sorted_angles[1L]) {
+    theta_aug <- theta_aug + 2 * pi
+  }
+  lower_sorted <- findInterval(theta_aug, aug, rightmost.closed = TRUE)
+  lower_sorted <- min(max(lower_sorted, 1L), length(sorted_angles))
+  upper_sorted <- (lower_sorted %% length(sorted_angles)) + 1L
+  c(order_idx[lower_sorted], order_idx[upper_sorted])
+}
+
+.connect.cyclic.rings <- function(ids.a, angles.a, ids.b, angles.b) {
+  ids.a <- as.integer(ids.a)
+  ids.b <- as.integer(ids.b)
+  angles.a <- .normalize.angles(angles.a)
+  angles.b <- .normalize.angles(angles.b)
+  edges <- list()
+
+  for (j in seq_along(ids.b)) {
+    nbr <- .cyclic.bracketing.indices(angles.b[[j]], angles.a)
+    edges[[length(edges) + 1L]] <- c(ids.b[[j]], ids.a[nbr[[1L]]])
+    edges[[length(edges) + 1L]] <- c(ids.b[[j]], ids.a[nbr[[2L]]])
+  }
+  for (i in seq_along(ids.a)) {
+    nbr <- .cyclic.bracketing.indices(angles.a[[i]], angles.b)
+    edges[[length(edges) + 1L]] <- c(ids.a[[i]], ids.b[nbr[[1L]]])
+    edges[[length(edges) + 1L]] <- c(ids.a[[i]], ids.b[nbr[[2L]]])
+  }
+
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+.connect.cyclic.component.sets <- function(comps.a,
+                                           comps.b,
+                                           overlap.scale = 1.05) {
+  overlap.scale <- .as.positive.scalar(overlap.scale, "overlap.scale")
+  if (length(comps.a) == 0L || length(comps.b) == 0L) {
+    return(matrix(integer(), ncol = 2L))
+  }
+
+  centers_a <- do.call(rbind, lapply(comps.a, `[[`, "center"))
+  centers_b <- do.call(rbind, lapply(comps.b, `[[`, "center"))
+  radii_a <- vapply(comps.a, `[[`, numeric(1L), "radius")
+  radii_b <- vapply(comps.b, `[[`, numeric(1L), "radius")
+  dmat <- outer(
+    seq_len(nrow(centers_a)),
+    seq_len(nrow(centers_b)),
+    Vectorize(function(i, j) sqrt(sum((centers_a[i, ] - centers_b[j, ])^2)))
+  )
+  thresh <- outer(radii_a, radii_b, "+") * overlap.scale
+  overlap_pairs <- which(dmat <= thresh, arr.ind = TRUE)
+
+  pair_keys <- character()
+  pair_idx <- matrix(integer(), ncol = 2L)
+  add.pair <- function(i, j) {
+    key <- sprintf("%d-%d", i, j)
+    if (!(key %in% pair_keys)) {
+      pair_keys <<- c(pair_keys, key)
+      pair_idx <<- rbind(pair_idx, c(i, j))
+    }
+  }
+
+  if (nrow(overlap_pairs) > 0L) {
+    for (k in seq_len(nrow(overlap_pairs))) {
+      add.pair(overlap_pairs[k, 1L], overlap_pairs[k, 2L])
+    }
+  }
+  for (i in seq_along(comps.a)) {
+    if (!any(pair_idx[, 1L] == i)) {
+      add.pair(i, which.min(dmat[i, ]))
+    }
+  }
+  for (j in seq_along(comps.b)) {
+    if (!any(pair_idx[, 2L] == j)) {
+      add.pair(which.min(dmat[, j]), j)
+    }
+  }
+
+  edges <- vector("list", nrow(pair_idx))
+  for (k in seq_len(nrow(pair_idx))) {
+    i <- pair_idx[k, 1L]
+    j <- pair_idx[k, 2L]
+    edges[[k]] <- .connect.cyclic.rings(
+      ids.a = comps.a[[i]]$ids,
+      angles.a = comps.a[[i]]$angles,
+      ids.b = comps.b[[j]]$ids,
+      angles.b = comps.b[[j]]$angles
+    )
+  }
+
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+.irregular.annulus.canonical <- function(rings = 6,
+                                         outer.count = 28,
+                                         outer.radius = 1,
+                                         inner.radius = 0.45,
+                                         count.irregularity = 0.2,
+                                         radial.irregularity = 0.35,
+                                         phase.twist = 0.35) {
+  rings <- .as.whole.number(rings, "rings", min = 2L)
+  outer.count <- .as.whole.number(outer.count, "outer.count", min = 6L)
+  outer.radius <- .as.positive.scalar(outer.radius, "outer.radius")
+  inner.radius <- .as.positive.scalar(inner.radius, "inner.radius")
+  if (inner.radius >= outer.radius) {
+    stop("inner.radius must be < outer.radius", call. = FALSE)
+  }
+  count.irregularity <- .as.finite.scalar(count.irregularity, "count.irregularity")
+  radial.irregularity <- .as.finite.scalar(radial.irregularity, "radial.irregularity")
+  phase.twist <- .as.finite.scalar(phase.twist, "phase.twist")
+  if (count.irregularity < 0 || count.irregularity >= 1) {
+    stop("count.irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (radial.irregularity < 0 || radial.irregularity > 1) {
+    stop("radial.irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  radii <- seq(inner.radius, outer.radius, length.out = rings)
+  ring_gap <- if (rings > 1L) min(diff(radii)) else (outer.radius - inner.radius)
+  radial_amp <- radial.irregularity * 0.45 * ring_gap
+  coords_list <- list()
+  ring_ids <- vector("list", rings)
+  ring_angles <- vector("list", rings)
+  ring_sizes <- integer(rings)
+  next_id <- 1L
+
+  for (ring in seq_len(rings)) {
+    t <- if (rings == 1L) 0 else (ring - 1L) / (rings - 1L)
+    target_count <- outer.count *
+      (radii[[ring]] / outer.radius) *
+      (1 + count.irregularity * cos(2 * pi * t + 0.4))
+    count <- max(5L, as.integer(round(target_count)))
+    theta <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    theta <- .normalize.angles(theta + phase.twist * sin(pi * (t - 0.5)))
+    theta <- sort(theta)
+    radius_local <- radii[[ring]] + radial_amp * sin(3 * theta + 2 * pi * t)
+    if (any(!is.finite(radius_local) | radius_local <= 0)) {
+      stop("irregular annulus parameters produce non-positive local radii",
+           call. = FALSE)
+    }
+
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[ring]] <- as.integer(ids)
+    ring_angles[[ring]] <- theta
+    ring_sizes[[ring]] <- count
+    coords_list[[ring]] <- cbind(
+      u = radius_local * cos(theta),
+      v = radius_local * sin(theta)
+    )
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  edges <- list()
+  for (ring in seq_len(rings)) {
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ring_ids[[ring]])
+    if (ring < rings) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+        ids.a = ring_ids[[ring]],
+        angles.a = ring_angles[[ring]],
+        ids.b = ring_ids[[ring + 1L]],
+        angles.b = ring_angles[[ring + 1L]]
+      )
+    }
+  }
+
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    rings = rings,
+    ring_sizes = ring_sizes,
+    outer_radius = outer.radius,
+    inner_radius = inner.radius
+  )
+}
+
+.irregular.sphere.canonical <- function(bands = 6,
+                                        equator.count = 28,
+                                        count.irregularity = 0.2,
+                                        lat.irregularity = 0.35,
+                                        phase.twist = 0.35) {
+  bands <- .as.whole.number(bands, "bands", min = 2L)
+  equator.count <- .as.whole.number(equator.count, "equator.count", min = 6L)
+  count.irregularity <- .as.finite.scalar(count.irregularity, "count.irregularity")
+  lat.irregularity <- .as.finite.scalar(lat.irregularity, "lat.irregularity")
+  phase.twist <- .as.finite.scalar(phase.twist, "phase.twist")
+  if (count.irregularity < 0 || count.irregularity >= 1) {
+    stop("count.irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (lat.irregularity < 0 || lat.irregularity > 1) {
+    stop("lat.irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  base_gap <- pi / (bands + 1L)
+  lat_base <- seq(pi / 2 - base_gap, -pi / 2 + base_gap, length.out = bands)
+  lat_shift <- lat.irregularity * 0.22 * base_gap *
+    sin(seq_len(bands) * (2 * pi / (bands + 1L)))
+  lat_vals <- sort(lat_base + lat_shift, decreasing = TRUE)
+
+  north_id <- 1L
+  coords_param_list <- list(matrix(c(0, pi / 2), nrow = 1L,
+                                   dimnames = list(NULL, c("theta", "latitude"))))
+  ring_ids <- vector("list", bands)
+  ring_angles <- vector("list", bands)
+  band_sizes <- integer(bands)
+  next_id <- 2L
+  edges <- list()
+
+  for (band in seq_len(bands)) {
+    lat <- lat_vals[[band]]
+    t <- (band - 1L) / max(1L, bands - 1L)
+    target_count <- equator.count *
+      max(cos(lat), 0.2) *
+      (1 + count.irregularity * sin(3 * pi * t + 0.3))
+    count <- max(3L, as.integer(round(target_count)))
+    theta <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    theta <- .normalize.angles(theta + phase.twist * sin(2 * lat))
+    theta <- sort(theta)
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[band]] <- as.integer(ids)
+    ring_angles[[band]] <- theta
+    band_sizes[[band]] <- count
+    coords_param_list[[band + 1L]] <- cbind(theta = theta, latitude = rep(lat, count))
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+  }
+
+  south_id <- next_id
+  coords_param_list[[bands + 2L]] <- matrix(c(0, -pi / 2), nrow = 1L,
+                                            dimnames = list(NULL, c("theta", "latitude")))
+  if (bands >= 1L) {
+    first_ring <- ring_ids[[1L]]
+    last_ring <- ring_ids[[bands]]
+    for (id in first_ring) {
+      edges[[length(edges) + 1L]] <- c(north_id, id)
+    }
+    for (id in last_ring) {
+      edges[[length(edges) + 1L]] <- c(south_id, id)
+    }
+  }
+  if (bands >= 2L) {
+    for (band in seq_len(bands - 1L)) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+        ids.a = ring_ids[[band]],
+        angles.a = ring_angles[[band]],
+        ids.b = ring_ids[[band + 1L]],
+        angles.b = ring_angles[[band + 1L]]
+      )
+    }
+  }
+
+  coords_param <- do.call(rbind, coords_param_list)
+  colnames(coords_param) <- c("theta", "latitude")
+  storage.mode(coords_param) <- "double"
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords_param = coords_param,
+    n = as.integer(nrow(coords_param)),
+    bands = bands,
+    band_sizes = band_sizes
+  )
+}
+
+.irregular.torus.canonical <- function(major.rings = 8,
+                                       tube.count = 16,
+                                       count.irregularity = 0.2,
+                                       major.irregularity = 0.25,
+                                       phase.twist = 0.35) {
+  major.rings <- .as.whole.number(major.rings, "major.rings", min = 4L)
+  tube.count <- .as.whole.number(tube.count, "tube.count", min = 6L)
+  count.irregularity <- .as.finite.scalar(count.irregularity, "count.irregularity")
+  major.irregularity <- .as.finite.scalar(major.irregularity, "major.irregularity")
+  phase.twist <- .as.finite.scalar(phase.twist, "phase.twist")
+  if (count.irregularity < 0 || count.irregularity >= 1) {
+    stop("count.irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (major.irregularity < 0 || major.irregularity > 1) {
+    stop("major.irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  theta_gap <- 2 * pi / major.rings
+  theta_base <- seq(0, 2 * pi * (1 - 1 / major.rings), length.out = major.rings)
+  theta_shift <- major.irregularity * 0.22 * theta_gap *
+    sin(seq_len(major.rings) * (2 * pi / major.rings))
+  theta_vals <- sort(.normalize.angles(theta_base + theta_shift))
+
+  coords_param_list <- vector("list", major.rings)
+  ring_ids <- vector("list", major.rings)
+  ring_angles <- vector("list", major.rings)
+  ring_sizes <- integer(major.rings)
+  edges <- list()
+  next_id <- 1L
+
+  for (ring in seq_len(major.rings)) {
+    theta <- theta_vals[[ring]]
+    t <- (ring - 1L) / major.rings
+    target_count <- tube.count * (1 + count.irregularity * sin(2 * pi * t + 0.4))
+    count <- max(5L, as.integer(round(target_count)))
+    phi <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+    phi <- sort(.normalize.angles(phi + phase.twist * sin(2 * theta)))
+
+    ids <- next_id:(next_id + count - 1L)
+    next_id <- next_id + count
+    ring_ids[[ring]] <- as.integer(ids)
+    ring_angles[[ring]] <- phi
+    ring_sizes[[ring]] <- count
+    coords_param_list[[ring]] <- cbind(theta = rep(theta, count), phi = phi)
+    edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+  }
+
+  for (ring in seq_len(major.rings)) {
+    next_ring <- (ring %% major.rings) + 1L
+    edges[[length(edges) + 1L]] <- .connect.cyclic.rings(
+      ids.a = ring_ids[[ring]],
+      angles.a = ring_angles[[ring]],
+      ids.b = ring_ids[[next_ring]],
+      angles.b = ring_angles[[next_ring]]
+    )
+  }
+
+  coords_param <- do.call(rbind, coords_param_list)
+  colnames(coords_param) <- c("theta", "phi")
+  storage.mode(coords_param) <- "double"
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords_param = coords_param,
+    n = as.integer(nrow(coords_param)),
+    major_rings = major.rings,
+    ring_sizes = ring_sizes
+  )
+}
+
+.double.torus.slice.components <- function(x,
+                                           branch.length,
+                                           transition.width,
+                                           branch.offset,
+                                           tube.radius) {
+  branch.length <- .as.positive.scalar(branch.length, "branch.length")
+  transition.width <- .as.positive.scalar(transition.width, "transition.width")
+  branch.offset <- .as.positive.scalar(branch.offset, "branch.offset")
+  tube.radius <- .as.positive.scalar(tube.radius, "tube.radius")
+  x <- .as.finite.scalar(x, "x")
+
+  u <- abs(x)
+  branch_weight <- (branch.length + transition.width - u) / transition.width
+  branch_weight <- min(max(branch_weight, 0), 1)
+  if (branch_weight <= 0.12) {
+    radius <- tube.radius * (0.92 + 0.55 * branch_weight)
+    return(list(
+      centers = matrix(c(0, 0), nrow = 1L, dimnames = list(NULL, c("y", "z"))),
+      radii = radius,
+      branch_weight = branch_weight
+    ))
+  }
+
+  spread <- branch.offset * (0.35 + 0.65 * branch_weight)
+  centers <- cbind(
+    y = c(-spread, 0, spread),
+    z = c(0, 0, 0)
+  )
+  radii <- tube.radius * c(0.96, 1.08, 0.96) * (0.95 + 0.08 * cos(pi * x))
+  list(
+    centers = centers,
+    radii = radii,
+    branch_weight = branch_weight
+  )
+}
+
+.irregular.double.torus.canonical <- function(slices = 11,
+                                              tube.count = 14,
+                                              branch.length = 0.85,
+                                              branch.offset = 0.72,
+                                              tube.radius = 0.28,
+                                              transition.width = 0.42,
+                                              count.irregularity = 0.2,
+                                              axial.irregularity = 0.3,
+                                              phase.twist = 0.35) {
+  slices <- .as.whole.number(slices, "slices", min = 7L)
+  tube.count <- .as.whole.number(tube.count, "tube.count", min = 6L)
+  branch.length <- .as.positive.scalar(branch.length, "branch.length")
+  branch.offset <- .as.positive.scalar(branch.offset, "branch.offset")
+  tube.radius <- .as.positive.scalar(tube.radius, "tube.radius")
+  transition.width <- .as.positive.scalar(transition.width, "transition.width")
+  count.irregularity <- .as.finite.scalar(count.irregularity, "count.irregularity")
+  axial.irregularity <- .as.finite.scalar(axial.irregularity, "axial.irregularity")
+  phase.twist <- .as.finite.scalar(phase.twist, "phase.twist")
+  if (count.irregularity < 0 || count.irregularity >= 1) {
+    stop("count.irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (axial.irregularity < 0 || axial.irregularity > 1) {
+    stop("axial.irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  x_extent <- branch.length + transition.width + tube.radius
+  gap <- (2 * x_extent) / (slices + 1L)
+  x_base <- seq(-x_extent + gap / 2, x_extent - gap / 2, length.out = slices)
+  x_shift <- axial.irregularity * 0.22 * gap *
+    sin(seq_len(slices) * (2 * pi / (slices + 1L)))
+  x_vals <- sort(x_base + x_shift)
+
+  west_id <- 1L
+  coords_list <- list(matrix(c(-x_extent, 0, 0), nrow = 1L,
+                             dimnames = list(NULL, c("x", "y", "z"))))
+  slice_specs <- vector("list", slices)
+  slice_sizes <- integer(slices)
+  slice_components <- integer(slices)
+  edges <- list()
+  next_id <- 2L
+
+  for (slice in seq_len(slices)) {
+    x <- x_vals[[slice]]
+    spec <- .double.torus.slice.components(
+      x = x,
+      branch.length = branch.length,
+      transition.width = transition.width,
+      branch.offset = branch.offset,
+      tube.radius = tube.radius
+    )
+    interval_specs <- vector("list", nrow(spec$centers))
+    t <- (slice - 1L) / max(1L, slices - 1L)
+
+    for (comp in seq_len(nrow(spec$centers))) {
+      radius <- spec$radii[[comp]]
+      phase <- phase.twist * (slice + 0.7 * comp)
+      target_count <- tube.count * (radius / tube.radius) *
+        (1 + count.irregularity * sin(2 * pi * t + 0.8 * comp))
+      count <- max(6L, as.integer(round(target_count)))
+      angles <- seq(0, 2 * pi * (1 - 1 / count), length.out = count)
+      angles <- sort(.normalize.angles(
+        angles + phase * sin(pi * (t - 0.5))
+      ))
+
+      ids <- next_id:(next_id + count - 1L)
+      next_id <- next_id + count
+      center <- spec$centers[comp, ]
+      coords_list[[length(coords_list) + 1L]] <- cbind(
+        x = rep(x, count),
+        y = center[[1L]] + radius * cos(angles),
+        z = center[[2L]] + radius * sin(angles)
+      )
+      interval_specs[[comp]] <- list(
+        ids = as.integer(ids),
+        angles = angles,
+        center = as.double(center),
+        radius = radius
+      )
+      edges[[length(edges) + 1L]] <- .cyclic.ring.edges(ids)
+    }
+
+    slice_specs[[slice]] <- list(
+      x = x,
+      components = interval_specs
+    )
+    slice_sizes[[slice]] <- sum(vapply(interval_specs,
+                                       function(comp) length(comp$ids),
+                                       integer(1L)))
+    slice_components[[slice]] <- length(interval_specs)
+  }
+
+  if (slice_components[[1L]] != 1L || slice_components[[slices]] != 1L) {
+    stop("double torus end slices must collapse to a single component; adjust parameters",
+         call. = FALSE)
+  }
+  for (id in slice_specs[[1L]]$components[[1L]]$ids) {
+    edges[[length(edges) + 1L]] <- c(west_id, id)
+  }
+
+  if (slices >= 2L) {
+    for (slice in seq_len(slices - 1L)) {
+      edges[[length(edges) + 1L]] <- .connect.cyclic.component.sets(
+        comps.a = slice_specs[[slice]]$components,
+        comps.b = slice_specs[[slice + 1L]]$components,
+        overlap.scale = 1.1
+      )
+    }
+  }
+
+  east_id <- next_id
+  coords_list[[length(coords_list) + 1L]] <- matrix(c(x_extent, 0, 0), nrow = 1L,
+                                                    dimnames = list(NULL, c("x", "y", "z")))
+  for (id in slice_specs[[slices]]$components[[1L]]$ids) {
+    edges[[length(edges) + 1L]] <- c(id, east_id)
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    slices = slices,
+    slice_sizes = slice_sizes,
+    slice_components = slice_components,
+    x_extent = x_extent
+  )
+}
+
+.layered.radial.values <- function(layers,
+                                   inner.radius,
+                                   outer.radius,
+                                   irregularity,
+                                   include.center = FALSE) {
+  layers <- .as.whole.number(layers, "layers", min = 1L)
+  inner.radius <- .as.finite.scalar(inner.radius, "inner.radius")
+  outer.radius <- .as.positive.scalar(outer.radius, "outer.radius")
+  irregularity <- .as.finite.scalar(irregularity, "irregularity")
+  if (inner.radius < 0 || inner.radius >= outer.radius) {
+    stop("inner.radius must satisfy 0 <= inner.radius < outer.radius", call. = FALSE)
+  }
+  if (irregularity < 0 || irregularity > 1) {
+    stop("irregularity must be in [0, 1]", call. = FALSE)
+  }
+
+  base <- if (include.center) {
+    seq(outer.radius / layers, outer.radius, length.out = layers)
+  } else {
+    seq(inner.radius, outer.radius, length.out = layers)
+  }
+  if (layers >= 3L) {
+    gap <- min(diff(base))
+    shift <- irregularity * 0.22 * gap *
+      sin(seq_len(layers) * (2 * pi / (layers + 1L)))
+    if (include.center) {
+      shift[[layers]] <- 0
+      base <- sort(base + shift)
+      if (base[[1L]] <= 0) {
+        base[[1L]] <- max(outer.radius / (2 * layers), 1e-8)
+      }
+    } else {
+      shift[[1L]] <- 0
+      shift[[layers]] <- 0
+      base <- sort(base + shift)
+    }
+  }
+  as.double(base)
+}
+
+.rotate.z.coords <- function(coords, angle) {
+  coords <- as.matrix(coords)
+  angle <- .as.finite.scalar(angle, "angle")
+  rot <- matrix(
+    c(cos(angle), -sin(angle), 0,
+      sin(angle),  cos(angle), 0,
+      0,           0,          1),
+    nrow = 3L,
+    byrow = TRUE
+  )
+  coords %*% t(rot)
+}
+
+.layered.triangulated.solid.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                                  level = 1,
+                                                  layers = 3,
+                                                  inner.radius = 0,
+                                                  outer.radius = 1,
+                                                  radial.irregularity = 0.25,
+                                                  layer.twist = 0.35,
+                                                  include.center = FALSE) {
+  base <- match.arg(base)
+  level <- .as.whole.number(level, "level")
+  layers <- .as.whole.number(layers, "layers", min = 1L)
+  layer.twist <- .as.finite.scalar(layer.twist, "layer.twist")
+
+  surf <- .triangulated.polyhedron.canonical(base = base, level = level)
+  dirs <- .normalize.row.coords(surf$coords)
+  n_surface <- nrow(dirs)
+  radii <- .layered.radial.values(
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    irregularity = radial.irregularity,
+    include.center = include.center
+  )
+
+  coords_list <- list()
+  edges <- list()
+  layer_offsets <- integer(layers)
+  next_id <- 1L
+
+  if (include.center) {
+    coords_list[[1L]] <- matrix(c(0, 0, 0), nrow = 1L,
+                                dimnames = list(NULL, c("x", "y", "z")))
+    next_id <- 2L
+  }
+
+  for (layer in seq_len(layers)) {
+    t <- if (layers == 1L) 1 else layer / layers
+    angle <- layer.twist * sin(pi * (t - 0.5))
+    dirs_layer <- .rotate.z.coords(dirs, angle)
+    coords_layer <- dirs_layer * radii[[layer]]
+    layer_offsets[[layer]] <- next_id - 1L
+    coords_list[[length(coords_list) + 1L]] <- coords_layer
+    edges[[length(edges) + 1L]] <- surf$edges + layer_offsets[[layer]]
+    next_id <- next_id + n_surface
+  }
+
+  if (include.center) {
+    first_ids <- layer_offsets[[1L]] + seq_len(n_surface)
+    for (id in first_ids) {
+      edges[[length(edges) + 1L]] <- c(1L, id)
+    }
+  }
+
+  if (layers >= 2L) {
+    face_template <- surf$faces
+    for (layer in seq_len(layers - 1L)) {
+      lower_ids <- layer_offsets[[layer]] + seq_len(n_surface)
+      upper_ids <- layer_offsets[[layer + 1L]] + seq_len(n_surface)
+      edges[[length(edges) + 1L]] <- cbind(lower_ids, upper_ids)
+      for (face_idx in seq_len(nrow(face_template))) {
+        face <- face_template[face_idx, ]
+        lower <- layer_offsets[[layer]] + face
+        upper <- layer_offsets[[layer + 1L]] + face
+        edges[[length(edges) + 1L]] <- rbind(
+          c(lower[[1L]], upper[[2L]]),
+          c(lower[[1L]], upper[[3L]]),
+          c(lower[[2L]], upper[[3L]])
+        )
+      }
+    }
+  }
+
+  coords <- do.call(rbind, coords_list)
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    base = base,
+    level = level,
+    layers = layers,
+    radii = radii,
+    subdivision = surf$subdivision,
+    n_surface = n_surface,
+    include_center = include.center
+  )
+}
+
+.irregular.ball.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                      level = 1,
+                                      layers = 3,
+                                      outer.radius = 1,
+                                      radial.irregularity = 0.25,
+                                      layer.twist = 0.35) {
+  .layered.triangulated.solid.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner.radius = 0,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist,
+    include.center = TRUE
+  )
+}
+
+.irregular.shell.canonical <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                       level = 1,
+                                       layers = 3,
+                                       inner.radius = 0.45,
+                                       outer.radius = 1,
+                                       radial.irregularity = 0.25,
+                                       layer.twist = 0.35) {
+  .layered.triangulated.solid.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist,
+    include.center = FALSE
+  )
+}
+
+.path.bracketing.indices <- function(x, x.vals) {
+  x.vals <- as.double(x.vals)
+  n <- length(x.vals)
+  if (n == 0L) {
+    stop("x.vals must contain at least one point", call. = FALSE)
+  }
+  if (n == 1L) {
+    return(c(1L, 1L))
+  }
+  if (x <= x.vals[[1L]]) {
+    return(c(1L, 2L))
+  }
+  if (x >= x.vals[[n]]) {
+    return(c(n - 1L, n))
+  }
+  lower <- max(which(x.vals <= x))
+  if (isTRUE(all.equal(x, x.vals[[lower]], tolerance = 1e-12))) {
+    return(c(lower, lower))
+  }
+  c(lower, lower + 1L)
+}
+
+.connect.open.paths <- function(ids.a, x.a, ids.b, x.b) {
+  ids.a <- as.integer(ids.a)
+  ids.b <- as.integer(ids.b)
+  ord_a <- order(x.a)
+  ord_b <- order(x.b)
+  ids.a <- ids.a[ord_a]
+  ids.b <- ids.b[ord_b]
+  x.a <- as.double(x.a[ord_a])
+  x.b <- as.double(x.b[ord_b])
+  edges <- list()
+
+  for (j in seq_along(ids.b)) {
+    nbr <- .path.bracketing.indices(x.b[[j]], x.a)
+    edges[[length(edges) + 1L]] <- c(ids.b[[j]], ids.a[nbr[[1L]]])
+    if (nbr[[2L]] != nbr[[1L]]) {
+      edges[[length(edges) + 1L]] <- c(ids.b[[j]], ids.a[nbr[[2L]]])
+    }
+  }
+  for (i in seq_along(ids.a)) {
+    nbr <- .path.bracketing.indices(x.a[[i]], x.b)
+    edges[[length(edges) + 1L]] <- c(ids.a[[i]], ids.b[nbr[[1L]]])
+    if (nbr[[2L]] != nbr[[1L]]) {
+      edges[[length(edges) + 1L]] <- c(ids.a[[i]], ids.b[nbr[[2L]]])
+    }
+  }
+
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+.pair.of.pants.slice.intervals <- function(y,
+                                           outer.radius,
+                                           hole.radius,
+                                           hole.offset,
+                                           hole.height,
+                                           tol = 1e-10) {
+  outer_dx_sq <- outer.radius^2 - y^2
+  if (outer_dx_sq <= 0) {
+    return(matrix(numeric(), ncol = 2L))
+  }
+  intervals <- matrix(c(-sqrt(outer_dx_sq), sqrt(outer_dx_sq)), ncol = 2L)
+  holes <- list()
+
+  hole_y <- y - hole.height
+  hole_dx_sq <- hole.radius^2 - hole_y^2
+  if (hole_dx_sq > 0) {
+    hole_dx <- sqrt(hole_dx_sq)
+    holes <- list(
+      c(-hole.offset - hole_dx, -hole.offset + hole_dx),
+      c(hole.offset - hole_dx, hole.offset + hole_dx)
+    )
+  }
+
+  subtract.interval <- function(current, hole) {
+    out <- matrix(numeric(), ncol = 2L)
+    for (i in seq_len(nrow(current))) {
+      start <- current[i, 1L]
+      end <- current[i, 2L]
+      h_start <- hole[[1L]]
+      h_end <- hole[[2L]]
+      if (h_end <= start + tol || h_start >= end - tol) {
+        out <- rbind(out, c(start, end))
+      } else {
+        if (h_start > start + tol) {
+          out <- rbind(out, c(start, h_start))
+        }
+        if (h_end < end - tol) {
+          out <- rbind(out, c(h_end, end))
+        }
+      }
+    }
+    out
+  }
+
+  for (hole in holes) {
+    intervals <- subtract.interval(intervals, hole)
+    if (nrow(intervals) == 0L) {
+      break
+    }
+  }
+  intervals[order(intervals[, 1L]), , drop = FALSE]
+}
+
+.sample.open.interval <- function(start,
+                                  end,
+                                  count,
+                                  phase,
+                                  irregularity) {
+  count <- .as.whole.number(count, "count", min = 1L)
+  phase <- .as.finite.scalar(phase, "phase")
+  irregularity <- .as.finite.scalar(irregularity, "irregularity")
+  if (count == 1L) {
+    return((start + end) / 2)
+  }
+  s <- seq(0, 1, length.out = count)
+  if (count > 2L && irregularity > 0) {
+    delta <- 0.18 * irregularity * sin(pi * s) * cos(phase + 2 * pi * s)
+    s <- pmin(pmax(s + delta / max(count - 1L, 1L), 0), 1)
+    s[[1L]] <- 0
+    s[[count]] <- 1
+    s <- sort(s)
+  }
+  start + (end - start) * s
+}
+
+.irregular.pair.of.pants.canonical <- function(slices = 11,
+                                               outer.count = 28,
+                                               outer.radius = 1.1,
+                                               hole.radius = 0.24,
+                                               hole.offset = 0.38,
+                                               hole.height = 0.18,
+                                               count.irregularity = 0.2,
+                                               vertical.irregularity = 0.35,
+                                               phase.twist = 0.35) {
+  slices <- .as.whole.number(slices, "slices", min = 5L)
+  outer.count <- .as.whole.number(outer.count, "outer.count", min = 8L)
+  outer.radius <- .as.positive.scalar(outer.radius, "outer.radius")
+  hole.radius <- .as.positive.scalar(hole.radius, "hole.radius")
+  hole.offset <- .as.positive.scalar(hole.offset, "hole.offset")
+  hole.height <- .as.finite.scalar(hole.height, "hole.height")
+  count.irregularity <- .as.finite.scalar(count.irregularity, "count.irregularity")
+  vertical.irregularity <- .as.finite.scalar(vertical.irregularity, "vertical.irregularity")
+  phase.twist <- .as.finite.scalar(phase.twist, "phase.twist")
+  if (count.irregularity < 0 || count.irregularity >= 1) {
+    stop("count.irregularity must be in [0, 1)", call. = FALSE)
+  }
+  if (vertical.irregularity < 0 || vertical.irregularity > 1) {
+    stop("vertical.irregularity must be in [0, 1]", call. = FALSE)
+  }
+  if (hole.offset <= hole.radius) {
+    stop("hole.offset must exceed hole.radius so the two holes remain disjoint",
+         call. = FALSE)
+  }
+  hole_center_radius <- sqrt(hole.offset^2 + hole.height^2)
+  if ((hole_center_radius + hole.radius) >= outer.radius) {
+    stop("holes must lie strictly inside the outer boundary", call. = FALSE)
+  }
+
+  gap <- (2 * outer.radius) / (slices + 1L)
+  y_base <- seq(outer.radius - gap / 2, -outer.radius + gap / 2, length.out = slices)
+  y_shift <- vertical.irregularity * 0.22 * gap *
+    sin(seq_len(slices) * (2 * pi / (slices + 1L)))
+  y_vals <- sort(y_base + y_shift, decreasing = TRUE)
+  base_spacing <- (2 * outer.radius) / outer.count
+
+  coords_list <- list()
+  slice_specs <- vector("list", slices)
+  slice_sizes <- integer(slices)
+  slice_components <- integer(slices)
+  next_id <- 1L
+  edges <- list()
+
+  for (slice in seq_len(slices)) {
+    y <- y_vals[[slice]]
+    intervals <- .pair.of.pants.slice.intervals(
+      y = y,
+      outer.radius = outer.radius,
+      hole.radius = hole.radius,
+      hole.offset = hole.offset,
+      hole.height = hole.height
+    )
+    if (nrow(intervals) == 0L) {
+      stop("slice construction produced an empty cross-section; adjust parameters",
+           call. = FALSE)
+    }
+
+    interval_specs <- vector("list", nrow(intervals))
+    t <- (slice - 1L) / max(1L, slices - 1L)
+    for (comp in seq_len(nrow(intervals))) {
+      start <- intervals[comp, 1L]
+      end <- intervals[comp, 2L]
+      len <- end - start
+      target <- outer.count * (len / (2 * outer.radius)) *
+        (1 + count.irregularity * sin(2 * pi * t + 0.9 * comp))
+      min_count <- if (len > 0.75 * base_spacing) 2L else 1L
+      count <- max(min_count, as.integer(round(target)))
+      x_vals <- .sample.open.interval(
+        start = start,
+        end = end,
+        count = count,
+        phase = phase.twist * (slice + comp),
+        irregularity = count.irregularity
+      )
+      ids <- next_id:(next_id + count - 1L)
+      next_id <- next_id + count
+      coords_list[[length(coords_list) + 1L]] <- cbind(
+        u = x_vals,
+        v = rep(y, count)
+      )
+      interval_specs[[comp]] <- list(
+        ids = as.integer(ids),
+        x = as.double(x_vals),
+        start = start,
+        end = end
+      )
+      if (count >= 2L) {
+        edges[[length(edges) + 1L]] <- cbind(ids[-count], ids[-1L])
+      }
+    }
+    slice_specs[[slice]] <- list(
+      y = y,
+      intervals = interval_specs
+    )
+    slice_sizes[[slice]] <- sum(vapply(interval_specs,
+                                       function(spec) length(spec$ids),
+                                       integer(1L)))
+    slice_components[[slice]] <- length(interval_specs)
+  }
+
+  for (slice in seq_len(slices - 1L)) {
+    current <- slice_specs[[slice]]$intervals
+    next_slice <- slice_specs[[slice + 1L]]$intervals
+    for (i in seq_along(current)) {
+      for (j in seq_along(next_slice)) {
+        overlap <- min(current[[i]]$end, next_slice[[j]]$end) -
+          max(current[[i]]$start, next_slice[[j]]$start)
+        if (overlap >= (-0.15 * base_spacing)) {
+          edges[[length(edges) + 1L]] <- .connect.open.paths(
+            ids.a = current[[i]]$ids,
+            x.a = current[[i]]$x,
+            ids.b = next_slice[[j]]$ids,
+            x.b = next_slice[[j]]$x
+          )
+        }
+      }
+    }
+  }
+
+  coords <- do.call(rbind, coords_list)
+  colnames(coords) <- c("u", "v")
+  storage.mode(coords) <- "double"
+  list(
+    edges = .normalize.undirected.edges(.bind.edges(edges)),
+    coords = coords,
+    n = as.integer(nrow(coords)),
+    slices = slices,
+    slice_sizes = slice_sizes,
+    slice_components = slice_components
+  )
+}
+
+.sierpinski.carpet.mask <- function() {
+  matrix(
+    c(
+      1, 1, 1,
+      1, 0, 1,
+      1, 1, 1
+    ),
+    nrow = 3L,
+    byrow = TRUE
+  )
+}
+
+.menger.sponge.mask <- function() {
+  mask <- array(TRUE, dim = c(3L, 3L, 3L))
+  for (row in seq_len(3L)) {
+    for (col in seq_len(3L)) {
+      for (layer in seq_len(3L)) {
+        middle_count <- sum(c(row, col, layer) == 2L)
+        if (middle_count >= 2L) {
+          mask[row, col, layer] <- FALSE
+        }
+      }
+    }
+  }
+  mask
+}
+
+.cube.band.starts <- function(side,
+                              width,
+                              period,
+                              offset,
+                              width.name = "width",
+                              period.name = "period",
+                              offset.name = "offset") {
+  width <- .as.whole.number(width, width.name, min = 1L)
+  if (width >= side) {
+    stop(sprintf("%s must be < side", width.name), call. = FALSE)
+  }
+  period <- .as.whole.number(period, period.name, min = 1L)
+  offset <- .as.whole.number(offset, offset.name, min = 1L)
+  max_start <- side - width
+  if (offset > max_start) {
+    stop(sprintf("%s must be <= %d for the chosen side and width",
+                 offset.name,
+                 max_start),
+         call. = FALSE)
+  }
+  as.integer(seq(offset, max_start, by = period))
+}
+
+.cube.band.mask <- function(side, width, starts) {
+  side <- .as.whole.number(side, "side", min = 2L)
+  width <- .as.whole.number(width, "width", min = 1L)
+  starts <- as.integer(starts)
+  out <- rep(FALSE, side)
+  for (start in starts) {
+    out[start:(start + width - 1L)] <- TRUE
+  }
+  out
+}
+
+.set.cube.block <- function(arr,
+                            row.start,
+                            col.start,
+                            layer.start,
+                            row.size,
+                            col.size = row.size,
+                            layer.size = row.size,
+                            value = FALSE) {
+  dims <- dim(arr)
+  row.start <- .as.whole.number(row.start, "row.start", min = 1L)
+  col.start <- .as.whole.number(col.start, "col.start", min = 1L)
+  layer.start <- .as.whole.number(layer.start, "layer.start", min = 1L)
+  row.size <- .as.whole.number(row.size, "row.size", min = 1L)
+  col.size <- .as.whole.number(col.size, "col.size", min = 1L)
+  layer.size <- .as.whole.number(layer.size, "layer.size", min = 1L)
+
+  row_end <- row.start + row.size - 1L
+  col_end <- col.start + col.size - 1L
+  layer_end <- layer.start + layer.size - 1L
+  if (row_end > dims[1L] || col_end > dims[2L] || layer_end > dims[3L]) {
+    stop("requested cube block lies outside the keep-array bounds", call. = FALSE)
+  }
+
+  arr[row.start:row_end, col.start:col_end, layer.start:layer_end] <- value
+  arr
+}
+
+.cube.periodic.tunnels.mask <- function(side = 5,
+                                        tunnel.width = 1,
+                                        tunnel.period = 2,
+                                        tunnel.offset = 2) {
+  side <- .as.whole.number(side, "side", min = 3L)
+  starts <- .cube.band.starts(
+    side = side,
+    width = tunnel.width,
+    period = tunnel.period,
+    offset = tunnel.offset,
+    width.name = "tunnel.width",
+    period.name = "tunnel.period",
+    offset.name = "tunnel.offset"
+  )
+  bands <- .cube.band.mask(side, tunnel.width, starts)
+  grid <- expand.grid(
+    row = seq_len(side),
+    col = seq_len(side),
+    layer = seq_len(side)
+  )
+  middle_count <- bands[grid$row] + bands[grid$col] + bands[grid$layer]
+  keep <- array(TRUE, dim = c(side, side, side))
+  keep[cbind(grid$row[middle_count >= 2L],
+             grid$col[middle_count >= 2L],
+             grid$layer[middle_count >= 2L])] <- FALSE
+  keep
+}
+
+.cube.asymmetric.cavities.mask <- function(side = 5,
+                                           cavity.size = 2,
+                                           pocket.size = max(1L, cavity.size - 1L)) {
+  side <- .as.whole.number(side, "side", min = 5L)
+  cavity.size <- .as.whole.number(cavity.size, "cavity.size", min = 1L)
+  pocket.size <- .as.whole.number(pocket.size, "pocket.size", min = 1L)
+  max_interior <- side - 2L
+  if (cavity.size > max_interior) {
+    stop(sprintf("cavity.size must be <= %d for the chosen side", max_interior),
+         call. = FALSE)
+  }
+  if (pocket.size > max_interior) {
+    stop(sprintf("pocket.size must be <= %d for the chosen side", max_interior),
+         call. = FALSE)
+  }
+
+  keep <- array(TRUE, dim = c(side, side, side))
+  keep <- .set.cube.block(
+    keep,
+    row.start = 2L,
+    col.start = max(2L, side - cavity.size),
+    layer.start = 2L,
+    row.size = cavity.size,
+    col.size = cavity.size,
+    layer.size = cavity.size,
+    value = FALSE
+  )
+  keep <- .set.cube.block(
+    keep,
+    row.start = max(2L, side - pocket.size),
+    col.start = 2L,
+    layer.start = max(2L, side - pocket.size),
+    row.size = pocket.size,
+    col.size = pocket.size,
+    layer.size = pocket.size,
+    value = FALSE
+  )
+  keep
+}
+
+.cube.channel.network.mask <- function(side = 5,
+                                       channel.width = 1,
+                                       branch.offset = 2) {
+  side <- .as.whole.number(side, "side", min = 5L)
+  channel.width <- .as.whole.number(channel.width, "channel.width", min = 1L)
+  if (channel.width >= side) {
+    stop("channel.width must be < side", call. = FALSE)
+  }
+  max_start <- side - channel.width
+  branch.offset <- .as.whole.number(branch.offset, "branch.offset", min = 2L)
+  if (branch.offset > max_start) {
+    stop(sprintf("branch.offset must be <= %d for the chosen side and channel.width",
+                 max_start),
+         call. = FALSE)
+  }
+
+  keep <- array(TRUE, dim = c(side, side, side))
+  mid_start <- ((side - channel.width) %/% 2L) + 1L
+  high_start <- side - channel.width
+
+  keep <- .set.cube.block(
+    keep,
+    row.start = mid_start,
+    col.start = 1L,
+    layer.start = mid_start,
+    row.size = channel.width,
+    col.size = side,
+    layer.size = channel.width,
+    value = FALSE
+  )
+  keep <- .set.cube.block(
+    keep,
+    row.start = 1L,
+    col.start = mid_start,
+    layer.start = mid_start,
+    row.size = side,
+    col.size = channel.width,
+    layer.size = channel.width,
+    value = FALSE
+  )
+  keep <- .set.cube.block(
+    keep,
+    row.start = mid_start,
+    col.start = mid_start,
+    layer.start = 1L,
+    row.size = channel.width,
+    col.size = channel.width,
+    layer.size = side,
+    value = FALSE
+  )
+  keep <- .set.cube.block(
+    keep,
+    row.start = branch.offset,
+    col.start = 1L,
+    layer.start = mid_start,
+    row.size = channel.width,
+    col.size = side,
+    layer.size = channel.width,
+    value = FALSE
+  )
+  keep <- .set.cube.block(
+    keep,
+    row.start = mid_start,
+    col.start = high_start,
+    layer.start = 1L,
+    row.size = channel.width,
+    col.size = channel.width,
+    layer.size = side,
+    value = FALSE
+  )
+  keep
+}
+
+.vicsek.mask <- function() {
+  matrix(
+    c(
+      0, 1, 0,
+      1, 1, 1,
+      0, 1, 0
+    ),
+    nrow = 3L,
+    byrow = TRUE
+  )
+}
+
+.mask.corner.keep <- function(k,
+                              width = 2,
+                              corner = c("top_left", "top_right",
+                                         "bottom_left", "bottom_right")) {
+  k <- .as.whole.number(k, "k", min = 2L)
+  width <- .as.whole.number(width, "width", min = 1L)
+  if (width > k) {
+    stop("width must be <= k", call. = FALSE)
+  }
+  corner <- .as.named.choice(corner[[1L]],
+                             c("top_left", "top_right", "bottom_left", "bottom_right"),
+                             "corner")
+  keep <- matrix(FALSE, nrow = k, ncol = k)
+  rows <- switch(corner,
+                 top_left = seq_len(width),
+                 top_right = seq_len(width),
+                 bottom_left = (k - width + 1L):k,
+                 bottom_right = (k - width + 1L):k)
+  cols <- switch(corner,
+                 top_left = seq_len(width),
+                 top_right = (k - width + 1L):k,
+                 bottom_left = seq_len(width),
+                 bottom_right = (k - width + 1L):k)
+  keep[rows, cols] <- TRUE
+  keep
+}
+
+.mask.asymmetric.holes.keep <- function(k, hole.size = 1) {
+  k <- .as.odd.whole.number(k, "k", min = 5L)
+  hole.size <- .as.whole.number(hole.size, "hole.size", min = 1L)
+  max_hole <- max(1L, (k - 3L) %/% 2L)
+  if (hole.size > max_hole) {
+    stop(sprintf("hole.size must be <= %d for the chosen k", max_hole), call. = FALSE)
+  }
+
+  keep <- matrix(TRUE, nrow = k, ncol = k)
+  max_start <- k - hole.size
+  mid_start <- max(2L, min(max_start, ((k + 1L) %/% 2L) - (hole.size %/% 2L)))
+  hole_blocks <- unique(
+    list(
+      c(2L, 2L),
+      c(2L, max_start),
+      c(max_start, mid_start)
+    )
+  )
+  for (block in hole_blocks) {
+    rows <- block[[1L]]:(block[[1L]] + hole.size - 1L)
+    cols <- block[[2L]]:(block[[2L]] + hole.size - 1L)
+    if (min(rows) >= 2L && max(rows) <= k - 1L &&
+        min(cols) >= 2L && max(cols) <= k - 1L) {
+      keep[rows, cols] <- FALSE
+    }
+  }
+  keep
+}
+
+.keep.periodic.holes <- function(h,
+                                 w = h,
+                                 hole.period = 4,
+                                 hole.height = 1,
+                                 hole.width = hole.height,
+                                 row.offset = 2,
+                                 col.offset = 2) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  hole.period <- .as.whole.number(hole.period, "hole.period", min = 2L)
+  hole.height <- .as.whole.number(hole.height, "hole.height", min = 1L)
+  hole.width <- .as.whole.number(hole.width, "hole.width", min = 1L)
+  row.offset <- .as.whole.number(row.offset, "row.offset", min = 1L)
+  col.offset <- .as.whole.number(col.offset, "col.offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  row_starts <- seq(row.offset, h - hole.height + 1L, by = hole.period)
+  col_starts <- seq(col.offset, w - hole.width + 1L, by = hole.period)
+  for (r in row_starts) {
+    for (c in col_starts) {
+      keep[r:(r + hole.height - 1L), c:(c + hole.width - 1L)] <- FALSE
+    }
+  }
+  keep
+}
+
+.keep.staggered.windows <- function(h,
+                                    w = h,
+                                    window.height = 1,
+                                    window.width = 2,
+                                    row.period = 4,
+                                    col.period = 5,
+                                    row.offset = 2,
+                                    col.offset = 2) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  window.height <- .as.whole.number(window.height, "window.height", min = 1L)
+  window.width <- .as.whole.number(window.width, "window.width", min = 1L)
+  row.period <- .as.whole.number(row.period, "row.period", min = 2L)
+  col.period <- .as.whole.number(col.period, "col.period", min = 2L)
+  row.offset <- .as.whole.number(row.offset, "row.offset", min = 1L)
+  col.offset <- .as.whole.number(col.offset, "col.offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  row_starts <- seq(row.offset, h - window.height + 1L, by = row.period)
+  for (band_idx in seq_along(row_starts)) {
+    r <- row_starts[[band_idx]]
+    band_shift <- if ((band_idx %% 2L) == 0L) col.period %/% 2L else 0L
+    col_starts <- seq(col.offset + band_shift, w - window.width + 1L, by = col.period)
+    for (c in col_starts) {
+      if (c >= 1L && c + window.width - 1L <= w) {
+        keep[r:(r + window.height - 1L), c:(c + window.width - 1L)] <- FALSE
+      }
+    }
+  }
+  keep
+}
+
+.keep.slit.channels <- function(h,
+                                w = h,
+                                orientation = c("vertical", "horizontal"),
+                                slit.period = 5,
+                                slit.width = 1,
+                                bridge.spacing = 4,
+                                bridge.size = 1,
+                                offset = 2) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  orientation <- match.arg(orientation)
+  slit.period <- .as.whole.number(slit.period, "slit.period", min = 2L)
+  slit.width <- .as.whole.number(slit.width, "slit.width", min = 1L)
+  bridge.spacing <- .as.whole.number(bridge.spacing, "bridge.spacing", min = 2L)
+  bridge.size <- .as.whole.number(bridge.size, "bridge.size", min = 1L)
+  offset <- .as.whole.number(offset, "offset", min = 1L)
+
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+  if (orientation == "vertical") {
+    col_starts <- seq(offset, w - slit.width + 1L, by = slit.period)
+    for (c in col_starts) {
+      for (r in seq_len(h)) {
+        in_bridge <- ((r - 1L) %% bridge.spacing) < bridge.size
+        if (!in_bridge) {
+          keep[r, c:(c + slit.width - 1L)] <- FALSE
+        }
+      }
+    }
+  } else {
+    row_starts <- seq(offset, h - slit.width + 1L, by = slit.period)
+    for (r in row_starts) {
+      for (c in seq_len(w)) {
+        in_bridge <- ((c - 1L) %% bridge.spacing) < bridge.size
+        if (!in_bridge) {
+          keep[r:(r + slit.width - 1L), c] <- FALSE
+        }
+      }
+    }
+  }
+  keep
+}
+
+.keep.asymmetric.notches <- function(h,
+                                     w = h,
+                                     notch.depth = 3,
+                                     notch.width = 2) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  notch.depth <- .as.whole.number(notch.depth, "notch.depth", min = 1L)
+  notch.width <- .as.whole.number(notch.width, "notch.width", min = 1L)
+  keep <- matrix(TRUE, nrow = h, ncol = w)
+
+  top_depth <- min(notch.depth, max(1L, h - 2L))
+  left_depth <- min(notch.depth, max(1L, w - 2L))
+  bottom_depth <- min(max(1L, notch.depth - 1L), max(1L, h - 2L))
+  width1 <- min(notch.width, max(1L, w - 2L))
+  width2 <- min(max(1L, notch.width + 1L), max(1L, h - 2L))
+  width3 <- min(max(1L, notch.width), max(1L, w - 3L))
+
+  c1_start <- max(2L, (w %/% 3L))
+  c1_end <- min(w - 1L, c1_start + width1 - 1L)
+  keep[1L:top_depth, c1_start:c1_end] <- FALSE
+
+  r2_start <- max(2L, (h %/% 2L) - width2 %/% 2L)
+  r2_end <- min(h - 1L, r2_start + width2 - 1L)
+  keep[r2_start:r2_end, (w - left_depth + 1L):w] <- FALSE
+
+  c3_end <- min(w - 2L, max(2L, (2L * w) %/% 3L))
+  c3_start <- max(2L, c3_end - width3 + 1L)
+  keep[(h - bottom_depth + 1L):h, c3_start:c3_end] <- FALSE
+
+  keep
+}
+
+.sierpinski.triangle.canonical <- function(level) {
+  level <- .as.whole.number(level, "level")
+
+  merge.nodes <- function(edges, from, to) {
+    edges[edges == from] <- to
+    edges
+  }
+
+  build <- function(k) {
+    if (k == 0L) {
+      coords <- rbind(
+        c(0, 0),
+        c(1, 0),
+        c(0.5, sqrt(3) / 2)
+      )
+      edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 1L))
+      return(list(edges = edges, coords = coords, corners = c(1L, 2L, 3L), n = 3L))
+    }
+
+    left <- build(k - 1L)
+    right <- build(k - 1L)
+    top <- build(k - 1L)
+
+    left_coords <- left$coords / 2
+    right_coords <- right$coords / 2 +
+      matrix(c(0.5, 0), nrow(right$coords), 2L, byrow = TRUE)
+    top_coords <- top$coords / 2 +
+      matrix(c(0.25, sqrt(3) / 4), nrow(top$coords), 2L, byrow = TRUE)
+
+    off1 <- left$n
+    off2 <- left$n + right$n
+
+    edges <- rbind(left$edges,
+                   right$edges + off1,
+                   top$edges + off2)
+    coords <- rbind(left_coords, right_coords, top_coords)
+
+    L <- left$corners
+    R <- right$corners + off1
+    T <- top$corners + off2
+
+    edges <- merge.nodes(edges, R[1L], L[2L])
+    edges <- merge.nodes(edges, T[1L], L[3L])
+    edges <- merge.nodes(edges, T[2L], R[3L])
+
+    ids <- sort(unique(c(edges)))
+    map <- seq_along(ids)
+    names(map) <- ids
+    edges <- cbind(map[as.character(edges[, 1L])],
+                   map[as.character(edges[, 2L])])
+    coords <- coords[ids, , drop = FALSE]
+    edges <- .normalize.undirected.edges(edges)
+
+    corners <- c(map[as.character(L[1L])],
+                 map[as.character(R[2L])],
+                 map[as.character(T[3L])])
+
+    list(edges = edges, coords = coords, corners = corners, n = length(ids))
+  }
+
+  out <- build(level)
+  coords <- out$coords
+  colnames(coords) <- c("u", "v")
+  storage.mode(coords) <- "double"
+  list(
+    edges = out$edges,
+    coords = coords,
+    corners = out$corners,
+    n = as.integer(nrow(coords))
+  )
+}
+
+.sierpinski.tetrahedron.canonical <- function(level) {
+  level <- .as.whole.number(level, "level")
+
+  coords_list <- vector("list", 4L)
+  coords_list[[1L]] <- c(0, 0, 0)
+  coords_list[[2L]] <- c(1, 0, 0)
+  coords_list[[3L]] <- c(0.5, sqrt(3) / 2, 0)
+  coords_list[[4L]] <- c(0.5, sqrt(3) / 6, sqrt(2 / 3))
+
+  state <- new.env(parent = emptyenv())
+  state$edges <- list()
+  state$next_id <- 5L
+
+  add.tetrahedron <- function(a, b, c, d) {
+    state$edges[[length(state$edges) + 1L]] <<- rbind(
+      c(a, b), c(a, c), c(a, d),
+      c(b, c), c(b, d), c(c, d)
+    )
+  }
+
+  midpoint.id <- function(u, v) {
+    id <- state$next_id
+    state$next_id <- state$next_id + 1L
+    coords_list[[id]] <<- (coords_list[[u]] + coords_list[[v]]) / 2
+    id
+  }
+
+  recurse <- function(current.level, a, b, c, d) {
+    if (current.level >= level) {
+      add.tetrahedron(a, b, c, d)
+      return(invisible(NULL))
+    }
+
+    e <- midpoint.id(a, b)
+    f <- midpoint.id(a, c)
+    g <- midpoint.id(a, d)
+    h <- midpoint.id(b, c)
+    i <- midpoint.id(b, d)
+    j <- midpoint.id(c, d)
+
+    recurse(current.level + 1L, a, g, e, f)
+    recurse(current.level + 1L, e, b, i, h)
+    recurse(current.level + 1L, f, c, j, h)
+    recurse(current.level + 1L, g, d, i, j)
+  }
+
+  recurse(0L, 1L, 2L, 3L, 4L)
+
+  edges <- .normalize.undirected.edges(.bind.edges(state$edges))
+  coords <- do.call(rbind, coords_list[seq_len(state$next_id - 1L)])
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  list(
+    edges = edges,
+    coords = coords,
+    n = as.integer(nrow(coords))
+  )
+}
+
+.tetrahedron.classic.mask <- function() {
+  stats::setNames(rep(TRUE, 4L), c("base_left", "base_right", "base_back", "apex"))
+}
+
+.tetrahedron.corner.missing.mask <- function(omit = c("apex", "base_left",
+                                                      "base_right", "base_back")) {
+  omit <- .as.named.choice(
+    omit[[1L]],
+    c("apex", "base_left", "base_right", "base_back"),
+    "omit"
+  )
+  keep <- .tetrahedron.classic.mask()
+  keep[[omit]] <- FALSE
+  keep
+}
+
+.tetrahedron.mask.is.classic <- function(mask) {
+  identical(
+    unname(.as.tetrahedron.keep.mask(mask, "mask")),
+    unname(.tetrahedron.classic.mask())
+  )
+}
+
+.tetrahedron.mask.label <- function(mask) {
+  keep <- .as.tetrahedron.keep.mask(mask, "mask")
+  if (identical(unname(keep), unname(.tetrahedron.classic.mask()))) {
+    return("Sierpinski tetrahedron mask")
+  }
+  if (sum(keep) == 3L) {
+    omitted <- names(keep)[!keep][1L]
+    return(sprintf("Corner-mask tetrahedron (%s omitted)", omitted))
+  }
+  sprintf("Tetrahedron mask (%s)", paste(names(keep)[keep], collapse = ", "))
+}
+
+.recursive.tetrahedron.mask.canonical <- function(mask, level) {
+  mask <- .as.tetrahedron.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  if (.tetrahedron.mask.is.classic(mask)) {
+    out <- .sierpinski.tetrahedron.canonical(level)
+    out$mask <- mask
+    return(out)
+  }
+
+  base_vertices <- rbind(
+    c(0, 0, 0),
+    c(1, 0, 0),
+    c(0.5, sqrt(3) / 2, 0),
+    c(0.5, sqrt(3) / 6, sqrt(2 / 3))
+  )
+  base_edges <- rbind(
+    c(1L, 2L), c(1L, 3L), c(1L, 4L),
+    c(2L, 3L), c(2L, 4L), c(3L, 4L)
+  )
+
+  build <- function(current.level, vertices) {
+    if (current.level == 0L) {
+      coords <- as.matrix(vertices)
+      storage.mode(coords) <- "double"
+      return(list(edges = base_edges, coords = coords, n = 4L))
+    }
+
+    a <- vertices[1L, ]
+    b <- vertices[2L, ]
+    c <- vertices[3L, ]
+    d <- vertices[4L, ]
+    ab <- (a + b) / 2
+    ac <- (a + c) / 2
+    ad <- (a + d) / 2
+    bc <- (b + c) / 2
+    bd <- (b + d) / 2
+    cd <- (c + d) / 2
+    child_vertices <- list(
+      base_left = rbind(a, ab, ac, ad),
+      base_right = rbind(ab, b, bc, bd),
+      base_back = rbind(ac, bc, c, cd),
+      apex = rbind(ad, bd, cd, d)
+    )
+
+    edges <- list()
+    coords_list <- list()
+    offset <- 0L
+    active_slots <- names(mask)[mask]
+    for (slot in active_slots) {
+      child <- build(current.level - 1L, child_vertices[[slot]])
+      edges[[length(edges) + 1L]] <- child$edges + offset
+      coords_list[[length(coords_list) + 1L]] <- child$coords
+      offset <- offset + child$n
+    }
+
+    merged <- .deduplicate.coordinate.graph(
+      edges = .bind.edges(edges),
+      coords = do.call(rbind, coords_list)
+    )
+    list(
+      edges = merged$edges,
+      coords = merged$coords,
+      n = as.integer(nrow(merged$coords))
+    )
+  }
+
+  out <- build(level, base_vertices)
+  colnames(out$coords) <- c("x", "y", "z")
+  storage.mode(out$coords) <- "double"
+  out$mask <- mask
+  out
+}
+
+.triangle.classic.mask <- function() {
+  stats::setNames(c(TRUE, TRUE, TRUE, FALSE), c("left", "right", "top", "center"))
+}
+
+.triangle.bridge.mask <- function(missing = c("top", "left", "right")) {
+  missing <- .as.named.choice(missing[[1L]], c("top", "left", "right"), "missing")
+  keep <- stats::setNames(rep(TRUE, 4L), c("left", "right", "top", "center"))
+  keep[[missing]] <- FALSE
+  keep
+}
+
+.triangle.mask.is.classic <- function(mask) {
+  identical(
+    unname(.as.triangle.keep.mask(mask, "mask")),
+    unname(.triangle.classic.mask())
+  )
+}
+
+.triangle.mask.label <- function(mask) {
+  keep <- .as.triangle.keep.mask(mask, "mask")
+  if (identical(unname(keep), unname(.triangle.classic.mask()))) {
+    return("Sierpinski triangle mask")
+  }
+  if (isTRUE(keep[["center"]]) && sum(keep) == 3L) {
+    omitted <- names(keep)[!keep][1L]
+    return(sprintf("Bridge triangle mask (%s omitted)", omitted))
+  }
+  sprintf("Triangle mask (%s)", paste(names(keep)[keep], collapse = ", "))
+}
+
+.deduplicate.coordinate.graph <- function(edges,
+                                         coords,
+                                         digits = 12L,
+                                         return.map = FALSE) {
+  digits <- .as.whole.number(digits, "digits", min = 1L)
+  coords <- as.matrix(coords)
+  if (nrow(coords) == 0L) {
+    out <- list(edges = .empty.edge.matrix(), coords = coords)
+    if (return.map) {
+      out$old_to_new <- integer(0L)
+      out$keep_rows <- logical(0L)
+    }
+    return(out)
+  }
+  rounded <- round(coords, digits)
+  rounded[abs(rounded) < (10^(-digits))] <- 0
+  key_parts <- apply(
+    rounded,
+    2L,
+    function(col) formatC(col, digits = digits, format = "f")
+  )
+  keys <- apply(key_parts, 1L, paste, collapse = ":")
+  keep_rows <- !duplicated(keys)
+  old_to_new <- match(keys, keys[keep_rows])
+  coords_dedup <- coords[keep_rows, , drop = FALSE]
+  edges_dedup <- if (nrow(edges) == 0L) {
+    .empty.edge.matrix()
+  } else {
+    cbind(old_to_new[edges[, 1L]], old_to_new[edges[, 2L]])
+  }
+  storage.mode(coords_dedup) <- "double"
+  out <- list(
+    edges = .normalize.undirected.edges(edges_dedup),
+    coords = coords_dedup
+  )
+  if (return.map) {
+    out$old_to_new <- as.integer(old_to_new)
+    out$keep_rows <- keep_rows
+  }
+  out
+}
+
+.recursive.triangle.mask.canonical <- function(mask, level) {
+  mask <- .as.triangle.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  if (.triangle.mask.is.classic(mask)) {
+    out <- .sierpinski.triangle.canonical(level)
+    out$mask <- mask
+    return(out)
+  }
+
+  height <- sqrt(3) / 2
+  base_vertices <- rbind(
+    c(0, 0),
+    c(1, 0),
+    c(0.5, height)
+  )
+  base_edges <- rbind(c(1L, 2L), c(2L, 3L), c(3L, 1L))
+
+  build <- function(current.level, vertices) {
+    if (current.level == 0L) {
+      coords <- as.matrix(vertices)
+      storage.mode(coords) <- "double"
+      return(list(edges = base_edges, coords = coords, n = 3L))
+    }
+
+    a <- vertices[1L, ]
+    b <- vertices[2L, ]
+    c <- vertices[3L, ]
+    ab <- (a + b) / 2
+    bc <- (b + c) / 2
+    ac <- (a + c) / 2
+    child_vertices <- list(
+      left = rbind(a, ab, ac),
+      right = rbind(ab, b, bc),
+      top = rbind(ac, bc, c),
+      center = rbind(ab, bc, ac)
+    )
+
+    edges <- list()
+    coords_list <- list()
+    offset <- 0L
+    active_slots <- names(mask)[mask]
+    for (slot in active_slots) {
+      child <- build(current.level - 1L, child_vertices[[slot]])
+      edges[[length(edges) + 1L]] <- child$edges + offset
+      coords_list[[length(coords_list) + 1L]] <- child$coords
+      offset <- offset + child$n
+    }
+
+    merged <- .deduplicate.coordinate.graph(
+      edges = .bind.edges(edges),
+      coords = do.call(rbind, coords_list)
+    )
+    list(
+      edges = merged$edges,
+      coords = merged$coords,
+      n = as.integer(nrow(merged$coords))
+    )
+  }
+
+  out <- build(level, base_vertices)
+  colnames(out$coords) <- c("u", "v")
+  storage.mode(out$coords) <- "double"
+  out$mask <- mask
+  out
+}
+
+#' Mask pattern helpers for recursive grid families
+#'
+#' Convenience constructors for connected \eqn{k \times k} keep-masks that can
+#' be passed to \code{\link{recursive.mask.grid.surface.graph}()} to build generalized mask
+#' carpets. These helpers are meant to provide explicit benchmark motifs such
+#' as cross, border, corner, and asymmetric-hole patterns.
+#'
+#' The returned masks use standard matrix display orientation: rows run from top
+#' to bottom and columns run from left to right.
+#'
+#' @param k Mask side length.
+#' @param arm.width Width of the retained cross arms.
+#' @param thickness Border thickness for \code{mask.border()}.
+#' @param width Side length of the retained corner block for
+#'   \code{mask.corner()}.
+#' @param corner Which corner to retain in \code{mask.corner()}.
+#' @param hole.size Side length of each removed interior hole block for
+#'   \code{mask.asymmetric.holes()}.
+#'
+#' @return A logical \eqn{k \times k} keep-mask.
+#' @name mask_pattern_helpers
+NULL
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.cross <- function(k = 5, arm.width = 1) {
+  k <- .as.odd.whole.number(k, "k", min = 3L)
+  arm.width <- .as.whole.number(arm.width, "arm.width", min = 1L)
+  if (arm.width > k) {
+    stop("arm.width must be <= k", call. = FALSE)
+  }
+  start <- ((k - arm.width) %/% 2L) + 1L
+  stop_idx <- start + arm.width - 1L
+  keep <- matrix(FALSE, nrow = k, ncol = k)
+  keep[start:stop_idx, ] <- TRUE
+  keep[, start:stop_idx] <- TRUE
+  keep
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.border <- function(k = 5, thickness = 1) {
+  k <- .as.whole.number(k, "k", min = 3L)
+  thickness <- .as.whole.number(thickness, "thickness", min = 1L)
+  if (thickness > k) {
+    stop("thickness must be <= k", call. = FALSE)
+  }
+  keep <- matrix(TRUE, nrow = k, ncol = k)
+  if ((2L * thickness) < k) {
+    keep[(thickness + 1L):(k - thickness), (thickness + 1L):(k - thickness)] <- FALSE
+  }
+  keep
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.corner <- function(k = 5,
+                        width = 2,
+                        corner = c("top_left", "top_right", "bottom_left", "bottom_right")) {
+  .mask.corner.keep(
+    k = k,
+    width = width,
+    corner = match.arg(corner)
+  )
+}
+
+#' @rdname mask_pattern_helpers
+#' @export
+mask.asymmetric.holes <- function(k = 5, hole.size = 1) {
+  .mask.asymmetric.holes.keep(
+    k = k,
+    hole.size = hole.size
+  )
+}
+
+#' Cube mask pattern helpers for recursive porous families
+#'
+#' Convenience constructors for cubic keep-arrays that can be passed to
+#' \code{\link{recursive.cube.mask.surface.graph}()} to build cubical porous
+#' benchmark families. These helpers encode three qualitatively different void
+#' patterns: repeated tunnel lattices, interior asymmetric cavities, and
+#' deterministic channel networks.
+#'
+#' The returned arrays use the same orientation as the recursive cube-mask
+#' helpers: the first dimension runs from top to bottom, the second from left
+#' to right, and the third from front to back.
+#'
+#' @param side Side length of the cubic keep-array.
+#' @param tunnel.width Width of each removed tunnel band.
+#' @param tunnel.period Spacing between successive tunnel bands.
+#' @param tunnel.offset Starting index of the first tunnel band.
+#' @param cavity.size Side length of the larger interior cavity block.
+#' @param pocket.size Side length of the smaller secondary cavity block.
+#' @param channel.width Width of each removed channel in the channel-network
+#'   family.
+#' @param branch.offset Interior offset of the extra branch channel in
+#'   \code{mask.cube.channel.network()}.
+#'
+#' @return A logical cubic keep-array.
+#' @name cube_mask_pattern_helpers
+NULL
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.periodic.tunnels <- function(side = 5,
+                                       tunnel.width = 1,
+                                       tunnel.period = 2,
+                                       tunnel.offset = 2) {
+  .cube.periodic.tunnels.mask(
+    side = side,
+    tunnel.width = tunnel.width,
+    tunnel.period = tunnel.period,
+    tunnel.offset = tunnel.offset
+  )
+}
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.asymmetric.cavities <- function(side = 5,
+                                          cavity.size = 2,
+                                          pocket.size = max(1L, cavity.size - 1L)) {
+  .cube.asymmetric.cavities.mask(
+    side = side,
+    cavity.size = cavity.size,
+    pocket.size = pocket.size
+  )
+}
+
+#' @rdname cube_mask_pattern_helpers
+#' @export
+mask.cube.channel.network <- function(side = 5,
+                                      channel.width = 1,
+                                      branch.offset = 2) {
+  .cube.channel.network.mask(
+    side = side,
+    channel.width = channel.width,
+    branch.offset = branch.offset
+  )
+}
+
+#' Triangle mask helpers for recursive gasket families
+#'
+#' Convenience constructors for the four-slot triangle masks used by
+#' \code{\link{recursive.triangle.mask.surface.graph}()}. The slots correspond
+#' to the three corner subtriangles and the central inverted subtriangle created
+#' by one barycentric refinement of an equilateral triangle.
+#'
+#' The returned mask entries are ordered and named as \code{left},
+#' \code{right}, \code{top}, and \code{center}.
+#'
+#' @param missing Which outer corner is omitted in
+#'   \code{mask.triangle.bridge()}.
+#'
+#' @return A named logical vector of length 4.
+#' @name triangle_mask_helpers
+NULL
+
+#' @rdname triangle_mask_helpers
+#' @export
+mask.triangle.classic <- function() {
+  .triangle.classic.mask()
+}
+
+#' @rdname triangle_mask_helpers
+#' @export
+mask.triangle.bridge <- function(missing = c("top", "left", "right")) {
+  .triangle.bridge.mask(match.arg(missing))
+}
+
+#' Tetrahedron mask helpers for recursive gasket families
+#'
+#' Convenience constructors for the four-corner tetrahedron masks used by
+#' \code{\link{recursive.tetrahedron.mask.surface.graph}()}. The slots
+#' correspond to the four corner subtetrahedra created by one barycentric
+#' refinement of a tetrahedron.
+#'
+#' The returned mask entries are ordered and named as \code{base_left},
+#' \code{base_right}, \code{base_back}, and \code{apex}.
+#'
+#' @param omit Which tetrahedron corner is omitted in
+#'   \code{mask.tetrahedron.corner.missing()}.
+#'
+#' @return A named logical vector of length 4.
+#' @name tetrahedron_mask_helpers
+NULL
+
+#' @rdname tetrahedron_mask_helpers
+#' @export
+mask.tetrahedron.classic <- function() {
+  .tetrahedron.classic.mask()
+}
+
+#' @rdname tetrahedron_mask_helpers
+#' @export
+mask.tetrahedron.corner.missing <- function(
+    omit = c("apex", "base_left", "base_right", "base_back")) {
+  .tetrahedron.corner.missing.mask(match.arg(omit))
+}
+
+#' Occupied-mesh and perforated-grid helpers
+#'
+#' `occupied.mesh.surface.graph()` builds a finite occupied-grid graph on the
+#' retained cells of a rectangular occupancy matrix and lifts those cells into
+#' \eqn{\mathbb{R}^3} using the same
+#' \code{"saddle"}, \code{"paraboloid"}, and \code{"ripple"} families used
+#' for regular meshes.
+#'
+#' @param keep Logical or numeric occupancy matrix. Non-zero entries are kept.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq.u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling of the parameter domain.
+#' @param y.scale Positive vertical scaling of the parameter domain.
+#' @param connectivity Mesh neighborhood rule passed to \code{edges.mesh()}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{occupied.mesh.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the occupied-cell mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"occupied.mesh"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen occupied-mesh connectivity rule,
+#'   \item \code{keep}: the logical occupancy matrix,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name occupied_mesh_surface_helpers
+#' @md
+NULL
+
+# @rdname occupied_mesh_surface_helpers
+# @noRd
+occupied.mesh.surface.embedding <- function(keep,
+                                            surface = c("saddle", "paraboloid", "ripple"),
+                                            amplitude = 0.75,
+                                            freq.u = 1,
+                                            freq.v = 1,
+                                            x.scale = 1,
+                                            y.scale = 1) {
+  keep <- .as.keep.grid(keep, "keep", min.h = 1L, min.w = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  coords_param <- .occupied.mesh.param.coords(
+    keep = keep,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- .surface.z.from.uv(
+    u = u,
+    v = v,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname occupied_mesh_surface_helpers
+#' @export
+occupied.mesh.surface.graph <- function(keep,
+                                        surface = c("saddle", "paraboloid", "ripple"),
+                                        amplitude = 0.75,
+                                        freq.u = 1,
+                                        freq.v = 1,
+                                        x.scale = 1,
+                                        y.scale = 1,
+                                        connectivity = c("orthogonal", "diagonal"),
+                                        normalize = c("median", "mean", "none")) {
+  keep <- .as.keep.grid(keep, "keep", min.h = 1L, min.w = 1L)
+  surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  normalize <- match.arg(normalize)
+
+  edges <- .occupied.mesh.edges(keep, connectivity = connectivity)
+  coords_param <- .occupied.mesh.param.coords(
+    keep = keep,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  coords_surface <- occupied.mesh.surface.embedding(
+    keep = keep,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "occupied.mesh",
+    surface = surface,
+    connectivity = connectivity,
+    keep = keep,
+    normalize = normalize,
+    label = sprintf("%s %s occupied mesh %dx%d",
+                    tools::toTitleCase(surface),
+                    connectivity,
+                    nrow(keep),
+                    ncol(keep))
+  )
+  class(out) <- c("grip_occupied_mesh_surface_graph", "list")
+  out
+}
+
+#' Deterministic perforated-grid occupancy helpers
+#'
+#' Convenience constructors for finite occupied grids with non-random holes or
+#' channels. These matrices can be passed to
+#' \code{\link{occupied.mesh.surface.graph}()}.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param hole.period Spacing between periodic holes.
+#' @param hole.height Height of each removed rectangular hole.
+#' @param hole.width Width of each removed rectangular hole.
+#' @param row.offset Starting row index for the first removed block.
+#' @param col.offset Starting column index for the first removed block.
+#' @param window.height Height of each staggered removed window.
+#' @param window.width Width of each staggered removed window.
+#' @param row.period Vertical spacing between staggered window bands.
+#' @param col.period Horizontal spacing between staggered windows within a band.
+#' @param orientation Whether slit channels run \code{"vertical"} or
+#'   \code{"horizontal"}.
+#' @param slit.period Spacing between repeated slit channels.
+#' @param slit.width Width of each slit channel.
+#' @param bridge.spacing Spacing between preserved bridge segments.
+#' @param bridge.size Size of each preserved bridge segment along a slit.
+#' @param offset Starting row or column index for the first slit channel.
+#' @param notch.depth Depth of each asymmetric notch cut from a boundary.
+#' @param notch.width Width of the notched opening along that boundary.
+#'
+#' @return A logical occupancy matrix whose \code{TRUE} entries represent
+#'   retained cells.
+#' @name perforated_grid_helpers
+NULL
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.periodic.holes <- function(h,
+                                w = h,
+                                hole.period = 4,
+                                hole.height = 1,
+                                hole.width = hole.height,
+                                row.offset = 2,
+                                col.offset = 2) {
+  .keep.periodic.holes(
+    h = h,
+    w = w,
+    hole.period = hole.period,
+    hole.height = hole.height,
+    hole.width = hole.width,
+    row.offset = row.offset,
+    col.offset = col.offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.staggered.windows <- function(h,
+                                   w = h,
+                                   window.height = 1,
+                                   window.width = 2,
+                                   row.period = 4,
+                                   col.period = 5,
+                                   row.offset = 2,
+                                   col.offset = 2) {
+  .keep.staggered.windows(
+    h = h,
+    w = w,
+    window.height = window.height,
+    window.width = window.width,
+    row.period = row.period,
+    col.period = col.period,
+    row.offset = row.offset,
+    col.offset = col.offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.slit.channels <- function(h,
+                               w = h,
+                               orientation = c("vertical", "horizontal"),
+                               slit.period = 5,
+                               slit.width = 1,
+                               bridge.spacing = 4,
+                               bridge.size = 1,
+                               offset = 2) {
+  .keep.slit.channels(
+    h = h,
+    w = w,
+    orientation = match.arg(orientation),
+    slit.period = slit.period,
+    slit.width = slit.width,
+    bridge.spacing = bridge.spacing,
+    bridge.size = bridge.size,
+    offset = offset
+  )
+}
+
+#' @rdname perforated_grid_helpers
+#' @export
+keep.asymmetric.notches <- function(h,
+                                    w = h,
+                                    notch.depth = 3,
+                                    notch.width = 2) {
+  .keep.asymmetric.notches(
+    h = h,
+    w = w,
+    notch.depth = notch.depth,
+    notch.width = notch.width
+  )
+}
+
+.edge.weights.from.embedding <- function(edges,
+                                         coords,
+                                         normalize = c("median", "mean", "none")) {
+  normalize <- match.arg(normalize)
+  if (!is.matrix(coords) || !is.numeric(coords) || ncol(coords) < 2L) {
+    stop("coords must be a numeric matrix with at least 2 columns", call. = FALSE)
+  }
+  if (!is.matrix(edges) || ncol(edges) != 2L) {
+    stop("edges must be a two-column matrix", call. = FALSE)
+  }
+  if (nrow(edges) == 0L) {
+    return(list(edge_weights = numeric(0L), weight_scale = 1))
+  }
+
+  diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+  edge_weights <- sqrt(rowSums(diffs^2))
+  if (any(!is.finite(edge_weights) | edge_weights <= 0)) {
+    stop("embedded edge weights must all be finite and > 0", call. = FALSE)
+  }
+
+  weight_scale <- switch(
+    normalize,
+    median = stats::median(edge_weights),
+    mean = mean(edge_weights),
+    none = 1
+  )
+  if (!is.finite(weight_scale) || weight_scale <= 0) {
+    weight_scale <- 1
+  }
+
+  list(
+    edge_weights = as.double(edge_weights / weight_scale),
+    weight_scale = as.double(weight_scale)
+  )
+}
+
+.normalize.edge.weights <- function(edge.weights,
+                                    normalize = c("median", "mean", "none")) {
+  normalize <- match.arg(normalize)
+  if (!is.numeric(edge.weights)) {
+    stop("edge.weights must be numeric", call. = FALSE)
+  }
+  edge.weights <- as.double(edge.weights)
+  if (length(edge.weights) == 0L) {
+    return(list(edge_weights = numeric(0L), weight_scale = 1))
+  }
+  if (any(!is.finite(edge.weights) | edge.weights <= 0)) {
+    stop("edge.weights must all be finite and > 0", call. = FALSE)
+  }
+
+  weight_scale <- switch(
+    normalize,
+    median = stats::median(edge.weights),
+    mean = mean(edge.weights),
+    none = 1
+  )
+  if (!is.finite(weight_scale) || weight_scale <= 0) {
+    weight_scale <- 1
+  }
+
+  list(
+    edge_weights = as.double(edge.weights / weight_scale),
+    weight_scale = as.double(weight_scale)
+  )
+}
+
+.with.preserved.seed <- function(seed, expr) {
+  if (is.null(seed)) {
+    return(force(expr))
+  }
+  seed <- .as.whole.number(seed, "seed")
+  has_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  if (has_seed) {
+    old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  }
+  on.exit({
+    if (has_seed) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+  set.seed(seed)
+  force(expr)
+}
+
+.sampled.rectangle.bounds <- function(xmin, xmax, ymin, ymax) {
+  xmin <- .as.finite.scalar(xmin, "xmin")
+  xmax <- .as.finite.scalar(xmax, "xmax")
+  ymin <- .as.finite.scalar(ymin, "ymin")
+  ymax <- .as.finite.scalar(ymax, "ymax")
+  if (xmax <= xmin) {
+    stop("xmax must be > xmin", call. = FALSE)
+  }
+  if (ymax <= ymin) {
+    stop("ymax must be > ymin", call. = FALSE)
+  }
+  list(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    xmid = 0.5 * (xmin + xmax),
+    ymid = 0.5 * (ymin + ymax),
+    xscale = xmax - xmin,
+    yscale = ymax - ymin
+  )
+}
+
+.sampled.rectangle.canonical <- function(n,
+                                         xmin = -1,
+                                         xmax = 1,
+                                         ymin = -1,
+                                         ymax = 1,
+                                         seed = NULL) {
+  n <- .as.whole.number(n, "n", min = 2L)
+  bounds <- .sampled.rectangle.bounds(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  )
+  coords_param <- .with.preserved.seed(seed, cbind(
+    u = stats::runif(n, min = bounds$xmin, max = bounds$xmax),
+    v = stats::runif(n, min = bounds$ymin, max = bounds$ymax)
+  ))
+  coords_unit <- cbind(
+    u = 2 * (coords_param[, 1L] - bounds$xmid) / bounds$xscale,
+    v = 2 * (coords_param[, 2L] - bounds$ymid) / bounds$yscale
+  )
+  storage.mode(coords_param) <- "double"
+  storage.mode(coords_unit) <- "double"
+  list(
+    n = as.integer(n),
+    coords_param = coords_param,
+    coords_param_unit = coords_unit,
+    bounds = bounds,
+    seed = if (is.null(seed)) NULL else as.integer(seed)
+  )
+}
+
+.sampled.rectangle.canonical.from.coords <- function(coords.param,
+                                                     xmin,
+                                                     xmax,
+                                                     ymin,
+                                                     ymax,
+                                                     seed = NULL) {
+  coords.param <- as.matrix(coords.param)
+  if (!is.numeric(coords.param) || ncol(coords.param) != 2L || nrow(coords.param) < 2L) {
+    stop("coords.param must be a numeric matrix with at least two rows and exactly two columns", call. = FALSE)
+  }
+  if (anyNA(coords.param) || any(!is.finite(coords.param))) {
+    stop("coords.param must contain only finite numeric values", call. = FALSE)
+  }
+  bounds <- .sampled.rectangle.bounds(
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax
+  )
+  tol_x <- max(.Machine$double.eps * max(1, abs(bounds$xmin), abs(bounds$xmax)) * 16, 1e-12)
+  tol_y <- max(.Machine$double.eps * max(1, abs(bounds$ymin), abs(bounds$ymax)) * 16, 1e-12)
+  if (any(coords.param[, 1L] < bounds$xmin - tol_x) || any(coords.param[, 1L] > bounds$xmax + tol_x)) {
+    stop("coords.param x-coordinates must lie within [xmin, xmax]", call. = FALSE)
+  }
+  if (any(coords.param[, 2L] < bounds$ymin - tol_y) || any(coords.param[, 2L] > bounds$ymax + tol_y)) {
+    stop("coords.param y-coordinates must lie within [ymin, ymax]", call. = FALSE)
+  }
+  coords_unit <- cbind(
+    u = 2 * (coords.param[, 1L] - bounds$xmid) / bounds$xscale,
+    v = 2 * (coords.param[, 2L] - bounds$ymid) / bounds$yscale
+  )
+  storage.mode(coords.param) <- "double"
+  storage.mode(coords_unit) <- "double"
+  list(
+    n = as.integer(nrow(coords.param)),
+    coords_param = coords.param,
+    coords_param_unit = coords_unit,
+    bounds = bounds,
+    seed = if (is.null(seed)) NULL else as.integer(seed)
+  )
+}
+
+.sampled.rectangle.surface.coords <- function(coords.param,
+                                              coords.param.unit,
+                                              surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                              amplitude = 0.75,
+                                              freq.u = 1,
+                                              freq.v = 1) {
+  surface <- .as.named.choice(surface[[1L]],
+                              c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  z <- switch(
+    surface,
+    flat = rep.int(0, nrow(coords.param)),
+    saddle = .surface.z.from.uv(coords.param.unit[, 1L], coords.param.unit[, 2L],
+                                "saddle", amplitude, freq.u, freq.v),
+    paraboloid = .surface.z.from.uv(coords.param.unit[, 1L], coords.param.unit[, 2L],
+                                    "paraboloid", amplitude, freq.u, freq.v),
+    ripple = .surface.z.from.uv(coords.param.unit[, 1L], coords.param.unit[, 2L],
+                                "ripple", amplitude, freq.u, freq.v),
+    folded = amplitude * abs(coords.param.unit[, 1L])
+  )
+  coords <- cbind(
+    x = coords.param[, 1L],
+    y = coords.param[, 2L],
+    z = z
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+.sampled.rectangle.surface.edge.weights <- function(edges, coords.surface) {
+  edges <- as.matrix(edges)
+  coords.surface <- as.matrix(coords.surface)
+  if (nrow(edges) == 0L) {
+    return(numeric(0L))
+  }
+  sqrt(rowSums((coords.surface[edges[, 1L], , drop = FALSE] - coords.surface[edges[, 2L], , drop = FALSE])^2))
+}
+
+.sampled.rectangle.surface.graph.from.built <- function(built,
+                                                        k,
+                                                        surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                        amplitude = 0.75,
+                                                        freq.u = 1,
+                                                        freq.v = 1,
+                                                        graph.space = c("surface", "param"),
+                                                        max.path.edge.ratio.deviation.thld = 0.1,
+                                                        path.edge.ratio.percentile = 0.5,
+                                                        threshold.percentile = 0,
+                                                        normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  graph.space <- match.arg(graph.space)
+  normalize <- match.arg(normalize)
+  coords_surface <- .sampled.rectangle.surface.coords(
+    coords.param = built$coords_param,
+    coords.param.unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  graph_coords <- switch(
+    graph.space,
+    surface = coords_surface,
+    param = built$coords_param
+  )
+  surface_dist_matrix <- grip.euclidean.distance.matrix(coords_surface)
+  iknn <- .grip.create.single.iknn.graph(
+    X = graph_coords,
+    k = k,
+    edge.dist.matrix = surface_dist_matrix,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile
+  )
+  weights <- .normalize.edge.weights(
+    edge.weights = iknn$edge_weights,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = iknn$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    raw_edge_weights = as.double(iknn$edge_weights),
+    iknn_witness_edge_weights = as.double(iknn$raw_witness_edge_weights),
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    coords_param_unit = built$coords_param_unit,
+    weight_scale = weights$weight_scale,
+    family = "sampled.rectangle",
+    surface = surface,
+    graph_space = graph.space,
+    k = iknn$k,
+    xmin = built$bounds$xmin,
+    xmax = built$bounds$xmax,
+    ymin = built$bounds$ymin,
+    ymax = built$bounds$ymax,
+    seed = built$seed,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize,
+    label = sprintf("%s sampled rectangle n=%d k=%d",
+                    tools::toTitleCase(surface),
+                    built$n,
+                    iknn$k)
+  )
+  class(out) <- c("grip_sampled_rectangle_surface_graph", "list")
+  out
+}
+
+.sampled.rectangle.surface.graph.from.coords <- function(coords.param,
+                                                         k,
+                                                         xmin,
+                                                         xmax,
+                                                         ymin,
+                                                         ymax,
+                                                         seed = NULL,
+                                                         surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                         amplitude = 0.75,
+                                                         freq.u = 1,
+                                                         freq.v = 1,
+                                                         graph.space = c("surface", "param"),
+                                                         max.path.edge.ratio.deviation.thld = 0.1,
+                                                         path.edge.ratio.percentile = 0.5,
+                                                         threshold.percentile = 0,
+                                                         normalize = c("median", "mean", "none")) {
+  built <- .sampled.rectangle.canonical.from.coords(
+    coords.param = coords.param,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )
+  .sampled.rectangle.surface.graph.from.built(
+    built = built,
+    k = k,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    graph.space = graph.space,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize
+  )
+}
+
+.sampled.rectangle.surface.graph.reweight.saved.topology <- function(graph,
+                                                                     surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                                     amplitude = 0.75,
+                                                                     freq.u = 1,
+                                                                     freq.v = 1,
+                                                                     normalize = c("median", "mean", "none")) {
+  if (!is.list(graph) || is.null(graph$edges) || is.null(graph$coords_param)) {
+    stop("graph must be a sampled rectangle graph bundle with edges and coords.param", call. = FALSE)
+  }
+  built <- .sampled.rectangle.canonical.from.coords(
+    coords.param = graph$coords_param,
+    xmin = graph$xmin,
+    xmax = graph$xmax,
+    ymin = graph$ymin,
+    ymax = graph$ymax,
+    seed = graph$seed
+  )
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  coords_surface <- .sampled.rectangle.surface.coords(
+    coords.param = built$coords_param,
+    coords.param.unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  raw_edge_weights <- .sampled.rectangle.surface.edge.weights(graph$edges, coords_surface)
+  weights <- .normalize.edge.weights(
+    edge.weights = raw_edge_weights,
+    normalize = normalize
+  )
+  out <- graph
+  out$n <- built$n
+  out$edge_weights <- weights$edge_weights
+  out$raw_edge_weights <- as.double(raw_edge_weights)
+  out$coords_surface <- coords_surface
+  out$coords_param <- built$coords_param
+  out$coords_param_unit <- built$coords_param_unit
+  out$weight_scale <- weights$weight_scale
+  out$surface <- surface
+  out$xmin <- built$bounds$xmin
+  out$xmax <- built$bounds$xmax
+  out$ymin <- built$bounds$ymin
+  out$ymax <- built$bounds$ymax
+  out$seed <- built$seed
+  out$normalize <- normalize
+  out$label <- sprintf("%s sampled rectangle n=%d k=%d",
+                       tools::toTitleCase(surface),
+                       built$n,
+                       as.integer(graph$k[[1L]]))
+  class(out) <- c("grip_sampled_rectangle_surface_graph", "list")
+  out
+}
+
+.grip.iknn.validate.k.values <- function(k, n) {
+  if (!is.numeric(k) || length(k) < 1L || anyNA(k) || any(!is.finite(k))) {
+    stop("k must be one or more finite integers", call. = FALSE)
+  }
+  k <- as.integer(round(k))
+  if (any(k < 1L) || any(k >= n)) {
+    stop("all k values must lie in [1, n - 1]", call. = FALSE)
+  }
+  sort(unique(k))
+}
+
+.grip.iknn.neighbor.order <- function(dist.matrix) {
+  n <- nrow(dist.matrix)
+  out <- matrix(0L, nrow = n, ncol = max(n - 1L, 0L))
+  if (n <= 1L) {
+    return(out)
+  }
+  ids <- seq_len(n)
+  for (i in seq_len(n)) {
+    d <- dist.matrix[i, ]
+    d[[i]] <- Inf
+    out[i, ] <- order(d, ids)[seq_len(n - 1L)]
+  }
+  out
+}
+
+.grip.iknn.edge.table <- function(topology.dist.matrix,
+                                  edge.dist.matrix,
+                                  neighbor.order,
+                                  k) {
+  n <- nrow(topology.dist.matrix)
+  if (k <= 0L || k >= n) {
+    stop("k must lie in [1, n - 1]", call. = FALSE)
+  }
+  knn <- neighbor.order[, seq_len(k), drop = FALSE]
+  edge_list <- vector("list", max(1L, n * k))
+  edge_weights <- numeric(0L)
+  witness_edge_weights <- numeric(0L)
+  isize <- integer(0L)
+  count <- 0L
+
+  for (i in seq_len(n - 1L)) {
+    nbr_i <- knn[i, ]
+    for (j in seq.int(i + 1L, n)) {
+      common <- intersect(nbr_i, knn[j, ])
+      if (length(common) == 0L) {
+        next
+      }
+      count <- count + 1L
+      edge_list[[count]] <- c(i, j)
+      edge_weights[[count]] <- edge.dist.matrix[i, j]
+      witness_edge_weights[[count]] <- min(
+        topology.dist.matrix[i, common] + topology.dist.matrix[j, common]
+      )
+      isize[[count]] <- length(common)
+    }
+  }
+
+  if (count == 0L) {
+    return(list(
+      edges = .empty.edge.matrix(),
+      edge_weights = numeric(0L),
+      witness_edge_weights = numeric(0L),
+      isize = integer(0L)
+    ))
+  }
+
+  edges <- .bind.edges(edge_list[seq_len(count)])
+  order_idx <- order(edges[, 1L], edges[, 2L])
+  list(
+    edges = edges[order_idx, , drop = FALSE],
+    edge_weights = as.double(edge_weights[order_idx]),
+    witness_edge_weights = as.double(witness_edge_weights[order_idx]),
+    isize = as.integer(isize[order_idx])
+  )
+}
+
+.grip.iknn.prune.geometric <- function(edges,
+                                       edge.weights,
+                                       n,
+                                       max.path.edge.ratio.deviation.thld = 0.1,
+                                       path.edge.ratio.percentile = 0.5) {
+  if (!is.numeric(max.path.edge.ratio.deviation.thld) ||
+      length(max.path.edge.ratio.deviation.thld) != 1L ||
+      !is.finite(max.path.edge.ratio.deviation.thld) ||
+      max.path.edge.ratio.deviation.thld < 0 ||
+      max.path.edge.ratio.deviation.thld >= 0.2) {
+    stop("max.path.edge.ratio.deviation.thld must be a single numeric value in [0, 0.2)",
+         call. = FALSE)
+  }
+  if (!is.numeric(path.edge.ratio.percentile) ||
+      length(path.edge.ratio.percentile) != 1L ||
+      !is.finite(path.edge.ratio.percentile) ||
+      path.edge.ratio.percentile < 0 ||
+      path.edge.ratio.percentile > 1) {
+    stop("path.edge.ratio.percentile must be a single numeric value in [0, 1]",
+         call. = FALSE)
+  }
+  if (nrow(edges) == 0L || max.path.edge.ratio.deviation.thld <= 0) {
+    return(list(edges = edges, edge_weights = edge.weights))
+  }
+
+  tol <- sqrt(.Machine$double.eps)
+  threshold <- as.double(stats::quantile(
+    edge.weights,
+    probs = path.edge.ratio.percentile,
+    names = FALSE,
+    type = 7L
+  ))
+  keep <- rep.int(TRUE, nrow(edges))
+  edge_order <- order(edge.weights, decreasing = TRUE, edges[, 1L], edges[, 2L])
+
+  for (idx in edge_order) {
+    if (!keep[[idx]] || edge.weights[[idx]] + tol < threshold) {
+      next
+    }
+    candidate_keep <- keep
+    candidate_keep[[idx]] <- FALSE
+    sub <- grip.build.adj.from.edges(
+      edges = edges[candidate_keep, , drop = FALSE],
+      n = n,
+      edge.weights = edge.weights[candidate_keep]
+    )
+    alt_dist <- grip.dijkstra.distances(
+      adj.list = sub$adj_list,
+      weight.list = sub$weight_list,
+      source = edges[idx, 1L]
+    )[[edges[idx, 2L]]]
+    if (is.finite(alt_dist) &&
+        alt_dist <= edge.weights[[idx]] * (1 + max.path.edge.ratio.deviation.thld) + tol) {
+      keep[[idx]] <- FALSE
+    }
+  }
+
+  list(
+    edges = edges[keep, , drop = FALSE],
+    edge_weights = edge.weights[keep]
+  )
+}
+
+.grip.iknn.prune.quantile <- function(edges,
+                                      edge.weights,
+                                      n,
+                                      threshold.percentile = 0) {
+  if (!is.numeric(threshold.percentile) ||
+      length(threshold.percentile) != 1L ||
+      !is.finite(threshold.percentile) ||
+      threshold.percentile < 0 ||
+      threshold.percentile > 0.5) {
+    stop("threshold.percentile must be a single numeric value in [0, 0.5]",
+         call. = FALSE)
+  }
+  if (nrow(edges) == 0L || threshold.percentile <= 0) {
+    return(list(edges = edges, edge_weights = edge.weights))
+  }
+
+  edge_order <- order(edge.weights, decreasing = TRUE, edges[, 1L], edges[, 2L])
+  threshold_index <- min(
+    as.integer(floor(length(edge_order) * threshold.percentile)) + 1L,
+    length(edge_order)
+  )
+  threshold_weight <- edge.weights[edge_order[[threshold_index]]]
+  keep <- rep.int(TRUE, nrow(edges))
+
+  for (idx in edge_order) {
+    if (!keep[[idx]] || edge.weights[[idx]] < threshold_weight) {
+      next
+    }
+    candidate_keep <- keep
+    candidate_keep[[idx]] <- FALSE
+    sub <- grip.build.adj.from.edges(
+      edges = edges[candidate_keep, , drop = FALSE],
+      n = n,
+      edge.weights = edge.weights[candidate_keep]
+    )
+    comp <- grip.connected.components(sub$adj_list, n)
+    if (length(unique(comp)) == 1L) {
+      keep[[idx]] <- FALSE
+    }
+  }
+
+  list(
+    edges = edges[keep, , drop = FALSE],
+    edge_weights = edge.weights[keep]
+  )
+}
+
+.grip.create.single.iknn.graph <- function(X,
+                                           k,
+                                           edge.dist.matrix = NULL,
+                                           max.path.edge.ratio.deviation.thld = 0.1,
+                                           path.edge.ratio.percentile = 0.5,
+                                           threshold.percentile = 0) {
+  X <- grip.validate.data.matrix(X, name = "X")
+  n <- nrow(X)
+  k <- .grip.iknn.validate.k.values(k, n)[[1L]]
+  topology_dist_matrix <- grip.euclidean.distance.matrix(X)
+  if (is.null(edge.dist.matrix)) {
+    edge.dist.matrix <- topology_dist_matrix
+  } else {
+    edge.dist.matrix <- as.matrix(edge.dist.matrix)
+    if (!is.numeric(edge.dist.matrix) ||
+        any(!is.finite(edge.dist.matrix)) ||
+        !identical(dim(edge.dist.matrix), c(n, n))) {
+      stop("edge.dist.matrix must be a finite numeric n x n matrix", call. = FALSE)
+    }
+  }
+  neighbor_order <- .grip.iknn.neighbor.order(topology_dist_matrix)
+  built <- .grip.iknn.edge.table(
+    topology.dist.matrix = topology_dist_matrix,
+    edge.dist.matrix = edge.dist.matrix,
+    neighbor.order = neighbor_order,
+    k = k
+  )
+  pruned <- .grip.iknn.prune.geometric(
+    edges = built$edges,
+    edge.weights = built$edge_weights,
+    n = n,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile
+  )
+  pruned <- .grip.iknn.prune.quantile(
+    edges = pruned$edges,
+    edge.weights = pruned$edge_weights,
+    n = n,
+    threshold.percentile = threshold.percentile
+  )
+  pruned_keys <- if (nrow(pruned$edges) == 0L) {
+    character(0L)
+  } else {
+    paste(pruned$edges[, 1L], pruned$edges[, 2L], sep = "-")
+  }
+  raw_keys <- if (nrow(built$edges) == 0L) {
+    character(0L)
+  } else {
+    paste(built$edges[, 1L], built$edges[, 2L], sep = "-")
+  }
+  witness_match <- match(pruned_keys, raw_keys)
+  list(
+    edges = pruned$edges,
+    edge_weights = pruned$edge_weights,
+    k = as.integer(k),
+    n = as.integer(n),
+    raw_edges = built$edges,
+    raw_edge_weights = built$edge_weights,
+    raw_witness_edge_weights = built$witness_edge_weights[witness_match],
+    raw_isize = built$isize,
+    graph_distance_matrix = edge.dist.matrix,
+    topology_distance_matrix = topology_dist_matrix
+  )
+}
+
+.grip.create.iknn.graphs <- function(X,
+                                     k,
+                                     edge.dist.matrix = NULL,
+                                     max.path.edge.ratio.deviation.thld = 0.1,
+                                     path.edge.ratio.percentile = 0.5,
+                                     threshold.percentile = 0) {
+  X <- grip.validate.data.matrix(X, name = "X")
+  n <- nrow(X)
+  k_values <- .grip.iknn.validate.k.values(k, n)
+  topology_dist_matrix <- grip.euclidean.distance.matrix(X)
+  if (is.null(edge.dist.matrix)) {
+    edge.dist.matrix <- topology_dist_matrix
+  } else {
+    edge.dist.matrix <- as.matrix(edge.dist.matrix)
+    if (!is.numeric(edge.dist.matrix) ||
+        any(!is.finite(edge.dist.matrix)) ||
+        !identical(dim(edge.dist.matrix), c(n, n))) {
+      stop("edge.dist.matrix must be a finite numeric n x n matrix", call. = FALSE)
+    }
+  }
+  neighbor_order <- .grip.iknn.neighbor.order(topology_dist_matrix)
+  graphs <- vector("list", length(k_values))
+  names(graphs) <- paste0("k", k_values)
+
+  for (idx in seq_along(k_values)) {
+    k_val <- k_values[[idx]]
+    built <- .grip.iknn.edge.table(
+      topology.dist.matrix = topology_dist_matrix,
+      edge.dist.matrix = edge.dist.matrix,
+      neighbor.order = neighbor_order,
+      k = k_val
+    )
+    pruned <- .grip.iknn.prune.geometric(
+      edges = built$edges,
+      edge.weights = built$edge_weights,
+      n = n,
+      max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+      path.edge.ratio.percentile = path.edge.ratio.percentile
+    )
+    pruned <- .grip.iknn.prune.quantile(
+      edges = pruned$edges,
+      edge.weights = pruned$edge_weights,
+      n = n,
+      threshold.percentile = threshold.percentile
+    )
+    pruned_keys <- if (nrow(pruned$edges) == 0L) {
+      character(0L)
+    } else {
+      paste(pruned$edges[, 1L], pruned$edges[, 2L], sep = "-")
+    }
+    raw_keys <- if (nrow(built$edges) == 0L) {
+      character(0L)
+    } else {
+      paste(built$edges[, 1L], built$edges[, 2L], sep = "-")
+    }
+    witness_match <- match(pruned_keys, raw_keys)
+    graphs[[idx]] <- list(
+      edges = pruned$edges,
+      edge_weights = pruned$edge_weights,
+      k = as.integer(k_val),
+      n = as.integer(n),
+      raw_edges = built$edges,
+      raw_edge_weights = built$edge_weights,
+      raw_witness_edge_weights = built$witness_edge_weights[witness_match],
+      raw_isize = built$isize
+    )
+  }
+
+  stats <- data.frame(
+    k = as.integer(k_values),
+    n_edges = vapply(graphs, function(g) nrow(g$raw_edges), integer(1L)),
+    n_edges_in_geom_pruned_graph = vapply(graphs, function(g) nrow(g$edges), integer(1L)),
+    n_geom_removed_edges = vapply(graphs, function(g) nrow(g$raw_edges) - nrow(g$edges), integer(1L)),
+    geom_edge_reduction_ratio = vapply(
+      graphs,
+      function(g) {
+        if (nrow(g$raw_edges) == 0L) {
+          0
+        } else {
+          (nrow(g$raw_edges) - nrow(g$edges)) / nrow(g$raw_edges)
+        }
+      },
+      numeric(1L)
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  list(
+    graphs = graphs,
+    k_statistics = stats,
+    distance_matrix = edge.dist.matrix,
+    topology_distance_matrix = topology_dist_matrix,
+    k = as.integer(k_values),
+    n = as.integer(n)
+  )
+}
+
+.kary.tree.vertex.count <- function(k, depth) {
+  k <- .as.whole.number(k, "k", min = 1L)
+  depth <- .as.whole.number(depth, "depth")
+  if (depth == 0L) {
+    return(1L)
+  }
+  if (k == 1L) {
+    return(as.integer(depth + 1L))
+  }
+  count <- (k^(depth + 1L) - 1) / (k - 1L)
+  if (!is.finite(count) || count > .Machine$integer.max) {
+    stop("k and depth produce too many tree vertices", call. = FALSE)
+  }
+  as.integer(round(count))
+}
+
+.kary.tree.structure <- function(k = 2, depth = 2) {
+  k <- .as.whole.number(k, "k", min = 1L)
+  depth <- .as.whole.number(depth, "depth")
+  n <- .kary.tree.vertex.count(k, depth)
+  if (depth == 0L) {
+    return(list(
+      edges = .empty.edge.matrix(),
+      n = 1L,
+      parent = 0L,
+      vertex_depth = 0L,
+      edge_parent = integer(0L),
+      edge_child = integer(0L),
+      branch_index = integer(0L),
+      parent_depth = integer(0L),
+      child_depth = integer(0L)
+    ))
+  }
+
+  parent <- integer(n)
+  vertex_depth <- integer(n)
+  edge_count <- n - 1L
+  edge_parent <- integer(edge_count)
+  edge_child <- integer(edge_count)
+  branch_index <- integer(edge_count)
+  parent_depth <- integer(edge_count)
+  child_depth <- integer(edge_count)
+
+  current <- 1L
+  next_id <- 2L
+  edge_id <- 1L
+  for (d in seq_len(depth)) {
+    new_parents <- integer(length(current) * k)
+    new_idx <- 1L
+    for (p in current) {
+      for (slot in seq_len(k)) {
+        child <- next_id
+        next_id <- next_id + 1L
+        parent[[child]] <- p
+        vertex_depth[[child]] <- d
+        edge_parent[[edge_id]] <- p
+        edge_child[[edge_id]] <- child
+        branch_index[[edge_id]] <- slot
+        parent_depth[[edge_id]] <- d - 1L
+        child_depth[[edge_id]] <- d
+        new_parents[[new_idx]] <- child
+        new_idx <- new_idx + 1L
+        edge_id <- edge_id + 1L
+      }
+    }
+    current <- new_parents
+  }
+
+  edges <- cbind(edge_parent, edge_child)
+  storage.mode(edges) <- "integer"
+  list(
+    edges = edges,
+    n = n,
+    parent = parent,
+    vertex_depth = vertex_depth,
+    edge_parent = edge_parent,
+    edge_child = edge_child,
+    branch_index = branch_index,
+    parent_depth = parent_depth,
+    child_depth = child_depth
+  )
+}
+
+.kary.tree.depth.factors <- function(depth,
+                                     depth.rule = c("geometric", "constant", "custom"),
+                                     depth.decay = 0.85,
+                                     depth.factors = NULL) {
+  depth <- .as.whole.number(depth, "depth")
+  depth.rule <- .as.named.choice(depth.rule[[1L]],
+                                 c("geometric", "constant", "custom"),
+                                 "depth.rule")
+  if (depth == 0L) {
+    return(list(rule = depth.rule, factors = numeric(0L)))
+  }
+
+  factors <- switch(
+    depth.rule,
+    geometric = {
+      depth.decay <- .as.positive.scalar(depth.decay, "depth.decay")
+      depth.decay^(seq_len(depth) - 1L)
+    },
+    constant = rep(1, depth),
+    custom = {
+      if (is.null(depth.factors)) {
+        stop("depth.factors must be supplied when depth.rule = \"custom\"",
+             call. = FALSE)
+      }
+      if (!is.numeric(depth.factors) || any(is.na(depth.factors)) ||
+          any(!is.finite(depth.factors)) || any(depth.factors <= 0)) {
+        stop("depth.factors must be a positive finite numeric vector",
+             call. = FALSE)
+      }
+      if (length(depth.factors) == 1L) {
+        rep(as.double(depth.factors), depth)
+      } else if (length(depth.factors) == depth) {
+        as.double(depth.factors)
+      } else {
+        stop(sprintf("depth.factors must have length 1 or %d", depth),
+             call. = FALSE)
+      }
+    }
+  )
+  list(rule = depth.rule, factors = as.double(factors))
+}
+
+.kary.tree.branch.factors <- function(k,
+                                      branch.rule = c("linear", "uniform", "custom"),
+                                      branch.spread = 0.3,
+                                      branch.factors = NULL) {
+  k <- .as.whole.number(k, "k", min = 1L)
+  branch.rule <- .as.named.choice(branch.rule[[1L]],
+                                  c("linear", "uniform", "custom"),
+                                  "branch.rule")
+
+  factors <- switch(
+    branch.rule,
+    linear = {
+      branch.spread <- .as.finite.scalar(branch.spread, "branch.spread")
+      if (branch.spread < 0) {
+        stop("branch.spread must be >= 0", call. = FALSE)
+      }
+      vals <- seq(1 - branch.spread / 2, 1 + branch.spread / 2, length.out = k)
+      if (any(vals <= 0)) {
+        stop("branch_spread is too large and produces non-positive branch factors",
+             call. = FALSE)
+      }
+      vals
+    },
+    uniform = rep(1, k),
+    custom = {
+      if (is.null(branch.factors)) {
+        stop("branch.factors must be supplied when branch.rule = \"custom\"",
+             call. = FALSE)
+      }
+      if (!is.numeric(branch.factors) || any(is.na(branch.factors)) ||
+          any(!is.finite(branch.factors)) || any(branch.factors <= 0)) {
+        stop("branch.factors must be a positive finite numeric vector",
+             call. = FALSE)
+      }
+      if (length(branch.factors) == 1L) {
+        rep(as.double(branch.factors), k)
+      } else if (length(branch.factors) == k) {
+        as.double(branch.factors)
+      } else {
+        stop(sprintf("branch.factors must have length 1 or %d", k),
+             call. = FALSE)
+      }
+    }
+  )
+  list(rule = branch.rule, factors = as.double(factors))
+}
+
+#' Sample graph generators
+#'
+#' Convenience helpers that build small undirected graph families as two-column
+#' integer edge matrices suitable for \code{\link{grip}()}. These
+#' helpers are meant for examples, experiments, and reproducible tests.
+#'
+#' The exported generators cover primitive paths, cycles, regular meshes,
+#' cylinders, tori, cubes, trees, and the standard Sierpinski families.
+#' Specialized weighted benchmark families are exposed through complete
+#' `*.surface.graph()` and `*.solid.graph()` bundles instead of separate
+#' edge-list and embedding functions. \code{\link{edges.sierpinski.triangle}()}
+#' builds the 2-simplex family,
+#' \code{\link{edges.sierpinski.tetrahedron}()} builds the 3-simplex family,
+#' and \code{\link{edges.sierpinski.carpet}()} builds a 2D cell-adjacency
+#' carpet graph.
+#'
+#' @return A two-column integer matrix of undirected edges. Vertex labels are
+#'   consecutive integers starting at 1.
+#' @param level Recursion depth for the Sierpinski graph families. Must be at
+#'   least 1.
+#' @name graph_generators
+#' @md
+NULL
+
+#' @describeIn graph_generators Path graph on \code{n} vertices.
+#' @param n Number of vertices.
+#' @examples
+#' edges <- edges.path(6)
+#' coords <- grip(edges, n = 6, dim = 2, seed = 1)
+#' plot.layout(coords, edges, main = "Path graph", pch = 16, cex = 0.8)
+#' @export
+edges.path <- function(n) {
+  n <- .as.whole.number(n, "n")
+  if (n < 2L) {
+    return(.empty.edge.matrix())
+  }
+  cbind(seq_len(n - 1L), seq_len(n - 1L) + 1L)
+}
+
+#' @describeIn graph_generators Cycle graph on \code{n} vertices.
+#' @export
+edges.cycle <- function(n) {
+  n <- .as.whole.number(n, "n")
+  if (n < 2L) {
+    return(.empty.edge.matrix())
+  }
+  .normalize.undirected.edges(rbind(edges.path(n), c(n, 1L)))
+}
+
+#' @describeIn graph_generators Rectangular grid graph with \code{h} rows and \code{w}
+#'   columns.
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param connectivity Mesh neighborhood rule. \code{"orthogonal"} keeps the
+#'   4-neighbor grid; \code{"diagonal"} also adds both diagonals of every unit
+#'   square.
+#' @export
+edges.mesh <- function(h,
+                       w = h,
+                       connectivity = c("orthogonal", "diagonal")) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  idx <- function(i, j) (i - 1L) * w + j
+  edges <- list()
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      v <- idx(i, j)
+      if (i < h) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
+      if (j < w) edges[[length(edges) + 1L]] <- c(v, idx(i, j + 1L))
+    }
+  }
+  if (identical(connectivity, "diagonal") && h >= 2L && w >= 2L) {
+    for (i in seq_len(h - 1L)) {
+      for (j in seq_len(w - 1L)) {
+        edges[[length(edges) + 1L]] <- c(idx(i, j), idx(i + 1L, j + 1L))
+        edges[[length(edges) + 1L]] <- c(idx(i + 1L, j), idx(i, j + 1L))
+      }
+    }
+  }
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+# @describeIn graph_generators Rectangular occupied-grid graph whose vertices
+#   are kept cells and whose edges connect orthogonally adjacent kept cells.
+#   With \code{connectivity = "diagonal"}, both diagonals are added for every
+#   fully occupied 2-by-2 block.
+# @noRd
+edges.occupied.mesh <- function(keep,
+                                connectivity = c("orthogonal", "diagonal")) {
+  .occupied.mesh.edges(keep, connectivity = connectivity)
+}
+
+#' Weighted mesh surface helpers
+#'
+#' Convenience helpers that lift a rectangular mesh parameter grid into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' topology is a plain mesh but the intended metric comes from a curved ambient
+#' geometry.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the lifted grid.
+#' `mesh.surface.graph()` returns a reusable weighted-graph bundle containing the
+#' mesh edges, induced edge weights, the 3D surface coordinates, and the 2D
+#' parameter coordinates.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq.u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling of the parameter domain.
+#' @param y.scale Positive vertical scaling of the parameter domain.
+#' @param connectivity Mesh neighborhood rule. `"orthogonal"` keeps the
+#'   four-neighbor grid; `"diagonal"` also adds both diagonals of every unit
+#'   square.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix with
+#' columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{mesh.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter-grid coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"mesh"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen mesh connectivity rule,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name mesh_surface_helpers
+#' @md
+NULL
+
+# @rdname mesh_surface_helpers
+# @noRd
+mesh.surface.embedding <- function(h,
+                                   w = h,
+                                   surface = c("saddle", "paraboloid", "ripple"),
+                                   amplitude = 0.75,
+                                   freq.u = 1,
+                                   freq.v = 1,
+                                   x.scale = 1,
+                                   y.scale = 1) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  coords_param <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- switch(
+    surface,
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq.u * u) * cos(pi * freq.v * v)
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname mesh_surface_helpers
+#' @export
+mesh.surface.graph <- function(h,
+                               w = h,
+                               surface = c("saddle", "paraboloid", "ripple"),
+                               amplitude = 0.75,
+                               freq.u = 1,
+                               freq.v = 1,
+                               x.scale = 1,
+                               y.scale = 1,
+                               connectivity = c("orthogonal", "diagonal"),
+                               normalize = c("median", "mean", "none")) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.mesh(h, w, connectivity = connectivity)
+  coords_param <- .mesh.param.coords(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  coords_surface <- mesh.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "mesh",
+    surface = surface,
+    connectivity = connectivity,
+    normalize = normalize,
+    label = sprintf("%s %s mesh %dx%d",
+                    tools::toTitleCase(surface),
+                    connectivity,
+                    h,
+                    w)
+  )
+  class(out) <- c("grip_mesh_surface_graph", "list")
+  out
+}
+
+#' Irregular rectangle surface helpers
+#'
+#' Convenience helpers that keep ordinary rectangular-mesh adjacency but replace
+#' the regular parameter grid by a deterministic irregular rectangle. The
+#' resulting family stays simply connected and rectangular in topology while
+#' breaking the strongest row/column symmetries of the lattice.
+#'
+#' The `coords.param` component contains the irregular planar parameter
+#' coordinates.
+#' The `coords.surface` component lifts those coordinates into
+#' \eqn{\mathbb{R}^3}.
+#' `irregular.rectangle.surface.graph()` returns a reusable weighted-graph
+#' bundle with the induced Euclidean edge lengths.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Surface family used for the lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq.u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling of the parameter domain.
+#' @param y.scale Positive vertical scaling of the parameter domain.
+#' @param row.irregularity Irregularity level for the row spacing. Must lie in
+#'   \code{[0, 1]}.
+#' @param col.irregularity Irregularity level for the column spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param row.phase Finite phase shift for the deterministic row-spacing
+#'   perturbation.
+#' @param col.phase Finite phase shift for the deterministic column-spacing
+#'   perturbation.
+#' @param interior.warp Non-negative interior warp strength. Must lie in
+#'   \code{[0, 1]}. The warp vanishes on the boundary.
+#' @param shear Finite affine shear applied after the boundary-vanishing warp.
+#'   Larger values can force a validation error if the mesh cells invert.
+#' @param min.step.ratio Positive lower bound for the perturbed row and column
+#'   interval lengths, expressed relative to the unperturbed interval scale.
+#'   Must lie in \code{(0, 1]}.
+#' @param connectivity Mesh neighborhood rule passed to \code{edges.mesh()}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_param} component is an \code{n x 2} numeric
+#' matrix with columns \code{u} and \code{v}.
+#'
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.rectangle.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected rectangular-mesh edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the irregular 2D parameter coordinates,
+#'   \item \code{coords_regular_param}: the underlying regular 2D parameter
+#'     coordinates used to define the boundary-vanishing warp,
+#'   \item \code{row_breaks}: per-row parameter coordinates in row order,
+#'   \item \code{col_breaks}: per-column parameter coordinates in column order,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.rectangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{connectivity}: the chosen mesh connectivity rule,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_rectangle_surface_helpers
+#' @md
+NULL
+
+# @rdname irregular_rectangle_surface_helpers
+# @noRd
+irregular.rectangle.param.coords <- function(h,
+                                             w = h,
+                                             x.scale = 1,
+                                             y.scale = 1,
+                                             row.irregularity = 0.20,
+                                             col.irregularity = 0.20,
+                                             row.phase = 0.35,
+                                             col.phase = 0.65,
+                                             interior.warp = 0.08,
+                                             shear = 0,
+                                             min.step.ratio = 0.30) {
+  .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    row.irregularity = row.irregularity,
+    col.irregularity = col.irregularity,
+    row.phase = row.phase,
+    col.phase = col.phase,
+    interior.warp = interior.warp,
+    shear = shear,
+    min.step.ratio = min.step.ratio
+  )$coords
+}
+
+# @rdname irregular_rectangle_surface_helpers
+# @noRd
+irregular.rectangle.surface.embedding <- function(h,
+                                                  w = h,
+                                                  surface = c("flat", "saddle", "paraboloid", "ripple"),
+                                                  amplitude = 0.75,
+                                                  freq.u = 1,
+                                                  freq.v = 1,
+                                                  x.scale = 1,
+                                                  y.scale = 1,
+                                                  row.irregularity = 0.20,
+                                                  col.irregularity = 0.20,
+                                                  row.phase = 0.35,
+                                                  col.phase = 0.65,
+                                                  interior.warp = 0.08,
+                                                  shear = 0,
+                                                  min.step.ratio = 0.30) {
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  param <- .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    row.irregularity = row.irregularity,
+    col.irregularity = col.irregularity,
+    row.phase = row.phase,
+    col.phase = col.phase,
+    interior.warp = interior.warp,
+    shear = shear,
+    min.step.ratio = min.step.ratio
+  )
+  u <- param$coords[, 1L]
+  v <- param$coords[, 2L]
+  z <- switch(
+    surface,
+    flat = rep.int(0, length(u)),
+    saddle = amplitude * (u^2 - v^2),
+    paraboloid = amplitude * (u^2 + v^2),
+    ripple = amplitude * sin(pi * freq.u * u) * cos(pi * freq.v * v)
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_rectangle_surface_helpers
+#' @export
+irregular.rectangle.surface.graph <- function(h,
+                                              w = h,
+                                              surface = c("flat", "saddle", "paraboloid", "ripple"),
+                                              amplitude = 0.75,
+                                              freq.u = 1,
+                                              freq.v = 1,
+                                              x.scale = 1,
+                                              y.scale = 1,
+                                              row.irregularity = 0.20,
+                                              col.irregularity = 0.20,
+                                              row.phase = 0.35,
+                                              col.phase = 0.65,
+                                              interior.warp = 0.08,
+                                              shear = 0,
+                                              min.step.ratio = 0.30,
+                                              connectivity = c("orthogonal", "diagonal"),
+                                              normalize = c("median", "mean", "none")) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  surface <- match.arg(surface)
+  connectivity <- .mesh.connectivity.arg(connectivity)
+  normalize <- match.arg(normalize)
+
+  param <- .irregular.rectangle.param.details(
+    h = h,
+    w = w,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    row.irregularity = row.irregularity,
+    col.irregularity = col.irregularity,
+    row.phase = row.phase,
+    col.phase = col.phase,
+    interior.warp = interior.warp,
+    shear = shear,
+    min.step.ratio = min.step.ratio
+  )
+  edges <- edges.mesh(h, w, connectivity = connectivity)
+  coords_surface <- irregular.rectangle.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    row.irregularity = row.irregularity,
+    col.irregularity = col.irregularity,
+    row.phase = row.phase,
+    col.phase = col.phase,
+    interior.warp = interior.warp,
+    shear = shear,
+    min.step.ratio = min.step.ratio
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = param$coords,
+    coords_regular_param = param$coords_regular,
+    row_breaks = param$row_breaks,
+    col_breaks = param$col_breaks,
+    weight_scale = weights$weight_scale,
+    family = "irregular.rectangle",
+    surface = surface,
+    connectivity = connectivity,
+    row_irregularity = row.irregularity,
+    col_irregularity = col.irregularity,
+    row_phase = row.phase,
+    col_phase = col.phase,
+    interior_warp = interior.warp,
+    shear = shear,
+    min_step_ratio = min.step.ratio,
+    normalize = normalize,
+    label = sprintf("%s %s irregular rectangle %dx%d",
+                    tools::toTitleCase(surface),
+                    connectivity,
+                    h,
+                    w)
+  )
+  class(out) <- c("grip_irregular_rectangle_surface_graph", "list")
+  out
+}
+
+#' Sampled rectangle surface helpers
+#'
+#' Convenience helpers that sample points uniformly from a user-specified
+#' rectangle, lift the sampled planar coordinates into \eqn{\mathbb{R}^3}, and
+#' then build exact intersection-kNN graphs on either the planar or embedded
+#' coordinates. The lifted surface uses normalized rectangle coordinates for the
+#' non-flat \eqn{z}-displacement while preserving the original rectangle in the
+#' returned \eqn{x} and \eqn{y} coordinates.
+#'
+#' For the graph constructors, the iKNN relation determines which edges are
+#' present, while the returned edge lengths are taken from the 3D endpoint
+#' distances in the lifted embedding so that the graph metric reflects the
+#' chosen surface geometry.
+#'
+#' The `coords.param` component contains the sampled planar coordinates.
+#' The `coords.surface` component contains the corresponding 3D
+#' embedding. `sampled.rectangle.surface.graph()` returns a single weighted
+#' iKNN graph for one \code{k} value, while
+#' `sampled.rectangle.surface.graphs()` reuses the same sample and embedding
+#' across a sequence of \code{k} values.
+#'
+#' @param n Number of sampled points.
+#' @param xmin Left rectangle boundary.
+#' @param xmax Right rectangle boundary. Must satisfy \code{xmax > xmin}.
+#' @param ymin Bottom rectangle boundary.
+#' @param ymax Top rectangle boundary. Must satisfy \code{ymax > ymin}.
+#' @param seed Optional integer seed used only for the rectangle sampling.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the horizontal rectangle
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the vertical rectangle direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param k Integer iKNN neighborhood size (single graph) or vector of
+#'   neighborhood sizes (graph sequence).
+#' @param graph.space Coordinate system used to build the iKNN graph and its raw
+#'   edge weights. \code{"surface"} uses the 3D embedding and
+#'   \code{"param"} uses the sampled planar coordinates.
+#' @param max.path.edge.ratio.deviation.thld Geometric-pruning deviation
+#'   threshold in \code{[0, 0.2)}.
+#' @param path.edge.ratio.percentile Edge-length percentile in \code{[0, 1]}
+#'   used to select candidates for geometric pruning.
+#' @param threshold.percentile Optional long-edge pruning percentile in
+#'   \code{[0, 0.5]}. A value of \code{0} disables this stage.
+#' @param normalize Normalization applied to the final positive edge weights.
+#'   One of \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_param} component is an \code{n x 2} numeric
+#' matrix with columns \code{u} and \code{v}.
+#'
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sampled.rectangle.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected iKNN edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: normalized positive 3D chord lengths on the
+#'     retained iKNN edges,
+#'   \item \code{raw_edge_weights}: the unnormalized 3D chord lengths before
+#'     \code{normalize},
+#'   \item \code{iknn_witness_edge_weights}: raw iKNN witness weights based on
+#'     common-neighbor distances, retained for diagnostics,
+#'   \item \code{coords_surface}: the sampled 3D embedding,
+#'   \item \code{coords_param}: the sampled planar rectangle coordinates,
+#'   \item \code{coords_param_unit}: the centered unit-rectangle coordinates
+#'     used for the surface lift,
+#'   \item \code{weight_scale}: normalization constant applied to the raw edge
+#'     weights,
+#'   \item \code{family}: always \code{"sampled.rectangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{graph_space}: the coordinate system used for iKNN graph
+#'     construction,
+#'   \item \code{k}: the iKNN neighborhood size,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' \code{sampled.rectangle.surface.graphs()} returns a list with components:
+#' \itemize{
+#'   \item \code{graphs}: named list of single-\code{k} graph bundles,
+#'   \item \code{k}: integer vector of retained \code{k} values,
+#'   \item \code{k_statistics}: per-\code{k} edge-count summary,
+#'   \item \code{coords_surface}: the shared sampled 3D embedding,
+#'   \item \code{coords_param}: the shared sampled planar coordinates,
+#'   \item \code{coords_param_unit}: the centered unit-rectangle coordinates
+#'     used for the surface lift,
+#'   \item \code{family}: always \code{"sampled.rectangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{graph_space}: the coordinate system used for iKNN graph
+#'     construction,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sampled_rectangle_surface_helpers
+#' @md
+NULL
+
+# @rdname sampled_rectangle_surface_helpers
+# @noRd
+sampled.rectangle.param.coords <- function(n,
+                                           xmin = -1,
+                                           xmax = 1,
+                                           ymin = -1,
+                                           ymax = 1,
+                                           seed = NULL) {
+  .sampled.rectangle.canonical(
+    n = n,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )$coords_param
+}
+
+# @rdname sampled_rectangle_surface_helpers
+# @noRd
+sampled.rectangle.surface.embedding <- function(n,
+                                                xmin = -1,
+                                                xmax = 1,
+                                                ymin = -1,
+                                                ymax = 1,
+                                                seed = NULL,
+                                                surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                                amplitude = 0.75,
+                                                freq.u = 1,
+                                                freq.v = 1) {
+  surface <- match.arg(surface)
+  built <- .sampled.rectangle.canonical(
+    n = n,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )
+  .sampled.rectangle.surface.coords(
+    coords.param = built$coords_param,
+    coords.param.unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+}
+
+#' @rdname sampled_rectangle_surface_helpers
+#' @export
+sampled.rectangle.surface.graph <- function(n,
+                                            k,
+                                            xmin = -1,
+                                            xmax = 1,
+                                            ymin = -1,
+                                            ymax = 1,
+                                            seed = NULL,
+                                            surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                            amplitude = 0.75,
+                                            freq.u = 1,
+                                            freq.v = 1,
+                                            graph.space = c("surface", "param"),
+                                            max.path.edge.ratio.deviation.thld = 0.1,
+                                            path.edge.ratio.percentile = 0.5,
+                                            threshold.percentile = 0,
+                                            normalize = c("median", "mean", "none")) {
+  if (length(k) != 1L) {
+    return(sampled.rectangle.surface.graphs(
+      n = n,
+      k = k,
+      xmin = xmin,
+      xmax = xmax,
+      ymin = ymin,
+      ymax = ymax,
+      seed = seed,
+      surface = surface,
+      amplitude = amplitude,
+      freq.u = freq.u,
+      freq.v = freq.v,
+      graph.space = graph.space,
+      max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+      path.edge.ratio.percentile = path.edge.ratio.percentile,
+      threshold.percentile = threshold.percentile,
+      normalize = normalize
+    ))
+  }
+
+  surface <- match.arg(surface)
+  graph.space <- match.arg(graph.space)
+  normalize <- match.arg(normalize)
+  built <- .sampled.rectangle.canonical(
+    n = n,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )
+  .sampled.rectangle.surface.graph.from.built(
+    built = built,
+    k = k,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    graph.space = graph.space,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize
+  )
+}
+
+#' @rdname sampled_rectangle_surface_helpers
+#' @export
+sampled.rectangle.surface.graphs <- function(n,
+                                             k,
+                                             xmin = -1,
+                                             xmax = 1,
+                                             ymin = -1,
+                                             ymax = 1,
+                                             seed = NULL,
+                                             surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                                             amplitude = 0.75,
+                                             freq.u = 1,
+                                             freq.v = 1,
+                                             graph.space = c("surface", "param"),
+                                             max.path.edge.ratio.deviation.thld = 0.1,
+                                             path.edge.ratio.percentile = 0.5,
+                                             threshold.percentile = 0,
+                                             normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  graph.space <- match.arg(graph.space)
+  normalize <- match.arg(normalize)
+  built <- .sampled.rectangle.canonical(
+    n = n,
+    xmin = xmin,
+    xmax = xmax,
+    ymin = ymin,
+    ymax = ymax,
+    seed = seed
+  )
+  coords_surface <- .sampled.rectangle.surface.coords(
+    coords.param = built$coords_param,
+    coords.param.unit = built$coords_param_unit,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  graph_coords <- switch(
+    graph.space,
+    surface = coords_surface,
+    param = built$coords_param
+  )
+  surface_dist_matrix <- grip.euclidean.distance.matrix(coords_surface)
+  iknn <- .grip.create.iknn.graphs(
+    X = graph_coords,
+    k = k,
+    edge.dist.matrix = surface_dist_matrix,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile
+  )
+  graphs <- lapply(iknn$graphs, function(graph_k) {
+    weights <- .normalize.edge.weights(
+      edge.weights = graph_k$edge_weights,
+      normalize = normalize
+    )
+    graph_out <- list(
+      edges = graph_k$edges,
+      n = built$n,
+      edge_weights = weights$edge_weights,
+      raw_edge_weights = as.double(graph_k$edge_weights),
+      iknn_witness_edge_weights = as.double(graph_k$raw_witness_edge_weights),
+      coords_surface = coords_surface,
+      coords_param = built$coords_param,
+      coords_param_unit = built$coords_param_unit,
+      weight_scale = weights$weight_scale,
+      family = "sampled.rectangle",
+      surface = surface,
+      graph_space = graph.space,
+      k = graph_k$k,
+      xmin = built$bounds$xmin,
+      xmax = built$bounds$xmax,
+      ymin = built$bounds$ymin,
+      ymax = built$bounds$ymax,
+      seed = built$seed,
+      max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+      path.edge.ratio.percentile = path.edge.ratio.percentile,
+      threshold.percentile = threshold.percentile,
+      normalize = normalize,
+      label = sprintf("%s sampled rectangle n=%d k=%d",
+                      tools::toTitleCase(surface),
+                      built$n,
+                      graph_k$k)
+    )
+    class(graph_out) <- c("grip_sampled_rectangle_surface_graph", "list")
+    graph_out
+  })
+
+  out <- list(
+    graphs = graphs,
+    k = as.integer(iknn$k),
+    k_statistics = iknn$k_statistics,
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    coords_param_unit = built$coords_param_unit,
+    family = "sampled.rectangle",
+    surface = surface,
+    graph_space = graph.space,
+    xmin = built$bounds$xmin,
+    xmax = built$bounds$xmax,
+    ymin = built$bounds$ymin,
+    ymax = built$bounds$ymax,
+    seed = built$seed,
+    max.path.edge.ratio.deviation.thld = max.path.edge.ratio.deviation.thld,
+    path.edge.ratio.percentile = path.edge.ratio.percentile,
+    threshold.percentile = threshold.percentile,
+    normalize = normalize,
+    label = sprintf("%s sampled rectangle n=%d (%d k values)",
+                    tools::toTitleCase(surface),
+                    built$n,
+                    length(graphs))
+  )
+  class(out) <- c("grip_sampled_rectangle_surface_graphs", "list")
+  out
+}
+
+#' Weighted cylinder surface helpers
+#'
+#' Convenience helpers that embed a cylindrical grid graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology is cylindrical but the intended metric comes from a curved or
+#' spatially varying 3D realization.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the embedded
+#' cylindrical grid. `cylinder.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the cylinder edges, induced edge weights, the 3D surface
+#' coordinates, and a 2D unwrapped parameterization.
+#'
+#' @param h Number of rows.
+#' @param w Number of columns. Defaults to \code{h}.
+#' @param surface Cylinder surface family. One of \code{"barrel"},
+#'   \code{"hourglass"}, or \code{"wavy"}.
+#' @param radius Positive baseline cylinder radius.
+#' @param height Positive cylinder height.
+#' @param amplitude Finite numeric deformation amplitude. The resulting radius
+#'   profile must stay positive everywhere.
+#' @param freq.theta Positive angular frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq.z Positive vertical frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite angular twist applied linearly with height.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{cylinder.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected cylindrical-grid edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D unwrapped parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"cylinder"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name cylinder_surface_helpers
+#' @md
+NULL
+
+# @rdname cylinder_surface_helpers
+# @noRd
+cylinder.surface.embedding <- function(h,
+                                       w = h,
+                                       surface = c("barrel", "hourglass", "wavy"),
+                                       radius = 1,
+                                       height = 2,
+                                       amplitude = 0.3,
+                                       freq.theta = 2,
+                                       freq.z = 1,
+                                       twist = 0.25) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  radius <- .as.positive.scalar(radius, "radius")
+  height <- .as.positive.scalar(height, "height")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.theta <- .as.positive.scalar(freq.theta, "freq.theta")
+  freq.z <- .as.positive.scalar(freq.z, "freq.z")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  s_vals <- rev(.grid.axis(h))
+  coords <- matrix(0, nrow = h * w, ncol = 3L)
+  for (i in seq_len(h)) {
+    s <- s_vals[[i]]
+    z <- (height / 2) * s
+    for (j in seq_len(w)) {
+      theta <- theta_vals[[j]]
+      local_radius <- switch(
+        surface,
+        barrel = radius * (1 + amplitude * (1 - s^2)),
+        hourglass = radius * (1 - amplitude * (1 - s^2)),
+        wavy = radius * (1 + amplitude * sin(freq.theta * theta) * cos(pi * freq.z * s))
+      )
+      if (!is.finite(local_radius) || local_radius <= 0) {
+        stop("cylinder surface parameters produce a non-positive radius; adjust amplitude or surface settings",
+             call. = FALSE)
+      }
+      angle <- theta + twist * s
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(
+        local_radius * cos(angle),
+        local_radius * sin(angle),
+        z
+      )
+    }
+  }
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname cylinder_surface_helpers
+#' @export
+cylinder.surface.graph <- function(h,
+                                   w = h,
+                                   surface = c("barrel", "hourglass", "wavy"),
+                                   radius = 1,
+                                   height = 2,
+                                   amplitude = 0.3,
+                                   freq.theta = 2,
+                                   freq.z = 1,
+                                   twist = 0.25,
+                                   normalize = c("median", "mean", "none")) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.cylinder(h, w)
+  coords_param <- .cylinder.param.coords(
+    h = h,
+    w = w,
+    radius = radius,
+    height = height
+  )
+  coords_surface <- cylinder.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    radius = radius,
+    height = height,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.z = freq.z,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "cylinder",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s cylinder %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_cylinder_surface_graph", "list")
+  out
+}
+
+#' Weighted torus surface helpers
+#'
+#' Convenience helpers that embed a toroidal grid graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology is toroidal but the intended metric comes from a curved or
+#' spatially varying 3D realization.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the embedded
+#' toroidal grid. `torus.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the torus edges, induced edge weights, the 3D surface
+#' coordinates, and a 2D unwrapped parameterization.
+#'
+#' @param h Number of wrapped rows. Must be at least \code{3}.
+#' @param w Number of wrapped columns. Defaults to \code{h}; must be at least
+#'   \code{3}.
+#' @param surface Torus surface family. One of \code{"standard"},
+#'   \code{"pinched"}, or \code{"wavy"}.
+#' @param major.radius Positive distance from the torus center to the center of
+#'   the tube.
+#' @param minor.radius Positive baseline radius of the torus tube. The local
+#'   tube radius must remain strictly smaller than \code{major.radius}
+#'   everywhere.
+#' @param amplitude Finite numeric deformation amplitude.
+#' @param freq.major Positive angular frequency around the major cycle, used by
+#'   \code{"wavy"} and the periodic twist.
+#' @param freq.minor Positive angular frequency around the minor cycle, used by
+#'   \code{"wavy"}.
+#' @param twist Finite phase twist applied periodically to the minor angle as a
+#'   function of the major angle.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix with
+#' columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{torus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected toroidal-grid edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D unwrapped parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name torus_surface_helpers
+#' @md
+NULL
+
+# @rdname torus_surface_helpers
+# @noRd
+torus.surface.embedding <- function(h,
+                                    w = h,
+                                    surface = c("standard", "pinched", "wavy"),
+                                    major.radius = 2,
+                                    minor.radius = 0.75,
+                                    amplitude = 0.2,
+                                    freq.major = 2,
+                                    freq.minor = 1,
+                                    twist = 0.25) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  major.radius <- .as.positive.scalar(major.radius, "major.radius")
+  minor.radius <- .as.positive.scalar(minor.radius, "minor.radius")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.major <- .as.positive.scalar(freq.major, "freq.major")
+  freq.minor <- .as.positive.scalar(freq.minor, "freq.minor")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  phi_vals <- seq(0, 2 * pi * (1 - 1 / h), length.out = h)
+  coords <- matrix(0, nrow = h * w, ncol = 3L)
+  for (i in seq_len(h)) {
+    phi <- phi_vals[[i]]
+    for (j in seq_len(w)) {
+      theta <- theta_vals[[j]]
+      local_minor_radius <- switch(
+        surface,
+        standard = minor.radius,
+        pinched = minor.radius * (1 - amplitude * cos(theta)),
+        wavy = minor.radius * (1 + amplitude * sin(freq.major * theta) * cos(freq.minor * phi))
+      )
+      if (!is.finite(local_minor_radius) || local_minor_radius <= 0) {
+        stop("torus surface parameters produce a non-positive tube radius; adjust amplitude or surface settings",
+             call. = FALSE)
+      }
+      if (local_minor_radius >= major.radius) {
+        stop("torus surface parameters require major_radius to exceed the local tube radius everywhere",
+             call. = FALSE)
+      }
+      phi_eff <- phi + twist * sin(freq.major * theta)
+      ring_radius <- major.radius + local_minor_radius * cos(phi_eff)
+      id <- (i - 1L) * w + j
+      coords[id, ] <- c(
+        ring_radius * cos(theta),
+        ring_radius * sin(theta),
+        local_minor_radius * sin(phi_eff)
+      )
+    }
+  }
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname torus_surface_helpers
+#' @export
+torus.surface.graph <- function(h,
+                                w = h,
+                                surface = c("standard", "pinched", "wavy"),
+                                major.radius = 2,
+                                minor.radius = 0.75,
+                                amplitude = 0.2,
+                                freq.major = 2,
+                                freq.minor = 1,
+                                twist = 0.25,
+                                normalize = c("median", "mean", "none")) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.torus(h, w)
+  coords_param <- .torus.param.coords(
+    h = h,
+    w = w,
+    major.radius = major.radius,
+    minor.radius = minor.radius
+  )
+  coords_surface <- torus.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    major.radius = major.radius,
+    minor.radius = minor.radius,
+    amplitude = amplitude,
+    freq.major = freq.major,
+    freq.minor = freq.minor,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(h * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "torus",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s torus %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_torus_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular torus surface helpers
+#'
+#' Convenience helpers that build a torus from deterministically irregular
+#' major-cycle rings with varying sample counts, stitch adjacent rings into a
+#' locally triangulated toroidal graph, and then realize that graph in
+#' \eqn{\mathbb{R}^3} using either a standard, pinched, or wavy tube geometry.
+#'
+#' @param major.rings Number of cyclic major rings around the torus.
+#' @param tube.count Approximate number of vertices around each minor cycle.
+#' @param count.irregularity Irregularity level for the per-ring sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param major.irregularity Irregularity level for the major-angle ring
+#'   spacing. Must lie in \code{[0, 1]}.
+#' @param phase.twist Finite phase offset used to desynchronize neighboring
+#'   minor cycles.
+#' @param surface Torus geometry family. One of \code{"standard"},
+#'   \code{"pinched"}, or \code{"wavy"}.
+#' @param major.radius Positive distance from the torus center to the center of
+#'   the tube.
+#' @param minor.radius Positive baseline radius of the torus tube.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.major Positive angular frequency around the major cycle, used by
+#'   \code{"wavy"} and the periodic twist.
+#' @param freq.minor Positive angular frequency around the minor cycle, used by
+#'   \code{"wavy"}.
+#' @param twist Finite phase twist applied periodically to the minor angle as a
+#'   function of the major angle.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.torus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular torus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular angular parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{major_rings}: number of major-cycle rings,
+#'   \item \code{ring_sizes}: sample counts around each ring,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_torus_surface_helpers
+NULL
+
+# @rdname irregular_torus_surface_helpers
+# @noRd
+irregular.torus.surface.embedding <- function(
+    major.rings = 8,
+    tube.count = 16,
+    count.irregularity = 0.2,
+    major.irregularity = 0.25,
+    phase.twist = 0.35,
+    surface = c("standard", "pinched", "wavy"),
+    major.radius = 2,
+    minor.radius = 0.75,
+    amplitude = 0.2,
+    freq.major = 2,
+    freq.minor = 1,
+    twist = 0.25) {
+  surface <- match.arg(surface)
+  major.radius <- .as.positive.scalar(major.radius, "major.radius")
+  minor.radius <- .as.positive.scalar(minor.radius, "minor.radius")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.major <- .as.positive.scalar(freq.major, "freq.major")
+  freq.minor <- .as.positive.scalar(freq.minor, "freq.minor")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  built <- .irregular.torus.canonical(
+    major.rings = major.rings,
+    tube.count = tube.count,
+    count.irregularity = count.irregularity,
+    major.irregularity = major.irregularity,
+    phase.twist = phase.twist
+  )
+  theta <- built$coords_param[, 1L]
+  phi <- built$coords_param[, 2L]
+  phi_eff <- phi + twist * sin(freq.major * theta)
+  local_minor_radius <- switch(
+    surface,
+    standard = rep(minor.radius, length(phi)),
+    pinched = minor.radius * (1 - amplitude * cos(theta)),
+    wavy = minor.radius * (1 + amplitude *
+                             sin(freq.major * theta) * cos(freq.minor * phi))
+  )
+  if (any(!is.finite(local_minor_radius) | local_minor_radius <= 0)) {
+    stop("irregular torus parameters produce a non-positive tube radius; adjust amplitude or frequencies",
+         call. = FALSE)
+  }
+  if (any(local_minor_radius >= major.radius)) {
+    stop("irregular torus parameters require major_radius to exceed the local tube radius everywhere",
+         call. = FALSE)
+  }
+
+  ring_radius <- major.radius + local_minor_radius * cos(phi_eff)
+  coords <- cbind(
+    x = ring_radius * cos(theta),
+    y = ring_radius * sin(theta),
+    z = local_minor_radius * sin(phi_eff)
+  )
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_torus_surface_helpers
+#' @export
+irregular.torus.surface.graph <- function(
+    major.rings = 8,
+    tube.count = 16,
+    count.irregularity = 0.2,
+    major.irregularity = 0.25,
+    phase.twist = 0.35,
+    surface = c("standard", "pinched", "wavy"),
+    major.radius = 2,
+    minor.radius = 0.75,
+    amplitude = 0.2,
+    freq.major = 2,
+    freq.minor = 1,
+    twist = 0.25,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.torus.canonical(
+    major.rings = major.rings,
+    tube.count = tube.count,
+    count.irregularity = count.irregularity,
+    major.irregularity = major.irregularity,
+    phase.twist = phase.twist
+  )
+  coords_surface <- irregular.torus.surface.embedding(
+    major.rings = major.rings,
+    tube.count = tube.count,
+    count.irregularity = count.irregularity,
+    major.irregularity = major.irregularity,
+    phase.twist = phase.twist,
+    surface = surface,
+    major.radius = major.radius,
+    minor.radius = minor.radius,
+    amplitude = amplitude,
+    freq.major = freq.major,
+    freq.minor = freq.minor,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    weight_scale = weights$weight_scale,
+    family = "irregular.torus",
+    surface = surface,
+    major_rings = built$major_rings,
+    ring_sizes = built$ring_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular torus rings %d",
+                    tools::toTitleCase(surface),
+                    built$major_rings)
+  )
+  class(out) <- c("grip_irregular_torus_surface_graph", "list")
+  out
+}
+
+.irregular.double.torus.surface.coords <- function(coords.param,
+                                                   surface,
+                                                   amplitude,
+                                                   freq.x,
+                                                   freq.theta,
+                                                   twist) {
+  surface <- .as.named.choice(surface,
+                              c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.x <- .as.positive.scalar(freq.x, "freq.x")
+  freq.theta <- .as.positive.scalar(freq.theta, "freq.theta")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  coords.param <- as.matrix(coords.param)
+  x_extent <- max(abs(coords.param[, 1L]))
+  x_norm <- if (x_extent > 0) coords.param[, 1L] / x_extent else rep(0, nrow(coords.param))
+  theta <- atan2(coords.param[, 3L], coords.param[, 2L])
+
+  coords <- switch(
+    surface,
+    standard = coords.param,
+    bulged = {
+      scale <- 1 + amplitude * (1 - x_norm^2)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("double torus bulged parameters require positive radial scale; adjust amplitude",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords.param[, 1L],
+        y = coords.param[, 2L] * scale,
+        z = coords.param[, 3L] * scale
+      )
+    },
+    twisted = {
+      angle <- twist * sin(pi * x_norm)
+      cbind(
+        x = coords.param[, 1L],
+        y = coords.param[, 2L] * cos(angle) - coords.param[, 3L] * sin(angle),
+        z = coords.param[, 2L] * sin(angle) + coords.param[, 3L] * cos(angle)
+      )
+    },
+    wavy = {
+      scale <- 1 + amplitude * sin(freq.x * pi * x_norm) * cos(freq.theta * theta)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("double torus wavy parameters require positive radial scale; adjust amplitude or frequencies",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords.param[, 1L],
+        y = coords.param[, 2L] * scale,
+        z = coords.param[, 3L] * scale
+      )
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted irregular double-torus surface helpers
+#'
+#' Convenience helpers that build a closed genus-2 surface from a
+#' deterministically irregular slice family whose cyclic cross-sections follow a
+#' `1 -> 3 -> 1` loop transition between two poles. This gives a non-lattice,
+#' point-sampled double-torus graph together with either the canonical 3D
+#' embedding or simple bulged, twisted, and wavy deformations of that geometry.
+#'
+#' @param slices Number of non-pole slices through the double torus.
+#' @param tube.count Approximate number of vertices around each tube-like loop.
+#' @param branch.length Half-length of the three-loop central region.
+#' @param branch.offset Offset of the outer loop centers from the central loop.
+#' @param tube.radius Baseline radius of each tube-like loop.
+#' @param transition.width Width of the left and right transition regions
+#'   between the single-loop and three-loop slices.
+#' @param count.irregularity Irregularity level for the per-component sample
+#'   counts. Must lie in \code{[0, 1)}.
+#' @param axial.irregularity Irregularity level for the slice spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param phase.twist Finite phase offset used to desynchronize neighboring
+#'   cyclic slices.
+#' @param surface Double-torus geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.x Positive modulation frequency along the axial direction. Used
+#'   only when \code{surface = "wavy"}.
+#' @param freq.theta Positive angular modulation frequency around the local
+#'   tube direction. Used only when \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.double.torus.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the irregular double-torus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D double-torus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.double.torus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{slices}: number of non-pole slices,
+#'   \item \code{slice_sizes}: vertex counts in each slice,
+#'   \item \code{slice_components}: number of cyclic components in each slice,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_double_torus_surface_helpers
+#' @md
+NULL
+
+# @rdname irregular_double_torus_surface_helpers
+# @noRd
+irregular.double.torus.surface.embedding <- function(
+    slices = 11,
+    tube.count = 14,
+    branch.length = 0.85,
+    branch.offset = 0.72,
+    tube.radius = 0.28,
+    transition.width = 0.42,
+    count.irregularity = 0.2,
+    axial.irregularity = 0.3,
+    phase.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq.x = 2,
+    freq.theta = 2,
+    twist = 0.6) {
+  surface <- match.arg(surface)
+  built <- .irregular.double.torus.canonical(
+    slices = slices,
+    tube.count = tube.count,
+    branch.length = branch.length,
+    branch.offset = branch.offset,
+    tube.radius = tube.radius,
+    transition.width = transition.width,
+    count.irregularity = count.irregularity,
+    axial.irregularity = axial.irregularity,
+    phase.twist = phase.twist
+  )
+  .irregular.double.torus.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.x = freq.x,
+    freq.theta = freq.theta,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_double_torus_surface_helpers
+#' @export
+irregular.double.torus.surface.graph <- function(
+    slices = 11,
+    tube.count = 14,
+    branch.length = 0.85,
+    branch.offset = 0.72,
+    tube.radius = 0.28,
+    transition.width = 0.42,
+    count.irregularity = 0.2,
+    axial.irregularity = 0.3,
+    phase.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq.x = 2,
+    freq.theta = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.double.torus.canonical(
+    slices = slices,
+    tube.count = tube.count,
+    branch.length = branch.length,
+    branch.offset = branch.offset,
+    tube.radius = tube.radius,
+    transition.width = transition.width,
+    count.irregularity = count.irregularity,
+    axial.irregularity = axial.irregularity,
+    phase.twist = phase.twist
+  )
+  coords_surface <- irregular.double.torus.surface.embedding(
+    slices = slices,
+    tube.count = tube.count,
+    branch.length = branch.length,
+    branch.offset = branch.offset,
+    tube.radius = tube.radius,
+    transition.width = transition.width,
+    count.irregularity = count.irregularity,
+    axial.irregularity = axial.irregularity,
+    phase.twist = phase.twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq.x = freq.x,
+    freq.theta = freq.theta,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.double.torus",
+    surface = surface,
+    slices = built$slices,
+    slice_sizes = built$slice_sizes,
+    slice_components = built$slice_components,
+    normalize = normalize,
+    label = sprintf("%s irregular double torus slices %d",
+                    tools::toTitleCase(surface),
+                    built$slices)
+  )
+  class(out) <- c("grip_irregular_double_torus_surface_graph", "list")
+  out
+}
+
+.irregular.radial.solid.surface.coords <- function(coords.param,
+                                                   surface,
+                                                   amplitude,
+                                                   freq.theta,
+                                                   freq.phi,
+                                                   twist) {
+  surface <- .as.named.choice(surface,
+                              c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.theta <- .as.positive.scalar(freq.theta, "freq.theta")
+  freq.phi <- .as.positive.scalar(freq.phi, "freq.phi")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  coords.param <- as.matrix(coords.param)
+  norms <- sqrt(rowSums(coords.param^2))
+  max_norm <- max(norms)
+  r_norm <- if (is.finite(max_norm) && max_norm > 0) norms / max_norm else rep(0, length(norms))
+  theta <- atan2(coords.param[, 2L], coords.param[, 1L])
+  phi <- ifelse(norms > 0, acos(pmin(pmax(coords.param[, 3L] / norms, -1), 1)), 0)
+  unit <- coords.param
+  keep <- norms > 0
+  if (any(keep)) {
+    unit[keep, ] <- sweep(coords.param[keep, , drop = FALSE], 1L, norms[keep], "/")
+  }
+
+  coords <- switch(
+    surface,
+    standard = coords.param,
+    bulged = {
+      scale <- 1 + amplitude * (1 - (2 * r_norm - 1)^2)
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("radial solid bulged parameters require positive radial scale; adjust amplitude",
+             call. = FALSE)
+      }
+      unit * (norms * scale)
+    },
+    twisted = {
+      angle <- twist * (2 * r_norm - 1)
+      x <- coords.param[, 1L] * cos(angle) - coords.param[, 2L] * sin(angle)
+      y <- coords.param[, 1L] * sin(angle) + coords.param[, 2L] * cos(angle)
+      cbind(x = x, y = y, z = coords.param[, 3L])
+    },
+    wavy = {
+      scale <- 1 + amplitude * (0.35 + 0.65 * r_norm) *
+        sin(freq.theta * theta) * cos(freq.phi * (phi - pi / 2))
+      if (any(!is.finite(scale) | scale <= 0)) {
+        stop("radial solid wavy parameters require positive radial scale; adjust amplitude or frequencies",
+             call. = FALSE)
+      }
+      unit * (norms * scale)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted irregular ball solid helpers
+#'
+#' Convenience helpers that build a layered simplicial ball by taking a
+#' subdivided triangulated polyhedron, normalizing its vertices to directions on
+#' the sphere, placing those directions on nested radial layers, and connecting
+#' adjacent layers by a deterministic prism-to-tetrahedra edge pattern. The
+#' center vertex is included explicitly, so the resulting graph is genuinely
+#' volumetric rather than just a closed surface.
+#'
+#' @param base Base polyhedron. One of \code{"tetrahedron"},
+#'   \code{"octahedron"}, or \code{"icosahedron"}.
+#' @param level Surface subdivision depth used for each radial layer.
+#' @param layers Number of non-center radial layers.
+#' @param outer.radius Positive outer radius of the ball.
+#' @param radial.irregularity Irregularity level for the radial layer spacing.
+#'   Must lie in \code{[0, 1]}.
+#' @param layer.twist Finite z-axis twist applied smoothly across radial
+#'   layers.
+#' @param surface Solid geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.theta Positive azimuthal modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq.phi Positive polar modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.ball.solid.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular ball edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D ball coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.ball"},
+#'   \item \code{surface}: the chosen solid geometry family,
+#'   \item \code{base}: the chosen base polyhedron,
+#'   \item \code{level}: the surface subdivision depth,
+#'   \item \code{layers}: number of non-center radial layers,
+#'   \item \code{radii}: the radial layer values,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_ball_solid_helpers
+NULL
+
+# @rdname irregular_ball_solid_helpers
+# @noRd
+irregular.ball.solid.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    outer.radius = 1,
+    radial.irregularity = 0.25,
+    layer.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq.theta = 2,
+    freq.phi = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  built <- .irregular.ball.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )
+  .irregular.radial.solid.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.phi = freq.phi,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_ball_solid_helpers
+#' @export
+irregular.ball.solid.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    outer.radius = 1,
+    radial.irregularity = 0.25,
+    layer.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq.theta = 2,
+    freq.phi = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.ball.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )
+  coords_surface <- irregular.ball.solid.embedding(
+    base = base,
+    level = level,
+    layers = layers,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.phi = freq.phi,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.ball",
+    surface = surface,
+    base = built$base,
+    level = built$level,
+    layers = built$layers,
+    radii = built$radii,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s irregular ball %s level %d layers %d",
+                    tools::toTitleCase(surface),
+                    built$base,
+                    built$level,
+                    built$layers)
+  )
+  class(out) <- c("grip_irregular_ball_solid_graph", "list")
+  out
+}
+
+#' Weighted irregular shell solid helpers
+#'
+#' Convenience helpers that build a layered simplicial shell by placing the
+#' vertices of a subdivided triangulated polyhedron on nested inner-to-outer
+#' radial layers and connecting adjacent layers by the same deterministic
+#' prism-to-tetrahedra edge pattern used for \code{irregular.ball.solid.*()}.
+#' The result is a genuinely volumetric shell graph with a hollow interior.
+#'
+#' @param inner.radius Positive inner radius of the shell.
+#' @inheritParams irregular_ball_solid_helpers
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.shell.solid.graph()} returns the same components as
+#' \code{irregular.ball.solid.graph()}, with \code{family} set to
+#' \code{"irregular.shell"}.
+#'
+#' @name irregular_shell_solid_helpers
+NULL
+
+# @rdname irregular_shell_solid_helpers
+# @noRd
+irregular.shell.solid.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    inner.radius = 0.45,
+    outer.radius = 1,
+    radial.irregularity = 0.25,
+    layer.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq.theta = 2,
+    freq.phi = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  built <- .irregular.shell.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )
+  .irregular.radial.solid.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.phi = freq.phi,
+    twist = twist
+  )
+}
+
+#' @rdname irregular_shell_solid_helpers
+#' @export
+irregular.shell.solid.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    layers = 3,
+    inner.radius = 0.45,
+    outer.radius = 1,
+    radial.irregularity = 0.25,
+    layer.twist = 0.35,
+    surface = c("standard", "bulged", "twisted", "wavy"),
+    amplitude = 0.2,
+    freq.theta = 2,
+    freq.phi = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.shell.canonical(
+    base = base,
+    level = level,
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )
+  coords_surface <- irregular.shell.solid.embedding(
+    base = base,
+    level = level,
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.phi = freq.phi,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.shell",
+    surface = surface,
+    base = built$base,
+    level = built$level,
+    layers = built$layers,
+    radii = built$radii,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s irregular shell %s level %d layers %d",
+                    tools::toTitleCase(surface),
+                    built$base,
+                    built$level,
+                    built$layers)
+  )
+  class(out) <- c("grip_irregular_shell_solid_graph", "list")
+  out
+}
+
+#' Weighted sphere surface helpers
+#'
+#' Convenience helpers that embed the sampled sphere graph into
+#' \eqn{\mathbb{R}^3} and use the induced Euclidean edge lengths as positive
+#' graph weights. These helpers are intended for benchmark families where the
+#' graph topology follows the current pole-plus-latitude-rings sphere graph but
+#' the intended metric comes from a curved or spatially varying 3D realization.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the sampled
+#' surface in the same vertex order as \code{edges}: north pole first,
+#' then latitude rings from north to south, then the south pole.
+#' `sphere.surface.graph()` returns a reusable weighted-graph bundle containing
+#' the sphere edges, induced edge weights, the 3D surface coordinates, and a 2D
+#' longitude-latitude parameterization.
+#'
+#' @param h Number of latitude levels including the poles. Must be at least
+#'   \code{3}.
+#' @param w Wrapped longitude count. Defaults to \code{h}; must be at least
+#'   \code{3}.
+#' @param surface Sphere surface family. One of \code{"standard"},
+#'   \code{"ellipsoid"}, or \code{"wavy"}.
+#' @param radius Positive baseline radius.
+#' @param amplitude Finite deformation amplitude. For \code{"ellipsoid"},
+#'   positive values make the shape oblate and negative values make it prolate,
+#'   while keeping all axis lengths positive. For \code{"wavy"}, the local
+#'   radius must remain positive everywhere.
+#' @param freq.theta Positive longitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq.lat Positive latitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite longitude twist applied smoothly by latitude. The twist
+#'   vanishes at the poles.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 2 + (h - 2) * w}.
+#'
+#' \code{sphere.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the undirected sphere-graph edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D longitude-latitude parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sphere"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sphere_surface_helpers
+#' @md
+NULL
+
+# @rdname sphere_surface_helpers
+# @noRd
+sphere.surface.embedding <- function(h,
+                                     w = h,
+                                     surface = c("standard", "ellipsoid", "wavy"),
+                                     radius = 1,
+                                     amplitude = 0.2,
+                                     freq.theta = 3,
+                                     freq.lat = 2,
+                                     twist = 0.25) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  radius <- .as.positive.scalar(radius, "radius")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.theta <- .as.positive.scalar(freq.theta, "freq.theta")
+  freq.lat <- .as.positive.scalar(freq.lat, "freq.lat")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  ring.count <- h - 2L
+  n <- 2L + ring.count * w
+  theta_vals <- seq(0, 2 * pi * (1 - 1 / w), length.out = w)
+  lat_vals <- seq(pi / 2, -pi / 2, length.out = h)
+  coords <- matrix(0, nrow = n, ncol = 3L)
+
+  if (surface == "ellipsoid") {
+    equatorial_radius <- radius * (1 + amplitude)
+    polar_radius <- radius * (1 - amplitude)
+    if (!is.finite(equatorial_radius) || !is.finite(polar_radius) ||
+        equatorial_radius <= 0 || polar_radius <= 0) {
+      stop("sphere ellipsoid parameters require positive equatorial and polar radii; adjust amplitude",
+           call. = FALSE)
+    }
+    coords[1L, ] <- c(0, 0, polar_radius)
+    if (ring.count > 0L) {
+      for (i in seq_len(ring.count)) {
+        lat <- lat_vals[[i + 1L]]
+        theta_shift <- twist * sin(2 * lat)
+        for (j in seq_len(w)) {
+          theta_eff <- theta_vals[[j]] + theta_shift
+          id <- 1L + (i - 1L) * w + j
+          coords[id, ] <- c(
+            equatorial_radius * cos(lat) * cos(theta_eff),
+            equatorial_radius * cos(lat) * sin(theta_eff),
+            polar_radius * sin(lat)
+          )
+        }
+      }
+    }
+    coords[n, ] <- c(0, 0, -polar_radius)
+  } else {
+    coords[1L, ] <- c(0, 0, radius)
+    if (ring.count > 0L) {
+      for (i in seq_len(ring.count)) {
+        lat <- lat_vals[[i + 1L]]
+        theta_shift <- twist * sin(2 * lat)
+        pole_taper <- cos(lat)^2
+        for (j in seq_len(w)) {
+          theta <- theta_vals[[j]]
+          theta_eff <- theta + theta_shift
+          local_radius <- switch(
+            surface,
+            standard = radius,
+            wavy = radius * (1 + amplitude * pole_taper *
+                               sin(freq.theta * theta) * cos(freq.lat * lat))
+          )
+          if (!is.finite(local_radius) || local_radius <= 0) {
+            stop("sphere surface parameters produce a non-positive local radius; adjust amplitude or surface settings",
+                 call. = FALSE)
+          }
+          id <- 1L + (i - 1L) * w + j
+          coords[id, ] <- c(
+            local_radius * cos(lat) * cos(theta_eff),
+            local_radius * cos(lat) * sin(theta_eff),
+            local_radius * sin(lat)
+          )
+        }
+      }
+    }
+    coords[n, ] <- c(0, 0, -radius)
+  }
+
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sphere_surface_helpers
+#' @export
+sphere.surface.graph <- function(h,
+                                 w = h,
+                                 surface = c("standard", "ellipsoid", "wavy"),
+                                 radius = 1,
+                                 amplitude = 0.2,
+                                 freq.theta = 3,
+                                 freq.lat = 2,
+                                 twist = 0.25,
+                                 normalize = c("median", "mean", "none")) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  edges <- edges.sphere(h, w)
+  coords_param <- .sphere.param.coords(
+    h = h,
+    w = w,
+    radius = radius
+  )
+  coords_surface <- sphere.surface.embedding(
+    h = h,
+    w = w,
+    surface = surface,
+    radius = radius,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.lat = freq.lat,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(2L + (h - 2L) * w),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "sphere",
+    surface = surface,
+    normalize = normalize,
+    label = sprintf("%s sphere %dx%d", tools::toTitleCase(surface), h, w)
+  )
+  class(out) <- c("grip_sphere_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular sphere surface helpers
+#'
+#' Convenience helpers that build a sphere from deterministically irregular
+#' latitude bands with varying sample counts, stitch adjacent bands into a
+#' locally triangulated graph, and then realize that graph in \eqn{\mathbb{R}^3}
+#' using either a standard sphere, an ellipsoid, or a wavy radial modulation.
+#'
+#' @param bands Number of non-pole latitude bands.
+#' @param equator.count Approximate number of vertices near the equator.
+#' @param count.irregularity Irregularity level for per-band sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param lat.irregularity Irregularity level for latitude-band spacing. Must
+#'   lie in \code{[0, 1]}.
+#' @param phase.twist Finite angular phase offset used to desynchronize
+#'   neighboring latitude bands.
+#' @param surface Sphere geometry family. One of \code{"standard"},
+#'   \code{"ellipsoid"}, or \code{"wavy"}.
+#' @param radius Positive baseline radius.
+#' @param amplitude Finite deformation amplitude. For \code{"ellipsoid"},
+#'   positive values make the shape oblate and negative values make it prolate.
+#' @param freq.theta Positive longitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param freq.lat Positive latitudinal frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite longitude twist applied smoothly by latitude.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.sphere.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular sphere edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular angular parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.sphere"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{bands}: number of non-pole latitude bands,
+#'   \item \code{band_sizes}: sample counts in each latitude band,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_sphere_surface_helpers
+NULL
+
+# @rdname irregular_sphere_surface_helpers
+# @noRd
+irregular.sphere.surface.embedding <- function(
+    bands = 6,
+    equator.count = 28,
+    count.irregularity = 0.2,
+    lat.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("standard", "ellipsoid", "wavy"),
+    radius = 1,
+    amplitude = 0.2,
+    freq.theta = 3,
+    freq.lat = 2,
+    twist = 0.25) {
+  surface <- match.arg(surface)
+  radius <- .as.positive.scalar(radius, "radius")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.theta <- .as.positive.scalar(freq.theta, "freq.theta")
+  freq.lat <- .as.positive.scalar(freq.lat, "freq.lat")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  built <- .irregular.sphere.canonical(
+    bands = bands,
+    equator.count = equator.count,
+    count.irregularity = count.irregularity,
+    lat.irregularity = lat.irregularity,
+    phase.twist = phase.twist
+  )
+  theta <- built$coords_param[, 1L]
+  lat <- built$coords_param[, 2L]
+  theta_eff <- theta + twist * sin(2 * lat)
+
+  if (surface == "ellipsoid") {
+    equatorial_radius <- radius * (1 + amplitude)
+    polar_radius <- radius * (1 - amplitude)
+    if (!is.finite(equatorial_radius) || !is.finite(polar_radius) ||
+        equatorial_radius <= 0 || polar_radius <= 0) {
+      stop("irregular sphere ellipsoid parameters require positive equatorial and polar radii; adjust amplitude",
+           call. = FALSE)
+    }
+    coords <- cbind(
+      x = equatorial_radius * cos(lat) * cos(theta_eff),
+      y = equatorial_radius * cos(lat) * sin(theta_eff),
+      z = polar_radius * sin(lat)
+    )
+  } else {
+    pole_taper <- cos(lat)^2
+    local_radius <- switch(
+      surface,
+      standard = rep(radius, length(lat)),
+      wavy = radius * (1 + amplitude * pole_taper *
+                         sin(freq.theta * theta) * cos(freq.lat * lat))
+    )
+    if (any(!is.finite(local_radius) | local_radius <= 0)) {
+      stop("irregular sphere parameters produce a non-positive local radius; adjust amplitude or frequencies",
+           call. = FALSE)
+    }
+    coords <- cbind(
+      x = local_radius * cos(lat) * cos(theta_eff),
+      y = local_radius * cos(lat) * sin(theta_eff),
+      z = local_radius * sin(lat)
+    )
+  }
+
+  colnames(coords) <- c("x", "y", "z")
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname irregular_sphere_surface_helpers
+#' @export
+irregular.sphere.surface.graph <- function(
+    bands = 6,
+    equator.count = 28,
+    count.irregularity = 0.2,
+    lat.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("standard", "ellipsoid", "wavy"),
+    radius = 1,
+    amplitude = 0.2,
+    freq.theta = 3,
+    freq.lat = 2,
+    twist = 0.25,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.sphere.canonical(
+    bands = bands,
+    equator.count = equator.count,
+    count.irregularity = count.irregularity,
+    lat.irregularity = lat.irregularity,
+    phase.twist = phase.twist
+  )
+  coords_surface <- irregular.sphere.surface.embedding(
+    bands = bands,
+    equator.count = equator.count,
+    count.irregularity = count.irregularity,
+    lat.irregularity = lat.irregularity,
+    phase.twist = phase.twist,
+    surface = surface,
+    radius = radius,
+    amplitude = amplitude,
+    freq.theta = freq.theta,
+    freq.lat = freq.lat,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords_param,
+    weight_scale = weights$weight_scale,
+    family = "irregular.sphere",
+    surface = surface,
+    bands = built$bands,
+    band_sizes = built$band_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular sphere bands %d",
+                    tools::toTitleCase(surface),
+                    built$bands)
+  )
+  class(out) <- c("grip_irregular_sphere_surface_graph", "list")
+  out
+}
+
+.triangulated.polyhedron.surface.coords <- function(coords.param,
+                                                    surface,
+                                                    amplitude,
+                                                    freq,
+                                                    twist) {
+  surface <- .as.named.choice(surface,
+                              c("standard", "inflated", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq <- .as.positive.scalar(freq, "freq")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  coords.param <- as.matrix(coords.param)
+  norms <- sqrt(rowSums(coords.param^2))
+  unit <- .normalize.row.coords(coords.param)
+  coords_norm <- .normalize.center.radius.coords(coords.param)
+  coords <- switch(
+    surface,
+    standard = coords.param,
+    inflated = {
+      target_radius <- norms + amplitude * (1 - norms)
+      if (any(!is.finite(target_radius) | target_radius <= 0)) {
+        stop("inflated polyhedron parameters produce a non-positive radius; adjust amplitude",
+             call. = FALSE)
+      }
+      unit * target_radius
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords.param[, 1L] * cos(theta) - coords.param[, 2L] * sin(theta)
+      y <- coords.param[, 1L] * sin(theta) + coords.param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords.param[, 3L])
+    },
+    wavy = {
+      radial_scale <- 1 + amplitude *
+        sin(pi * freq * coords_norm[, 1L]) *
+        cos(pi * freq * coords_norm[, 2L]) *
+        sin(pi * freq * coords_norm[, 3L])
+      if (any(!is.finite(radial_scale) | radial_scale <= 0)) {
+        stop("wavy polyhedron parameters produce a non-positive local radius; adjust amplitude or frequency",
+             call. = FALSE)
+      }
+      unit * (norms * radial_scale)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted triangulated polyhedron surface helpers
+#'
+#' Convenience helpers that take a triangular-face polyhedron, repeatedly split
+#' each face into four subtriangles, merge shared-edge vertices, and use the
+#' resulting triangulated-surface graph as a reusable benchmark family. The
+#' canonical geometry is a piecewise-flat triangulated surface, while the
+#' weighted variants can inflate, twist, or radially modulate that surface in
+#' \eqn{\mathbb{R}^3}.
+#'
+#' The current supported bases are the regular tetrahedron, octahedron, and
+#' icosahedron. These give closed triangulated surfaces with non-grid topology
+#' and a small number of extraordinary vertices, making them useful complements
+#' to the mesh-derived families already in the package.
+#'
+#' @param base Base polyhedron. One of \code{"tetrahedron"},
+#'   \code{"octahedron"}, or \code{"icosahedron"}.
+#' @param level Subdivision depth. \code{level = 0} returns the base
+#'   triangulation, \code{level = 1} splits each face into four, and so on.
+#' @param surface Geometry family used for the 3D embedding. One of
+#'   \code{"standard"}, \code{"inflated"}, \code{"twisted"}, or
+#'   \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.polyhedron.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated-surface edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical piecewise-flat coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.polyhedron"},
+#'   \item \code{base}: the chosen base polyhedron,
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the subdivision depth,
+#'   \item \code{subdivision}: the linear face subdivision factor
+#'     \code{2^level},
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_polyhedron_surface_helpers
+NULL
+
+# @rdname triangulated_polyhedron_surface_helpers
+# @noRd
+triangulated.polyhedron.surface.embedding <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    surface = c("standard", "inflated", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq = 2,
+    twist = 0.6) {
+  base <- match.arg(base)
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+
+  built <- .triangulated.polyhedron.canonical(base = base, level = level)
+  .triangulated.polyhedron.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname triangulated_polyhedron_surface_helpers
+#' @export
+triangulated.polyhedron.surface.graph <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1,
+    surface = c("standard", "inflated", "twisted", "wavy"),
+    amplitude = 0.25,
+    freq = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  base <- match.arg(base)
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .triangulated.polyhedron.canonical(base = base, level = level)
+  coords_surface <- triangulated.polyhedron.surface.embedding(
+    base = base,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.polyhedron",
+    base = base,
+    surface = surface,
+    level = level,
+    subdivision = built$subdivision,
+    normalize = normalize,
+    label = sprintf("%s triangulated %s level %d",
+                    tools::toTitleCase(surface),
+                    base,
+                    level)
+  )
+  class(out) <- c("grip_triangulated_polyhedron_surface_graph", "list")
+  out
+}
+
+.triangulated.planar.surface.coords <- function(coords.param,
+                                                surface,
+                                                amplitude,
+                                                freq.u,
+                                                freq.v) {
+  surface <- .as.named.choice(surface,
+                              c("flat", "saddle", "paraboloid", "ripple", "folded"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  coords.param <- as.matrix(coords.param)
+  coords_norm <- .normalize.center.radius.coords(coords.param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords.param)),
+    saddle = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq.u, freq.v),
+    paraboloid = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq.u, freq.v),
+    ripple = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq.u, freq.v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+  coords <- cbind(x = coords.param[, 1L], y = coords.param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted triangulated annulus surface helpers
+#'
+#' Convenience helpers that triangulate a planar annulus by clipping a regular
+#' triangular lattice to the region between two concentric circles. The
+#' resulting graph is a triangulated manifold with boundary and a single hole,
+#' making it a useful complement to the closed triangulated-polyhedron
+#' families.
+#'
+#' The \code{coords.surface} component is the 3D coordinates
+#' of the clipped lattice vertices in the same vertex order as
+#' \code{edges}. \code{triangulated.annulus.surface.graph()}
+#' returns a reusable weighted-graph bundle with the annulus edges, induced edge
+#' weights, the 3D embedding, and the 2D annulus parameter coordinates.
+#'
+#' @param resolution Positive lattice-resolution control. Larger values produce
+#'   finer triangulations.
+#' @param outer.radius Positive outer annulus radius.
+#' @param inner.radius Positive inner annulus radius. Must be strictly smaller
+#'   than \code{outer.radius}.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.annulus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated-annulus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 2D annulus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.annulus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{resolution}: the lattice-resolution parameter,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_annulus_surface_helpers
+NULL
+
+# @rdname triangulated_annulus_surface_helpers
+# @noRd
+triangulated.annulus.surface.embedding <- function(
+    resolution = 12,
+    outer.radius = 1,
+    inner.radius = 0.45,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1) {
+  surface <- match.arg(surface)
+  built <- .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius
+  )
+  .triangulated.planar.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+}
+
+#' @rdname triangulated_annulus_surface_helpers
+#' @export
+triangulated.annulus.surface.graph <- function(
+    resolution = 12,
+    outer.radius = 1,
+    inner.radius = 0.45,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius
+  )
+  coords_surface <- triangulated.annulus.surface.embedding(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.annulus",
+    surface = surface,
+    resolution = built$resolution,
+    normalize = normalize,
+    label = sprintf("%s triangulated annulus res %d",
+                    tools::toTitleCase(surface),
+                    built$resolution)
+  )
+  class(out) <- c("grip_triangulated_annulus_surface_graph", "list")
+  out
+}
+
+#' Weighted triangulated pair-of-pants surface helpers
+#'
+#' Convenience helpers that triangulate a planar pair-of-pants domain by
+#' clipping a regular triangular lattice to a disk with two interior circular
+#' holes. The resulting graph is a triangulated surface with three boundary
+#' components and a deterministic non-grid topology.
+#'
+#' The \code{coords.surface} component is the 3D
+#' coordinates of the clipped lattice vertices in the same vertex order as
+#' \code{edges}.
+#' \code{triangulated.pair.of.pants.surface.graph()} returns a reusable
+#' weighted-graph bundle with the pair-of-pants edges, induced edge weights, 3D
+#' embedding, and the 2D parameter coordinates of the clipped domain.
+#'
+#' @param resolution Positive lattice-resolution control. Larger values produce
+#'   finer triangulations.
+#' @param outer.radius Positive radius of the outer boundary.
+#' @param hole.radius Positive radius of each interior hole.
+#' @param hole.offset Positive horizontal offset of the two hole centers from
+#'   the vertical axis.
+#' @param hole.height Vertical coordinate shared by the two hole centers.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x
+#' 3} numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{triangulated.pair.of.pants.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the triangulated pair-of-pants edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 2D pair-of-pants coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"triangulated.pair.of.pants"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{resolution}: the lattice-resolution parameter,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name triangulated_pair_of_pants_surface_helpers
+NULL
+
+# @rdname triangulated_pair_of_pants_surface_helpers
+# @noRd
+triangulated.pair.of.pants.surface.embedding <- function(
+    resolution = 12,
+    outer.radius = 1.1,
+    hole.radius = 0.24,
+    hole.offset = 0.38,
+    hole.height = 0.18,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1) {
+  surface <- match.arg(surface)
+  built <- .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height
+  )
+  .triangulated.planar.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+}
+
+#' @rdname triangulated_pair_of_pants_surface_helpers
+#' @export
+triangulated.pair.of.pants.surface.graph <- function(
+    resolution = 12,
+    outer.radius = 1.1,
+    hole.radius = 0.24,
+    hole.offset = 0.38,
+    hole.height = 0.18,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height
+  )
+  coords_surface <- triangulated.pair.of.pants.surface.embedding(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "triangulated.pair.of.pants",
+    surface = surface,
+    resolution = built$resolution,
+    normalize = normalize,
+    label = sprintf("%s triangulated pair-of-pants res %d",
+                    tools::toTitleCase(surface),
+                    built$resolution)
+  )
+  class(out) <- c("grip_triangulated_pair_of_pants_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular annulus surface helpers
+#'
+#' Convenience helpers that build an annulus from deterministically irregular
+#' concentric rings with varying sample counts, stitch adjacent rings into a
+#' locally triangulated graph, and then optionally lift the resulting irregular
+#' planar parameterization into \eqn{\mathbb{R}^3}. This provides a non-lattice
+#' annulus family with boundary and nonuniform local valence.
+#'
+#' @param rings Number of concentric sample rings, including the inner and
+#'   outer boundary cycles.
+#' @param outer.count Approximate number of vertices on the outer boundary.
+#' @param outer.radius Positive outer annulus radius.
+#' @param inner.radius Positive inner annulus radius.
+#' @param count.irregularity Irregularity level for the per-ring sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param radial.irregularity Irregularity level for within-ring radial
+#'   perturbations. Must lie in \code{[0, 1]}.
+#' @param phase.twist Finite angular phase offset used to desynchronize
+#'   neighboring rings.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.annulus.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the irregular annulus edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular planar annulus coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.annulus"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{rings}: number of concentric rings,
+#'   \item \code{ring_sizes}: sample counts on each ring,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_annulus_surface_helpers
+NULL
+
+# @rdname irregular_annulus_surface_helpers
+# @noRd
+irregular.annulus.surface.embedding <- function(
+    rings = 6,
+    outer.count = 28,
+    outer.radius = 1,
+    inner.radius = 0.45,
+    count.irregularity = 0.2,
+    radial.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1) {
+  surface <- match.arg(surface)
+  built <- .irregular.annulus.canonical(
+    rings = rings,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius,
+    count.irregularity = count.irregularity,
+    radial.irregularity = radial.irregularity,
+    phase.twist = phase.twist
+  )
+  .triangulated.planar.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+}
+
+#' @rdname irregular_annulus_surface_helpers
+#' @export
+irregular.annulus.surface.graph <- function(
+    rings = 6,
+    outer.count = 28,
+    outer.radius = 1,
+    inner.radius = 0.45,
+    count.irregularity = 0.2,
+    radial.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.annulus.canonical(
+    rings = rings,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius,
+    count.irregularity = count.irregularity,
+    radial.irregularity = radial.irregularity,
+    phase.twist = phase.twist
+  )
+  coords_surface <- irregular.annulus.surface.embedding(
+    rings = rings,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius,
+    count.irregularity = count.irregularity,
+    radial.irregularity = radial.irregularity,
+    phase.twist = phase.twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.annulus",
+    surface = surface,
+    rings = built$rings,
+    ring_sizes = built$ring_sizes,
+    normalize = normalize,
+    label = sprintf("%s irregular annulus rings %d",
+                    tools::toTitleCase(surface),
+                    built$rings)
+  )
+  class(out) <- c("grip_irregular_annulus_surface_graph", "list")
+  out
+}
+
+#' Weighted irregular pair-of-pants surface helpers
+#'
+#' Convenience helpers that build a pair-of-pants domain from deterministically
+#' irregular horizontal slices, sample each surviving slice interval with
+#' varying point counts, and stitch adjacent slices into a locally triangulated
+#' surface-with-boundary graph. The resulting irregular planar parameterization
+#' can then be lifted into \eqn{\mathbb{R}^3} using the same planar surface
+#' families as the triangulated annulus and irregular annulus helpers.
+#'
+#' @param slices Number of horizontal sample slices through the pair-of-pants
+#'   domain.
+#' @param outer.count Approximate number of vertices across the widest slices.
+#' @param outer.radius Positive outer boundary radius.
+#' @param hole.radius Positive radius of each interior hole.
+#' @param hole.offset Positive horizontal offset of the two hole centers.
+#' @param hole.height Shared vertical coordinate of the two hole centers.
+#' @param count.irregularity Irregularity level for the per-slice sample counts.
+#'   Must lie in \code{[0, 1)}.
+#' @param vertical.irregularity Irregularity level for slice spacing. Must lie
+#'   in \code{[0, 1]}.
+#' @param phase.twist Finite phase offset used to desynchronize neighboring
+#'   slice samples.
+#' @param surface Geometry family used for the 3D lift. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second planar coordinate. Used
+#'   only when \code{surface = "ripple"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{irregular.pair.of.pants.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the irregular pair-of-pants edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the irregular planar pair-of-pants coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"irregular.pair.of.pants"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{slices}: number of horizontal sample slices,
+#'   \item \code{slice_sizes}: vertex counts in each slice,
+#'   \item \code{slice_components}: number of connected slice intervals in each
+#'     slice,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name irregular_pair_of_pants_surface_helpers
+NULL
+
+# @rdname irregular_pair_of_pants_surface_helpers
+# @noRd
+irregular.pair.of.pants.surface.embedding <- function(
+    slices = 11,
+    outer.count = 28,
+    outer.radius = 1.1,
+    hole.radius = 0.24,
+    hole.offset = 0.38,
+    hole.height = 0.18,
+    count.irregularity = 0.2,
+    vertical.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1) {
+  surface <- match.arg(surface)
+  built <- .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height,
+    count.irregularity = count.irregularity,
+    vertical.irregularity = vertical.irregularity,
+    phase.twist = phase.twist
+  )
+  .triangulated.planar.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+}
+
+#' @rdname irregular_pair_of_pants_surface_helpers
+#' @export
+irregular.pair.of.pants.surface.graph <- function(
+    slices = 11,
+    outer.count = 28,
+    outer.radius = 1.1,
+    hole.radius = 0.24,
+    hole.offset = 0.38,
+    hole.height = 0.18,
+    count.irregularity = 0.2,
+    vertical.irregularity = 0.35,
+    phase.twist = 0.35,
+    surface = c("flat", "saddle", "paraboloid", "ripple", "folded"),
+    amplitude = 0.6,
+    freq.u = 1,
+    freq.v = 1,
+    normalize = c("median", "mean", "none")) {
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+  built <- .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height,
+    count.irregularity = count.irregularity,
+    vertical.irregularity = vertical.irregularity,
+    phase.twist = phase.twist
+  )
+  coords_surface <- irregular.pair.of.pants.surface.embedding(
+    slices = slices,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height,
+    count.irregularity = count.irregularity,
+    vertical.irregularity = vertical.irregularity,
+    phase.twist = phase.twist,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "irregular.pair.of.pants",
+    surface = surface,
+    slices = built$slices,
+    slice_sizes = built$slice_sizes,
+    slice_components = built$slice_components,
+    normalize = normalize,
+    label = sprintf("%s irregular pair-of-pants slices %d",
+                    tools::toTitleCase(surface),
+                    built$slices)
+  )
+  class(out) <- c("grip_irregular_pair_of_pants_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski triangle surface helpers
+#'
+#' Convenience helpers that take the canonical recursive embedding of the
+#' Sierpinski triangle graph and lift it into \eqn{\mathbb{R}^3}. These helpers
+#' are intended for benchmark families where the topology is the usual
+#' triangular gasket but the intended metric comes from a curved or folded
+#' geometry rather than the flat equilateral reference drawing.
+#'
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Triangle surface family. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling applied to the canonical
+#'   triangle coordinates.
+#' @param y.scale Positive vertical scaling applied to the canonical triangle
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sierpinski.triangle.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the Sierpinski triangle edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 2D triangle coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"sierpinski.triangle"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name sierpinski_triangle_surface_helpers
+NULL
+
+# @rdname sierpinski_triangle_surface_helpers
+# @noRd
+sierpinski.triangle.surface.embedding <- function(level = 2,
+                                                  surface = c("flat", "saddle",
+                                                              "paraboloid", "ripple",
+                                                              "folded"),
+                                                  amplitude = 0.75,
+                                                  freq.u = 1,
+                                                  freq.v = 1,
+                                                  x.scale = 1,
+                                                  y.scale = 1) {
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+
+  built <- .sierpinski.triangle.canonical(level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x.scale,
+    v = built$coords[, 2L] * y.scale
+  )
+  coords_norm <- .normalize.center.radius.coords(coords_param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords_param)),
+    saddle = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq.u, freq.v),
+    paraboloid = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq.u, freq.v),
+    ripple = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq.u, freq.v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+
+  coords <- cbind(x = coords_param[, 1L], y = coords_param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname sierpinski_triangle_surface_helpers
+#' @export
+sierpinski.triangle.surface.graph <- function(level = 2,
+                                              surface = c("flat", "saddle",
+                                                          "paraboloid", "ripple",
+                                                          "folded"),
+                                              amplitude = 0.75,
+                                              freq.u = 1,
+                                              freq.v = 1,
+                                              x.scale = 1,
+                                              y.scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .sierpinski.triangle.canonical(level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x.scale,
+    v = built$coords[, 2L] * y.scale
+  )
+  coords_surface <- sierpinski.triangle.surface.embedding(
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "sierpinski.triangle",
+    surface = surface,
+    level = level,
+    normalize = normalize,
+    label = sprintf("%s Sierpinski triangle level %d",
+                    tools::toTitleCase(surface),
+                    level)
+  )
+  class(out) <- c("grip_sierpinski_triangle_surface_graph", "list")
+  out
+}
+
+.tetrahedron.surface.coords <- function(coords.param,
+                                        surface,
+                                        amplitude,
+                                        freq,
+                                        twist) {
+  surface <- .as.named.choice(surface, c("standard", "squashed", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq <- .as.positive.scalar(freq, "freq")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  coords.param <- as.matrix(coords.param)
+  coords_norm <- .normalize.center.radius.coords(coords.param)
+  coords <- switch(
+    surface,
+    standard = coords.param,
+    squashed = {
+      xy_scale <- 1 - amplitude / 2
+      z_scale <- 1 + amplitude
+      if (xy_scale <= 0 || z_scale <= 0) {
+        stop("squashed tetrahedron parameters require positive coordinate scales; adjust amplitude",
+             call. = FALSE)
+      }
+      cbind(
+        x = coords.param[, 1L] * xy_scale,
+        y = coords.param[, 2L] * xy_scale,
+        z = coords.param[, 3L] * z_scale
+      )
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords.param[, 1L] * cos(theta) - coords.param[, 2L] * sin(theta)
+      y <- coords.param[, 1L] * sin(theta) + coords.param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords.param[, 3L])
+    },
+    wavy = {
+      local_scale <- 1 + amplitude * sin(pi * freq *
+                                           (coords_norm[, 1L] +
+                                              0.5 * coords_norm[, 2L] -
+                                              0.25 * coords_norm[, 3L]))
+      if (any(!is.finite(local_scale) | local_scale <= 0)) {
+        stop("wavy tetrahedron parameters produce a non-positive local scale; adjust amplitude or frequency",
+             call. = FALSE)
+      }
+      coords.param * local_scale
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted recursive tetrahedron-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide a tetrahedron into four
+#' corner subtetrahedra according to a four-corner keep-mask, retain the
+#' selected subtetrahedra at each recursion step, and deform the resulting
+#' simplicial graph inside \eqn{\mathbb{R}^3}. This provides a generic
+#' tetrahedral gasket family that includes the classic Sierpinski tetrahedron
+#' together with corner-omission variants.
+#'
+#' The \code{mask} entries are interpreted in the order
+#' \code{base_left}, \code{base_right}, \code{base_back}, and \code{apex}.
+#' Named masks are reordered automatically to match that convention.
+#'
+#' @param mask Four-entry logical or numeric keep-mask. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Tetrahedron surface family. One of \code{"standard"},
+#'   \code{"squashed"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.tetrahedron.mask.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive tetrahedron-mask edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 3D tetrahedron coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.tetrahedron.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_tetrahedron_mask_surface_helpers
+NULL
+
+# @rdname recursive_tetrahedron_mask_surface_helpers
+# @noRd
+recursive.tetrahedron.mask.surface.embedding <- function(
+    mask = mask.tetrahedron.classic(),
+    level = 2,
+    surface = c("standard", "squashed", "twisted", "wavy"),
+    amplitude = 0.3,
+    freq = 2,
+    twist = 0.6) {
+  mask <- .as.tetrahedron.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+
+  built <- .recursive.tetrahedron.mask.canonical(mask, level)
+  .tetrahedron.surface.coords(
+    coords.param = built$coords,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname recursive_tetrahedron_mask_surface_helpers
+#' @export
+recursive.tetrahedron.mask.surface.graph <- function(
+    mask = mask.tetrahedron.classic(),
+    level = 2,
+    surface = c("standard", "squashed", "twisted", "wavy"),
+    amplitude = 0.3,
+    freq = 2,
+    twist = 0.6,
+    normalize = c("median", "mean", "none")) {
+  mask <- .as.tetrahedron.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .recursive.tetrahedron.mask.canonical(mask, level)
+  coords_surface <- recursive.tetrahedron.mask.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = built$coords,
+    weight_scale = weights$weight_scale,
+    family = "recursive.tetrahedron.mask",
+    surface = surface,
+    level = level,
+    mask = mask,
+    normalize = normalize,
+    label = sprintf("%s %s level %d",
+                    tools::toTitleCase(surface),
+                    .tetrahedron.mask.label(mask),
+                    level)
+  )
+  class(out) <- c("grip_recursive_tetrahedron_mask_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski tetrahedron surface helpers
+#'
+#' Convenience wrappers around \code{recursive.tetrahedron.mask.surface.*()}
+#' using the classic all-corner tetrahedron mask. These helpers are intended
+#' for benchmark families where the topology is the standard simplicial
+#' tetrahedral gasket but the intended metric comes from a squashed, twisted,
+#' or spatially varying realization.
+#'
+#' @inheritParams recursive.tetrahedron.mask.surface.graph
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{sierpinski.tetrahedron.surface.graph()} returns the same components as
+#' \code{recursive.tetrahedron.mask.surface.graph()}, with \code{family} set to
+#' \code{"sierpinski.tetrahedron"} and a family-specific class and label.
+#'
+#' @name sierpinski_tetrahedron_surface_helpers
+NULL
+
+# @rdname sierpinski_tetrahedron_surface_helpers
+# @noRd
+sierpinski.tetrahedron.surface.embedding <- function(level = 2,
+                                                     surface = c("standard", "squashed",
+                                                                 "twisted", "wavy"),
+                                                     amplitude = 0.3,
+                                                     freq = 2,
+                                                     twist = 0.6) {
+  recursive.tetrahedron.mask.surface.embedding(
+    mask = .tetrahedron.classic.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname sierpinski_tetrahedron_surface_helpers
+#' @export
+sierpinski.tetrahedron.surface.graph <- function(level = 2,
+                                                 surface = c("standard", "squashed",
+                                                             "twisted", "wavy"),
+                                                 amplitude = 0.3,
+                                                 freq = 2,
+                                                 twist = 0.6,
+                                                 normalize = c("median", "mean", "none")) {
+  out <- recursive.tetrahedron.mask.surface.graph(
+    mask = .tetrahedron.classic.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    normalize = normalize
+  )
+  out$family <- "sierpinski.tetrahedron"
+  out$label <- sprintf("%s Sierpinski tetrahedron level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_sierpinski_tetrahedron_surface_graph", class(out))
+  out
+}
+
+.cube.mask.surface.coords <- function(coords.param,
+                                      surface,
+                                      amplitude,
+                                      freq,
+                                      twist) {
+  surface <- .as.named.choice(surface, c("standard", "bulged", "twisted", "wavy"),
+                              "surface")
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq <- .as.positive.scalar(freq, "freq")
+  twist <- .as.finite.scalar(twist, "twist")
+
+  coords.param <- as.matrix(coords.param)
+  coords_norm <- .normalize.center.radius.coords(coords.param)
+  coords <- switch(
+    surface,
+    standard = coords.param,
+    bulged = {
+      local_scale <- 1 + amplitude * rowSums(coords_norm^2)
+      if (any(!is.finite(local_scale) | local_scale <= 0)) {
+        stop("bulged cube-mask parameters produce a non-positive local scale; adjust amplitude",
+             call. = FALSE)
+      }
+      coords.param * local_scale
+    },
+    twisted = {
+      theta <- twist * coords_norm[, 3L]
+      x <- coords.param[, 1L] * cos(theta) - coords.param[, 2L] * sin(theta)
+      y <- coords.param[, 1L] * sin(theta) + coords.param[, 2L] * cos(theta)
+      cbind(x = x, y = y, z = coords.param[, 3L])
+    },
+    wavy = {
+      dx <- amplitude * sin(pi * freq * coords_norm[, 2L]) *
+        cos(pi * freq * coords_norm[, 3L])
+      dy <- amplitude * sin(pi * freq * coords_norm[, 3L]) *
+        cos(pi * freq * coords_norm[, 1L])
+      dz <- amplitude * sin(pi * freq * coords_norm[, 1L]) *
+        cos(pi * freq * coords_norm[, 2L])
+      coords.param + cbind(dx, dy, dz)
+    }
+  )
+
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' Weighted recursive cube-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide a cube into a regular
+#' \eqn{k \times k \times k} array of subcubes according to a cubic keep-mask,
+#' retain the selected cells at each recursion step, and deform the resulting
+#' face-adjacency graph inside \eqn{\mathbb{R}^3}. This provides a generic
+#' cubical 3D family that includes Menger-sponge-style cell adjacency as a
+#' named special case.
+#'
+#' The \code{mask} is interpreted as a cubic array whose first dimension runs
+#' from top to bottom, second from left to right, and third from front to back.
+#' Non-zero entries are retained at each recursive step.
+#'
+#' @param mask Cubic logical or numeric keep-array. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. Must be at least \code{1}.
+#' @param surface Cube-mask geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param x.scale Positive horizontal scaling applied to the canonical cube
+#'   coordinates.
+#' @param y.scale Positive vertical scaling applied to the canonical cube
+#'   coordinates.
+#' @param z.scale Positive depth scaling applied to the canonical cube
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.cube.mask.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive cube-mask face-adjacency edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D embedding,
+#'   \item \code{coords_param}: the canonical 3D voxel-center coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.cube.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-array,
+#'   \item \code{mask_side}: side length of the base keep-mask,
+#'   \item \code{side}: side length of the fully refined cube grid,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_cube_mask_surface_helpers
+NULL
+
+# @rdname recursive_cube_mask_surface_helpers
+# @noRd
+recursive.cube.mask.surface.embedding <- function(mask,
+                                                  level = 2,
+                                                  surface = c("standard", "bulged",
+                                                              "twisted", "wavy"),
+                                                  amplitude = 0.2,
+                                                  freq = 2,
+                                                  twist = 0.6,
+                                                  x.scale = 1,
+                                                  y.scale = 1,
+                                                  z.scale = 1) {
+  mask <- .as.cube.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+  z.scale <- .as.positive.scalar(z.scale, "z.scale")
+
+  coords_param <- .recursive.cube.mask.param.coords(
+    mask = mask,
+    level = level,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+  .cube.mask.surface.coords(
+    coords.param = coords_param,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist
+  )
+}
+
+#' @rdname recursive_cube_mask_surface_helpers
+#' @export
+recursive.cube.mask.surface.graph <- function(mask,
+                                              level = 2,
+                                              surface = c("standard", "bulged",
+                                                          "twisted", "wavy"),
+                                              amplitude = 0.2,
+                                              freq = 2,
+                                              twist = 0.6,
+                                              x.scale = 1,
+                                              y.scale = 1,
+                                              z.scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  mask <- .as.cube.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  spec <- .recursive.cube.mask.cells(mask, level)
+  edges <- .recursive.cube.mask.edges(mask, level)
+  coords_param <- .recursive.cube.mask.param.coords(
+    mask = mask,
+    level = level,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+  coords_surface <- recursive.cube.mask.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "recursive.cube.mask",
+    surface = surface,
+    level = level,
+    mask = mask,
+    mask_side = as.integer(dim(mask)[1L]),
+    side = spec$side,
+    normalize = normalize,
+    label = sprintf("%s recursive cube mask level %d",
+                    tools::toTitleCase(surface),
+                    level)
+  )
+  class(out) <- c("grip_recursive_cube_mask_surface_graph", "list")
+  out
+}
+
+#' Weighted Menger sponge surface helpers
+#'
+#' Convenience wrappers around \code{recursive.cube.mask.surface.*()} using the
+#' classic \eqn{3 \times 3 \times 3} Menger-sponge keep-mask. These helpers
+#' provide a named cubical 3D benchmark family whose vertices are occupied
+#' subcubes and whose edges connect face-adjacent occupied cells.
+#'
+#' @inheritParams recursive.cube.mask.surface.graph
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 20^level}.
+#'
+#' \code{menger.sponge.surface.graph()} returns the same components as
+#' \code{recursive.cube.mask.surface.graph()}, with \code{family} set to
+#' \code{"menger.sponge"} and a family-specific class and label.
+#'
+#' @name menger_sponge_surface_helpers
+NULL
+
+# @rdname menger_sponge_surface_helpers
+# @noRd
+menger.sponge.surface.embedding <- function(level = 2,
+                                            surface = c("standard", "bulged",
+                                                        "twisted", "wavy"),
+                                            amplitude = 0.2,
+                                            freq = 2,
+                                            twist = 0.6,
+                                            x.scale = 1,
+                                            y.scale = 1,
+                                            z.scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = .menger.sponge.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+}
+
+#' @rdname menger_sponge_surface_helpers
+#' @export
+menger.sponge.surface.graph <- function(level = 2,
+                                        surface = c("standard", "bulged",
+                                                    "twisted", "wavy"),
+                                        amplitude = 0.2,
+                                        freq = 2,
+                                        twist = 0.6,
+                                        x.scale = 1,
+                                        y.scale = 1,
+                                        z.scale = 1,
+                                        normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = .menger.sponge.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale,
+    normalize = normalize
+  )
+  out$family <- "menger.sponge"
+  out$label <- sprintf("%s Menger sponge level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_menger_sponge_surface_graph", class(out))
+  out
+}
+
+#' Weighted porous cube-mask surface helpers
+#'
+#' Convenience wrappers around \code{recursive.cube.mask.surface.*()} for three
+#' named porous cubical families: a periodic tunnel lattice, an asymmetric
+#' cavity family, and a deterministic channel network. Each family uses a
+#' reusable base keep-array and then recurses it in exactly the same way as the
+#' generic cube-mask helpers.
+#'
+#' @param level Recursion depth. Must be at least \code{1}.
+#' @param side Side length of the base cubic keep-array.
+#' @param surface Cube-mask geometry family. One of \code{"standard"},
+#'   \code{"bulged"}, \code{"twisted"}, or \code{"wavy"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq Positive modulation frequency used only when
+#'   \code{surface = "wavy"}.
+#' @param twist Finite twist strength used only when
+#'   \code{surface = "twisted"}.
+#' @param x.scale Positive horizontal scaling applied to the canonical cube
+#'   coordinates.
+#' @param y.scale Positive vertical scaling applied to the canonical cube
+#'   coordinates.
+#' @param z.scale Positive depth scaling applied to the canonical cube
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#' @param tunnel.width Width of each removed tunnel band.
+#' @param tunnel.period Spacing between successive tunnel bands.
+#' @param tunnel.offset Starting index of the first tunnel band.
+#' @param cavity.size Side length of the larger interior cavity block.
+#' @param pocket.size Side length of the smaller secondary cavity block.
+#' @param channel.width Width of each removed channel in the channel-network
+#'   family.
+#' @param branch.offset Interior offset of the extra branch channel in the
+#'   channel-network family.
+#'
+#' @return
+#' Each graph bundle's \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' Each \code{*.surface.graph()} helper returns the same components as
+#' \code{recursive.cube.mask.surface.graph()}, with a family-specific
+#' \code{family} field, class, and label.
+#'
+#' @name porous_cube_surface_helpers
+NULL
+
+# @rdname porous_cube_surface_helpers
+# @noRd
+cube.periodic.tunnels.surface.embedding <- function(level = 2,
+                                                    side = 5,
+                                                    tunnel.width = 1,
+                                                    tunnel.period = 2,
+                                                    tunnel.offset = 2,
+                                                    surface = c("standard", "bulged",
+                                                                "twisted", "wavy"),
+                                                    amplitude = 0.2,
+                                                    freq = 2,
+                                                    twist = 0.6,
+                                                    x.scale = 1,
+                                                    y.scale = 1,
+                                                    z.scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.periodic.tunnels(
+      side = side,
+      tunnel.width = tunnel.width,
+      tunnel.period = tunnel.period,
+      tunnel.offset = tunnel.offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.periodic.tunnels.surface.graph <- function(level = 2,
+                                                side = 5,
+                                                tunnel.width = 1,
+                                                tunnel.period = 2,
+                                                tunnel.offset = 2,
+                                                surface = c("standard", "bulged",
+                                                            "twisted", "wavy"),
+                                                amplitude = 0.2,
+                                                freq = 2,
+                                                twist = 0.6,
+                                                x.scale = 1,
+                                                y.scale = 1,
+                                                z.scale = 1,
+                                                normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.periodic.tunnels(
+      side = side,
+      tunnel.width = tunnel.width,
+      tunnel.period = tunnel.period,
+      tunnel.offset = tunnel.offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale,
+    normalize = normalize
+  )
+  out$family <- "cube.periodic.tunnels"
+  out$label <- sprintf("%s periodic tunnels cube level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_periodic_tunnels_surface_graph", class(out))
+  out
+}
+
+# @rdname porous_cube_surface_helpers
+# @noRd
+cube.asymmetric.cavities.surface.embedding <- function(level = 2,
+                                                       side = 5,
+                                                       cavity.size = 2,
+                                                       pocket.size = max(1L, cavity.size - 1L),
+                                                       surface = c("standard", "bulged",
+                                                                   "twisted", "wavy"),
+                                                       amplitude = 0.2,
+                                                       freq = 2,
+                                                       twist = 0.6,
+                                                       x.scale = 1,
+                                                       y.scale = 1,
+                                                       z.scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.asymmetric.cavities(
+      side = side,
+      cavity.size = cavity.size,
+      pocket.size = pocket.size
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.asymmetric.cavities.surface.graph <- function(level = 2,
+                                                   side = 5,
+                                                   cavity.size = 2,
+                                                   pocket.size = max(1L, cavity.size - 1L),
+                                                   surface = c("standard", "bulged",
+                                                               "twisted", "wavy"),
+                                                   amplitude = 0.2,
+                                                   freq = 2,
+                                                   twist = 0.6,
+                                                   x.scale = 1,
+                                                   y.scale = 1,
+                                                   z.scale = 1,
+                                                   normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.asymmetric.cavities(
+      side = side,
+      cavity.size = cavity.size,
+      pocket.size = pocket.size
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale,
+    normalize = normalize
+  )
+  out$family <- "cube.asymmetric.cavities"
+  out$label <- sprintf("%s asymmetric cavities cube level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_asymmetric_cavities_surface_graph", class(out))
+  out
+}
+
+# @rdname porous_cube_surface_helpers
+# @noRd
+cube.channel.network.surface.embedding <- function(level = 2,
+                                                   side = 5,
+                                                   channel.width = 1,
+                                                   branch.offset = 2,
+                                                   surface = c("standard", "bulged",
+                                                               "twisted", "wavy"),
+                                                   amplitude = 0.2,
+                                                   freq = 2,
+                                                   twist = 0.6,
+                                                   x.scale = 1,
+                                                   y.scale = 1,
+                                                   z.scale = 1) {
+  recursive.cube.mask.surface.embedding(
+    mask = mask.cube.channel.network(
+      side = side,
+      channel.width = channel.width,
+      branch.offset = branch.offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale
+  )
+}
+
+#' @rdname porous_cube_surface_helpers
+#' @export
+cube.channel.network.surface.graph <- function(level = 2,
+                                               side = 5,
+                                               channel.width = 1,
+                                               branch.offset = 2,
+                                               surface = c("standard", "bulged",
+                                                           "twisted", "wavy"),
+                                               amplitude = 0.2,
+                                               freq = 2,
+                                               twist = 0.6,
+                                               x.scale = 1,
+                                               y.scale = 1,
+                                               z.scale = 1,
+                                               normalize = c("median", "mean", "none")) {
+  out <- recursive.cube.mask.surface.graph(
+    mask = mask.cube.channel.network(
+      side = side,
+      channel.width = channel.width,
+      branch.offset = branch.offset
+    ),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq = freq,
+    twist = twist,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    z.scale = z.scale,
+    normalize = normalize
+  )
+  out$family <- "cube.channel.network"
+  out$label <- sprintf("%s cube channel network level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_cube_channel_network_surface_graph", class(out))
+  out
+}
+
+#' Weighted recursive triangle-mask surface helpers
+#'
+#' Convenience helpers that recursively subdivide an equilateral triangle into
+#' three corner subtriangles plus one central inverted subtriangle according to
+#' a four-slot keep-mask, retain the selected subtriangles at each recursion
+#' step, and lift the resulting vertex graph into \eqn{\mathbb{R}^3}. This
+#' provides a generic gasket-style triangular family that includes the classic
+#' Sierpinski triangle together with bridge and asymmetric variants.
+#'
+#' The \code{mask} entries are interpreted in the order
+#' \code{left}, \code{right}, \code{top}, and \code{center}. Named masks are
+#' reordered automatically to match that convention.
+#'
+#' @param mask Four-entry logical or numeric keep-mask. Non-zero entries are
+#'   retained at each recursive step.
+#' @param level Recursion depth. May be \code{0} or larger.
+#' @param surface Triangle surface family. One of \code{"flat"},
+#'   \code{"saddle"}, \code{"paraboloid"}, \code{"ripple"}, or
+#'   \code{"folded"}.
+#' @param amplitude Finite deformation amplitude.
+#' @param freq.u Positive ripple frequency in the first canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the second canonical triangle
+#'   coordinate. Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling applied to the canonical
+#'   triangle coordinates.
+#' @param y.scale Positive vertical scaling applied to the canonical triangle
+#'   coordinates.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.triangle.mask.surface.graph()} returns a list with
+#' components:
+#' \itemize{
+#'   \item \code{edges}: the retained recursive triangle-mask edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the canonical 2D triangle coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.triangle.mask"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_triangle_mask_surface_helpers
+NULL
+
+# @rdname recursive_triangle_mask_surface_helpers
+# @noRd
+recursive.triangle.mask.surface.embedding <- function(mask = mask.triangle.classic(),
+                                                      level = 2,
+                                                      surface = c("flat", "saddle",
+                                                                  "paraboloid", "ripple",
+                                                                  "folded"),
+                                                      amplitude = 0.75,
+                                                      freq.u = 1,
+                                                      freq.v = 1,
+                                                      x.scale = 1,
+                                                      y.scale = 1) {
+  mask <- .as.triangle.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+  x.scale <- .as.positive.scalar(x.scale, "x.scale")
+  y.scale <- .as.positive.scalar(y.scale, "y.scale")
+
+  built <- .recursive.triangle.mask.canonical(mask, level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x.scale,
+    v = built$coords[, 2L] * y.scale
+  )
+  coords_norm <- .normalize.center.radius.coords(coords_param)
+  z <- switch(
+    surface,
+    flat = rep(0, nrow(coords_param)),
+    saddle = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "saddle", amplitude, freq.u, freq.v),
+    paraboloid = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                    "paraboloid", amplitude, freq.u, freq.v),
+    ripple = .surface.z.from.uv(coords_norm[, 1L], coords_norm[, 2L],
+                                "ripple", amplitude, freq.u, freq.v),
+    folded = amplitude * abs(coords_norm[, 1L])
+  )
+
+  coords <- cbind(x = coords_param[, 1L], y = coords_param[, 2L], z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname recursive_triangle_mask_surface_helpers
+#' @export
+recursive.triangle.mask.surface.graph <- function(mask = mask.triangle.classic(),
+                                                  level = 2,
+                                                  surface = c("flat", "saddle",
+                                                              "paraboloid", "ripple",
+                                                              "folded"),
+                                                  amplitude = 0.75,
+                                                  freq.u = 1,
+                                                  freq.v = 1,
+                                                  x.scale = 1,
+                                                  y.scale = 1,
+                                                  normalize = c("median", "mean", "none")) {
+  mask <- .as.triangle.keep.mask(mask, "mask")
+  level <- .as.whole.number(level, "level")
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  built <- .recursive.triangle.mask.canonical(mask, level)
+  coords_param <- cbind(
+    u = built$coords[, 1L] * x.scale,
+    v = built$coords[, 2L] * y.scale
+  )
+  coords_surface <- recursive.triangle.mask.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = built$edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = built$edges,
+    n = built$n,
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "recursive.triangle.mask",
+    surface = surface,
+    level = level,
+    mask = mask,
+    normalize = normalize,
+    label = sprintf("%s %s level %d",
+                    tools::toTitleCase(surface),
+                    .triangle.mask.label(mask),
+                    level)
+  )
+  class(out) <- c("grip_recursive_triangle_mask_surface_graph", "list")
+  out
+}
+
+#' Weighted recursive mask-grid surface helpers
+#'
+#' Convenience helpers that recursively subdivide a square grid according to a
+#' square keep-mask, retain the occupied cells, and then lift those cells into
+#' \eqn{\mathbb{R}^3}. The induced Euclidean edge lengths become positive graph
+#' weights. This provides a generic mesh-derived family that includes the
+#' Sierpinski carpet and related masked-grid fractals such as Vicsek-style
+#' cross families.
+#'
+#' The \code{mask} is interpreted in standard matrix display orientation: rows
+#' run from top to bottom and columns run from left to right. Non-zero entries
+#' are retained at each recursive subdivision step.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges}.
+#' `recursive.mask.grid.surface.graph()` returns a reusable weighted-graph
+#' bundle containing the masked-grid edges, induced edge weights, the 3D
+#' surface coordinates, and the 2D parameter coordinates of the occupied cells.
+#'
+#' @param mask Square logical or numeric keep-mask with at least one retained
+#'   cell. Non-zero entries are kept at each recursive step.
+#' @param level Recursion depth. Must be at least \code{1}.
+#' @param surface Surface family used for the lift. One of \code{"saddle"},
+#'   \code{"paraboloid"}, or \code{"ripple"}.
+#' @param amplitude Finite numeric amplitude controlling the non-flat
+#'   displacement.
+#' @param freq.u Positive ripple frequency in the horizontal parameter
+#'   direction. Used only when \code{surface = "ripple"}.
+#' @param freq.v Positive ripple frequency in the vertical parameter direction.
+#'   Used only when \code{surface = "ripple"}.
+#' @param x.scale Positive horizontal scaling of the parameter domain.
+#' @param y.scale Positive vertical scaling of the parameter domain.
+#' @param normalize Normalization applied to the induced edge lengths. One of
+#'   \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3}
+#' numeric matrix with columns \code{x}, \code{y}, and \code{z}.
+#'
+#' \code{recursive.mask.grid.surface.graph()} returns a list with components:
+#' \itemize{
+#'   \item \code{edges}: the occupied-cell masked-grid edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: induced positive edge lengths,
+#'   \item \code{coords_surface}: the 3D surface embedding,
+#'   \item \code{coords_param}: the 2D parameter coordinates,
+#'   \item \code{weight_scale}: the normalization constant applied to the raw
+#'     edge lengths,
+#'   \item \code{family}: always \code{"recursive.mask.grid"},
+#'   \item \code{surface}: the chosen surface name,
+#'   \item \code{level}: the recursion depth,
+#'   \item \code{mask}: the logical keep-mask,
+#'   \item \code{mask_size}: the side length of the mask,
+#'   \item \code{side}: the side length of the fully refined grid,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name recursive_mask_grid_surface_helpers
+#' @md
+NULL
+
+# @rdname recursive_mask_grid_surface_helpers
+# @noRd
+recursive.mask.grid.surface.embedding <- function(mask,
+                                                  level = 2,
+                                                  surface = c("saddle", "paraboloid", "ripple"),
+                                                  amplitude = 0.75,
+                                                  freq.u = 1,
+                                                  freq.v = 1,
+                                                  x.scale = 1,
+                                                  y.scale = 1) {
+  mask <- .as.square.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  amplitude <- .as.finite.scalar(amplitude, "amplitude")
+  freq.u <- .as.positive.scalar(freq.u, "freq.u")
+  freq.v <- .as.positive.scalar(freq.v, "freq.v")
+
+  coords_param <- .recursive.mask.grid.param.coords(
+    mask = mask,
+    level = level,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  u <- coords_param[, 1L]
+  v <- coords_param[, 2L]
+  z <- .surface.z.from.uv(
+    u = u,
+    v = v,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v
+  )
+
+  coords <- cbind(x = u, y = v, z = z)
+  storage.mode(coords) <- "double"
+  coords
+}
+
+#' @rdname recursive_mask_grid_surface_helpers
+#' @export
+recursive.mask.grid.surface.graph <- function(mask,
+                                              level = 2,
+                                              surface = c("saddle", "paraboloid", "ripple"),
+                                              amplitude = 0.75,
+                                              freq.u = 1,
+                                              freq.v = 1,
+                                              x.scale = 1,
+                                              y.scale = 1,
+                                              normalize = c("median", "mean", "none")) {
+  mask <- .as.square.keep.mask(mask, "mask", min.size = 2L)
+  level <- .as.whole.number(level, "level", min = 1L)
+  surface <- match.arg(surface)
+  normalize <- match.arg(normalize)
+
+  spec <- .recursive.mask.grid.cells(mask, level)
+  edges <- .recursive.mask.grid.edges(mask, level)
+  coords_param <- .recursive.mask.grid.param.coords(
+    mask = mask,
+    level = level,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  coords_surface <- recursive.mask.grid.surface.embedding(
+    mask = mask,
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+  weights <- .edge.weights.from.embedding(
+    edges = edges,
+    coords = coords_surface,
+    normalize = normalize
+  )
+
+  out <- list(
+    edges = edges,
+    n = as.integer(nrow(coords_surface)),
+    edge_weights = weights$edge_weights,
+    coords_surface = coords_surface,
+    coords_param = coords_param,
+    weight_scale = weights$weight_scale,
+    family = "recursive.mask.grid",
+    surface = surface,
+    level = level,
+    mask = mask,
+    mask_size = as.integer(nrow(mask)),
+    side = spec$side,
+    normalize = normalize,
+    label = sprintf("Recursive %dx%d mask level %d",
+                    nrow(mask), ncol(mask), level)
+  )
+  class(out) <- c("grip_recursive_mask_grid_surface_graph", "list")
+  out
+}
+
+#' Weighted Sierpinski carpet surface helpers
+#'
+#' Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
+#' classic \eqn{3 \times 3} carpet mask with the center cell removed.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the
+#' occupied cells in the same vertex order as \code{edges.sierpinski.carpet()}.
+#' `sierpinski.carpet.surface.graph()` returns a reusable weighted-graph bundle
+#' for the named Sierpinski carpet family.
+#'
+#' @inheritParams recursive.mask.grid.surface.graph
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric
+#' matrix with columns \code{x}, \code{y}, and \code{z}, where
+#' \code{n = 8^level}.
+#'
+#' \code{sierpinski.carpet.surface.graph()} returns the same components as
+#' \code{recursive.mask.grid.surface.graph()}, with \code{family} set to
+#' \code{"sierpinski.carpet"} and a family-specific class and label.
+#'
+#' @name sierpinski_carpet_surface_helpers
+#' @md
+NULL
+
+# @rdname sierpinski_carpet_surface_helpers
+# @noRd
+sierpinski.carpet.surface.embedding <- function(level = 2,
+                                                surface = c("saddle", "paraboloid", "ripple"),
+                                                amplitude = 0.75,
+                                                freq.u = 1,
+                                                freq.v = 1,
+                                                x.scale = 1,
+                                                y.scale = 1) {
+  recursive.mask.grid.surface.embedding(
+    mask = .sierpinski.carpet.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+}
+
+#' @rdname sierpinski_carpet_surface_helpers
+#' @export
+sierpinski.carpet.surface.graph <- function(level = 2,
+                                            surface = c("saddle", "paraboloid", "ripple"),
+                                            amplitude = 0.75,
+                                            freq.u = 1,
+                                            freq.v = 1,
+                                            x.scale = 1,
+                                            y.scale = 1,
+                                            normalize = c("median", "mean", "none")) {
+  out <- recursive.mask.grid.surface.graph(
+    mask = .sierpinski.carpet.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    normalize = normalize
+  )
+  out$family <- "sierpinski.carpet"
+  out$label <- sprintf("%s Sierpinski carpet level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_sierpinski_carpet_surface_graph", class(out))
+  out
+}
+
+#' Weighted Vicsek surface helpers
+#'
+#' Convenience wrappers around \code{recursive.mask.grid.surface.*()} using the
+#' connected \eqn{3 \times 3} axial-cross mask: center plus the four cardinal
+#' neighbors. This produces a mesh-derived fractal family with strong
+#' bottlenecks while remaining orthogonally connected at every level.
+#'
+#' The `coords.surface` component contains the 3D coordinates of the occupied
+#' cells in the same vertex order as \code{edges}.
+#' `vicsek.surface.graph()` returns a reusable weighted-graph bundle for the
+#' named Vicsek family.
+#'
+#' @inheritParams recursive.mask.grid.surface.graph
+#'
+#' @return
+#' The \code{coords_surface} component is an \code{n x 3} numeric matrix
+#' with columns \code{x}, \code{y}, and \code{z}, where \code{n = 5^level}.
+#'
+#' \code{vicsek.surface.graph()} returns the same components as
+#' \code{recursive.mask.grid.surface.graph()}, with \code{family} set to
+#' \code{"vicsek"} and a family-specific class and label.
+#'
+#' @name vicsek_surface_helpers
+#' @md
+NULL
+
+# @rdname vicsek_surface_helpers
+# @noRd
+vicsek.surface.embedding <- function(level = 2,
+                                     surface = c("saddle", "paraboloid", "ripple"),
+                                     amplitude = 0.75,
+                                     freq.u = 1,
+                                     freq.v = 1,
+                                     x.scale = 1,
+                                     y.scale = 1) {
+  recursive.mask.grid.surface.embedding(
+    mask = .vicsek.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale
+  )
+}
+
+#' @rdname vicsek_surface_helpers
+#' @export
+vicsek.surface.graph <- function(level = 2,
+                                 surface = c("saddle", "paraboloid", "ripple"),
+                                 amplitude = 0.75,
+                                 freq.u = 1,
+                                 freq.v = 1,
+                                 x.scale = 1,
+                                 y.scale = 1,
+                                 normalize = c("median", "mean", "none")) {
+  out <- recursive.mask.grid.surface.graph(
+    mask = .vicsek.mask(),
+    level = level,
+    surface = surface,
+    amplitude = amplitude,
+    freq.u = freq.u,
+    freq.v = freq.v,
+    x.scale = x.scale,
+    y.scale = y.scale,
+    normalize = normalize
+  )
+  out$family <- "vicsek"
+  out$label <- sprintf("%s Vicsek level %d",
+                       tools::toTitleCase(out$surface),
+                       out$level)
+  class(out) <- c("grip_vicsek_surface_graph", class(out))
+  out
+}
+
+#' @describeIn graph_generators Cylindrical grid graph with \code{h} rows and wrapped
+#'   width \code{w}.
+#' @export
+edges.cylinder <- function(h, w = h) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  idx <- function(i, j) (i - 1L) * w + j
+  edges <- list()
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      v <- idx(i, j)
+      if (i < h) edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
+      edges[[length(edges) + 1L]] <- c(v, idx(i, (j %% w) + 1L))
+    }
+  }
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+#' @describeIn graph_generators Toroidal grid graph with wrapped height and
+#'   width.
+#' @export
+edges.torus <- function(h, w = h) {
+  h <- .as.whole.number(h, "h", min = 1L)
+  w <- .as.whole.number(w, "w", min = 1L)
+  idx <- function(i, j) (i - 1L) * w + j
+  edges <- list()
+  for (i in seq_len(h)) {
+    for (j in seq_len(w)) {
+      v <- idx(i, j)
+      edges[[length(edges) + 1L]] <- c(v, idx((i %% h) + 1L, j))
+      edges[[length(edges) + 1L]] <- c(v, idx(i, (j %% w) + 1L))
+    }
+  }
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+# @describeIn graph_generators Deterministically irregular tetrahedralized ball
+#   graph built from nested subdivided polyhedral shells connected by a
+#   layered prism-to-tetrahedra edge pattern.
+# @param base Base polyhedron for \code{edges.triangulated.polyhedron()},
+#   \code{edges.irregular.ball()}, and \code{edges.irregular.shell()}. One of
+#   \code{"tetrahedron"}, \code{"octahedron"}, or \code{"icosahedron"}.
+# @param level Surface subdivision depth used by \code{edges.irregular.ball()}
+#   and \code{edges.irregular.shell()}.
+# @param layers Number of non-center radial layers for
+#   \code{edges.irregular.ball()} and number of inner-to-outer layers for
+#   \code{edges.irregular.shell()}.
+# @param outer.radius Positive outer radius for \code{edges.irregular.ball()}
+#   and \code{edges.irregular.shell()}.
+# @param radial.irregularity Radial layer-spacing irregularity level for
+#   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+# @param layer.twist Finite z-axis twist applied across radial layers in
+#   \code{edges.irregular.ball()} and \code{edges.irregular.shell()}.
+# @noRd
+edges.irregular.ball <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                 level = 1,
+                                 layers = 3,
+                                 outer.radius = 1,
+                                 radial.irregularity = 0.25,
+                                 layer.twist = 0.35) {
+  .irregular.ball.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )$edges
+}
+
+# @describeIn graph_generators Deterministically irregular tetrahedralized shell
+#   graph built from nested subdivided polyhedral shells connected by a
+#   layered prism-to-tetrahedra edge pattern.
+# @param inner.radius Positive inner radius for \code{edges.irregular.shell()}.
+# @noRd
+edges.irregular.shell <- function(base = c("tetrahedron", "octahedron", "icosahedron"),
+                                  level = 1,
+                                  layers = 3,
+                                  inner.radius = 0.45,
+                                  outer.radius = 1,
+                                  radial.irregularity = 0.25,
+                                  layer.twist = 0.35) {
+  .irregular.shell.canonical(
+    base = match.arg(base),
+    level = level,
+    layers = layers,
+    inner.radius = inner.radius,
+    outer.radius = outer.radius,
+    radial.irregularity = radial.irregularity,
+    layer.twist = layer.twist
+  )$edges
+}
+
+# @describeIn graph_generators Deterministically irregular torus graph built
+#   from major-cycle rings with varying sample counts and stitched into a
+#   locally triangulated closed surface.
+# @param major.rings Number of cyclic major rings for
+#   \code{edges.irregular.torus()}.
+# @param tube.count Approximate number of vertices around each minor cycle for
+#   \code{edges.irregular.torus()} and around each tube-like loop for
+#   \code{edges.irregular.double.torus()}.
+# @param major.irregularity Major-angle ring-spacing irregularity level for
+#   \code{edges.irregular.torus()}.
+# @noRd
+edges.irregular.torus <- function(major.rings = 8,
+                                  tube.count = 16,
+                                  count.irregularity = 0.2,
+                                  major.irregularity = 0.25,
+                                  phase.twist = 0.35) {
+  .irregular.torus.canonical(
+    major.rings = major.rings,
+    tube.count = tube.count,
+    count.irregularity = count.irregularity,
+    major.irregularity = major.irregularity,
+    phase.twist = phase.twist
+  )$edges
+}
+
+# @describeIn graph_generators Sphere surface graph with \code{h} latitude
+#   levels (including the poles) and wrapped longitude \code{w}.
+# @noRd
+edges.sphere <- function(h, w = h) {
+  h <- .as.whole.number(h, "h", min = 3L)
+  w <- .as.whole.number(w, "w", min = 3L)
+  ring.count <- h - 2L
+  north <- 1L
+  south <- 2L + ring.count * w
+  idx <- function(i, j) 1L + (i - 1L) * w + j
+
+  edges <- list()
+  for (j in seq_len(w)) {
+    edges[[length(edges) + 1L]] <- c(north, idx(1L, j))
+  }
+  for (i in seq_len(ring.count)) {
+    for (j in seq_len(w)) {
+      v <- idx(i, j)
+      edges[[length(edges) + 1L]] <- c(v, idx(i, (j %% w) + 1L))
+      if (i < ring.count) {
+        edges[[length(edges) + 1L]] <- c(v, idx(i + 1L, j))
+      } else {
+        edges[[length(edges) + 1L]] <- c(v, south)
+      }
+    }
+  }
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+# @describeIn graph_generators Deterministically irregular annulus graph built
+#   from concentric sample rings with varying sample counts and stitched into a
+#   locally triangulated surface-with-boundary graph.
+# @param rings Number of concentric sample rings for
+#   \code{edges.irregular.annulus()}.
+# @param outer.count Approximate number of vertices on the outer boundary for
+#   \code{edges.irregular.annulus()} and across the widest slices for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param outer.radius Positive outer annulus radius for
+#   \code{edges.irregular.annulus()} and positive outer boundary radius for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param inner.radius Positive inner annulus radius for
+#   \code{edges.irregular.annulus()}.
+# @param equator.count Approximate number of vertices near the equator for
+#   \code{edges.irregular.sphere()}.
+# @param count.irregularity Irregularity level for sample counts in
+#   \code{edges.irregular.torus()}, \code{edges.irregular.annulus()},
+#   \code{edges.irregular.pair.of.pants()},
+#   \code{edges.irregular.double.torus()}, and \code{edges.irregular.sphere()}.
+# @param radial.irregularity Within-ring radial irregularity level for
+#   \code{edges.irregular.annulus()}.
+# @param phase.twist Angular phase offset used to desynchronize neighboring
+#   rings, slice samples, or latitude bands in the irregular torus,
+#   irregular annulus, irregular pair-of-pants, irregular double torus,
+#   and irregular sphere families.
+# @param bands Number of non-pole latitude bands for
+#   \code{edges.irregular.sphere()}.
+# @param lat.irregularity Latitude-band spacing irregularity level for
+#   \code{edges.irregular.sphere()}.
+# @param slices Number of horizontal sample slices for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole.radius Positive radius of each interior hole for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole.offset Positive horizontal offset of the two hole centers for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param hole.height Shared vertical coordinate of the two hole centers for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param vertical.irregularity Slice-spacing irregularity level for
+#   \code{edges.irregular.pair.of.pants()}.
+# @param branch.length Half-length of the three-loop central region for
+#   \code{edges.irregular.double.torus()}.
+# @param branch.offset Offset of the outer loop centers from the middle loop
+#   for \code{edges.irregular.double.torus()}.
+# @param tube.radius Baseline radius of each tube-like loop for
+#   \code{edges.irregular.double.torus()}.
+# @param transition.width Width of the single-loop to three-loop transition
+#   regions for \code{edges.irregular.double.torus()}.
+# @param axial.irregularity Slice-spacing irregularity level for
+#   \code{edges.irregular.double.torus()}.
+# @noRd
+edges.irregular.annulus <- function(rings = 6,
+                                    outer.count = 28,
+                                    outer.radius = 1,
+                                    inner.radius = 0.45,
+                                    count.irregularity = 0.2,
+                                    radial.irregularity = 0.35,
+                                    phase.twist = 0.35) {
+  .irregular.annulus.canonical(
+    rings = rings,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius,
+    count.irregularity = count.irregularity,
+    radial.irregularity = radial.irregularity,
+    phase.twist = phase.twist
+  )$edges
+}
+
+# @describeIn graph_generators Deterministically irregular pair-of-pants graph
+#   built from horizontal slice intervals with varying sample counts and
+#   stitched into a locally triangulated surface-with-boundary graph.
+# @noRd
+edges.irregular.pair.of.pants <- function(slices = 11,
+                                          outer.count = 28,
+                                          outer.radius = 1.1,
+                                          hole.radius = 0.24,
+                                          hole.offset = 0.38,
+                                          hole.height = 0.18,
+                                          count.irregularity = 0.2,
+                                          vertical.irregularity = 0.35,
+                                          phase.twist = 0.35) {
+  .irregular.pair.of.pants.canonical(
+    slices = slices,
+    outer.count = outer.count,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height,
+    count.irregularity = count.irregularity,
+    vertical.irregularity = vertical.irregularity,
+    phase.twist = phase.twist
+  )$edges
+}
+
+# @describeIn graph_generators Deterministically irregular double-torus graph
+#   built from cyclic slices whose cross-sections follow a `1 -> 3 -> 1` loop
+#   transition between two poles.
+# @noRd
+edges.irregular.double.torus <- function(slices = 11,
+                                         tube.count = 14,
+                                         branch.length = 0.85,
+                                         branch.offset = 0.72,
+                                         tube.radius = 0.28,
+                                         transition.width = 0.42,
+                                         count.irregularity = 0.2,
+                                         axial.irregularity = 0.3,
+                                         phase.twist = 0.35) {
+  .irregular.double.torus.canonical(
+    slices = slices,
+    tube.count = tube.count,
+    branch.length = branch.length,
+    branch.offset = branch.offset,
+    tube.radius = tube.radius,
+    transition.width = transition.width,
+    count.irregularity = count.irregularity,
+    axial.irregularity = axial.irregularity,
+    phase.twist = phase.twist
+  )$edges
+}
+
+# @describeIn graph_generators Deterministically irregular sphere graph built
+#   from latitude bands with varying sample counts and stitched into a locally
+#   triangulated closed surface.
+# @noRd
+edges.irregular.sphere <- function(bands = 6,
+                                   equator.count = 28,
+                                   count.irregularity = 0.2,
+                                   lat.irregularity = 0.35,
+                                   phase.twist = 0.35) {
+  .irregular.sphere.canonical(
+    bands = bands,
+    equator.count = equator.count,
+    count.irregularity = count.irregularity,
+    lat.irregularity = lat.irregularity,
+    phase.twist = phase.twist
+  )$edges
+}
+
+#' @describeIn graph_generators Cube surface graph on the boundary of a
+#'   \code{side x side x side} lattice.
+#' @param side Number of lattice points along each cube edge.
+#' @export
+edges.cube <- function(side = 2) {
+  side <- .as.whole.number(side, "side", min = 2L)
+  grid <- expand.grid(
+    x = seq_len(side),
+    y = seq_len(side),
+    z = seq_len(side)
+  )
+  keep <- grid$x %in% c(1L, side) |
+    grid$y %in% c(1L, side) |
+    grid$z %in% c(1L, side)
+  points <- grid[keep, , drop = FALSE]
+  ids <- seq_len(nrow(points))
+  names(ids) <- paste(points$x, points$y, points$z, sep = ":")
+  dirs <- rbind(c(1L, 0L, 0L), c(0L, 1L, 0L), c(0L, 0L, 1L))
+
+  edges <- list()
+  for (i in seq_len(nrow(points))) {
+    p <- unlist(points[i, , drop = TRUE], use.names = FALSE)
+    for (k in seq_len(nrow(dirs))) {
+      q <- p + dirs[k, ]
+      if (any(q < 1L | q > side)) {
+        next
+      }
+      key <- paste(q[[1L]], q[[2L]], q[[3L]], sep = ":")
+      if (!key %in% names(ids)) {
+        next
+      }
+      edges[[length(edges) + 1L]] <- c(i, ids[[key]])
+    }
+  }
+  .normalize.undirected.edges(.bind.edges(edges))
+}
+
+#' @describeIn graph_generators Full \code{k}-ary tree of depth \code{depth}.
+#' @param k Branching factor.
+#' @param depth Number of levels below the root.
+#' @export
+edges.kary.tree <- function(k = 2, depth = 2) {
+  .kary.tree.structure(k = k, depth = depth)$edges
+}
+
+#' Intrinsically weighted k-ary tree helpers
+#'
+#' Convenience helpers that keep the exact \code{\link{edges.kary.tree}()}
+#' topology but assign edge lengths directly from combinatorial tree metadata
+#' rather than from an ambient Euclidean embedding. Each edge weight is
+#' constructed as
+#' \deqn{\mathrm{base\_length} \times \mathrm{depth\_factor(child\ depth)} \times
+#' \mathrm{branch\_factor(child\ slot)}}
+#' so the user can control tapering with depth separately from child-slot
+#' asymmetry.
+#'
+#' The returned object is intended as an intrinsic weighted-tree benchmark
+#' family. It exposes the same edge matrix as \code{edges.kary.tree()} together
+#' with edge weights, vertex depths, parent indices, and an edge table that
+#' records the depth and branch slot associated with each tree edge.
+#'
+#' @param k Branching factor. Must be at least \code{1}.
+#' @param depth Number of levels below the root. May be \code{0}.
+#' @param base.length Positive global edge-length multiplier before
+#'   normalization.
+#' @param depth.rule Rule used to build the per-depth multipliers. One of
+#'   \code{"geometric"}, \code{"constant"}, or \code{"custom"}.
+#' @param depth.decay Positive decay factor used when
+#'   \code{depth.rule = "geometric"}.
+#' @param depth.factors Positive custom depth multipliers. Used only when
+#'   \code{depth.rule = "custom"}. Must have length \code{1} or \code{depth}.
+#' @param branch.rule Rule used to build the per-child-slot multipliers. One of
+#'   \code{"linear"}, \code{"uniform"}, or \code{"custom"}.
+#' @param branch.spread Non-negative spread used when
+#'   \code{branch.rule = "linear"}.
+#' @param branch.factors Positive custom branch multipliers. Used only when
+#'   \code{branch.rule = "custom"}. Must have length \code{1} or \code{k}.
+#' @param normalize Normalization applied to the raw intrinsic edge lengths.
+#'   One of \code{"median"}, \code{"mean"}, or \code{"none"}.
+#'
+#' @return A list with components:
+#' \itemize{
+#'   \item \code{edges}: the \code{k}-ary tree edges,
+#'   \item \code{n}: number of vertices,
+#'   \item \code{edge_weights}: normalized positive intrinsic edge lengths,
+#'   \item \code{weight_scale}: normalization constant applied to the raw edge
+#'     lengths,
+#'   \item \code{vertex_depth}: depth of each vertex, with the root at depth
+#'     \code{0},
+#'   \item \code{parent}: parent vertex index for each vertex, with the root
+#'     parent recorded as \code{0},
+#'   \item \code{edge_table}: data frame containing \code{parent},
+#'     \code{child}, \code{parent_depth}, \code{child_depth},
+#'     \code{branch_index}, \code{raw_weight}, and normalized
+#'     \code{edge_weight},
+#'   \item \code{depth_factors}: the applied per-depth multipliers,
+#'   \item \code{branch_factors}: the applied per-child-slot multipliers,
+#'   \item \code{family}: always \code{"kary.tree.weighted"},
+#'   \item \code{k}: the branching factor,
+#'   \item \code{depth}: the requested tree depth,
+#'   \item \code{label}: a human-readable family label.
+#' }
+#'
+#' @name kary_tree_weighted_graph_helpers
+NULL
+
+#' @rdname kary_tree_weighted_graph_helpers
+#' @export
+kary.tree.weighted.graph <- function(
+    k = 2,
+    depth = 2,
+    base.length = 1,
+    depth.rule = c("geometric", "constant", "custom"),
+    depth.decay = 0.85,
+    depth.factors = NULL,
+    branch.rule = c("linear", "uniform", "custom"),
+    branch.spread = 0.3,
+    branch.factors = NULL,
+    normalize = c("median", "mean", "none")) {
+  k <- .as.whole.number(k, "k", min = 1L)
+  depth <- .as.whole.number(depth, "depth")
+  structure <- .kary.tree.structure(k = k, depth = depth)
+  base.length <- .as.positive.scalar(base.length, "base.length")
+  normalize <- match.arg(normalize)
+  depth_spec <- .kary.tree.depth.factors(
+    depth = depth,
+    depth.rule = depth.rule,
+    depth.decay = depth.decay,
+    depth.factors = depth.factors
+  )
+  branch_spec <- .kary.tree.branch.factors(
+    k = k,
+    branch.rule = branch.rule,
+    branch.spread = branch.spread,
+    branch.factors = branch.factors
+  )
+
+  raw_weights <- if (nrow(structure$edges) == 0L) {
+    numeric(0L)
+  } else {
+    base.length *
+      depth_spec$factors[structure$child_depth] *
+      branch_spec$factors[structure$branch_index]
+  }
+  weights <- .normalize.edge.weights(raw_weights, normalize = normalize)
+
+  edge_table <- data.frame(
+    parent = structure$edge_parent,
+    child = structure$edge_child,
+    parent_depth = structure$parent_depth,
+    child_depth = structure$child_depth,
+    branch_index = structure$branch_index,
+    raw_weight = as.double(raw_weights),
+    edge_weight = weights$edge_weights,
+    stringsAsFactors = FALSE
+  )
+
+  out <- list(
+    edges = structure$edges,
+    n = structure$n,
+    edge_weights = weights$edge_weights,
+    weight_scale = weights$weight_scale,
+    vertex_depth = structure$vertex_depth,
+    parent = structure$parent,
+    edge_table = edge_table,
+    depth_factors = depth_spec$factors,
+    branch_factors = branch_spec$factors,
+    family = "kary.tree.weighted",
+    k = k,
+    depth = depth,
+    base_length = as.double(base.length),
+    depth_rule = depth_spec$rule,
+    branch_rule = branch_spec$rule,
+    normalize = normalize,
+    label = sprintf("%s/%s intrinsic %d-ary tree depth %d",
+                    tools::toTitleCase(depth_spec$rule),
+                    branch_spec$rule,
+                    k,
+                    depth)
+  )
+  class(out) <- c("grip_kary_tree_weighted_graph", "list")
+  out
+}
+
+# @describeIn graph_generators Recursively refined square-mask grid graph whose
+#   vertices are occupied cells and whose edges connect orthogonally adjacent
+#   cells.
+# @param mask Keep-mask describing which recursive cells are retained. For
+#   \code{edges.recursive.mask.grid()}, \code{mask} must be a square logical
+#   or numeric keep-matrix whose non-zero entries are kept at each recursive
+#   subdivision step. For
+#   \code{edges.recursive.triangle.mask()}, \code{mask} must instead be a
+#   four-entry vector in \code{left}, \code{right}, \code{top},
+#   \code{center} order, and for \code{edges.recursive.tetrahedron.mask()},
+#   \code{mask} must be a four-entry vector in \code{base_left},
+#   \code{base_right}, \code{base_back}, \code{apex} order. For
+#   \code{edges.recursive.cube.mask()}, \code{mask} must be a cubic logical
+#   or numeric keep-array whose non-zero entries are kept at each recursive
+#   subdivision step.
+# @param level Recursion depth. For \code{edges.recursive.mask.grid()},
+#   \code{edges.recursive.cube.mask()}, \code{edges.vicsek()},
+#   \code{edges.menger.sponge()}, and \code{edges.sierpinski.carpet()},
+#   \code{level} must be at least 1; \code{edges.recursive.triangle.mask()},
+#   \code{edges.recursive.tetrahedron.mask()}, and
+#   \code{edges.triangulated.polyhedron()} also allow \code{level = 0}.
+# @noRd
+edges.recursive.mask.grid <- function(mask, level = 2) {
+  .recursive.mask.grid.edges(mask, level)
+}
+
+# @describeIn graph_generators Recursively refined triangle-mask graph whose
+#   vertices are the retained subdivision vertices of an equilateral triangle.
+# @noRd
+edges.recursive.triangle.mask <- function(mask = mask.triangle.classic(), level = 2) {
+  .recursive.triangle.mask.canonical(mask, level)$edges
+}
+
+# @describeIn graph_generators Recursively refined tetrahedron-mask graph whose
+#   vertices are the retained subdivision vertices of a tetrahedron.
+# @noRd
+edges.recursive.tetrahedron.mask <- function(mask = mask.tetrahedron.classic(),
+                                             level = 2) {
+  .recursive.tetrahedron.mask.canonical(mask, level)$edges
+}
+
+# @describeIn graph_generators Recursively refined cube-mask graph whose
+#   vertices are occupied subcubes and whose edges connect face-adjacent
+#   occupied cells.
+# @noRd
+edges.recursive.cube.mask <- function(mask, level = 2) {
+  .recursive.cube.mask.edges(mask, level)
+}
+
+# @describeIn graph_generators Triangulated closed-surface graph obtained by
+#   repeatedly splitting the triangular faces of a tetrahedron, octahedron, or
+#   icosahedron.
+# @noRd
+edges.triangulated.polyhedron <- function(
+    base = c("tetrahedron", "octahedron", "icosahedron"),
+    level = 1) {
+  base <- match.arg(base)
+  .triangulated.polyhedron.canonical(base = base, level = level)$edges
+}
+
+# @describeIn graph_generators Triangulated annulus graph obtained by clipping
+#   a regular triangular lattice to the region between two concentric circles.
+# @param resolution Positive lattice-resolution control used by
+#   \code{edges.triangulated.annulus()} and
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param outer.radius Positive outer boundary radius for
+#   \code{edges.triangulated.annulus()} and
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param inner.radius Positive inner annulus radius for
+#   \code{edges.triangulated.annulus()}.
+# @param hole.radius Positive radius of each interior hole for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param hole.offset Positive horizontal offset of the two hole centers for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @param hole.height Shared vertical coordinate of the two hole centers for
+#   \code{edges.triangulated.pair.of.pants()}.
+# @noRd
+edges.triangulated.annulus <- function(resolution = 12,
+                                       outer.radius = 1,
+                                       inner.radius = 0.45) {
+  .triangulated.annulus.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    inner.radius = inner.radius
+  )$edges
+}
+
+# @describeIn graph_generators Triangulated pair-of-pants graph obtained by
+#   clipping a regular triangular lattice to a disk with two interior circular
+#   holes.
+# @noRd
+edges.triangulated.pair.of.pants <- function(resolution = 12,
+                                             outer.radius = 1.1,
+                                             hole.radius = 0.24,
+                                             hole.offset = 0.38,
+                                             hole.height = 0.18) {
+  .triangulated.pair.of.pants.canonical(
+    resolution = resolution,
+    outer.radius = outer.radius,
+    hole.radius = hole.radius,
+    hole.offset = hole.offset,
+    hole.height = hole.height
+  )$edges
+}
+
+# @describeIn graph_generators Connected Vicsek-style cross family derived from
+#   a \code{3 x 3} axial-cross keep-mask.
+# @noRd
+edges.vicsek <- function(level = 2) {
+  edges.recursive.mask.grid(.vicsek.mask(), level = level)
+}
+
+# @describeIn graph_generators Classic Menger-sponge cubical cell-adjacency
+#   graph derived from the \code{3 x 3 x 3} keep-mask that removes the center
+#   cube and the six face-center cubes at each recursion step.
+# @noRd
+edges.menger.sponge <- function(level = 2) {
+  edges.recursive.cube.mask(.menger.sponge.mask(), level = level)
+}
+
+# @describeIn graph_generators Periodic cubical tunnel family derived from a
+#   repeated tunnel-band keep-mask. The classic Menger sponge appears as the
+#   \code{side = 3}, \code{tunnel.width = 1} special case.
+# @noRd
+edges.cube.periodic.tunnels <- function(level = 2,
+                                        side = 5,
+                                        tunnel.width = 1,
+                                        tunnel.period = 2,
+                                        tunnel.offset = 2) {
+  edges.recursive.cube.mask(
+    mask.cube.periodic.tunnels(
+      side = side,
+      tunnel.width = tunnel.width,
+      tunnel.period = tunnel.period,
+      tunnel.offset = tunnel.offset
+    ),
+    level = level
+  )
+}
+
+# @describeIn graph_generators Cubical porous family with two offset interior
+#   cavity blocks repeated recursively.
+# @noRd
+edges.cube.asymmetric.cavities <- function(level = 2,
+                                           side = 5,
+                                           cavity.size = 2,
+                                           pocket.size = max(1L, cavity.size - 1L)) {
+  edges.recursive.cube.mask(
+    mask.cube.asymmetric.cavities(
+      side = side,
+      cavity.size = cavity.size,
+      pocket.size = pocket.size
+    ),
+    level = level
+  )
+}
+
+# @describeIn graph_generators Cubical porous family with a deterministic
+#   branched channel network carved through each recursive block.
+# @noRd
+edges.cube.channel.network <- function(level = 2,
+                                       side = 5,
+                                       channel.width = 1,
+                                       branch.offset = 2) {
+  edges.recursive.cube.mask(
+    mask.cube.channel.network(
+      side = side,
+      channel.width = channel.width,
+      branch.offset = branch.offset
+    ),
+    level = level
+  )
+}
+
+#' @describeIn graph_generators Two-dimensional Sierpinski triangle graph at
+#'   recursion depth \code{level}.
+#' @examples
+#' edges <- edges.sierpinski.triangle(2)
+#' n <- max(edges)
+#' coords <- grip(edges, n = n, dim = 2,
+#'                       placement = "circle",
+#'                       seed = 1)
+#' plot.layout(coords, edges, main = "Sierpinski triangle", pch = 16, cex = 0.7)
+#' @export
+edges.sierpinski.triangle <- function(level = 2) {
+  .sierpinski.triangle.canonical(level)$edges
+}
+
+#' @describeIn graph_generators Three-dimensional tetrahedral Sierpinski graph
+#'   at recursion depth \code{level}.
+#' @export
+edges.sierpinski.tetrahedron <- function(level = 2) {
+  .sierpinski.tetrahedron.canonical(level)$edges
+}
+
+#' @describeIn graph_generators Two-dimensional Sierpinski carpet graph whose
+#'   vertices are occupied cells and whose edges connect orthogonally adjacent
+#'   cells.
+#' @export
+edges.sierpinski.carpet <- function(level = 2) {
+  edges.recursive.mask.grid(.sierpinski.carpet.mask(), level = level)
+}

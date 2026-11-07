@@ -1,0 +1,268 @@
+# grip 0.3.0
+
+- Installed guides default to static figures; interactive rendering remains
+  available with `options(grip.vignette.interactive = TRUE)`. Compact benchmark
+  bundles retain every summary record and the fixed layouts displayed in the
+  guides. Complete benchmark bundles remain in the source repository.
+- Compare classical-MDS preparation routes by their input distances and fitted
+  pairwise distances. This preserves the test's geometric contract when a
+  BLAS/LAPACK implementation chooses different axes for repeated eigenvalues.
+
+- Retain former underscore argument names in `grip()` and `edge.kk()` for one
+  transition release, including `weighted.grip.args` settings. They produce
+  the same results as the current names without deprecation warnings, allowing
+  downstream packages to migrate. Conflicting old/current spellings and unknown
+  arguments are errors. Other renamed functions and controls are unchanged.
+
+- Reduced sparse `metric.mds()` temporary memory use by computing learning-rate
+  weight extrema without concatenating endpoint arrays and collecting discarded
+  scratch arrays before large allocations. Continuation fingerprints now stream
+  the same serialization bytes, preserving existing saved-state compatibility.
+  Euclidean sparse preparation reads observation columns contiguously while
+  preserving each distance's arithmetic order. The public interface, SGD updates,
+  and numerical results are unchanged.
+
+## Features developed since 0.2.0
+
+- Added `prepare.sparse.mds(method = "linf")` with exact original-coordinate
+  nearest neighbors, internal randomized or farthest pivots, and regional
+  endpoint weights. PCA search is rejected for this metric; existing Euclidean
+  defaults are unchanged.
+
+- Added an executable vignette animating metric-MDS update traces on matched
+  surface-area samples of a paraboloid and saddle. It demonstrates continuation,
+  bounded recording, relative-error evaluation, rigid display alignment, and
+  self-contained ivue playback with spheres and transparent reference surfaces.
+
+- Added opt-in individual-update recording for SGD `metric.mds()` through
+  `sgd.control$trace`. Frames and absolute update counts are returned separately
+  in `update_trace`, with a configurable cadence, memory limits, and support
+  for continuation. Compile-time specialization removes tracing work from the
+  update loop when disabled; recording preserves numerical and RNG results.
+
+- SGD `metric.mds()` now distinguishes epoch-budget exhaustion, schedule
+  completion and opt-in practical stabilization, with no convergence claim.
+  Checkpoint histories also survive in metadata. Optional saved state supports
+  genuine continuation of terminal coordinates, RNG, frozen targets and rate
+  schedules, including an explicitly labeled harmonic extension. Practical
+  stopping requires sustained diagnostic stability, small centered motion and
+  a learning-rate-independent endpoint update residual. Default fitting
+  trajectories and full/sparse returned-iterate policies are unchanged.
+
+- Added direct `metric.mds(distance.matrix = D)` input for full SGD or SMACOF
+  fitting without graph shortest-path reconstruction. Supplied targets remain
+  unchanged; graph path diagnostics are unavailable for this input.
+- Added `landmark.mds.constraints()` to convert landmark-by-sample distances
+  and optional local pair distances into explicit sparse MDS targets. Supports
+  symmetric uniform endpoint weights or the existing region-based endpoint
+  updates, with validation of duplicated target distances.
+
+- Added explicit distance constraints to sparse `metric.mds()`. Supplied pair
+  targets bypass graph shortest paths, with optional endpoint multiplicities,
+  connectedness and workspace checks, and preserved target metadata.
+
+
+- Replace the six-example dataset with offline `suitesparse.graph()` and
+  `suitesparse.graphs()` accessors for 85 source-validated graphs, including
+  the 80 curated gallery selections. Preserve labels, source credits, and
+  component mappings in a frozen xz bundle.
+
+- Breaking API change: public function and argument names now use lowercase words
+  separated by dots, including control-list keys (`pair.weights`, `sgd.control`,
+  `learning.rate`, and `n.pivots`). The nine `gripui_`/`run_gripui` entry points
+  also use dots. Except for the one-release `grip()`/`edge.kk()` argument
+  transition documented above, old spellings are no longer accepted. Mathematical names `X`
+  and `scale.L0`, S3 class names, enum values, and saved result fields are unchanged.
+  See `inst/API-NAMING.md` for migration examples.
+
+- Added opt-in `metric.mds(approximation = "sparse")` for 2D/3D sparse SGD with pivot-based
+  distance preparation, asymmetric endpoint updates, explicit memory checks,
+  reproducible sampling, and separately labeled sparse diagnostics.
+- Consolidated full and sparse MDS under `metric.mds()`, with a separate
+  `approximation` choice and `sparse.control` for pivots. The sparse helper is
+  private. Existing full-MDS calls retain their defaults; incompatible sparse
+  settings fail explicitly before dense preparation.
+- Added a sparse/full SGD and weighted-GRIP vignette with 3D examples, repeated
+  runs, independent distance-error scores, and measured time and peak memory.
+- Avoided repeated copying when collecting edge lengths for edge-only preparation.
+
+- Added `metric.mds(pair.weights = "inverse_squared")` for both SGD and SMACOF,
+  using the Zheng et al. (2018) graph-drawing stress weights. Uniform weighting
+  remains the default. Fitting, start selection, scaling, and reported stress
+  consistently use the selected weights; inverse-squared weighting requires
+  positive off-diagonal distances.
+- Expanded the SGD–SMACOF vignette with a separate matched comparison of both
+  weightings on three 3D graph examples, reporting both error measures and timing.
+
+- Static plot controls now override defaults consistently, including labels,
+  limits, aspect ratio, and orthographic vertex symbols/sizes.
+- Added `layout.coords()` for unchanged coordinate extraction and
+  `estimate.preparation()` for dense-storage lower bounds. Large dense
+  preparations warn before searches; the advisory threshold is configurable.
+- Native layout and refinement loops support cancellation at safe main-thread
+  boundaries. Interrupted construction releases its owned temporary storage.
+- Undirected adjacency now requires reciprocal entries, equal multiplicities,
+  and matching lengths. Self-loops now fail explicitly instead of being ignored
+  or treated differently across representations; remove them before calling.
+  Existing parallel-edge handling is preserved and documented in the guide.
+- Replaced bending load-order rebinding with explicit base implementations,
+  consolidated graph validation, and added a developer map. Numerical objectives
+  and defaults are unchanged.
+- Full-dependency checks require all tests to execute on Linux, Windows, and
+  macOS; a local runner isolates split-library dependencies. The comparison
+  article now identifies frozen versions and the distinction between repeated
+  timings and independent layout seeds.
+
+## Documentation
+
+* Reorganized the documentation into ten main installed vignettes and four
+  appendices, published from the same sources on the website. The complete
+  categorized function overview is retained. Website-only tutorials have been
+  incorporated, with redirects for retired pages and an unchanged source archive.
+* Added richer application-graph introductions, a recorded-stage trace slider,
+  a consolidated HMP/U01 case study, and a shorter gripui walkthrough. Full
+  experiment results remain available separately from the main MDS guides.
+* Unified preview navigation and link checks, reused verified surface display
+  registrations, and replaced stale static fallbacks with current coordinates.
+  Static 2D graph plots now have empty default axis labels instead of numeric
+  coordinate strings.
+
+* Sparse-MDS figures now use the graph gallery's always-visible layout-selector
+  structure, showing one method or all layouts while preserving camera and scale.
+
+* Interactive vignette figures now show their controls continuously, without
+  a collapsible "View controls" panel.
+
+* Vignette legends now expand to fit their entries. Clarified the gallery
+  Procrustes alignment and verified it with known transformations and the
+  saved saddle layouts.
+* Simplified the graph gallery to one interactive view per graph, with a
+  layout selector for metric-MDS, metric-MDS + edge-KK, or both. Removed
+  duplicate static panels and the legend-table disclosure from vignette views.
+* Expanded the installed "Graph examples" vignette with interactive 3D
+  metric-MDS and edge-KK views of 13 graphs. Added six attributed SuiteSparse
+  datasets as `zheng.graphs`, including original matrices and character labels.
+
+* Distinguished CRAN and development installations, including offline-vignette
+  building, and added a development notice and direct quick-start navigation.
+* Repaired Markdown function links in help and made package help lead to a
+  small runnable workflow and the existing installed guides.
+* Connected the visual introduction to showcase recipes and a rendered first
+  example. Website animations now start with still previews and explicit
+  playback controls; guide figures have alternative text.
+
+* Added two installed vignettes: a task-oriented function guide with checked
+  export and method coverage, and synthetic graph-family layout examples.
+  Linked them from the package overview, README, and website navigation;
+  clarified metric, reference-scoring, and projection choices in related guides.
+
+## Breaking changes
+
+* `metric.mds()` now selects native SGD by default. Request
+  `backend = "smacof"` to preserve a previous SMACOF analysis, including calls
+  that supply `eps`. Explicit `init = "metric_mds"` in `edge.kk()` and
+  `kernel.gram.gkk()` follows the new default; their own default initializer
+  remains classical MDS. The iteration budget and stopping rules are unchanged.
+
+* Graph-input APIs now reject fractional, nonfinite, or out-of-range vertex
+  indices and counts before conversion. Supply either `edges`/`edge.weights`
+  or `adj.list`/`weight.list`, not both. A `prepared` graph cannot be combined
+  with raw graph inputs; an explicit `n` must match its stored vertex count.
+  Previously, some of these inputs were silently truncated or ignored.
+
+* `metric.mds()` now minimizes unweighted raw distance stress using native SGD
+  or the optional smacof package. To retain the previous classical-scaling behavior,
+  use `classical.mds()`, which also accepts the `add` and `eig` arguments.
+  See `help("grip-mds-migration")` for migration instructions.
+* In `edge.kk()` and `kernel.gram.gkk()`, `init = "metric_mds"` now requests
+  stress minimization. Use `init = "classical_mds"` to retain the previous
+  behavior. Both functions still use classical scaling by default.
+
+## New features
+
+* Added the native `metric.mds(backend = "sgd")` backend for uniform
+  all-pairs stress and made it the default. SGD records reproducible seeds,
+  checkpoint stress, pair-update counts, and failed starts, and reports schedule
+  completion without claiming convergence. Its tuning defaults are provisional.
+  No Python runtime is required. Use `coords = fit$coords` to pass an SGD result
+  to `edge.kk()`.
+
+* Layout printing shows the fitted objective, available termination and start
+  information, and separately labeled graph diagnostics without recomputing
+  them. The score help explains normalization, units, and unavailable values.
+
+* `metric.mds()` supports multiple starts and reports stress and convergence
+  diagnostics, with coordinates returned in the input distance units.
+* `score.coordinates()` measures coordinate error against a reference, with
+  rigid alignment, similarity alignment, or no alignment.
+* `score.surface()` measures area-weighted symmetric RMS distance between
+  surfaces.
+
+## Bug fixes
+
+* Fixed `metric.mds()` rejecting valid undirected graphs with nearly equal
+  shortest paths. Recreate previously saved graph preparations to obtain
+  corrected symmetric distance matrices.
+
+# grip 0.2.0
+
+## Breaking changes
+
+* Removed the 40 long-form compatibility aliases deprecated in the 0.1
+  series. See `help("grip-0.2-migration")` for the complete replacement map.
+* Restricted the public graph-family API to primitive edge generators,
+  configurable mask helpers, and complete graph bundles. Specialized
+  edge-list builders, standalone surface embeddings, and parameter-coordinate
+  builders remain available internally to those bundles.
+* Made `gmds.result()` internal; public layout methods continue to return the
+  common `"grip_gmds_layout"` result format.
+
+## Documentation
+
+* Added executable examples for every exported function.
+
+# grip 0.1.3
+
+* Unified topology-first and edge-length-metric layouts under
+  `grip(metric = "hop")` and `grip(metric = "edge_length")`.
+* Added the same metric selection to `trace.grip()`. Replaced `weighted.grip()`
+  and `trace.weighted.grip()` with `grip(metric = "edge_length")` and
+  `trace.grip(metric = "edge_length")`, respectively.
+* Documented how edge lengths affect layout construction and refinement in
+  each metric mode.
+
+# grip 0.1.2
+
+* Made saved graph-family bundle ordering deterministic when files have tied
+  modification times, as can occur on Windows.
+* Fixed two undersized adjacency allocations in the compiled triangular
+  mesh generator.
+
+# grip 0.1.1
+
+* Added geodesic-MDS, geodesic-KK, landmark, MISF, weighted, and interactive
+  layout workflows.
+* Limited compiled parallel work to two threads to comply with CRAN resource
+  limits, including when automatic thread selection is requested.
+* Replaced native assertion aborts with recoverable R errors.
+* Shortened graph-family save filenames so they remain portable under long
+  Windows temporary-directory paths.
+* Expanded the pkgdown reference index.
+* Declared the C++17 compiler requirement explicitly.
+
+# grip 0.1.0
+
+* First public release of `grip`.
+* Introduced two main layout workflows:
+  `grip.layout()` for unweighted graphs and
+  `grip.layout.weighted()` for weighted graphs.
+* Added layout scoring and real-data candidate comparison via
+  `grip.score.layout()` and `grip.compare.layouts()`, together with
+  multiscale trace diagnostics via `grip.layout.trace()` and
+  `grip.layout.trace.weighted()`.
+* Included synthetic graph families, weighted real-data examples,
+  disconnected-component packing, and plotting helpers.
+* Added experimental full geodesic-KK (GKK) and landmark geodesic-KK (LGKK)
+  preparation, scoring, and refinement helpers for weighted layouts.
+* Included optional Shiny explorers for browsing layout catalogs and synthetic
+  graph families.

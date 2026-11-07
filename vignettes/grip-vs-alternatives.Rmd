@@ -1,0 +1,252 @@
+---
+title: "Comparing graph layout engines"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Comparing graph layout engines}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  dev = "jpeg",
+  dev.args = list(quality = 90),
+  fig.retina = 1,
+  dpi = 72,
+  fig.width = 10,
+  fig.height = 4.5
+)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+## What is compared
+
+This guide shows how to compare multiscale GRIP with layout engines from
+igraph and graphlayouts using common diagnostics on unweighted graphs.
+The examples use precomputed fits with the settings described below.
+They do not compare SGD metric MDS; see [Metric MDS](metric-mds-backends.html)
+for SGD and SMACOF, and [Choosing and evaluating](grip-real-data.html)
+for selecting layouts for your data.
+
+## Shared scoring idea
+
+`score.layout()` can score a realized layout from any source. That remains
+one of the most useful parts of the package, because it lets you compare
+candidate layouts even when they come from different packages.
+
+```{r score-helper, eval=FALSE}
+score_layout <- function(coords, edges, n,
+                         clusters = NULL,
+                         edge.crossings = "auto",
+                         sample.size.stress = 2000L,
+                         sample.size.nonedge = 5000L) {
+  score.layout(
+    coords = coords,
+    edges = edges,
+    n = n,
+    clusters = clusters,
+    sample.size.stress = sample.size.stress,
+    sample.size.nonedge = sample.size.nonedge,
+    stress.seed = 42L,
+    nonedge.seed = 42L,
+    edge.crossings = edge.crossings
+  )
+}
+```
+
+For weighted geometry-aware graphs, the package also provides retained-path
+diagnostics that answer a different question from sampled chord stress:
+
+- `prepare.geodesic.kk()`
+- `score.geodesic.kk()`
+
+Those GKK/LGKK-style tools are advanced public experimental utilities rather
+than the default onboarding path, and they are used in the second half of this
+article for the weighted comparison track.
+
+```{r interactive-helpers, include=FALSE}
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+comparison.views <- function(layouts, edges) {
+  htmltools::tagList(lapply(names(layouts), function(name) {
+    z <- layouts[[name]]
+    if (ncol(z)==2L) z <- cbind(z,0)
+    documentation.view(setNames(list(z),name),edges,aligned=TRUE,
+      description=paste(name, ': saved coordinates; 2D fits remain planar.'))
+  }))
+}
+```
+
+Planar fits are displayed at z = 0 in interactive 3D viewers. Rotating the
+view does not change the dimension in which a layout was fitted.
+
+## Track 1: external-package comparisons on unweighted graphs
+
+For this track the comparison remains package-to-package:
+
+- `igraph`
+- `graphlayouts`
+- `grip`
+
+To keep the article lightweight, the cross-package results are precomputed and
+bundled as an RDS file. The reproduction script is still:
+
+- `inst/scripts/precompute-vs-alternatives.R`
+
+```{r load-results}
+res.path <- system.file(
+  "extdata", "vs_alternatives", "benchmark_results.rds",
+  package = "grip"
+)
+if (!nzchar(res.path)) {
+  stop(
+    "Precomputed benchmark results not found. ",
+    "Run inst/scripts/precompute-vs-alternatives.R first."
+  )
+}
+res <- readRDS(res.path)
+```
+
+### Provenance of the saved comparison
+
+The [provenance record](https://github.com/pgajer/grip/blob/main/inst/extdata/vs_alternatives/BENCHMARK_PROVENANCE.md)
+and [reproduction script](https://github.com/pgajer/grip/blob/main/inst/scripts/precompute-vs-alternatives.R)
+provide the computation environment, settings and timing boundaries.
+
+The karate graph has **34 vertices and 78 edges**; the 12 by 12 mesh has
+**144 vertices and 264 edges**. Each table below scores a saved layout with
+hop-distance stress, scoring seeds 42, 2,000 requested stress pairs, and up to
+5,000 sampled nonedges. Exact crossings are enabled for these small graphs.
+The stress score fits a common scale; it is not the raw stress objective of
+`metric.mds()`. Preset/tuned rows are labeled separately from ordinary defaults.
+Keep the results where another method scores better when interpreting the comparison.
+
+### Benchmark 1: Zachary karate club
+
+This is still a useful small-graph sanity check. The graph is small enough that
+single-scale methods can compete directly.
+
+```{r karate-table}
+karate.display <- res$karate$scores[, c(
+  "method",
+  "sampled.stress",
+  "edge.length.cv",
+  "edge.crossings",
+  "sampled.nonedge.sep.ratio",
+  "cluster.separation"
+)]
+
+knitr::kable(
+  karate.display,
+  digits = 4,
+  row.names = FALSE,
+  caption = "Karate club: precomputed comparison; one seeded layout per method."
+)
+```
+
+```{r karate-plot, fig.width=12, fig.height=7.5}
+k <- res$karate
+comparison.views(k$layouts, k$edges)
+```
+
+On graphs this small, `grip` does not have a special structural advantage.
+That is an honest result and a useful reminder: multiscale methods are not
+automatically best on every graph.
+
+### Benchmark 2: 12x12 mesh
+
+Meshes are a good structured topological benchmark because a strong layout
+should recover an orderly grid with uniform edge lengths and few or no
+crossings.
+
+```{r mesh-table}
+mesh.display <- res$mesh$scores[, c(
+  "method",
+  "sampled.stress",
+  "edge.length.cv",
+  "edge.crossings",
+  "sampled.nonedge.sep.ratio"
+)]
+
+knitr::kable(
+  mesh.display,
+  digits = 4,
+  row.names = FALSE,
+  caption = "12x12 mesh: precomputed comparison; one seeded layout per method."
+)
+```
+
+```{r mesh-plot, fig.width=12, fig.height=7.5}
+m <- res$mesh
+comparison.views(m$layouts, m$edges)
+```
+
+This benchmark shows a different pattern from the karate graph: on a canonical
+structured family like a mesh, the default GRIP result
+shows a clean uncrossed layout. The saved `mesh` preset result has slightly
+lower sampled stress. These are particular seeded results, not an estimate of
+variation across layout seeds. At the same time, stress and KK remain very strong on a regular
+lattice.
+
+### Larger graph: saved HMP timing and quality
+
+The same artifact includes an unweighted symmetric-neighbor graph of HMP
+microbiome samples: **4,391 vertices and 9,067 edges**. PCA-space edge lengths
+were not supplied to any layout engine. The recorded machine was an Apple
+M4 Max with 64 GiB memory, macOS/Darwin 25.6.0, and R 4.6.1.
+
+```{r hmp-saved-results}
+knitr::kable(res$hmp$timing, digits = 3, row.names = FALSE,
+  caption = "HMP graph: elapsed seconds for the precomputed layout runs.")
+knitr::kable(res$hmp$scores[, c("method", "sampled.stress", "edge.length.cv")],
+  digits = 4, row.names = FALSE,
+  caption = "HMP graph: hop-distance quality of the first timed layout per method.")
+```
+
+The **five timing repeats reset seed 1 before each layout call**. Their medians
+and interquartile ranges measure timing variation for that seeded setup, not
+variation across independent stochastic layouts. Timing includes only the layout
+call; graph construction, garbage collection, and scoring are excluded. Scores
+use the first repeat, seeds 42, 2,000 stress pairs, and up to 5,000 nonedges;
+exact crossings are disabled for this graph. These hardware-specific times and
+single-seed quality results do not establish general speed or accuracy rankings.
+
+### What the unweighted track tells us
+
+The saved external-package benchmark has a limited scope:
+
+- it compares engines on ordinary unweighted graphs,
+- it uses a shared scoring function on the same graph for each comparison,
+- but it does not answer the geometry-aware weighted-layout question.
+
+That second question needs a different benchmark track.
+
+## Reproducing the external benchmark bundle
+
+Run the comparison recipe with the installed packages and a separate output file:
+
+```{r reproduce, eval=FALSE}
+Sys.setenv(GRIP_VS_ALTERNATIVES_OUTPUT = "benchmark_results.rds")
+source(system.file(
+  "scripts", "precompute-vs-alternatives.R",
+  package = "grip"
+))
+```

@@ -1,0 +1,203 @@
+---
+title: "Graph gallery"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Graph gallery}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+Explore a structural mesh, a branching power network, a recursive carpet,
+and a porous volume. Every figure compares **metric-MDS** with **metric-MDS +
+edge-KK** using the same graph and lengths. The remaining nine examples,
+including dwt_307, Les Miserables, curved surfaces, and the intrinsic tree,
+are in the [extended gallery](graph-gallery-more.html).
+
+The layouts use SGD, grip's default metric-MDS backend. They use uniform stress
+weights; they do not reproduce the inverse-squared weighting in the Zheng et al.
+paper. See [Metric MDS](metric-mds-backends.html) for that comparison.
+
+```{r gallery-data, include=FALSE}
+source(system.file('scripts','graph-examples.R',package='grip'),local=TRUE)
+bundle <- readRDS(system.file('extdata','graph-examples','layouts.rds',package='grip'))
+have.ivue <- documentation.interactive()
+```
+
+## Reading the gallery
+
+**Blue is metric MDS; orange is MDS followed by edge-KK.** Gray, when present,
+shows the coordinates used to construct the graph. Each visible layout includes
+all its edges. Switching layouts preserves the camera and scale. Each layout is
+**Procrustes-aligned** to the generating coordinates (or to metric MDS when no
+generating coordinates are available). Corresponding vertices are matched by
+their graph indices; translation and rotation/reflection minimize their summed
+squared separations. No resizing is used to make the layouts agree.
+Generating coordinates show where a geometric graph came from, but need not
+realize its graph shortest-path distances as straight-line separations.
+
+Each graph also supports an interactive 3D view made with
+[ivue](https://github.com/pgajer/ivue). Use the visible layout selector to choose
+**metric-MDS**, **metric-MDS + edge-KK**, or **both**. Gray generating coordinates
+remain visible where available. Drag to rotate and scroll to zoom.
+By default, a static view shows the same
+metric-MDS coordinates and alignment as the initial interactive view.
+
+Each table reports two errors. **Graph-distance error** measures the fit to
+all shortest-path distances; **edge-length error** measures the fit to supplied
+edge lengths. Both are root-mean-square errors divided by the root-mean-square
+target length, so zero is exact agreement and lower is better. Scores use the
+returned coordinates without fitting an extra scale. Each stage's elapsed time
+is also listed; preparation is excluded, and the refinement time is additional
+to the MDS time. These are single-workstation timings, not a speed comparison.
+
+```{r selected, include=FALSE}
+gallery.ids <- c('dwt_1005','1138_bus','carpet','porous')
+```
+
+```{r gallery-pages, results='asis', echo=FALSE}
+cat(knitr::knit_child(system.file('scripts','graph-gallery.Rmd',package='grip'),
+  envir=environment(),quiet=TRUE),sep='\n')
+```
+
+## Start with SGD metric MDS
+
+This small example creates a weighted tree and draws it in 3D with SGD.
+The saved gallery also compares an optional edge-KK stage; it is not a
+recommended automatic second step.
+
+```{r small-example}
+g <- kary.tree.weighted.graph(k = 2, depth = 5, depth.decay = .85,
+                            branch.spread = .2, normalize = 'none')
+prepared <- prepare.graph.geodesic.mds(
+  edges = g$edges, n = g$n, edge.weights = g$edge_weights)
+mds <- suppressWarnings(metric.mds(
+  prepared = prepared, dim = 3, backend = 'sgd', init = 'random',
+  n.init = 3, max.iter = 80, seed = 2026, diagnostics = FALSE))
+```
+
+Use `mds$coords` as the default result. For larger graphs, pass raw graph inputs
+to `metric.mds(approximation="sparse", backend="sgd", ...)` rather than creating
+this dense preparation; see [sparse MDS](sparse-metric-mds.html).
+
+### Optional edge-length comparison
+
+The following reproduces the gallery's additional comparison. Retain it only
+when its independent diagnostics support the intended use.
+
+```{r optional-edge-comparison}
+refined <- edge.kk(
+  coords = mds$coords, prepared = prepared, dim = 3,
+  stiffness.method = 'uniform', density.mix.schedule = 1,
+  scale.mode = 'identity', max.iter = 100,
+  return.trace = FALSE, diagnostics = FALSE)
+```
+
+MDS tries to fit shortest-path distances between **all pairs of vertices**.
+Edge-KK adjusts the drawing to fit **directly connected vertices**. Here every
+edge has equal influence during refinement, and `scale.mode = "identity"`
+keeps its target length fixed. An improvement in edge lengths can come with a
+worse fit to distances between more widely separated vertices.
+
+We use three random starts for MDS, retaining the one with the lowest stress,
+and allow 80 passes per start. Reaching that limit can produce an
+`iteration_limit` warning; the small example suppresses it, while the saved
+gallery records it. Refinement allows 100 iterations. These are illustration
+settings, not settings chosen to make either stage win. All fits use seed 2026.
+
+For the six new datasets, replace the graph-construction line with:
+
+```{r supplied-data}
+suitesparse.graphs()
+g <- suitesparse.graph('lesmis')
+head(g$vertex_data)
+```
+
+Each dataset supplies `n`, `edges`, `edge_weights`, `vertex_data`, and
+`provenance`. For these six examples, vertex indices follow the original matrix rows. The six graphs
+are connected; no vertices were dropped or connecting edges added. We use
+unit edge lengths and preserve the original matrix values separately.
+For example, Les Miserables coappearance counts describe connection strength,
+so they are not passed to the layout functions as distances.
+
+
+## More graph constructors
+
+| Need | Public entry points | Output |
+|---|---|---|
+| Topology alone | `edges.path()`, `edges.mesh()`, `edges.kary.tree()`, the other primitive `edges.*()` generators | Two-column edge matrix; no bundled reference coordinates or lengths. |
+| A finite perforated grid | `keep.periodic.holes()`, `keep.asymmetric.notches()`, `keep.slit.channels()`, `keep.staggered.windows()`, then `occupied.mesh.surface.graph()` | A keep matrix followed by a complete weighted graph bundle. |
+| A recursive pattern | Square `mask.*()` helpers, cubic `mask.cube.*()` arrays, or triangle/tetrahedron masks, then the matching `recursive.*.surface.graph()` | A mask followed by a recursively generated weighted bundle. |
+| A regular reference surface | `mesh.surface.graph()`, `cylinder.surface.graph()`, `sphere.surface.graph()`, `torus.surface.graph()` | Edges, lengths, 3D reference coordinates, and parameters. |
+| Irregular surfaces or volumes | The `irregular.*.surface.graph()` and `irregular.*.solid.graph()` families | Deterministic geometric constructions; “irregular” does not imply random sampling. |
+| Triangular-lattice or polyhedral topology | The three `triangulated.*.surface.graph()` families | Graph edges and reference coordinates; the public bundles do not expose triangular faces. |
+| Randomly sampled rectangle | `sampled.rectangle.surface.graph()` or plural `sampled.rectangle.surface.graphs()` | One graph or a sequence on a shared sampled point set. |
+| Intrinsic lengths without an embedding | `kary.tree.weighted.graph()` | Tree edges, lengths, depths, parents, and edge metadata. |
+
+The construction recipes in the [extended gallery](graph-gallery-more.html#construction-examples) illustrate additional families. Use complete public bundles; standalone embeddings
+and specialized edge builders used inside them are internal functions.
+A name ending in `surface.graph` is not a promise of a triangle mesh:
+occupied-cube families, for example, connect occupied cells and can include
+interior vertices.
+
+
+
+## Constructing other graph families
+
+Use a constructor when you need controlled topology or generating coordinates.
+The [extended gallery](graph-gallery-more.html#construction-examples) includes
+executable recipes and 3D views of a folded irregular annulus and a recursive
+Vicsek pattern. Change one feature at a time when studying its effect.
+The complete constructor catalog is in
+[Finding your way around grip](function-guide.html#synthetic-graphs-complete-surface-and-solid-bundles).
+
+## Repeat the gallery
+
+The small tree example runs when this vignette is built. The gallery uses
+saved layouts so rebuilding the document does not repeat the larger fits.
+To draw any graph yourself, use its construction line above followed by the
+two-step example. Keep `dim = 3` and the same edge lengths in both steps.
+
+The full recipe is installed as `scripts/graph-examples.R`. Instructions for
+rebuilding the saved layouts and images are in the
+[reproduction guide](https://github.com/pgajer/grip/blob/main/tools/README.md#graph-examples-gallery).
+The saved file retains the settings, software version, all MDS starts, warnings,
+and any unsuccessful fits. This gallery uses dense shortest-path distances;
+check graph size before increasing the construction sizes substantially.
+
+## Data sources
+
+The six graph datasets are derived from the
+[SuiteSparse Matrix Collection](https://sparse.tamu.edu/), distributed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Original matrices,
+author credits, character labels, and descriptions of the conversion are
+included in `extdata/zheng-graphs/`. See `help('suitesparse.graph')` for details.
+
+- Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018).
+  *Graph Drawing by Stochastic Gradient Descent*.
+  [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
+- Davis, T. A. and Hu, Y. (2011). *The University of Florida Sparse Matrix Collection*.
+  [doi:10.1145/2049662.2049663](https://doi.org/10.1145/2049662.2049663).
+- Knuth, D. E. (1993). *The Stanford GraphBase: A Platform for Combinatorial Computing*.
+  Addison-Wesley. Source of the Les Miserables coappearance data.

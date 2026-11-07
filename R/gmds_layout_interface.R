@@ -1,0 +1,1492 @@
+grip.gmds.require.prepared <- function(prepared = NULL,
+                                       coords = NULL,
+                                       edges = NULL,
+                                       n = NULL,
+                                       adj.list = NULL,
+                                       weight.list = NULL,
+                                       edge.weights = NULL) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  if (!is.null(prepared)) {
+    return(grip.validate.geodesic.mds.prepared(prepared, coords = coords))
+  }
+  prepare.graph.geodesic.mds(
+    edges = edges,
+    n = if (is.null(n) && !is.null(coords)) nrow(coords) else n,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights
+  )
+}
+
+grip.metric.mds.distance.prepared <- function(edges = NULL,
+                                              n = NULL,
+                                              adj.list = NULL,
+                                              weight.list = NULL,
+                                              edge.weights = NULL) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
+  n <- grip.resolve.graph.n(n, edges, adj.list)
+
+  validated <- grip.validate.layout.inputs(
+    edges = edges,
+    n = n,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights,
+    dim = 2L,
+    placement = "barycenter",
+    seed = 1L
+  )
+
+  sorted <- grip.sort.adj.with.weights(validated$adj_list, validated$weight_list)
+  adj.list <- sorted$adj_list
+  weight.list <- sorted$weight_list
+  edge.matrix <- grip.edges.from.adj.list(adj.list)
+  edge.targets <- grip.edge.weights.from.adj.list(adj.list, weight.list)
+  grip.preflight.preparation(validated$n, nrow(edge.matrix), "distance_matrix_only")
+  dist.matrix <- do.call(rbind, lapply(seq_len(validated$n), function(source) {
+    grip.graph.distances(adj.list, weight.list, source)
+  }))
+  finite.mask <- row(dist.matrix) != col(dist.matrix)
+  if (any(!is.finite(dist.matrix[finite.mask]) | dist.matrix[finite.mask] < 0)) {
+    stop("MDS currently requires a connected graph")
+  }
+
+  prepared <- list(
+    n = validated$n,
+    edges = edge.matrix,
+    edge_targets = edge.targets,
+    adj_list = adj.list,
+    weight_list = weight.list,
+    pair_matrix = matrix(integer(), ncol = 2L),
+    pair_graph_distance = numeric(0L),
+    path_vertices = list(),
+    path_edges = list(),
+    path_edge_weights = list(),
+    pair_path_count_log = numeric(0L),
+    flat_pair_edge_offsets = 0L,
+    flat_edge_u = integer(0L),
+    flat_edge_v = integer(0L),
+    flat_edge_coeff = numeric(0L),
+    distance_matrix = dist.matrix,
+    graph_diameter = max(dist.matrix),
+    pair_mode = "distance_matrix_only",
+    graph_build_mode = "graph_input"
+  )
+  class(prepared) <- c(
+    "grip_metric_mds_prepared",
+    "grip_gmds_prepared",
+    "grip_gkk_prepared",
+    "grip_geodesic_kk_prepared",
+    "list"
+  )
+  prepared
+}
+
+grip.gmds.fit.scale.unweighted <- function(observed,
+                                           target,
+                                           distance.floor = 1e-8) {
+  observed <- as.double(observed)
+  target <- as.double(target)
+  keep <- is.finite(observed) & is.finite(target) & target > distance.floor
+  if (!any(keep)) {
+    return(NA_real_)
+  }
+  denom <- sum(target[keep]^2)
+  if (!is.finite(denom) || denom <= 0) {
+    return(NA_real_)
+  }
+  sum(observed[keep] * target[keep]) / denom
+}
+
+grip.gmds.resolve.scale <- function(observed,
+                                    target,
+                                    scale.mode = c("profiled", "identity", "user"),
+                                    scale = NULL,
+                                    distance.floor = 1e-8) {
+  scale.mode <- match.arg(scale.mode)
+  if (identical(scale.mode, "identity")) {
+    return(1.0)
+  }
+  if (identical(scale.mode, "user")) {
+    grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
+    return(as.double(scale))
+  }
+  grip.gmds.fit.scale.unweighted(
+    observed = observed,
+    target = target,
+    distance.floor = distance.floor
+  )
+}
+
+grip.gmds.residual.stats <- function(observed,
+                                     target,
+                                     weights = NULL,
+                                     distance.floor = 1e-8) {
+  observed <- as.double(observed)
+  target <- as.double(target)
+  if (is.null(weights)) {
+    weights <- rep(1, length(target))
+  } else {
+    weights <- as.double(weights)
+  }
+  keep <- is.finite(observed) & is.finite(target) & is.finite(weights) &
+    weights > 0 & target > distance.floor
+  if (!any(keep)) {
+    return(list(
+      n = 0L,
+      stress = NA_real_,
+      rmse = NA_real_,
+      mean_abs_error = NA_real_,
+      mean_rel_abs_error = NA_real_,
+      signed_bias = NA_real_,
+      shortcut_fraction = NA_real_
+    ))
+  }
+  resid <- observed[keep] - target[keep]
+  rel <- resid / pmax(target[keep], distance.floor)
+  w <- weights[keep]
+  denom <- sum(w * target[keep]^2)
+  list(
+    n = sum(keep),
+    stress = if (is.finite(denom) && denom > 0) sqrt(sum(w * resid^2) / denom) else NA_real_,
+    rmse = sqrt(sum(w * resid^2) / sum(w)),
+    mean_abs_error = sum(w * abs(resid)) / sum(w),
+    mean_rel_abs_error = sum(w * abs(rel)) / sum(w),
+    signed_bias = sum(w * rel) / sum(w),
+    shortcut_fraction = mean(rel < -0.05)
+  )
+}
+
+grip.gmds.edge.lengths <- function(coords, prepared) {
+  if (is.null(prepared$edges) || nrow(prepared$edges) == 0L) {
+    return(numeric(0L))
+  }
+  diffs <- coords[prepared$edges[, 1L], , drop = FALSE] -
+    coords[prepared$edges[, 2L], , drop = FALSE]
+  sqrt(rowSums(diffs^2))
+}
+
+grip.gmds.pair.chord.lengths <- function(coords, prepared) {
+  if (is.null(prepared$pair_matrix) || nrow(prepared$pair_matrix) == 0L) {
+    return(numeric(0L))
+  }
+  diffs <- coords[prepared$pair_matrix[, 1L], , drop = FALSE] -
+    coords[prepared$pair_matrix[, 2L], , drop = FALSE]
+  sqrt(rowSums(diffs^2))
+}
+
+grip.gmds.band.weights <- function(graph.distances,
+                                   band = c("all", "short", "mid", "long"),
+                                   quantiles = c(1 / 3, 2 / 3)) {
+  band <- match.arg(band)
+  g <- as.double(graph.distances)
+  if (identical(band, "all")) {
+    return(rep(1, length(g)))
+  }
+  if (length(g) == 0L || all(!is.finite(g))) {
+    return(numeric(length(g)))
+  }
+  q <- as.double(stats::quantile(g[is.finite(g)], probs = quantiles, names = FALSE))
+  if (identical(band, "short")) {
+    as.double(g <= q[[1L]])
+  } else if (identical(band, "mid")) {
+    as.double(g > q[[1L]] & g <= q[[2L]])
+  } else {
+    as.double(g > q[[2L]])
+  }
+}
+
+#' Score a layout with the common GMDS diagnostic panel
+#'
+#' `score.gmds()` provides a common diagnostic panel for GMDS-oriented
+#' layouts. It summarizes edge-length fidelity, fixed-path geodesic
+#' stress, short/mid/long geodesic bands, ordinary metric-MDS chord stress, and
+#' simple spread/shortcut diagnostics for any coordinate matrix on a prepared
+#' graph.
+#'
+#' @param coords Numeric coordinate matrix.
+#' @param prepared Optional object returned by [prepare.edge.kk()],
+#'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
+#'   Edge-only objects from [prepare.edge.kk()] report only edge
+#'   diagnostics; all-pairs GMDS path and chord diagnostics are unavailable.
+#' @param edges Two-column integer edge matrix used when `prepared` is omitted.
+#'   Supply either edges/edge.weights or adj.list/weight.list, not both.
+#'   Raw graph inputs cannot be combined with a prepared object.
+#' @param n Finite positive integer vertex count. When supplied with a prepared
+#'   object, it must match the stored graph size.
+#' @param adj.list Optional adjacency list used when `prepared` is omitted.
+#' @param weight.list Optional edge-weight list parallel to `adj.list`.
+#' @param edge.weights Optional positive edge weights parallel to `edges`.
+#' @param scale.mode Scale policy for edge, path, and chord targets:
+#'   `"profiled"` fits one scalar for each diagnostic family, `"identity"`
+#'   uses scale one, and `"user"` uses the corresponding supplied scale.
+#' @param edge.scale,path.scale,chord.scale Optional user scales used when
+#'   `scale.mode = "user"`.
+#' @param distance.floor Positive floor for relative residuals.
+#' @param edge.length.epsilon Small stabilizer for fixed-path embedded lengths.
+#' @param band.quantiles Two quantiles splitting graph distances into short,
+#'   mid, and long bands.
+#'
+#' @return A one-row data frame. Lower residual errors indicate closer agreement
+#'   with the stated targets; no single column certifies geometric recovery.
+#' @section Diagnostic columns:
+#' A chord is the straight-line distance between two coordinates. A retained
+#' path adds embedded edge lengths along a route stored in the preparation.
+#' These can disagree on a folded graph. The diagnostic targets use the stored
+#' route convention and can differ slightly from strict shortest distances
+#' near ties. Compare candidates with the same graph, preparation, and scale policy.
+#'
+#' - `n.vertices`, `n.edges`, `n.pairs`: graph size and numbers of stored edges
+#'   and retained pairs (before exclusion of invalid or near-zero targets).
+#' - `scale.mode`: the requested scale policy. `edge.scale`, `gmds.scale`, and
+#'   `metric.chord.scale` multiply edge, path, and chord targets separately.
+#' - `edge.rel.rmse`, `gmds.stress`, `metric.chord.stress`: root sum squared
+#'   residual divided by root sum squared scaled target, a dimensionless error.
+#'   This is not the mean of squared pairwise relative errors and is not the
+#'   raw stress minimized by [metric.mds()].
+#' - `edge.rmse`, `gmds.rmse`, `metric.chord.rmse`: root mean squared residual
+#'   in drawn-coordinate units against the scaled targets.
+#' - `edge.mean.abs.error`, `gmds.mean.abs.error`: mean absolute residual in
+#'   drawn-coordinate units. The corresponding `mean.rel.abs.error` columns
+#'   (also available for `metric.chord`) average absolute residual/target ratios.
+#' - `edge.signed.bias`, `gmds.signed.bias`: mean residual/target ratio;
+#'   positive values indicate lengths greater than their scaled targets.
+#' - `gmds.short.stress`, `gmds.mid.stress`, `gmds.long.stress` and their
+#'   `signed.bias` counterparts: the path statistics restricted to bands defined
+#'   by `band.quantiles`; ties at a boundary belong to the lower band.
+#' - `shortcut.fraction`: fraction of evaluated retained paths more than 5%
+#'   shorter than their scaled target, between zero and one.
+#' - `spread.score`: RMS chord length divided by RMS unscaled graph target;
+#'   it changes with drawing scale and is not a universal quality grade.
+#'
+#' Residual summaries exclude nonfinite values, nonpositive weights, and targets
+#' no larger than `distance.floor`. Unavailable summaries are `NA`, including
+#' path/chord diagnostics for edge-only preparations. No reference alignment
+#' is performed. Use [score.coordinates()] or [score.surface()] for reference
+#' agreement, keeping their alignment and units explicit.
+#' @export
+#' @md
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
+score.gmds <- function(coords,
+                                   prepared = NULL,
+                                   edges = NULL,
+                                   n = NULL,
+                                   adj.list = NULL,
+                                   weight.list = NULL,
+                                   edge.weights = NULL,
+                                   scale.mode = c("profiled", "identity", "user"),
+                                   edge.scale = NULL,
+                                   path.scale = NULL,
+                                   chord.scale = NULL,
+                                   distance.floor = 1e-8,
+                                   edge.length.epsilon = 1e-8,
+                                   band.quantiles = c(1 / 3, 2 / 3)) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  coords <- grip.validate.coords.nd(coords)
+  scale.mode <- match.arg(scale.mode)
+  grip.validate.scalar(distance.floor, "distance.floor", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.length.epsilon, "edge.length.epsilon", lower = 0)
+  if (!is.numeric(band.quantiles) || length(band.quantiles) != 2L ||
+      any(!is.finite(band.quantiles)) ||
+      any(band.quantiles <= 0 | band.quantiles >= 1) ||
+      band.quantiles[[1L]] >= band.quantiles[[2L]]) {
+    stop("band.quantiles must be two increasing probabilities in (0, 1)")
+  }
+
+  prepared <- grip.gmds.require.prepared(
+    prepared = prepared,
+    coords = coords,
+    edges = edges,
+    n = n,
+    adj.list = adj.list,
+    weight.list = weight.list,
+    edge.weights = edge.weights
+  )
+
+  edge.observed <- grip.gmds.edge.lengths(coords, prepared)
+  edge.target.raw <- if (!is.null(prepared$edge_targets)) {
+    as.double(prepared$edge_targets)
+  } else {
+    numeric(0L)
+  }
+  edge.scale <- grip.gmds.resolve.scale(
+    observed = edge.observed,
+    target = edge.target.raw,
+    scale.mode = scale.mode,
+    scale = edge.scale,
+    distance.floor = distance.floor
+  )
+  edge.stats <- grip.gmds.residual.stats(
+    observed = edge.observed,
+    target = edge.scale * edge.target.raw,
+    distance.floor = distance.floor
+  )
+
+  path.observed <- grip.geodesic.kk.path.lengths(
+    coords = coords,
+    prepared = prepared,
+    edge.length.epsilon = edge.length.epsilon
+  )
+  path.target.raw <- as.double(prepared$pair_graph_distance)
+  path.scale <- grip.gmds.resolve.scale(
+    observed = path.observed,
+    target = path.target.raw,
+    scale.mode = scale.mode,
+    scale = path.scale,
+    distance.floor = distance.floor
+  )
+  path.target <- path.scale * path.target.raw
+  path.stats <- grip.gmds.residual.stats(
+    observed = path.observed,
+    target = path.target,
+    distance.floor = distance.floor
+  )
+  short.stats <- grip.gmds.residual.stats(
+    observed = path.observed,
+    target = path.target,
+    weights = grip.gmds.band.weights(path.target.raw, "short", band.quantiles),
+    distance.floor = distance.floor
+  )
+  mid.stats <- grip.gmds.residual.stats(
+    observed = path.observed,
+    target = path.target,
+    weights = grip.gmds.band.weights(path.target.raw, "mid", band.quantiles),
+    distance.floor = distance.floor
+  )
+  long.stats <- grip.gmds.residual.stats(
+    observed = path.observed,
+    target = path.target,
+    weights = grip.gmds.band.weights(path.target.raw, "long", band.quantiles),
+    distance.floor = distance.floor
+  )
+
+  chord.observed <- grip.gmds.pair.chord.lengths(coords, prepared)
+  chord.scale <- grip.gmds.resolve.scale(
+    observed = chord.observed,
+    target = path.target.raw,
+    scale.mode = scale.mode,
+    scale = chord.scale,
+    distance.floor = distance.floor
+  )
+  chord.stats <- grip.gmds.residual.stats(
+    observed = chord.observed,
+    target = chord.scale * path.target.raw,
+    distance.floor = distance.floor
+  )
+
+  spread.score <- if (length(chord.observed) > 0L && length(path.target.raw) > 0L) {
+    chord.rms <- sqrt(mean(chord.observed^2))
+    graph.rms <- sqrt(mean(path.target.raw^2))
+    if (is.finite(graph.rms) && graph.rms > 0) chord.rms / graph.rms else NA_real_
+  } else {
+    NA_real_
+  }
+
+  data.frame(
+    n.vertices = prepared$n,
+    n.edges = length(edge.observed),
+    n.pairs = length(path.target.raw),
+    scale.mode = scale.mode,
+    edge.scale = edge.scale,
+    edge.rel.rmse = edge.stats$stress,
+    edge.rmse = edge.stats$rmse,
+    edge.mean.abs.error = edge.stats$mean_abs_error,
+    edge.mean.rel.abs.error = edge.stats$mean_rel_abs_error,
+    edge.signed.bias = edge.stats$signed_bias,
+    gmds.scale = path.scale,
+    gmds.stress = path.stats$stress,
+    gmds.rmse = path.stats$rmse,
+    gmds.mean.abs.error = path.stats$mean_abs_error,
+    gmds.mean.rel.abs.error = path.stats$mean_rel_abs_error,
+    gmds.signed.bias = path.stats$signed_bias,
+    gmds.short.stress = short.stats$stress,
+    gmds.mid.stress = mid.stats$stress,
+    gmds.long.stress = long.stats$stress,
+    gmds.short.signed.bias = short.stats$signed_bias,
+    gmds.mid.signed.bias = mid.stats$signed_bias,
+    gmds.long.signed.bias = long.stats$signed_bias,
+    shortcut.fraction = path.stats$shortcut_fraction,
+    metric.chord.scale = chord.scale,
+    metric.chord.stress = chord.stats$stress,
+    metric.chord.rmse = chord.stats$rmse,
+    metric.chord.mean.rel.abs.error = chord.stats$mean_rel_abs_error,
+    spread.score = spread.score,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Construct a common GMDS layout result
+#
+# `gmds.result()` wraps coordinates, method metadata, optional
+# traces, and optional diagnostics in a common result shape used by the
+# experimental GMDS layout program.
+#
+# @param coords Numeric coordinate matrix.
+# @param method Short method identifier.
+# @param prepared Optional prepared graph object.
+# @param trace Optional trace table or list.
+# @param diagnostics Optional one-row diagnostic data frame.
+# @param metadata Optional named list with method-specific metadata.
+#
+# @return A list of class `"grip_gmds_layout"` with fields `coords`, `method`,
+#   `prepared`, `trace`, `diagnostics`, and `metadata`.
+# @noRd
+gmds.result <- function(coords,
+                                    method,
+                                    prepared = NULL,
+                                    trace = NULL,
+                                    diagnostics = NULL,
+                                    metadata = list()) {
+  coords <- grip.validate.coords.nd(coords)
+  if (!is.character(method) || length(method) != 1L || is.na(method) || !nzchar(method)) {
+    stop("method must be a non-empty character scalar")
+  }
+  if (!is.null(prepared)) {
+    prepared <- grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  }
+  if (!is.null(diagnostics) && !is.data.frame(diagnostics)) {
+    stop("diagnostics must be NULL or a data frame")
+  }
+  if (!is.list(metadata)) {
+    stop("metadata must be a list")
+  }
+  out <- list(
+    coords = coords,
+    method = method,
+    prepared = prepared,
+    trace = trace,
+    diagnostics = diagnostics,
+    metadata = metadata
+  )
+  class(out) <- c("grip_gmds_layout", "list")
+  out
+}
+
+#' Print a geodesic-MDS layout summary
+#'
+#' Reports the fitted objective, available stopping information, coordinate
+#' dimensions, and separately labeled graph diagnostics. Missing convergence
+#' metadata is reported as such; finite coordinates do not imply convergence.
+#' Printing never recomputes diagnostics. Raw metric-MDS stress has squared
+#' input-distance units. The displayed graph RMSE values are divided by the
+#' root mean squared target distance and are dimensionless.
+#' Extract \code{x$coords} to plot or score the coordinates.
+#' @param x A \code{grip_gmds_layout} object.
+#' @param ... Unused additional arguments.
+#' @return The input object, invisibly.
+#' @seealso \code{\link{classical.mds}}, \code{\link{metric.mds}}
+#' @export
+print.grip_gmds_layout <- function(x, ...) {
+  number <- function(value) format(value, digits = 6, trim = TRUE)
+  cat("<grip_gmds_layout>\n")
+  cat("  method:", x$method, "\n")
+  cat("  vertices:", nrow(x$coords), " | dimensions:", ncol(x$coords), "\n")
+  meta <- x$metadata
+  objective.name <- if (is.null(meta$objective)) {
+    if (identical(x$method, "edge_kk")) "edge-KK energy" else "not reported"
+  } else meta$objective
+  objective <- switch(objective.name,
+    raw_distance_stress = "raw distance stress (squared input-distance units)",
+    classical_strain = "classical strain (direct classical scaling)",
+    objective.name)
+  cat("  objective:", objective, "\n")
+  if (!is.null(meta$raw_stress)) cat("  raw stress:", number(meta$raw_stress), "\n")
+  if (!is.null(meta$sparse_proxy_stress))
+    cat("  sparse proxy stress (not full stress):", number(meta$sparse_proxy_stress), "\n")
+  if (!is.null(meta$stopping)) {
+    status <- meta$stopping
+    cat("  stopping:", switch(status$reason,
+      epoch_budget = "epoch budget exhausted",
+      practical_stabilization = "practical stabilization rule met",
+      status$reason), "after", status$epochs_completed, "epochs\n")
+    cat("  stopping rule:", if (is.null(status$rule)) "disabled" else
+      if (isTRUE(status$assessed)) "assessed" else "not yet assessed", "\n")
+    cat("  convergence: not certified\n")
+    cat("  returned iterate:", status$returned_iterate, "\n")
+  } else if (!is.null(meta$converged)) {
+    cat("  converged:", if (isTRUE(meta$converged)) "yes" else "no", "\n")
+  } else {
+    cat("  convergence:", if (identical(x$method, "classical_mds"))
+      "not applicable (direct scaling)" else "not reported", "\n")
+  }
+  if (!is.null(meta$termination)) cat("  termination:", meta$termination, "\n")
+  if (!is.null(meta$selected_start)) {
+    cat("  selected start:", meta$selected_start)
+    if (is.data.frame(meta$starts)) cat(" of ", nrow(meta$starts), sep = "")
+    cat("\n")
+  }
+  diag <- x$diagnostics
+  if (is.data.frame(diag) && nrow(diag) > 0L) {
+    cat("  graph diagnostics")
+    if ("scale.mode" %in% names(diag)) cat(" (scale policy: ", diag$scale.mode[[1L]], ")", sep = "")
+    cat(":\n")
+    if (all(c("n.edges", "n.pairs") %in% names(diag))) {
+      cat("    edges:", diag$n.edges[[1L]], " | retained pairs:", diag$n.pairs[[1L]], "\n")
+    }
+    labels <- c(edge.rel.rmse = "edge target-normalized RMSE",
+                gmds.stress = "retained-path target-normalized RMSE",
+                metric.chord.stress = "chord target-normalized RMSE")
+    for (name in intersect(names(labels), names(diag))) {
+      value <- diag[[name]][[1L]]
+      cat("   ", labels[[name]], ": ",
+          if (is.finite(value)) number(value) else "unavailable", "\n", sep = "")
+    }
+  } else {
+    cat("  graph diagnostics: not computed\n")
+  }
+  cat("  extract coordinates: x$coords; diagnostics: x$diagnostics\n")
+  if (!is.null(meta$starts)) cat("  inspect starts: x$metadata$starts\n")
+  invisible(x)
+}
+
+#' Classical-MDS baseline layout for GMDS experiments
+#'
+#' `classical.mds()` computes the classical-MDS baseline using
+#' `stats::cmdscale()` on the graph shortest-path distance matrix and returns a
+#' common `"grip_gmds_layout"` result.
+#'
+#' @inheritParams score.gmds
+#' @param prepared Optional all-pairs prepared object returned by
+#'   [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()].
+#'   Edge-only objects from [prepare.edge.kk()] are intentionally rejected
+#'   because classical MDS requires a graph distance matrix.
+#' @param dim Target embedding dimension. Values greater than 3 are supported
+#'   for GMDS and edge-KK workflows.
+#' @param add,eig Passed to `stats::cmdscale()`.
+#' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel. If
+#'   `FALSE` and raw graph inputs are supplied, `classical.mds()` uses a
+#'   distance-matrix-only preparation path and does not build the full
+#'   all-pairs path cache.
+#'
+#' @return A `"grip_gmds_layout"` object.
+#' @export
+#' @md
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
+classical.mds <- function(prepared = NULL,
+                                   edges = NULL,
+                                   n = NULL,
+                                   adj.list = NULL,
+                                   weight.list = NULL,
+                                   edge.weights = NULL,
+                                   dim = 2L,
+                                   add = FALSE,
+                                   eig = TRUE,
+                                   diagnostics = TRUE,
+                                   scale.mode = c("profiled", "identity", "user"),
+                                   distance.floor = 1e-8,
+                                   edge.length.epsilon = 1e-8,
+                                   band.quantiles = c(1 / 3, 2 / 3)) {
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  scale.mode <- match.arg(scale.mode)
+  prepared <- if (is.null(prepared) && !isTRUE(diagnostics)) {
+    grip.metric.mds.distance.prepared(
+      edges = edges,
+      n = n,
+      adj.list = adj.list,
+      weight.list = weight.list,
+      edge.weights = edge.weights
+    )
+  } else {
+    grip.gmds.require.prepared(
+      prepared = prepared,
+      edges = edges,
+      n = n,
+      adj.list = adj.list,
+      weight.list = weight.list,
+      edge.weights = edge.weights
+    )
+  }
+  fit <- grip.classical.mds.embedding(
+    prepared = prepared,
+    dim = dim,
+    add = add,
+    eig = eig
+  )
+  diag <- if (isTRUE(diagnostics)) {
+    score.gmds(
+      coords = fit$coords,
+      prepared = prepared,
+      scale.mode = scale.mode,
+      distance.floor = distance.floor,
+      edge.length.epsilon = edge.length.epsilon,
+      band.quantiles = band.quantiles
+    )
+  } else {
+    NULL
+  }
+  gmds.result(
+    coords = fit$coords,
+    method = "classical_mds",
+    prepared = prepared,
+    trace = NULL,
+    diagnostics = diag,
+    metadata = list(
+      engine = "cmdscale",
+      grip_version = as.character(getNamespaceVersion("grip")),
+      objective = "classical_strain",
+      eig = fit$eig,
+      additive_constant = fit$additive_constant,
+      gof = fit$gof,
+      positive_eigen_fraction = fit$positive_eigen_fraction,
+      negative_eigen_fraction = fit$negative_eigen_fraction
+    )
+  )
+}
+
+grip.validate.infinite.ceiling <- function(x, name, lower = 0) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x) || x <= lower) {
+    stop(sprintf("%s must be a numeric scalar greater than %s", name, format(lower, digits = 16)))
+  }
+  if (!is.finite(x) && !is.infinite(x)) {
+    stop(sprintf("%s must be finite or Inf", name))
+  }
+}
+
+grip.normalize.mean.one <- function(x, name) {
+  x <- as.double(x)
+  if (length(x) == 0L) {
+    return(x)
+  }
+  m <- mean(x)
+  if (!is.finite(m) || m <= 0) {
+    stop(sprintf("%s could not be normalized to mean one", name))
+  }
+  x / m
+}
+
+grip.apply.stiffness.transform <- function(x, transform) {
+  x <- pmax(as.double(x), 0)
+  switch(
+    transform,
+    identity = x,
+    sqrt = sqrt(x),
+    log = log1p(x)
+  )
+}
+
+#' Construct edge-length stiffnesses for edge-isometric GMDS layouts
+#'
+#' `edge.length.density.stiffness()` constructs stiffnesses for edge-only
+#' geodesic-MDS layouts. It turns positive edge lengths into
+#' spring stiffnesses normalized to mean one. The `"density"` method emphasizes
+#' edge lengths near the empirical edge-length density mode, and `mix` provides
+#' a continuation path from that density-weighted signal to uniform stiffness.
+#'
+#' @param edge.weights Positive numeric edge lengths.
+#' @param method Stiffness rule. `"density"` estimates an empirical density,
+#'   `"uniform"` returns equal stiffnesses, and `"distance_power"` uses
+#'   `(w / median(w))^distance.power`.
+#' @param mix Continuation parameter in `[0, 1]`. `0` uses the selected method;
+#'   `1` returns uniform stiffness.
+#' @param bandwidth Optional bandwidth passed to `stats::density()`.
+#' @param density.n Number of evaluation points for `stats::density()`.
+#' @param transform Optional transformation of the raw density/power signal
+#'   before mixing and normalization.
+#' @param distance.power Exponent for `method = "distance_power"`.
+#' @param stiffness.floor,stiffness.ceiling Optional clipping bounds applied
+#'   before the final mean-one normalization.
+#'
+#' @return A list with `stiffness`, raw signal diagnostics, estimated mode, and
+#'   clipping/normalization metadata.
+#' @export
+#' @md
+edge.length.density.stiffness <- function(edge.weights,
+                                               method = c("density", "uniform", "distance_power"),
+                                               mix = 0,
+                                               bandwidth = NULL,
+                                               density.n = 512L,
+                                               transform = c("identity", "sqrt", "log"),
+                                               distance.power = 0,
+                                               stiffness.floor = 0,
+                                               stiffness.ceiling = Inf) {
+  method <- match.arg(method)
+  transform <- match.arg(transform)
+  if (!is.numeric(edge.weights)) {
+    stop("edge.weights must be a numeric vector")
+  }
+  edge.weights <- as.double(edge.weights)
+  bad <- which(!is.finite(edge.weights) | edge.weights <= 0)
+  if (length(bad) > 0L) {
+    stop(sprintf("edge.weights must contain finite values > 0; first invalid at edge.weights[%d]", bad[[1L]]))
+  }
+  grip.validate.scalar(mix, "mix", lower = 0, upper = 1)
+  if (!is.null(bandwidth)) {
+    grip.validate.scalar(bandwidth, "bandwidth", lower = 0, open.lower = TRUE)
+  }
+  grip.validate.scalar(density.n, "density.n", lower = 16)
+  density.n <- as.integer(round(density.n))
+  grip.validate.scalar(distance.power, "distance.power")
+  grip.validate.scalar(stiffness.floor, "stiffness.floor", lower = 0)
+  grip.validate.infinite.ceiling(stiffness.ceiling, "stiffness.ceiling", lower = 0)
+  if (is.finite(stiffness.ceiling) && stiffness.ceiling < stiffness.floor) {
+    stop("stiffness.ceiling must be greater than or equal to stiffness.floor")
+  }
+
+  n.edge <- length(edge.weights)
+  if (n.edge == 0L) {
+    return(list(
+      stiffness = numeric(0L),
+      raw_signal = numeric(0L),
+      mixed_signal = numeric(0L),
+      edge_weights = edge.weights,
+      mode = NA_real_,
+      method = method,
+      mix = mix,
+      transform = transform,
+      bandwidth = bandwidth,
+      diagnostics = data.frame(
+        n.edges = 0L,
+        raw.min = NA_real_,
+        raw.max = NA_real_,
+        stiffness.min = NA_real_,
+        stiffness.max = NA_real_,
+        stiffness.mean = NA_real_,
+        stringsAsFactors = FALSE
+      )
+    ))
+  }
+
+  mode <- stats::median(edge.weights)
+  raw <- rep(1, n.edge)
+  density.grid <- NULL
+  if (identical(method, "density")) {
+    if (n.edge >= 2L && diff(range(edge.weights)) > 0) {
+      dens <- stats::density(
+        edge.weights,
+        bw = if (is.null(bandwidth)) "nrd0" else bandwidth,
+        n = density.n,
+        from = min(edge.weights),
+        to = max(edge.weights)
+      )
+      raw <- stats::approx(dens$x, dens$y, xout = edge.weights, rule = 2)$y
+      raw[!is.finite(raw) | raw < 0] <- 0
+      mode <- dens$x[which.max(dens$y)]
+      density.grid <- data.frame(x = dens$x, y = dens$y)
+      if (is.null(bandwidth)) {
+        bandwidth <- dens$bw
+      }
+    }
+  } else if (identical(method, "distance_power")) {
+    center <- stats::median(edge.weights)
+    if (!is.finite(center) || center <= 0) {
+      center <- mean(edge.weights)
+    }
+    raw <- (edge.weights / center)^distance.power
+    raw[!is.finite(raw) | raw < 0] <- 0
+  }
+
+  raw <- grip.apply.stiffness.transform(raw, transform)
+  raw <- grip.normalize.mean.one(raw, "raw stiffness signal")
+  mixed <- (1 - mix) * raw + mix
+  if (stiffness.floor > 0) {
+    mixed <- pmax(mixed, stiffness.floor)
+  }
+  if (is.finite(stiffness.ceiling)) {
+    mixed <- pmin(mixed, stiffness.ceiling)
+  }
+  stiffness <- grip.normalize.mean.one(mixed, "stiffness")
+
+  out <- list(
+    stiffness = stiffness,
+    raw_signal = raw,
+    mixed_signal = mixed,
+    edge_weights = edge.weights,
+    mode = as.double(mode),
+    method = method,
+    mix = mix,
+    transform = transform,
+    bandwidth = bandwidth,
+    distance_power = distance.power,
+    stiffness_floor = stiffness.floor,
+    stiffness_ceiling = stiffness.ceiling,
+    density = density.grid,
+    diagnostics = data.frame(
+      n.edges = n.edge,
+      raw.min = min(raw),
+      raw.max = max(raw),
+      stiffness.min = min(stiffness),
+      stiffness.max = max(stiffness),
+      stiffness.mean = mean(stiffness),
+      stringsAsFactors = FALSE
+    )
+  )
+  class(out) <- c("grip_edge_length_stiffness", "list")
+  out
+}
+
+grip.edge.isometric.fit.scale <- function(observed,
+                                          target,
+                                          stiffness = NULL,
+                                          distance.floor = 1e-8) {
+  observed <- as.double(observed)
+  target <- as.double(target)
+  if (is.null(stiffness)) {
+    stiffness <- rep(1, length(target))
+  } else {
+    stiffness <- as.double(stiffness)
+  }
+  keep <- is.finite(observed) & is.finite(target) & is.finite(stiffness) &
+    stiffness > 0 & target > distance.floor
+  if (!any(keep)) {
+    return(NA_real_)
+  }
+  denom <- sum(stiffness[keep] * target[keep]^2)
+  if (!is.finite(denom) || denom <= 0) {
+    return(NA_real_)
+  }
+  sum(stiffness[keep] * observed[keep] * target[keep]) / denom
+}
+
+grip.edge.isometric.energy.gradient <- function(coords,
+                                                edges,
+                                                edge.weights,
+                                                stiffness,
+                                                scale = 1,
+                                                edge.length.epsilon = 1e-8) {
+  coords <- grip.validate.coords.nd(coords)
+  edge.weights <- as.double(edge.weights)
+  stiffness <- as.double(stiffness)
+  scale <- as.double(scale)
+  grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.length.epsilon, "edge.length.epsilon", lower = 0)
+  if (!is.matrix(edges) || ncol(edges) != 2L) {
+    stop("edges must be a two-column matrix")
+  }
+  if (length(edge.weights) != nrow(edges) || length(stiffness) != nrow(edges)) {
+    stop("edge.weights and stiffness must be parallel to edges")
+  }
+  if (nrow(edges) == 0L) {
+    return(list(
+      energy = 0,
+      gradient = matrix(0, nrow(coords), ncol(coords)),
+      gradient_norm = 0,
+      edge_lengths = numeric(0L),
+      residuals = numeric(0L),
+      scale = scale
+    ))
+  }
+
+  diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+  edge.lengths <- sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
+  residuals <- edge.lengths - scale * edge.weights
+  coeff <- stiffness * residuals / edge.lengths
+  gradient <- matrix(0, nrow(coords), ncol(coords))
+  for (e in seq_len(nrow(edges))) {
+    contribution <- coeff[[e]] * diffs[e, ]
+    gradient[edges[e, 1L], ] <- gradient[edges[e, 1L], ] + contribution
+    gradient[edges[e, 2L], ] <- gradient[edges[e, 2L], ] - contribution
+  }
+  energy <- 0.5 * sum(stiffness * residuals^2)
+  list(
+    energy = energy,
+    gradient = gradient,
+    gradient_norm = sqrt(sum(gradient^2)),
+    edge_lengths = edge.lengths,
+    residuals = residuals,
+    scale = scale
+  )
+}
+
+grip.edge.isometric.evaluate.state <- function(coords,
+                                               edges,
+                                               edge.weights,
+                                               stiffness,
+                                               scale.mode = c("profiled", "identity", "fixed", "user"),
+                                               scale = NULL,
+                                               edge.length.epsilon = 1e-8,
+                                               distance.floor = 1e-8) {
+  scale.mode <- match.arg(scale.mode)
+  edge.lengths <- if (nrow(edges) == 0L) {
+    numeric(0L)
+  } else {
+    diffs <- coords[edges[, 1L], , drop = FALSE] - coords[edges[, 2L], , drop = FALSE]
+    sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
+  }
+  edge.scale <- switch(
+    scale.mode,
+    profiled = grip.edge.isometric.fit.scale(
+      observed = edge.lengths,
+      target = edge.weights,
+      stiffness = stiffness,
+      distance.floor = distance.floor
+    ),
+    identity = 1.0,
+    fixed = {
+      grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
+      as.double(scale)
+    },
+    user = {
+      grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
+      as.double(scale)
+    }
+  )
+  if (!is.finite(edge.scale)) {
+    edge.scale <- 1.0
+  }
+  state <- grip.edge.isometric.energy.gradient(
+    coords = coords,
+    edges = edges,
+    edge.weights = edge.weights,
+    stiffness = stiffness,
+    scale = edge.scale,
+    edge.length.epsilon = edge.length.epsilon
+  )
+  target <- edge.scale * edge.weights
+  edge.stats <- grip.gmds.residual.stats(
+    observed = state$edge_lengths,
+    target = target,
+    weights = stiffness,
+    distance.floor = distance.floor
+  )
+  state$edge_scale <- edge.scale
+  state$edge_rel_rmse <- edge.stats$stress
+  state$edge_signed_bias <- edge.stats$signed_bias
+  state
+}
+
+grip.edge.isometric.initial.coords <- function(prepared,
+                                               coords = NULL,
+                                               init = c("classical_mds", "metric_mds", "weighted_grip", "random"),
+                                               dim = 2L,
+                                               seed = 1L,
+                                               weighted.grip.args = list()) {
+  grip.validate.scalar(dim, "dim", lower = 2)
+  dim <- as.integer(round(dim))
+  if (!is.null(coords)) {
+    coords <- grip.validate.coords.nd(coords)
+    if (nrow(coords) != prepared$n) {
+      stop("nrow(coords) must match the graph size stored in prepared")
+    }
+    if (ncol(coords) != dim) {
+      stop("ncol(coords) must match dim")
+    }
+    return(coords)
+  }
+  init <- match.arg(init)
+  if (!is.list(weighted.grip.args)) {
+    stop("weighted.grip.args must be a list")
+  }
+  weighted.grip.arg.names <- names(weighted.grip.args)
+  if (length(weighted.grip.args) > 0L &&
+      (is.null(weighted.grip.arg.names) || any(!nzchar(weighted.grip.arg.names)))) {
+    stop("weighted.grip.args must be a named list")
+  }
+  if (init %in% c("classical_mds", "metric_mds")) {
+    if (is.null(prepared$distance_matrix)) {
+      stop(
+        "MDS initialization requires an all-pairs prepared object; ",
+        "pass coords, use init = \"weighted_grip\" or \"random\", ",
+        "or prepare with prepare.graph.geodesic.mds()"
+      )
+    }
+    mds.fun <- if (identical(init, "classical_mds")) classical.mds else metric.mds
+    args <- list(prepared = prepared, dim = dim, diagnostics = FALSE)
+    if (identical(init, "metric_mds")) args$seed <- seed
+    return(.grip.invoke(mds.fun, args)$coords)
+  }
+  if (identical(init, "weighted_grip")) {
+    weighted.grip.arg.names <- .grip.transition.names(
+      weighted.grip.arg.names, setdiff(names(formals(grip)), "..."))
+    names(weighted.grip.args) <- weighted.grip.arg.names
+    if (any(!weighted.grip.arg.names %in% setdiff(names(formals(grip)), "..."))) {
+      stop("weighted.grip.args contains unknown arguments; use the documented dot-delimited names")
+    }
+    if (!(dim %in% c(2L, 3L))) {
+      stop("init = \"weighted_grip\" requires dim to be 2 or 3")
+    }
+    reserved <- c(
+      "edges", "n", "adj.list", "weight.list", "edge.weights",
+      "dim", "seed", "metric"
+    )
+    conflicts <- intersect(weighted.grip.arg.names, reserved)
+    if (length(conflicts) > 0L) {
+      stop(
+        "weighted.grip.args must not include graph, dimension, seed, or metric arguments: ",
+        paste(conflicts, collapse = ", ")
+      )
+    }
+    return(.grip.invoke(grip, c(
+      list(
+        edges = prepared$edges,
+        n = prepared$n,
+        edge_weights = prepared$edge_targets,
+        dim = dim,
+        seed = seed,
+        metric = "edge_length"
+      ),
+      weighted.grip.args
+    )))
+  }
+  if (!is.null(seed)) {
+    set.seed(as.integer(seed))
+  }
+  out <- matrix(stats::rnorm(prepared$n * dim), nrow = prepared$n, ncol = dim)
+  sweep(out, 2L, colMeans(out), "-", check.margin = FALSE)
+}
+
+#' Optimize an edge-KK local repair layout
+#'
+#' `edge.kk()` is the edge-restricted Kamada--Kawai local repair operator for
+#' the experimental GMDS layout program. Earlier notes called this operator
+#' edge-gKK or edge-isometric GMDS; edge-KK is the preferred name because the
+#' objective is restricted to graph edges rather than all graph-geodesic pairs.
+#' It minimizes weighted edge-length stress
+#' \deqn{
+#'   \frac{1}{2}\sum_{(i,j)\in E} k_{ij}
+#'   \left(\|z_i-z_j\|_2 - s w_{ij}\right)^2
+#' }
+#' using deterministic gradient descent with Armijo backtracking. The default
+#' `density.mix.schedule` runs a continuation from density-weighted stiffnesses
+#' toward uniform stiffnesses.
+#'
+#' For scalable repair from an existing layout, pass `coords` or an edge-only
+#' object from [prepare.edge.kk()]. When raw graph inputs are supplied,
+#' `edge.kk()` uses edge-only preparation whenever `coords` are supplied or
+#' `init` is `"weighted_grip"` or `"random"`. Use `init = "weighted_grip"` for a scalable
+#' weighted-GRIP warm start followed by edge-KK polish. If `coords` is omitted
+#' and either MDS initializer is requested, use an all-pairs prepared object from
+#' [prepare.graph.geodesic.mds()] or [prepare.geodesic.kk()] instead.
+#'
+#' @inheritParams score.gmds
+#' @param coords Optional starting coordinates. If omitted, `init` is used.
+#' @param dim Target embedding dimension.
+#' @param init Starting layout used when `coords` is omitted. `"classical_mds"`
+#'   (the default) uses [classical.mds()]. `"metric_mds"` uses stress-minimizing
+#'   [metric.mds()] with its default native SGD backend. Both require an
+#'   all-pairs prepared object.
+#'   `"weighted_grip"` runs [grip()] with `metric = "edge_length"` on the
+#'   graph edges first, and
+#'   `"random"` uses centered Gaussian coordinates.
+#' @param weighted.grip.args Named list of additional tuning arguments passed
+#'   to [grip()] when `init = "weighted_grip"`. Graph inputs, `dim`, `seed`,
+#'   and `metric` are supplied by `edge.kk()` and may not be repeated here.
+#'   Former underscore argument names in this list are also accepted for the
+#'   transition release; duplicate old/current spellings are rejected.
+#' @param stiffness.method,stiffness.transform,density.mix.schedule,bandwidth,density.n
+#'   Parameters passed to [edge.length.density.stiffness()].
+#' @param distance.power,stiffness.floor,stiffness.ceiling Additional stiffness
+#'   constructor parameters.
+#' @param scale.mode Scale policy for edge targets. `"profiled"` analytically
+#'   refits `s` at every state evaluation, `"identity"` fixes `s = 1`,
+#'   `"fixed_initial"` fits `s` once at the first continuation stage, and
+#'   `"user"` uses `scale`.
+#' @param scale User scale for `scale.mode = "user"`.
+#' @param max.iter Maximum iterations per continuation stage.
+#' @param initial.step,step.shrink,armijo.factor,grad.tol,min.step Line-search
+#'   controls.
+#' @param recenter If `TRUE`, recenter the layout after accepted steps.
+#' @param return.trace If `TRUE`, keep per-iteration trace rows and coordinate
+#'   frames. If `FALSE`, omit those payloads while retaining compact stage
+#'   summaries in `metadata$stage_summaries`.
+#' @param diagnostics If `TRUE`, attach the common GMDS diagnostic panel.
+#' @param seed Random seed used for `init = "weighted_grip"` and
+#'   `init = "random"`.
+#' @param engine Optimizer engine. `"cpp"` uses the Rcpp backend for the
+#'   edge-stress loop; `"R"` uses the reference implementation.
+#'
+#' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @param ... Former underscore spellings of this function's dotted arguments,
+#'   accepted for one transition release without deprecation warnings (for
+#'   example, `adj_list`, `scale_mode`, and `max_iter`). Use the dotted names
+#'   in new code. Supplying both spellings or unknown arguments errors.
+#' @export
+#' @md
+edge.kk <- function(coords = NULL,
+                    prepared = NULL,
+                    edges = NULL,
+                    n = NULL,
+                    adj.list = NULL,
+                    weight.list = NULL,
+                    edge.weights = NULL,
+                    dim = 2L,
+                    init = c("classical_mds", "metric_mds", "weighted_grip", "random"),
+                    weighted.grip.args = list(),
+                    stiffness.method = c("density", "uniform", "distance_power"),
+                    stiffness.transform = c("identity", "sqrt", "log"),
+                    density.mix.schedule = c(0, 0.25, 0.5, 0.75, 1),
+                    bandwidth = NULL,
+                    density.n = 512L,
+                    distance.power = 0,
+                    stiffness.floor = 0,
+                    stiffness.ceiling = Inf,
+                    scale.mode = c("profiled", "identity", "fixed_initial", "user"),
+                    scale = NULL,
+                    max.iter = 50L,
+                    initial.step = 1.0,
+                    step.shrink = 0.5,
+                    armijo.factor = 1e-4,
+                    grad.tol = 1e-8,
+                    min.step = 1e-8,
+                    edge.length.epsilon = 1e-8,
+                    distance.floor = 1e-8,
+                    recenter = TRUE,
+                    return.trace = TRUE,
+                    diagnostics = TRUE,
+                    seed = 1L,
+                    engine = c("cpp", "R"),
+                    ...) {
+  if (...length())
+    return(eval(.grip.transition.call(match.call(expand.dots = FALSE), sys.function()),
+                envir = parent.frame()))
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  init <- match.arg(init)
+  stiffness.method <- match.arg(stiffness.method)
+  stiffness.transform <- match.arg(stiffness.transform)
+  scale.mode <- match.arg(scale.mode)
+  engine <- match.arg(engine)
+  prepared <- if (!is.null(prepared)) {
+    grip.validate.geodesic.mds.prepared(prepared, coords = coords)
+  } else if (!is.null(coords) || !(init %in% c("classical_mds", "metric_mds"))) {
+    prepare.edge.kk(
+      edges = edges,
+      n = if (is.null(n) && !is.null(coords)) nrow(coords) else n,
+      adj.list = adj.list,
+      weight.list = weight.list,
+      edge.weights = edge.weights
+    )
+  } else {
+    grip.gmds.require.prepared(
+      prepared = NULL,
+      coords = coords,
+      edges = edges,
+      n = n,
+      adj.list = adj.list,
+      weight.list = weight.list,
+      edge.weights = edge.weights
+    )
+  }
+  if (is.null(prepared$edges) || is.null(prepared$edge_targets)) {
+    stop("prepared object must contain edges and edge_targets")
+  }
+  grip.validate.scalar(dim, "dim", lower = 2)
+  dim <- as.integer(round(dim))
+  if (!is.numeric(density.mix.schedule) || length(density.mix.schedule) < 1L ||
+      any(!is.finite(density.mix.schedule)) ||
+      any(density.mix.schedule < 0 | density.mix.schedule > 1)) {
+    stop("density.mix.schedule must contain values in [0, 1]")
+  }
+  density.mix.schedule <- as.double(density.mix.schedule)
+  grip.validate.scalar(max.iter, "max.iter", lower = 0)
+  max.iter <- as.integer(round(max.iter))
+  grip.validate.scalar(initial.step, "initial.step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(step.shrink, "step.shrink", lower = 0, upper = 1, open.lower = TRUE, open.upper = TRUE)
+  grip.validate.scalar(armijo.factor, "armijo.factor", lower = 0)
+  grip.validate.scalar(grad.tol, "grad.tol", lower = 0)
+  grip.validate.scalar(min.step, "min.step", lower = 0, open.lower = TRUE)
+  grip.validate.scalar(edge.length.epsilon, "edge.length.epsilon", lower = 0)
+  grip.validate.scalar(distance.floor, "distance.floor", lower = 0, open.lower = TRUE)
+  if (!is.logical(recenter) || length(recenter) != 1L || is.na(recenter)) {
+    stop("recenter must be TRUE or FALSE")
+  }
+  if (!is.logical(return.trace) || length(return.trace) != 1L || is.na(return.trace)) {
+    stop("return.trace must be TRUE or FALSE")
+  }
+  if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
+    stop("diagnostics must be TRUE or FALSE")
+  }
+  if (identical(scale.mode, "user")) {
+    grip.validate.scalar(scale, "scale", lower = 0, open.lower = TRUE)
+  }
+
+  current <- grip.edge.isometric.initial.coords(
+    prepared = prepared,
+    coords = coords,
+    init = init,
+    dim = dim,
+    seed = seed,
+    weighted.grip.args = weighted.grip.args
+  )
+  if (isTRUE(recenter)) {
+    current <- sweep(current, 2L, colMeans(current), "-", check.margin = FALSE)
+  }
+
+  edges <- prepared$edges
+  edge.targets <- as.double(prepared$edge_targets)
+  stiffness.objects <- lapply(density.mix.schedule, function(mix) {
+    edge.length.density.stiffness(
+      edge.weights = edge.targets,
+      method = stiffness.method,
+      mix = mix,
+      bandwidth = bandwidth,
+      density.n = density.n,
+      transform = stiffness.transform,
+      distance.power = distance.power,
+      stiffness.floor = stiffness.floor,
+      stiffness.ceiling = stiffness.ceiling
+    )
+  })
+  stiffness.matrix <- do.call(cbind, lapply(stiffness.objects, `[[`, "stiffness"))
+
+  if (identical(engine, "cpp")) {
+    cpp.scale.mode <- switch(
+      scale.mode,
+      profiled = "profiled",
+      identity = "identity",
+      fixed_initial = "fixed",
+      user = "user"
+    )
+    cpp.scale <- NA_real_
+    if (identical(scale.mode, "user")) {
+      cpp.scale <- as.double(scale)
+    } else if (identical(scale.mode, "fixed_initial")) {
+      initial.lengths <- if (nrow(edges) == 0L) {
+        numeric(0L)
+      } else {
+        diffs <- current[edges[, 1L], , drop = FALSE] - current[edges[, 2L], , drop = FALSE]
+        sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
+      }
+      cpp.scale <- grip.edge.isometric.fit.scale(
+        observed = initial.lengths,
+        target = edge.targets,
+        stiffness = stiffness.matrix[, 1L],
+        distance.floor = distance.floor
+      )
+      if (!is.finite(cpp.scale)) {
+        cpp.scale <- 1.0
+      }
+    }
+
+    fit <- grip_optimize_edge_isometric_layout_cpp(
+      edges = matrix(as.integer(edges), ncol = 2L),
+      edge_weights = edge.targets,
+      stiffness_matrix = stiffness.matrix,
+      mix_schedule = density.mix.schedule,
+      coords = current,
+      max_iter = max.iter,
+      scale_mode = cpp.scale.mode,
+      scale = cpp.scale,
+      edge_length_epsilon = edge.length.epsilon,
+      initial_step = initial.step,
+      step_shrink = step.shrink,
+      armijo_factor = armijo.factor,
+      grad_tol = grad.tol,
+      min_step = min.step,
+      distance_floor = distance.floor,
+      recenter = recenter,
+      return_trace = return.trace
+    )
+    current <- fit$coords
+    trace.df <- fit$trace
+    stage.final <- fit$stage_final
+    stage.summaries <- lapply(seq_along(stiffness.objects), function(stage.idx) {
+      stiff <- stiffness.objects[[stage.idx]]
+      final <- stage.final[stage.final$stage == stage.idx, , drop = FALSE]
+      data.frame(
+        stage = stage.idx,
+        mix = density.mix.schedule[[stage.idx]],
+        method = stiff$method,
+        transform = stiff$transform,
+        mode = stiff$mode,
+        stiffness.min = min(stiff$stiffness),
+        stiffness.max = max(stiff$stiffness),
+        final.energy = final$energy[[1L]],
+        final.edge.scale = final$edge.scale[[1L]],
+        final.edge.rel.rmse = final$edge.rel.rmse[[1L]],
+        stringsAsFactors = FALSE
+      )
+    })
+    diag <- if (isTRUE(diagnostics)) {
+      score.gmds(
+        coords = current,
+        prepared = prepared,
+        scale.mode = if (identical(scale.mode, "identity")) "identity" else "profiled",
+        distance.floor = distance.floor,
+        edge.length.epsilon = edge.length.epsilon
+      )
+    } else {
+      NULL
+    }
+    return(gmds.result(
+      coords = current,
+      method = "edge_kk",
+      prepared = prepared,
+      trace = trace.df,
+      diagnostics = diag,
+      metadata = list(
+        engine = "cpp_gradient_descent_armijo",
+        initialization = if (is.null(coords)) init else "supplied",
+        stiffness_method = stiffness.method,
+        stiffness_transform = stiffness.transform,
+        density_mix_schedule = density.mix.schedule,
+        stage_summaries = do.call(rbind, stage.summaries),
+        frames = fit$frames,
+        scale_mode = scale.mode
+      )
+    ))
+  }
+
+  fixed.scale <- NULL
+  trace.rows <- list()
+  stage.summaries <- vector("list", length(density.mix.schedule))
+  frames <- if (isTRUE(return.trace)) list(current) else NULL
+
+  for (stage.idx in seq_along(density.mix.schedule)) {
+    mix <- density.mix.schedule[[stage.idx]]
+    stiff <- stiffness.objects[[stage.idx]]
+    stiffness <- stiff$stiffness
+    state.scale.mode <- switch(
+      scale.mode,
+      profiled = "profiled",
+      identity = "identity",
+      fixed_initial = "fixed",
+      user = "user"
+    )
+    if (identical(scale.mode, "fixed_initial") && is.null(fixed.scale)) {
+      initial.lengths <- if (nrow(edges) == 0L) {
+        numeric(0L)
+      } else {
+        diffs <- current[edges[, 1L], , drop = FALSE] - current[edges[, 2L], , drop = FALSE]
+        sqrt(rowSums(diffs^2) + edge.length.epsilon^2)
+      }
+      fixed.scale <- grip.edge.isometric.fit.scale(
+        observed = initial.lengths,
+        target = edge.targets,
+        stiffness = stiffness,
+        distance.floor = distance.floor
+      )
+      if (!is.finite(fixed.scale)) {
+        fixed.scale <- 1.0
+      }
+    }
+    stage.scale <- if (identical(scale.mode, "user")) {
+      as.double(scale)
+    } else if (identical(scale.mode, "fixed_initial")) {
+      fixed.scale
+    } else {
+      NULL
+    }
+    state <- grip.edge.isometric.evaluate.state(
+      coords = current,
+      edges = edges,
+      edge.weights = edge.targets,
+      stiffness = stiffness,
+      scale.mode = state.scale.mode,
+      scale = stage.scale,
+      edge.length.epsilon = edge.length.epsilon,
+      distance.floor = distance.floor
+    )
+    if (isTRUE(return.trace)) {
+      trace.rows[[length(trace.rows) + 1L]] <- data.frame(
+        stage = stage.idx,
+        mix = mix,
+        iteration = 0L,
+        energy = state$energy,
+        gradient_norm = state$gradient_norm,
+        step = NA_real_,
+        accepted = TRUE,
+        edge.scale = state$edge_scale,
+        edge.rel.rmse = state$edge_rel_rmse,
+        stringsAsFactors = FALSE
+      )
+    }
+
+    for (iter in seq_len(max.iter)) {
+      if (!is.finite(state$gradient_norm) || state$gradient_norm <= grad.tol) {
+        break
+      }
+      step <- as.double(initial.step)
+      accepted <- FALSE
+      candidate <- current
+      candidate.state <- state
+      while (is.finite(step) && step >= min.step) {
+        proposal <- current - step * state$gradient
+        if (isTRUE(recenter)) {
+          proposal <- sweep(proposal, 2L, colMeans(proposal), "-", check.margin = FALSE)
+        }
+        proposal.state <- grip.edge.isometric.evaluate.state(
+          coords = proposal,
+          edges = edges,
+          edge.weights = edge.targets,
+          stiffness = stiffness,
+          scale.mode = state.scale.mode,
+          scale = stage.scale,
+          edge.length.epsilon = edge.length.epsilon,
+          distance.floor = distance.floor
+        )
+        target.energy <- state$energy - armijo.factor * step * state$gradient_norm^2
+        if (is.finite(proposal.state$energy) && proposal.state$energy <= target.energy) {
+          candidate <- proposal
+          candidate.state <- proposal.state
+          accepted <- TRUE
+          break
+        }
+        step <- step * step.shrink
+      }
+      if (isTRUE(return.trace)) {
+        trace.rows[[length(trace.rows) + 1L]] <- data.frame(
+          stage = stage.idx,
+          mix = mix,
+          iteration = iter,
+          energy = if (accepted) candidate.state$energy else state$energy,
+          gradient_norm = if (accepted) candidate.state$gradient_norm else state$gradient_norm,
+          step = if (accepted) step else NA_real_,
+          accepted = accepted,
+          edge.scale = if (accepted) candidate.state$edge_scale else state$edge_scale,
+          edge.rel.rmse = if (accepted) candidate.state$edge_rel_rmse else state$edge_rel_rmse,
+          stringsAsFactors = FALSE
+        )
+      }
+      if (!accepted) {
+        break
+      }
+      current <- candidate
+      state <- candidate.state
+      if (isTRUE(return.trace)) {
+        frames[[length(frames) + 1L]] <- current
+      }
+    }
+    stage.summaries[[stage.idx]] <- data.frame(
+      stage = stage.idx,
+      mix = mix,
+      method = stiff$method,
+      transform = stiff$transform,
+      mode = stiff$mode,
+      stiffness.min = min(stiffness),
+      stiffness.max = max(stiffness),
+      final.energy = state$energy,
+      final.edge.scale = state$edge_scale,
+      final.edge.rel.rmse = state$edge_rel_rmse,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  trace.df <- if (isTRUE(return.trace)) {
+    do.call(rbind, trace.rows)
+  } else {
+    NULL
+  }
+  diag <- if (isTRUE(diagnostics)) {
+    score.gmds(
+      coords = current,
+      prepared = prepared,
+      scale.mode = if (identical(scale.mode, "identity")) "identity" else "profiled",
+      distance.floor = distance.floor,
+      edge.length.epsilon = edge.length.epsilon
+    )
+  } else {
+    NULL
+  }
+  gmds.result(
+    coords = current,
+    method = "edge_kk",
+    prepared = prepared,
+    trace = trace.df,
+    diagnostics = diag,
+    metadata = list(
+      engine = "r_gradient_descent_armijo",
+      initialization = if (is.null(coords)) init else "supplied",
+      stiffness_method = stiffness.method,
+      stiffness_transform = stiffness.transform,
+      density_mix_schedule = density.mix.schedule,
+      stage_summaries = do.call(rbind, stage.summaries),
+      frames = frames,
+      scale_mode = scale.mode
+    )
+  )
+}

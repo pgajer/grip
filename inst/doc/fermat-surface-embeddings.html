@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Embedding Fermat distances on a paraboloid, saddle and helix</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Embedding Fermat distances on a paraboloid,
+saddle and helix</h1>
+
+
+
+<p>The reference-geodesic calculations are an explicit reproduction
+step. Set GRIP_RUN_FERMAT_EXPERIMENT=true to run them, or
+FERMAT_SURFACE_RESULTS to a directory containing the saved results.
+Routine package builds show the code without rerunning this
+experiment.</p>
+<p>This example fits three-dimensional metric MDS directly to
+<strong>dense complete-graph Fermat distance matrices</strong>. No kNN
+graph is required. We then deliberately restrict paths to symmetric
+Fermat kNN graphs with k from 3 through 10 and compare their embeddings
+with the dense-target fits. The companion dgraphs vignette explains the
+distance estimator and supporting path graphs.</p>
+<div id="sample-surfaces-and-supply-a-distance-matrix" class="section level2">
+<h2>Sample surfaces and supply a distance matrix</h2>
+<p>We use the paraboloid <span class="math inline">\((u,v,u^2+v^2)\)</span> and saddle <span class="math inline">\((u,v,u^2-v^2)\)</span> over the unit disk. The
+existing dgraphs sampler draws uniformly with respect to <strong>surface
+area</strong>, using the area element of the graph surface; we do not
+replace it with uniform sampling of the two parameter coordinates.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(grip)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>s <span class="ot">&lt;-</span> dgraphs<span class="sc">::</span><span class="fu">sample.synthetic.geometry</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>  dgraphs<span class="sc">::</span><span class="fu">synthetic.quadform</span>(<span class="dv">2</span>,<span class="dv">3</span>,<span class="at">forms=</span><span class="fu">list</span>(<span class="fu">diag</span>(<span class="fu">c</span>(<span class="dv">1</span>,<span class="sc">-</span><span class="dv">1</span>)))),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  dgraphs<span class="sc">::</span><span class="fu">synthetic.sampling.quadform.lab</span>(<span class="st">&#39;disk&#39;</span>,<span class="at">mode=</span><span class="st">&#39;area&#39;</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="at">n=</span><span class="dv">150</span>,<span class="at">seed=</span><span class="dv">4101</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>X <span class="ot">&lt;-</span> s<span class="sc">$</span>predictors</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>D <span class="ot">&lt;-</span> dgraphs<span class="sc">::</span><span class="fu">fermat.distances</span>(<span class="at">points=</span>X,<span class="at">p=</span><span class="dv">2</span>,<span class="at">backend=</span><span class="st">&#39;implicit&#39;</span>,<span class="at">rooted=</span><span class="cn">FALSE</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">metric.mds</span>(<span class="at">distance.matrix=</span>D,<span class="at">dim=</span><span class="dv">3</span>,<span class="at">backend=</span><span class="st">&#39;sgd&#39;</span>,<span class="at">init=</span><span class="st">&#39;random&#39;</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="at">seed=</span><span class="dv">3051</span>,<span class="at">max.iter=</span><span class="dv">300</span>,<span class="at">diagnostics=</span><span class="cn">FALSE</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="at">sgd.control=</span><span class="fu">list</span>(<span class="at">final.rate=</span><span class="fl">1e-5</span>))</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>Y <span class="ot">&lt;-</span> fit<span class="sc">$</span>coords</span></code></pre></div>
+<p>For observations <span class="math inline">\(X_i\)</span>, the
+supplied target is <span class="math inline">\(D_p(i,j)=\min_{\pi:i\leadsto
+j}\sum_{(a,b)\in\pi}\|X_a-X_b\|^p\)</span>. The minimum allows every
+observation as an intermediate point. The exponent is applied to
+individual ambient steps, and the returned distance is unrooted. The MDS
+coordinates <span class="math inline">\(Y_i\in\mathbb R^3\)</span> seek
+to minimize an unweighted sum of squared residuals <span class="math inline">\((\|Y_i-Y_j\|-D_p(i,j))^2\)</span> over distinct
+pairs. The fixed 300-epoch SGD budget is an optimization budget, not a
+convergence certificate.</p>
+</div>
+<div id="a-matched-comparison" class="section level2">
+<h2>A matched comparison</h2>
+<p>The comparison uses powers 1, 2, 3 and 4. Every fit uses the same
+seeded random starting configuration for retained samples, with the
+initial global scale fitted separately to its target matrix, uses
+uniform pair weights and the same optimization controls. For a
+disconnected kNN graph only its largest component is embedded. All
+within-component graph shortest-path distances are supplied as a dense
+matrix; this isolates <strong>graph restriction</strong>, without adding
+a landmark approximation to this small example.</p>
+<p>We keep three questions separate. <strong>Distance error</strong>
+compares the input distances with reference surface geodesics.
+<strong>Graph restriction error</strong> compares graph shortest paths
+with complete-graph Fermat distances. <strong>Embedding error</strong>
+compares Euclidean distances in the fitted coordinates with their
+supplied targets. For vectors of estimated distances <span class="math inline">\(d\)</span> and reference distances <span class="math inline">\(g\)</span>, we report <span class="math display">\[
+E(d,g;a)=\sqrt{\frac{\sum_r(ad_r-g_r)^2}{\sum_r g_r^2}}.
+\]</span> Here <span class="math inline">\(r\)</span> indexes valid
+comparison pairs. For distance-versus-geodesic comparisons, <span class="math inline">\(a=\sum_r d_rg_r/\sum_r d_r^2\)</span> fits one
+global scale because different powers have different units. For
+embedding and graph restriction error, <span class="math inline">\(a=1\)</span>: the targets and their estimates are
+in the same units. Smaller errors are better; zero means agreement on
+those pairs. Reference geodesics use existing continuous solvers on
+1,000 sampled pairs using <code>best_of_six</code> for both surfaces,
+with <code>paraboloid_clairaut</code> on the same paraboloid pairs. Each
+of the six refinement searches receives 64 rounds; no global-optimality
+certificate is implied.</p>
+<p>Table 1. Dense-target fits. The two geodesic columns allow a global
+scale change; the embedding-versus-input column does not. A good MDS fit
+can faithfully reproduce an inaccurate geodesic estimator, and these
+columns distinguish those cases.</p>
+<p><strong>Figure 1.</strong> Scaled agreement between embedded
+Euclidean distances and the intrinsic reference. The point at k=0 is the
+complete-target baseline; points at k=3–10 are restricted graphs.
+Connecting segments help follow powers and do not represent fits at
+untested k values. Disconnected results use fewer pairs:</p>
+<p>The table summarizes ranges across disconnected k values. Complete
+coverage is 150 samples. Small within-component errors do not establish
+whole-sample recovery.</p>
+</div>
+<div id="overlay-embeddings-and-their-supporting-paths" class="section level2">
+<h2>Overlay embeddings and their supporting paths</h2>
+<p>The reference surface is translucent gray, original observations are
+gray points, and fitted coordinates are colored by their first latent
+coordinate. Thin blue lines show the selected shortest-path edges for
+the complete graph, or Fermat neighbor edges for the restricted graph.
+Views are aligned to the observations using least-squares similarity
+Procrustes alignment: translation, rotation or reflection, and one
+uniform scale, matching each embedded point to its original observation.
+Plot titles report the root mean squared Euclidean alignment residual
+per retained sample, in target-coordinate units (zero is exact overlap).
+Alignment changes only display coordinates; numerical errors above use
+the original fits.</p>
+<p><strong>Figure 2.</strong> Dense p=2 Fermat embedding on the
+paraboloid. Rotate the interactive view to inspect displacements from
+the gray surface.</p>
+<p><strong>Figure 3.</strong> Dense p=2 Fermat embedding on the saddle,
+with its supporting paths. An intrinsic metric need not have an exact
+three-dimensional Euclidean realization.</p>
+<p><strong>Figure 4.</strong> The same saddle samples after restriction
+to a symmetric k=3 Fermat graph. Its edges summarize potentially
+multistep Fermat paths; they are not the individual powered ambient
+edges shown in Figure 3. If disconnected, only the largest component
+appears. Edge legends report any display thinning beyond 1,800 edges;
+underlying graph data remain complete.</p>
+</div>
+<div id="why-the-helix-should-unfold" class="section level2">
+<h2>Why the helix should unfold</h2>
+<p>The helix <span class="math inline">\((\cos t,\sin t,0.2t)\)</span>
+has arc-length distance <span class="math inline">\(\sqrt{1.04}|t_i-t_j|\)</span>. Therefore its
+intrinsic distance matrix has an exact one-dimensional realization.
+Fitting those distances in three coordinates should produce a nearly
+straight line, not reconstruct the coil. Three-dimensional metric MDS
+compares straight distances, not travel constrained to a curve.</p>
+<p><strong>Figure 5.</strong> Dense p=2 Fermat embedding over the
+original helix. Agreement with the coil is not the success criterion for
+intrinsic-distance reconstruction.</p>
+<p><strong>Figure 6.</strong> Exact arc-length target baseline. Its
+coordinates should approach a line; remaining transverse spread measures
+finite optimization error. The surface examples do not have
+corresponding all-pairs exact-reference baselines: their numerical
+reference checks cover selected pairs only.</p>
+</div>
+<div id="larger-datasets" class="section level2">
+<h2>Larger datasets</h2>
+<p>The direct dense API above is suitable for small comparisons. For
+larger datasets, dgraphs can compute only selected source rows with
+<code>sources = landmarks</code>.
+<code>landmark.mds.constraints()</code> converts those distances into
+explicit weighted pair fitting targets for sparse
+<code>metric.mds()</code>. This is a separate approximation in the
+embedding objective, not a restriction of the paths defining each Fermat
+distance.</p>
+</div>
+<div id="chord-lengths-before-and-after-scaling" class="section level2">
+<h2>Chord lengths before and after scaling</h2>
+<p>At p=1, complete-graph Fermat distances equal ambient Euclidean chord
+lengths. A 3D MDS fit can therefore reproduce the sampled shape without
+reproducing its intrinsic distances. The earlier distance score fits a
+global scale; it is not the discrepancy of the original chord
+lengths.</p>
+<p>For each of the same evaluated pairs, write <span class="math inline">\(c_r\)</span> for the chord and <span class="math inline">\(g_r\)</span> for the intrinsic reference. The
+following table reports <span class="math inline">\(E(c,g;1)\)</span>
+and <span class="math inline">\(E(c,g;a)\)</span> with <span class="math inline">\(a=\sum c_rg_r/\sum c_r^2\)</span>, together with
+the median and maximum ratio <span class="math inline">\(g_r/c_r\)</span>. Errors are dimensionless and
+zero means agreement. The ratio is one for equal lengths; 1.3 means the
+geodesic is 30% longer than its chord. These are the 1,000 evaluated
+pairs for seed 4101, not all sample pairs.</p>
+<p>Scaling reduces chord underestimation on these patches, but does not
+make chords intrinsic distances. Larger discrepancies remain for
+individual endpoint pairs. On the helix, accurately preserving arc
+lengths unfolds the curve into a line; matching the original coil is a
+different objective.</p>
+<p>Independent solver checks are attempts, not guaranteed successes.
+Candidate lengths and close agreement where both solvers succeed do not
+certify global minimality. The table below makes the successful
+comparison count explicit.</p>
+</div>
+<div id="paraboloid-reference-method-comparison" class="section level2">
+<h2>Paraboloid reference-method comparison</h2>
+<p>Best-of-six and Clairaut evaluate the same 1,000 pairs. Positive
+signed relative difference <span class="math inline">\((b_r-h_r)/h_r\)</span> means the best-of-six
+candidate <span class="math inline">\(b_r\)</span> is longer than the
+Clairaut candidate <span class="math inline">\(h_r\)</span>. Neither is
+assumed globally certified.</p>
+<p>The second table compares scaled Fermat-distance errors under each
+reference. It uses identical targets and endpoint pairs, isolating
+reference-method effects.</p>
+</div>
+<div id="follow-up-sampling-density-intermediate-powers-and-stronger-curvature" class="section level2">
+<h2>Follow-up: sampling density, intermediate powers and stronger
+curvature</h2>
+<p>A separate distance-only experiment varied total sample size from 150
+to 2,400, with five repetitions, on paraboloids and saddles with
+coefficients 1, 2 and 4, and an area-uniform Swiss roll. It reused the
+existing quadform area sampler. For each surface, 64 fixed sampled
+endpoints supplied 500 calibration pairs and 1,000 different evaluation
+pairs. Additional path-support points varied across repetitions and were
+nested across sample sizes. All observations could be used by the
+complete-graph paths; this was not a landmark approximation.</p>
+<p>Errors below are percentages: the square root of the ratio of summed
+squared distance residuals to summed squared reference distances. Each
+method’s single multiplicative scale was fitted on calibration pairs
+only. Values are means over five repetitions conditional on the fixed
+endpoints; they are new measurements, not replacements for the original
+150-point fits above. No MDS error enters them.</p>
+<table>
+<colgroup>
+<col width="15%" />
+<col width="21%" />
+<col width="21%" />
+<col width="21%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Surface</th>
+<th align="right">Power p</th>
+<th align="right">Error at n=150 (%)</th>
+<th align="right">Error at n=2,400 (%)</th>
+<th align="right">Ambient error (%)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Paraboloid, coefficient 1</td>
+<td align="right">1.25</td>
+<td align="right">3.73</td>
+<td align="right">1.82</td>
+<td align="right">8.51</td>
+</tr>
+<tr class="even">
+<td>Paraboloid, coefficient 1</td>
+<td align="right">2</td>
+<td align="right">11.72</td>
+<td align="right">5.67</td>
+<td align="right">8.51</td>
+</tr>
+<tr class="odd">
+<td>Saddle, coefficient 1</td>
+<td align="right">1.25</td>
+<td align="right">4.55</td>
+<td align="right">1.75</td>
+<td align="right">8.74</td>
+</tr>
+<tr class="even">
+<td>Saddle, coefficient 1</td>
+<td align="right">2</td>
+<td align="right">14.27</td>
+<td align="right">5.58</td>
+<td align="right">8.74</td>
+</tr>
+<tr class="odd">
+<td>Saddle, coefficient 4</td>
+<td align="right">1.5</td>
+<td align="right">14.82</td>
+<td align="right">2.55</td>
+<td align="right">28.32</td>
+</tr>
+<tr class="even">
+<td>Swiss roll</td>
+<td align="right">3</td>
+<td align="right">42.33</td>
+<td align="right">7.70</td>
+<td align="right">55.84</td>
+</tr>
+</tbody>
+</table>
+<p>Ambient error is constant because the endpoints are fixed. These
+results expose both a sample-size effect and a limitation of the
+original integer-only power grid: p=1.25 already beats ambient chords on
+the new mild-surface samples at n=150. Larger powers are needed to
+suppress shortcuts on the rolled surface. The displayed powers
+illustrate these effects; they are not universal tuning
+recommendations.</p>
+<p>Ordinary Euclidean kNN graph distances were more accurate on these
+uniform examples at the larger sample size. For k=20 and n=2,400, errors
+were 0.62%, 0.49% and 0.35% on the mild paraboloid, mild saddle and
+Swiss roll. This separates recovering ordinary geodesics from
+deliberately imposing a density-weighted geometry.</p>
+<p>References used best-of-six on quadforms and analytic distances on
+the roll, with Clairaut sensitivity checks on every paraboloid pair. For
+the steepest paraboloid, p=1.25 at n=2,400 had 4.82% error against
+best-of-six but 2.05% against Clairaut. Reference-method disagreement
+therefore matters for this harder surface. Increasing the quadform
+coefficient changes its curvature profile and area; it does not multiply
+curvature uniformly over the patch. The complete experiment, pair
+definitions, coverage and uncertainty are recorded in the research
+experiment <code>fermat_density_curvature_01_oct_2026</code>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Finding your way around grip</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Finding your way around grip</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#choose-a-starting-point" id="toc-choose-a-starting-point">Choose a starting point</a></li>
+<li><a href="#a-first-drawing-and-diagnostic" id="toc-a-first-drawing-and-diagnostic">A first drawing and
+diagnostic</a>
+<ul>
+<li><a href="#input-and-output-conventions" id="toc-input-and-output-conventions">Input and output
+conventions</a></li>
+<li><a href="#hop-counts-or-edge-lengths" id="toc-hop-counts-or-edge-lengths">Hop counts or edge lengths?</a></li>
+</ul></li>
+<li><a href="#dimensions-result-objects-and-methods" id="toc-dimensions-result-objects-and-methods">Dimensions, result
+objects, and methods</a>
+<ul>
+<li><a href="#a-common-extraction-step" id="toc-a-common-extraction-step">A common extraction step</a></li>
+</ul></li>
+<li><a href="#classical-scaling-and-metric-stress-mds" id="toc-classical-scaling-and-metric-stress-mds">Classical scaling and
+metric stress MDS</a></li>
+<li><a href="#choose-a-score" id="toc-choose-a-score">Choose a
+score</a></li>
+<li><a href="#reuse-preparations-and-control-cost" id="toc-reuse-preparations-and-control-cost">Reuse preparations and
+control cost</a></li>
+<li><a href="#experimental-refinement-and-current-initializers" id="toc-experimental-refinement-and-current-initializers">Experimental
+refinement and current initializers</a></li>
+<li><a href="#function-catalog" id="toc-function-catalog">Function
+catalog</a>
+<ul>
+<li><a href="#compute-layouts" id="toc-compute-layouts">Compute
+layouts</a></li>
+<li><a href="#select-and-compare-candidates" id="toc-select-and-compare-candidates">Select and compare
+candidates</a></li>
+<li><a href="#score-graph-distances-or-reference-geometry" id="toc-score-graph-distances-or-reference-geometry">Score graph
+distances or reference geometry</a></li>
+<li><a href="#trace-multiscale-layouts" id="toc-trace-multiscale-layouts">Trace multiscale layouts</a></li>
+<li><a href="#plot-and-project" id="toc-plot-and-project">Plot and
+project</a></li>
+<li><a href="#prepare-graphs-and-inspect-multiscale-structures" id="toc-prepare-graphs-and-inspect-multiscale-structures">Prepare graphs
+and inspect multiscale structures</a></li>
+<li><a href="#experimental-refinement-and-state-diagnostics" id="toc-experimental-refinement-and-state-diagnostics">Experimental
+refinement and state diagnostics</a></li>
+<li><a href="#synthetic-graphs-primitive-edge-generators" id="toc-synthetic-graphs-primitive-edge-generators">Synthetic graphs:
+primitive edge generators</a></li>
+<li><a href="#synthetic-graphs-configurable-keep-masks" id="toc-synthetic-graphs-configurable-keep-masks">Synthetic graphs:
+configurable keep masks</a></li>
+<li><a href="#synthetic-graphs-complete-surface-and-solid-bundles" id="toc-synthetic-graphs-complete-surface-and-solid-bundles">Synthetic
+graphs: complete surface and solid bundles</a></li>
+<li><a href="#synthetic-graphs-complete-recursive-bundles" id="toc-synthetic-graphs-complete-recursive-bundles">Synthetic graphs:
+complete recursive bundles</a></li>
+<li><a href="#interactive-exploration" id="toc-interactive-exploration">Interactive exploration</a></li>
+</ul></li>
+<li><a href="#find-detailed-help" id="toc-find-detailed-help">Find
+detailed help</a></li>
+<li><a href="#sgd-references" id="toc-sgd-references">SGD
+references</a></li>
+</ul>
+</div>
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+table { width: 100%; }
+td, th { vertical-align: top; }
+td code { white-space: normal; overflow-wrap: anywhere; }
+</style>
+<p>Installed figures use static projections. To enable 3D rotation and
+layout selection, render with
+<code>options(grip.vignette.interactive = TRUE)</code> and
+<strong>ivue</strong> and <strong>rgl</strong> installed.</p>
+<p>What do you want to learn from your graph: its connectivity, its
+edge-length geometry, or how a drawing compares with a known reference?
+Start with that question. <code>grip()</code> computes a drawing;
+scoring, tracing, and graph-family helpers support different decisions
+around that drawing.</p>
+<div id="choose-a-starting-point" class="section level2">
+<h2>Choose a starting point</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Your question</th>
+<th>Entry point</th>
+<th>Follow-up</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What does the connectivity look like?</td>
+<td><code>grip(metric = &quot;hop&quot;)</code></td>
+<td><a href="grip-examples.html">Getting Started</a></td>
+</tr>
+<tr class="even">
+<td>What if edges have meaningful lengths?</td>
+<td><code>grip(metric = &quot;edge_length&quot;)</code></td>
+<td><a href="weighted-grip-intro.html">Weighted Graph Layouts</a></td>
+</tr>
+<tr class="odd">
+<td>Which settings and seeds give useful drawings?</td>
+<td><code>compare.layouts()</code>, then
+<code>params.from.summary()</code></td>
+<td><a href="grip-real-data.html">Choosing Layouts for Real
+Data</a></td>
+</tr>
+<tr class="even">
+<td>Does my drawing preserve graph distances?</td>
+<td><code>score.layout()</code> or the more specialized
+<code>score.gmds()</code></td>
+<td><a href="#choose-a-score">Choose a score</a></td>
+</tr>
+<tr class="odd">
+<td>Does it recover a reference configuration?</td>
+<td><code>score.coordinates()</code>; <code>score.surface()</code> for
+triangular surfaces</td>
+<td><a href="synthetic-graph-families.html">Graph examples</a></td>
+</tr>
+<tr class="even">
+<td>How do normalization and distance affect a 3D fit?</td>
+<td><code>metric.mds()</code> and original-space pair-distance
+diagnostics</td>
+<td><a href="https://pgajer.github.io/grip/articles/embedding-fidelity.html">What
+does a 3D embedding preserve?</a> (website article)</td>
+</tr>
+<tr class="odd">
+<td>Should a selected group be refitted locally?</td>
+<td>Compare a population-coordinate subset with a fit to the same
+within-group targets</td>
+<td><a href="https://pgajer.github.io/grip/articles/local-global-embeddings.html">Local
+embeddings versus subsets of a global embedding</a> (website
+article)</td>
+</tr>
+<tr class="even">
+<td>Where did a fold or collapse appear?</td>
+<td><code>trace.grip()</code></td>
+<td><a href="grip-trace-and-diagnostics.html">Tracing and Diagnosing
+Layouts</a></td>
+</tr>
+<tr class="odd">
+<td>How do I construct a reproducible example?</td>
+<td>An <code>edges.*()</code> generator or a complete
+<code>*.graph()</code> bundle</td>
+<td><a href="synthetic-graph-families.html">Graph examples</a></td>
+</tr>
+<tr class="even">
+<td>How do I browse many saved results?</td>
+<td><code>gripui.project()</code> and <code>run.gripui()</code> in an
+interactive session</td>
+<td><a href="gripui-explorer.html">Interactive exploration</a></td>
+</tr>
+</tbody>
+</table>
+<p>This overview and most linked guides are installed vignettes. The two
+representation articles marked above are website-only, interactive
+companions. The website publishes both kinds of guide. Start with <a href="grip-examples.html">Getting Started</a> for a first drawing, then
+use this categorized overview to explore the package.</p>
+</div>
+<div id="a-first-drawing-and-diagnostic" class="section level2">
+<h2>A first drawing and diagnostic</h2>
+<p>Here 20 vertices form a rectangular grid. Sampled stress measures how
+well Euclidean separation in the drawing matches shortest-path hop
+counts after fitting a common scale. Zero means perfect agreement on the
+evaluated pairs; it does not certify that every geometric feature or
+unsampled pair is correct.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(grip)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>edges <span class="ot">&lt;-</span> <span class="fu">edges.mesh</span>(<span class="dv">4</span>, <span class="dv">5</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>coords <span class="ot">&lt;-</span> <span class="fu">grip</span>(edges, <span class="at">n =</span> <span class="dv">20</span>, <span class="at">dim =</span> <span class="dv">2</span>, <span class="at">preset =</span> <span class="st">&quot;mesh&quot;</span>, <span class="at">seed =</span> <span class="dv">11</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">identical</span>(<span class="fu">dim</span>(coords), <span class="fu">c</span>(<span class="dv">20</span><span class="dt">L</span>, <span class="dv">2</span><span class="dt">L</span>)), <span class="fu">all</span>(<span class="fu">is.finite</span>(coords)))</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">system.file</span>(<span class="st">&#39;scripts&#39;</span>,<span class="st">&#39;vignette-views.R&#39;</span>,<span class="at">package=</span><span class="st">&#39;grip&#39;</span>),<span class="at">local=</span><span class="cn">TRUE</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">documentation.view</span>(<span class="fu">list</span>(<span class="st">`</span><span class="at">GRIP mesh (2D fit)</span><span class="st">`</span><span class="ot">=</span><span class="fu">cbind</span>(coords,<span class="at">z=</span><span class="dv">0</span>)),edges,</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>  <span class="at">aligned=</span><span class="cn">TRUE</span>,<span class="at">description=</span><span class="st">&#39;A planar mesh fit shown at z = 0.&#39;</span>)</span></code></pre></div>
+<p><img role="img" aria-label="A 20-vertex rectangular mesh drawn with the mesh preset, showing its rows and columns." src="data:image/png;base64,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gAiIgBSYrgEREAEREIEgCUiBBblsEloEREAEREAKTNeACIiACIhAkASkwIJcNgktAiIgAiIgBaZrQAREQAREIEgCUmBBLpuEFgEREAERkALTNSACIiACIhAkASmwIJdNQouACIiACEiB6RoQAREQAREIkoAUWJDLJqFFQAREQASkwHQNiIAIiIAIBElACizIZZPQIiACIiACUmC6BkRABERABIIkIAUW5LJJaBEQAREQASkwXQMiIAIiIAJBEpACC3LZJLQIiIAIiIAUmK4BERABERCBIAlIgQW5bBJaBERABERACkzXgAiIgAiIQJAEpMCCXDYJLQIiIAIiIAWma0AEREAERCBIAlJgQS6bhBYBERABEZAC0zUgAiKQGIGRsfHEzqUTZZ+AFFj211gzFIFUEHj35+5ym173efftu4+mQh4JET6B+eFPQTMQARFIM4FLl8dc16Uhd+B4l5uYcO6RcxfTLK5kC4jAnAkbAcmbKlHHx8fdb3/7W3fo0CG3Y8cOd9NNN7k5c+Z4Gb///e873mc0NTW57du3u82bN/u/H3jgAdfc3Oz//sUvfuEuXLjgX29sbHQ33nijW7dunf87jv9duXLF3XPPPe5Zz3rWjId/7LHH3I9//GP33Oc+13/u6NGjbmBgwD3xiU/0f1+8eNH97Gc/878vWLDArV+/3u3du7fgMeHDPJ/5zGe60dFR/7mrV6+6efPmudOnT7vBwUG3e/fugt/Vi2ESGLty1XX3j5jiGnYL5891y9ua3Bzz99x5/1m3a8NSt2dze5gTk9SpIiAFVuZydHV1uT/8wz90T3/6073yuvvuu93w8LC7/fbb3dy5c11bW5t7+9vf7n/nZv/d737Xvfvd73Zvectb3Dvf+U63detW99a3vtW98IUvdIsWLfIKgJv79773PfeBD3zAvf71ry9Tspm/1tPT42655RZ3//33z/jBL37xi27NmjXu+c9/vvvjP/5jr5iXLFniFfZPfvIT96tf/cq9/OUvd6961avcyMiIf729vd195zvf8YopOjhMtmzZ4ue+f/9+9/DDD7s/+7M/88rspz/9qUOh/umf/qn70pe+FH1FPwMlwKPwxcFJpTU0Mu6WtTW6FYubXFPDtY6ewyd63Nr2RW5pa2OgM5XYqSGABaYxMfHzB89PPO1tX5vY/LrPT7z3C3dPmAUyIxZTXhN2s77mM294wxsmzLrxr7W2tk7YzXnqfVNwE09+8pP933/xF38x8clPftL//oIXvGDijjvumPqcKYeJpz3taVN/88v58+cnHn300QmziCZMEfrjmgKZMGU3MTY2NvXZzs7OCVOg17xmltOEKQf/XT7Y3d09YYpkor+/f+Ib3/jGhFlAU9+PfhkaGpowxeX/NOtwwhRV9NbEq1/96okf/vCHE2ZRTZgVN/W6WVQTr3jFKyb+7u/+buo1fvna1742ccMNN0zcddddEx0dHROHDx/2/5mym5KJ79x6663XfE9/hENgePTKxKnO/on7Hrkw8dCp3ome/uGJq1en//fTf3l04rdHL8z4mXBmL0lrSUBBHI8/Srzl73/sjp675C6PXHGf/d4h971fnpj2ISOyOF7ykpdc8xmsFiyyaJiycPx37Ngx981vfvOa96LP5P60C8H9+te/dlgquQPrDlceFss//MM/uGc/+9neYsHaede73uU/+ulPf9q9+c1vdg899JC3bo4fP+7OnDnjXvayl3kLie+9733v859Fnr/8y7/01hBuT1x4ueMHP/iBe9KTnuRfWrFihTPl4n/HWrrvvvvc6tWrcz/uf8fqxBrDOssdprS8lWVK2DEP5Ozr63O4EM+dO+c/+tKXvtT94z/+Y+7X9HvKCZh6ct3mHnzwVK976HSfeRrmuBs3LXM7zT24zCwr/p5utDYvdC1NC11H39B0H9HrIlAUgWtt+6K+kr0PjZq//nzv5WsmdrKz/5q/c/9g32bZsmVT+13cfFFQKKBXvvKV7k1vepP/ODd0s2bcwYMH3Uc/+lHvKss9TvT7G9/4Ru9G5MbO/teXv/zl6K2pn095ylO8Arr33nsdn//4xz/uIncgH/rc5z7nPvOZzziz/LwL7+tf/7pDwZqF5l2Bn/3sZ/3+E59l/80sQC//nXfe6Y4cOeLMOuQtP8xK8nt20d/8RGmbheX+6I/+yO3Zs8f98pe/zH3b/84eHword+BmNCvMc7ntttv8W894xjP8fF/72tdOfQ/Xokb6CfCA13Vx2PWZqxAltMZcgYtNIUV7v8XOYMPyFvfAyV7vYlxge2QaIlAOAV05Rq1hwTz34t/fMsWvaeF894Knbp76O/+Xbdu2OfbALl+eVHpYOVg4BCmgDKJhrkH3m9/8xn3sYx/zN3GslEIDxYPlhWJEMezcufO6j61du9a/hvJh/4yxcOFCb91gQRFk8YUvfMGf65FHHvF7cCia6NwEh0T7TFhQ0Q2HfS2UU+5ACS1evHjqJY7/4he/2N18883u/e9//9Tr+b+Ym3MqUCX/vZn+hguKngcAjfQRGL/6mOs0a4m9q2Pn+13Dwnlu75blbse6JW7Jooapa6kUyRfav7mVS5vd6a6BUr6mz4rANQQK31Gv+Uh9/PGpt93iPvKmP3D//RVPdv/y4Ze5rWt+dwPPJ8ANFyuI4APcagQvbNiwwZ06dSr/o/5vAjeWL18+5cLL/xCKiAjE6RQcn48UTv53+bulpcVHB77jHe/wlhWBF1iIWH5YU1/5yle8gkTJFjOIJkQhMohGRHlhLb3nPe+Z9utEUn74wx92tg847Wdy38ida29vr0NBzzTH3O/q92QI9A+Nebf6wePd3rW+cVWr27el3a1ZtsgtmFf5rWP1smY3MHzFDdp/GiJQDgG5EB+nhhvjDc+7sWiGH/nIR9x73/te94QnPMGHyWORvehFL/J7S4UOgvJgb+s1r3lNobcrfg3L6G1ve5sjpB2L6atf/apXmn/1V3/lfvSjH3nX3kwKKFcA3JWf+MQn/Evf+ta3fNg9+2kf/OAH/Wsf+tCH3MaNG31oPOkB7Gc1NDT4qEsLSsk91LS/47LElci+GGkFnFOj9gTGxi38/dKI39+aZ/tYK5Y0uU2muOZXQWHlz27unDluw4oWd+rCgN8/y39ff4vAbAQURj8boSLex4LA4knDwBWHmzF34OpEwcyfX9zzCq685zznOY49K1yMcQ1cl1ie7BkSgPLUpz41rlPpuDMQYL0nk42HzRoa80EYK5Y0u+a88PcZDlHRWw+d6nPLFzfaf00VHUdfrj8ClfsB6o/ZdTNOi/JCsHzlxWvkmRWrvPg8rry//uu/dp/61Kf4M7aB8jp79qw/n5RXbJinPTDBS2dsD+r+Y92uw4KYiB58wrYVZnG1Jaa8EA7X5JnuQWeR99PKqjdEoBABWWCFqOg1T4BgjkIh89XEQ3UP9sNQshrxE7D0Rh9BiJtw2ArrUiED66fRApdqOU5Y1O98uw7Wm0tRQwSKJSAFViwpfU4EAiYwZOHvlHayJGO3qHGBW2kuwsU+gjAdk7pikY6Hj/e43ZZLRlSwhggUQ0AKrBhK+owIBEgAlxwKC2vrigXarFjcnOq8KxKbByzykfB8DREohkBt/QbFSKjPiIAIFE3gi//vAfeF//uApYM8yW1c2erazMpat9ySje1n2scqswpJkr50eTQIedPOsx7kkwKrh1XWHDNPgNJOPWZpfckUGOWd7jl83r3IkvPjCH+PC6bFDrkNK1ssuXnQtZVR3SMuuXTc9BKQCzG9ayPJRGBWArQtuWBWC3UJFzUtcL0DI+72nx93r7x5u48onPUAKfzAI2cvegW2yip1aIjATASkwGaio/dEIKUEqJJBeafLVsWC/KmVlnBMeSYGpZ8OWUDEro1Lax5dWA6+EYuOJDdsr1X9CMmCLGeu+k5lBKTAKuOnb4tAYgS8m9AiCVFcDPaM2i0EnooW+YOACEo0bV87fUm0/O+k6W9qJBLyT06ahghMR0B7YNOR0esikBICuW7CFtsb8sEZ9nOmsdKsMhQdSqzFXIuhDeotHrLiwSuXjF/XEDO0uUje+AjIAouPrY4sAhURmMlNWMyBe8xaI6oPV2KIo8v29XptDvQY0xCBQgRkgRWiotdEoEYEokaRBGbgGCSQYZu5AQu5CWcTsb2t0ZeIujg46pa0pD+MPn8+K8yKvGBWZJ8Fpiy1MlcaIpBPQAosn4j+FoEaEBgdI5pwyKplDDs6FlMBvtUaRlY6KM1EtffFi0pvOlnpuavxfeokHrceZOSxzdTluRrn0jHCIyAXYnhrJokzRICkXaytyWjCRl/iKYomrNY0j5zp8xYMFk2I4+j5S44ms2ut+7OGCOQSkALLpaHfRSABAlGJJ4IscA3iJqQSfFwWxtDouEOJ7d+6vCxXZAJIZjwFQSwPnOx1eza3O/r2aYhAREAKLCKhnyIQMwHal3g3oQUnUOKJSEHchUmMY2bFUHE+VCvmXM9lR37YTJ3Sk+Coc6SLgBRYutZD0mSQAG5CrK2hkXHf4ZhK8ElbEqFbMQS3HLTk7G1rFgeZFpDByzoVU5ICS8UySIisEcBNSHkn9rfmWjhh3G7CYvidtmAOFEGoycGUyaLx5o2b2ouZrj5TBwSkwOpgkTXF5AjgJsTaoo0JbkKqZaQlkTgqMRVyzy0KFROMQvksDRGQAtM1IAJVIHDp8pjf3yKacIXVJayFm7CYaZw3C+ayNbfcvjbMnltRQMq+LcvdPExbjbomIAVW18uvyVdCINdNyM0UN+FSSxiOK5qwElmj71Jf8KCVaKJGIp2ZQxwnOvvd/LlzHTluGvVNQAqsvtdfsy+DANFw7G15N2GzuQlNcaXFTVjMdNib479dG5cV8/HUfeaKVds/bAEdIbtCUwc1UIGUVBHowkns5Aiw7/LzB887SjKRT/XQ6T7f5oO8JMo8haS8oMb+EdYj8wlxLJg31121YJTXf+gH7tafPRriFCRzlQiolFSVQOow2STQPzTqnveebzmCMz7zjlvcM/etcztam1yBDiZBAVi/otU6H4dZYgoL+J/vPeZ+cuCsO2Xdm19hzTs16pOAFFh9rrtmPQuBK+OP+aCMDkugJfm326qiP2XHKtfelo3oN2ojdvTONVfiiA86mQVHKt7GYiQRnHy6/3DTVneue9D93q5VqZBNQtSGgPbAasNdZ00pASytjt4h1zsw7Ms7rV66yDodz3XHOqySxYL5bt3y7AQORBF9aS4xReh/lE83f15Udut3FjA9w9bbmoRYbT+l/wSCEksKLKjlkrBxEaDxo+9iPDTmLRICM3Lb2VPJ4vDJHkf4du7rccmT1HGPnrNCuQ3pKzE1bPUbCZThQYJK9KxHoahJrLKzZomxH6lRfwSkwOpvzTXjHAIXrcwTbsIxcxmuXtbsAxym671FWxLey1L4dppKTE1YYMakm3DYDds+F7l0JC3PVnaLQr9rbO3UMyznwq6TX6XA6mShNc3fEbD7pA+Bx+IiF5b29big5swSmTE2blaYuaz2mhVGJFxWBsEcMNm4srUmU8JNSPdlLK4GqzaPtVXMekTCkkTOHPbKCouQ1M1PKbC6WWpNlNBxggAo9dRsbrPVprjaSqwGTz1Bu9fX7GYfxypOlZiyvLCGhfPiOEXBY7IH19l32VtdWE9U528uM7maVAcUH21pNOqHgBRY/ax13c6UiEKKwNLteElLo1ttNzr2fcoZHOvQiW63xwrKVrvxZDnyVOs7lJhCoVDtPc6Bpdc3OOIfIrBoIzdhpfuK/bZ3ebITK2zZrJZ0nPPTsZMlIAWWLG+dLUECBALgJrxoN8wVi5v9E/ps+ynFiEfQAIps8+q2Yj4exGeidiVxlZhCWRGyjwWM9Yviqnbk4MOWYN7e1qhCv0FccdURUgqsOhx1lBQR4GkcNyFFa3ErcbOsZuHXWrnc4kZMuHqP5bvt3LC0aqciupO1ICEc9x7rQWPNOAbnOnr+otu/ZUXwieZx8MniMaXAsriqdTgnItj6Biyi0PZUbKvLuwlJOp4lLqNsUlntEOzzqqxI7hILXS93UDCY3l0EZbDvuNKq81O+qpoPEdPJRqkvLDseWjSyTyCeR6Hsc9MMU0IA1xeWA8nHCy2CbS1JrRXcfIudFpbEwWPdvs19XBZFsbJU83MkBZ+x8kyLLbhltqjM/PMSko+LEFfhoqYFPumbih9JDkpkocSW28NLmrsCJMkky+eSBZbl1c3w3HDj8YR/wdxTLc0LfCh8oUTXOBEkFfgQ5xwKHbvUvSRctqzFoP1kDwrrJ8loxvw5PGrJ2S2Nk1Gm+e/p72wRkALL1npmfjajY1bqydyEuKiWWVFdko8bFiQX+p0LGOvvgFlhO9cvLTuqMfd4afmdvcNHztpe0tblPnG7kFyR5YviYmCRorymSwIvdIy4XiN452GzwmaSP65z67jJEpACS5a3zlYmAW6qRBQOWNLqSrtZFlOhocxTlfS1yQCFMbdjXZgdjqeb7NHzl3y0IEneuYMHiAuXcBMOu1ZzM2JtlZpLl3u8uH4/ZvKTKpEvf1zn03FrQ0B7YLXhrrMWSYDSQiiJkSvjFpixyG2x0PU0POVH4qNIUawo2KRdmJEMcfxc397iSA5e1tpgFu58R7ULko6pBL/CgjLSngdH0eUHrcRUtSNQ42CtY5ZPQBZY+ez0zZgIkOxKt+PJUk9zvJtwaRGlnmISZ9bDdpkbjeTcG8yVmKXx55+4w91216Pufa97mrvZ+qARTUgofCjBEcetgwDKl3Y4GtkkIAssm+sa5KwIuaYmHlUzSHalNl8a3VP5cJcvbnQEdJCHFFp35vy58HfkJsQCG79q6QmmnG/ctKzQR1P92jqzIukggOKttNJHqidax8LJAqvjxU/L1KlqgZuQfZU2C7tm36LcUk+1mhMJwMhfzSTgpOcyMDzm0xEumyLGTcj48W/PuKftXmV7fGFalyc7+33+GeH1GtkjIAWWvTUNYkbfueeo++odR9ybXrjHu6VIdF1lAQGh1hckkZok4E2r2oKwGqOLJEo65gGCIsX50YRYxeS77TYLrFbRnpGs5fyMaldmrYNAOSyy+B25ELO4qimf05AFPPztN//VPWS16zaZm/CDf3JT8C4ekn5xWVEnsc2quqd9XKGFCXl0j9cmpMcZjSPzB9UzVlmqAvPaGnOh3/xzV+Nval/ycHTeer7Vql1MNeahYxQmkJ2mRoXnp1dTRADFRZLpEcsxeuernuL+/U1b3WuefUPwyitCvMzyoLBoaJKZ1kHF+eMd/e7Q8W4rSHzV7bK6hwSfFFJe0RywyvotCnHEmkyGOIheJSgIa0wjWwTkQszWeqZyNiius/YETKg5+1uEnhPJNpVwag0iQ4lsmw1wWlvcIxfBMaN2EyeogTUoJbCB7w7a+m1fG2a+2xlreGlGp7l4tRc22zUc0vtyIYa0WoHJytM+rqdIcdFrKldREahB7hR9urJSfJVCshT67bNKIbVuce+jOs1FSLWMhfPn+f2tUjod515uJI932F4Ya0qEaGiD5qUHzepcY+7QUPdZQ2OehLyywJKgXGfnyFdckcVVCAPK7dFz2WqBUesW96NWVJegDNxmuAZxAVYjyZr9Miy5UPPdeJiiL9mW1fE27Sx0neu1eAiE9ygVDwcdtQoEchUXyaP5FlehU3BjbbL+UNxs2WzPwqAC+/meuY/Xa0yuxf1UH7THw+D3bLau0WZ5VWvQFDTkfDdvhWWwg0C11jfE48gCC3HVUiZzvuIqtZUFCcDUrtu3pb3kFh4pQzElDjlVJzrib3F/XRi8pSK0W2J1XOW2yHWrdtPLKWgJ/OI7CFg5rG1rZYUlgDv2U8gCix1xdk+A+4/9Hn4Wa3EVokH1CnKMqDBPE8osjNamhTanuf5mH4dliSuMvlu0k6H31oaEqpZQcZ41R0Ezx9AG7lQ6CBBAFFqyfGisk5BXFlgSlDN2DhQW+wnDVpmcTXFcS5V2Psb9deoCFkt7ZmjF0eIea5eIwEsWqo+y54acdIIx7t6uiyNu18Ywq3OwPzhgVv92WWHB/1uTBRb8EiY3gXzFtaMKiiuSnpqHJM2mIXovkqnSn1iW7O91WfuRSqIsqfIxWZV/2MLgx01pLfJJuaWEwVc6l9zvozjPWwdslOhM+WO530nT7wQVRc1IQ4yoTBPLWssiBVbrFQjg/JGrkKd/XIU77AZWqcVVaNrkiGHZ1Tr8vJBs5b5WSYv7qLgxbUwaKgyDL1f+6b63zq4D1ipEBUYqB9cx8metj9t065XV16XAsrqyVZhXvuIiiTUOxRWJSo4SNxUqWSwpUNYo+lxIP3nCxxIjBJ0ouGJGfhg8hXTTZinwkMFeGJYh6xbaCD2iMjTeccmrPbC4yAZ8XPZuzvWwx2UW17IWH94ep+LKRYULkT5guwOoJ5gr90y/+4ojVvdx/zarODIDyNwweBKHadNSzTD4mWQs5z0eNM52DTrC9UMcoUdUhsi82jLLAqs20YCPl6+4dthewQz321hmypM9ZadC3V8pBIVoN9rEEDyQ3+KeMHjC0jvNQptjXyYoo5j8uULnSfo1rGSK5Ia6b0lEJXt5PDiE0Hcu6fUN4XxSYCGsUswyRoprxKIK2Rtgkz5pxZU7RWTgxhji/kruPHJ/z29xTxg81eD5jzD4UJp35s6J31krokdD3Lf0HQSWT+6FhdBBIJ+9/nZO1ejr+CpAcR050+eTiGkVv8+K6pKzVEvlxXIstT2VK9YJeMCejLMyCHW/+4Fz7nnvuc39s/VCO2y9wwjSoM8WgQShWgA8ZCyYN5nvFuJacd2zDpT/0giPgBRYeGtWscTXK672VCiuaGI8GZNfRqhzVgbBDrfdddQKyva4nxw46/ZvXeGtrqRzuOLgiXVJ8A3h/iEOIio/ffsBd+eBMyGKX9cyy4VYB8tPLycCMohkI3KMKLdJV2GjWVvsvKRvsD9x1gJJiISsRiHaWszwMbuhEyjQ2TdsrUvmuP/x+t933777qHvdc3b5nLdayBTHOVsth69x4TxfGWSFtWoJbdz7wHnfYBVL8viX36hq9QEtoBRYQItVjqgoq5ve8U++TNNn3n6Le/qNa2yPK72KK5rjpBW2yCvc0HJ1cve3WpoXWPXzNh9Kz9x+f/dq7z6kIzI3zKwMrDCalXJt5bbMSfP8JpPDh1yjPdhxjW2wrtRqtZLmFbteNimw65lk6hXcOlcfe8x3Ct6+brF3FYYyQYoCYzHSELPZqtanfRAu32FJx9wYCYQhFaDBLJPcQVg888pai3usZCz8LrM4iaRM68DLSc1N3NP4HtaY+/CG9Uvc3f/z1b5GIu518vY0wiCgPLAw1qkiKfkHe+Bol993oe19SGOybt1YqjsBE/KPnFQq4eY9W7djWtsfOtHt9myydicW3JGVwYPGkbPW223rzPlutZhv1Nyz06I+m+yhgnXKj3Il2bx/SDUSa7E+5Z5TFli55AL6HpFWT9y+0icnh6bA2FPhaXnE9vAara5gWgZP8hS1JemaJ3mqbOwwzsVsKS6YP9fXRsS63GzuxawMrGT2wwrlu9VqjrhqqdhPugKy4SqcrqoJEbjnuif3iLMQXFMr5kmeNztO+CSpBXguyv3wFEobjJAGlSt4WuZmn4YxbjdEZLn/WJfrM1ch+VtUopjcVyxeQuaEq3HUcu+yNIjo67TkYK61Wg72fk909LtDx7u9LDdaugI9wKZTXsjKtUYFFKr9a4RBQAosjHWqipSrrYp5h91cQhtUcieSkptSrQbnPtnZb2Hw3b4t/a4NSyvK36KSPDfLcxm7WWIlR1VHarFWRK0+eu6ie/Bkr8PSJbeRh4xiXbW4f3G586CikX4CUmDpX6OqSYiVcNk2qXHHhTRosxK5EpOWm019ousmb4jz3F67IW5e1VYVdyZW2CWzwkJbj9nWYF17i3fbJakEsGYftnqTKC8abVJ3ksjIUlvOoPSWtTZ5N+hs89T7tSegII7ar0GiEuD+Isybm3BIg5sh1k8SgQ9R/y32t8atIsiqpU0+enOmQrzlsoz6UlH/MEsD9x3KACUS12CdegdGr4kopIpLpbmNPFA8dMqKLxOMYg9PGuklIAssvWsTi2QrLSiC4qtEwoU0vMvNXIlxVudg34YAhAOmKKNAhH1b2n3ARRzKC/5YYZTMIgQ/S4NEeaL64rDCWCf2qQ5YVRMCacjfYh+SYKVKlRdrgBuU+pQ99u9EI90EZIGle31ikY69HBRCnE/HcQg+ZYXZzaqabUZQ5igsqmYQqbbaylglWf2Dc1MRPbSE7dnWmCK/2C8bbA+qGiM/opAcrpmCMio5Jw8VJzoHbA8tzFYxlcw9pO/KAgtptaokK8EchBVT6iikgdIlCZgot2oM8raOnb/kc7JwR0WRakkqL+ZB4ADBB/yXpYGC6TYLCcVTyZgMoBkoKaKwkvPxXR5kKP/F3ppGegnIAkvv2sQqGZvdVEAnwi+kwf4dldz3bl7u91jKkZ2bElbPiEUWrjKX6gpjQKBILQcVLHDt3rB+aS3FqPq5z1jDSx6UiAQsdaDQcRkPWnIxEZu4v0sNyij1nLmfZz2oY7lrY7bWJHeOof8uCyz0FSxTfhorhhhSj+uQvQ72V0oZNI7E6iQQhEAWohr3m3uIBORaKy/mgWVJPzaiHrM0cMeyTzVWQgoErU3yIwrZU0tSebEG9DjjgSlrlnGWri9ZYFlazRLnQqQVEXahNSPkZnj4ZI/P8Zntpsb+FsouahzJDZUw6zQOOjOzD7fTcsyyNGi1ghtxpsjXuCIKK+U4WV4q3aXMKp1jyN9PT22ekCkGKjs3c1w0oSkwklKRGTfgdIEohEJjYfYNjvi8HtxAaSpFVeiSWdba4Mt9Za3FPZGWhyxicHTp1euKGxNR2GUPGFGNQiIK82sUFmKV1GtT5aXMOs4vzJyUDDrP9ARkgU3Ppi7eocFibruPUCZNCaYHT/W6fZark+sC5OaPYsPtw/5e0vsmlfLrNSus027oVLLP0sBty0PF1sfz3XItYwIm4oworJQjsl8xV+KmwHInK513CN+XAgthlWKUkeABghpCDOEmgpD9lSdsXekGR8a8xUXAwGp74mefLNQk1EMWpLLeEoCpX5mVgaX1t9/4jd/je/1zd/v1Yo2IiE27ZYOypXsAZalmc1lnZb1CmYdciKGsVExyUl7qrEWK8XScdhdbPoKfHTzr3vW5u9wz9qx1H/rPz/BdprNw00d5sW+UhblEa0bLmb+99V8dmRu7zLp89bN2BKMMqCiytIXAoWF/jUVz0s/aE1AUYu3XoKYSUGGCiDzChUMZRIYRnn3GbvKTY8IHPmTlhs88qChBGHfIg8AM5oCr96y1KfmTf7fH3WQdwW950vpglFfEn/1i2rIQzaqRHgJyIaZnLWomSeQiqSS3KgnhfWCG3US4KbK5vsr2uB483etGR6+6p+xcdc1eWBLyxHkOQslPdw1Yvlt4lSBwFxJNyV7kQrNeSFWIHi4IGqJsVrQXFifDah/7EWvWuWRRg3/gq/axdbzyCEiBlcctc9+ivNQCy7Ei3yZtg9wobnxU0i+U0Hq845IvLTVdRGLa5lOsPFguRPCxVxTC4EGos++yKa8R17rISnKZ7PlVTVBuB491u93Wnyu0ppH00qNIMXthGukgIBdiOtah5lLwlOxdJGxSpGQQXEKuGsEai+2GSHXwQgmttO8gzyuOwrG1RIFCxvWGKy7NY8giPqdKcpmgviSXRRvmKy/mUMvWOJUyJH8Q+VVeqlKS1fu+gjiqxzLoI/E03GLhzLh+alleins1kYW0MqG6ExVDZstTi/LCqFC+fkXpJYvSunCU+sIFR4IzLtO0jWtKcpm1RZh5bkrDdPJiVVIRZa2tbbGNJqc7VtKvT1awuTzlEk36/DrftQSkwK7lUdd/4fI5bi6SWigwXEtUPWDfhCd3audxAy92YJkR6rzKwrKJGsvKwAo7ev6ia7dSUxbXUfNBEAMKlVw1AoAIbii1Bxeh6FxjuIVDy61iL++U7U2SZ1jIwqz5AtWZANoDq7MFn2267LvwlBltus/2+UrfJ6IQ1yX5aFRg4NxNDeU9V/n2HXaT35AhKwy+R870+fWoxYNFtL64Z3m4YJ24cVdakiuu1jiRvHH+hMOgKbCsNSGNk1lcx87Oo2pchOrsuFhhPBnHPYgoPGGBI1SWt4d632mZyLRylRfy+vYddoNFKWZp4BalGkQtQrhZp5PWFwuXH92pd1mdRpLeK60niRVWzdY4Sa43aScDFiVKNRiN2hKQAqst/9Sdnf0mosniqorOcQlHJjiDyvJEdOEurMZeyAK7KdJb67zd7LM0aNrYYgEEpVbgr4QBEXd+nU73Wc7WHL9Om1a1VjXZfZW5H32/MLveQhpTuZPmRtWoLQEpsNryT+XZcQ8RRFHNcdEqMRQTUVjpOYmm7BsYLal9R6XnTOL762yPjzWJswnpZEX4EffAyV5vdZHztN8eMNiHi6OEUrmtcZLgPds5SOcg2Chrka+zzTtt75e32ZC2WUieqhKYqsBtbUsqydW5NqJwju1vNfu9HKpMxDV8gIDdXM72DFqR4sVxnSbx4+JaJaiF/Rf2Cas5CKBhb4tjN1o0KgExSe2BMhda4xCZGIeSrCan3GNh7eOtUHmpXCrJ/y4LLHnmqT8jLhKeMAlLL2dwQ8RauP9Yl7UzGfUuQnKD+Acfp/KKZOVmeGnQ9ihKaKIYfTfNP7GEOq1FDHyrMeirdvrCgDtg60Qu1461ixMvyRWlQKA8QxvsF+PWrcXeZGis4pJXCiwusoEfl72kXivZVIqLZLJG4e9uiDvXT274lxIOXw1s5CKxv0JB3CwNrOHFLZNWWCXzIgT8qCWH4yrkgYISYgTQNFt0YS3GGkt9IBG9Woo5qTlQ/Jr9Sf6daNSGgBRYbbin/qxRBe5inozjiCisFBBWWL9FilF3L0uDqiOUayrlwSKa/2Rlk1539Nwl12LKil5q662BZK3z5min0maVVpIMUomYVPqTyNckonYrlTOr35cCy+rKVmFeBHPwZDydiyTOiMJKxY+SbM9mLCIRlxu1EYt17xL0gWKgcSk3WhT7vi3t/mcxVTMqXYdiv8++Gw9LcQapFCtLKZ+bLC811xGkpJE8ASmw5JkHc0ZcJIuaFriePBfJdRGF2wrXKKz1REn8HbRw8KGMWWFrqf1oQRdXLLl4usF7uFAPHO12/UNXfNdtujwntQ85nVzTvc61RmdmHphCGw1W+eW9n7/H3XH/mdBED15eVeIIfgnjncDA0Jj70X2nfR4QBXUnaxQmE1FYjZlhfeA6u8H247I0aLVClCc5dLkDl2mHuRiZM+WnaDmT9o7HkfwEkhyxHEFC90Pppk3qwYe//mv30Vvv8w8Jv/j4a6Lp6GcCBBRGnwDkkE+B2+m//P2PHGHD337/S7wiSDoooxJ+KxZPVhbB3dli1mRWxmoLfKD2I2Ho7GHR8ZiQbgI0Jt2ErUGFpbMuBJFQpork5lqWzSrmGkFxUROSCin/5oZV7ua9a91Lnr61mK/qM1UkIAVWRZhZPBTKCj9/o22079nUXlGpp1rwIeWMwAfcaTutDFJWBkrr23cfdS9//+3uPf/xqe4P7AaK4tq+dkkqiv6Wy5m9sEfPXbSKKs2pnEeu4uLfBNGbtPl57pM3ljtlfa8CAlJgFcCrh69S2eLgZ19nZYX6HNGGldQqrBWv9rZGC2AYcpRHqrSGX63mkHteSn2xB/aLhzvM4hq36uj9bs/mfbkfCfZ3LLAm2w+jykWaWsgUUlxZsuhDvWC0BxbqyiUsNy4qqr2H2o2WXJ0LfcNu18ZwrbDc/a1lrU22B/aY+/6vTrpn7V/vm0gmfEnEdjr2XU9YAeG9m5clkvg+00TYZ0SZ4irE4iKARoprJmLJvicFlizvoM/2kLVaoRI3wQEhjkNW+Z5WKwSjhDSixpHDZgHjJiTJPCq7RPLvwWPdXjETyZeV8bAVEeZaI2WgFgPFRXNX9oCluGqxAsWdMztXfHHz1acqIEApIxpeclNJoiRUBaIW/CoFcc92D5gCay/4fppeRDFxAyU3iv0uogmXtjZcx32q6ohZCFnqT0UO4umuwcQVWKS4zvUOelcme1yyuNL0L+NaWZQHdi0P/TUDAfJ0eBrtvhRm6RxyoLhBYdGkdfj6hBYiT31CIie5gZK/tcz28aZ7aMAqw+2WpaojNDdFOffl5SDGtW5cF+wrHjje5ZOSt61Z4iNupbziIl6d48qFWB2OdXMUwrQftVJE5OrEWFQ+Np4kYZ+1J/s9m9NlhRFg0mGBJpdNaS1f3Giuwsnw+GJBYKn1mxKj2WRWRhJr5S2ux/e4qGtIFCSBJBphEJALMYx1So2U/OPmHzoJwjz5hzbocUXDy17L4cGqqeWgRBfBJSgfMwA8z21WEZ4yWKUO38jT9mt4wMjKDZi14mEDRcbv1RyTFteQj05tMq/CduOeFW7V5JT2Y0mBpX2FUigfe0lUTGCTvZybba2nxF7eyc7+gntKSchGmacLprRwWXHTpKAuLrNKBpUrmBf5blmqOoJFxANHtRSYFFclV1n6visFlr41Sb1EVExgP4zKD/RECm2QnE034F7r3EyOWFKDUkmdxuzioFl/th+3yxKrqxk5uNyiQ7nZZ6nqCPuWFGTGPVpJBZhIcREOz0ODLK6krvp4z6M9sHj5ZvboJDU/dKrPt+RIU1XzYoFzkz9mPbGozD5dcESxx5rtc1EY/Ig1kFxpVmtuGPxs3y31fcobEb2YpaojuFkp8lvOnHDTUpoqUlxYqbjANbJBQCuZjXVMfBZYDvRwYv8GN09og+gyH1FpN3wUSrVHfhg8luqSluvD4Kt93mUWas/NulKLpdpyVXK8pcbtjO2FlWJZ5isu3KpSXJWsQjq/KwssnesShFSjZlE8aF1995oVEyXWBiH440JGEZX7LCKxWtXPR8eumptwyFdvYF+LQJekgwMIUEEGwu+zMrAqscRm299DcbG3SAIy3GVxZeUKKDwPWWCFuejVIgjQ4n6JPfFjhXGjCG1wg+OpnBtepRGVWDxwIAye4Ja9m5fXrNMx0ZXn7AaO6xKrLwuD6i9newanjbLMV1yyuLKw6rPPQRbY7Iz0iRkIkHh7+GSPr5EYohVG8u/DZ/p8RfFSIyq5aV4TBm/VMtoth6vU48yAt+y3UF5EJKYt363sCdkXSd24dPnaXLd8xSWLqxLC4X1XCiy8NUudxISkz5s714eDp064IgQ6asEcWGL01ipmEAZPUAGh8M2N8731VmkYfDHnLfUzD5h7d42VZCKSLwsDZXXgeLcvmYX1HLkKW6zdz1qbJ9GxGvVFQKWk6mu9Y5ntGgvi6Lo0NGOL+1hOXKWDktfWaVUwCLyYaQyZtUbk4iG7iV4Zv+oL6OKqSqPyYh5YI4SgZ2WwT3nrzx5x2//TF91HvvEba49zxd1glUcIiZfyysoqlzYP7YGVxkufLkCAnKooBym/xX2Bj6fuJSIqF9teUaGISvpARWHwo6a0KPHEHENwl1J1/1zPHO/mrFVV92otdtQD7dCJXl/Pkr1GFJdGfROQC7G+179qs+cGQ4t7ujYvtOCO0AbRgw9au5goohJrrMv2XEjWRkGvWtqUSBh8tbkRXHIyJb21ypkbka7UiOwdGPbJ3zxs/OaRC+6WJ66vahJ4ObLpO7UnIAVW+zXIjAQEDaDINq9uC3JOX/7hg+7rdx5xb33xfodbtFZh8NWGR28tKo6kqcPxbHMkxYFQ+MGhK26lpSKQAB6C1TvbvPR+dQnIhVhdnnV9NELRDx3vcVgzDVYgNaRBdNvX7jjifnWk061rP+Y+/uf/1lteIc1hOlnZCzt6/qJvRFpGneDpDhvL6xTu7bB9uzF7EKInGO1k0hDVGctkddCKCcgCqxihDpBLgCoQuH22BGCF5VbL4OmePbCv3/mwe+0tu93N+9bmTiv4349YqgA5YSst1D9tgzqFPVbuqcP4W5yG1ddcVLNCy2ljI3lmJiAFNjMfvVsiAZRC2lvck/tFThE5XLgJualHjQvHLUQeK3LXxuoW2i0RY9U/TgQlSow+btWqOlKpkFwrrAMPDoTFY8FXUrC3Unn0/fAISIGFt2apl5i9C26YaWpxTzQhbkJulsNWiJj6h+ytLDDLK390mPyEaGepOSRzpBFpi+WtrS4y3y2fS7X+Zp+UdSD1YklLo+9o0KQCu9XCW1fH0R5YXS13MpPlSfrAsW7f4r7WNyYsKhJeiSZssGhCggFI7J1pLwiLrPNid0nFY5MhW9lZyHej6giKuxb7Sli+uAlpJ0PaRS3LbVVGUt9OCwFZYGlZiYzJwRM2Idy1smKwADv7flcPcJUppVKSXdmTQellqSAulxiJ2DxUFFt1pBqX5VSdSIss5OGGB4QQW/BUg4WOUV0CssCqy1NHe5xALVrcEwzQZ0/3F/qG3ej4uL9R7ttSXtIxxWPJP8pSQVyWhohEOgjErUSiBHDcyRQ4oZ3M9rVLZrR89Y9HBEolIAusVGL6fNEEcN31FdECo+gDTvNBahNSl5DzNVmiK0/5VKGotFFl6EnA0+ByxzsuuYYF82Pp4/aYPUXQ+gTlv3D+XLfa3JZLLFBGQwTiICALLA6qOqYnEJWXKqURYSnoOG5UoZxGjrs2VDdykIi4hgVzvWLEYsnKWNfe4jsIVDM5mL1GXK48SLQYN/K3osjOrHDTPNJHQBZY+tYkUxJVu8V91MIExTV+dcJbW1SYiGtPZcj2bY6cvejbxcR1jlos+GQHgTnWQaC1otOTtN5he42kJCxrbfLJx/SJ0xCBJAhIgSVBuY7PwV7IoRM9btOqtopyfOg7houQNia0MMEiSqpZI4EP3JTZP8rKiGpX7rW8sEKpBLPNk1JPRBQOWGoCUY3seS4wl6GGCCRJQAosSdp1eq5KWtwPDE/mbg1YRCOWFoor6Sf8qGlnuTf7tC776a4BX9m9lA4CUWX+kSvjvmIG3adrEZKfVqaSK1kCUmDJ8q7bs2GFrTcLphiriUAAXI+E4jPYq0F51fJGeaZr0PqFPeYtyaws4pQVttmssBmsJ6I7o1JPVunJFzpeamWpKg2SyQpHzaN2BKTAase+rs5cTIt79lPY2+q2HKzWZko8NVXkdqwm4KyWmDpjVpjFX5hivn4vzLeU8RGFl33Haip4qNRTNa8qHatSAlJglRLU94smMF2L+0tWgZwINpoULl/c6N2Eaewpxp4PkY9ZaqSIYj5oHaZz+7iNWeNOcukIh2+zdASSnmtdUaXoi0wfrCsCUmB1tdy1nSy1CIl+22nh7lR/5waJ4qICOblbdA1OS6HZQqSIgDxorlBqPGYpRPy4Bal8596j1iRyg1m+C33yNi5bqpek8UGi0NrotfokIAVWn+tek1lftaf9p7/9nyyacMh98r892+1cv8wrrpCUAXtzREJSrT4r42Pfvs994Cu/chsspP72D7zURxSqeWRWVjfb81Aic7bXN1Wzo0khyuvyyLi3tratXZwq+YoRhs7GVKsPvcQU+1sEZhAos2ZZi99vfOHvbU60RmIxvPUZEZiJgCywmejovaoTIKeKPZen7lwdSymjqgtc4IDs2Z26MGDV1NuDi8Sj2ShKC+XVRi80cxXiNtQQgRAJSIGFuGqBy0xeFQEde0wBzBS+neZp0hyStiwk8IYwJnuhWZ82s37J3SKfLlT2IfCWjMkQkAJLhrPOkkfgbPegG7Gw+RDdiExlqsPxVutwPFNzsbx5J/knbsIoUIYyWKQlpD1QJkk+Olf4BKTAwl/DIGdAsvLB42FH9OEObbTq92ut4nqaxoh1nCa607sJLZ+OCM+QAmXSxFKypJuAFFi61yfT0lFiityqGzctC3KeaXOFElhCvUjy6ahPSE7dQutCrSECWSUgBZbVlQ1kXg+d6vM3WvKOQhynLZgDa5JixbUY17oJyadb5N2EKfVq1gKRzplhAlJgGV7cEKYW7SXts6roIbYriUpM7TYrMskiw7gJiSakjcliogktKENuwhCueMlYTQJSYNWkqWOVReBER7+vzLF+RZjtSs5bXhjtRbavXVLW/Ev50kXKbpniQvGjtOQmLIWePps1AlJgWVvRAOdDVfTDVqIpaSumWqiiElPUSFzUuKBah506ji+qa0WOCcwg9H0ymrDJctCmPqJfRKAuCUiB1eWyp2/SVLcYsOCDHevit2LimD3h6vy3a2P1AlLy3YREE8ahIOPgoWOKQBIEVEoqCco6x6wECD7outTjqHLBnk5ogyAU9qSqUWKKY9BWBjchidJZa6QZ2tpK3vQSkAJL79rUlWS4wzbYHthkiaaFwZVoYrHWWzFcuhwvthYkpTZ7JBik29IK2N/CTYi1tbSlUW7CuvpXoMmWSkAuxFKJ6fOxEnjk7EXfNJEbeIjj4dN9Poydck3FjGGzstjb6h0Ytm7V9EJrkpuwGHD6jAgYASkwXQapIsC+D7lhodZJjNIC9s9SYgo3IS7HYZsv0YS4ClWbMFWXooQJgIAUWACLVG8iTiYHF25zHwKLo+cu+Q7G+SWmIjdhZ99lXyGDhpFLWxtKdjeGwEAyikASBKTAkqCsc5REgLBxWq7cYBGJzTGEpZckTBkfzi8xhZsQa6tvcMS7CXGPNjdo+7kMtPqKCFxDYO41f+kPEUgBASpyrGtvsYCIwRRIU7oICxfMcz/49Qm3783/233+B4fdw9Z6hdf2bl7utqxuk/IqHam+IQIFCUiBFcSiF2tNgCAIXG59VioppEHDyDMWifjTg2d9mSeCOp5g+2G4E7XHFdJKStYQCMiFGMIq1amMA0Nj7ljHJUedxLT23GJpKOaLou2+NOKDMpa3NToU2Z0HzrpX3rzDOh+r43GdXsKadswEpMBiBqzDV0bgqPXcakphzy1mRcRhlyUcU1CXChlEE5aTA1YZIX1bBOqXgBRY/a59EDPPD4iotdAEmNAoEmsLFycVOBQCX+tV0fnrlYAUWL2ufEDzPtdz2ZEftnXN4ppJjTuTShkXLZKwzbocs0fX1izXYM0WRCcWASMgBabLIPUE2GM6eLzHbTMFlmTPqyuUd/JFekd8SScsrXbb35o/T7FPqb9oJGBdEJACq4tlDn+SvWb9dFgu1Y3WODLOMWHK8tLlSWtrYGjU1yPE2lIV+Dip69giUB4BKbDyuOlbNSBAiSkaOLLvVO3BXhsuwi6zuBZaMV2sraWtjUF2ia42Gx1PBNJKQAosrSsjua4jENUZJKyeZOdKB40oqUnYbUEZQyPjrh3l2Nbky0BVemx9XwREIH4CUmDxM9YZqkjgRGe/mz93rrUuaSn7qJR2Qmn1WCRhc+N8b21RCV4djstGqi+KQE0ISIHVBLtOWi6BK+OPucMnetxu2wtrsPJMxQ7C30k2xkU4ZsfARUjCMSWeNERABMIkIAUW5rrVtdQEcxDWvsOK/c42BoeveGsL5dVq4e8orSUt4XV8nm2eel8E6pGAFFg9rnrgc7ZAQXfIrLCNK1us8sX1yogE457HAzL4LFGE7RaQoVqEgS+8xBeBPAJSYHlA9GcYBAi+OG1Fc/dubp/qp3XpMgEZI67ffrKnhbXVqmTjMBZUUopAGQSkwMqApq+kg8D/+pcH3Xd/fsz915fs9wnGC+bN82H27RZJWI0oxXTMUlKIgAhMR0Bd9aYjo9dTT+C2ux519zxw3gIymt3fvPkPgmx+mXrIElAEUkxAFliKF0eizUzgXlNe/+fHD7u3v+yJbnsRAR0zH03vioAIhEZACiy0FZO8IiACIiACnoCqkupCEAEREAERCJKAFFiQyyahRUAEREAEpMB0DYiACIiACARJQAosyGWT0CIgAiIgAlJgugZEQAREQASCJCAFFuSySWgREAEREAEpMF0DIiACIiACQRKQAgty2SS0CIiACIiAFJiuAREQAREQgSAJSIEFuWwSWgREQAREQApM14AIiIAIiECQBKTAglw2CS0CIiACIiAFpmtABERABEQgSAJSYEEum4QWAREQARGQAtM1IAIiIAIiECQBKbAgl01Ci4AIiIAISIHpGhABERABEQiSgBRYkMsmoUVABERABKTAdA2IgAiIgAgESUAKLMhlk9AiIAIiIAJSYLoGREAEREAEgiQgBRbkskloERABERABKTBdAyIgAiIgAkESkAILctkktAiIgAiIgBSYrgEREAEREIEgCUiBBblsEloEREAEREAKTNeACIiACIhAkASkwIJcNgktAiIgAiIgBaZrQAREQAREIEgCUmBBLpuEFgEREAERkALTNSACIiACIhAkASmwIJdNQouACIiACEiB6RoQAREQAREIkoAUWJDLJqFFQAREQASkwHQNiIAIiIAIBElACizIZZPQIiACIiACUmC6BkRABERABIIkIAUW5LJJaBEQAREQASkwXQMiIAIiIAJBEpACC3LZJLQIiIAIiIAUmK4BERABERCBIAlIgQW5bBJaBERABERACkzXgAiIgAiIQJAEpMCCXDYJLQIiIAIiIAWma0AEREAERCBIAlJgQS6bhBYBERABEZAC0zUgAiIgAiIQJAEpsCCXTUKLgAiIgAhIgekaEAEREAERCJKAFFiQyyahRUAEREAEpMB0DYiACIiACARJQAosyGWT0CIgAiIgAlJgugZEQAREQASCJCAFFuSySWgREAEREAEpMF0DIiACIiACQRKQAgty2SS0CIiACIiAFJiuAREQAREQgSAJSIEFuWwSWgREQAREQApM14AIiIAIiECQBKTAglw2CS0CIiACIiAFpmtABERABEQgSAJSYEEum4QWAREQARGQAtM1IAIiIAIiECQBKbAgl01Ci4AIiIAISIHpGhABERABEQiSgBRYkMsmoUVABERABKTAdA2IgAiIgAgESUAKLMhlk9AiIAIiIAJSYLoGREAEREAEgiQgBRbkskloERABERABKTBdAyIgAiIgAkESkAILctkktAiIgAjMBDVkAAAAUklEQVSIgBSYrgEREAEREIEgCUiBBblsEloEREAEREAKTNeACIiACIhAkASkwIJcNgktAiIgAiIgBaZrQAREQAREIEgCUmBBLpuEFgEREAER+P/29dkGH7FLpgAAAABJRU5ErkJggg==" alt="A 20-vertex rectangular mesh drawn with the mesh preset, showing its rows and columns." /></p>
+<p>A planar mesh fit shown at z = 0.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>quality <span class="ot">&lt;-</span> <span class="fu">score.layout</span>(coords, <span class="at">edges =</span> edges, <span class="at">n =</span> <span class="dv">20</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>                        <span class="at">sample.size.stress =</span> <span class="dv">200</span>, <span class="at">stress.seed =</span> <span class="dv">11</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                        <span class="at">edge.crossings =</span> <span class="st">&quot;never&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(quality[, <span class="fu">c</span>(<span class="st">&quot;sampled.stress&quot;</span>, <span class="st">&quot;edge.length.cv&quot;</span>)], <span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="right">sampled.stress</th>
+<th align="right">edge.length.cv</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.138</td>
+<td align="right">0.062</td>
+</tr>
+</tbody>
+</table>
+<p>The edge-length coefficient of variation
+(<code>edge.length.cv</code>) is the standard deviation divided by the
+mean of drawn edge lengths. It describes their uniformity, which is
+useful here because the graph is unweighted. Unequal lengths can be
+intentional on other graphs.</p>
+<div id="input-and-output-conventions" class="section level3">
+<h3>Input and output conventions</h3>
+<p>Supply an undirected edge list as a two-column matrix of
+<strong>1-based integer vertex indices</strong>, one edge per row.
+Supply <code>n</code> explicitly when the highest numbered vertex is
+isolated, when the edge list is empty, or when a generator has a known
+vertex count. Inferring <code>n = max(edges)</code> cannot recover
+isolated vertices beyond the largest endpoint. Avoid duplicate edges and
+self-loops; the edge-list layout converter ignores self-loops, and
+duplicate treatment is not a common contract across all helpers.</p>
+<p>Alternatively use <code>adj.list</code>, a list of length
+<code>n</code>: element <code>i</code> lists the neighbors of vertex
+<code>i</code>. Include both directions of each undirected edge, with
+matching lengths in a parallel <code>weight.list</code>. An isolated
+vertex has an empty neighbor vector (and empty length vector if
+weighted). Do not supply both graph representations: this is an error,
+as are fractional or nonfinite vertex indices and counts. Supply lengths
+with their matching representation (<code>edge.weights</code> with
+<code>edges</code>, or <code>weight.list</code> with
+<code>adj.list</code>). Preserve the same vertex ordering in graph,
+coordinates, labels, and references; row names do not establish
+correspondence.</p>
+<p><code>grip()</code> defaults to <code>dim = 3</code>; request
+<code>dim = 2</code> explicitly for base 2D plots. It returns an
+<code>n</code> by <code>dim</code> numeric matrix. By default
+disconnected components are laid out separately and packed into that
+matrix, including isolated vertices. Their relative positions are
+display choices, not finite distances between components. Set
+<code>disconnected = &quot;error&quot;</code> to reject such inputs. Sampled
+graph-distance stress uses reachable pairs; full all-pairs geodesic
+preparations require a connected graph. Split components before using
+them.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>path.with.isolate <span class="ot">&lt;-</span> <span class="fu">grip</span>(<span class="fu">edges.path</span>(<span class="dv">5</span>), <span class="at">n =</span> <span class="dv">6</span>, <span class="at">dim =</span> <span class="dv">2</span>, <span class="at">seed =</span> <span class="dv">11</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Warning: Input graph has 2 connected components; laying out components</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; separately to avoid disconnected-graph instability.</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">stopifnot</span>(<span class="fu">nrow</span>(path.with.isolate) <span class="sc">==</span> <span class="dv">6</span><span class="dt">L</span>, <span class="fu">all</span>(<span class="fu">is.finite</span>(path.with.isolate)))</span></code></pre></div>
+</div>
+<div id="hop-counts-or-edge-lengths" class="section level3">
+<h3>Hop counts or edge lengths?</h3>
+<p>The arguments <code>edge.weights</code> and <code>weight.list</code>
+mean <strong>finite positive lengths or traversal costs</strong>, not
+connection strengths. With an edge list, <code>edge.weights[j]</code>
+belongs to row <code>j</code>. Larger lengths request greater
+separation; convert strengths to scientifically meaningful lengths
+before fitting.</p>
+<ul>
+<li><code>metric = &quot;hop&quot;</code> uses hop counts for the standard
+hierarchy, neighborhoods, and insertion anchors. If lengths are
+supplied, they still set adjacent-edge attractive-force targets, without
+global normalization. Omit lengths for a purely unweighted baseline.
+Optional landmark-geodesic refinement stages use supplied lengths even
+when the standard stages use hops.</li>
+<li><code>metric = &quot;edge_length&quot;</code> requires lengths and uses sums
+of those lengths along shortest paths throughout the multiscale engine.
+Its default <code>length.normalization = &quot;median&quot;</code> divides by the
+median length; <code>&quot;mean&quot;</code> divides by the mean and
+<code>&quot;none&quot;</code> retains their numerical scale. These normalization
+controls and <code>metric.neighbor.cap</code> belong only to this mode.
+A finite neighbor cap enables an approximate weighted search.</li>
+</ul>
+<p>A graph-family constructor may already normalize lengths: inspect its
+<code>weight_scale</code> and <code>normalize</code> fields before
+choosing solver normalization. <code>score.layout()</code> has no
+<code>metric</code> argument: it uses weighted shortest paths when
+lengths are supplied and hops when they are omitted, independently of
+how the drawing was fitted.</p>
+</div>
+</div>
+<div id="dimensions-result-objects-and-methods" class="section level2">
+<h2>Dimensions, result objects, and methods</h2>
+<p>For a worked comparison of direct 3D MDS, higher-dimensional MDS
+followed by PCA, and free 3D refinement, see <a href="high-dimensional-mds.html">Higher-dimensional metric MDS for 3D
+visualization</a>.</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>Coordinate dimensions and result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>grip()</code>, global-repulsion variants, legacy layouts</td>
+<td>2 or 3 columns; coordinate matrix.</td>
+</tr>
+<tr class="even">
+<td><code>weighted.grip.nd()</code></td>
+<td>At least 2 columns, including dimensions above 3; weighted
+multiscale layout matrix. Opt in explicitly.</td>
+</tr>
+<tr class="odd">
+<td><code>classical.mds()</code>, <code>metric.mds()</code>,
+<code>edge.kk()</code></td>
+<td>Support higher dimensions (MDS dimension must be smaller than vertex
+count); list of class <code>grip_gmds_layout</code>, with
+<code>$coords</code>, <code>$diagnostics</code>, <code>$metadata</code>,
+and method information.</td>
+</tr>
+<tr class="even">
+<td><code>score.layout()</code>, full/landmark/MISF geodesic-KK,
+<code>kernel.gram.gkk()</code> and local-star tools</td>
+<td>2D or 3D workflows; do not infer higher-dimensional support from the
+MDS interfaces.</td>
+</tr>
+<tr class="odd">
+<td><code>score.gmds()</code>, <code>score.coordinates()</code></td>
+<td>Higher-dimensional matrices supported; corresponding-coordinate
+inputs must have identical shapes.</td>
+</tr>
+<tr class="even">
+<td><code>score.surface()</code></td>
+<td>Three-column coordinates plus explicit triangular faces for each
+surface.</td>
+</tr>
+<tr class="odd">
+<td><code>trace.grip()</code></td>
+<td>List with <code>$final</code>, <code>$frames</code>,
+<code>$meta</code>, and <code>$diagnostics</code>; frames have 2 or 3
+columns.</td>
+</tr>
+<tr class="even">
+<td><code>plot.layout()</code>, <code>project.3d()</code></td>
+<td>2D drawing or a view of the first three coordinate columns;
+additional columns are ignored, not fitted into a new layout.</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>plot.layout(coords, edges = edges)</code> on the ordinary
+matrix returned by <code>grip()</code>. The registered <a href="../html/plot.layout.html"><code>plot.layout</code> method</a> is
+also dispatched by <code>plot()</code> on an object with class
+<code>&quot;layout&quot;</code>; grip’s ordinary matrix does not acquire that
+class. <code>plot()</code> alone on a matrix is not the graph plotting
+workflow.</p>
+<p>Call <code>print(fit)</code> on a <code>grip_gmds_layout</code> to
+see its <a href="../html/print.grip_gmds_layout.html">method
+summary</a>, then plot <code>fit$coords</code>. Call
+<code>print(hierarchy)</code> on the <code>grip_misf</code> returned by
+<code>build.misf()</code> for its <a href="../html/print.grip_misf.html">hierarchy summary</a>. These are the
+other two S3 registrations; they are not additional exports.
+<code>build.weighted.misf()</code> returns its documented hierarchy list
+and does not share that print method. Full and landmark geodesic-KK
+refinements return lists with <code>$coords</code>, <code>$score</code>,
+and optional traces, not ordinary matrices.</p>
+<p>For static 3D figures, always request
+<code>projection = &quot;ortho&quot;</code> in <code>plot.layout()</code>. Its
+default 3D route uses optional rgl interactively.
+<code>project.3d()</code> rotates the first three columns and returns
+two projected columns. Score the original coordinates to assess the
+fitted layout; scoring the projection answers a different question.</p>
+<div id="a-common-extraction-step" class="section level3">
+<h3>A common extraction step</h3>
+<p><a href="../html/layout.coords.html"><code>layout.coords()</code></a>
+returns the original coordinate matrix from a matrix, trace, MDS fit, or
+supported refinement result. It preserves vertex order, dimensions,
+names, and values; it does not align or project results. Use the same
+graph when scoring the extracted matrices:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>small.edges <span class="ot">&lt;-</span> <span class="fu">edges.path</span>(<span class="dv">6</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>fits <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">ordinary =</span> <span class="fu">grip</span>(small.edges, <span class="at">n =</span> <span class="dv">6</span>, <span class="at">dim =</span> <span class="dv">2</span>, <span class="at">seed =</span> <span class="dv">1</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">trace =</span> <span class="fu">trace.grip</span>(small.edges, <span class="at">n =</span> <span class="dv">6</span>, <span class="at">dim =</span> <span class="dv">2</span>, <span class="at">seed =</span> <span class="dv">1</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">classical =</span> <span class="fu">classical.mds</span>(<span class="at">edges =</span> small.edges, <span class="at">n =</span> <span class="dv">6</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>matrices <span class="ot">&lt;-</span> <span class="fu">lapply</span>(fits, layout.coords)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">vapply</span>(matrices, <span class="cf">function</span>(z) <span class="fu">score.layout</span>(z, <span class="at">edges =</span> small.edges, <span class="at">n =</span> <span class="dv">6</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  <span class="at">sample.size.stress =</span> <span class="dv">15</span>, <span class="at">stress.seed =</span> <span class="dv">1</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="at">edge.crossings =</span> <span class="st">&quot;never&quot;</span>)<span class="sc">$</span>sampled.stress, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;     ordinary        trace    classical </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 1.820825e-02 1.820825e-02 4.649497e-16</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co"># Plot any extracted matrix with the same graph:</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co"># plot.layout(matrices[[1]], edges = small.edges)</span></span></code></pre></div>
+<p>Direct <code>$final</code> and <code>$coords</code> extraction
+remains supported. In MDS results, <code>method</code>,
+<code>coords</code>, <code>diagnostics</code>, and <code>metadata</code>
+remain available; stopping metadata depends on the method. Prepared
+caches and coordinate-dependent state are internal/version-dependent and
+should be rebuilt when their contract changes. The accessor rejects
+unknown lists and ambiguous results instead of guessing a field.</p>
+</div>
+</div>
+<div id="classical-scaling-and-metric-stress-mds" class="section level2">
+<h2>Classical scaling and metric stress MDS</h2>
+<p><code>classical.mds()</code> fits a low-rank representation of the
+double-centered squared distance matrix. <code>metric.mds()</code>
+minimizes distance stress, using native SGD by default or
+<code>backend=&quot;smacof&quot;</code>. It also offers
+<code>approximation=&quot;sparse&quot;</code> with SGD. Use <a href="metric-mds-backends.html">Metric MDS</a> for executable examples,
+the method references, and stress weighting; use <a href="sparse-metric-mds.html">Sparse SGD</a> when all-pairs preparation
+is too costly. Supply a dense matrix directly with
+<code>metric.mds(distance.matrix = D)</code>, without graph
+shortest-path reconstruction. For supplied landmark-by-sample distances,
+<code>landmark.mds.constraints()</code> creates the explicit targets for
+sparse fitting. See <a href="fermat-surface-embeddings.html">Fermat
+surface embeddings</a> for a direct-distance example.</p>
+<p>SGD budget exhaustion does not certify convergence. Inspect
+<code>fit$metadata$stopping</code> and <code>fit$metadata$history</code>
+for status and checkpoint history. To continue a run, create it with
+<code>sgd.control = list(keep.state = TRUE, schedule.epochs = planned_epochs)</code>;
+then call
+<code>metric.mds(resume = fit, max.iter = additional_epochs)</code>. The
+saved terminal solver state preserves targets, preparation, native RNG
+and the original rate schedule. A fresh fit initialized from returned
+coordinates is a different run. Practical stopping is opt-in through
+<code>sgd.control$stopping</code>; see the function help for its three
+checks, tolerance units and limitations. Keep these settings and the
+backend version in cache identities. Older fits without saved solver
+state cannot be resumed.</p>
+</div>
+<div id="choose-a-score" class="section level2">
+<h2>Choose a score</h2>
+<p>A <em>chord</em> is the Euclidean separation between two drawn
+vertices. A <em>path length</em> adds the drawn lengths of consecutive
+graph edges along a retained route. A folded chain can preserve its path
+length while bringing its endpoints close together. These measurements
+answer different questions.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Score and targets</th>
+<th>Alignment, scale, and units</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Is the drawing useful without a reference embedding?</td>
+<td><code>score.layout()</code>: sampled chords versus shortest graph
+distances, edge-length variation, non-neighbor separation, and optional
+2D crossings or clusters.</td>
+<td>Sampled stress fits one scalar and is dimensionless. Edge CV and
+separation ratios are dimensionless; crossing counts are counts.
+Sampling seeds and sizes affect the result.</td>
+</tr>
+<tr class="even">
+<td>Are local lengths, retained paths, and endpoint separations
+faithful?</td>
+<td><code>score.gmds()</code>: separate edge, fixed-path, and chord
+residual panels on a prepared graph. Path targets follow its
+retained-route convention; they may differ slightly from strict
+distances near ties.</td>
+<td><code>&quot;profiled&quot;</code> fits a separate scale per panel;
+<code>&quot;identity&quot;</code> fixes one; <code>&quot;user&quot;</code> supplies panel
+scales. Relative RMSE is dimensionless; absolute RMSE is in
+drawn-coordinate units against scaled targets. No coordinate-reference
+alignment.</td>
+</tr>
+<tr class="odd">
+<td>Did corresponding vertices recover particular coordinates?</td>
+<td><code>score.coordinates(coords, reference)</code>: root mean squared
+Euclidean vertex displacement. Rows must correspond.</td>
+<td>Default rigid alignment allows translation, rotation and reflection.
+<code>allow.reflection = FALSE</code> forbids reflection. Similarity
+also fits uniform scale; <code>&quot;none&quot;</code> uses the supplied
+alignment. RMSE is in reference-coordinate units; relative RMSE divides
+by the reference RMS radius.</td>
+</tr>
+<tr class="even">
+<td>Do two already aligned triangular surfaces occupy the same
+region?</td>
+<td><code>score.surface()</code>: area-weighted, symmetric RMS
+closest-point distance to triangles, estimated by sampling each surface.
+Different meshes are allowed.</td>
+<td>No alignment, scaling, or triangulation is performed. Output has
+coordinate-distance units. Its Monte Carlo standard error measures
+sampling error, not mesh or alignment uncertainty. It is not a
+maximum-distance measure.</td>
+</tr>
+</tbody>
+</table>
+<p>The geodesic-KK scorers use their own path objectives, stiffnesses,
+and scale policies. Their values are not interchangeable with sampled
+chord stress, metric-MDS raw stress, or reference errors. Compare
+layouts using the same graph, lengths, vertex order, samples,
+preparation, scale policy, and score definition. Candidate composite
+scores are relative to their search and weighting choices, not universal
+quality grades.</p>
+</div>
+<div id="reuse-preparations-and-control-cost" class="section level2">
+<h2>Reuse preparations and control cost</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Preparation</th>
+<th>What can be reused</th>
+<th>When to rebuild</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>prepare.edge.kk()</code></td>
+<td>Edges and targets for repeated edge repair and edge diagnostics; no
+all-pairs cache.</td>
+<td>Changed topology, vertex order/count, or edge lengths.</td>
+</tr>
+<tr class="even">
+<td><code>prepare.graph.geodesic.mds()</code> /
+<code>prepare.geodesic.kk()</code></td>
+<td>Connected-graph distances and retained routes for multiple
+coordinate candidates.</td>
+<td>Graph changes, a new tie policy, or a changed preparation
+contract.</td>
+</tr>
+<tr class="odd">
+<td><code>prepare.landmark.geodesic.kk()</code></td>
+<td>A sparse set of local and landmark routes.</td>
+<td>Graph changes or new local-neighbor/landmark counts.</td>
+</tr>
+<tr class="even">
+<td><code>prepare.misf.geodesic.kk()</code></td>
+<td>Multiscale independent-set filtration (MISF), level routes, and
+initializers.</td>
+<td>Graph changes or changed hierarchy, tie, or initialization
+settings.</td>
+</tr>
+<tr class="odd">
+<td><code>build.misf()</code> / <code>build.weighted.misf()</code></td>
+<td>Inspectable multiscale hierarchy, with the latter also storing
+weighted neighborhoods and anchors.</td>
+<td>Changed graph, metric, seed, or construction controls. They are not
+a generic <code>prepared</code> argument for <code>grip()</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Graph inputs must be undirected: adjacency entries have reciprocal
+entries with matching lengths and multiplicities. Self-loops are
+rejected; remove them before layout or preparation. Ordinary GRIP
+preserves parallel-edge multiplicity. Full and landmark geodesic
+preparations collapse parallel pairs in their canonical edge table;
+edge-only preparation rejects duplicate undirected edges. Simplify
+parallel edges explicitly before comparing these different workflows,
+particularly when their lengths differ. The validators do not silently
+simplify your input.</p>
+<p>Treat preparations as immutable graph-specific objects. Do not
+combine a <code>prepared</code> object with raw graph inputs
+(<code>edges</code>, <code>adj.list</code>, <code>edge.weights</code>,
+or <code>weight.list</code>); these calls fail rather than silently
+choosing a graph. An explicit <code>n</code> must be an integer matching
+the prepared vertex count. Rebuild the preparation to change the graph.
+Coordinate candidates on the same graph may change without rebuilding
+the graph cache; a state containing coordinate-dependent forces or a
+local-star geometry must be recomputed when those coordinates
+change.</p>
+<p>Use <a href="../html/estimate.preparation.html"><code>estimate.preparation()</code></a>
+before a large graph-distance preparation:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">estimate.preparation</span>(<span class="dv">10000</span>, <span class="at">n.edges =</span> <span class="dv">20000</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt;   n.vertices n.edges pair.mode pair.count.upper.bound</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; 1      10000   20000 all_pairs               49995000</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;   dense.distance.bytes.lower.bound dense.distance.GiB.lower.bound</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 1                            8e+08                      0.7450581</span></span></code></pre></div>
+<p>This is a lower bound for one matrix, not a peak-memory prediction.
+Dense preparations warn before graph searches when that bound exceeds
+512 MiB. Set <code>options(grip.preparation.warn.bytes = ...)</code> to
+a different positive byte count, or <code>Inf</code> to acknowledge and
+suppress the advisory warning. Edge-only preparation has no dense
+distance matrix. <strong>Landmark preparation still computes dense
+distances</strong>; it reduces retained paths, not that storage
+requirement.</p>
+<p>Native construction/refinement checks for interrupts at main-thread
+boundaries. Threaded geodesic-MDS work joins its workers before raising
+an interrupt; cancellation may wait for the current evaluation and does
+not return a partial fit.</p>
+<p>A dense distance matrix takes roughly <code>8 * n^2</code> bytes
+before workspace and copies. Full route caches can cost much more,
+depending on path lengths. Use <code>diagnostics = FALSE</code> with raw
+inputs in the two MDS methods to avoid the full route cache; the dense
+distance matrix is still required. Classical scaling also uses a dense
+eigendecomposition. Landmark and multiscale preparations reduce retained
+pairs or work on smaller levels, but their cost still depends on graph
+searches and route lengths. Begin with SGD metric MDS; use its sparse
+mode with raw graph inputs when full distance storage is too costly.
+Evaluate the approximation independently. GRIP and its level traces
+remain alternatives; retaining every round of a large solve can itself
+be costly.</p>
+</div>
+<div id="experimental-refinement-and-current-initializers" class="section level2">
+<h2>Experimental refinement and current initializers</h2>
+<p>Start with metric MDS using SGD, with sparse approximation when
+needed, and compare seeds using independent diagnostics. Do not append
+refinement automatically. GRIP presets and tracing remain alternative
+workflows. Edge-KK, full geodesic-KK, landmark geodesic-KK, MISF
+geodesic-KK, repulsive stages, and kernel/Gram local-star tools are
+<strong>public experimental interfaces</strong>. Improving their
+objective need not improve a reference embedding or the readability of a
+drawing.</p>
+<p><code>edge.kk()</code> accepts supplied <code>coords</code>, or
+<code>init = &quot;classical_mds&quot;</code> (default),
+<code>&quot;metric_mds&quot;</code>, <code>&quot;weighted_grip&quot;</code>, or
+<code>&quot;random&quot;</code>. The MDS choices need all-pairs distances;
+supplying coordinates or using a non-MDS start permits edge-only
+preparation. The weighted-GRIP initializer uses the 2D/3D
+<code>grip()</code> interface; supply higher-dimensional coordinates
+directly for edge repair. <code>kernel.gram.gkk()</code> accepts
+<code>&quot;classical_mds&quot;</code> (default), <code>&quot;metric_mds&quot;</code>, or
+<code>&quot;random&quot;</code>, or supplied coordinates. Both methods now
+interpret <code>&quot;metric_mds&quot;</code> as stress minimization through
+native SGD. To use SMACOF, fit
+<code>metric.mds(backend = &quot;smacof&quot;, ...)</code> first and supply its
+coordinates.</p>
+<p><code>geodesic.kk()</code> and <code>landmark.geodesic.kk()</code>
+require starting coordinates. MISF preparation uses
+<code>top.level.init = &quot;geometric&quot;</code>, <code>&quot;cmdscale&quot;</code>, or
+<code>&quot;random&quot;</code>;
+<code>misf.geodesic.kk(top.level.init = NULL)</code> inherits the
+prepared choice or defaults to <code>&quot;geometric&quot;</code>. Its
+<code>&quot;cmdscale&quot;</code> spelling still means classical scaling.
+Initializer names are not a uniform package-wide vocabulary.</p>
+</div>
+<div id="function-catalog" class="section level2">
+<h2>Function catalog</h2>
+<p>This guide covers <strong>110 explicit public exports and three
+registered S3 methods</strong>. <code>plot.layout()</code> is both
+exported and registered, so there are 112 unique exported or registered
+function names, not 106. The catalog gives each export exactly one row.
+Methods selected by R’s generic functions are explained through their
+objects below. Internal helpers are not public entry points.</p>
+<p>Each row below is one explicit export. <strong>Help</strong> opens
+the detailed help page; in an offline R session use
+<code>help(&quot;function.name&quot;, package = &quot;grip&quot;)</code>. Shared help topics
+may document several exports, but these rows keep their purposes
+distinct. Maintainers can run <code>make audit-api-guide</code> to check
+coverage, method accounting, and help targets against the current
+namespace.</p>
+<div id="compute-layouts" class="section level3">
+<h3>Compute layouts</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>grip()</code></td>
+<td>Compute a multiscale layout using hop counts or positive edge
+lengths.</td>
+<td><a href="../html/grip.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>weighted.grip.nd()</code></td>
+<td>Compute a weighted multiscale layout in two or more dimensions.</td>
+<td><a href="../html/weighted.grip.nd.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>classical.mds()</code></td>
+<td>Fit a classical-scaling baseline from graph shortest-path
+distances.</td>
+<td><a href="../html/classical.mds.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>metric.mds()</code></td>
+<td>Fit graph or supplied distance targets with full SGD/SMACOF, or
+sparse SGD.</td>
+<td><a href="../html/metric.mds.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>prepare.sparse.mds()</code></td>
+<td>Prepare Euclidean, L-infinity or graph-geodesic sparse MDS from
+observations; internal pivots, regional weights and PCA-assisted
+neighbors.</td>
+<td><a href="../html/prepare.sparse.mds.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>landmark.mds.constraints()</code></td>
+<td>Convert supplied landmark and optional local distances into sparse
+fitting targets.</td>
+<td><a href="../html/landmark.mds.constraints.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>globalrep.grip()</code></td>
+<td>Use the explicit coarse-global-repulsion hop-layout interface.</td>
+<td><a href="../html/globalrep.grip.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>globalrep.weighted.grip()</code></td>
+<td>Use the explicit coarse-global-repulsion weighted-layout
+interface.</td>
+<td><a href="../html/globalrep.weighted.grip.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>legacy.grip()</code></td>
+<td>Fit the alternative GRIP optimization profile.</td>
+<td><a href="../html/legacy.grip.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="select-and-compare-candidates" class="section level3">
+<h3>Select and compare candidates</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>compare.layouts()</code></td>
+<td>Run candidate settings across seeds and summarize layout quality and
+stability.</td>
+<td><a href="../html/compare.layouts.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>params.from.summary()</code></td>
+<td>Recover reusable layout parameters from a comparison summary
+row.</td>
+<td><a href="../html/params.from.summary.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="score-graph-distances-or-reference-geometry" class="section level3">
+<h3>Score graph distances or reference geometry</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>score.layout()</code></td>
+<td>Evaluate sampled graph-distance fidelity and drawing-quality
+heuristics.</td>
+<td><a href="../html/score.layout.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>score.gmds()</code></td>
+<td>Report separate edge, retained-path, and chord diagnostic
+panels.</td>
+<td><a href="../html/score.gmds.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>score.coordinates()</code></td>
+<td>Measure error against corresponding reference vertices with explicit
+alignment.</td>
+<td><a href="../html/score.coordinates.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>score.surface()</code></td>
+<td>Estimate symmetric area-weighted distance between already aligned
+triangular surfaces.</td>
+<td><a href="../html/score.surface.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>geometry.diagnostics()</code></td>
+<td>Compute reference-aware geometric diagnostics for trace frames.</td>
+<td><a href="../html/geometry.diagnostics.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="trace-multiscale-layouts" class="section level3">
+<h3>Trace multiscale layouts</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>trace.grip()</code></td>
+<td>Record multiscale frames and diagnostics under either graph
+metric.</td>
+<td><a href="../html/trace.grip.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>trace.legacy.grip()</code></td>
+<td>Record frames from the legacy layout profile.</td>
+<td><a href="../html/trace.legacy.grip.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="plot-and-project" class="section level3">
+<h3>Plot and project</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>layout.coords()</code></td>
+<td>Extract unchanged coordinates from supported result families</td>
+<td><a href="../html/layout.coords.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>plot.layout()</code></td>
+<td>Draw a coordinate matrix and graph edges; also the registered plot
+method for class layout.</td>
+<td><a href="../html/plot.layout.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>project.3d()</code></td>
+<td>Rotate and project the first three coordinate columns to a static
+two-column view.</td>
+<td><a href="../html/project.3d.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="prepare-graphs-and-inspect-multiscale-structures" class="section level3">
+<h3>Prepare graphs and inspect multiscale structures</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>build.misf()</code></td>
+<td>Build the hop-distance maximal independent-set filtration used by
+GRIP.</td>
+<td><a href="../html/build.misf.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>build.weighted.misf()</code></td>
+<td>Build weighted multiscale levels, neighborhoods, and insertion
+anchors.</td>
+<td><a href="../html/build.weighted.misf.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>estimate.preparation()</code></td>
+<td>Estimate dense storage and retained-pair bounds without preparing a
+graph</td>
+<td><a href="../html/estimate.preparation.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>prepare.edge.kk()</code></td>
+<td>Prepare edges and length targets without an all-pairs cache for
+experimental edge repair.</td>
+<td><a href="../html/prepare.edge.kk.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>prepare.graph.geodesic.mds()</code></td>
+<td>Prepare connected-graph all-pairs distances and retained geodesic
+routes.</td>
+<td><a href="../html/prepare.graph.geodesic.mds.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>prepare.geodesic.kk()</code></td>
+<td>Prepare full retained routes for experimental geodesic-KK scoring
+and refinement.</td>
+<td><a href="../html/prepare.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>prepare.landmark.geodesic.kk()</code></td>
+<td>Prepare sparse local and landmark routes for experimental
+refinement.</td>
+<td><a href="../html/prepare.landmark.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>prepare.misf.geodesic.kk()</code></td>
+<td>Prepare multiscale hierarchies and per-level routes for experimental
+geodesic-KK.</td>
+<td><a href="../html/prepare.misf.geodesic.kk.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="experimental-refinement-and-state-diagnostics" class="section level3">
+<h3>Experimental refinement and state diagnostics</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>edge.kk()</code></td>
+<td>Repair adjacent-edge lengths from a starting layout under edge
+stress.</td>
+<td><a href="../html/edge.kk.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edge.length.density.stiffness()</code></td>
+<td>Convert edge lengths to normalized spring stiffnesses for edge
+repair.</td>
+<td><a href="../html/edge.length.density.stiffness.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>geodesic.kk()</code></td>
+<td>Refine supplied coordinates using full retained-path geodesic-KK
+energy.</td>
+<td><a href="../html/geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>score.geodesic.kk()</code></td>
+<td>Evaluate full geodesic-KK path error and energy.</td>
+<td><a href="../html/score.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>landmark.geodesic.kk()</code></td>
+<td>Refine supplied coordinates using sparse local and landmark
+routes.</td>
+<td><a href="../html/landmark.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>score.landmark.geodesic.kk()</code></td>
+<td>Evaluate the sparse landmark geodesic-KK objective.</td>
+<td><a href="../html/score.landmark.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>misf.geodesic.kk()</code></td>
+<td>Compute a layout through multiscale geodesic-KK insertion and
+refinement.</td>
+<td><a href="../html/misf.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>score.misf.geodesic.kk()</code></td>
+<td>Evaluate a layout on a selected prepared MISF level.</td>
+<td><a href="../html/score.misf.geodesic.kk.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edge.repulsive.state()</code></td>
+<td>Evaluate edge repair combined with repulsion at fixed
+coordinates.</td>
+<td><a href="../html/edge.repulsive.state.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edge.repulsive.stage()</code></td>
+<td>Optimize an edge-repair stage with repulsion.</td>
+<td><a href="../html/edge.repulsive.stage.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>repulsive.state()</code></td>
+<td>Evaluate the repulsion-only objective and gradient at fixed
+coordinates.</td>
+<td><a href="../html/repulsive.state.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>repulsive.stage()</code></td>
+<td>Optimize a repulsion-only stage from supplied coordinates.</td>
+<td><a href="../html/repulsive.stage.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>graph.riemannian.star.structure()</code></td>
+<td>Build local reference-star geometry for kernel/Gram refinement.</td>
+<td><a href="../html/graph.riemannian.star.structure.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>kernel.gram.gkk()</code></td>
+<td>Refine a layout using edge stress and local kernel/Gram shape
+constraints.</td>
+<td><a href="../html/kernel.gram.gkk.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="synthetic-graphs-primitive-edge-generators" class="section level3">
+<h3>Synthetic graphs: primitive edge generators</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>suitesparse.graph()</code></td>
+<td>Load one bundled SuiteSparse graph by full ID or unique short
+name.</td>
+<td><a href="../html/suitesparse.graph.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>suitesparse.graphs()</code></td>
+<td>Browse the frozen catalogue and gallery membership.</td>
+<td><a href="../html/suitesparse.graph.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edges.path()</code></td>
+<td>Return consecutive edges of a path.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edges.cycle()</code></td>
+<td>Return edges of a closed cycle.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edges.mesh()</code></td>
+<td>Return edges of a rectangular grid.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edges.cube()</code></td>
+<td>Return edges of a three-dimensional grid.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edges.cylinder()</code></td>
+<td>Return edges of a grid wrapped in one direction.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edges.torus()</code></td>
+<td>Return edges of a grid wrapped in both directions.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edges.kary.tree()</code></td>
+<td>Return a rooted tree with k children per internal vertex.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edges.sierpinski.carpet()</code></td>
+<td>Return occupied-cell adjacency for a Sierpinski carpet.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>edges.sierpinski.triangle()</code></td>
+<td>Return a recursively subdivided Sierpinski triangle graph.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>edges.sierpinski.tetrahedron()</code></td>
+<td>Return a recursively subdivided Sierpinski tetrahedron graph.</td>
+<td><a href="../html/graph_generators.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="synthetic-graphs-configurable-keep-masks" class="section level3">
+<h3>Synthetic graphs: configurable keep masks</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>keep.periodic.holes()</code></td>
+<td>Create a finite-grid keep matrix with periodic holes.</td>
+<td><a href="../html/perforated_grid_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>keep.asymmetric.notches()</code></td>
+<td>Create a finite-grid keep matrix with asymmetric notches.</td>
+<td><a href="../html/perforated_grid_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>keep.slit.channels()</code></td>
+<td>Create a finite-grid keep matrix with slit channels.</td>
+<td><a href="../html/perforated_grid_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>keep.staggered.windows()</code></td>
+<td>Create a finite-grid keep matrix with staggered windows.</td>
+<td><a href="../html/perforated_grid_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.border()</code></td>
+<td>Create a square recursive mask retaining its border.</td>
+<td><a href="../html/mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>mask.corner()</code></td>
+<td>Create a square recursive corner pattern.</td>
+<td><a href="../html/mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.cross()</code></td>
+<td>Create a square recursive cross pattern.</td>
+<td><a href="../html/mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>mask.asymmetric.holes()</code></td>
+<td>Create a square recursive pattern with asymmetric holes.</td>
+<td><a href="../html/mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.cube.periodic.tunnels()</code></td>
+<td>Create a cubic recursive keep array with periodic tunnels.</td>
+<td><a href="../html/cube_mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>mask.cube.asymmetric.cavities()</code></td>
+<td>Create a cubic recursive keep array with offset cavities.</td>
+<td><a href="../html/cube_mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.cube.channel.network()</code></td>
+<td>Create a cubic recursive keep array with connected channels.</td>
+<td><a href="../html/cube_mask_pattern_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>mask.triangle.classic()</code></td>
+<td>Select the three corner subtriangles of the classic recursive
+triangle.</td>
+<td><a href="../html/triangle_mask_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.triangle.bridge()</code></td>
+<td>Select a recursive triangle pattern including a bridge.</td>
+<td><a href="../html/triangle_mask_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>mask.tetrahedron.classic()</code></td>
+<td>Select the four corner subtetrahedra of the classic recursive
+tetrahedron.</td>
+<td><a href="../html/tetrahedron_mask_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>mask.tetrahedron.corner.missing()</code></td>
+<td>Select a recursive tetrahedron pattern with one missing corner.</td>
+<td><a href="../html/tetrahedron_mask_helpers.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="synthetic-graphs-complete-surface-and-solid-bundles" class="section level3">
+<h3>Synthetic graphs: complete surface and solid bundles</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>mesh.surface.graph()</code></td>
+<td>Lift a rectangular mesh to a surface with induced edge lengths.</td>
+<td><a href="../html/mesh_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>occupied.mesh.surface.graph()</code></td>
+<td>Lift a finite occupied grid specified by a keep matrix.</td>
+<td><a href="../html/occupied_mesh_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>cylinder.surface.graph()</code></td>
+<td>Construct a weighted cylindrical surface bundle.</td>
+<td><a href="../html/cylinder_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>sphere.surface.graph()</code></td>
+<td>Construct a weighted pole-and-latitude-ring sphere bundle.</td>
+<td><a href="../html/sphere_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>torus.surface.graph()</code></td>
+<td>Construct a weighted toroidal surface bundle.</td>
+<td><a href="../html/torus_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>irregular.rectangle.surface.graph()</code></td>
+<td>Construct a deterministically irregular rectangular surface
+bundle.</td>
+<td><a href="../html/irregular_rectangle_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>irregular.annulus.surface.graph()</code></td>
+<td>Construct an irregular annular surface bundle.</td>
+<td><a href="../html/irregular_annulus_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>irregular.sphere.surface.graph()</code></td>
+<td>Construct an irregular spherical surface bundle.</td>
+<td><a href="../html/irregular_sphere_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>irregular.torus.surface.graph()</code></td>
+<td>Construct an irregular toroidal surface bundle.</td>
+<td><a href="../html/irregular_torus_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>irregular.double.torus.surface.graph()</code></td>
+<td>Construct an irregular double-torus surface bundle.</td>
+<td><a href="../html/irregular_double_torus_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>irregular.pair.of.pants.surface.graph()</code></td>
+<td>Construct an irregular surface with three boundary components.</td>
+<td><a href="../html/irregular_pair_of_pants_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>irregular.ball.solid.graph()</code></td>
+<td>Construct a graph sampling a three-dimensional ball interior.</td>
+<td><a href="../html/irregular_ball_solid_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>irregular.shell.solid.graph()</code></td>
+<td>Construct a graph sampling a three-dimensional shell volume.</td>
+<td><a href="../html/irregular_shell_solid_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>triangulated.annulus.surface.graph()</code></td>
+<td>Construct a lifted triangular-lattice annulus bundle.</td>
+<td><a href="../html/triangulated_annulus_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>triangulated.pair.of.pants.surface.graph()</code></td>
+<td>Construct a lifted triangular-lattice surface with two holes.</td>
+<td><a href="../html/triangulated_pair_of_pants_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>triangulated.polyhedron.surface.graph()</code></td>
+<td>Construct a subdivided polyhedral graph with reference
+coordinates.</td>
+<td><a href="../html/triangulated_polyhedron_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>sampled.rectangle.surface.graph()</code></td>
+<td>Sample a rectangle and construct one intersection-nearest-neighbor
+graph bundle.</td>
+<td><a href="../html/sampled_rectangle_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>sampled.rectangle.surface.graphs()</code></td>
+<td>Reuse one rectangular sample across a sequence of neighborhood
+sizes.</td>
+<td><a href="../html/sampled_rectangle_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>kary.tree.weighted.graph()</code></td>
+<td>Assign intrinsic tree lengths by depth and child slot, with tree
+metadata.</td>
+<td><a href="../html/kary_tree_weighted_graph_helpers.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="synthetic-graphs-complete-recursive-bundles" class="section level3">
+<h3>Synthetic graphs: complete recursive bundles</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>recursive.mask.grid.surface.graph()</code></td>
+<td>Recursively apply a square mask and lift the retained cells.</td>
+<td><a href="../html/recursive_mask_grid_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>recursive.cube.mask.surface.graph()</code></td>
+<td>Recursively apply a cubic mask and embed occupied-cell
+adjacency.</td>
+<td><a href="../html/recursive_cube_mask_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>recursive.triangle.mask.surface.graph()</code></td>
+<td>Recursively apply a triangle mask and return a weighted bundle.</td>
+<td><a href="../html/recursive_triangle_mask_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>recursive.tetrahedron.mask.surface.graph()</code></td>
+<td>Recursively apply a tetrahedron mask and return a weighted
+bundle.</td>
+<td><a href="../html/recursive_tetrahedron_mask_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>sierpinski.carpet.surface.graph()</code></td>
+<td>Construct a weighted Sierpinski carpet with a surface lift.</td>
+<td><a href="../html/sierpinski_carpet_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>sierpinski.triangle.surface.graph()</code></td>
+<td>Construct a weighted Sierpinski triangle with reference
+coordinates.</td>
+<td><a href="../html/sierpinski_triangle_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>sierpinski.tetrahedron.surface.graph()</code></td>
+<td>Construct a weighted Sierpinski tetrahedron with reference
+coordinates.</td>
+<td><a href="../html/sierpinski_tetrahedron_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>menger.sponge.surface.graph()</code></td>
+<td>Construct a weighted Menger occupied-cube graph bundle.</td>
+<td><a href="../html/menger_sponge_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>vicsek.surface.graph()</code></td>
+<td>Construct a weighted recursive cross-family bundle.</td>
+<td><a href="../html/vicsek_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>cube.periodic.tunnels.surface.graph()</code></td>
+<td>Construct a recursively perforated cube bundle with periodic
+tunnels.</td>
+<td><a href="../html/porous_cube_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>cube.asymmetric.cavities.surface.graph()</code></td>
+<td>Construct a recursively perforated cube bundle with offset
+cavities.</td>
+<td><a href="../html/porous_cube_surface_helpers.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>cube.channel.network.surface.graph()</code></td>
+<td>Construct a recursively perforated cube bundle with a channel
+network.</td>
+<td><a href="../html/porous_cube_surface_helpers.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="interactive-exploration" class="section level3">
+<h3>Interactive exploration</h3>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gripui.project()</code></td>
+<td>Assemble graph, layouts, scores, and metadata into an explorer
+project.</td>
+<td><a href="../html/gripui.project.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>gripui.project.from.compare()</code></td>
+<td>Convert a layout-comparison result into an explorer project.</td>
+<td><a href="../html/gripui.project.from.compare.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>gripui.project.from.dir()</code></td>
+<td>Load a saved explorer project from a directory.</td>
+<td><a href="../html/gripui.project.from.dir.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>gripui.validate.project()</code></td>
+<td>Validate a project’s graph and layout structures.</td>
+<td><a href="../html/gripui.validate.project.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>gripui.app()</code></td>
+<td>Construct the Shiny layout-explorer app object.</td>
+<td><a href="../html/gripui.app.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>run.gripui()</code></td>
+<td>Launch the layout explorer in an interactive session.</td>
+<td><a href="../html/run.gripui.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>gripui.graph.family.catalog()</code></td>
+<td>List family identifiers and geometry choices for the family
+explorer.</td>
+<td><a href="../html/gripui.graph.family.catalog.html">Help</a></td>
+</tr>
+<tr class="even">
+<td><code>gripui.family.app()</code></td>
+<td>Construct the Shiny synthetic-family explorer app object.</td>
+<td><a href="../html/gripui.family.app.html">Help</a></td>
+</tr>
+<tr class="odd">
+<td><code>run.gripui.family()</code></td>
+<td>Launch the synthetic-family explorer in an interactive session.</td>
+<td><a href="../html/run.gripui.family.html">Help</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="find-detailed-help" class="section level2">
+<h2>Find detailed help</h2>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">help</span>(<span class="at">package =</span> <span class="st">&quot;grip&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">help</span>(<span class="st">&quot;grip-package&quot;</span>, <span class="at">package =</span> <span class="st">&quot;grip&quot;</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">help</span>(<span class="st">&quot;grip&quot;</span>, <span class="at">package =</span> <span class="st">&quot;grip&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">vignette</span>(<span class="at">package =</span> <span class="st">&quot;grip&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">vignette</span>(<span class="st">&quot;synthetic-graph-families&quot;</span>, <span class="at">package =</span> <span class="st">&quot;grip&quot;</span>)</span></code></pre></div>
+<p>Internal builders and standalone embeddings used within graph bundles
+are implementation details; use the public bundle constructors
+above.</p>
+<p>This guide adopts the short function-and-purpose listings and
+connections between overview, examples, and detailed help found in the
+<a href="https://hbiostat.org/r/hmisc/">Hmisc documentation</a> and its
+<a href="https://raw.githubusercontent.com/harrelfe/Hmisc/master/man/Overview.Rd">package
+overview</a>. The groups here follow graph-layout tasks specific to
+grip.</p>
+</div>
+<div id="sgd-references" class="section level2">
+<h2>SGD references</h2>
+<ul>
+<li>Zheng, J. X., Pawar, S. and Goodman, D. F. (2018). <em>Graph Drawing
+by Stochastic Gradient Descent</em>. <a href="https://doi.org/10.1109/TVCG.2018.2859997">doi:10.1109/TVCG.2018.2859997</a>.</li>
+<li>Hangan, D., Kobourov, S. and Miller, J. (2026). <em>Bridging Graph
+Drawing and Dimensionality Reduction with Stochastic Stress
+Optimization</em>. <a href="https://arxiv.org/abs/2605.00641">arXiv:2605.00641</a>.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

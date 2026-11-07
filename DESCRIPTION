@@ -1,0 +1,55 @@
+Package: grip
+Type: Package
+Title: Graph Drawing with Intelligent Placement (GRIP)
+Version: 0.3.0
+Authors@R: 
+    c(person("Pawel", "Gajer", , "pgajer@gmail.com", role = c("aut", "cre")),
+      person("Jonathan", "Zheng", role = c("ctb", "cph"),
+             comment = "Author and copyright holder of MIT-licensed s_gd2 code adapted for the metric-MDS SGD backend"),
+      person("Daniel", "Hangan", role = "ctb",
+             comment = "Author of the SGD-MDS implementation in his scikit-learn fork adapted for the metric-MDS SGD backend"),
+      person("The scikit-learn developers", role = "cph",
+             comment = "Copyright holders of BSD-3-Clause code adapted from Daniel Hangan's scikit-learn fork for the metric-MDS SGD backend"))
+Description: Implements GRIP multiscale graph layout with a unified choice
+    between hop-count and geometry-aware edge-length graph metrics in 2D and
+    3D. Provides layout scoring, candidate
+    comparison, multiscale trace diagnostics, synthetic graph families,
+    and advanced experimental geodesic-KK utilities for weighted-layout
+    evaluation and polish. Based on Gajer and Kobourov (2002)
+    <doi:10.7155/jgaa.00052> and Gajer, Goodrich and Kobourov (2004)
+    <doi:10.1016/j.comgeo.2004.03.014>. Includes derived graph datasets from
+    the SuiteSparse Matrix Collection, with source attribution and
+    transformation metadata.
+License: GPL (>= 3)
+Copyright: See inst/COPYRIGHTS for software and dataset attribution.
+        Bundled SuiteSparse-derived graph data are distributed under CC
+        BY 4.0; see inst/extdata/suitesparse/PROVENANCE.md.
+URL: https://pgajer.github.io/grip/, https://github.com/pgajer/grip
+BugReports: https://github.com/pgajer/grip/issues
+Encoding: UTF-8
+Depends: R (>= 3.5.0)
+Imports: Rcpp
+Suggests: bslib, DT, dgraphs (>= 0.4.0), FNN, geometry, igraph,
+        htmltools, htmlwidgets, httpuv, knitr, later, plotly,
+        rmarkdown, rgl, shiny, smacof (>= 2.1-7), testthat (>= 3.0.0),
+        withr
+Enhances: ivue (>= 0.1.0)
+Config/Needs/website:
+        pgajer/ivue@70ce17bb73f315da7565ce425405369c6a8edd48,
+        pgajer/linf
+LinkingTo: Rcpp
+SystemRequirements: C++17
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0
+NeedsCompilation: yes
+Packaged: 2026-11-07 16:04:40 UTC; pgajer
+Author: Pawel Gajer [aut, cre],
+  Jonathan Zheng [ctb, cph] (Author and copyright holder of MIT-licensed
+    s_gd2 code adapted for the metric-MDS SGD backend),
+  Daniel Hangan [ctb] (Author of the SGD-MDS implementation in his
+    scikit-learn fork adapted for the metric-MDS SGD backend),
+  The scikit-learn developers [cph] (Copyright holders of BSD-3-Clause
+    code adapted from Daniel Hangan's scikit-learn fork for the
+    metric-MDS SGD backend)
+Maintainer: Pawel Gajer <pgajer@gmail.com>

@@ -1,0 +1,167 @@
+---
+title: "Metric MDS: SGD, SMACOF, and stress weighting"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Metric MDS: SGD, SMACOF, and stress weighting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+library(grip)
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+`metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
+The default `backend='sgd'` moves pairs of vertices in shuffled order, following
+[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+with a selectable learning-rate schedule. Legacy graph calls default to the
+hybrid schedule adapted from the implementation of
+[Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641);
+`prepare.sparse.mds()` inputs default to Zheng's weight-dependent fixed-budget
+exponential schedule (`scheduler="zheng"`).
+`backend='smacof'` updates the full configuration using the optional
+[smacof package](https://doi.org/10.18637/jss.v102.i10). Its majorization steps
+are designed to reduce total stress; individual SGD pair adjustments need not.
+
+This guide illustrates the differences using existing saved synthetic examples.
+For a broader comparison of the methods, see Hangan, Kobourov and Miller (2026).
+The [complete experiment](metric-mds-results.html) retains all 420 original
+fits, the separate 60-fit weighting comparison, failed outcomes, numerical
+results, and reproduction instructions.
+
+For higher-dimensional fitting followed by PCA and optional free 3D refinement,
+see [Higher-dimensional metric MDS for 3D visualization](high-dimensional-mds.html).
+
+To record and animate actual SGD pair updates, see
+[Animating metric MDS: paraboloid and saddle](metric-mds-animation.html).
+
+## Fit a graph with either backend
+
+```{r recipe, eval=FALSE}
+g <- suitesparse.graph('dwt_307')
+sgd <- metric.mds(edges=g$edges,n=g$n,dim=3,seed=1,
+                  init='random',max.iter=100,diagnostics=FALSE)
+smacof.fit <- metric.mds(edges=g$edges,n=g$n,dim=3,seed=1,
+                  init='random',max.iter=100,diagnostics=FALSE,
+                  backend='smacof',eps=1e-8)
+```
+
+This is a usage recipe, not a new benchmark on dwt_307. Both backends support
+uniform and inverse-squared stress weights. The default full mode uses uniform
+weights. An SGD pass and a SMACOF iteration are different amounts of work;
+compare achieved error and elapsed time, not iteration counts alone. SGD's
+schedule completion reports `iteration_limit`, which does not certify
+convergence. The hybrid tuning defaults remain provisional calibration choices.
+The saved backend comparisons do not isolate the learning-rate schedule and
+therefore do not establish that hybrid is better than `"zheng"`. Hangan et al.'s
+fixed-switch rationale concerns the usual uniform-weight MDS setting; it is not
+evidence of superiority for inverse-squared regional sparse stress. See
+`?metric.mds`, under “Learning-rate schedules and evidence,” for the provenance,
+precise defaults and published-schedule controls.
+
+## Two distance targets on the same saddle
+
+The saved experiment uses 64- and 144-point clouds, five paired random starts,
+and separate allowances of 10, 30, or 100 passes/iterations. Both methods receive
+the same starting coordinates within each pair. Here we show the 144-point
+saddle at seed 1 and allowance 100, with uniform stress weights. These displayed
+runs were selected in advance, not chosen for their appearance.
+
+**Ambient distances** are straight-line distances between generating points;
+an exact 3D realization exists. **Local graph paths** sum edge lengths along
+a finite grid with horizontal, vertical, and diagonal edges. They are not
+exact geodesics on the continuous saddle, and their best 3D drawing need not
+reproduce the generating surface.
+
+```{r data, include=FALSE}
+bundle <- readRDS(system.file('extdata','metric-mds-comparison','benchmark.rds',package='grip'))
+```
+
+```{r selected-saddles, results='asis', echo=FALSE}
+for(id in c('saddle-144','saddle_graph-144')) {
+  case <- bundle$cases[[id]]; fits <- comparison_representative(bundle,id)
+  cat('\n\n### ',case$target,'\n\n',sep='')
+  child <- c(sprintf('```{r selected-%s, echo=FALSE}',id),
+    'documentation.full.view(case,fits)','```')
+  cat(knitr::knit_child(text=child,envir=environment(),quiet=TRUE),sep='\n')
+  tab <- do.call(rbind,lapply(fits,function(f) f$row[,c('backend','error','seconds','iterations','termination')]))
+  cat(knitr::kable(tab,digits=4,row.names=FALSE,
+    col.names=c('Backend','Normalized error','Fit seconds','Passes/iterations','Termination')),sep='\n')
+}
+```
+
+Gray shows the generating reference; blue is SGD and orange is SMACOF.
+The ambient case uses matched-vertex alignment. The local-graph case uses
+surface-shape alignment: translation, rotation, and reflection match nearby
+surface locations without requiring vertex labels to agree. Neither alignment
+resizes or deforms the layouts. Scores use the original returned coordinates.
+
+**Normalized error** is the square root of raw stress divided by the sum of
+squared target distances; lower is better. The figures below summarize both
+cloud sizes across five starts, with median errors and fitting times and
+interquartile ranges. Each point is a separate fit restarted with its own
+iteration allowance, not a checkpoint along one run. Fitting times exclude
+shared graph preparation, alignment, and rendering.
+
+```{r tradeoff, echo=FALSE}
+comparison_tradeoff(bundle,c('saddle_graph-64','saddle_graph-144'))
+```
+
+## The effect of stress weighting
+
+Uniform weighting minimizes squared errors in distance units. The paper's
+inverse-squared weighting minimizes squared **relative** distance errors:
+
+\[
+\sum_{i<j} \frac{(\lVert z_i-z_j\rVert-d_{ij})^2}{d_{ij}^2}.
+\]
+
+An error of 0.2 on a target distance of 1 then counts as much as an error of
+2 on a target of 10. Edge lengths determine the target distances;
+`pair.weights` determines their influence on the objective.
+
+```{r weighting-recipe, eval=FALSE}
+fit <- metric.mds(edges=g$edges,n=g$n,dim=3,
+  pair.weights='inverse_squared',backend='sgd',seed=1)
+```
+
+The following comparison uses the saved 64-vertex saddle graph, seed 1,
+and allowance 100 for each backend and weighting. All four layouts use
+surface-shape alignment without resizing. Select a method and weighting below
+the figure, or show all four.
+
+```{r weighting, echo=FALSE}
+w <- readRDS(system.file('extdata','metric-mds-weighting','benchmark.rds',package='grip'))
+case <- w$cases[['saddle_graph-64']]
+fits <- comparison_weighting_fits(w,case$id)
+documentation.full.view(case,fits,weighting=TRUE)
+```
+
+```{r weighting-table, echo=FALSE}
+knitr::kable(do.call(rbind,lapply(fits,function(f)
+  f$row[,intersect(c('backend','pair_weights','uniform_error','relative_error','seconds'),names(f$row))])),digits=4)
+```
+
+Compare errors within the same column: uniform and relative error express
+different priorities. The [complete results](metric-mds-results.html#the-effect-of-stress-weighting)
+include the five-start summaries, paraboloid and helix examples, and the
+surface-registration checks. For larger graphs, continue to
+[Sparse SGD](sparse-metric-mds.html).

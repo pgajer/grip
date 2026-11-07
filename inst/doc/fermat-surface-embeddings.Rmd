@@ -1,0 +1,322 @@
+---
+title: "Embedding Fermat distances on a paraboloid, saddle and helix"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Embedding Fermat distances on a paraboloid, saddle and helix}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=8,fig.height=5,warning=FALSE,message=FALSE)
+available <- all(vapply(c('dgraphs','igraph','plotly'),requireNamespace,logical(1),quietly=TRUE))
+available <- available && file.exists(system.file('examples','fermat-surfaces.R',package='dgraphs')) &&
+  'return.graph' %in% names(formals(dgraphs::fermat.distances)) &&
+  'distance.matrix' %in% names(formals(grip::metric.mds))
+run.experiment <- identical(Sys.getenv('GRIP_RUN_FERMAT_EXPERIMENT'), 'true') ||
+  nzchar(Sys.getenv('FERMAT_SURFACE_RESULTS'))
+knitr::opts_chunk$set(eval=available && run.experiment)
+```
+
+```{r dependencies,echo=FALSE,eval=TRUE,results='asis'}
+if(!available) cat('This executable example requires development versions of dgraphs and grip with the direct distance and supporting-graph APIs, plus igraph and plotly. Install these dependencies to render the calculated examples.\n')
+if(available && !run.experiment) cat('The reference-geodesic calculations are an explicit reproduction step. Set GRIP_RUN_FERMAT_EXPERIMENT=true to run them, or FERMAT_SURFACE_RESULTS to a directory containing the saved results. Routine package builds show the code without rerunning this experiment.\n')
+```
+
+This example fits three-dimensional metric MDS directly to **dense complete-graph
+Fermat distance matrices**. No kNN graph is required. We then deliberately restrict
+paths to symmetric Fermat kNN graphs with k from 3 through 10 and compare their
+embeddings with the dense-target fits. The companion dgraphs vignette explains the
+distance estimator and supporting path graphs.
+
+## Sample surfaces and supply a distance matrix
+
+We use the paraboloid $(u,v,u^2+v^2)$ and saddle $(u,v,u^2-v^2)$ over the unit
+disk. The existing dgraphs sampler draws uniformly with respect to **surface
+area**, using the area element of the graph surface; we do not replace it with
+uniform sampling of the two parameter coordinates.
+
+```{r dense-example}
+library(grip)
+s <- dgraphs::sample.synthetic.geometry(
+  dgraphs::synthetic.quadform(2,3,forms=list(diag(c(1,-1)))),
+  dgraphs::synthetic.sampling.quadform.lab('disk',mode='area'),
+  n=150,seed=4101)
+X <- s$predictors
+D <- dgraphs::fermat.distances(points=X,p=2,backend='implicit',rooted=FALSE)
+fit <- metric.mds(distance.matrix=D,dim=3,backend='sgd',init='random',
+  seed=3051,max.iter=300,diagnostics=FALSE,
+  sgd.control=list(final.rate=1e-5))
+Y <- fit$coords
+```
+
+For observations $X_i$, the supplied target is
+$D_p(i,j)=\min_{\pi:i\leadsto j}\sum_{(a,b)\in\pi}\|X_a-X_b\|^p$.
+The minimum allows every observation as an intermediate point. The exponent is
+applied to individual ambient steps, and the returned distance is unrooted.
+The MDS coordinates $Y_i\in\mathbb R^3$ seek to minimize an unweighted sum of squared
+residuals $(\|Y_i-Y_j\|-D_p(i,j))^2$ over distinct pairs. The fixed 300-epoch SGD
+budget is an optimization budget, not a convergence certificate.
+
+## A matched comparison
+
+The comparison uses powers 1, 2, 3 and 4. Every fit uses the same seeded random starting configuration for retained
+samples, with the initial global scale fitted separately to its target matrix, uses uniform pair weights and the
+same optimization controls. For a disconnected kNN graph only its largest
+component is embedded. All within-component graph shortest-path distances are
+supplied as a dense matrix; this isolates **graph restriction**, without adding
+a landmark approximation to this small example.
+
+```{r shared, include=FALSE}
+source(Sys.getenv('FERMAT_SURFACE_HELPER',
+  unset=system.file('examples','fermat-surfaces.R',package='dgraphs')))
+cache.root <- Sys.getenv('FERMAT_SURFACE_RESULTS')
+results <- lapply(c('paraboloid','saddle','helix'),function(shape) {
+  path <- file.path(cache.root,paste0(shape,'_4101.rds'))
+  if(nzchar(cache.root) && file.exists(path)) {
+    cached<-readRDS(path)
+    stopifnot(nrow(cached$reference$pairs)==1000L,
+      shape=='helix' || cached$reference$method=='best_of_six')
+    return(cached)
+  }
+  s <- fermat.surface.sample(shape,150L,4101L)
+  fermat.surface.experiment(s,fermat.surface.reference(s))
+})
+metrics <- do.call(rbind,lapply(results,`[[`,'records'))
+```
+
+We keep three questions separate. **Distance error** compares the input distances
+with reference surface geodesics. **Graph restriction error** compares graph
+shortest paths with complete-graph Fermat distances. **Embedding error** compares
+Euclidean distances in the fitted coordinates with their supplied targets.
+For vectors of estimated distances $d$ and reference distances $g$, we report
+\[
+E(d,g;a)=\sqrt{\frac{\sum_r(ad_r-g_r)^2}{\sum_r g_r^2}}.
+\]
+Here $r$ indexes valid comparison pairs. For distance-versus-geodesic comparisons,
+$a=\sum_r d_rg_r/\sum_r d_r^2$ fits one global scale because different powers have
+different units. For embedding and graph restriction error, $a=1$: the targets
+and their estimates are in the same units. Smaller errors are better; zero means
+agreement on those pairs. Reference geodesics use existing continuous solvers
+on 1,000 sampled pairs using `best_of_six` for both surfaces, with
+`paraboloid_clairaut` on the same paraboloid pairs. Each of the six refinement
+searches receives 64 rounds; no global-optimality certificate is implied.
+
+```{r comparison-table, echo=FALSE}
+knitr::kable(metrics[metrics$k==0,c('shape','p','distance_nrmse','embedding_nrmse',
+ 'embedded_geodesic_nrmse')],digits=3,col.names=c('Example','p',
+ 'Input vs geodesic','Embedding vs input','Embedding vs geodesic'))
+```
+
+Table 1. Dense-target fits. The two geodesic columns allow a global scale change;
+the embedding-versus-input column does not. A good MDS fit can faithfully reproduce
+an inaccurate geodesic estimator, and these columns distinguish those cases.
+
+```{r k-comparison, echo=FALSE}
+old<-par(mfrow=c(1,3),mar=c(4,4,2,1))
+for(shape in unique(metrics$shape)) {
+ z<-metrics[metrics$shape==shape,]
+ plot(c(0,10),c(0,1.3*max(c(0,z$embedded_geodesic_nrmse),na.rm=TRUE)),type='n',
+ xlab='k (0 = complete targets)',ylab='Embedding vs geodesic error',main=shape)
+ for(p in 1:4){q<-z[z$p==p,];lines(q$k,q$embedded_geodesic_nrmse,col=p,pch=p,type='b')}
+ legend('topright',legend=paste('p =',1:4),col=1:4,lty=1,pch=1:4,bty='n',cex=.7)
+};par(old)
+```
+
+**Figure 1.** Scaled agreement between embedded Euclidean distances and the
+intrinsic reference. The point at k=0 is the complete-target baseline; points at
+k=3--10 are restricted graphs. Connecting segments help follow powers and do not
+represent fits at untested k values. Disconnected results use fewer pairs:
+
+```{r coverage,echo=FALSE}
+z<-metrics[metrics$components>1,]
+knitr::kable(aggregate(cbind(retained,components,reference_pairs)~shape+p,z,range))
+```
+
+The table summarizes ranges across disconnected k values. Complete coverage is
+150 samples. Small within-component errors do not establish whole-sample recovery.
+
+## Overlay embeddings and their supporting paths
+
+The reference surface is translucent gray, original observations are gray points,
+and fitted coordinates are colored by their first latent coordinate. Thin blue
+lines show the selected shortest-path edges for the complete graph, or Fermat
+neighbor edges for the restricted graph. Views are aligned to the observations
+using least-squares similarity Procrustes alignment: translation, rotation or
+reflection, and one uniform scale, matching each embedded point to its original
+observation. Plot titles report the root mean squared Euclidean alignment
+residual per retained sample, in target-coordinate units (zero is exact overlap).
+Alignment
+changes only display coordinates; numerical errors above use the original fits.
+
+```{r paraboloid,echo=FALSE}
+fermat.surface.overlay(results[[1]],p=2,k=0)
+```
+
+**Figure 2.** Dense p=2 Fermat embedding on the paraboloid. Rotate the interactive
+view to inspect displacements from the gray surface.
+
+```{r saddle,echo=FALSE}
+fermat.surface.overlay(results[[2]],p=2,k=0)
+```
+
+**Figure 3.** Dense p=2 Fermat embedding on the saddle, with its supporting paths.
+An intrinsic metric need not have an exact three-dimensional Euclidean realization.
+
+```{r restricted,echo=FALSE}
+fermat.surface.overlay(results[[2]],p=2,k=3)
+```
+
+**Figure 4.** The same saddle samples after restriction to a symmetric k=3 Fermat
+graph. Its edges summarize potentially multistep Fermat paths; they are not the
+individual powered ambient edges shown in Figure 3. If disconnected, only the
+largest component appears. Edge legends report any display thinning beyond 1,800
+edges; underlying graph data remain complete.
+
+## Why the helix should unfold
+
+The helix $(\cos t,\sin t,0.2t)$ has arc-length distance
+$\sqrt{1.04}|t_i-t_j|$. Therefore its intrinsic distance matrix has an exact
+one-dimensional realization. Fitting those distances in three coordinates should
+produce a nearly straight line, not reconstruct the coil. Three-dimensional
+metric MDS compares straight distances, not travel constrained to a curve.
+
+```{r helix,echo=FALSE}
+fermat.surface.overlay(results[[3]],p=2,k=0)
+```
+
+**Figure 5.** Dense p=2 Fermat embedding over the original helix. Agreement with the
+coil is not the success criterion for intrinsic-distance reconstruction.
+
+```{r helix-baseline,echo=FALSE}
+h<-results[[3]]; b<-h$geodesic_baseline
+knitr::kable(data.frame(target='Exact helix arc length',
+ embedding_error=fermat.surface.score(as.matrix(dist(b$coords))[lower.tri(b$target)],
+ b$target[lower.tri(b$target)],rescale=FALSE)['nrmse']),digits=6,row.names=FALSE)
+plotly::plot_ly(x=b$coords[,1],y=b$coords[,2],z=b$coords[,3],type='scatter3d',
+ mode='markers',marker=list(size=3,color=h$sample$latent[,1],colorscale='Viridis'))
+```
+
+**Figure 6.** Exact arc-length target baseline. Its coordinates should approach a
+line; remaining transverse spread measures finite optimization error. The surface
+examples do not have corresponding all-pairs exact-reference baselines: their
+numerical reference checks cover selected pairs only.
+
+## Larger datasets
+
+The direct dense API above is suitable for small comparisons. For larger datasets,
+dgraphs can compute only selected source rows with `sources = landmarks`.
+`landmark.mds.constraints()` converts those distances into explicit weighted pair
+fitting targets for sparse `metric.mds()`. This is a separate approximation in the
+embedding objective, not a restriction of the paths defining each Fermat distance.
+
+
+## Chord lengths before and after scaling
+
+At p=1, complete-graph Fermat distances equal ambient Euclidean chord lengths.
+A 3D MDS fit can therefore reproduce the sampled shape without reproducing its
+intrinsic distances. The earlier distance score fits a global scale; it is not
+the discrepancy of the original chord lengths.
+
+For each of the same evaluated pairs, write $c_r$ for the chord and $g_r$ for
+the intrinsic reference. The following table reports $E(c,g;1)$ and
+$E(c,g;a)$ with $a=\sum c_rg_r/\sum c_r^2$, together with the median and maximum
+ratio $g_r/c_r$. Errors are dimensionless and zero means agreement. The ratio
+is one for equal lengths; 1.3 means the geodesic is 30% longer than its chord.
+These are the 1,000 evaluated pairs for seed 4101, not all sample pairs.
+
+```{r chord-audit,echo=FALSE}
+chord.audit <- do.call(rbind,lapply(results,function(r) {
+ ij<-r$reference$pairs; g<-r$reference$distances
+ c<-sqrt(rowSums((r$sample$predictors[ij[,1],]-r$sample$predictors[ij[,2],])^2))
+ ok<-is.finite(g)&g>0&c>0; g<-g[ok];c<-c[ok];a<-sum(c*g)/sum(c^2)
+ data.frame(Example=r$sample$shape,Pairs=length(g),Scale=a,
+ Raw.error=sqrt(sum((c-g)^2)/sum(g^2)),Scaled.error=sqrt(sum((a*c-g)^2)/sum(g^2)),
+ Median.ratio=median(g/c),Maximum.ratio=max(g/c))
+}))
+knitr::kable(chord.audit,digits=4)
+```
+
+Scaling reduces chord underestimation on these patches, but does not make chords
+intrinsic distances. Larger discrepancies remain for individual endpoint pairs.
+On the helix, accurately preserving arc lengths unfolds the curve into a line;
+matching the original coil is a different objective.
+
+Independent solver checks are attempts, not guaranteed successes. Candidate
+lengths and close agreement where both solvers succeed do not certify global
+minimality. The table below makes the successful comparison count explicit.
+
+```{r reference-success,echo=FALSE}
+knitr::kable(do.call(rbind,lapply(results,function(r) {
+ v<-r$reference$check.distances
+ data.frame(Example=r$sample$shape,Attempted=length(v),Finite=sum(is.finite(v)),
+ Failed=sum(!is.finite(v)),Check=if(r$sample$shape=='helix')'Analytic identity' else if(!is.null(r$reference$check.method))r$reference$check.method else 'None')
+})))
+```
+
+## Paraboloid reference-method comparison
+
+Best-of-six and Clairaut evaluate the same 1,000 pairs. Positive signed relative
+difference $(b_r-h_r)/h_r$ means the best-of-six candidate $b_r$ is longer than
+the Clairaut candidate $h_r$. Neither is assumed globally certified.
+
+```{r clairaut-comparison,echo=FALSE}
+r<-results[[1]]; b<-r$reference$distances; h<-r$reference$check.distances
+ok<-is.finite(b)&is.finite(h)&h>0; delta<-(b[ok]-h[ok])/h[ok]
+knitr::kable(data.frame(Pairs=sum(ok),Median.signed=median(delta),
+ Maximum.absolute=max(abs(delta))),digits=6)
+knitr::kable(do.call(rbind,lapply(1:4,function(p){
+ d<-r$matrices[[as.character(p)]][r$reference$pairs]
+ data.frame(p=p,Best.of.six=unname(fermat.surface.score(d,b)['nrmse']),
+ Clairaut=unname(fermat.surface.score(d,h)['nrmse']))})),digits=5)
+```
+
+The second table compares scaled Fermat-distance errors under each reference.
+It uses identical targets and endpoint pairs, isolating reference-method effects.
+
+## Follow-up: sampling density, intermediate powers and stronger curvature
+
+A separate distance-only experiment varied total sample size from 150 to 2,400,
+with five repetitions, on paraboloids and saddles with coefficients 1, 2 and 4,
+and an area-uniform Swiss roll. It reused the existing quadform area sampler.
+For each surface, 64 fixed sampled endpoints supplied 500 calibration pairs and
+1,000 different evaluation pairs. Additional path-support points varied across
+repetitions and were nested across sample sizes. All observations could be used
+by the complete-graph paths; this was not a landmark approximation.
+
+Errors below are percentages: the square root of the ratio of summed squared
+distance residuals to summed squared reference distances. Each method's single
+multiplicative scale was fitted on calibration pairs only. Values are means over
+five repetitions conditional on the fixed endpoints; they are new measurements,
+not replacements for the original 150-point fits above. No MDS error enters them.
+
+| Surface | Power p | Error at n=150 (%) | Error at n=2,400 (%) | Ambient error (%) |
+|---|---:|---:|---:|---:|
+| Paraboloid, coefficient 1 | 1.25 | 3.73 | 1.82 | 8.51 |
+| Paraboloid, coefficient 1 | 2 | 11.72 | 5.67 | 8.51 |
+| Saddle, coefficient 1 | 1.25 | 4.55 | 1.75 | 8.74 |
+| Saddle, coefficient 1 | 2 | 14.27 | 5.58 | 8.74 |
+| Saddle, coefficient 4 | 1.5 | 14.82 | 2.55 | 28.32 |
+| Swiss roll | 3 | 42.33 | 7.70 | 55.84 |
+
+Ambient error is constant because the endpoints are fixed. These results expose
+both a sample-size effect and a limitation of the original integer-only power
+grid: p=1.25 already beats ambient chords on the new mild-surface samples at
+n=150. Larger powers are needed to suppress shortcuts on the rolled surface.
+The displayed powers illustrate these effects; they are not universal tuning
+recommendations.
+
+Ordinary Euclidean kNN graph distances were more accurate on these uniform
+examples at the larger sample size. For k=20 and n=2,400, errors were 0.62%,
+0.49% and 0.35% on the mild paraboloid, mild saddle and Swiss roll. This separates
+recovering ordinary geodesics from deliberately imposing a density-weighted
+geometry.
+
+References used best-of-six on quadforms and analytic distances on the roll,
+with Clairaut sensitivity checks on every paraboloid pair. For the steepest
+paraboloid, p=1.25 at n=2,400 had 4.82% error against best-of-six but 2.05% against
+Clairaut. Reference-method disagreement therefore matters for this harder
+surface. Increasing the quadform coefficient changes its curvature profile and
+area; it does not multiply curvature uniformly over the patch. The complete
+experiment, pair definitions, coverage and uncertainty are recorded in the
+research experiment `fermat_density_curvature_01_oct_2026`.

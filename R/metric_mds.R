@@ -1,0 +1,736 @@
+grip.mds.has.smacof <- function() {
+  requireNamespace("smacof", quietly = TRUE)
+}
+
+#' Metric stress MDS using stochastic gradient descent or SMACOF
+#'
+#' `metric.mds()` fits Euclidean coordinates to graph distances. The default
+#' `approximation = "full"` minimizes raw stress over all shortest-path
+#' distances, using native stochastic gradient descent (SGD, the default)
+#' or `smacof::mds(type = "ratio")`. With `approximation = "sparse"`,
+#' pivots and sparse SGD approximate long-range interactions without
+#' constructing an all-pairs distance matrix.
+#' Only the SMACOF backend requires the optional \pkg{smacof} package.
+#' Before version 0.2.0.9000,
+#' this name performed classical scaling; use [classical.mds()] to retain that
+#' behavior. The `add` and `eig` arguments belong to `classical.mds()` only.
+#'
+#' @details With `approximation = "full"`, the objective is
+#' \deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
+#' By default, all pair weights are one. With `pair.weights = "inverse_squared"`,
+#' \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
+#' sum of squared relative distance errors. Edge weights define graph distances;
+#' `pair.weights` separately specifies their importance in the stress objective.
+#' Both backends, coordinate rescaling, checkpoint/start selection, and stress
+#' metadata use the selected weights. The common `score.gmds()` diagnostic panel
+#' retains its own definitions and does not become a weighted objective report.
+#' SMACOF normalizes targets internally. Returned coordinates are rescaled to
+#' minimize raw stress against the original input distances. `scale.mode`
+#' controls the optional diagnostic panel only, not the optimization objective.
+#'
+#' Target-normalized raw stress and scale-profiled Stress-1 select the same
+#' shapes when global scale is free and pair weights agree. Their values at a
+#' fixed coordinate scale need not agree. Both the literal and target-profiled
+#' Stress-1 values are independently calculated in `metadata`; the backend's
+#' own reported stress is retained separately in the start summaries.
+#'
+#' The first run uses `init`; subsequent runs use random configurations.
+#' The smallest achieved raw stress selects the result. A backend result that
+#' increases stress beyond numerical tolerance is rejected in favor of its
+#' scaled start and marked accordingly. Failed starts are recorded, and all
+#' failing starts cause an error. Iteration limits are not convergence or global
+#' optimality certificates. Collinear or planar starts may remain in their
+#' initial span; use multiple starts to investigate this sensitivity.
+#'
+#' Newly prepared graph objects supply symmetric strict shortest distances,
+#' separately from retained-route lengths used in path diagnostics. Rebuild
+#' older cached preparations if their near-tie distance matrix is asymmetric.
+#'
+#' Targets must be finite, symmetric, and nonnegative, with zero diagonal and
+#' at least one positive distance. Missing and infinite distances are rejected.
+#' Inverse-squared weighting requires strictly positive off-diagonal targets;
+#' zero distances are rejected, not floored. Uniform weighting still allows zero
+#' distances. Extreme ratios that overflow or underflow the normalized weights
+#' are rejected. Supplied starts may have coincident points but must not be wholly collapsed.
+#' Full MDS uses dense all-pairs matrices; use `approximation = "sparse"`
+#' when that preparation is too large. Sparse behavior is described below.
+#'
+#' @inheritParams classical.mds
+#' @param dim Embedding dimension. Full MDS supports integer dimensions of at
+#'   least two and smaller than the vertex count. Sparse SGD supports integer
+#'   dimensions of at least two. Both support 10D fits for subsequent PCA
+#'   projection or initialization of a 3D fit.
+#' @param prepared An all-pairs prepared graph object containing
+#'   `distance.matrix`, for full MDS only. Sparse MDS requires raw graph inputs.
+#'   A [prepare.sparse.mds()] result is accepted with sparse approximation.
+#'   Other edge-only preparations are not supported as input.
+#' @param diagnostics Attach the common GMDS diagnostic panel. With `FALSE`
+#'   and raw graph inputs in full mode, prepare only the distance matrix, without
+#'   path caches. Defaults to `TRUE` for full MDS and `FALSE` for sparse MDS.
+#'   Sparse MDS rejects `TRUE` and explicitly supplied diagnostic controls
+#'   (`scale.mode`, `distance.floor`, `edge.length.epsilon`, `band.quantiles`).
+#' @param scale.mode Diagnostic scale policy: `"profiled"` fits a separate
+#'   scalar for each diagnostic family, and `"identity"` uses scale one.
+#'   To evaluate user-specified scales, call [score.gmds()] on the returned
+#'   coordinates separately. This argument never changes the fitted coordinates.
+#' @param init `"classical"` (full default), `"random"` (sparse default), or a finite numeric
+#'   matrix with `n` rows and `dim` columns in input-distance units. Sparse MDS
+#'   supports only random or supplied starts; random starts use a uniform unit
+#'   cube in normalized-distance units.
+#' @param n.init Positive integer number of starts, including the first start.
+#'   Sparse MDS currently requires one start.
+#' @param max.iter Positive integer iteration limit per start. For SGD, the
+#'   number of complete passes over full or retained sparse pairs. Defaults to
+#'   1000 for full MDS and 30 for sparse MDS. The sparse default is a provisional
+#'   calibration choice, not a convergence criterion. With `resume`, this is
+#'   the additional epoch budget (default 1000).
+#' @param eps Positive SMACOF tolerance for the change in normalized stress.
+#'   Do not supply this argument for SGD, which runs its prescribed schedule.
+#' @param seed Integer random seed, or `NULL` to use the current RNG stream.
+#'   With a non-NULL seed, random starts do not change the caller's RNG state.
+#' @param backend `"sgd"` (default) or `"smacof"`. No automatic fallback occurs.
+#' @param pair.weights `"uniform"` (full default) or `"inverse_squared"` (sparse
+#'   default and the only supported sparse choice). The latter
+#'   applies the paper's inverse-squared shortest-path-distance weights in either
+#'   backend. This is separate from the graph's `edge.weights`.
+#' @param sgd.control Named list used only with `backend = "sgd"`:
+#'   `scheduler` (`"hybrid"`, `"exponential"` or `"zheng"`), `learning.rate` (0.5),
+#'   `final.rate` (0.01), `switch.ratio` (0.4), `schedule.epsilon` (0.1),
+#'   `checkpoint.every` (1), `schedule.epochs` (initial `max.iter`),
+#'   `keep.state` (`FALSE`), `stopping` (`NULL`, disabled), `trace` (`NULL`, disabled), and
+#'   `max.workspace.bytes` (256 MiB for full MDS, 512 MiB for sparse MDS).
+#'   The schedule defaults to `"zheng"` for [prepare.sparse.mds()] inputs and
+#'   `"hybrid"` otherwise. See Learning-rate schedules and evidence below.
+#'   The hybrid/exponential tuning defaults are provisional calibration
+#'   choices. Their rates must be positive with `final.rate <= learning.rate`;
+#'   `switch.ratio` is between zero and one inclusive. The memory allowance covers native workspace,
+#'   not the R input matrices, retained continuation state, serialization copies
+#'   or total process memory. See Stopping, histories and continuation below.
+#' @param resume A prior SGD result created with `keep.state = TRUE`. When
+#'   supplied, only `resume` and `max.iter` may be specified; targets, weights,
+#'   preparation, initialization, seeds and controls are frozen in saved state.
+#'   Requires `n.init = 1` in the original fit. Historical fits without retained
+#'   state cannot be resumed from their returned coordinates.
+#' @param approximation `"full"` (default) or `"sparse"`. This selects the
+#'   distance model separately from the optimizer selected by `backend`.
+#'   Sparse mode currently supports only SGD, in 2D or 3D. The default `dim = 2`
+#'   is shared by both modes. Mode-specific defaults apply only to omitted
+#'   arguments; explicitly incompatible choices produce errors.
+#' @param sparse.control Named list used only with `approximation = "sparse"`:
+#'   `n.pivots` (200, capped at `n`) and optional distinct vertex ids `pivots`
+#'   in selection order. Explicit pivots override the default count; supplying
+#'   an inconsistent count is an error. The default count is a provisional
+#'   calibration choice; increasing it increases memory and work per epoch.
+#' @param distance.matrix Optional square numeric matrix of supplied distances for
+#'   full MDS. Values are used directly, without graph shortest paths. Must be
+#'   finite, symmetric and nonnegative with zero diagonal. Cannot accompany
+#'   graph inputs, prepared objects or constraints. Graph diagnostics are not
+#'   available: `diagnostics` defaults to FALSE and TRUE is rejected.
+#' @param constraints Optional list for sparse SGD with explicit distance
+#'   targets: `pairs` is a two-column matrix of distinct unordered vertex pairs;
+#'   `targets` contains positive finite distances. Optional `count_i` and
+#'   `count_j` contain nonnegative endpoint multiplicities (both default to one),
+#'   divided by squared target distance during fitting. Each pair must have
+#'   positive total multiplicity. Supply `n`; the constraint network must be
+#'   connected. Cannot accompany graph inputs, prepared objects or pivot controls.
+#'   Targets are used unchanged, with no shortest-path calculation. Symmetric
+#'   multiplicities give ordinary sparse inverse-squared stress; asymmetric
+#'   multiplicities use the existing sparse endpoint updates. Zero distances
+#'   are unsupported: consolidate duplicate observations before constructing
+#'   inverse-squared constraints. No triangle-inequality validation is performed.
+#' @return A `"grip_gmds_layout"` object with method `"metric_mds"`.
+#'   `metadata$engine` and `metadata$approximation` identify both choices.
+#'   In full mode, `metadata` records the objective, backend/version, achieved raw stress,
+#'   weighted target-normalized RMSE, both weighted Stress-1 conventions, selected start,
+#'   coordinate scale multiplier, and per-start losses and stopping information.
+#'   SGD adds per-start elapsed seconds (native fitting including scoring),
+#'   native seeds, pair-update counts, best epochs, and checkpoint histories in
+#'   `metadata$sgd`. Histories use RMS-normalized target-distance units and include
+#'   both raw and scale-profiled stress. Internally, inverse-squared weights are
+#'   `1 / (distance / input_rms_distance)^2`; the corresponding stress is already
+#'   dimensionless. Uniform raw stress is converted to squared input-distance
+#'   units for public metadata. Weighted target-normalized RMSE takes the square
+#'   root of the ratio of stress to the sum of weighted squared target distances.
+#'   SGD reports `iteration_limit` and `converged = FALSE` when its
+#'   schedule finishes, including when an earlier checkpoint is returned.
+#' @section Full SGD behavior:
+#' Every pass visits all unordered pairs in shuffled order. The pair step is
+#' clipped at `min(rate * normalized_pair_weight, 1)`. Rates use RMS-normalized
+#' distance units for both weighting choices; changing input distance units
+#' therefore preserves the optimization trajectory up to scale. The default
+#' schedule is shared across weighting choices, not a reproduction of the
+#' graph-dependent annealing schedule used in Zheng et al. (2018). Symmetric clipped
+#' updates follow Zheng et al. (2018); the hybrid exponential/harmonic schedule
+#' follows Hangan et al. (2026). The terminal epoch is always scored. The best
+#' independently scored checkpoint, including initialization, is retained using
+#' scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
+#' The R wrapper independently rescales and recomputes its returned stress.
+#' The legacy user-controlled exponential schedule's final rate is its boundary value after the planned
+#' passes, not its last applied rate. The hybrid schedule switches after
+#' `floor(switch.ratio * schedule.epochs)` passes, at one tenth the initial rate
+#' (or the initial rate if the switch is immediate). Its harmonic segment
+#' approaches `final.rate` at the boundary only when the switch rate exceeds
+#' `final.rate`; otherwise that segment stays constant at the switch rate.
+#' With `switch.ratio = 1`, no harmonic segment occurs and `final.rate` is unused.
+#' Coincident points with positive target distance are separated along a seeded
+#' direction; zero targets are not floored. Without such collisions, updates
+#' preserve a deficient initial affine span. Use full-dimensional random starts
+#' to examine this sensitivity. This backend retains quadratic pair storage and
+#' work per pass. It does not validate the supplied graph distances.
+#' @section Sparse approximation:
+#' Sparse SGD implements the asymmetric updates of Zheng et al. (2018),
+#' Algorithm 2, based on the model of Ortmann et al. (2017).
+#' The graph must have positive finite edge lengths and be connected. Disconnected graphs are rejected without
+#' repair. Pivots are chosen with probability proportional to distance to the
+#' nearest selected pivot, starting from a uniform random vertex. Graph lengths
+#' are normalized by their maximum before shortest-path calculations. Exact distance
+#' ties in region assignment go to the earliest selected pivot. Near floating-point
+#' boundaries, general weighted graphs can still be sensitive to arithmetic. Each nonadjacent
+#' vertex receives an influence from a pivot weighted by the number of vertices
+#' in that pivot's region within half their separation, divided by squared
+#' separation. The reverse influence can be zero or different. Edges have
+#' inverse-squared weights at both endpoints.
+#'
+#' Edge targets are the supplied edge lengths, as in the upstream sparse
+#' implementation. For a weighted edge with a shorter alternative route, that
+#' target differs from the shortest-path target of full MDS. Exact
+#' full-pivot update parity requires every edge to be a shortest path, as with
+#' unit lengths or Euclidean chord lengths, and matched starts, rates and order.
+#'
+#' Targets are normalized by RMS over the retained unordered pairs; endpoint
+#' weights use the same units. Legacy graph calls default to grip's hybrid
+#' schedule; [prepare.sparse.mds()] inputs default to the published fixed-budget
+#' `"zheng"` schedule. Select the schedule explicitly when comparing methods.
+#' The terminal iterate is
+#' returned, centered and converted back to input units, with no fitted scale.
+#' A checkpoint proxy averages the two endpoint weights for each pair. Asymmetric
+#' updates are not claimed to follow the gradient of that proxy, or to decrease
+#' it monotonically. This diagnostic is not full stress or equation (19) of
+#' Zheng et al. Use independent distance evaluation to compare sparse and full
+#' layouts. No dense diagnostics or classical initialization run implicitly.
+#'
+#' Sparse results share the `metric_mds` method name.
+#'   `coords` is the terminal layout. `prepared` contains an edge-only graph,
+#'   without a distance matrix. `metadata$sparse` records retained pairs,
+#'   original-unit targets, endpoint multiplicities, selected pivots and region
+#'   owners. Metadata also records seeds, controls, preparation/fitting seconds,
+#'   native workspace estimates (separately checked for preparation and fitting),
+#'   `sparse_proxy_stress`, its normalized root
+#'   error, and stopping status. By default `termination = "iteration_limit"`
+#'   and `converged = FALSE`.
+#'   `trace` reports checkpoint proxy stress, epochs, rates and pair updates.
+#' @section Recording individual SGD updates:
+#' Set `sgd.control = list(trace = list(every = 100L))` to record coordinates
+#' after every 100 examined pairs in each epoch, plus the initial state and each
+#' epoch endpoint. Set `every = 1L` to record every pair, including no-op pairs.
+#' Tracing requires `n.init = 1`. It is independent of `checkpoint.every`.
+#' The native solver dispatches once to a compile-time specialization: when
+#' tracing is disabled, no tracing checks, copies or buffers occur in the update
+#' loop. When enabled, recording adds time and memory but never changes solver
+#' arithmetic, the random stream, stopping or the selected result.
+#'
+#' `fit$update_trace$coordinates` is a list of matrices in input-distance units;
+#' `fit$update_trace$steps` gives the epoch, examined pairs within that epoch,
+#' and cumulative `pair_updates`. These are raw iterates, without Procrustes
+#' alignment, recentering or the final best-checkpoint scale adjustment; the last
+#' frame can therefore differ from `fit$coords`. Stress is not recomputed at each
+#' frame. The existing `fit$trace` remains the epoch-level diagnostic history.
+#' A resumed fit records only its new call, starting at the saved terminal state,
+#' with absolute epoch/update counts. Keep earlier fits to retain their frames.
+#'
+#' `trace$max.bytes` defaults to 64 MiB. Before fitting, the solver checks an
+#' upper-bound allocation for the requested epoch budget (even with early
+#' stopping), including coordinate payloads and a conservative per-frame
+#' allowance. This allocation also counts against `max.workspace.bytes`.
+#' R result conversion, older retained traces and serialization need additional
+#' memory. Increase `every` to reduce the number of frames. Completing the epoch
+#' budget is not a convergence certificate.
+#'
+#' @section Stopping, histories and continuation:
+#' Default SGD calls still exhaust the prescribed epoch budget. This is reported
+#' as `metadata$stopping$reason = "epoch_budget"`, separately from whether the
+#' planned schedule has completed or a stopping rule was assessed. SGD always
+#' reports `converged = FALSE` and `stopping$certified = FALSE`: neither budget
+#' exhaustion nor practical stabilization certifies convergence or optimality.
+#' Full SGD returns its best scale-profiled checkpoint; sparse SGD returns its
+#' terminal iterate. Stopping uses current checkpoint diagnostics, not the
+#' running best. Metadata identifies the returned iterate and reports both
+#' best and terminal diagnostics in normalized target units.
+#'
+#' Checkpoint history is preserved in both `trace` and `metadata$history`;
+#' full multi-start runs also retain every start's trace in `metadata$sgd`.
+#' History includes global epoch, diagnostic, learning rate, pair updates,
+#' checkpoint type, relative diagnostic change, centered motion, update residual
+#' and consecutive successful checks. Unassessed quantities are `NA`.
+#'
+#' Opt in with `stopping = list()` inside `sgd.control`, or supply any of
+#' `relative.tol` (1e-6), `motion.tol` (1e-5), `residual.tol` (1e-5),
+#' `patience` (5), and `min.epochs` (10). At scheduled checkpoints after at
+#' least `min.epochs`, all three diagnostics must pass for `patience`
+#' consecutive checks. Relative change is the absolute change in current
+#' diagnostic divided by `max(abs(previous), 1e-12)`. Motion is RMS point
+#' displacement after removing translation, without rotation alignment.
+#' The residual is the largest norm of each vertex's endpoint-weighted mean
+#' distance-error vector. Motion and residual use RMS-normalized target units.
+#' The residual is independent of learning rate, preventing a tiny rate alone
+#' from passing the rule. Positive-target collisions fail the residual check.
+#' For asymmetric sparse updates it is an update-field diagnostic, not a
+#' gradient certificate; the sparse stress proxy need not decrease. Defaults
+#' are practical safeguards, not universally calibrated scientific thresholds.
+#'
+#' With `keep.state = TRUE`, the result retains terminal coordinates, native
+#' RNG, normalized targets and endpoint weights, schedule, checkpoint/stopping
+#' state, best checkpoint and preparation provenance. `saveRDS()`/`readRDS()`
+#' preserve this state. Resume with `metric.mds(resume = fit, max.iter = extra)`.
+#' State version, platform and an integrity fingerprint are checked; the
+#' fingerprint detects accidental edits and is not a security mechanism.
+#' Reproducibility is supported on the same platform with a compatible state
+#' version. Already stabilized runs cannot resume under altered controls.
+#'
+#' `schedule.epochs` fixes the initial schedule horizon, independently of call
+#' size. Pausing and resuming continues the same RNG and rate sequence without
+#' restarting or stretching its prefix. Beyond this horizon, rate at extra
+#' epoch `j` is `last.rate / (1 + j / schedule.epochs)`. This extension is a
+#' practical harmonic tail, not the published unlimited-iteration schedule or
+#' a convergence guarantee. A larger fresh horizon is a different experiment.
+#' Checkpoints occur at global multiples of `checkpoint.every` and at the
+#' schedule horizon. Other call boundaries are recorded with `scheduled = 0`;
+#' they do not affect stopping or checkpoint selection in a continued run.
+#' Full fits may return such a boundary when it improves the best diagnostic
+#' for that call, but continuation always uses terminal solver state. With the
+#' same horizon and final budget, split and uninterrupted runs match; split
+#' histories additionally preserve intermediate call boundaries.
+#' @references Ortmann, M., Klimenta, M. and Brandes, U. (2017).
+#'   A Sparse Stress Model. \doi{10.7155/jgaa.00440}.
+#'   Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+#'   Graph Drawing by Stochastic Gradient Descent.
+#'   \doi{10.1109/TVCG.2018.2859997}.
+#'   Hangan, D., Kobourov, S. and Miller, J. (2026).
+#'   Bridging Graph Drawing and Dimensionality Reduction with Stochastic Stress
+#'   Optimization. <https://arxiv.org/abs/2605.00641>.
+#' @examples
+#' # Schedule completion is reported explicitly, not as convergence.
+#' fit <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
+#'   dim = 3, init = "random", backend = "sgd", max.iter = 30,
+#'   diagnostics = FALSE))
+#' fit$metadata$engine
+#' fit$metadata$target_normalized_rmse
+#' sparse <- metric.mds(edges = edges.path(30), dim = 3,
+#'   approximation = "sparse", sparse.control = list(n.pivots = 5))
+#' sparse$metadata$sparse_proxy_stress
+#' # Pause after 5 epochs of a 20-epoch schedule, then continue the same run.
+#' first <- suppressWarnings(metric.mds(edges = edges.cycle(8), n = 8,
+#'   diagnostics = FALSE, max.iter = 5,
+#'   sgd.control = list(keep.state = TRUE, schedule.epochs = 20)))
+#' continued <- metric.mds(resume = first, max.iter = 15)
+#' continued$metadata$stopping
+#' tail(continued$metadata$history)
+#' @section Learning-rate schedules and evidence:
+#' The original full-SGD backend adapted exponential and hybrid schedules from
+#' the implementation accompanying Hangan et al. (2026). The graph sparse-SGD
+#' extension retained those controls. The hybrid default is preserved for
+#' existing callers; it is not a demonstrated improvement over Zheng et al.'s
+#' weight-dependent schedule. The original package design records its settings
+#' as provisional calibration choices.
+#'
+#' `scheduler = "hybrid"` starts at `learning.rate` (0.5), uses exponential
+#' decay during the first `floor(switch.ratio * schedule.epochs)` epochs (default
+#' fraction 0.4), then a harmonic tail toward `final.rate` (0.01).
+#' The switch and rate endpoints are user controls, not derived from endpoint
+#' weight extrema. `scheduler = "exponential"` instead uses the controlled
+#' rates in a single exponential phase. For these legacy schedules, the final
+#' rate is a planned boundary value at epoch `schedule.epochs`, not necessarily the
+#' last applied rate. These schedules are distinct from `"zheng"`.
+#'
+#' Hangan et al. motivate a fixed switch for the usual uniform-weight MDS
+#' setting, where the weight ratio does not distinguish pairs. That rationale
+#' does not establish better performance for inverse-squared, region-weighted
+#' sparse stress. Package backend comparisons and the earlier sparse-MDS
+#' comparison used hybrid controls; they did not isolate schedule effects.
+#' The October 2026 observation-method validation used `"zheng"` throughout.
+#' These experiments do not establish that either schedule outperforms the
+#' other. A schedule comparison must hold targets, pivots, endpoint weights,
+#' starting coordinates, update-order seeds and budgets fixed, and report
+#' independently evaluated error and runtime.
+#'
+#' Set `sgd.control = list(scheduler = "zheng", schedule.epsilon = 0.1)`
+#' to use Zheng et al.'s Section II-A1 fixed-budget exponential schedule.
+#' Its rates run from `1 / min(positive endpoint weights)` to
+#' `schedule.epsilon / max(positive endpoint weights)`, including both
+#' endpoints; one epoch uses the first rate. Weights are computed after grip's
+#' target normalization. `schedule.epsilon` defaults to 0.1; `learning.rate`,
+#' `final.rate` and `switch.ratio` must be omitted with this schedule.
+#' This is the default for [prepare.sparse.mds()] inputs, including uniform,
+#' Euclidean regional and geodesic regional preparations. Other inputs retain
+#' the hybrid default, including raw graphs and explicit constraints.
+#' Fits from observation preparations retain constraint pairs and connectivity
+#' metadata but omit duplicate constraint adjacency lists. The local-neighbor
+#' graph remains available in the original preparation's `graph` field.
+#'
+#' Choosing `"zheng"` reproduces that schedule's rule, not every published
+#' solver setting or trajectory: epoch budget, initialization and scale,
+#' random-number generator and update order can differ. It does not implement
+#' the paper's separate Section II-A2 unlimited-iteration schedule or certify
+#' convergence. Prefer the named published schedule when the purpose is
+#' sparse-stress analysis following Zheng et al.; label hybrid runs as an
+#' alternative configuration rather than assuming they are better.
+#' @seealso [prepare.sparse.mds()], [classical.mds()], [edge.kk()], [smacof::mds()]
+#' @md
+#' @export
+#' @section Workflow guides:
+#' Start with \code{vignette("function-guide", package = "grip")}
+#' to choose a layout, diagnostic, or reference comparison. List installed
+#' guides with \code{vignette(package = "grip")}.
+metric.mds <- function(prepared = NULL,
+                       edges = NULL,
+                       n = NULL,
+                       adj.list = NULL,
+                       weight.list = NULL,
+                       edge.weights = NULL,
+                       dim = 2L,
+                       init = c("classical", "random"),
+                       n.init = 1L,
+                       max.iter = 1000L,
+                       eps = 1e-8,
+                       seed = 1L,
+                       diagnostics = TRUE,
+                       scale.mode = c("profiled", "identity"),
+                       distance.floor = 1e-8,
+                       edge.length.epsilon = 1e-8,
+                       band.quantiles = c(1 / 3, 2 / 3),
+                       backend = c("sgd", "smacof"),
+                       sgd.control = list(),
+                       pair.weights = c("uniform", "inverse_squared"),
+                       approximation = c("full", "sparse"),
+                       sparse.control = list(), constraints = NULL,
+                       distance.matrix = NULL, resume = NULL) {
+  if (!is.null(resume)) {
+    supplied <- setdiff(names(match.call())[-1L],c("resume","max.iter"))
+    if (length(supplied)) stop("resume accepts only the saved fit and max.iter; inputs, seeds and controls are frozen",call.=FALSE)
+    return(.metric.mds.resume(resume,max.iter))
+  }
+  observation.preparation <- NULL
+  if (inherits(prepared, "grip_sparse_mds_preparation")) {
+    if (!identical(match.arg(approximation), "sparse"))
+      stop("Sparse preparation requires approximation = 'sparse'", call. = FALSE)
+    if (any(!vapply(list(edges,adj.list,weight.list,edge.weights,constraints,distance.matrix),is.null,logical(1))))
+      stop("Sparse preparation cannot accompany other data inputs",call.=FALSE)
+    if (!is.null(n) && !identical(as.integer(n),as.integer(prepared$n)))
+      stop("n must match sparse preparation",call.=FALSE)
+    observation.preparation <- prepared
+    n <- prepared$n; constraints <- prepared$constraints; prepared <- NULL
+    if (is.list(sgd.control) && is.null(sgd.control$scheduler)) sgd.control$scheduler <- "zheng"
+  }
+  if (!is.null(distance.matrix)) {
+    if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared, constraints), is.null, logical(1))))
+      stop("distance.matrix cannot accompany graph inputs, prepared objects or constraints", call. = FALSE)
+    if (!is.matrix(distance.matrix) || !is.numeric(distance.matrix) ||
+        nrow(distance.matrix) != ncol(distance.matrix) || nrow(distance.matrix) < 3L)
+      stop("distance.matrix must be a square numeric matrix with at least three samples", call. = FALSE)
+    if (!is.null(n) && !identical(grip.validate.vertex.count(n), as.integer(nrow(distance.matrix))))
+      stop("n must match distance.matrix", call. = FALSE)
+    if (missing(diagnostics)) diagnostics <- FALSE
+    if (!identical(diagnostics, FALSE))
+      stop("distance.matrix requires diagnostics = FALSE; graph path diagnostics are unavailable", call. = FALSE)
+  }
+  grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
+  if (!is.null(constraints)) {
+    if (any(!vapply(list(edges, adj.list, weight.list, edge.weights, prepared), is.null, logical(1))))
+      stop("constraints cannot accompany graph inputs or prepared objects", call. = FALSE)
+    if (is.null(n)) stop("constraints requires n", call. = FALSE)
+  }
+  backend <- match.arg(backend)
+  approximation <- match.arg(approximation)
+  if (!is.null(distance.matrix) && approximation != "full")
+    stop("distance.matrix requires full approximation; use landmark.mds.constraints for sparse targets", call. = FALSE)
+  if (!is.list(sparse.control) ||
+      (length(sparse.control) && (is.null(names(sparse.control)) ||
+        anyNA(names(sparse.control)) || any(!nzchar(names(sparse.control))) ||
+        anyDuplicated(names(sparse.control)) ||
+        any(!names(sparse.control) %in% c("n.pivots", "pivots"))))) {
+    stop("sparse.control must be a named list with unique names: n.pivots, pivots",
+         call. = FALSE)
+  }
+  if (approximation == "full" && length(sparse.control)) {
+    stop("sparse.control requires approximation = 'sparse'", call. = FALSE)
+  }
+  if (!is.null(constraints) && (approximation != "sparse" || length(sparse.control)))
+    stop("constraints requires sparse approximation without pivot controls", call. = FALSE)
+  # Dispatch before any dense preparation, initialization, or diagnostics.
+  if (approximation == "sparse") {
+    if (backend != "sgd")
+      stop("approximation = 'sparse' currently requires backend = 'sgd'", call. = FALSE)
+    if (!is.null(prepared))
+      stop("Sparse MDS requires raw graph inputs; prepared objects are not supported", call. = FALSE)
+    if (!missing(eps))
+      stop("eps is a SMACOF tolerance; SGD uses max.iter and sgd.control", call. = FALSE)
+    if (!is.numeric(n.init) || length(n.init) != 1L || is.na(n.init) || n.init != 1)
+      stop("Sparse MDS currently requires n.init = 1", call. = FALSE)
+    if (missing(init)) init <- "random"
+    if (!is.matrix(init) && !identical(init, "random"))
+      stop("Sparse init must be 'random' or a coordinate matrix", call. = FALSE)
+    if (missing(max.iter)) max.iter <- 30L
+    if (missing(pair.weights)) pair.weights <- "inverse_squared"
+    pair.weights <- match.arg(pair.weights)
+    if (pair.weights != "inverse_squared")
+      stop("Sparse MDS requires pair.weights = 'inverse_squared'", call. = FALSE)
+    if (missing(diagnostics)) diagnostics <- FALSE
+    if (!identical(diagnostics, FALSE))
+      stop("Sparse MDS requires diagnostics = FALSE; evaluate distances separately", call. = FALSE)
+    if (!missing(scale.mode) || !missing(distance.floor) ||
+        !missing(edge.length.epsilon) || !missing(band.quantiles))
+      stop("scale_mode, distance_floor, edge_length_epsilon and band_quantiles are full-MDS diagnostic controls; omit them for sparse MDS", call. = FALSE)
+    result <- .grip.invoke(.sparse.metric.mds, c(list(edges = edges, n = n,
+      adj_list = adj.list, weight_list = weight.list, edge_weights = edge.weights,
+      dim = dim, init = init, max_iter = max.iter, seed = seed,
+      sgd_control = sgd.control, constraints = constraints,
+      prepared_constraints = !is.null(observation.preparation)), sparse.control))
+    if (!is.null(observation.preparation)) {
+      result$metadata$data_preparation <- observation.preparation$metadata
+      result$metadata$constraint_source <- "observation_preparation"
+      result$metadata$sparse$pivots <- observation.preparation$pivots
+      result$metadata$sparse$region <- observation.preparation$region
+      result$metadata$settings$n.pivots <- length(observation.preparation$pivots)
+    }
+    if (!is.null(result$continuation)) {
+      state <- result$continuation$state
+      template <- result;template$continuation <- NULL
+      state$template <- template
+      result$continuation <- list(state=state,checksum=.metric.mds.state.hash(state))
+    }
+    return(result)
+  }
+  pair.weights <- match.arg(pair.weights)
+  if (backend == "sgd" && !missing(eps)) {
+    stop("eps is a SMACOF tolerance; SGD uses max.iter and sgd.control", call. = FALSE)
+  }
+  if (backend == "smacof" && length(sgd.control)) {
+    stop("sgd.control requires backend = 'sgd'", call. = FALSE)
+  }
+  if (backend == "smacof" && !grip.mds.has.smacof()) {
+    stop("metric.mds() requires the optional 'smacof' package; install it, ",
+         "or use classical.mds() for classical scaling", call. = FALSE)
+  }
+  if (backend == "smacof" && utils::packageVersion("smacof") < "2.1-7") {
+    stop("metric.mds() requires smacof >= 2.1-7", call. = FALSE)
+  }
+  scale.mode <- match.arg(scale.mode)
+  for (name in c("dim", "n.init", "max.iter")) {
+    value <- get(name)
+    if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
+        value < 1 || value != floor(value) || value > .Machine$integer.max) {
+      stop(name, " must be a positive integer", call. = FALSE)
+    }
+  }
+  if (dim < 2L) stop("dim must be at least 2", call. = FALSE)
+  if (backend == "sgd") {
+    sgd.control <- grip.mds.sgd.control(sgd.control, max.iter)
+    if (!is.null(sgd.control$trace) && n.init!=1L)
+      stop("update tracing requires n.init=1; trace separate seeded fits for multiple starts",call.=FALSE)
+    if (sgd.control$keep.state && n.init!=1L)
+      stop("keep.state requires n.init=1; run separate seeded fits for independently resumable starts",call.=FALSE)
+  }
+  grip.validate.scalar(eps, "eps", lower = 0, open.lower = TRUE)
+  if (!is.logical(diagnostics) || length(diagnostics) != 1L || is.na(diagnostics)) {
+    stop("diagnostics must be TRUE or FALSE", call. = FALSE)
+  }
+  if (!is.null(seed) && (!is.numeric(seed) || length(seed) != 1L ||
+      !is.finite(seed) || seed != floor(seed) || abs(seed) > .Machine$integer.max)) {
+    stop("seed must be an integer or NULL", call. = FALSE)
+  }
+  prepared <- if (!is.null(distance.matrix)) {
+    structure(list(n = nrow(distance.matrix), distance_matrix = distance.matrix,
+      edges = matrix(integer(), ncol = 2L), graph_build_mode = "supplied_distances",
+      pair_mode = "distance_matrix_only"),
+      class = c("grip_metric_mds_prepared", "grip_gmds_prepared", "grip_geodesic_kk_prepared", "list"))
+  } else if (is.null(prepared) && !diagnostics) {
+    grip.metric.mds.distance.prepared(edges, n, adj.list, weight.list, edge.weights)
+  } else {
+    grip.gmds.require.prepared(prepared = prepared, edges = edges, n = n,
+      adj.list = adj.list, weight.list = weight.list, edge.weights = edge.weights)
+  }
+  delta <- prepared$distance_matrix
+  if (is.null(delta)) {
+    stop("metric.mds() requires an all-pairs prepared object with distance_matrix; ",
+         "prepare.edge.kk() objects are edge-only", call. = FALSE)
+  }
+  if (!is.matrix(delta) || !is.numeric(delta) ||
+      !identical(dim(delta), c(as.integer(prepared$n), as.integer(prepared$n))) ||
+      any(!is.finite(delta)) || any(delta < 0) || any(diag(delta) != 0) ||
+      !isTRUE(all.equal(delta, t(delta), check.attributes = FALSE, tolerance = 1e-12))) {
+    stop("distance_matrix must be finite, symmetric and nonnegative with zero diagonal",
+         call. = FALSE)
+  }
+  if (dim >= prepared$n) stop("dim must be less than the number of vertices", call. = FALSE)
+  target <- as.double(stats::as.dist(delta))
+  # Scale before squaring to avoid overflow in the backend normalization.
+  target.max <- max(target)
+  if (target.max <= 0) stop("at least one target distance must be positive", call. = FALSE)
+  target.rms <- target.max * sqrt(mean((target / target.max)^2))
+  delta.normalized <- delta / target.rms
+  target.normalized <- target / target.rms
+  if (pair.weights == "inverse_squared" && any(target <= 0)) {
+    stop("inverse_squared pair weights require strictly positive off-diagonal distances; use uniform weighting for zero distances", call. = FALSE)
+  }
+  pair.stiffness <- if (pair.weights == "uniform") rep(1, length(target)) else
+    (1 / target.normalized)^2
+  if (any(!is.finite(pair.stiffness)) || any(pair.stiffness <= 0)) {
+    stop("inverse_squared pair weights are outside the representable numeric range", call. = FALSE)
+  }
+  if (backend == "sgd") rates <- grip.mds.sgd.rates(sgd.control,max.iter,pair.stiffness)
+  # Public inverse-squared stress is dimensionless; normalized-distance weights
+  # absorb RMS^2. Uniform stress is converted back to squared input units.
+  loss.units <- if (pair.weights == "uniform") target.rms^2 else 1
+  target.energy <- sum(pair.stiffness * target.normalized^2)
+  weight.matrix <- NULL
+  if (backend == "smacof" && pair.weights != "uniform") {
+    weight.dist <- stats::as.dist(delta)
+    weight.dist[] <- pair.stiffness
+    weight.matrix <- as.matrix(weight.dist)
+  }
+  supplied <- is.matrix(init)
+  if (supplied) {
+    if (!is.numeric(init) || !identical(dim(init), c(as.integer(prepared$n), as.integer(dim))) ||
+        any(!is.finite(init))) {
+      stop("init must be a finite n by dim numeric matrix", call. = FALSE)
+    }
+    first <- sweep(init, 2L, colMeans(init), "-") / target.rms
+    init.name <- "supplied"
+  } else {
+    init <- match.arg(init)
+    init.name <- init
+    first <- NULL
+    if (identical(init, "classical")) {
+      normalized.prepared <- prepared
+      normalized.prepared$distance_matrix <- delta.normalized
+      first <- classical.mds(prepared = normalized.prepared, dim = dim,
+                             diagnostics = FALSE)$coords
+    }
+  }
+  if (!is.null(seed) && (backend == "sgd" || n.init > 1L || identical(init.name, "random"))) {
+    had.seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    old.seed <- if (had.seed) get(".Random.seed", envir = .GlobalEnv) else NULL
+    on.exit({
+      if (had.seed) assign(".Random.seed", old.seed, envir = .GlobalEnv)
+      else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+        rm(".Random.seed", envir = .GlobalEnv)
+    }, add = TRUE)
+    set.seed(seed)
+  }
+  rescale <- function(x) {
+    x <- sweep(x, 2L, colMeans(x), "-")
+    d <- as.double(stats::dist(x))
+    denominator <- sum(pair.stiffness * d^2)
+    if (!is.finite(denominator) || denominator <= 0) {
+      stop("MDS configuration is collapsed or has nonfinite distances", call. = FALSE)
+    }
+    multiplier <- sum(pair.stiffness * d * target.normalized) / denominator
+    list(coords = multiplier * x, multiplier = multiplier,
+         loss = sum(pair.stiffness * (multiplier * d - target.normalized)^2))
+  }
+  best <- NULL
+  best.loss <- Inf
+  records <- vector("list", n.init)
+  sgd.records <- vector("list", n.init)
+  for (run in seq_len(n.init)) {
+    start <- if (run == 1L && !is.null(first)) first else
+      matrix(stats::rnorm(prepared$n * dim), nrow = prepared$n, ncol = dim)
+    start <- rescale(start)
+    notices <- character()
+    if (backend == "sgd") native.seed <- sample.int(.Machine$integer.max, 1L)
+    if (backend == "sgd") fit.started <- proc.time()[["elapsed"]]
+    fit <- tryCatch(withCallingHandlers(
+      if (backend == "sgd") {
+        grip.mds.sgd.fit(start$coords, target.normalized, rates, sgd.control, native.seed,
+                         if (pair.weights == "uniform") NULL else pair.stiffness)
+      } else smacof::mds(delta.normalized, ndim = dim, type = "ratio",
+                  init = start$coords, itmax = max.iter, eps = eps, weightmat = weight.matrix,
+                  principal = FALSE, verbose = FALSE),
+      warning = function(w) {
+        notices <<- c(notices, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }), error = function(e) e)
+    if (backend == "sgd") fit.elapsed <- proc.time()[["elapsed"]] - fit.started
+    failed <- inherits(fit, "error")
+    result <- if (failed) fit else tryCatch(rescale(fit$conf), error = function(e) e)
+    failed <- inherits(result, "error")
+    rejected <- !failed && result$loss > start$loss + 1e-10 * max(1, start$loss)
+    if (rejected) result <- start
+    reason <- if (failed) "backend_error" else if (rejected) "rejected_increase" else
+      if (backend == "sgd" && isTRUE(fit$stabilized)) "practical_stabilization" else
+      if (backend == "sgd" || fit$niter >= max.iter) "iteration_limit" else "stress_tolerance"
+    records[[run]] <- data.frame(
+      start = run, initialization = if (run == 1L) init.name else "random",
+      initial_raw_stress = start$loss * loss.units,
+      raw_stress = if (failed) NA_real_ else result$loss * loss.units,
+      normalized_stress = if (failed) NA_real_ else result$loss / target.energy,
+      iterations = if (inherits(fit, "error")) NA_integer_ else fit$niter,
+      converged = identical(reason, "stress_tolerance"), termination = reason,
+      backend_stress = if (inherits(fit, "error")) NA_real_ else fit$stress,
+      warnings = paste(unique(notices), collapse = " | "),
+      error = if (failed) conditionMessage(result) else "",
+      stringsAsFactors = FALSE)
+    if (backend == "sgd") {
+      records[[run]]$elapsed_seconds <- fit.elapsed
+      records[[run]]$native_seed <- native.seed
+      records[[run]]$pair_updates <- if (inherits(fit, "error")) NA_real_ else fit$pair_updates
+      records[[run]]$best_epoch <- if (inherits(fit, "error")) NA_integer_ else fit$best_epoch
+      sgd.records[[run]] <- if (inherits(fit, "error")) list(error = conditionMessage(fit)) else
+        list(trace = fit$trace, workspace_bytes = fit$workspace_bytes)
+    }
+    if (!failed && result$loss < best.loss) {
+      best <- result
+      best.loss <- result$loss
+      selected <- run
+      if (backend=="sgd") best.native <- fit
+    }
+  }
+  runs <- do.call(rbind, records)
+  if (is.null(best)) {
+    stop("All ", toupper(backend), " starts failed: ", paste(unique(runs$error), collapse = " | "),
+         call. = FALSE)
+  }
+  if (!runs$converged[selected] && runs$termination[selected] != "practical_stabilization") {
+    warning("Selected metric.mds() start terminated with ", runs$termination[selected],
+            if (runs$termination[selected] == "iteration_limit")
+              "; budget exhaustion does not certify convergence; inspect metadata$starts" else
+              "; inspect metadata$starts", call. = FALSE)
+  }
+  coords <- best$coords * target.rms
+  if (!is.null(distance.matrix)) rownames(coords) <- rownames(distance.matrix)
+  d <- as.double(stats::dist(best$coords))
+  target.scale <- sum(pair.stiffness * d * target.normalized) / target.energy
+  diag <- if (diagnostics) score.gmds(coords = coords, prepared = prepared,
+    scale.mode = scale.mode, distance.floor = distance.floor,
+    edge.length.epsilon = edge.length.epsilon, band.quantiles = band.quantiles) else NULL
+  output <- gmds.result(coords = coords, method = "metric_mds", prepared = prepared,
+    trace = NULL, diagnostics = diag, metadata = list(
+      engine = backend, approximation = "full", grip_version = as.character(getNamespaceVersion("grip")),
+      backend_version = if (backend == "smacof") as.character(utils::packageVersion("smacof")) else "grip-sgd-mds-v3",
+      objective = "raw_distance_stress", pair_weights = pair.weights, type = "ratio",
+      input_rms_distance = target.rms, coordinate_scale = best$multiplier * target.rms,
+      raw_stress = best.loss * loss.units,
+      target_normalized_rmse = sqrt(best.loss / target.energy),
+      stress1_identity = sqrt(best.loss / sum(pair.stiffness * d^2)),
+      stress1_profiled = sqrt(sum(pair.stiffness * (d - target.scale * target.normalized)^2) / sum(pair.stiffness * d^2)),
+      selected_start = selected, converged = runs$converged[selected],
+      termination = runs$termination[selected], starts = runs,
+      settings = list(init = init.name, n_init = n.init, max_iter = max.iter, eps = eps,
+                      seed = seed, dimension = dim, pair_weights = pair.weights)))
+  if (backend == "sgd") {
+    output$metadata$settings$eps <- NULL
+    output$metadata$settings$sgd_control <- sgd.control
+    output$metadata$sgd <- sgd.records
+    output$metadata$settings$randomization <- "R per-start seed; mt19937_64 rejection-sampled Fisher-Yates"
+    output <- .metric.mds.sgd.status(output,best.native,sgd.control,"full")
+    arguments <- list(targets=target.normalized,seed=runs$native_seed[selected],
+      checkpoint_every=sgd.control$checkpoint.every,max_workspace_bytes=sgd.control$max.workspace.bytes,
+      shuffle=TRUE,weights=if(pair.weights=="uniform") NULL else pair.stiffness,retain_best=TRUE)
+    context <- list(kind="full",rms=target.rms,loss.units=loss.units,energy=target.energy,
+      weights=pair.stiffness,targets=target.normalized,
+      diagnostics=list(enabled=diagnostics,scale.mode=scale.mode,distance.floor=distance.floor,
+        edge.length.epsilon=edge.length.epsilon,band.quantiles=band.quantiles))
+    output <- .metric.mds.keep.state(output,best.native,sgd.control,arguments,context)
+  }
+  output
+}

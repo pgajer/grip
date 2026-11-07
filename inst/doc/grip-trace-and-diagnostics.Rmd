@@ -1,0 +1,207 @@
+---
+title: "Tracing and Diagnosing Layouts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tracing and Diagnosing Layouts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.retina=1, dpi=72, 
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8.8,
+  fig.height = 5.2
+)
+```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+## Why trace a layout?
+
+Most graph-layout functions return only the final coordinate matrix. That is
+enough for plotting, but it hides the most useful diagnostic information:
+
+- how the multiscale hierarchy opened,
+- whether the geometry stabilized gradually or abruptly,
+- whether a parameter setting improved edge-length regularity or only moved the
+  final picture around,
+- and whether a weighted solve is actually getting closer to the intended
+  metric geometry.
+
+The `trace.grip()` API makes those questions visible through the same metric
+choice as `grip()`:
+
+- `trace.grip(metric = "hop")` for combinatorial layouts,
+- `trace.grip(metric = "edge_length")` for edge-length geometry-aware layouts.
+
+```{r}
+library(grip)
+source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
+```
+
+## A first combinatorial trace
+
+The example below traces a planar recursive triangle. Its nested holes make
+the multiscale construction visible. Using
+`trace = "level"` keeps the vignette readable by recording the coarse
+initialization, the start of each new level, and the final layout.
+
+```{r}
+mesh.edges <- edges.sierpinski.triangle(4)
+
+mesh.trace <- trace.grip(
+  mesh.edges,
+  n = max(mesh.edges),
+  dim = 2,
+  preset = "carpet",
+  rounds = 48,
+  final.rounds = 96,
+  trace = "level",
+  diagnostics = "light",
+  seed = 1
+)
+
+knitr::kable(mesh.trace$meta)
+knitr::kable(mesh.trace$diagnostics[, c(
+  "frame",
+  "edge.length.cv",
+  "median.edge.length",
+  "sampled.nonedge.sep.ratio"
+)], digits = 3)
+```
+
+```{r trace-view, echo=FALSE}
+if (!documentation.interactive()) {
+  documentation.trace(mesh.trace, mesh.edges)
+} else htmltools::tagList(lapply(seq_along(mesh.trace$frames), function(i) {
+  z <- mesh.trace$frames[[i]]
+  active <- stats::complete.cases(z)
+  e <- mesh.edges[active[mesh.edges[,1]] & active[mesh.edges[,2]],,drop=FALSE]
+  ids <- integer(nrow(z)); ids[active] <- seq_len(sum(active))
+  e <- matrix(ids[e],ncol=2)
+  z <- z[active,,drop=FALSE]
+  if (ncol(z)==2L) z <- cbind(z,0)
+  htmltools::tagList(
+    htmltools::tags$h3(paste('Recorded stage',i,'of',length(mesh.trace$frames))),
+    ivue::plot3D.plain(z,layers=list(ivue::layer3D.edges(e)),
+      axes=FALSE,aspect='equal',width=900,height=420,
+      description=paste('Stage',i,':',sum(active),'active vertices. Original planar coordinates.'), controls = FALSE)
+  )
+}))
+```
+
+With interactive rendering enabled, each recorded stage has an ivue viewer
+showing its active vertices and edges.
+Drag to rotate or scroll to zoom. Original planar coordinates are retained at
+z = 0; each viewer fits its own bounds, so apparent size across stages is not
+a measure of expansion.
+By default, a planar stage selector shows the same recorded
+vertices and edges with common bounds across stages.
+
+
+The two most useful tables are:
+
+- `meta`, which explains where each frame came from,
+- `diagnostics`, which tracks simple quality signals frame by frame.
+
+## Level traces versus round traces
+
+When you need more detail, `trace = "round"` records intermediate refinement
+rounds within each active level.
+
+```{r}
+mesh.trace.round <- trace.grip(
+  mesh.edges,
+  n = max(mesh.edges),
+  dim = 2,
+  preset = "carpet",
+  rounds = 6,
+  final.rounds = 8,
+  trace = "round",
+  trace.every = 4,
+  diagnostics = "light",
+  seed = 1
+)
+
+data.frame(
+  trace_mode = c("level", "round"),
+  n.frames = c(length(mesh.trace$frames), length(mesh.trace.round$frames))
+)
+```
+
+Use:
+
+- `trace = "level"` for most reporting and teaching,
+- `trace = "round"` when you are diagnosing a tuning issue.
+
+## Read changes over the trace
+
+```{r diagnostic-curve, echo=FALSE}
+plot(mesh.trace$diagnostics$frame,mesh.trace$diagnostics$edge.length.cv,
+  type='b',pch=16,col='#1769AA',xlab='Recorded frame',ylab='Edge-length variation')
+```
+
+Early frames contain only the active coarse vertices. Read changes in the
+score together with the stage and active graph; adjacent frames may not score
+identical vertex sets. Level traces show insertion stages; round traces show
+more of the refinement within each stage. They are different sampling schedules.
+
+For a weighted graph, use `trace.grip(metric='edge_length', ...)` with its
+lengths. The [weighted guide](weighted-grip-intro.html) explains this metric.
+Detailed construction animations and their reproduction commands are described
+in the [asset guide](https://github.com/pgajer/grip/blob/main/tools/README.md#readme-and-showcase-assets).
+
+## Trace objects are analysis objects
+
+A trace object is more than a list of pictures. It can support:
+
+- frame-by-frame diagnostics,
+- manual inspection of where a solve destabilizes,
+- teaching demonstrations of the multiscale hierarchy,
+- and regression checks for future algorithm changes.
+
+The most useful components are:
+
+- `final`: the final coordinate matrix,
+- `frames`: the stored coordinate frames,
+- `meta`: frame provenance,
+- `diagnostics`: per-frame metrics,
+- `lgkk.polish`: optional post-layout LGKK result when enabled as an advanced
+  experimental refinement step.
+
+## Practical guidance
+
+- Start with `trace = "level"` and `diagnostics = "light"`.
+- Use `trace = "round"` only when you need finer-grained diagnostics.
+- Supply `target.coords` when a meaningful geometric target exists.
+- Prefer weighted traces for weighted graph families; they are much more
+  interpretable than tracing the combinatorial solver on a graph with
+  nontrivial edge lengths.
+
+## Where to go next
+
+For an API map, see [Finding your way around grip](function-guide.html).
+For reproducible bundles and reference scoring, see
+[Graph examples](synthetic-graph-families.html).
+These guides and the interactive-explorer walkthrough are installed vignettes.
+
+
+
+- `Getting Started with grip` gives the short overview of the main APIs.
+- `Weighted Graph Layouts with grip` focuses on weighted solving and scoring.
+- `Choosing Layouts for Real Data` shows how trace fits into a real-data
+  selection workflow.

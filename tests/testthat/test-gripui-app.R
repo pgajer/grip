@@ -1,0 +1,125 @@
+test_that("gripui.app constructs a Shiny app object", {
+  old.rgl <- getOption("rgl.useNULL")
+  options(rgl.useNULL = TRUE)
+  on.exit(options(rgl.useNULL = old.rgl), add = TRUE)
+
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("DT")
+  skip_if_not_installed("htmltools")
+  skip_if_not_installed("rgl")
+
+  graph <- list(
+    adj_list = list(c(2L, 3L), c(1L, 4L), c(1L, 4L), c(2L, 3L)),
+    vertex.data = data.frame(
+      cluster = c("A", "A", "B", "B"),
+      stringsAsFactors = FALSE
+    )
+  )
+  layouts <- data.frame(
+    candidate = "toy.3d",
+    stage = "layout",
+    seed = 1L,
+    status = "ok",
+    stringsAsFactors = FALSE
+  )
+  layouts$coords <- list(
+    matrix(c(
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      1, 1, 0
+    ), ncol = 3, byrow = TRUE)
+  )
+
+  project <- gripui.project(graph = graph, layouts = layouts, title = "Toy app")
+  app <- gripui.app(project)
+
+  expect_s3_class(app, "shiny.appobj")
+  expect_true(is.function(app$httpHandler))
+  expect_true(is.function(app$serverFuncSource))
+})
+
+test_that("gripui.app constructs from compare.layouts output", {
+  old.rgl <- getOption("rgl.useNULL")
+  options(rgl.useNULL = TRUE)
+  on.exit(options(rgl.useNULL = old.rgl), add = TRUE)
+
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("DT")
+  skip_if_not_installed("htmltools")
+  skip_if_not_installed("rgl")
+
+  edges <- edges.path(5)
+  cmp <- compare.layouts(
+    edges = edges,
+    n = 5,
+    candidates = "default",
+    seeds = 1L,
+    return.layouts = TRUE
+  )
+  graph <- list(adj_list = list(2L, c(1L, 3L), c(2L, 4L), c(3L, 5L), 4L))
+
+  project <- gripui.project.from.compare(cmp, graph = graph, title = "Compare app")
+  app <- gripui.app(project)
+
+  expect_s3_class(app, "shiny.appobj")
+  expect_true(is.function(app$httpHandler))
+  expect_true(is.function(app$serverFuncSource))
+})
+
+test_that("run.gripui can auto-stop for automated checks", {
+  old.rgl <- getOption("rgl.useNULL")
+  options(rgl.useNULL = TRUE)
+  on.exit(options(rgl.useNULL = old.rgl), add = TRUE)
+
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("DT")
+  skip_if_not_installed("htmltools")
+  skip_if_not_installed("later")
+  skip_if_not_installed("rgl")
+  skip_if_not_installed("httpuv")
+
+  # Probe the same local-server implementation used by Shiny. Application
+  # errors below still fail the test; only an unavailable listener is skipped.
+  server <- tryCatch(
+    httpuv::startServer(
+      "127.0.0.1", 0L,
+      list(call = function(req)
+        list(status = 200L, headers = list(), body = "ok"))
+    ),
+    error = function(e) NULL
+  )
+  skip_if(is.null(server), "local TCP servers are unavailable")
+  server$stop()
+
+  graph <- list(adj_list = list(2L, c(1L, 3L), 2L))
+  layouts <- data.frame(
+    candidate = "toy.layout",
+    stage = "layout",
+    seed = 1L,
+    status = "ok",
+    stringsAsFactors = FALSE
+  )
+  project <- gripui.project(graph = graph, layouts = layouts, title = "Toy project")
+
+  expect_invisible(
+    run.gripui(
+      project,
+      launch.browser = FALSE,
+      quiet = TRUE,
+      auto.stop.after = 0.1
+    )
+  )
+})
+
+
+test_that("missing optional viewers fail clearly and restore graphics options", {
+  old <- options(rgl.useNULL = FALSE)
+  on.exit(options(old), add = TRUE)
+  local_mocked_bindings(gripui.has.package = function(package) package != "shiny")
+  expect_error(gripui.require.app.packages(), "optional packages.*shiny")
+  expect_false(getOption("rgl.useNULL"))
+})

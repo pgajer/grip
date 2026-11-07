@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Tracing and Diagnosing Layouts</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Tracing and Diagnosing Layouts</h1>
+
+
+
+<style>
+body { max-width: 1050px; }
+body:has(nav.navbar) { max-width: none; }
+.ivue-legend { max-width: 100%; }
+.rglWebGL { max-width: 100%; }
+th, td { vertical-align: top; }
+pre { overflow-x: auto; }
+</style>
+<p>Installed figures use static projections. To enable 3D rotation and
+layout selection, render with
+<code>options(grip.vignette.interactive = TRUE)</code> and
+<strong>ivue</strong> and <strong>rgl</strong> installed.</p>
+<div id="why-trace-a-layout" class="section level2">
+<h2>Why trace a layout?</h2>
+<p>Most graph-layout functions return only the final coordinate matrix.
+That is enough for plotting, but it hides the most useful diagnostic
+information:</p>
+<ul>
+<li>how the multiscale hierarchy opened,</li>
+<li>whether the geometry stabilized gradually or abruptly,</li>
+<li>whether a parameter setting improved edge-length regularity or only
+moved the final picture around,</li>
+<li>and whether a weighted solve is actually getting closer to the
+intended metric geometry.</li>
+</ul>
+<p>The <code>trace.grip()</code> API makes those questions visible
+through the same metric choice as <code>grip()</code>:</p>
+<ul>
+<li><code>trace.grip(metric = &quot;hop&quot;)</code> for combinatorial
+layouts,</li>
+<li><code>trace.grip(metric = &quot;edge_length&quot;)</code> for edge-length
+geometry-aware layouts.</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(grip)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">source</span>(<span class="fu">system.file</span>(<span class="st">&#39;scripts&#39;</span>,<span class="st">&#39;vignette-views.R&#39;</span>,<span class="at">package=</span><span class="st">&#39;grip&#39;</span>),<span class="at">local=</span><span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+<div id="a-first-combinatorial-trace" class="section level2">
+<h2>A first combinatorial trace</h2>
+<p>The example below traces a planar recursive triangle. Its nested
+holes make the multiscale construction visible. Using
+<code>trace = &quot;level&quot;</code> keeps the vignette readable by recording
+the coarse initialization, the start of each new level, and the final
+layout.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>mesh.edges <span class="ot">&lt;-</span> <span class="fu">edges.sierpinski.triangle</span>(<span class="dv">4</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>mesh.trace <span class="ot">&lt;-</span> <span class="fu">trace.grip</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  mesh.edges,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">n =</span> <span class="fu">max</span>(mesh.edges),</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">dim =</span> <span class="dv">2</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">preset =</span> <span class="st">&quot;carpet&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">rounds =</span> <span class="dv">48</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="at">final.rounds =</span> <span class="dv">96</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="at">trace =</span> <span class="st">&quot;level&quot;</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="at">diagnostics =</span> <span class="st">&quot;light&quot;</span>,</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>)</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(mesh.trace<span class="sc">$</span>meta)</span></code></pre></div>
+<table>
+<colgroup>
+<col width="8%" />
+<col width="16%" />
+<col width="16%" />
+<col width="15%" />
+<col width="20%" />
+<col width="22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">frame</th>
+<th align="left">phase</th>
+<th align="right">level_index</th>
+<th align="right">misf_level</th>
+<th align="right">round_in_level</th>
+<th align="right">active_vertices</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">init</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">28</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">level_start</td>
+<td align="right">2</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">37</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">level_start</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">123</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">final</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">96</td>
+<td align="right">123</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(mesh.trace<span class="sc">$</span>diagnostics[, <span class="fu">c</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="st">&quot;frame&quot;</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="st">&quot;edge.length.cv&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="st">&quot;median.edge.length&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="st">&quot;sampled.nonedge.sep.ratio&quot;</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>)], <span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="right">frame</th>
+<th align="right">edge.length.cv</th>
+<th align="right">median.edge.length</th>
+<th align="right">sampled.nonedge.sep.ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">0.352</td>
+<td align="right">32.119</td>
+<td align="right">0.668</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="right">0.213</td>
+<td align="right">28.611</td>
+<td align="right">1.507</td>
+</tr>
+</tbody>
+</table>
+<div class="grip-trace">
+<svg viewBox="0 0 500 500" role="img" aria-label="Recorded recursive triangle construction" style="width:100%;max-height:500px"><g class="trace-frame" style="display:none"><g stroke="#547a99" stroke-width=".8"></g><g fill="#1769aa"><circle cx="111.541" cy="348.488" r="1.7"></circle><circle cx="332.820" cy="108.023" r="1.7"></circle><circle cx="423.634" cy="168.779" r="1.7"></circle><circle cx="53.983" cy="370.233" r="1.7"></circle><circle cx="215.785" cy="351.047" r="1.7"></circle><circle cx="392.297" cy="457.849" r="1.7"></circle><circle cx="162.064" cy="470.000" r="1.7"></circle><circle cx="210.669" cy="141.919" r="1.7"></circle><circle cx="380.785" cy="374.709" r="1.7"></circle><circle cx="426.831" cy="348.488" r="1.7"></circle><circle cx="219.622" cy="404.767" r="1.7"></circle><circle cx="444.099" cy="224.419" r="1.7"></circle><circle cx="211.948" cy="351.047" r="1.7"></circle><circle cx="34.797" cy="181.570" r="1.7"></circle><circle cx="376.948" cy="405.407" r="1.7"></circle><circle cx="393.576" cy="435.465" r="1.7"></circle><circle cx="466.483" cy="303.721" r="1.7"></circle><circle cx="146.715" cy="258.314" r="1.7"></circle><circle cx="337.297" cy="423.953" r="1.7"></circle><circle cx="256.715" cy="30.000" r="1.7"></circle><circle cx="57.820" cy="89.477" r="1.7"></circle><circle cx="143.517" cy="319.070" r="1.7"></circle><circle cx="190.843" cy="340.814" r="1.7"></circle><circle cx="270.145" cy="440.581" r="1.7"></circle><circle cx="415.959" cy="138.081" r="1.7"></circle><circle cx="162.703" cy="212.907" r="1.7"></circle><circle cx="33.517" cy="171.977" r="1.7"></circle><circle cx="310.436" cy="427.151" r="1.7"></circle></g></g><g class="trace-frame" style="display:none"><g stroke="#547a99" stroke-width=".8"></g><g fill="#1769aa"><circle cx="418.655" cy="396.507" r="1.7"></circle><circle cx="398.304" cy="382.844" r="1.7"></circle><circle cx="366.198" cy="403.171" r="1.7"></circle><circle cx="404.805" cy="350.612" r="1.7"></circle><circle cx="400.372" cy="304.581" r="1.7"></circle><circle cx="313.279" cy="420.120" r="1.7"></circle><circle cx="270.653" cy="409.139" r="1.7"></circle><circle cx="313.469" cy="393.126" r="1.7"></circle><circle cx="347.458" cy="364.665" r="1.7"></circle><circle cx="376.238" cy="291.460" r="1.7"></circle><circle cx="335.402" cy="330.885" r="1.7"></circle><circle cx="342.922" cy="267.227" r="1.7"></circle><circle cx="240.344" cy="395.338" r="1.7"></circle><circle cx="212.966" cy="418.952" r="1.7"></circle><circle cx="182.995" cy="426.296" r="1.7"></circle><circle cx="210.424" cy="373.673" r="1.7"></circle><circle cx="142.144" cy="427.243" r="1.7"></circle><circle cx="141.641" cy="387.941" r="1.7"></circle><circle cx="120.222" cy="391.897" r="1.7"></circle><circle cx="114.038" cy="352.685" r="1.7"></circle><circle cx="181.759" cy="336.212" r="1.7"></circle><circle cx="156.665" cy="337.360" r="1.7"></circle><circle cx="129.493" cy="314.268" r="1.7"></circle><circle cx="151.879" cy="278.716" r="1.7"></circle><circle cx="306.804" cy="239.297" r="1.7"></circle><circle cx="260.857" cy="212.881" r="1.7"></circle><circle cx="246.202" cy="217.771" r="1.7"></circle><circle cx="309.100" cy="196.418" r="1.7"></circle><circle cx="271.501" cy="169.271" r="1.7"></circle><circle cx="196.519" cy="234.926" r="1.7"></circle><circle cx="169.433" cy="241.599" r="1.7"></circle><circle cx="181.236" cy="204.462" r="1.7"></circle><circle cx="187.840" cy="175.607" r="1.7"></circle><circle cx="261.053" cy="143.828" r="1.7"></circle><circle cx="219.910" cy="145.914" r="1.7"></circle><circle cx="240.792" cy="129.975" r="1.7"></circle><circle cx="241.062" cy="106.426" r="1.7"></circle></g></g><g class="trace-frame" style="display:none"><g stroke="#547a99" stroke-width=".8"><line x1="428.670" y1="372.823" x2="432.982" y2="385.137"></line><line x1="432.982" y1="385.137" x2="431.493" y2="369.098"></line><line x1="428.670" y1="372.823" x2="431.493" y2="369.098"></line><line x1="432.982" y1="385.137" x2="414.259" y2="389.874"></line><line x1="414.259" y1="389.874" x2="431.211" y2="369.581"></line><line x1="432.982" y1="385.137" x2="431.211" y2="369.581"></line><line x1="431.493" y1="369.098" x2="431.211" y2="369.581"></line><line x1="431.211" y1="369.581" x2="415.395" y2="342.149"></line><line x1="431.493" y1="369.098" x2="415.395" y2="342.149"></line><line x1="414.259" y1="389.874" x2="393.632" y2="389.304"></line><line x1="393.632" y1="389.304" x2="410.046" y2="372.167"></line><line x1="414.259" y1="389.874" x2="410.046" y2="372.167"></line><line x1="393.632" y1="389.304" x2="374.002" y2="397.507"></line><line x1="374.002" y1="397.507" x2="393.240" y2="376.349"></line><line x1="393.632" y1="389.304" x2="393.240" y2="376.349"></line><line x1="410.046" y1="372.167" x2="393.240" y2="376.349"></line><line x1="393.240" y1="376.349" x2="407.547" y2="356.684"></line><line x1="410.046" y1="372.167" x2="407.547" y2="356.684"></line><line x1="415.395" y1="342.149" x2="423.676" y2="335.464"></line><line x1="423.676" y1="335.464" x2="409.729" y2="319.789"></line><line x1="415.395" y1="342.149" x2="409.729" y2="319.789"></line><line x1="407.547" y1="356.684" x2="423.676" y2="335.464"></line><line x1="407.547" y1="356.684" x2="408.341" y2="320.171"></line><line x1="423.676" y1="335.464" x2="408.341" y2="320.171"></line><line x1="409.729" y1="319.789" x2="408.341" y2="320.171"></line><line x1="408.341" y1="320.171" x2="404.321" y2="293.942"></line><line x1="409.729" y1="319.789" x2="404.321" y2="293.942"></line><line x1="374.002" y1="397.507" x2="359.297" y2="394.209"></line><line x1="359.297" y1="394.209" x2="361.221" y2="384.323"></line><line x1="374.002" y1="397.507" x2="361.221" y2="384.323"></line><line x1="359.297" y1="394.209" x2="329.267" y2="403.326"></line><line x1="329.267" y1="403.326" x2="340.724" y2="386.874"></line><line x1="359.297" y1="394.209" x2="340.724" y2="386.874"></line><line x1="361.221" y1="384.323" x2="340.724" y2="386.874"></line><line x1="340.724" y1="386.874" x2="349.242" y2="368.336"></line><line x1="361.221" y1="384.323" x2="349.242" y2="368.336"></line><line x1="329.267" y1="403.326" x2="307.319" y2="401.723"></line><line x1="307.319" y1="401.723" x2="322.874" y2="385.304"></line><line x1="329.267" y1="403.326" x2="322.874" y2="385.304"></line><line x1="307.319" y1="401.723" x2="286.020" y2="397.427"></line><line x1="286.020" y1="397.427" x2="300.409" y2="384.210"></line><line x1="307.319" y1="401.723" x2="300.409" y2="384.210"></line><line x1="322.874" y1="385.304" x2="300.409" y2="384.210"></line><line x1="300.409" y1="384.210" x2="313.430" y2="367.979"></line><line x1="322.874" y1="385.304" x2="313.430" y2="367.979"></line><line x1="349.242" y1="368.336" x2="335.238" y2="359.951"></line><line x1="335.238" y1="359.951" x2="348.560" y2="347.103"></line><line x1="349.242" y1="368.336" x2="348.560" y2="347.103"></line><line x1="313.430" y1="367.979" x2="335.238" y2="359.951"></line><line x1="313.430" y1="367.979" x2="326.264" y2="348.281"></line><line x1="335.238" y1="359.951" x2="326.264" y2="348.281"></line><line x1="348.560" y1="347.103" x2="326.264" y2="348.281"></line><line x1="326.264" y1="348.281" x2="338.312" y2="328.811"></line><line x1="348.560" y1="347.103" x2="338.312" y2="328.811"></line><line x1="404.321" y1="293.942" x2="394.945" y2="292.004"></line><line x1="394.945" y1="292.004" x2="394.945" y2="292.004"></line><line x1="404.321" y1="293.942" x2="394.945" y2="292.004"></line><line x1="394.945" y1="292.004" x2="369.938" y2="284.161"></line><line x1="369.938" y1="284.161" x2="381.355" y2="274.310"></line><line x1="394.945" y1="292.004" x2="381.355" y2="274.310"></line><line x1="394.945" y1="292.004" x2="381.355" y2="274.310"></line><line x1="381.355" y1="274.310" x2="369.097" y2="278.659"></line><line x1="394.945" y1="292.004" x2="369.097" y2="278.659"></line><line x1="369.938" y1="284.161" x2="364.222" y2="308.056"></line><line x1="364.222" y1="308.056" x2="351.460" y2="289.864"></line><line x1="369.938" y1="284.161" x2="351.460" y2="289.864"></line><line x1="338.312" y1="328.811" x2="364.222" y2="308.056"></line><line x1="338.312" y1="328.811" x2="346.380" y2="303.001"></line><line x1="364.222" y1="308.056" x2="346.380" y2="303.001"></line><line x1="351.460" y1="289.864" x2="346.380" y2="303.001"></line><line x1="346.380" y1="303.001" x2="343.679" y2="290.381"></line><line x1="351.460" y1="289.864" x2="343.679" y2="290.381"></line><line x1="369.097" y1="278.659" x2="349.168" y2="270.102"></line><line x1="349.168" y1="270.102" x2="353.578" y2="247.323"></line><line x1="369.097" y1="278.659" x2="353.578" y2="247.323"></line><line x1="343.679" y1="290.381" x2="349.168" y2="270.102"></line><line x1="343.679" y1="290.381" x2="340.256" y2="257.989"></line><line x1="349.168" y1="270.102" x2="340.256" y2="257.989"></line><line x1="353.578" y1="247.323" x2="340.256" y2="257.989"></line><line x1="340.256" y1="257.989" x2="328.105" y2="255.213"></line><line x1="353.578" y1="247.323" x2="328.105" y2="255.213"></line><line x1="286.020" y1="397.427" x2="271.150" y2="406.607"></line><line x1="271.150" y1="406.607" x2="270.140" y2="398.770"></line><line x1="286.020" y1="397.427" x2="270.140" y2="398.770"></line><line x1="271.150" y1="406.607" x2="250.476" y2="420.598"></line><line x1="250.476" y1="420.598" x2="254.426" y2="414.747"></line><line x1="271.150" y1="406.607" x2="254.426" y2="414.747"></line><line x1="270.140" y1="398.770" x2="254.426" y2="414.747"></line><line x1="254.426" y1="414.747" x2="247.026" y2="391.704"></line><line x1="270.140" y1="398.770" x2="247.026" y2="391.704"></line><line x1="250.476" y1="420.598" x2="221.778" y2="429.826"></line><line x1="221.778" y1="429.826" x2="235.688" y2="429.086"></line><line x1="250.476" y1="420.598" x2="235.688" y2="429.086"></line><line x1="221.778" y1="429.826" x2="206.009" y2="436.191"></line><line x1="206.009" y1="436.191" x2="215.879" y2="434.520"></line><line x1="221.778" y1="429.826" x2="215.879" y2="434.520"></line><line x1="235.688" y1="429.086" x2="215.879" y2="434.520"></line><line x1="215.879" y1="434.520" x2="236.361" y2="411.740"></line><line x1="235.688" y1="429.086" x2="236.361" y2="411.740"></line><line x1="247.026" y1="391.704" x2="235.189" y2="394.628"></line><line x1="235.189" y1="394.628" x2="230.115" y2="377.382"></line><line x1="247.026" y1="391.704" x2="230.115" y2="377.382"></line><line x1="236.361" y1="411.740" x2="235.189" y2="394.628"></line><line x1="236.361" y1="411.740" x2="212.785" y2="390.483"></line><line x1="235.189" y1="394.628" x2="212.785" y2="390.483"></line><line x1="230.115" y1="377.382" x2="212.785" y2="390.483"></line><line x1="212.785" y1="390.483" x2="207.172" y2="366.932"></line><line x1="230.115" y1="377.382" x2="207.172" y2="366.932"></line><line x1="206.009" y1="436.191" x2="185.779" y2="441.285"></line><line x1="185.779" y1="441.285" x2="183.524" y2="421.692"></line><line x1="206.009" y1="436.191" x2="183.524" y2="421.692"></line><line x1="185.779" y1="441.285" x2="164.248" y2="449.099"></line><line x1="164.248" y1="449.099" x2="166.314" y2="428.758"></line><line x1="185.779" y1="441.285" x2="166.314" y2="428.758"></line><line x1="183.524" y1="421.692" x2="166.314" y2="428.758"></line><line x1="166.314" y1="428.758" x2="158.152" y2="412.889"></line><line x1="183.524" y1="421.692" x2="158.152" y2="412.889"></line><line x1="164.248" y1="449.099" x2="152.043" y2="433.182"></line><line x1="152.043" y1="433.182" x2="144.221" y2="428.051"></line><line x1="164.248" y1="449.099" x2="144.221" y2="428.051"></line><line x1="152.043" y1="433.182" x2="137.168" y2="430.459"></line><line x1="137.168" y1="430.459" x2="116.853" y2="423.159"></line><line x1="152.043" y1="433.182" x2="116.853" y2="423.159"></line><line x1="144.221" y1="428.051" x2="116.853" y2="423.159"></line><line x1="116.853" y1="423.159" x2="133.329" y2="407.072"></line><line x1="144.221" y1="428.051" x2="133.329" y2="407.072"></line><line x1="158.152" y1="412.889" x2="141.944" y2="395.841"></line><line x1="141.944" y1="395.841" x2="147.252" y2="389.125"></line><line x1="158.152" y1="412.889" x2="147.252" y2="389.125"></line><line x1="133.329" y1="407.072" x2="141.944" y2="395.841"></line><line x1="133.329" y1="407.072" x2="123.438" y2="381.300"></line><line x1="141.944" y1="395.841" x2="123.438" y2="381.300"></line><line x1="147.252" y1="389.125" x2="123.438" y2="381.300"></line><line x1="123.438" y1="381.300" x2="139.860" y2="366.402"></line><line x1="147.252" y1="389.125" x2="139.860" y2="366.402"></line><line x1="207.172" y1="366.932" x2="184.301" y2="362.783"></line><line x1="184.301" y1="362.783" x2="194.853" y2="345.483"></line><line x1="207.172" y1="366.932" x2="194.853" y2="345.483"></line><line x1="184.301" y1="362.783" x2="160.160" y2="359.769"></line><line x1="160.160" y1="359.769" x2="176.983" y2="347.770"></line><line x1="184.301" y1="362.783" x2="176.983" y2="347.770"></line><line x1="194.853" y1="345.483" x2="176.983" y2="347.770"></line><line x1="176.983" y1="347.770" x2="185.126" y2="331.210"></line><line x1="194.853" y1="345.483" x2="185.126" y2="331.210"></line><line x1="160.160" y1="359.769" x2="145.956" y2="350.281"></line><line x1="145.956" y1="350.281" x2="158.846" y2="337.700"></line><line x1="160.160" y1="359.769" x2="158.846" y2="337.700"></line><line x1="139.860" y1="366.402" x2="145.956" y2="350.281"></line><line x1="139.860" y1="366.402" x2="137.148" y2="337.626"></line><line x1="145.956" y1="350.281" x2="137.148" y2="337.626"></line><line x1="158.846" y1="337.700" x2="137.148" y2="337.626"></line><line x1="137.148" y1="337.626" x2="155.691" y2="322.405"></line><line x1="158.846" y1="337.700" x2="155.691" y2="322.405"></line><line x1="185.126" y1="331.210" x2="168.342" y2="318.039"></line><line x1="168.342" y1="318.039" x2="183.869" y2="308.644"></line><line x1="185.126" y1="331.210" x2="183.869" y2="308.644"></line><line x1="155.691" y1="322.405" x2="168.342" y2="318.039"></line><line x1="155.691" y1="322.405" x2="163.875" y2="301.549"></line><line x1="168.342" y1="318.039" x2="163.875" y2="301.549"></line><line x1="183.869" y1="308.644" x2="163.875" y2="301.549"></line><line x1="163.875" y1="301.549" x2="174.433" y2="286.734"></line><line x1="183.869" y1="308.644" x2="174.433" y2="286.734"></line><line x1="328.105" y1="255.213" x2="315.208" y2="232.312"></line><line x1="315.208" y1="232.312" x2="325.170" y2="219.294"></line><line x1="328.105" y1="255.213" x2="325.170" y2="219.294"></line><line x1="315.208" y1="232.312" x2="293.150" y2="232.526"></line><line x1="293.150" y1="232.526" x2="307.433" y2="220.131"></line><line x1="315.208" y1="232.312" x2="307.433" y2="220.131"></line><line x1="325.170" y1="219.294" x2="307.433" y2="220.131"></line><line x1="307.433" y1="220.131" x2="294.601" y2="202.101"></line><line x1="325.170" y1="219.294" x2="294.601" y2="202.101"></line><line x1="293.150" y1="232.526" x2="270.336" y2="228.894"></line><line x1="270.336" y1="228.894" x2="286.214" y2="212.967"></line><line x1="293.150" y1="232.526" x2="286.214" y2="212.967"></line><line x1="270.336" y1="228.894" x2="245.592" y2="233.164"></line><line x1="245.592" y1="233.164" x2="267.618" y2="218.183"></line><line x1="270.336" y1="228.894" x2="267.618" y2="218.183"></line><line x1="286.214" y1="212.967" x2="267.618" y2="218.183"></line><line x1="267.618" y1="218.183" x2="277.198" y2="203.415"></line><line x1="286.214" y1="212.967" x2="277.198" y2="203.415"></line><line x1="294.601" y1="202.101" x2="298.520" y2="190.995"></line><line x1="298.520" y1="190.995" x2="284.892" y2="176.856"></line><line x1="294.601" y1="202.101" x2="284.892" y2="176.856"></line><line x1="277.198" y1="203.415" x2="298.520" y2="190.995"></line><line x1="277.198" y1="203.415" x2="283.590" y2="177.314"></line><line x1="298.520" y1="190.995" x2="283.590" y2="177.314"></line><line x1="284.892" y1="176.856" x2="283.590" y2="177.314"></line><line x1="283.590" y1="177.314" x2="279.722" y2="166.031"></line><line x1="284.892" y1="176.856" x2="279.722" y2="166.031"></line><line x1="245.592" y1="233.164" x2="236.256" y2="242.836"></line><line x1="236.256" y1="242.836" x2="220.647" y2="236.283"></line><line x1="245.592" y1="233.164" x2="220.647" y2="236.283"></line><line x1="236.256" y1="242.836" x2="207.906" y2="261.452"></line><line x1="207.906" y1="261.452" x2="210.035" y2="244.769"></line><line x1="236.256" y1="242.836" x2="210.035" y2="244.769"></line><line x1="220.647" y1="236.283" x2="210.035" y2="244.769"></line><line x1="210.035" y1="244.769" x2="201.910" y2="233.884"></line><line x1="220.647" y1="236.283" x2="201.910" y2="233.884"></line><line x1="207.906" y1="261.452" x2="192.637" y2="271.894"></line><line x1="192.637" y1="271.894" x2="193.789" y2="261.621"></line><line x1="207.906" y1="261.452" x2="193.789" y2="261.621"></line><line x1="174.433" y1="286.734" x2="192.637" y2="271.894"></line><line x1="174.433" y1="286.734" x2="175.287" y2="263.852"></line><line x1="192.637" y1="271.894" x2="175.287" y2="263.852"></line><line x1="193.789" y1="261.621" x2="175.287" y2="263.852"></line><line x1="175.287" y1="263.852" x2="179.516" y2="243.442"></line><line x1="193.789" y1="261.621" x2="179.516" y2="243.442"></line><line x1="201.910" y1="233.884" x2="178.602" y2="226.830"></line><line x1="178.602" y1="226.830" x2="177.946" y2="218.377"></line><line x1="201.910" y1="233.884" x2="177.946" y2="218.377"></line><line x1="179.516" y1="243.442" x2="178.602" y2="226.830"></line><line x1="179.516" y1="243.442" x2="177.691" y2="218.373"></line><line x1="178.602" y1="226.830" x2="177.691" y2="218.373"></line><line x1="177.946" y1="218.377" x2="177.691" y2="218.373"></line><line x1="177.691" y1="218.373" x2="178.884" y2="196.815"></line><line x1="177.946" y1="218.377" x2="178.884" y2="196.815"></line><line x1="279.722" y1="166.031" x2="249.954" y2="160.845"></line><line x1="249.954" y1="160.845" x2="253.973" y2="154.966"></line><line x1="279.722" y1="166.031" x2="253.973" y2="154.966"></line><line x1="249.954" y1="160.845" x2="227.027" y2="161.683"></line><line x1="227.027" y1="161.683" x2="237.730" y2="147.544"></line><line x1="249.954" y1="160.845" x2="237.730" y2="147.544"></line><line x1="253.973" y1="154.966" x2="237.730" y2="147.544"></line><line x1="237.730" y1="147.544" x2="240.092" y2="149.600"></line><line x1="253.973" y1="154.966" x2="240.092" y2="149.600"></line><line x1="227.027" y1="161.683" x2="199.112" y2="176.858"></line><line x1="199.112" y1="176.858" x2="201.208" y2="160.158"></line><line x1="227.027" y1="161.683" x2="201.208" y2="160.158"></line><line x1="178.884" y1="196.815" x2="199.112" y2="176.858"></line><line x1="178.884" y1="196.815" x2="191.869" y2="175.663"></line><line x1="199.112" y1="176.858" x2="191.869" y2="175.663"></line><line x1="201.208" y1="160.158" x2="191.869" y2="175.663"></line><line x1="191.869" y1="175.663" x2="204.285" y2="155.871"></line><line x1="201.208" y1="160.158" x2="204.285" y2="155.871"></line><line x1="240.092" y1="149.600" x2="214.807" y2="138.482"></line><line x1="214.807" y1="138.482" x2="213.424" y2="121.256"></line><line x1="240.092" y1="149.600" x2="213.424" y2="121.256"></line><line x1="204.285" y1="155.871" x2="214.807" y2="138.482"></line><line x1="204.285" y1="155.871" x2="204.767" y2="124.514"></line><line x1="214.807" y1="138.482" x2="204.767" y2="124.514"></line><line x1="213.424" y1="121.256" x2="204.767" y2="124.514"></line><line x1="204.767" y1="124.514" x2="206.936" y2="116.185"></line><line x1="213.424" y1="121.256" x2="206.936" y2="116.185"></line></g><g fill="#1769aa"><circle cx="428.670" cy="372.823" r="1.7"></circle><circle cx="432.982" cy="385.137" r="1.7"></circle><circle cx="431.493" cy="369.098" r="1.7"></circle><circle cx="414.259" cy="389.874" r="1.7"></circle><circle cx="431.211" cy="369.581" r="1.7"></circle><circle cx="415.395" cy="342.149" r="1.7"></circle><circle cx="393.632" cy="389.304" r="1.7"></circle><circle cx="410.046" cy="372.167" r="1.7"></circle><circle cx="374.002" cy="397.507" r="1.7"></circle><circle cx="393.240" cy="376.349" r="1.7"></circle><circle cx="407.547" cy="356.684" r="1.7"></circle><circle cx="423.676" cy="335.464" r="1.7"></circle><circle cx="409.729" cy="319.789" r="1.7"></circle><circle cx="408.341" cy="320.171" r="1.7"></circle><circle cx="404.321" cy="293.942" r="1.7"></circle><circle cx="359.297" cy="394.209" r="1.7"></circle><circle cx="361.221" cy="384.323" r="1.7"></circle><circle cx="329.267" cy="403.326" r="1.7"></circle><circle cx="340.724" cy="386.874" r="1.7"></circle><circle cx="349.242" cy="368.336" r="1.7"></circle><circle cx="307.319" cy="401.723" r="1.7"></circle><circle cx="322.874" cy="385.304" r="1.7"></circle><circle cx="286.020" cy="397.427" r="1.7"></circle><circle cx="300.409" cy="384.210" r="1.7"></circle><circle cx="313.430" cy="367.979" r="1.7"></circle><circle cx="335.238" cy="359.951" r="1.7"></circle><circle cx="348.560" cy="347.103" r="1.7"></circle><circle cx="326.264" cy="348.281" r="1.7"></circle><circle cx="338.312" cy="328.811" r="1.7"></circle><circle cx="394.945" cy="292.004" r="1.7"></circle><circle cx="394.945" cy="292.004" r="1.7"></circle><circle cx="369.938" cy="284.161" r="1.7"></circle><circle cx="381.355" cy="274.310" r="1.7"></circle><circle cx="369.097" cy="278.659" r="1.7"></circle><circle cx="364.222" cy="308.056" r="1.7"></circle><circle cx="351.460" cy="289.864" r="1.7"></circle><circle cx="346.380" cy="303.001" r="1.7"></circle><circle cx="343.679" cy="290.381" r="1.7"></circle><circle cx="349.168" cy="270.102" r="1.7"></circle><circle cx="353.578" cy="247.323" r="1.7"></circle><circle cx="340.256" cy="257.989" r="1.7"></circle><circle cx="328.105" cy="255.213" r="1.7"></circle><circle cx="271.150" cy="406.607" r="1.7"></circle><circle cx="270.140" cy="398.770" r="1.7"></circle><circle cx="250.476" cy="420.598" r="1.7"></circle><circle cx="254.426" cy="414.747" r="1.7"></circle><circle cx="247.026" cy="391.704" r="1.7"></circle><circle cx="221.778" cy="429.826" r="1.7"></circle><circle cx="235.688" cy="429.086" r="1.7"></circle><circle cx="206.009" cy="436.191" r="1.7"></circle><circle cx="215.879" cy="434.520" r="1.7"></circle><circle cx="236.361" cy="411.740" r="1.7"></circle><circle cx="235.189" cy="394.628" r="1.7"></circle><circle cx="230.115" cy="377.382" r="1.7"></circle><circle cx="212.785" cy="390.483" r="1.7"></circle><circle cx="207.172" cy="366.932" r="1.7"></circle><circle cx="185.779" cy="441.285" r="1.7"></circle><circle cx="183.524" cy="421.692" r="1.7"></circle><circle cx="164.248" cy="449.099" r="1.7"></circle><circle cx="166.314" cy="428.758" r="1.7"></circle><circle cx="158.152" cy="412.889" r="1.7"></circle><circle cx="152.043" cy="433.182" r="1.7"></circle><circle cx="144.221" cy="428.051" r="1.7"></circle><circle cx="137.168" cy="430.459" r="1.7"></circle><circle cx="116.853" cy="423.159" r="1.7"></circle><circle cx="133.329" cy="407.072" r="1.7"></circle><circle cx="141.944" cy="395.841" r="1.7"></circle><circle cx="147.252" cy="389.125" r="1.7"></circle><circle cx="123.438" cy="381.300" r="1.7"></circle><circle cx="139.860" cy="366.402" r="1.7"></circle><circle cx="184.301" cy="362.783" r="1.7"></circle><circle cx="194.853" cy="345.483" r="1.7"></circle><circle cx="160.160" cy="359.769" r="1.7"></circle><circle cx="176.983" cy="347.770" r="1.7"></circle><circle cx="185.126" cy="331.210" r="1.7"></circle><circle cx="145.956" cy="350.281" r="1.7"></circle><circle cx="158.846" cy="337.700" r="1.7"></circle><circle cx="137.148" cy="337.626" r="1.7"></circle><circle cx="155.691" cy="322.405" r="1.7"></circle><circle cx="168.342" cy="318.039" r="1.7"></circle><circle cx="183.869" cy="308.644" r="1.7"></circle><circle cx="163.875" cy="301.549" r="1.7"></circle><circle cx="174.433" cy="286.734" r="1.7"></circle><circle cx="315.208" cy="232.312" r="1.7"></circle><circle cx="325.170" cy="219.294" r="1.7"></circle><circle cx="293.150" cy="232.526" r="1.7"></circle><circle cx="307.433" cy="220.131" r="1.7"></circle><circle cx="294.601" cy="202.101" r="1.7"></circle><circle cx="270.336" cy="228.894" r="1.7"></circle><circle cx="286.214" cy="212.967" r="1.7"></circle><circle cx="245.592" cy="233.164" r="1.7"></circle><circle cx="267.618" cy="218.183" r="1.7"></circle><circle cx="277.198" cy="203.415" r="1.7"></circle><circle cx="298.520" cy="190.995" r="1.7"></circle><circle cx="284.892" cy="176.856" r="1.7"></circle><circle cx="283.590" cy="177.314" r="1.7"></circle><circle cx="279.722" cy="166.031" r="1.7"></circle><circle cx="236.256" cy="242.836" r="1.7"></circle><circle cx="220.647" cy="236.283" r="1.7"></circle><circle cx="207.906" cy="261.452" r="1.7"></circle><circle cx="210.035" cy="244.769" r="1.7"></circle><circle cx="201.910" cy="233.884" r="1.7"></circle><circle cx="192.637" cy="271.894" r="1.7"></circle><circle cx="193.789" cy="261.621" r="1.7"></circle><circle cx="175.287" cy="263.852" r="1.7"></circle><circle cx="179.516" cy="243.442" r="1.7"></circle><circle cx="178.602" cy="226.830" r="1.7"></circle><circle cx="177.946" cy="218.377" r="1.7"></circle><circle cx="177.691" cy="218.373" r="1.7"></circle><circle cx="178.884" cy="196.815" r="1.7"></circle><circle cx="249.954" cy="160.845" r="1.7"></circle><circle cx="253.973" cy="154.966" r="1.7"></circle><circle cx="227.027" cy="161.683" r="1.7"></circle><circle cx="237.730" cy="147.544" r="1.7"></circle><circle cx="240.092" cy="149.600" r="1.7"></circle><circle cx="199.112" cy="176.858" r="1.7"></circle><circle cx="201.208" cy="160.158" r="1.7"></circle><circle cx="191.869" cy="175.663" r="1.7"></circle><circle cx="204.285" cy="155.871" r="1.7"></circle><circle cx="214.807" cy="138.482" r="1.7"></circle><circle cx="213.424" cy="121.256" r="1.7"></circle><circle cx="204.767" cy="124.514" r="1.7"></circle><circle cx="206.936" cy="116.185" r="1.7"></circle></g></g><g class="trace-frame" style="display:inline"><g stroke="#547a99" stroke-width=".8"><line x1="464.894" y1="369.400" x2="448.247" y2="372.153"></line><line x1="448.247" y1="372.153" x2="453.240" y2="356.925"></line><line x1="464.894" y1="369.400" x2="453.240" y2="356.925"></line><line x1="448.247" y1="372.153" x2="426.691" y2="374.215"></line><line x1="426.691" y1="374.215" x2="440.970" y2="361.059"></line><line x1="448.247" y1="372.153" x2="440.970" y2="361.059"></line><line x1="453.240" y1="356.925" x2="440.970" y2="361.059"></line><line x1="440.970" y1="361.059" x2="437.359" y2="341.934"></line><line x1="453.240" y1="356.925" x2="437.359" y2="341.934"></line><line x1="426.691" y1="374.215" x2="403.128" y2="378.949"></line><line x1="403.128" y1="378.949" x2="411.038" y2="367.499"></line><line x1="426.691" y1="374.215" x2="411.038" y2="367.499"></line><line x1="403.128" y1="378.949" x2="378.761" y2="379.955"></line><line x1="378.761" y1="379.955" x2="395.995" y2="367.497"></line><line x1="403.128" y1="378.949" x2="395.995" y2="367.497"></line><line x1="411.038" y1="367.499" x2="395.995" y2="367.497"></line><line x1="395.995" y1="367.497" x2="407.376" y2="349.371"></line><line x1="411.038" y1="367.499" x2="407.376" y2="349.371"></line><line x1="437.359" y1="341.934" x2="421.007" y2="337.164"></line><line x1="421.007" y1="337.164" x2="421.322" y2="323.381"></line><line x1="437.359" y1="341.934" x2="421.322" y2="323.381"></line><line x1="407.376" y1="349.371" x2="421.007" y2="337.164"></line><line x1="407.376" y1="349.371" x2="408.874" y2="327.717"></line><line x1="421.007" y1="337.164" x2="408.874" y2="327.717"></line><line x1="421.322" y1="323.381" x2="408.874" y2="327.717"></line><line x1="408.874" y1="327.717" x2="402.525" y2="307.219"></line><line x1="421.322" y1="323.381" x2="402.525" y2="307.219"></line><line x1="378.761" y1="379.955" x2="355.645" y2="387.856"></line><line x1="355.645" y1="387.856" x2="359.103" y2="375.270"></line><line x1="378.761" y1="379.955" x2="359.103" y2="375.270"></line><line x1="355.645" y1="387.856" x2="331.271" y2="390.760"></line><line x1="331.271" y1="390.760" x2="345.289" y2="380.391"></line><line x1="355.645" y1="387.856" x2="345.289" y2="380.391"></line><line x1="359.103" y1="375.270" x2="345.289" y2="380.391"></line><line x1="345.289" y1="380.391" x2="342.931" y2="362.576"></line><line x1="359.103" y1="375.270" x2="342.931" y2="362.576"></line><line x1="331.271" y1="390.760" x2="307.377" y2="394.637"></line><line x1="307.377" y1="394.637" x2="314.831" y2="383.010"></line><line x1="331.271" y1="390.760" x2="314.831" y2="383.010"></line><line x1="307.377" y1="394.637" x2="283.620" y2="396.783"></line><line x1="283.620" y1="396.783" x2="300.105" y2="382.720"></line><line x1="307.377" y1="394.637" x2="300.105" y2="382.720"></line><line x1="314.831" y1="383.010" x2="300.105" y2="382.720"></line><line x1="300.105" y1="382.720" x2="312.560" y2="364.573"></line><line x1="314.831" y1="383.010" x2="312.560" y2="364.573"></line><line x1="342.931" y1="362.576" x2="326.664" y2="355.311"></line><line x1="326.664" y1="355.311" x2="334.323" y2="343.365"></line><line x1="342.931" y1="362.576" x2="334.323" y2="343.365"></line><line x1="312.560" y1="364.573" x2="326.664" y2="355.311"></line><line x1="312.560" y1="364.573" x2="321.015" y2="343.118"></line><line x1="326.664" y1="355.311" x2="321.015" y2="343.118"></line><line x1="334.323" y1="343.365" x2="321.015" y2="343.118"></line><line x1="321.015" y1="343.118" x2="331.999" y2="323.145"></line><line x1="334.323" y1="343.365" x2="331.999" y2="323.145"></line><line x1="402.525" y1="307.219" x2="384.300" y2="298.451"></line><line x1="384.300" y1="298.451" x2="388.315" y2="286.450"></line><line x1="402.525" y1="307.219" x2="388.315" y2="286.450"></line><line x1="384.300" y1="298.451" x2="363.949" y2="298.501"></line><line x1="363.949" y1="298.501" x2="376.115" y2="285.436"></line><line x1="384.300" y1="298.451" x2="376.115" y2="285.436"></line><line x1="388.315" y1="286.450" x2="376.115" y2="285.436"></line><line x1="376.115" y1="285.436" x2="369.769" y2="269.265"></line><line x1="388.315" y1="286.450" x2="369.769" y2="269.265"></line><line x1="363.949" y1="298.501" x2="345.899" y2="308.572"></line><line x1="345.899" y1="308.572" x2="346.749" y2="294.462"></line><line x1="363.949" y1="298.501" x2="346.749" y2="294.462"></line><line x1="331.999" y1="323.145" x2="345.899" y2="308.572"></line><line x1="331.999" y1="323.145" x2="334.728" y2="300.803"></line><line x1="345.899" y1="308.572" x2="334.728" y2="300.803"></line><line x1="346.749" y1="294.462" x2="334.728" y2="300.803"></line><line x1="334.728" y1="300.803" x2="339.810" y2="278.961"></line><line x1="346.749" y1="294.462" x2="339.810" y2="278.961"></line><line x1="369.769" y1="269.265" x2="351.893" y2="265.220"></line><line x1="351.893" y1="265.220" x2="351.599" y2="252.095"></line><line x1="369.769" y1="269.265" x2="351.599" y2="252.095"></line><line x1="339.810" y1="278.961" x2="351.893" y2="265.220"></line><line x1="339.810" y1="278.961" x2="339.047" y2="257.414"></line><line x1="351.893" y1="265.220" x2="339.047" y2="257.414"></line><line x1="351.599" y1="252.095" x2="339.047" y2="257.414"></line><line x1="339.047" y1="257.414" x2="331.687" y2="237.634"></line><line x1="351.599" y1="252.095" x2="331.687" y2="237.634"></line><line x1="283.620" y1="396.783" x2="262.018" y2="407.940"></line><line x1="262.018" y1="407.940" x2="263.139" y2="394.164"></line><line x1="283.620" y1="396.783" x2="263.139" y2="394.164"></line><line x1="262.018" y1="407.940" x2="238.841" y2="415.871"></line><line x1="238.841" y1="415.871" x2="250.527" y2="401.908"></line><line x1="262.018" y1="407.940" x2="250.527" y2="401.908"></line><line x1="263.139" y1="394.164" x2="250.527" y2="401.908"></line><line x1="250.527" y1="401.908" x2="244.531" y2="384.555"></line><line x1="263.139" y1="394.164" x2="244.531" y2="384.555"></line><line x1="238.841" y1="415.871" x2="214.943" y2="424.015"></line><line x1="214.943" y1="424.015" x2="221.845" y2="413.456"></line><line x1="238.841" y1="415.871" x2="221.845" y2="413.456"></line><line x1="214.943" y1="424.015" x2="190.146" y2="426.487"></line><line x1="190.146" y1="426.487" x2="206.649" y2="414.643"></line><line x1="214.943" y1="424.015" x2="206.649" y2="414.643"></line><line x1="221.845" y1="413.456" x2="206.649" y2="414.643"></line><line x1="206.649" y1="414.643" x2="216.277" y2="396.471"></line><line x1="221.845" y1="413.456" x2="216.277" y2="396.471"></line><line x1="244.531" y1="384.555" x2="227.703" y2="383.110"></line><line x1="227.703" y1="383.110" x2="228.425" y2="369.402"></line><line x1="244.531" y1="384.555" x2="228.425" y2="369.402"></line><line x1="216.277" y1="396.471" x2="227.703" y2="383.110"></line><line x1="216.277" y1="396.471" x2="216.373" y2="375.586"></line><line x1="227.703" y1="383.110" x2="216.373" y2="375.586"></line><line x1="228.425" y1="369.402" x2="216.373" y2="375.586"></line><line x1="216.373" y1="375.586" x2="210.657" y2="356.104"></line><line x1="228.425" y1="369.402" x2="210.657" y2="356.104"></line><line x1="190.146" y1="426.487" x2="167.383" y2="435.202"></line><line x1="167.383" y1="435.202" x2="169.447" y2="422.033"></line><line x1="190.146" y1="426.487" x2="169.447" y2="422.033"></line><line x1="167.383" y1="435.202" x2="143.825" y2="440.163"></line><line x1="143.825" y1="440.163" x2="155.618" y2="428.031"></line><line x1="167.383" y1="435.202" x2="155.618" y2="428.031"></line><line x1="169.447" y1="422.033" x2="155.618" y2="428.031"></line><line x1="155.618" y1="428.031" x2="151.809" y2="410.134"></line><line x1="169.447" y1="422.033" x2="151.809" y2="410.134"></line><line x1="143.825" y1="440.163" x2="123.156" y2="446.681"></line><line x1="123.156" y1="446.681" x2="125.541" y2="433.925"></line><line x1="143.825" y1="440.163" x2="125.541" y2="433.925"></line><line x1="123.156" y1="446.681" x2="106.800" y2="450.956"></line><line x1="106.800" y1="450.956" x2="112.514" y2="434.951"></line><line x1="123.156" y1="446.681" x2="112.514" y2="434.951"></line><line x1="125.541" y1="433.925" x2="112.514" y2="434.951"></line><line x1="112.514" y1="434.951" x2="121.265" y2="415.039"></line><line x1="125.541" y1="433.925" x2="121.265" y2="415.039"></line><line x1="151.809" y1="410.134" x2="134.304" y2="404.117"></line><line x1="134.304" y1="404.117" x2="141.895" y2="391.118"></line><line x1="151.809" y1="410.134" x2="141.895" y2="391.118"></line><line x1="121.265" y1="415.039" x2="134.304" y2="404.117"></line><line x1="121.265" y1="415.039" x2="128.586" y2="391.989"></line><line x1="134.304" y1="404.117" x2="128.586" y2="391.989"></line><line x1="141.895" y1="391.118" x2="128.586" y2="391.989"></line><line x1="128.586" y1="391.989" x2="139.651" y2="370.114"></line><line x1="141.895" y1="391.118" x2="139.651" y2="370.114"></line><line x1="210.657" y1="356.104" x2="192.327" y2="348.720"></line><line x1="192.327" y1="348.720" x2="199.593" y2="337.176"></line><line x1="210.657" y1="356.104" x2="199.593" y2="337.176"></line><line x1="192.327" y1="348.720" x2="171.948" y2="347.167"></line><line x1="171.948" y1="347.167" x2="186.142" y2="336.449"></line><line x1="192.327" y1="348.720" x2="186.142" y2="336.449"></line><line x1="199.593" y1="337.176" x2="186.142" y2="336.449"></line><line x1="186.142" y1="336.449" x2="185.815" y2="319.662"></line><line x1="199.593" y1="337.176" x2="185.815" y2="319.662"></line><line x1="171.948" y1="347.167" x2="153.207" y2="355.400"></line><line x1="153.207" y1="355.400" x2="155.649" y2="340.447"></line><line x1="171.948" y1="347.167" x2="155.649" y2="340.447"></line><line x1="139.651" y1="370.114" x2="153.207" y2="355.400"></line><line x1="139.651" y1="370.114" x2="144.427" y2="345.994"></line><line x1="153.207" y1="355.400" x2="144.427" y2="345.994"></line><line x1="155.649" y1="340.447" x2="144.427" y2="345.994"></line><line x1="144.427" y1="345.994" x2="154.181" y2="323.346"></line><line x1="155.649" y1="340.447" x2="154.181" y2="323.346"></line><line x1="185.815" y1="319.662" x2="168.940" y2="312.518"></line><line x1="168.940" y1="312.518" x2="176.940" y2="300.224"></line><line x1="185.815" y1="319.662" x2="176.940" y2="300.224"></line><line x1="154.181" y1="323.346" x2="168.940" y2="312.518"></line><line x1="154.181" y1="323.346" x2="163.091" y2="300.655"></line><line x1="168.940" y1="312.518" x2="163.091" y2="300.655"></line><line x1="176.940" y1="300.224" x2="163.091" y2="300.655"></line><line x1="163.091" y1="300.655" x2="174.072" y2="279.349"></line><line x1="176.940" y1="300.224" x2="174.072" y2="279.349"></line><line x1="331.687" y1="237.634" x2="312.060" y2="230.047"></line><line x1="312.060" y1="230.047" x2="318.064" y2="217.562"></line><line x1="331.687" y1="237.634" x2="318.064" y2="217.562"></line><line x1="312.060" y1="230.047" x2="290.775" y2="228.963"></line><line x1="290.775" y1="228.963" x2="304.935" y2="217.098"></line><line x1="312.060" y1="230.047" x2="304.935" y2="217.098"></line><line x1="318.064" y1="217.562" x2="304.935" y2="217.098"></line><line x1="304.935" y1="217.098" x2="301.973" y2="199.007"></line><line x1="318.064" y1="217.562" x2="301.973" y2="199.007"></line><line x1="290.775" y1="228.963" x2="268.660" y2="233.261"></line><line x1="268.660" y1="233.261" x2="275.725" y2="221.533"></line><line x1="290.775" y1="228.963" x2="275.725" y2="221.533"></line><line x1="268.660" y1="233.261" x2="246.292" y2="235.077"></line><line x1="246.292" y1="235.077" x2="261.756" y2="221.741"></line><line x1="268.660" y1="233.261" x2="261.756" y2="221.741"></line><line x1="275.725" y1="221.533" x2="261.756" y2="221.741"></line><line x1="261.756" y1="221.741" x2="272.637" y2="203.978"></line><line x1="275.725" y1="221.533" x2="272.637" y2="203.978"></line><line x1="301.973" y1="199.007" x2="286.006" y2="192.270"></line><line x1="286.006" y1="192.270" x2="286.047" y2="179.750"></line><line x1="301.973" y1="199.007" x2="286.047" y2="179.750"></line><line x1="272.637" y1="203.978" x2="286.006" y2="192.270"></line><line x1="272.637" y1="203.978" x2="273.884" y2="183.370"></line><line x1="286.006" y1="192.270" x2="273.884" y2="183.370"></line><line x1="286.047" y1="179.750" x2="273.884" y2="183.370"></line><line x1="273.884" y1="183.370" x2="266.521" y2="164.424"></line><line x1="286.047" y1="179.750" x2="266.521" y2="164.424"></line><line x1="246.292" y1="235.077" x2="226.626" y2="245.260"></line><line x1="226.626" y1="245.260" x2="226.667" y2="231.569"></line><line x1="246.292" y1="235.077" x2="226.667" y2="231.569"></line><line x1="226.626" y1="245.260" x2="205.674" y2="252.541"></line><line x1="205.674" y1="252.541" x2="214.896" y2="238.367"></line><line x1="226.626" y1="245.260" x2="214.896" y2="238.367"></line><line x1="226.667" y1="231.569" x2="214.896" y2="238.367"></line><line x1="214.896" y1="238.367" x2="208.429" y2="221.656"></line><line x1="226.667" y1="231.569" x2="208.429" y2="221.656"></line><line x1="205.674" y1="252.541" x2="187.769" y2="263.808"></line><line x1="187.769" y1="263.808" x2="187.649" y2="248.920"></line><line x1="205.674" y1="252.541" x2="187.649" y2="248.920"></line><line x1="174.072" y1="279.349" x2="187.769" y2="263.808"></line><line x1="174.072" y1="279.349" x2="176.285" y2="255.701"></line><line x1="187.769" y1="263.808" x2="176.285" y2="255.701"></line><line x1="187.649" y1="248.920" x2="176.285" y2="255.701"></line><line x1="176.285" y1="255.701" x2="180.760" y2="232.053"></line><line x1="187.649" y1="248.920" x2="180.760" y2="232.053"></line><line x1="208.429" y1="221.656" x2="191.032" y2="218.233"></line><line x1="191.032" y1="218.233" x2="196.960" y2="204.344"></line><line x1="208.429" y1="221.656" x2="196.960" y2="204.344"></line><line x1="180.760" y1="232.053" x2="191.032" y2="218.233"></line><line x1="180.760" y1="232.053" x2="184.660" y2="207.412"></line><line x1="191.032" y1="218.233" x2="184.660" y2="207.412"></line><line x1="196.960" y1="204.344" x2="184.660" y2="207.412"></line><line x1="184.660" y1="207.412" x2="193.719" y2="184.408"></line><line x1="196.960" y1="204.344" x2="193.719" y2="184.408"></line><line x1="266.521" y1="164.424" x2="246.885" y2="157.381"></line><line x1="246.885" y1="157.381" x2="252.343" y2="145.013"></line><line x1="266.521" y1="164.424" x2="252.343" y2="145.013"></line><line x1="246.885" y1="157.381" x2="225.647" y2="157.838"></line><line x1="225.647" y1="157.838" x2="238.911" y2="144.699"></line><line x1="246.885" y1="157.381" x2="238.911" y2="144.699"></line><line x1="252.343" y1="145.013" x2="238.911" y2="144.699"></line><line x1="238.911" y1="144.699" x2="235.137" y2="128.132"></line><line x1="252.343" y1="145.013" x2="235.137" y2="128.132"></line><line x1="225.647" y1="157.838" x2="207.169" y2="168.267"></line><line x1="207.169" y1="168.267" x2="208.133" y2="153.251"></line><line x1="225.647" y1="157.838" x2="208.133" y2="153.251"></line><line x1="193.719" y1="184.408" x2="207.169" y2="168.267"></line><line x1="193.719" y1="184.408" x2="196.458" y2="160.206"></line><line x1="207.169" y1="168.267" x2="196.458" y2="160.206"></line><line x1="208.133" y1="153.251" x2="196.458" y2="160.206"></line><line x1="196.458" y1="160.206" x2="202.679" y2="137.096"></line><line x1="208.133" y1="153.251" x2="202.679" y2="137.096"></line><line x1="235.137" y1="128.132" x2="216.490" y2="123.661"></line><line x1="216.490" y1="123.661" x2="221.439" y2="111.530"></line><line x1="235.137" y1="128.132" x2="221.439" y2="111.530"></line><line x1="202.679" y1="137.096" x2="216.490" y2="123.661"></line><line x1="202.679" y1="137.096" x2="206.176" y2="115.752"></line><line x1="216.490" y1="123.661" x2="206.176" y2="115.752"></line><line x1="221.439" y1="111.530" x2="206.176" y2="115.752"></line><line x1="206.176" y1="115.752" x2="209.713" y2="99.273"></line><line x1="221.439" y1="111.530" x2="209.713" y2="99.273"></line></g><g fill="#1769aa"><circle cx="464.894" cy="369.400" r="1.7"></circle><circle cx="448.247" cy="372.153" r="1.7"></circle><circle cx="453.240" cy="356.925" r="1.7"></circle><circle cx="426.691" cy="374.215" r="1.7"></circle><circle cx="440.970" cy="361.059" r="1.7"></circle><circle cx="437.359" cy="341.934" r="1.7"></circle><circle cx="403.128" cy="378.949" r="1.7"></circle><circle cx="411.038" cy="367.499" r="1.7"></circle><circle cx="378.761" cy="379.955" r="1.7"></circle><circle cx="395.995" cy="367.497" r="1.7"></circle><circle cx="407.376" cy="349.371" r="1.7"></circle><circle cx="421.007" cy="337.164" r="1.7"></circle><circle cx="421.322" cy="323.381" r="1.7"></circle><circle cx="408.874" cy="327.717" r="1.7"></circle><circle cx="402.525" cy="307.219" r="1.7"></circle><circle cx="355.645" cy="387.856" r="1.7"></circle><circle cx="359.103" cy="375.270" r="1.7"></circle><circle cx="331.271" cy="390.760" r="1.7"></circle><circle cx="345.289" cy="380.391" r="1.7"></circle><circle cx="342.931" cy="362.576" r="1.7"></circle><circle cx="307.377" cy="394.637" r="1.7"></circle><circle cx="314.831" cy="383.010" r="1.7"></circle><circle cx="283.620" cy="396.783" r="1.7"></circle><circle cx="300.105" cy="382.720" r="1.7"></circle><circle cx="312.560" cy="364.573" r="1.7"></circle><circle cx="326.664" cy="355.311" r="1.7"></circle><circle cx="334.323" cy="343.365" r="1.7"></circle><circle cx="321.015" cy="343.118" r="1.7"></circle><circle cx="331.999" cy="323.145" r="1.7"></circle><circle cx="384.300" cy="298.451" r="1.7"></circle><circle cx="388.315" cy="286.450" r="1.7"></circle><circle cx="363.949" cy="298.501" r="1.7"></circle><circle cx="376.115" cy="285.436" r="1.7"></circle><circle cx="369.769" cy="269.265" r="1.7"></circle><circle cx="345.899" cy="308.572" r="1.7"></circle><circle cx="346.749" cy="294.462" r="1.7"></circle><circle cx="334.728" cy="300.803" r="1.7"></circle><circle cx="339.810" cy="278.961" r="1.7"></circle><circle cx="351.893" cy="265.220" r="1.7"></circle><circle cx="351.599" cy="252.095" r="1.7"></circle><circle cx="339.047" cy="257.414" r="1.7"></circle><circle cx="331.687" cy="237.634" r="1.7"></circle><circle cx="262.018" cy="407.940" r="1.7"></circle><circle cx="263.139" cy="394.164" r="1.7"></circle><circle cx="238.841" cy="415.871" r="1.7"></circle><circle cx="250.527" cy="401.908" r="1.7"></circle><circle cx="244.531" cy="384.555" r="1.7"></circle><circle cx="214.943" cy="424.015" r="1.7"></circle><circle cx="221.845" cy="413.456" r="1.7"></circle><circle cx="190.146" cy="426.487" r="1.7"></circle><circle cx="206.649" cy="414.643" r="1.7"></circle><circle cx="216.277" cy="396.471" r="1.7"></circle><circle cx="227.703" cy="383.110" r="1.7"></circle><circle cx="228.425" cy="369.402" r="1.7"></circle><circle cx="216.373" cy="375.586" r="1.7"></circle><circle cx="210.657" cy="356.104" r="1.7"></circle><circle cx="167.383" cy="435.202" r="1.7"></circle><circle cx="169.447" cy="422.033" r="1.7"></circle><circle cx="143.825" cy="440.163" r="1.7"></circle><circle cx="155.618" cy="428.031" r="1.7"></circle><circle cx="151.809" cy="410.134" r="1.7"></circle><circle cx="123.156" cy="446.681" r="1.7"></circle><circle cx="125.541" cy="433.925" r="1.7"></circle><circle cx="106.800" cy="450.956" r="1.7"></circle><circle cx="112.514" cy="434.951" r="1.7"></circle><circle cx="121.265" cy="415.039" r="1.7"></circle><circle cx="134.304" cy="404.117" r="1.7"></circle><circle cx="141.895" cy="391.118" r="1.7"></circle><circle cx="128.586" cy="391.989" r="1.7"></circle><circle cx="139.651" cy="370.114" r="1.7"></circle><circle cx="192.327" cy="348.720" r="1.7"></circle><circle cx="199.593" cy="337.176" r="1.7"></circle><circle cx="171.948" cy="347.167" r="1.7"></circle><circle cx="186.142" cy="336.449" r="1.7"></circle><circle cx="185.815" cy="319.662" r="1.7"></circle><circle cx="153.207" cy="355.400" r="1.7"></circle><circle cx="155.649" cy="340.447" r="1.7"></circle><circle cx="144.427" cy="345.994" r="1.7"></circle><circle cx="154.181" cy="323.346" r="1.7"></circle><circle cx="168.940" cy="312.518" r="1.7"></circle><circle cx="176.940" cy="300.224" r="1.7"></circle><circle cx="163.091" cy="300.655" r="1.7"></circle><circle cx="174.072" cy="279.349" r="1.7"></circle><circle cx="312.060" cy="230.047" r="1.7"></circle><circle cx="318.064" cy="217.562" r="1.7"></circle><circle cx="290.775" cy="228.963" r="1.7"></circle><circle cx="304.935" cy="217.098" r="1.7"></circle><circle cx="301.973" cy="199.007" r="1.7"></circle><circle cx="268.660" cy="233.261" r="1.7"></circle><circle cx="275.725" cy="221.533" r="1.7"></circle><circle cx="246.292" cy="235.077" r="1.7"></circle><circle cx="261.756" cy="221.741" r="1.7"></circle><circle cx="272.637" cy="203.978" r="1.7"></circle><circle cx="286.006" cy="192.270" r="1.7"></circle><circle cx="286.047" cy="179.750" r="1.7"></circle><circle cx="273.884" cy="183.370" r="1.7"></circle><circle cx="266.521" cy="164.424" r="1.7"></circle><circle cx="226.626" cy="245.260" r="1.7"></circle><circle cx="226.667" cy="231.569" r="1.7"></circle><circle cx="205.674" cy="252.541" r="1.7"></circle><circle cx="214.896" cy="238.367" r="1.7"></circle><circle cx="208.429" cy="221.656" r="1.7"></circle><circle cx="187.769" cy="263.808" r="1.7"></circle><circle cx="187.649" cy="248.920" r="1.7"></circle><circle cx="176.285" cy="255.701" r="1.7"></circle><circle cx="180.760" cy="232.053" r="1.7"></circle><circle cx="191.032" cy="218.233" r="1.7"></circle><circle cx="196.960" cy="204.344" r="1.7"></circle><circle cx="184.660" cy="207.412" r="1.7"></circle><circle cx="193.719" cy="184.408" r="1.7"></circle><circle cx="246.885" cy="157.381" r="1.7"></circle><circle cx="252.343" cy="145.013" r="1.7"></circle><circle cx="225.647" cy="157.838" r="1.7"></circle><circle cx="238.911" cy="144.699" r="1.7"></circle><circle cx="235.137" cy="128.132" r="1.7"></circle><circle cx="207.169" cy="168.267" r="1.7"></circle><circle cx="208.133" cy="153.251" r="1.7"></circle><circle cx="196.458" cy="160.206" r="1.7"></circle><circle cx="202.679" cy="137.096" r="1.7"></circle><circle cx="216.490" cy="123.661" r="1.7"></circle><circle cx="221.439" cy="111.530" r="1.7"></circle><circle cx="206.176" cy="115.752" r="1.7"></circle><circle cx="209.713" cy="99.273" r="1.7"></circle></g></g></svg>
+<label>
+Recorded stage: 
+<input type="range" min="1" max="4" value="4" step="1" oninput="var p=this.closest(&#39;.grip-trace&#39;);var i=Number(this.value)-1;p.querySelectorAll(&#39;.trace-frame&#39;).forEach(function(g,j){g.style.display=j===i?&#39;inline&#39;:&#39;none&#39;;});p.querySelectorAll(&#39;.trace-label&#39;).forEach(function(g,j){g.style.display=j===i?&#39;inline&#39;:&#39;none&#39;;});"></input>
+</label>
+<span class="trace-label" style="display:none">Frame 1 of 4 — init — 28 active vertices</span>
+<span class="trace-label" style="display:none">Frame 2 of 4 — level_start — 37 active vertices</span>
+<span class="trace-label" style="display:none">Frame 3 of 4 — level_start — 123 active vertices</span>
+<span class="trace-label" style="display:inline">Frame 4 of 4 — final — 123 active vertices</span>
+</div>
+<p>With interactive rendering enabled, each recorded stage has an ivue
+viewer showing its active vertices and edges. Drag to rotate or scroll
+to zoom. Original planar coordinates are retained at z = 0; each viewer
+fits its own bounds, so apparent size across stages is not a measure of
+expansion. By default, a planar stage selector shows the same recorded
+vertices and edges with common bounds across stages.</p>
+<p>The two most useful tables are:</p>
+<ul>
+<li><code>meta</code>, which explains where each frame came from,</li>
+<li><code>diagnostics</code>, which tracks simple quality signals frame
+by frame.</li>
+</ul>
+</div>
+<div id="level-traces-versus-round-traces" class="section level2">
+<h2>Level traces versus round traces</h2>
+<p>When you need more detail, <code>trace = &quot;round&quot;</code> records
+intermediate refinement rounds within each active level.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>mesh.trace.round <span class="ot">&lt;-</span> <span class="fu">trace.grip</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  mesh.edges,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">n =</span> <span class="fu">max</span>(mesh.edges),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">dim =</span> <span class="dv">2</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">preset =</span> <span class="st">&quot;carpet&quot;</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="at">rounds =</span> <span class="dv">6</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  <span class="at">final.rounds =</span> <span class="dv">8</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  <span class="at">trace =</span> <span class="st">&quot;round&quot;</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  <span class="at">trace.every =</span> <span class="dv">4</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>  <span class="at">diagnostics =</span> <span class="st">&quot;light&quot;</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">1</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>  <span class="at">trace_mode =</span> <span class="fu">c</span>(<span class="st">&quot;level&quot;</span>, <span class="st">&quot;round&quot;</span>),</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>  <span class="at">n.frames =</span> <span class="fu">c</span>(<span class="fu">length</span>(mesh.trace<span class="sc">$</span>frames), <span class="fu">length</span>(mesh.trace.round<span class="sc">$</span>frames))</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>)</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;   trace_mode n.frames</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; 1      level        4</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt; 2      round        8</span></span></code></pre></div>
+<p>Use:</p>
+<ul>
+<li><code>trace = &quot;level&quot;</code> for most reporting and teaching,</li>
+<li><code>trace = &quot;round&quot;</code> when you are diagnosing a tuning
+issue.</li>
+</ul>
+</div>
+<div id="read-changes-over-the-trace" class="section level2">
+<h2>Read changes over the trace</h2>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Early frames contain only the active coarse vertices. Read changes in
+the score together with the stage and active graph; adjacent frames may
+not score identical vertex sets. Level traces show insertion stages;
+round traces show more of the refinement within each stage. They are
+different sampling schedules.</p>
+<p>For a weighted graph, use
+<code>trace.grip(metric=&#39;edge_length&#39;, ...)</code> with its lengths. The
+<a href="weighted-grip-intro.html">weighted guide</a> explains this
+metric. Detailed construction animations and their reproduction commands
+are described in the <a href="https://github.com/pgajer/grip/blob/main/tools/README.md#readme-and-showcase-assets">asset
+guide</a>.</p>
+</div>
+<div id="trace-objects-are-analysis-objects" class="section level2">
+<h2>Trace objects are analysis objects</h2>
+<p>A trace object is more than a list of pictures. It can support:</p>
+<ul>
+<li>frame-by-frame diagnostics,</li>
+<li>manual inspection of where a solve destabilizes,</li>
+<li>teaching demonstrations of the multiscale hierarchy,</li>
+<li>and regression checks for future algorithm changes.</li>
+</ul>
+<p>The most useful components are:</p>
+<ul>
+<li><code>final</code>: the final coordinate matrix,</li>
+<li><code>frames</code>: the stored coordinate frames,</li>
+<li><code>meta</code>: frame provenance,</li>
+<li><code>diagnostics</code>: per-frame metrics,</li>
+<li><code>lgkk.polish</code>: optional post-layout LGKK result when
+enabled as an advanced experimental refinement step.</li>
+</ul>
+</div>
+<div id="practical-guidance" class="section level2">
+<h2>Practical guidance</h2>
+<ul>
+<li>Start with <code>trace = &quot;level&quot;</code> and
+<code>diagnostics = &quot;light&quot;</code>.</li>
+<li>Use <code>trace = &quot;round&quot;</code> only when you need finer-grained
+diagnostics.</li>
+<li>Supply <code>target.coords</code> when a meaningful geometric target
+exists.</li>
+<li>Prefer weighted traces for weighted graph families; they are much
+more interpretable than tracing the combinatorial solver on a graph with
+nontrivial edge lengths.</li>
+</ul>
+</div>
+<div id="where-to-go-next" class="section level2">
+<h2>Where to go next</h2>
+<p>For an API map, see <a href="function-guide.html">Finding your way
+around grip</a>. For reproducible bundles and reference scoring, see <a href="synthetic-graph-families.html">Graph examples</a>. These guides
+and the interactive-explorer walkthrough are installed vignettes.</p>
+<ul>
+<li><code>Getting Started with grip</code> gives the short overview of
+the main APIs.</li>
+<li><code>Weighted Graph Layouts with grip</code> focuses on weighted
+solving and scoring.</li>
+<li><code>Choosing Layouts for Real Data</code> shows how trace fits
+into a real-data selection workflow.</li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

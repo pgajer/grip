@@ -1,0 +1,196 @@
+test_that("GMDS app bundle builds canonical trace bundles for GRIP, GMDS, GKK, and LGKK", {
+  compute_bundle <- getFromNamespace("gripui.gmds.compute.bundle", "grip")
+  merge_values <- getFromNamespace(".gripui.family.merge.values", "grip")
+
+  catalog <- gripui.graph.family.catalog()
+  desc <- catalog$mesh
+  values <- merge_values(desc, preset.id = "default")
+  values$h <- 4L
+  values$w <- 4L
+  values$surface <- "paraboloid"
+  values$amplitude <- 0.25
+
+  cases <- list(
+    grip = list(fit_class = "grip_misf_grip_fit", top_label = "Top-level GRIP solve"),
+    gmds = list(fit_class = "grip_misf_gmds_fit", top_label = "Top-level GMDS solve"),
+    gkk = list(fit_class = "grip_misf_gkk_fit", top_label = "Top-level GKK solve"),
+    lgkk = list(fit_class = "grip_misf_gkk_fit", top_label = "Top-level LGKK solve")
+  )
+
+  level_stage_payload <- getFromNamespace("gripui.gmds.level.stage.payload", "grip")
+  export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
+  export_stage_choices <- getFromNamespace("gripui.gmds.export.stage.choices", "grip")
+  export_preset_choices <- getFromNamespace("gripui.gmds.export.preset.choices", "grip")
+  figure_preset_choices <- getFromNamespace("gripui.gmds.figure.preset.choices", "grip")
+  paper_context <- getFromNamespace("gripui.gmds.paper.context", "grip")
+  paper_note <- getFromNamespace("gripui.gmds.paper.inline.note", "grip")
+  write_static_figure <- getFromNamespace("gripui.gmds.write.static.figure", "grip")
+  write_export_bundle <- getFromNamespace("gripui.gmds.write.export.bundle", "grip")
+  paper_sync_table <- getFromNamespace("gripui.gmds.paper.sync.table", "grip")
+
+  for (method in names(cases)) {
+    bundle <- compute_bundle(
+      desc = desc,
+      values = values,
+      method = method,
+      dim = 3L,
+      num.init = 6L,
+      prepare.seed = 1101L,
+      optimizer.seed = 2101L,
+      top.level.max.iter = 1L,
+      insertion.max.iter = 4L,
+      refinement.max.iter = 1L,
+      final.polish.max.iter = 1L,
+      n.threads = 0L
+    )
+
+    expect_true(is.list(bundle))
+    expect_equal(bundle$payload$family_id, "mesh")
+    expect_equal(bundle$method$id, method)
+    expect_s3_class(bundle$fit, cases[[method]]$fit_class)
+    expect_true(nrow(bundle$stage_trace) >= 3L)
+    expect_true(length(bundle$stage_data) >= 3L)
+    expect_true(bundle$prepared$top_level_level >= 0L)
+    expect_true(all(c("seed", "top_level", "final_polish") %in% bundle$stage_trace$stage))
+    expect_true(is.list(bundle$stage_payloads))
+    expect_true(all(c("seed", "initial_placement", "top_level") %in% names(bundle$stage_payloads)))
+    expect_true(length(bundle$stage_payloads$seed$active_vertices) >= 3L)
+    expect_equal(bundle$stage_payloads$initial_placement$level, bundle$prepared$top_level_level)
+    expect_equal(bundle$stage_payloads$top_level$level, bundle$prepared$top_level_level)
+    expect_equal(bundle$stage_payloads$top_level$label, cases[[method]]$top_label)
+
+    expansion_levels <- getFromNamespace("gripui.gmds.expansion.levels", "grip")(bundle)
+    expect_true(length(expansion_levels) >= 1L)
+
+    insertion_payload <- level_stage_payload(bundle, "insertion", expansion_levels[[1L]])
+    refinement_payload <- level_stage_payload(bundle, "refinement", expansion_levels[[1L]])
+    expect_false(is.null(insertion_payload))
+    expect_false(is.null(refinement_payload))
+    expect_equal(insertion_payload$level, expansion_levels[[1L]])
+    expect_equal(refinement_payload$level, expansion_levels[[1L]])
+
+    export.choices <- export_stage_choices(bundle)
+    expect_true(all(c("reference", "misf", "top_level", "final_polish") %in% unname(export.choices)))
+    expect_true(all(c("paper_figure_bundle", "audit_bundle", "tables_only") %in% unname(export_preset_choices())))
+    expect_true(all(c("paper_panel", "paper_wide") %in% unname(figure_preset_choices())))
+    export.payload <- export_stage_payload(
+      bundle = bundle,
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]]
+    )
+    expect_true(is.list(export.payload))
+    expect_equal(export.payload$label, cases[[method]]$top_label)
+    expect_true(is.matrix(export.payload$display_coords))
+
+    context <- paper_context(
+      bundle = bundle,
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]]
+    )
+    expect_true(is.data.frame(context))
+    expect_equal(context$manuscript_section[[1L]], "Coarsest seed, expansion, and refinement")
+    expect_match(
+      paper_note(bundle, "top_level", focus.level = bundle$prepared$top_level_level),
+      "Paper link:"
+    )
+
+    png.path <- tempfile(fileext = ".png")
+    pdf.path <- tempfile(fileext = ".pdf")
+    write_static_figure(
+      export.payload = export.payload,
+      png.path = png.path,
+      pdf.path = pdf.path,
+      figure.preset = "paper_panel"
+    )
+    expect_true(file.exists(png.path))
+    expect_true(file.exists(pdf.path))
+    expect_gt(file.info(png.path)$size, 0)
+    expect_gt(file.info(pdf.path)$size, 0)
+    unlink(c(png.path, pdf.path), force = TRUE)
+
+    dir <- tempfile("gmds-export-test-")
+    files <- write_export_bundle(
+      bundle = bundle,
+      export.payload = export.payload,
+      stage.id = "top_level",
+      focus.level = bundle$prepared$top_level_level,
+      expansion.level = expansion_levels[[1L]],
+      preset = "paper_figure_bundle",
+      figure.preset = "paper_panel",
+      dir = dir
+    )
+    expect_true(all(file.exists(files)))
+    expect_true(any(grepl("\\.png$", files)))
+    expect_true(any(grepl("\\.pdf$", files)))
+    unlink(dir, recursive = TRUE, force = TRUE)
+  }
+
+  paper.map <- paper_sync_table()
+  expect_true(is.data.frame(paper.map))
+  expect_true(nrow(paper.map) >= 5L)
+})
+
+test_that("GMDS stage explorer app builds", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+  skip_if_not_installed("rgl")
+
+  old <- getOption("rgl.useNULL")
+  options(rgl.useNULL = TRUE)
+  on.exit(options(rgl.useNULL = old), add = TRUE)
+
+  app <- gripui.gmds.app(catalog = gripui.graph.family.catalog()[c("mesh", "sampled_rectangle")])
+  expect_s3_class(app, "shiny.appobj")
+})
+
+test_that("GMDS app normalizes stale MIS filtration levels safely", {
+  compute_bundle <- getFromNamespace("gripui.gmds.compute.bundle", "grip")
+  merge_values <- getFromNamespace(".gripui.family.merge.values", "grip")
+  normalize_level <- getFromNamespace("gripui.gmds.normalize.level", "grip")
+  selected_level_table <- getFromNamespace("gripui.gmds.selected.level.table", "grip")
+  export_stage_payload <- getFromNamespace("gripui.gmds.export.stage.payload", "grip")
+
+  catalog <- gripui.graph.family.catalog()
+  desc <- catalog$mesh
+  values <- merge_values(desc, preset.id = "default")
+  values$h <- 4L
+  values$w <- 4L
+  values$surface <- "paraboloid"
+  values$amplitude <- 0.25
+
+  bundle <- compute_bundle(
+    desc = desc,
+    values = values,
+    method = "gmds",
+    dim = 3L,
+    num.init = 6L,
+    prepare.seed = 1101L,
+    optimizer.seed = 2101L,
+    top.level.max.iter = 1L,
+    insertion.max.iter = 4L,
+    refinement.max.iter = 1L,
+    final.polish.max.iter = 1L,
+    n.threads = 0L
+  )
+
+  expect_equal(
+    normalize_level(bundle$prepared, level = "99", default = bundle$prepared$top_level_level),
+    bundle$prepared$top_level_level
+  )
+  expect_equal(
+    normalize_level(bundle$prepared, level = "-7", default = bundle$prepared$top_level_level),
+    bundle$prepared$top_level_level
+  )
+
+  expect_s3_class(selected_level_table(bundle, 99), "data.frame")
+
+  misf.payload <- export_stage_payload(
+    bundle = bundle,
+    stage.id = "misf",
+    focus.level = 99
+  )
+  expect_true(is.list(misf.payload))
+  expect_equal(misf.payload$level, bundle$prepared$top_level_level)
+})
