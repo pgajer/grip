@@ -38,7 +38,8 @@ last <- rows[rows$budget == 100L & rows$status == 'ok', ]
 paired <- merge(last[last$backend == 'sgd', c('case','seed','error')],
                 last[last$backend == 'smacof', c('case','seed','error')],
                 by = c('case','seed'), suffixes = c('.sgd','.smacof'))
-have.ivue <- isTRUE(getOption('grip.vignette.interactive', FALSE)) &&
+have.ivue <- isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
   requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
   all(c('plot3D.groups','color.scale.groups','layer3D.callback','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
   'limits' %in% names(formals(ivue::plot3D.plain))

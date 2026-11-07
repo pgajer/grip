@@ -33,7 +33,8 @@ source(system.file('scripts','sparse-mds-comparison.R',package='grip'),local=TRU
 bundle <- readRDS(system.file('extdata','sparse-mds-comparison','benchmark.rds',package='grip'))
 rows <- sparse_comparison_rows(bundle)
 summary <- sparse_comparison_summary(bundle)
-have.ivue <- isTRUE(getOption('grip.vignette.interactive',FALSE)) &&
+have.ivue <- isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
   requireNamespace('ivue',quietly=TRUE) && requireNamespace('rgl',quietly=TRUE) &&
   'layer3D.callback' %in% getNamespaceExports('ivue') &&
   'limits' %in% names(formals(ivue::plot3D.plain))

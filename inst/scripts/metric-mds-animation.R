@@ -89,7 +89,8 @@ surface.trace <- function(truth, every = 32L, epoch.cap = 10L,
 }
 
 surface.animation <- function(cases) {
-  if (!isTRUE(getOption("grip.vignette.interactive", FALSE)) ||
+  if (!isTRUE(getOption("grip.vignette.interactive",
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) ||
       !requireNamespace("ivue", quietly = TRUE) ||
       !requireNamespace("rgl", quietly = TRUE)) {
     old <- graphics::par(mfrow = c(length(cases), 4L), mar = c(3, 3, 3, 1),
