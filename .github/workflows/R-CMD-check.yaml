@@ -75,10 +75,36 @@ jobs:
           pak-version: stable
           extra-packages: |
             any::rcmdcheck
-            github::pgajer/dgraphs@6e389f4d19b972f233b93fd75530dc50498894f2
           dependencies: "c('Depends', 'Imports', 'LinkingTo', 'Suggests', 'Enhances')"
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Verify CRAN-only dependencies
+        shell: Rscript {0}
+        run: |
+          repo <- "https://cran.r-project.org"
+          options(repos=c(CRAN=repo))
+          ap <- available.packages(repos=repo, type="source")
+          stopifnot(ap["dgraphs","Version"]=="0.4.0")
+          dir.create("dependency-sources", showWarnings=FALSE)
+          tarball <- "dependency-sources/dgraphs_0.4.0.tar.gz"
+          download.file(paste0(repo,"/src/contrib/dgraphs_0.4.0.tar.gz"), tarball, mode="wb")
+          stopifnot(unname(tools::md5sum(tarball))==ap["dgraphs","MD5sum"])
+          install.packages(tarball, repos=NULL, type="source", lib=.libPaths()[1], Ncpus=1)
+          d <- read.dcf("DESCRIPTION")
+          parse_names <- function(x) if(is.na(x)||!nzchar(x)) character() else trimws(sub("\\s*\\(.*", "", strsplit(x, ",")[[1]]))
+          fields <- intersect(c("Depends","Imports","LinkingTo","Suggests","Enhances"),colnames(d))
+          direct <- setdiff(unique(unlist(lapply(d[1,fields],parse_names))),"R")
+          needed <- unique(c(direct,unlist(tools::package_dependencies(direct,db=ap,which=c("Depends","Imports","LinkingTo"),recursive=TRUE))))
+          ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
+          ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          stopifnot(all(needed %in% rownames(ip)))
+          checked <- ip[needed,,drop=FALSE]
+          nonbase <- checked[is.na(checked[,"Priority"]),,drop=FALSE]
+          stopifnot(all(!is.na(nonbase[,"Repository"]) & nonbase[,"Repository"]=="CRAN"))
+          stopifnot(all(is.na(nonbase[,"RemoteType"]) | nonbase[,"RemoteType"]=="standard"))
+          stopifnot(checked["dgraphs","Version"]=="0.4.0")
+          cat("CRAN dependency audit; fresh dgraphs source MD5:",unname(tools::md5sum(tarball)),"\n")
+          write.table(checked[,c("Package","Version","LibPath","Repository","RemoteType"),drop=FALSE],stdout(),sep="\t",row.names=FALSE,quote=FALSE)
       - uses: r-hub/actions/run-check@v1
         with:
           token: ${{ secrets.RHUB_TOKEN }}
@@ -135,10 +161,36 @@ jobs:
           pak-version: stable
           extra-packages: |
             any::rcmdcheck
-            github::pgajer/dgraphs@6e389f4d19b972f233b93fd75530dc50498894f2
           dependencies: "c('Depends', 'Imports', 'LinkingTo', 'Suggests', 'Enhances')"
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+      - name: Verify CRAN-only dependencies
+        shell: Rscript {0}
+        run: |
+          repo <- "https://cran.r-project.org"
+          options(repos=c(CRAN=repo))
+          ap <- available.packages(repos=repo, type="source")
+          stopifnot(ap["dgraphs","Version"]=="0.4.0")
+          dir.create("dependency-sources", showWarnings=FALSE)
+          tarball <- "dependency-sources/dgraphs_0.4.0.tar.gz"
+          download.file(paste0(repo,"/src/contrib/dgraphs_0.4.0.tar.gz"), tarball, mode="wb")
+          stopifnot(unname(tools::md5sum(tarball))==ap["dgraphs","MD5sum"])
+          install.packages(tarball, repos=NULL, type="source", lib=.libPaths()[1], Ncpus=1)
+          d <- read.dcf("DESCRIPTION")
+          parse_names <- function(x) if(is.na(x)||!nzchar(x)) character() else trimws(sub("\\s*\\(.*", "", strsplit(x, ",")[[1]]))
+          fields <- intersect(c("Depends","Imports","LinkingTo","Suggests","Enhances"),colnames(d))
+          direct <- setdiff(unique(unlist(lapply(d[1,fields],parse_names))),"R")
+          needed <- unique(c(direct,unlist(tools::package_dependencies(direct,db=ap,which=c("Depends","Imports","LinkingTo"),recursive=TRUE))))
+          ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
+          ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          stopifnot(all(needed %in% rownames(ip)))
+          checked <- ip[needed,,drop=FALSE]
+          nonbase <- checked[is.na(checked[,"Priority"]),,drop=FALSE]
+          stopifnot(all(!is.na(nonbase[,"Repository"]) & nonbase[,"Repository"]=="CRAN"))
+          stopifnot(all(is.na(nonbase[,"RemoteType"]) | nonbase[,"RemoteType"]=="standard"))
+          stopifnot(checked["dgraphs","Version"]=="0.4.0")
+          cat("CRAN dependency audit; fresh dgraphs source MD5:",unname(tools::md5sum(tarball)),"\n")
+          write.table(checked[,c("Package","Version","LibPath","Repository","RemoteType"),drop=FALSE],stdout(),sep="\t",row.names=FALSE,quote=FALSE)
       - uses: r-hub/actions/run-check@v1
         with:
           job-config: ${{ matrix.config.job-config }}
