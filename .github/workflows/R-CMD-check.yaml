@@ -97,6 +97,13 @@ jobs:
           needed <- unique(c(direct,unlist(tools::package_dependencies(direct,db=ap,which=c("Depends","Imports","LinkingTo"),recursive=TRUE))))
           ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
           ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          missing <- setdiff(needed,rownames(ip))
+          if(length(missing)) {
+            cat("Installing missing CRAN dependencies:",paste(missing,collapse=", "),"\n")
+            install.packages(missing,repos=repo,type="source",lib=.libPaths()[1],Ncpus=1)
+            ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
+            ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          }
           stopifnot(all(needed %in% rownames(ip)))
           checked <- ip[needed,,drop=FALSE]
           nonbase <- checked[is.na(checked[,"Priority"]),,drop=FALSE]
@@ -183,6 +190,13 @@ jobs:
           needed <- unique(c(direct,unlist(tools::package_dependencies(direct,db=ap,which=c("Depends","Imports","LinkingTo"),recursive=TRUE))))
           ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
           ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          missing <- setdiff(needed,rownames(ip))
+          if(length(missing)) {
+            cat("Installing missing CRAN dependencies:",paste(missing,collapse=", "),"\n")
+            install.packages(missing,repos=repo,type="source",lib=.libPaths()[1],Ncpus=1)
+            ip <- installed.packages(fields=c("Repository","RemoteType","RemoteRepos"))
+            ip <- ip[!duplicated(ip[,"Package"]),,drop=FALSE]
+          }
           stopifnot(all(needed %in% rownames(ip)))
           checked <- ip[needed,,drop=FALSE]
           nonbase <- checked[is.na(checked[,"Priority"]),,drop=FALSE]
