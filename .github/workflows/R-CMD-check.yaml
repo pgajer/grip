@@ -85,8 +85,8 @@ jobs:
           options(repos=c(CRAN=repo))
           ap <- available.packages(repos=repo, type="source")
           stopifnot(ap["dgraphs","Version"]=="0.4.0")
-          dir.create("dependency-sources", showWarnings=FALSE)
-          tarball <- "dependency-sources/dgraphs_0.4.0.tar.gz"
+          stopifnot(!dir.exists("dependency-sources"))
+          tarball <- file.path(tempdir(),"dgraphs_0.4.0.tar.gz")
           download.file(paste0(repo,"/src/contrib/dgraphs_0.4.0.tar.gz"), tarball, mode="wb")
           stopifnot(unname(tools::md5sum(tarball))==ap["dgraphs","MD5sum"])
           install.packages(tarball, repos=NULL, type="source", lib=.libPaths()[1], Ncpus=1)
@@ -178,8 +178,8 @@ jobs:
           options(repos=c(CRAN=repo))
           ap <- available.packages(repos=repo, type="source")
           stopifnot(ap["dgraphs","Version"]=="0.4.0")
-          dir.create("dependency-sources", showWarnings=FALSE)
-          tarball <- "dependency-sources/dgraphs_0.4.0.tar.gz"
+          stopifnot(!dir.exists("dependency-sources"))
+          tarball <- file.path(tempdir(),"dgraphs_0.4.0.tar.gz")
           download.file(paste0(repo,"/src/contrib/dgraphs_0.4.0.tar.gz"), tarball, mode="wb")
           stopifnot(unname(tools::md5sum(tarball))==ap["dgraphs","MD5sum"])
           install.packages(tarball, repos=NULL, type="source", lib=.libPaths()[1], Ncpus=1)
