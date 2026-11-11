@@ -40,7 +40,7 @@
 #' @references Davis, T. A. and Hu, Y. (2011). The University of Florida Sparse
 #'   Matrix Collection. \doi{10.1145/2049662.2049663}.
 #'
-#'   Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018). Graph Drawing by
+#'   Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2019). Graph Drawing by
 #'   Stochastic Gradient Descent. \doi{10.1109/TVCG.2018.2859997}.
 #' @examples
 #' catalogue <- suitesparse.graphs()

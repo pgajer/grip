@@ -20,9 +20,14 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 This graph summarizes similarities among HMP+U01 16S amplicon samples.
 The supplied object records a representation based on taxa at at least 1%
@@ -51,7 +56,7 @@ HMP graph in the external-engine comparison.
 
 ## Compare three layouts
 
-The selector opens with **SGD metric MDS**, followed by **weighted GRIP**
+The panels show **SGD metric MDS**, **weighted GRIP**
 (`metric="edge_length"`) and **hop-based GRIP**. The SGD and weighted-GRIP fits
 use the same coarsened graph, positive edge lengths, three dimensions and seed
 1. SGD uses full weighted graph distances, uniform pair weights, a random
@@ -60,7 +65,7 @@ uses its edge-length hierarchy and default optimization settings. This is a
 one-seed illustration, not a controlled method-ranking experiment.
 
 Hop-based GRIP uses supplied edge lengths for adjacent attractions and hop
-distances for hierarchy searches. The selector shows its default preset with
+distances for hierarchy searches. The figure shows its default preset with
 seed 1. The preset comparison below also includes tree and torus settings.
 
 ```{r saved, include=FALSE}
@@ -77,7 +82,7 @@ documentation.group.layouts(list(
   `Weighted GRIP`=fresh$weighted_grip$value,
   `Hop-based GRIP`=results$layouts$preset$default),
   edges,g$vertex_data$cst,
-  description='HMP/U01: select a layout; CST colors are identical across layouts. Drag to rotate; scroll to zoom.')
+  description='HMP/U01: CST colors are identical across layouts.')
 ```
 
 Rotation helps distinguish actual branches from overlaps in projection.
@@ -124,7 +129,7 @@ knitr::kable(results$local_search_summary[,c('candidate','final.rounds',
 ## Reproduce the weighted fits
 
 Start with SGD metric MDS for a new weighted graph-distance fit. The
-edge-length GRIP alternative used in the selector is shown below. This
+edge-length GRIP alternative used in the figure is shown below. This
 recipe uses edge-length distances; the preset tables above use hop-based GRIP.
 
 ```{r new-weighted, eval=FALSE}

@@ -20,9 +20,14 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 Explore a structural mesh, a branching power network, a recursive carpet,
 and a porous volume. Every figure compares **metric-MDS** with **metric-MDS +
@@ -52,11 +57,11 @@ squared separations. No resizing is used to make the layouts agree.
 Generating coordinates show where a geometric graph came from, but need not
 realize its graph shortest-path distances as straight-line separations.
 
-Each graph has an interactive 3D view made with
+Each graph also supports an interactive 3D view made with
 [ivue](https://github.com/pgajer/ivue). Use the visible layout selector to choose
 **metric-MDS**, **metric-MDS + edge-KK**, or **both**. Gray generating coordinates
 remain visible where available. Drag to rotate and scroll to zoom.
-Without a compatible ivue installation, a static view shows the same
+By default, a static view shows the same
 metric-MDS coordinates and alignment as the initial interactive view.
 
 Each table reports two errors. **Graph-distance error** measures the fit to
@@ -72,7 +77,8 @@ gallery.ids <- c('dwt_1005','1138_bus','carpet','porous')
 ```
 
 ```{r gallery-pages, results='asis', echo=FALSE}
-cat(knitr::knit_child(system.file('scripts','graph-gallery.Rmd',package='grip'),
+gallery.template <- readLines(system.file('scripts','graph-gallery.Rmd',package='grip'))
+cat(knitr::knit_child(text=gallery.template,
   envir=environment(),quiet=TRUE),sep='\n')
 ```
 
@@ -189,7 +195,7 @@ The six graph datasets are derived from the
 author credits, character labels, and descriptions of the conversion are
 included in `extdata/zheng-graphs/`. See `help('suitesparse.graph')` for details.
 
-- Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2018).
+- Zheng, J. X., Pawar, S. and Goodman, D. F. M. (2019).
   *Graph Drawing by Stochastic Gradient Descent*.
   [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
 - Davis, T. A. and Hu, Y. (2011). *The University of Florida Sparse Matrix Collection*.

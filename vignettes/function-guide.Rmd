@@ -28,7 +28,7 @@ td code { white-space: normal; overflow-wrap: anywhere; }
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+knitr::opts_chunk$set(fig.retina=1, dpi=72, collapse = TRUE, comment = "#>",
                      fig.width = 6, fig.height = 4.5)
 # Website-only articles are not installed with the package.
 article_url <- function(name) {
@@ -46,17 +46,35 @@ help_url <- function(topic) {
 }
 ```
 
-What do you want to learn from your graph: its connectivity, its edge-length
-geometry, or how a drawing compares with a known reference? Start with that
-question. `grip()` computes a drawing; scoring, tracing, and graph-family
-helpers support different decisions around that drawing.
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+grip embeds a graph in Euclidean space: it computes coordinates for the
+vertices so that distances between the coordinates reflect distances in the
+graph. It also helps you assess how well a set of coordinates does this.
+
+The recommended starting point is `metric.mds()`, which fits the coordinates
+to shortest-path distances by metric multidimensional scaling (MDS) using
+stochastic gradient descent (SGD), following
+[Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997).
+The distances can be hop counts or sums of positive edge lengths. For graphs
+too large for a full matrix of pairwise distances, the same function offers a
+sparse mode based on the sparse stress model of
+[Ortmann, Klimenta and Brandes (2017)](https://doi.org/10.7155/jgaa.00440).
+The multiscale GRIP layouts computed by `grip()` are an alternative. The
+scoring, tracing, and graph-construction functions support the decisions you
+make about an embedding, whichever method produced it.
 
 ## Choose a starting point
 
 | Your question | Entry point | Follow-up |
 |---|---|---|
-| What does the connectivity look like? | `grip(metric = "hop")` | [Getting Started](grip-examples.html) |
-| What if edges have meaningful lengths? | `grip(metric = "edge_length")` | [Weighted Graph Layouts](weighted-grip-intro.html) |
+| How do I embed a graph by its connectivity or its edge lengths? | `metric.mds(backend = "sgd")`; supply `edge.weights` when edges have lengths | [Getting Started](grip-examples.html) and [Metric MDS](metric-mds-backends.html) |
+| What if the graph is too large for all pairwise distances? | `metric.mds(backend = "sgd", approximation = "sparse")` | [Sparse SGD](sparse-metric-mds.html) |
+| What does a multiscale GRIP layout of the connectivity look like? | `grip(metric = "hop")` | [Classic GRIP gallery](gallery_grip.html) |
+| What does a GRIP layout look like when edges have meaningful lengths? | `grip(metric = "edge_length")` | [Weighted Graph Layouts](weighted-grip-intro.html) |
 | Which settings and seeds give useful drawings? | `compare.layouts()`, then `params.from.summary()` | [Choosing Layouts for Real Data](grip-real-data.html) |
 | Does my drawing preserve graph distances? | `score.layout()` or the more specialized `score.gmds()` | [Choose a score](#choose-a-score) |
 | Does it recover a reference configuration? | `score.coordinates()`; `score.surface()` for triangular surfaces | [Graph examples](synthetic-graph-families.html) |
@@ -73,7 +91,9 @@ for a first drawing, then use this categorized overview to explore the package.
 
 ## A first drawing and diagnostic
 
-Here 20 vertices form a rectangular grid. Sampled stress measures how well
+This small example uses the alternative `grip()` layout; the section
+[Classical scaling and metric stress MDS](#classical-scaling-and-metric-stress-mds)
+below describes `metric.mds()`. Here 20 vertices form a rectangular grid. Sampled stress measures how well
 Euclidean separation in the drawing matches shortest-path hop counts after
 fitting a common scale. Zero means perfect agreement on the evaluated pairs;
 it does not certify that every geometric feature or unsampled pair is correct.
@@ -85,7 +105,7 @@ coords <- grip(edges, n = 20, dim = 2, preset = "mesh", seed = 11)
 stopifnot(identical(dim(coords), c(20L, 2L)), all(is.finite(coords)))
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 documentation.view(list(`GRIP mesh (2D fit)`=cbind(coords,z=0)),edges,
-  aligned=TRUE,description='A planar mesh fit in an interactive 3D viewer.')
+  aligned=TRUE,description='A planar mesh fit shown at z = 0.')
 quality <- score.layout(coords, edges = edges, n = 20,
                         sample.size.stress = 200, stress.seed = 11,
                         edge.crossings = "never")
@@ -104,8 +124,8 @@ vertex indices**, one edge per row. Supply `n` explicitly when the highest
 numbered vertex is isolated, when the edge list is empty, or when a generator
 has a known vertex count. Inferring `n = max(edges)` cannot recover isolated
 vertices beyond the largest endpoint. Avoid duplicate edges and self-loops;
-the edge-list layout converter ignores self-loops, and duplicate treatment is
-not a common contract across all helpers.
+the edge-list layout converter ignores self-loops, and duplicate edges are
+not treated in the same way by all functions.
 
 Alternatively use `adj.list`, a list of length `n`: element `i` lists the
 neighbors of vertex `i`. Include both directions of each undirected edge,
@@ -216,8 +236,9 @@ vapply(matrices, function(z) score.layout(z, edges = small.edges, n = 6,
 
 Direct `$final` and `$coords` extraction remains supported. In MDS results,
 `method`, `coords`, `diagnostics`, and `metadata` remain available; stopping
-metadata depends on the method. Prepared caches and coordinate-dependent state
-are internal/version-dependent and should be rebuilt when their contract changes.
+metadata depends on the method. Prepared caches and state that depends on
+the coordinates are internal and can change between versions; rebuild them
+after updating the package.
 The accessor rejects unknown lists and ambiguous results instead of guessing a field.
 
 ## Classical scaling and metric stress MDS
@@ -346,21 +367,23 @@ fit `metric.mds(backend = "smacof", ...)` first and supply its coordinates.
 MISF preparation uses `top.level.init = "geometric"`, `"cmdscale"`, or
 `"random"`; `misf.geodesic.kk(top.level.init = NULL)` inherits the prepared
 choice or defaults to `"geometric"`. Its `"cmdscale"` spelling still means
-classical scaling. Initializer names are not a uniform package-wide vocabulary.
+classical scaling. The names of the initializers differ from one function
+to another.
 
 ## Function catalog
 
 This guide covers **110 explicit public exports and three registered S3
 methods**. `plot.layout()` is both exported and registered, so there are 112
-unique exported or registered function names, not 106. The catalog gives each
-export exactly one row. Methods selected by R's generic functions are explained
-through their objects below. Internal helpers are not public entry points.
+unique exported or registered function names, not 113. The catalog gives each
+exported function exactly one row. The three methods are described above, in
+[Dimensions, result objects, and methods](#dimensions-result-objects-and-methods).
+Internal helpers are not listed.
 
-Each row below is one explicit export. **Help** opens the detailed help page;
-in an offline R session use `help("function.name", package = "grip")`.
-Shared help topics may document several exports, but these rows keep their
-purposes distinct. Maintainers can run `make audit-api-guide` to check coverage,
-method accounting, and help targets against the current namespace.
+In each row, **Help** opens the help page of the function; in R, use
+`help("function.name", package = "grip")`. Some help pages document several
+functions, but each function has its own row and description here. In the
+source repository, `make audit-api-guide` checks that the catalog and these
+counts agree with the package namespace.
 
 ### Compute layouts
 
@@ -553,7 +576,7 @@ The groups here follow graph-layout tasks specific to grip.
 
 ## SGD references
 
-- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2019).
   *Graph Drawing by Stochastic Gradient Descent*.
   [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
 - Hangan, D., Kobourov, S. and Miller, J. (2026).

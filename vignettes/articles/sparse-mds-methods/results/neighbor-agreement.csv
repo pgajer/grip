@@ -1,0 +1,13 @@
+"case","q","search_dimension","retained_variance","mean_agreement","minimum_agreement"
+"quadform_d2_index0",5,3,1,1,1
+"quadform_d2_index0",10,3,1,1,1
+"quadform_d2_index0",20,3,1,1,1
+"quadform_d2_index1",5,3,1,1,1
+"quadform_d2_index1",10,3,1,1,1
+"quadform_d2_index1",20,3,1,1,1
+"quadform_d3_index0",5,4,1,1,1
+"quadform_d3_index0",10,4,1,1,1
+"quadform_d3_index0",20,4,1,1,1
+"quadform_d3_index1",5,4,1,1,1
+"quadform_d3_index1",10,4,1,1,1
+"quadform_d3_index1",20,4,1,1,1

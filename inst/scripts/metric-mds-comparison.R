@@ -142,7 +142,11 @@ comparison_representative <- function(bundle, id, seed = 1L, budget = 100L, pair
       f$row$seed == seed && f$row$budget == budget && f$row$backend == backend &&
       (if (is.null(f$row$pair_weights)) 'uniform' else f$row$pair_weights) == pair_weights, logical(1)))
     stopifnot(length(matches) == 1L)
-    bundle$fits[[matches]]
+    fit <- bundle$fits[[matches]]
+    if (!is.null(bundle$storage) && fit$row$status == 'ok' && is.null(fit$coords))
+      stop('This documentation bundle retains seed-1, budget-100 layouts. ',
+           'For other settings load the full benchmark bundle: ', bundle$storage$full.bundle)
+    fit
   })
   stats::setNames(result, c('sgd', 'smacof'))
 }

@@ -27,18 +27,28 @@ gallery](https://pgajer.github.io/grip/articles/gallery.html)
 
 ## Installation
 
-Install from GitHub to use the workflows below. Building from source
-requires R and a C++17 toolchain (Rtools on Windows or command-line
-developer tools on macOS).
+The workflows below work with grip 0.3.0, available from CRAN.
+Observation-based Euclidean and geodesic sparse preparation also
+requires dgraphs 0.4.0 or later. Building from source requires R and a
+C++17 toolchain (Rtools on Windows or command-line developer tools on
+macOS).
+
+``` r
+install.packages("grip")
+```
+
+The website includes documentation updates for the next release. To
+install the development version from GitHub:
 
 ``` r
 install.packages("remotes")
 remotes::install_github("pgajer/grip", build_vignettes = FALSE)
 ```
 
-Use the online guides, or install Pandoc, `knitr`, and `rmarkdown` and
-set `build_vignettes = TRUE` for offline guides. List available
-installed guides with `vignette(package = "grip")`.
+Use the online guides, or list installed guides with
+`vignette(package = "grip")`. When installing from GitHub, install
+Pandoc, `knitr`, and `rmarkdown` and set `build_vignettes = TRUE` for
+offline guides.
 
 The native SGD backend needs no additional runtime package. Optional
 viewers and numerical backends are needed only for workflows that use
@@ -62,8 +72,8 @@ fit <- metric.mds(
   edges = g$edges, n = g$n, dim = 3,
   backend = "sgd", seed = 11
 )
-#> Warning: Selected metric.mds() start terminated with iteration_limit; inspect
-#> metadata$starts
+#> Warning: Selected metric.mds() start terminated with iteration_limit; budget
+#> exhaustion does not certify convergence; inspect metadata$starts
 coords <- fit$coords
 edges <- g$edges
 plot.layout(fit$coords, edges = g$edges, projection = "ortho")
@@ -108,8 +118,8 @@ weighted.fit <- metric.mds(
   edges = weighted.edges, n = 4, edge.weights = c(1, 2, 1.5),
   dim = 2, backend = "sgd", seed = 12, diagnostics = FALSE
 )
-#> Warning: Selected metric.mds() start terminated with iteration_limit; inspect
-#> metadata$starts
+#> Warning: Selected metric.mds() start terminated with iteration_limit; budget
+#> exhaustion does not certify convergence; inspect metadata$starts
 ```
 
 ### Sparse MDS for larger graphs
@@ -255,7 +265,7 @@ articles and galleries.
 Use `citation("grip")` for the package citation, and cite the methods
 used in your analysis. Relevant algorithm references include:
 
-- **SGD stress minimization:** Zheng, Pawar and Goodman (2018), [Graph
+- **SGD stress minimization:** Zheng, Pawar and Goodman (2019), [Graph
   Drawing by Stochastic Gradient
   Descent](https://doi.org/10.1109/TVCG.2018.2859997).
 - **Sparse stress model:** Ortmann, Klimenta and Brandes (2017), [A

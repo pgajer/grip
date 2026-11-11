@@ -20,7 +20,7 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=10,fig.height=6,out.width='100%')
 source(system.file('scripts','high-dimensional-mds.R',package='grip'),local=TRUE)
 bundle <- readRDS(system.file('extdata','high-dimensional-mds','examples.rds',package='grip'))
 ```
@@ -33,11 +33,11 @@ strategy; it does not guarantee a better drawing or a faster calculation.
 
 The small recipe below runs with grip's public interfaces. The interactive
 examples and repeated-start tables use a compact subset of a saved experiment,
-so rebuilding this vignette does not repeat the larger fits. Every figure is
-an interactive **ivue** 3D view. Its **Layout** dropdown selects the method and
-intermediate dimension while retaining the camera. Drag to rotate and scroll
-to zoom. If ivue is unavailable, explanatory text replaces the viewer and the
-numerical tables remain; no static projection is substituted.
+so rebuilding this vignette does not repeat the larger fits. Installed figures
+use static projections at a common display scale. Render with
+`options(grip.vignette.interactive = TRUE)` and **ivue** and **rgl** installed
+for a 3D view whose **Layout** dropdown selects every method and intermediate
+dimension. Drag to rotate and scroll to zoom; the numerical tables are the same.
 
 This guide uses the development metric-MDS interface, introduced after grip
 0.2.0. For backend and weighting choices, see [Metric MDS](metric-mds-backends.html).

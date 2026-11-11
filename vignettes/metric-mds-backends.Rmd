@@ -20,13 +20,18 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
 
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
 `metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
 The default `backend='sgd'` moves pairs of vertices in shuffled order, following
-[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+[Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997),
 with a selectable learning-rate schedule. Legacy graph calls default to the
 hybrid schedule adapted from the implementation of
 [Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641);

@@ -6,32 +6,27 @@ from pathlib import Path
 from statistics import median
 from zoneinfo import ZoneInfo
 here = Path(__file__).resolve().parent
-root = here.parents[2]
-out = root / 'output/sparse-mds-methods'
-run = out / 'validation_2026-10-07_final'
-args = argparse.ArgumentParser()
-args.add_argument('--pdf', action='store_true')
-args = args.parse_args()
+out = here / 'results'
+run = out
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--pdf', action='store_true')
+parser.add_argument('--output-dir', type=Path, required=True,
+                    help='Directory for the rendered note and build records')
+parser.add_argument('--citation-evidence', type=Path,
+                    help='Optional citation-verification HTML for the citation gate')
+args = parser.parse_args()
+destination = args.output_dir.expanduser().resolve()
+if destination == here or here in destination.parents:
+    parser.error('--output-dir must be outside the article source directory')
+destination.mkdir(parents=True, exist_ok=True)
+provenance = json.loads((out/'provenance.json').read_text())
+for name, expected in provenance['files'].items():
+    if hashlib.sha256((out/name).read_bytes()).hexdigest() != expected:
+        raise ValueError(f'Frozen result checksum mismatch: {name}')
 rows = list(csv.DictReader((run/'fits.csv').open()))
 assert len(rows) == 288 and all(r['status']=='ok' for r in rows)
-documentation_revisions = []
-for item in csv.DictReader((run/'source_manifest.csv').open()):
-    current = Path(item['path'])
-    current_md5 = hashlib.md5(current.read_bytes()).hexdigest()
-    if current_md5 == item['md5']:
-        continue
-    # The schedule-help revision changed comments only. Require the exact
-    # benchmark-era source and independently compare parsed R expressions.
-    archived = out/'documentation_revision_2026-10-07/metric_mds.before_schedule_documentation.R'
-    assert current == root/'R/metric_mds.R' and archived.exists(), item['path']
-    assert hashlib.md5(archived.read_bytes()).hexdigest() == item['md5'], archived
-    expression = 'a<-commandArgs(TRUE); stopifnot(identical(parse(a[1],keep.source=FALSE),parse(a[2],keep.source=FALSE)))'
-    subprocess.run(['Rscript','--vanilla','-e',expression,str(current),str(archived)],check=True)
-    documentation_revisions.append({'path':str(current),'archived':str(archived),
-        'benchmark_md5':item['md5'],'current_md5':current_md5,
-        'verification':'identical parsed R expressions; documentation-only change'})
 stamp = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z')
-generated = subprocess.check_output(['Rscript','--vanilla','-e',f'cat(readRDS("{run}/validation.rds")$generated_at)'],text=True)
+generated = provenance['generated_at']
 def score(d,i,k,m):
     return median(float(r['rms_relative_percent']) for r in rows if r['case']==f'quadform_d{d}_index{i}' and int(r['output_dimension'])==k and r['method']==m)
 def fmt(x): return '$<0.001$' if x < .001 else (f'{x:.3f}' if x < .01 else f'{x:.2f}')
@@ -110,10 +105,10 @@ Changing $q$ from 5 to 10 to 20 gave pooled median paired excess errors of
 0.30 for graph targets. The graph reference changes with $q$; those latter
 numbers compare approximation error within each graph, not the biological or
 geometric merits of different graphs. Improvement is not asserted for every seed.
-The \href{../../../output/sparse-mds-methods/neighborhood-sensitivity.pdf}
+The \href{results/neighborhood-sensitivity.pdf}
 {neighborhood-sensitivity supplement (Figures 5--8)} shows all four quadratic
 forms, both output dimensions, and all three seeds at every $q$.
-The \href{../../../output/sparse-mds-methods/error-comparison.pdf}
+The \href{results/error-comparison.pdf}
 {primary comparison supplement (Figures 1--4)} shows seed-level errors at $q=10$.
 Gray points are individual seeds; red markers and segments show medians and
 observed ranges. These figures are descriptive. Three seeds and one sampled
@@ -129,7 +124,8 @@ and three separated clusters requiring bridges. They establish implementation
 properties, not the adequacy of 90\% retained variance for microbiome profiles.
 
 \clearpage\section{Implementation verification and limits}
-The complete \texttt{grip} test suite passed 6,665 checks, with no failures,
+At the October 7, 2026 benchmark revision, the complete
+\texttt{grip} test suite passed 6,665 checks, with no failures,
 warnings or skips. The 112 targeted \texttt{dgraphs} checks also passed without failures, warnings
 or skips. These regression tests cover exact
 streamed component-MST cost and bridge count against a small dense reference,
@@ -138,13 +134,9 @@ edge lengths. Independent \texttt{grip} checks compare saved distance rows,
 region counts and targets with direct calculations; test the all-pivot limit,
 2D/3D fits, published learning rates, scaling, RNG preservation and memory refusal.
 
-The first synthetic dispatch stopped before fitting because the new function
-was not yet exported. Regenerating package documentation and exports resolved
-that setup failure. A later edge-case test exposed rejection of coincident PCA
-scores; the search-coordinate validator was corrected to retain those distinct
-original observations. The final 288-fit run was repeated after that correction,
-and its source and compiled-library fingerprints were unchanged throughout.
-Earlier attempts and their logs remain available.
+The final 288-fit run includes the corrected handling of coincident PCA scores
+for distinct original observations. Source and compiled-library fingerprints
+were unchanged throughout that run.
 
 The final R process took 41.12 seconds of serial wall time and had maximum
 resident memory 443,318,272 bytes (422.8 MiB). This includes package loading,
@@ -155,50 +147,52 @@ separately in the saved table. No large-$n$ runtime or memory-scaling claim is
 made. The implicit-component repair avoids quadratic storage but can still
 perform quadratic distance work.
 
-Package documentation and API inventories were regenerated and checked.
-The package-wide \texttt{make check-fast} command stopped at its repository
-hygiene gate because an existing, unrelated serialized dataset contains a
-personal filesystem path. That object was preserved. Thus the new tests pass,
-but this work does not establish a clean package build or CRAN readiness.
+\section{Reproduction and scope}
+The results were generated at \textbf{GENERATEDSTAMP}. This note was rebuilt
+at \reportbuilddatetime\ from frozen results; rendering does not rerun fits or
+validate later package revisions. The bundled
+\href{results/fits.csv}{288 scores},
+\href{results/graphs.csv}{graph diagnostics},
+\href{results/source_manifest.csv}{benchmark-era source and library fingerprints}
+and \href{results/provenance.json}{result checksums} retain the numerical
+and implementation provenance. The adjacent \href{README.md}{reproduction instructions}
+describe rendering these results and running a new experiment separately.
 
-\section{Reproduction and next use}
-The results were generated at \textbf{GENERATEDSTAMP}. This report was rebuilt
-at \reportbuilddatetime\ from saved artifacts; rendering does not rerun fits.
-The authoritative result bundle is
-\href{../../../output/sparse-mds-methods/validation_2026-10-07_final/validation.rds}
-{validation\_2026-10-07\_final/validation.rds}, with
-\href{../../../output/sparse-mds-methods/validation_2026-10-07_final/fits.csv}{all 288 scores},
-\href{../../../output/sparse-mds-methods/validation_2026-10-07_final/source_manifest.csv}
-{source and library fingerprints}, saved graphs, preparations, coordinates and
-session information. The adjacent \href{README.md}{reproduction record}
-identifies commands and logs; \href{build_manifest.json}{the build manifest}
-fingerprints the report and evidence.
-
-The implementation now supports the requested three variants without constructing
-a full distance matrix during sparse preparation or fitting. For the planned
-combined V4 analysis, use Euclidean regional preparation as agreed, retain
-$q=10$ with 5/20 sensitivity, and measure actual PCA neighbor retention on the
-unique abundance profiles. These synthetic tests do not select an adequate
-pivot count, epoch budget or PCA threshold for that dataset. No combined V4
-embedding was computed in this methods-validation run.
+The three variants avoid a full distance matrix during sparse preparation and
+fitting. For an application to combined V4 abundance profiles, Euclidean regional
+preparation at $q=10$, with 5/20 sensitivity, requires measuring actual PCA
+neighbor retention on the unique profiles. These synthetic tests do not select
+an adequate pivot count, epoch budget or PCA threshold for that dataset.
+No combined V4 embedding was computed in this methods-validation run.
 '''.replace('GENERATEDSTAMP',generated)
 source = here/'methods.tex'
 s = source.read_text()
 s = re.sub(r'% BEGIN VALIDATION RESULTS.*?% END VALIDATION RESULTS',lambda _: '% BEGIN VALIDATION RESULTS\n'+results+'\n% END VALIDATION RESULTS',s,flags=re.S)
-metadata = '\\renewcommand{\\reportbuilddatetime}{'+stamp+'}\n'
-s = re.sub(r'% BEGIN BUILD METADATA.*?% END BUILD METADATA',lambda _: '% BEGIN BUILD METADATA\n% Generated by build_report.py.\n\\begin{filecontents*}[overwrite]{methods_build_info.tex}\n'+metadata+'\\end{filecontents*}\n% END BUILD METADATA',s,flags=re.S)
+
+s = re.sub(r'% BEGIN BUILD METADATA.*?% END BUILD METADATA',
+           lambda _: '% BEGIN BUILD METADATA\n% Generated by build_report.py.\n'
+           + '\\renewcommand{\\reportbuilddatetime}{'+stamp+'}\n% END BUILD METADATA',
+           s, flags=re.S)
 source.write_text(s)
-(here/'methods_build_info.tex').write_text(metadata)
+# Keep relative supplement links usable beside the exported PDF.
+import shutil
+shutil.copytree(out, destination/'results', dirs_exist_ok=True)
+for name in ('methods.tex', 'references.bib', 'README.md'):
+    shutil.copy2(here/name, destination/name)
 if args.pdf:
     for i in (1,2):
-        with (here/f'build_pass_{i}.log').open('w') as stream:
-            subprocess.run(['pdflatex','-interaction=nonstopmode','-halt-on-error',source.name],cwd=here,stdout=stream,stderr=subprocess.STDOUT,check=True)
-checker = Path('/Users/pgajer/.codex/notes/agent_instructions/reports/scripts/check_citation_verification.py')
-cmd=[sys.executable,str(checker),'--tex',str(source),'--bib',str(here/'references.bib'),'--html',str(here/'citation_verification.html')]
-if args.pdf: cmd += ['--log',str(here/'methods.log')]
-subprocess.run(cmd,check=True)
-files=[source,Path(__file__).resolve(),here/'README.md',here/'Makefile',out/'dgraphs_tests_final_corrected.log',here/'references.bib',here/'citation_verification.html',run/'source_manifest.csv',run/'fits.csv',run/'graphs.csv',run/'validation.rds',root/'tools/pkg/summarize-sparse-methods.R',out/'error-comparison.pdf',out/'neighborhood-sensitivity.pdf',out/'paired_comparisons.csv',out/'pca-baselines.csv',out/'grip_full_tests_final.log']
-files += [Path(item['archived']) for item in documentation_revisions]
-if args.pdf: files += [here/'methods.pdf']
-(here/'build_manifest.json').write_text(json.dumps({'build_time':stamp,'result_generation_time':generated,'fits':288,'pdf_exported':args.pdf,'documentation_only_source_revisions':documentation_revisions,'files':[{'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files]},indent=2)+'\n')
-print(stamp)
+        with (destination/f'build_pass_{i}.log').open('w') as stream:
+            subprocess.run(['pdflatex','-interaction=nonstopmode','-halt-on-error',source.name],
+                           cwd=destination,stdout=stream,stderr=subprocess.STDOUT,check=True)
+if args.citation_evidence:
+    cmd=[sys.executable,str(here/'check_citations.py'),'--tex',str(source),
+         '--bib',str(here/'references.bib'),'--html',str(args.citation_evidence.resolve())]
+    if args.pdf: cmd += ['--log',str(destination/'methods.log')]
+    subprocess.run(cmd,check=True)
+files=[source,Path(__file__).resolve(),here/'README.md',here/'Makefile',here/'references.bib',out/'provenance.json']
+(destination/'build_manifest.json').write_text(json.dumps({
+    'build_time':stamp,'result_generation_time':generated,'fits':288,'pdf_exported':args.pdf,
+    'citation_gate_run':bool(args.citation_evidence),
+    'files':[{'path':str(p.relative_to(here)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in files]
+},indent=2)+'\n')
+print(destination)

@@ -52,7 +52,6 @@ subsetting through the final fit, took \stageelapsedminutes\ minutes;
 this excludes independent validation and report rendering. Peak sampled
 aggregate resident memory was \stagepeakmemory\ GiB under the 50 GiB
 watchdog threshold. The per-task native workspace allowance was 4 GiB.
-The full-population run's pause and checkpoint records were unchanged.
 
 \subsection{Evaluation and numerical checks}
 For each stage $s$, the score $R_s(d)$ is Equation~\eqref{eq:full} evaluated
@@ -181,4 +180,5 @@ Different stage preparations and random samples also prevent attributing
 the differences to age alone. Multiple starts and independent cell
 subsamples are needed before ranking stages reliably; matched landmark
 and optimization sensitivity tests would address the remaining algorithmic
-uncertainty. The full 120,804-cell experiment remains paused.
+uncertainty. These subset experiments do not establish the eventual error
+of the full 120,804-cell fit.

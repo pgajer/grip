@@ -991,7 +991,10 @@ grip.edge.isometric.initial.coords <- function(prepared,
     return(.grip.invoke(mds.fun, args)$coords)
   }
   if (identical(init, "weighted_grip")) {
-    if (any(!weighted.grip.arg.names %in% names(formals(grip)))) {
+    weighted.grip.arg.names <- .grip.transition.names(
+      weighted.grip.arg.names, setdiff(names(formals(grip)), "..."))
+    names(weighted.grip.args) <- weighted.grip.arg.names
+    if (any(!weighted.grip.arg.names %in% setdiff(names(formals(grip)), "..."))) {
       stop("weighted.grip.args contains unknown arguments; use the documented dot-delimited names")
     }
     if (!(dim %in% c(2L, 3L))) {
@@ -1063,6 +1066,8 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #' @param weighted.grip.args Named list of additional tuning arguments passed
 #'   to [grip()] when `init = "weighted_grip"`. Graph inputs, `dim`, `seed`,
 #'   and `metric` are supplied by `edge.kk()` and may not be repeated here.
+#'   Former underscore argument names in this list are also accepted for the
+#'   transition release; duplicate old/current spellings are rejected.
 #' @param stiffness.method,stiffness.transform,density.mix.schedule,bandwidth,density.n
 #'   Parameters passed to [edge.length.density.stiffness()].
 #' @param distance.power,stiffness.floor,stiffness.ceiling Additional stiffness
@@ -1086,6 +1091,10 @@ grip.edge.isometric.initial.coords <- function(prepared,
 #'   edge-stress loop; `"R"` uses the reference implementation.
 #'
 #' @return A `"grip_gmds_layout"` object with method `"edge_kk"`.
+#' @param ... Former underscore spellings of this function's dotted arguments,
+#'   accepted for one transition release without deprecation warnings (for
+#'   example, `adj_list`, `scale_mode`, and `max_iter`). Use the dotted names
+#'   in new code. Supplying both spellings or unknown arguments errors.
 #' @export
 #' @md
 edge.kk <- function(coords = NULL,
@@ -1120,7 +1129,11 @@ edge.kk <- function(coords = NULL,
                     return.trace = TRUE,
                     diagnostics = TRUE,
                     seed = 1L,
-                    engine = c("cpp", "R")) {
+                    engine = c("cpp", "R"),
+                    ...) {
+  if (...length())
+    return(eval(.grip.transition.call(match.call(expand.dots = FALSE), sys.function()),
+                envir = parent.frame()))
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights, prepared)
   init <- match.arg(init)
   stiffness.method <- match.arg(stiffness.method)

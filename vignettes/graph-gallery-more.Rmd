@@ -25,9 +25,14 @@ comparisons; they are not an automatic large-graph pipeline.
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 This companion contains the other nine graphs from the same saved gallery.
 See the [main gallery](synthetic-graph-families.html) for the method, errors,
@@ -46,7 +51,8 @@ gallery.ids <- c('dwt_307','494_bus','lesmis','dwt_66','karate','tree','saddle',
 ```
 
 ```{r gallery-pages, results='asis', echo=FALSE}
-cat(knitr::knit_child(system.file('scripts','graph-gallery.Rmd',package='grip'),
+gallery.template <- readLines(system.file('scripts','graph-gallery.Rmd',package='grip'))
+cat(knitr::knit_child(text=gallery.template,
   envir=environment(),quiet=TRUE),sep='\n')
 ```
 

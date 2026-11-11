@@ -24,11 +24,19 @@ pre { overflow-x: auto; }
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.retina = 2,
+  dev = "jpeg",
+  dev.args = list(quality = 90),
+  fig.retina = 1,
+  dpi = 72,
   fig.width = 10,
   fig.height = 4.5
 )
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 ## What is compared
 
@@ -82,7 +90,7 @@ comparison.views <- function(layouts, edges) {
     z <- layouts[[name]]
     if (ncol(z)==2L) z <- cbind(z,0)
     documentation.view(setNames(list(z),name),edges,aligned=TRUE,
-      description=paste(name, ': saved coordinates; 2D fits remain planar. Drag to rotate.'))
+      description=paste(name, ': saved coordinates; 2D fits remain planar.'))
   }))
 }
 ```

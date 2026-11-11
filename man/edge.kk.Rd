@@ -37,7 +37,8 @@ edge.kk(
   return.trace = TRUE,
   diagnostics = TRUE,
   seed = 1L,
-  engine = c("cpp", "R")
+  engine = c("cpp", "R"),
+  ...
 )
 }
 \arguments{
@@ -73,7 +74,9 @@ graph edges first, and
 
 \item{weighted.grip.args}{Named list of additional tuning arguments passed
 to \code{\link[=grip]{grip()}} when \code{init = "weighted_grip"}. Graph inputs, \code{dim}, \code{seed},
-and \code{metric} are supplied by \code{edge.kk()} and may not be repeated here.}
+and \code{metric} are supplied by \code{edge.kk()} and may not be repeated here.
+Former underscore argument names in this list are also accepted for the
+transition release; duplicate old/current spellings are rejected.}
 
 \item{stiffness.method, stiffness.transform, density.mix.schedule, bandwidth, density.n}{Parameters passed to \code{\link[=edge.length.density.stiffness]{edge.length.density.stiffness()}}.}
 
@@ -109,6 +112,11 @@ summaries in \code{metadata$stage_summaries}.}
 
 \item{engine}{Optimizer engine. \code{"cpp"} uses the Rcpp backend for the
 edge-stress loop; \code{"R"} uses the reference implementation.}
+
+\item{...}{Former underscore spellings of this function's dotted arguments,
+accepted for one transition release without deprecation warnings (for
+example, \code{adj_list}, \code{scale_mode}, and \code{max_iter}). Use the dotted names
+in new code. Supplying both spellings or unknown arguments errors.}
 }
 \value{
 A \code{"grip_gmds_layout"} object with method \code{"edge_kk"}.

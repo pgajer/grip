@@ -89,13 +89,41 @@ surface.trace <- function(truth, every = 32L, epoch.cap = 10L,
 }
 
 surface.animation <- function(cases) {
-  if (!isTRUE(getOption("grip.vignette.interactive", TRUE)) ||
+  if (!isTRUE(getOption("grip.vignette.interactive",
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) ||
       !requireNamespace("ivue", quietly = TRUE) ||
       !requireNamespace("rgl", quietly = TRUE)) {
+    old <- graphics::par(mfrow = c(length(cases), 4L), mar = c(3, 3, 3, 1),
+                         mgp = c(1.8, .5, 0), cex.axis = .8, cex.lab = .8)
+    on.exit(graphics::par(old), add = TRUE)
+    for (name in names(cases)) {
+      case <- cases[[name]]
+      indices <- c(1L, ceiling(length(case$aligned)/2), length(case$aligned))
+      frames <- lapply(case$aligned[indices], grip::project.3d,
+                       azimuth = 35, elevation = 22)
+      reference <- grip::project.3d(case$truth, azimuth = 35, elevation = 22)
+      bounds <- rbind(reference, do.call(rbind, frames))
+      heights <- case$truth[, 3]
+      colors <- grDevices::hcl.colors(256, "Viridis")[
+        1L + floor(255*(heights-min(heights))/diff(range(heights)))]
+      for (j in seq_along(indices)) {
+        graphics::plot(bounds, type = "n", asp = 1, axes = FALSE, xlab = "", ylab = "",
+                       main = paste(name, c("initial", "middle", "final")[j]))
+        graphics::points(reference, pch = 16, cex = .35, col = "gray70")
+        graphics::points(frames[[j]], pch = 16, cex = .4, col = colors)
+        graphics::mtext(paste(format(case$steps$pair_updates[indices[j]], big.mark = ","),
+                             "pair updates"), side = 1, cex = .7)
+      }
+      graphics::plot(case$steps$pair_updates, pmax(100*case$errors, 1e-15),
+                     type = "l", log = "y", xlab = "Pair updates", ylab = "100 S",
+                     main = paste(name, "relative error"), col = "#1769AA")
+      graphics::abline(h = 1e-12, lty = 2, col = "gray50")
+    }
     return(knitr::asis_output(paste(
-      "\n\nInteractive animation unavailable. Install **ivue** and **rgl**",
-      "and rebuild with `options(grip.vignette.interactive = TRUE)`.",
-      "Numerical examples and results remain available.\n\n")))
+      "\n\nStatic views show the initial, middle recorded and final states",
+      "at a common scale. Gray points are the reference; colors retain original height.",
+      "The error curves use every recorded state. For playback, install **ivue** and",
+      "**rgl** and render with `options(grip.vignette.interactive = TRUE)`.\n\n")))
   }
   ids <- list()
   data <- lapply(names(cases), function(key) {

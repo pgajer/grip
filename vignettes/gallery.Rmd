@@ -21,11 +21,19 @@ the preserved GRIP tree example uses two.
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.retina = 2,
+  dev = "jpeg",
+  dev.args = list(quality = 90),
+  fig.retina = 1,
+  dpi = 72,
   fig.width = 11,
   fig.height = 4.2
 )
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 Each fit uses weighted graph shortest-path distances, uniform pair weights,
 and full metric MDS with the SGD backend. The examples are small enough for
@@ -46,6 +54,14 @@ library(grip)
 
 ```{r view-helpers, include=FALSE}
 source(system.file('scripts', 'vignette-views.R', package='grip'), local=TRUE)
+gallery <- readRDS(system.file('extdata', 'sgd-gallery', 'layouts.rds', package='grip'))
+check.gallery.graph <- function(graph, saved) {
+  stopifnot(identical(graph$n, saved$n), identical(graph$edges, saved$edges))
+  # Trigonometric geometry can differ by roundoff across math libraries.
+  comparison <- all.equal(graph, saved, tolerance=1e-12)
+  if (!isTRUE(comparison)) stop(paste(comparison, collapse="; "))
+  invisible(TRUE)
+}
 ```
 
 <style>
@@ -53,6 +69,15 @@ body { max-width: 1050px; }
 body:has(nav.navbar) { max-width: none; }
 .rglWebGL { max-width: 100%; }
 </style>
+
+The figures and stopping tables use saved results from the six 1,000-epoch fits
+shown below, with their original graphs, seeds and solver settings. Package
+checks rebuild every figure and table without repeating these longer fits.
+The displayed fitting code remains runnable in an R session. To regenerate the
+complete saved bundle from a source checkout, run
+`Rscript tools/pkg/build-sgd-gallery.R` after installing that checkout.
+The saved objects contain display coordinates and metadata; run the fitting
+code when you need complete fitted objects.
 
 ## Family classes at a glance
 
@@ -83,6 +108,9 @@ mesh.graph <- mesh.surface.graph(
   amplitude = 0.8
 )
 
+```
+
+```{r mesh-fit, eval=FALSE, purl=FALSE}
 mesh.fit <- metric.mds(
   edges = mesh.graph$edges,
   n = mesh.graph$n,
@@ -92,6 +120,11 @@ mesh.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r mesh-saved, echo=FALSE}
+mesh.fit <- gallery$fits$mesh
+check.gallery.graph(mesh.graph, gallery$graphs$mesh)
 mesh.coords <- mesh.fit$coords
 
 mesh.summary <- data.frame(
@@ -111,7 +144,7 @@ documentation.view(
        `Reference geometry`=mesh.graph$coords_surface,
        `Parameter grid`=cbind(mesh.graph$coords_param, z=0)),
   edges=mesh.graph$edges, aligned=TRUE,
-  description="Mesh: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Mesh: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -131,6 +164,9 @@ torus.graph <- torus.surface.graph(
   twist = 0.18
 )
 
+```
+
+```{r torus-fit, eval=FALSE, purl=FALSE}
 torus.fit <- metric.mds(
   edges = torus.graph$edges,
   n = torus.graph$n,
@@ -140,6 +176,11 @@ torus.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r torus-saved, echo=FALSE}
+torus.fit <- gallery$fits$torus
+check.gallery.graph(torus.graph, gallery$graphs$torus)
 torus.coords <- torus.fit$coords
 
 knitr::kable(
@@ -157,7 +198,7 @@ documentation.view(
   list(`SGD metric MDS`=torus.coords,
        `Reference geometry`=torus.graph$coords_surface),
   edges=torus.graph$edges, aligned=TRUE,
-  description="Torus: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Torus: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -177,6 +218,9 @@ vicsek.graph <- vicsek.surface.graph(
   amplitude = 0.55
 )
 
+```
+
+```{r vicsek-fit, eval=FALSE, purl=FALSE}
 vicsek.fit <- metric.mds(
   edges = vicsek.graph$edges,
   n = vicsek.graph$n,
@@ -186,6 +230,11 @@ vicsek.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r vicsek-saved, echo=FALSE}
+vicsek.fit <- gallery$fits$vicsek
+check.gallery.graph(vicsek.graph, gallery$graphs$vicsek)
 vicsek.coords <- vicsek.fit$coords
 ```
 
@@ -194,7 +243,7 @@ documentation.view(
   list(`SGD metric MDS`=vicsek.coords,
        `Reference geometry`=vicsek.graph$coords_surface),
   edges=vicsek.graph$edges, aligned=TRUE,
-  description="Vicsek: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Vicsek: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -216,6 +265,9 @@ annulus.graph <- irregular.annulus.surface.graph(
   amplitude = 0.2
 )
 
+```
+
+```{r annulus-fit, eval=FALSE, purl=FALSE}
 annulus.fit <- metric.mds(
   edges = annulus.graph$edges,
   n = annulus.graph$n,
@@ -225,6 +277,11 @@ annulus.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r annulus-saved, echo=FALSE}
+annulus.fit <- gallery$fits$annulus
+check.gallery.graph(annulus.graph, gallery$graphs$annulus)
 annulus.coords <- annulus.fit$coords
 ```
 
@@ -233,7 +290,7 @@ documentation.view(
   list(`SGD metric MDS`=annulus.coords,
        `Reference geometry`=annulus.graph$coords_surface),
   edges=annulus.graph$edges, aligned=TRUE,
-  description="Annulus: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Annulus: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -254,6 +311,9 @@ cube.graph <- cube.channel.network.surface.graph(
   twist = 0.2
 )
 
+```
+
+```{r cube-fit, eval=FALSE, purl=FALSE}
 cube.fit <- metric.mds(
   edges = cube.graph$edges,
   n = cube.graph$n,
@@ -263,6 +323,11 @@ cube.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r cube-saved, echo=FALSE}
+cube.fit <- gallery$fits$cube
+check.gallery.graph(cube.graph, gallery$graphs$cube)
 cube.coords <- cube.fit$coords
 
 knitr::kable(
@@ -279,7 +344,7 @@ documentation.view(
   list(`SGD metric MDS`=cube.coords,
        `Reference geometry`=cube.graph$coords_surface),
   edges=cube.graph$edges, aligned=TRUE,
-  description="Cube: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Cube: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -303,6 +368,9 @@ tree.graph <- kary.tree.weighted.graph(
   branch.spread = 0.25
 )
 
+```
+
+```{r tree-fit, eval=FALSE, purl=FALSE}
 tree.fit <- metric.mds(
   edges = tree.graph$edges,
   n = tree.graph$n,
@@ -312,6 +380,11 @@ tree.fit <- metric.mds(
   backend = "sgd", pair.weights = "uniform",
   max.iter = 1000, diagnostics = FALSE
 )
+```
+
+```{r tree-saved, echo=FALSE}
+tree.fit <- gallery$fits$tree
+check.gallery.graph(tree.graph, gallery$graphs$tree)
 tree.coords <- tree.fit$coords
 
 knitr::kable(
@@ -330,7 +403,7 @@ knitr::kable(
 documentation.view(
   list(`SGD metric MDS`=tree.coords),
   edges=tree.graph$edges, aligned=TRUE,
-  description="Tree: drag to rotate, scroll to zoom; use the selector to compare geometries."
+  description="Tree: reference and fitted geometries are centered without rotation or scale fitting."
 )
 ```
 
@@ -339,7 +412,8 @@ geometry from any arbitrary 3D embedding choice.
 
 ## Stopping status
 
-The table records each fit's starts. An iteration-limit warning means that
+The table records each saved fit's starts. Elapsed seconds describe the original
+saved fit, not the current document build. An iteration-limit warning means that
 coordinates were returned without meeting the stopping criterion; it does not
 establish convergence or an optimum. Assess graph-distance error and stability
 across starts before interpreting a layout as evidence about geometry.

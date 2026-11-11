@@ -20,10 +20,15 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
                      out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 Start with a graph whose structure you want to explore. This example uses
 **dwt_307**, a 307-vertex structural graph from the
@@ -33,11 +38,27 @@ reference that the layout must recover.
 
 ## Load a graph and draw it
 
-```{r first-layout}
+```{r first-graph}
 g <- suitesparse.graph('dwt_307')
+```
+
+```{r first-layout, eval=FALSE, purl=FALSE}
 fit <- metric.mds(edges=g$edges, n=g$n, dim=3, backend="sgd",
                   seed=1, diagnostics=FALSE)
 coords <- fit$coords
+```
+
+This figure uses saved results from the default 1,000-pass fit above. The
+coordinates and fitting settings are retained; the shorter fitting example
+below and the scoring calculations are run when the guide is built. Run the
+code above to obtain a complete fitted object. From a source checkout, after
+installing that checkout, `Rscript tools/pkg/build-starting-layout.R`
+regenerates the saved illustration.
+
+```{r saved-first-layout, include=FALSE}
+saved <- readRDS(system.file('extdata', 'getting-started', 'layout.rds', package='grip'))
+stopifnot(identical(g, saved$graph))
+coords <- saved$coords
 ```
 
 Each row of `g$edges` contains two vertex indices, numbered from 1 to `g$n`.
@@ -48,7 +69,7 @@ diagnostics and termination status; a returned layout does not imply convergence
 
 ```{r first-view, echo=FALSE}
 documentation.view(list(`SGD metric MDS`=coords),g$edges,
-  description='dwt_307: 307 vertices. SGD metric MDS with seed 1. Drag to rotate; scroll to zoom.')
+  description='dwt_307: 307 vertices. SGD metric MDS with seed 1.')
 ```
 
 Rotate the graph to inspect its structure. All vertices and edges are shown.
@@ -77,7 +98,7 @@ different aspects of a drawing; no single number captures readability.
 
 `metric.mds()` directly fits Euclidean distances to graph shortest-path
 distances. Its default SGD backend adjusts pairs of vertices in shuffled order,
-following [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997)
+following [Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997)
 with the learning-rate schedule of
 [Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641).
 

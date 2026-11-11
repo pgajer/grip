@@ -3,7 +3,7 @@
 PKGNAME := grip
 VERSION := $(shell awk '/^Version:/ { print $$2 }' DESCRIPTION)
 TARBALL := $(PKGNAME)_$(VERSION).tar.gz
-LOGDIR := .claude
+LOGDIR ?= .qa-logs
 
 clean:
 	find src -type f \( -name "*.o" -o -name "*.so" -o -name "*.dll" \) -delete
@@ -26,18 +26,24 @@ document: attrs
 	@R -q -e "devtools::document()" > $(LOGDIR)/$(PKGNAME)_document.log 2>&1
 	@echo "Documentation generated (log: $(LOGDIR)/$(PKGNAME)_document.log)"
 
-build: clean document
+build: check-public-content clean document
 	@mkdir -p $(LOGDIR)
 	@echo "Building package..."
 	@R CMD build . > $(LOGDIR)/$(PKGNAME)_build.log 2>&1
+	@python3 tools/check-public-content.py --archive "$(TARBALL)"
+	@python3 tools/pkg/check-package-size.py $(TARBALL)
 	@echo "Package built successfully (log: $(LOGDIR)/$(PKGNAME)_build.log)"
 
-build-verbose: clean document
+build-verbose: check-public-content clean document
 	R CMD build .
+	python3 tools/check-public-content.py --archive "$(TARBALL)"
+	python3 tools/pkg/check-package-size.py $(TARBALL)
 
-build-log: clean document
+build-log: check-public-content clean document
 	@mkdir -p $(LOGDIR)
 	R CMD build . > $(LOGDIR)/$(PKGNAME)_build.log 2>&1
+	python3 tools/check-public-content.py --archive "$(TARBALL)"
+	python3 tools/pkg/check-package-size.py $(TARBALL)
 	@echo "Build output saved to $(LOGDIR)/$(PKGNAME)_build.log"
 
 check: repo-hygiene build
@@ -86,10 +92,17 @@ saddle-overlay-animation:
 readme-html: readme-assets
 	Rscript tools/pkg/render-readme.R --html
 
-repo-hygiene:
+repo-hygiene: check-public-content
 	@python3 tools/check-no-manuscripts.py
 	@tools/check-dev-source-only.sh
 	@Rscript tools/check-release-content.R
+
+.PHONY: check-public-content test-public-content
+check-public-content:
+	@python3 tools/check-public-content.py
+
+test-public-content:
+	@python3 tools/tests/test-public-content.py
 
 .PHONY: test-release-content
 test-release-content:

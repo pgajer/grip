@@ -3,7 +3,8 @@ source(system.file('scripts', 'metric-mds-comparison.R', package='grip'), local=
 source(system.file('scripts', 'metric-mds-surface-alignment.R', package='grip'), local=TRUE)
 
 documentation.interactive <- function() {
-  isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
+  isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
     requireNamespace('ivue', quietly=TRUE) && requireNamespace('rgl', quietly=TRUE) &&
     all(c('plot3D.groups','layer3D.callback','layer3D.axes','camera.zup') %in%
           getNamespaceExports('ivue')) &&

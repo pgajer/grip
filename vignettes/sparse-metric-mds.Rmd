@@ -20,7 +20,7 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
 
@@ -29,11 +29,18 @@ approximates longer-range influences using representative vertices called
 **pivots**. It uses the sparse model of
 [Ortmann, Klimenta and Brandes (2017)](https://doi.org/10.7155/jgaa.00440)
 and the SGD updates of
-[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+[Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997).
 
 With `n` vertices, `m` edges, and `h` pivots, storage and work per pass are
 roughly proportional to `m + n*h`, avoiding an all-pairs distance matrix.
 More pivots cost more; improvement in every individual run is not guaranteed.
+
+The installed benchmark bundle retains every attempted-fit summary, including
+failures, scores and timings, and the fixed seed-1 layouts shown here. Complete
+layouts and evaluation targets are retained in the source checkout under
+`tools/pkg/fixtures/documentation-data/` for independent recomputation.
+Static figures are used by default; set `options(grip.vignette.interactive = TRUE)`
+with ivue and rgl installed to render the interactive views.
 
 ## Use sparse SGD
 

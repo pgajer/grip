@@ -46,7 +46,8 @@ grip(
   disconnected = c("components", "error"),
   metric = c("hop", "edge_length"),
   metric.neighbor.cap = NULL,
-  length.normalization = c("median", "mean", "none")
+  length.normalization = c("median", "mean", "none"),
+  ...
 )
 }
 \arguments{
@@ -229,12 +230,20 @@ argument with \code{metric = "hop"}.}
 edge length by their median, \code{"mean"} divides by their mean, and
 \code{"none"} preserves the supplied numerical scale. It is an error to
 supply this argument with \code{metric = "hop"}.}
+
+\item{...}{Former underscore spellings of this function's dotted arguments,
+accepted for one transition release without deprecation warnings (for
+example, \code{adj_list}, \code{weight_list}, and \code{final_rounds}). Use the dotted
+names in new code. Supplying both spellings or unknown arguments errors.}
 }
 \value{
 A numeric matrix with \code{n} rows and \code{dim} columns.
 }
 \description{
-This is the primary layout API. It uses the quality-first multiscale GRIP
+Computes a multiscale GRIP layout of a graph in two or three dimensions.
+For a graph-distance embedding, \code{\link{metric.mds}} with the SGD
+backend is the recommended starting point, and GRIP is an alternative.
+This function uses the quality-first multiscale GRIP
 engine with extra coarse-level global repulsion to reduce foldovers while
 preserving the usual GRIP refinement structure. With \code{preset = NULL},
 the default profile is tuned for higher-quality layouts and automatically

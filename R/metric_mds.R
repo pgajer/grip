@@ -18,7 +18,7 @@ grip.mds.has.smacof <- function() {
 #' @details With `approximation = "full"`, the objective is
 #' \deqn{S(Z) = \sum_{i<j}w_{ij}(\|z_i-z_j\|_2-\delta_{ij})^2.}
 #' By default, all pair weights are one. With `pair.weights = "inverse_squared"`,
-#' \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2018); stress is then the
+#' \eqn{w_{ij}=1/\delta_{ij}^2}, as in Zheng et al. (2019); stress is then the
 #' sum of squared relative distance errors. Edge weights define graph distances;
 #' `pair.weights` separately specifies their importance in the stress objective.
 #' Both backends, coordinate rescaling, checkpoint/start selection, and stress
@@ -159,8 +159,8 @@ grip.mds.has.smacof <- function() {
 #' distance units for both weighting choices; changing input distance units
 #' therefore preserves the optimization trajectory up to scale. The default
 #' schedule is shared across weighting choices, not a reproduction of the
-#' graph-dependent annealing schedule used in Zheng et al. (2018). Symmetric clipped
-#' updates follow Zheng et al. (2018); the hybrid exponential/harmonic schedule
+#' graph-dependent annealing schedule used in Zheng et al. (2019). Symmetric clipped
+#' updates follow Zheng et al. (2019); the hybrid exponential/harmonic schedule
 #' follows Hangan et al. (2026). The terminal epoch is always scored. The best
 #' independently scored checkpoint, including initialization, is retained using
 #' scale-profiled stress; checkpoint scoring does not rescale the ongoing search.
@@ -178,7 +178,7 @@ grip.mds.has.smacof <- function() {
 #' to examine this sensitivity. This backend retains quadratic pair storage and
 #' work per pass. It does not validate the supplied graph distances.
 #' @section Sparse approximation:
-#' Sparse SGD implements the asymmetric updates of Zheng et al. (2018),
+#' Sparse SGD implements the asymmetric updates of Zheng et al. (2019),
 #' Algorithm 2, based on the model of Ortmann et al. (2017).
 #' The graph must have positive finite edge lengths and be connected. Disconnected graphs are rejected without
 #' repair. Pivots are chosen with probability proportional to distance to the
@@ -302,7 +302,7 @@ grip.mds.has.smacof <- function() {
 #' histories additionally preserve intermediate call boundaries.
 #' @references Ortmann, M., Klimenta, M. and Brandes, U. (2017).
 #'   A Sparse Stress Model. \doi{10.7155/jgaa.00440}.
-#'   Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+#'   Zheng, J. X., Pawar, S. and Goodman, D. F. (2019).
 #'   Graph Drawing by Stochastic Gradient Descent.
 #'   \doi{10.1109/TVCG.2018.2859997}.
 #'   Hangan, D., Kobourov, S. and Miller, J. (2026).

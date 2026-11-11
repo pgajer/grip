@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "exceptions": [
+    {
+      "scope": "repo",
+      "path": "tests/testthat/test-portable-session-info.R",
+      "rule": "private-reference",
+      "fingerprint": "c62f4d4e3bccef1149e7efd85911d6d40bd5e6e918777932936804a029f6d5db",
+      "reason": "Synthetic library path verifies that session metadata omits personal filesystem locations."
+    },
+    {
+      "scope": "archive",
+      "path": "tests/testthat/test-portable-session-info.R",
+      "rule": "private-reference",
+      "fingerprint": "c62f4d4e3bccef1149e7efd85911d6d40bd5e6e918777932936804a029f6d5db",
+      "reason": "Synthetic library path verifies that session metadata omits personal filesystem locations."
+    },
+    {
+      "scope": "repo",
+      "path": "tests/testthat/test-portable-session-info.R",
+      "rule": "private-reference",
+      "fingerprint": "13f03bfc98135fbde7f5d4ca96f8d54e3104acd312b7b79218863c3bd995ada8",
+      "reason": "Synthetic library path verifies that session metadata omits personal filesystem locations."
+    },
+    {
+      "scope": "archive",
+      "path": "tests/testthat/test-portable-session-info.R",
+      "rule": "private-reference",
+      "fingerprint": "13f03bfc98135fbde7f5d4ca96f8d54e3104acd312b7b79218863c3bd995ada8",
+      "reason": "Synthetic library path verifies that session metadata omits personal filesystem locations."
+    },
+    {
+      "scope": "repo",
+      "path": "tools/check-release-content.R",
+      "rule": "private-reference",
+      "fingerprint": "8a41e2edc6bf36c970d09815ddffcc7540825f375d44aa036d008d4f78afa656",
+      "reason": "Detector pattern rejects references to the private report location; it is not an evidence link."
+    },
+    {
+      "scope": "repo",
+      "path": "tools/pkg/audit-api-guide.R",
+      "rule": "private-reference",
+      "fingerprint": "c4089cb29daa20ea9f08dfafec71a42995233571be2a46ae96d041ba9a13c130",
+      "reason": "Detector pattern rejects unportable references in public vignettes; it is not an evidence link."
+    },
+    {
+      "scope": "repo",
+      "path": "tools/tests/test-public-content.py",
+      "rule": "private-reference",
+      "fingerprint": "2b367849e421d4bf81b9c249cb620ca684034e441c86519b4c793bc8d30ebffa",
+      "reason": "Synthetic Windows path used to verify the detector rejects personal filesystem references."
+    },
+    {
+      "scope": "repo",
+      "path": "tools/tests/test-release-content.py",
+      "rule": "private-reference",
+      "fingerprint": "5e478f672d5098c4e344365306fd9e660b63e79be41eacd133c5c3d5b12e6017",
+      "reason": "Synthetic path is deliberately serialized to verify rejection of unsafe data provenance."
+    }
+  ]
+}

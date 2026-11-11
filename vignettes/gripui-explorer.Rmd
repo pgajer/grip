@@ -20,9 +20,14 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=9,fig.height=5,out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 The project explorer lets you select saved layouts, inspect their scores, and
 rotate the selected graph. The graph-family explorer instead constructs
@@ -30,8 +35,9 @@ synthetic examples from parameters. Both are optional Shiny applications.
 
 ## Prepare an application graph
 
-This walkthrough uses the same **dwt_307** graph as Getting Started. Two presets
-and two seeds provide a small collection to browse.
+This walkthrough uses the same **dwt_307** graph as Getting Started. The
+layouts to browse are GRIP layouts computed by `compare.layouts()` with two
+presets and two seeds.
 
 ```{r compare-example}
 g <- suitesparse.graph('dwt_307')

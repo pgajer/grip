@@ -16,8 +16,8 @@ The entire archives directory is excluded from R package builds.
 Source copies, bibliography, and this record are version controlled. Existing
 local generated HTML and GIF copies are retained locally and excluded from
 Git. Those HTML files are copied as found, not rebuilt or claimed to be the
-latest rendered previews. The main current previews remain under
-~/.codex/private/grip/vignettes/.
+latest rendered previews. Maintained previews are generated from the current
+source under output/vignette-previews/.
 
 This is a document-source snapshot, not a self-contained historical package:
 Rmd sources still depend on package functions, installed scripts, and saved
@@ -42,8 +42,6 @@ archive path and checksum. Both versions are checked by check-documentation.py.
 No archived content or original checksum was discarded. The revision is a
 historical copy, not a maintained or independently validated runnable guide.
 
-The preview location above records the September snapshot's environment.
-Current maintained sources are under ~/current_projects/grip/; current local
-previews are under output/vignette-previews/ in that checkout. Keep frozen
+Current maintained sources and previews are separate from this snapshot. Keep frozen
 snapshot files unchanged; preserve any later variants separately with their
 provenance and a new manifest entry.

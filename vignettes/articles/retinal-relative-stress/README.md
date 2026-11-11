@@ -1,6 +1,6 @@
 # Relative-distance error in retinal metric MDS
 
-[Article source](main.tex) | [Local PDF](main.pdf)
+[Article source](main.tex)
 
 This article explains why regional sparse SGD, its endpoint-average proxy, and
 equally weighted all-pairs relative stress are different. It contains a
@@ -15,11 +15,10 @@ inverse-squared objective even though it uses the sparse-capable SGD kernel.
 This matches the existing small-reference approach in
 `inst/scripts/sparse-mds-methods-validation.R`.
 
-This is a standalone methodological article, excluded from the CRAN package
-archive by the existing `vignettes/articles` build exclusion. The retinal data,
-cell IDs, large saved objects, machine-specific provenance, and internal
-run records remain outside the public package tree. Compact numeric results
-and reproducible analysis scripts accompany the article.
+Compact numerical results and reproducible analysis scripts accompany this
+standalone methodological article. The retinal inputs, cell IDs, full saved
+states and run records are not bundled. The article is excluded from the CRAN
+package archive by the `vignettes/articles` build exclusion.
 
 ## Reproduce
 
@@ -29,7 +28,7 @@ used for the retinal demonstrations. No raw expression preprocessing is
 performed here. Exact input and source hashes are recorded by the runner.
 
 From the grip root, with `PC20_RDS` pointing to the input and `RESULT_DIR`
-pointing to a new private directory:
+pointing to a new output directory:
 
 ```sh
 env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
@@ -40,26 +39,25 @@ Rscript vignettes/articles/retinal-relative-stress/validate.R "$RESULT_DIR"
 Rscript vignettes/articles/retinal-relative-stress/summarize.R \
   "$RESULT_DIR" vignettes/articles/retinal-relative-stress
 Rscript vignettes/articles/retinal-relative-stress/build.R \
-  vignettes/articles/retinal-relative-stress
+  vignettes/articles/retinal-relative-stress "$ARTICLE_OUTPUT"
 ```
 
 The runner refuses to overwrite an existing protocol. It stores common starts,
 subset indices, preparations, checkpoint coordinates, settings, source hashes,
 and fit-status accounting. It verifies source stability before returning.
-No cache is silently reused. The companion validator independently recomputes
+Set `ARTICLE_OUTPUT` to a directory outside the source tree for the PDF and
+build records. No cache is silently reused. The companion validator independently recomputes
 all checkpoint errors. The summarizer and PDF builder do not rerun optimization.
 
-## Vignette Development
+## Reproduction requirements
 
-The article can become a vignette after separating its methodological
-explanation from this private-data reproduction. A small, publicly distributable
-example should carry the runnable tutorial. The same contract tests can remain:
-all-pairs proxy identity, terminal-coordinate policy, identical common starts,
-and exact continuation equivalence.
+The retinal input matrix is not bundled with this article; reproduction requires
+the input identified above. The accompanying checks test all-pairs proxy
+identity, terminal-coordinate policy, identical common starts, and exact
+continuation equivalence.
 
 The current pilot varies landmark count and initialization only. It is not an
-ablation of endpoint asymmetry, schedule choice, or preparation randomness,
-and is not a CRAN-readiness check.
+ablation of endpoint asymmetry, schedule choice, or preparation randomness.
 
 ## Output-Dimension Experiment
 
@@ -85,7 +83,6 @@ launches ten single-threaded workers. Its two-second watchdog limits aggregate
 process-tree resident memory to 50 GiB; this is a sampled stop threshold, not
 an operating-system allocation reservation. Individual fitting workspace
 allowances are 4 GiB. Completed ten-epoch checkpoints are saved atomically.
-It does not load or resume the paused full-population embedding.
 
 ```sh
 python3 vignettes/articles/retinal-relative-stress/dimension-sweep.py \
@@ -129,7 +126,7 @@ env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
   "$DIMENSION_RESULT_DIR" vignettes/articles/retinal-relative-stress \
   "$PC1814_INPUT_DIR/annotations.csv"
 Rscript vignettes/articles/retinal-relative-stress/build.R \
-  vignettes/articles/retinal-relative-stress
+  vignettes/articles/retinal-relative-stress "$ARTICLE_OUTPUT"
 ```
 
 ## Developmental-Stage Comparison
@@ -157,8 +154,7 @@ against the pooled experiment. It starts up to ten single-threaded preparation
 or fitting workers, releases fits as their stage preparations finish, saves
 states every ten epochs, and watches aggregate process-tree RSS against 50 GiB.
 The monitored pipeline finished in 2.88 minutes with a 7.14 GiB sampled peak;
-these figures exclude independent validation and report rendering. The full
-retinal experiment's pause and checkpoint records were unchanged.
+these figures exclude independent validation and report rendering.
 
 ```sh
 python3 vignettes/articles/retinal-relative-stress/stage-sweep.py \
@@ -171,11 +167,11 @@ env -u R_HOME -u R_LIBS -u R_LIBS_USER -u R_LIBS_SITE \
   "$STAGE_RESULT_DIR" "$DIMENSION_RESULT_DIR" \
   vignettes/articles/retinal-relative-stress
 Rscript vignettes/articles/retinal-relative-stress/build.R \
-  vignettes/articles/retinal-relative-stress
+  vignettes/articles/retinal-relative-stress "$ARTICLE_OUTPUT"
 ```
 
 The stage output directory must be new. Sampling uses NumPy PCG64 seeds
 2026102001--2026102010 in developmental order; preparation uses seeds
 20261101--20261110. The shared initialization/fitting seed is 20190619.
-Large input subsets, exact cell identities, restartable states and internal
-logs remain in the private result directory.
+Input subsets, cell identities and restartable states are required to reproduce
+these runs and are not included in the compact article assets.

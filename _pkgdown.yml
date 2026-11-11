@@ -6,9 +6,9 @@ template:
   includes:
     before_body: |
       <aside class="grip-version-note" aria-label="Documentation version">
-        <strong>Development documentation (0.2.0.9001).</strong>
-        For the released package, use the <a href="https://cran.r-project.org/web/packages/grip/index.html">CRAN manual and vignettes</a>.
-        In CRAN 0.2.0, <code>metric.mds()</code> performs classical scaling; this development version minimizes raw distance stress.
+        <strong>Documentation for grip 0.3.0, with updates for the next release.</strong>
+        Install grip 0.3.0 from <a href="https://cran.r-project.org/package=grip">CRAN</a>.
+        The documentation updates do not change package functions or defaults.
       </aside>
     in_header: |
       <link rel="icon" type="image/svg+xml" sizes="any" href="https://pgajer.github.io/grip/favicon.svg">
@@ -98,12 +98,12 @@ redirects:
 reference:
   - title: "Compute layouts"
     contents:
-      - grip
-      - weighted.grip.nd
-      - classical.mds
       - metric.mds
       - prepare.sparse.mds
       - landmark.mds.constraints
+      - classical.mds
+      - grip
+      - weighted.grip.nd
       - globalrep.grip
       - globalrep.weighted.grip
       - legacy.grip

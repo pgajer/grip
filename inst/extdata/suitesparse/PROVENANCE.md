@@ -26,7 +26,7 @@ retained induced graph. The runtime graph is not the original numeric matrix.
 Cite Davis, T. A. and Hu, Y. (2011), *The University of Florida Sparse Matrix
 Collection*, ACM TOMS 38(1), Article 1,
 [DOI](https://doi.org/10.1145/2049662.2049663).
-The original six examples were selected from Zheng, Pawar and Goodman (2018),
+The original six examples were selected from Zheng, Pawar and Goodman (2019),
 [Graph Drawing by Stochastic Gradient Descent](https://doi.org/10.1109/TVCG.2018.2859997).
 For Les Miserables also cite Knuth (1993), *The Stanford GraphBase*.
 

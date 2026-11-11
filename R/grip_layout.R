@@ -691,8 +691,8 @@ grip.apply.lgkk.polish <- function(coords,
 #' This compatibility entry point is equivalent to
 #' \code{\link{grip}(..., metric = "hop")}. It keeps the old
 #' global-repulsion name available while using the same quality-first
-#' multiscale GRIP engine and adaptive \code{final.rounds} schedule as the
-#' primary layout API.
+#' multiscale GRIP engine and adaptive \code{final.rounds} schedule as
+#' \code{\link{grip}}.
 #'
 #' @inheritParams grip
 #' @param weight.list Optional parallel list of positive edge lengths for
@@ -1042,7 +1042,10 @@ globalrep.grip <- function(edges = NULL,
 
 #' Compute a GRIP layout
 #'
-#' This is the primary layout API. It uses the quality-first multiscale GRIP
+#' Computes a multiscale GRIP layout of a graph in two or three dimensions.
+#' For a graph-distance embedding, \code{\link{metric.mds}} with the SGD
+#' backend is the recommended starting point, and GRIP is an alternative.
+#' This function uses the quality-first multiscale GRIP
 #' engine with extra coarse-level global repulsion to reduce foldovers while
 #' preserving the usual GRIP refinement structure. With \code{preset = NULL},
 #' the default profile is tuned for higher-quality layouts and automatically
@@ -1258,6 +1261,10 @@ globalrep.grip <- function(edges = NULL,
 #' Start with \code{vignette("function-guide", package = "grip")}
 #' to choose a layout, diagnostic, or reference comparison. List installed
 #' guides with \code{vignette(package = "grip")}.
+#' @param ... Former underscore spellings of this function's dotted arguments,
+#'   accepted for one transition release without deprecation warnings (for
+#'   example, `adj_list`, `weight_list`, and `final_rounds`). Use the dotted
+#'   names in new code. Supplying both spellings or unknown arguments errors.
 grip <- function(edges = NULL,
                         n = NULL,
                         adj.list = NULL,
@@ -1299,7 +1306,11 @@ grip <- function(edges = NULL,
                         disconnected = c("components", "error"),
                         metric = c("hop", "edge_length"),
                         metric.neighbor.cap = NULL,
-                        length.normalization = c("median", "mean", "none")) {
+                        length.normalization = c("median", "mean", "none"),
+                        ...) {
+  if (...length())
+    return(eval(.grip.transition.call(match.call(expand.dots = FALSE), sys.function()),
+                envir = parent.frame()))
   grip.validate.graph.arguments(edges, n, adj.list, weight.list, edge.weights)
   metric_neighbor_cap_missing <- missing(metric.neighbor.cap)
   length_normalization_missing <- missing(length.normalization)

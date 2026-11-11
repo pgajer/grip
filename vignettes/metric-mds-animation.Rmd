@@ -20,7 +20,8 @@ pre { overflow-x: auto; }
 ```{r setup, include=FALSE}
 library(grip)
 options(rgl.useNULL = TRUE)
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(fig.retina=1, dpi=72, collapse = TRUE, comment = "#>", fig.width = 11,
+                    fig.height = 6, out.width = "100%")
 source(system.file("scripts", "metric-mds-animation.R", package = "grip"),
        local = TRUE)
 ```
@@ -35,8 +36,8 @@ between 250 points. Both have two intrinsic dimensions, but preserving their
 straight-line distances generally requires three embedding dimensions.
 Distances along the surface would define a different reconstruction problem.
 
-The vignette uses the tracing interface in the development version of grip
-(after 0.2.0). It rebuilds the fits from public R calls, without a separate
+The vignette uses the tracing interface in grip 0.3.0 or later.
+It rebuilds the fits from public R calls, without a separate
 instrumented solver or saved fitting results. The optional **ivue** and **rgl**
 packages provide the interactive view; numerical examples still run without
 them. See [Metric MDS](metric-mds-backends.html) for other weighting choices.
@@ -208,7 +209,9 @@ though a single raw SGD update moves at most two points.
 
 ## Watch the reconstruction
 
-Choose a **Surface**, then press **Start**. The stages show the surface, the
+Installed documentation shows recorded states and their error curves below.
+Render with `options(grip.vignette.interactive = TRUE)` for playback.
+In that interactive view, choose a **Surface**, then press **Start**. The stages show the surface, the
 sample, the chords, the aligned random cloud, and saved SGD updates. The
 first epoch takes 16 seconds; subsequent epochs take four seconds at normal
 speed. **Stop**, **Reset**, the stage selector and the saved-update slider
@@ -292,6 +295,7 @@ X <- surface.sample()
 Y <- X
 Y[, "z"] <- Y[, "x"]^2 - Y[, "y"]^2
 cases <- list(paraboloid = surface.trace(X), saddle = surface.trace(Y))
+options(grip.vignette.interactive = TRUE)
 widget <- surface.animation(cases)
 htmlwidgets::saveWidget(widget, "metric-mds-surfaces.html", selfcontained = TRUE)
 ```

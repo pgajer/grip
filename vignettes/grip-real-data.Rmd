@@ -20,10 +20,15 @@ pre { overflow-x: auto; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
                      out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 A useful layout reveals graph structure while keeping distance distortion and
 sensitivity to initialization in view. This guide compares a small set of
@@ -58,12 +63,27 @@ explains distance-valued edges.
 
 ## Compare alternative GRIP settings across seeds
 
-```{r candidates}
+```{r candidates-graph}
 g <- suitesparse.graph('494_bus')
+```
+
+```{r candidates-fit, eval=FALSE, purl=FALSE}
 cmp <- compare.layouts(edges=g$edges,n=g$n,dim=3,
   candidates=c('default','tree','mesh'),seeds=1:3,
   sample.size.stress=2000L,sample.size.nonedge=3000L,
   edge.crossings='never',return.layouts=TRUE)
+```
+
+The guide uses saved results from these nine fits and rebuilds their tables and
+figure. Graph inputs, seeds, settings, fitted coordinates and scores are retained.
+The code above reproduces the comparison. After installing a source checkout,
+run `Rscript tools/pkg/build-layout-comparison.R` from its root to regenerate
+the saved results.
+
+```{r candidates-summary, echo=FALSE}
+saved <- readRDS(system.file('extdata', 'layout-comparison', 'comparison.rds', package='grip'))
+stopifnot(identical(g, saved$graph))
+cmp <- saved$comparison
 knitr::kable(cmp$summary[,c('candidate','sampled.stress.mean',
   'edge.length.cv.mean','sampled.nonedge.sep.ratio.mean',
   'stability.procrustes.mean')],digits=3)

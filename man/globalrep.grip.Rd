@@ -212,8 +212,8 @@ A numeric matrix with \code{n} rows and \code{dim} columns.
 This compatibility entry point is equivalent to
 \code{\link{grip}(..., metric = "hop")}. It keeps the old
 global-repulsion name available while using the same quality-first
-multiscale GRIP engine and adaptive \code{final.rounds} schedule as the
-primary layout API.
+multiscale GRIP engine and adaptive \code{final.rounds} schedule as
+\code{\link{grip}}.
 }
 \examples{
 edges <- edges.mesh(4, 4)

@@ -225,7 +225,7 @@ does not reassign these labels.
 
 ## Reproduce and interpret the comparison
 
-This is a website article for the development version of grip with direct
+This is a website article for grip 0.3.0 or later, using direct
 `distance.matrix` support. It requires linf's bundled data and ivue/rgl for
 interactive figures. The source-visible `embedding-study.R` beside this
 article contains data selection, scoring, fitting, and alignment functions.

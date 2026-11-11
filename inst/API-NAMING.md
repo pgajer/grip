@@ -1,8 +1,16 @@
 # Migrating to dot-delimited API names
 
 Public functions and parameters use lowercase words separated by dots. This is a
-breaking change: replace underscores in old argument names with dots. There are
-no deprecated aliases. Positional calls retain their argument order.
+breaking change: replace underscores in old argument names with dots.
+Positional calls retain their argument order.
+
+For one transition release, `grip()` and `edge.kk()` also accept their former
+underscore argument names, including names inside `edge.kk()`'s
+`weighted.grip.args` list. These calls do not emit deprecation warnings.
+Supplying both spellings of the same argument is an error, as are unknown
+arguments. This lets existing downstream packages migrate before the old
+spellings are removed in the following release. It does not restore the old
+app entry points, other functions' argument names, or earlier MDS behavior.
 
 For example:
 

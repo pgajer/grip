@@ -19,15 +19,23 @@ test_that("on-demand distances and region counts match independent dense calcula
     expect_equal(a$region,owner)
     C <- a$constraints; ed <- if(method=="uniform") NULL else dgraphs::graph.edges(a$graph)
     local <- if(is.null(ed)) character() else paste(ed$from,ed$to)
+    expected.counts <- matrix(NA_real_, nrow(C$pairs), 2L)
     for (row in seq_len(nrow(C$pairs))) {
       i <- C$pairs[row,1]; j <- C$pairs[row,2]
       if (method=="uniform" || paste(i,j) %in% local) { ai<-1; bj<-1 } else {
         ai <- if(j %in% a$pivots) sum(expected[j,owner==j] <= expected[j,i]/2) else 0
         bj <- if(i %in% a$pivots) sum(expected[i,owner==i] <= expected[i,j]/2) else 0
       }
-      expect_equal(c(C$count_i[row],C$count_j[row]),c(ai,bj))
-      expect_equal(C$targets[row],expected[i,j],tolerance=1e-12)
+      expected.counts[row,] <- c(ai,bj)
     }
+    # Compare every count and target, with a separate bound for each pair;
+    # no averaged matrix tolerance can hide an individual mismatch.
+    expect_equal(cbind(C$count_i,C$count_j),expected.counts,tolerance=0)
+    expected.targets <- expected[C$pairs]
+    expect_length(C$targets,length(expected.targets))
+    valid <- abs(C$targets-expected.targets) <= 1e-12*pmin(1,abs(expected.targets))
+    expect_true(all(valid),info=paste(method,'target rows:',
+      paste(which(is.na(valid) | !valid),collapse=', ')))
     expect_false(a$metadata$dense_distance_matrix_allocated)
   }
 })

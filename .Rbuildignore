@@ -59,3 +59,5 @@
 ^gmds_.*\.(aux|fdb_latexmk|fls|log|pdf|synctex\.gz)$
 
 ^build$
+^\.qa-logs$
+^inst/extdata/.*\.png$

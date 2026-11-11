@@ -16,9 +16,7 @@
 \input{stage-info.tex}
 \title{Relative-distance error and regional sparse SGD\\
 in retinal embeddings}
-\author{\small\begin{minipage}{0.94\textwidth}\centering
-Source: \path{~/current_projects/grip/vignettes/articles/retinal-relative-stress/main.tex}
-\end{minipage}}
+\author{}
 \date{Build: \reportbuilddatetime}
 \begin{document}
 \maketitle
@@ -48,11 +46,10 @@ more output coordinates are available, and why the fitting proxy can still
 give a different ranking from the all-pairs score.
 A follow-up fits the same seven lower output dimensions separately in ten
 developmental stages, using 1,500 cells per stage.
-The full 120,804-cell run remains paused at epoch 110; the experiment below
-neither continues nor replaces it.
+The full 120,804-cell run was evaluated through epoch 110. The comparisons
+below are separate experiments and do not extend that trajectory.
 
-This is an implementation study and a preliminary basis for a package vignette,
-not a literature review or a claim of optimality. Mathematical statements below
+This implementation study does not establish optimality. Mathematical statements below
 are derived from the recorded update rule; empirical statements concern this
 one subset and these starts. The first experiment's results were generated
 at \resultgenerated; the dimension sweep completed at \dimensiongenerated,
@@ -209,7 +206,7 @@ all-pairs evaluation.
 
 \section{A controlled retinal-subset experiment}
 The subset consists of 1,500 cells drawn uniformly without replacement from
-the same 120,804-row, 20-PC matrix used in the paused experiment. The PC
+the same 120,804-row, 20-PC matrix used in the full-population experiment. The PC
 matrix is subsetted, not refitted to the smaller population. Its upstream
 construction used centered, unscaled PCA of log-transformed normalized
 expression; this article does not revalidate that upstream reconstruction
@@ -273,8 +270,8 @@ rule, not numeric rate vectors, update counts, or elapsed time.
 It compares complete methods, not a single-factor ablation of asymmetry.
 
 \section{Results}
-All nine planned fits completed 500 epochs: nine succeeded, none failed,
-none were skipped or excluded. No report-only fits are counted.
+All nine fits completed 500 epochs: nine succeeded, none failed,
+none were skipped or excluded. Rendering added no fits.
 The main score below is the exact all-pairs $R$ of
 Equation~\eqref{eq:full}, without any fitted evaluation scale.
 
@@ -405,37 +402,36 @@ fit reproduces its selected interactions more closely than the 100D fit,
 yet reproduces the remaining distances less accurately. Reporting only
 the sparse proxy would reverse the ranking on the requested all-pairs score.
 
-The small experiment tests the reason for fluctuations without restarting
-the full job. It shows why stopping at epoch 100 need not reveal the outcome
-of a 500-epoch schedule. It does not predict the final error of the paused
-120,804-cell fit, nor show that increasing its landmark count is the right
-next intervention. Its saved state at epoch 110 remains the valid restart
-point; continuation should retain its original inputs, implementation
-identity checks, random state, and schedule.
+The small experiment tests the reason for fluctuations in a separate subset.
+It shows why stopping at epoch 100 need not reveal the outcome of a 500-epoch
+schedule. It does not predict the final error of the 120,804-cell fit or
+establish that increasing its landmark count would improve the result.
+Continuation from its saved state at epoch 110 requires the original inputs,
+implementation identity checks, random state and schedule.
 
 \input{stage-study.tex}
 
 \appendix
-\section{Evidence and reproduction}
+\section{Data and reproduction}
 The exact input hash, cell indices, preparation objects, starting
 coordinates, solver settings, and saved checkpoint coordinates are in the
-private result bundle \path{retinal-relative-stress-20261020}.
+original result bundle, which is not distributed with this article.
 Its protocol key begins \resultkey. Cell identifiers and raw expression
 data are not distributed with this article. The compact
 \texttt{scores.csv}, \texttt{fit-status.csv}, \texttt{preparations.csv},
 and \texttt{paired-summary.csv} beside this source support the tables
 and figures. The full source manifest and session information remain with
-the private result bundle.
+that original result bundle.
 
-The experiment used the current optimized local grip and dgraphs builds.
+The experiment used the optimized grip and dgraphs builds identified in its source manifest.
 The grip source baseline is commit \texttt{f3e570e1}; no solver code was
-modified for this comparison. The paused large fit instead uses its
+modified for this comparison. The full-population fit uses its
 recorded frozen grip source, \texttt{348b16bb}. The intervening grip changes
 add optional update tracing; tracing is disabled here. These are separate
 experiments, not interchangeable checkpoints. Source fingerprints are
 checked before and after the subset fits.
 
-Implementation evidence is in \path{R/sparse_metric_mds.R} (weights,
+The relevant implementations are in \path{R/sparse_metric_mds.R} (weights,
 normalization, proxy and terminal-coordinate policy),
 \path{R/metric_mds_sgd.R} (schedule),
 \path{src/sparse_metric_mds.cpp} (regional counts and local overrides),
@@ -457,8 +453,7 @@ include interface validation and saved-state integrity work, but exclude
 separate data/preparation construction, external evaluation, output writing,
 and figure rendering. They are not end-to-end runtime benchmarks.
 
-The additional dimension experiment has a separate private result bundle:
-\begin{quote}\small\path{retinal-dimension-sweep-pc1814-20261020}\end{quote}
+The dimension experiment has a separate result bundle, not distributed here.
 Its \texttt{prepared.rds} stores the input and shared preparation;
 dimension-specific fits store restartable states and ten-epoch score histories.
 The coordinator \texttt{dimension-sweep.py} manages workers and memory;
@@ -466,20 +461,19 @@ The coordinator \texttt{dimension-sweep.py} manages workers and memory;
 \texttt{dimension-validate.R} independently checks final errors.
 Fits completed at \dimensiongenerated, without solver changes.
 
-The report-only script \texttt{dimension-report.R} generates the vector plot,
+The rendering script \texttt{dimension-report.R} generates the vector plot,
 tables, pair-set decomposition, and stage counts. The scores are in
 \texttt{dimension-summary.csv}; companion CSV files give the decomposition
 and stage counts. These compact results accompany the source; cell identifiers,
-large objects and logs remain private. The README gives reproduction commands.
+large objects and logs are not bundled. The README gives reproduction commands.
 Rendering does not rerun optimization.
 
-The completed stage comparison is in the separate private bundle
-\begin{quote}\small\path{retinal-stage-sweep-pc1814-20261020}\end{quote}
+The stage comparison has its own result bundle, not distributed here.
 Each stage directory stores its exact sampled cells, input coordinates,
 shared preparation, and seven final optimizer states with score histories.
 The stage runner consists of \texttt{stage-sweep.py} and
 \texttt{stage-sweep.R}; \texttt{stage-report.R} independently validates
 scores and generates the figures and tables. Compact stage summary and
 preparation CSV files accompany the article. The fits completed at
-\stagegenerated. No solver code changed, and the full run stayed paused.
+\stagegenerated. No solver code changed for this comparison.
 \end{document}

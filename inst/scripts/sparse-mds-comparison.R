@@ -110,6 +110,9 @@ sparse_comparison_summary <- function(bundle) {
 # One scalar fitted to the independently evaluated distances, not a new layout.
 # Retain original error and coordinates; this diagnoses global size differences.
 sparse_comparison_profile <- function(bundle) {
+  if (!is.null(bundle$storage))
+    stop('Recomputing scores requires the complete benchmark bundle: ',
+         bundle$storage$full.bundle)
   for (key in names(bundle$fits)) {
     f <- bundle$fits[[key]]
     if (f$row$status!='ok') {

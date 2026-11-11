@@ -1,4 +1,37 @@
-# grip 0.2.0.9002 (development version)
+# grip (development version)
+
+- The package title, description, package help page and function guide now
+  present grip as a graph-embedding package. The recommended starting point
+  is metric MDS fitted by stochastic gradient descent, `metric.mds()`, with
+  its sparse mode for large graphs; multiscale GRIP layouts, `grip()`, are an
+  alternative. No function or default has changed.
+
+# grip 0.3.0
+
+- Quote the 'SuiteSparse' software name in DESCRIPTION. Reduce check time by
+  rendering the SGD gallery and the first getting-started illustration from
+  their saved 1,000-epoch fits, with unchanged
+  graphs, coordinates, seeds and stopping records and runnable reproduction
+  code. The fixed nine-layout GRIP comparison also uses its preserved fits
+  and scores. Gallery input checks allow numerical roundoff across math libraries
+  while requiring identical graph topology. Graph-catalogue and sparse-distance
+  tests collect their comparison results before reporting; every graph, property
+  and constraint pair is checked. Component counting uses path compression and
+  union by rank.
+
+- Installed guides default to static figures; interactive rendering remains
+  available with `options(grip.vignette.interactive = TRUE)`. Compact benchmark
+  bundles retain every summary record and the fixed layouts displayed in the
+  guides. Complete benchmark bundles remain in the source repository.
+- Compare classical-MDS preparation routes by their input distances and fitted
+  pairwise distances. This preserves the test's geometric contract when a
+  BLAS/LAPACK implementation chooses different axes for repeated eigenvalues.
+
+- Retain former underscore argument names in `grip()` and `edge.kk()` for one
+  transition release, including `weighted.grip.args` settings. They produce
+  the same results as the current names without deprecation warnings, allowing
+  downstream packages to migrate. Conflicting old/current spellings and unknown
+  arguments are errors. Other renamed functions and controls are unchanged.
 
 - Reduced sparse `metric.mds()` temporary memory use by computing learning-rate
   weight extrema without concatenating endpoint arrays and collecting discarded
@@ -8,7 +41,7 @@
   preserving each distance's arithmetic order. The public interface, SGD updates,
   and numerical results are unchanged.
 
-# grip 0.2.0.9001
+## Features developed since 0.2.0
 
 - Added `prepare.sparse.mds(method = "linf")` with exact original-coordinate
   nearest neighbors, internal randomized or farthest pivots, and regional
@@ -56,7 +89,8 @@
 - Breaking API change: public function and argument names now use lowercase words
   separated by dots, including control-list keys (`pair.weights`, `sgd.control`,
   `learning.rate`, and `n.pivots`). The nine `gripui_`/`run_gripui` entry points
-  also use dots. Old spellings are no longer accepted. Mathematical names `X`
+  also use dots. Except for the one-release `grip()`/`edge.kk()` argument
+  transition documented above, old spellings are no longer accepted. Mathematical names `X`
   and `scale.L0`, S3 class names, enum values, and saved result fields are unchanged.
   See `inst/API-NAMING.md` for migration examples.
 
@@ -72,7 +106,7 @@
 - Avoided repeated copying when collecting edge lengths for edge-only preparation.
 
 - Added `metric.mds(pair.weights = "inverse_squared")` for both SGD and SMACOF,
-  using the Zheng et al. (2018) graph-drawing stress weights. Uniform weighting
+  using the Zheng et al. (2019) graph-drawing stress weights. Uniform weighting
   remains the default. Fitting, start selection, scaling, and reported stress
   consistently use the selected weights; inverse-squared weighting requires
   positive off-diagonal distances.

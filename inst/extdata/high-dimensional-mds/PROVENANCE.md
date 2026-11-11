@@ -24,7 +24,7 @@ There are 244 original score rows and 72 corrected time-comparison rows.
 
 No fit, coordinate scaling, input repair, or timing measurement occurs during
 extraction. `source-hashes.csv` lists each imported source's relative path,
-byte count and SHA-256 identity checked against the study evidence manifest.
+byte count and SHA-256 identity checked against the original study manifest.
 The builder independently recomputes full uniform normalized stress for all
 60 saved 3D configurations before saving the bundle. RDS version 2 with xz
 compression is used; a round-trip identity check is mandatory.

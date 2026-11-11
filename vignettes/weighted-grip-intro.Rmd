@@ -25,10 +25,15 @@ comparisons; they are not an automatic large-graph pipeline.
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE, comment='#>', fig.width=9, fig.height=5,
                      out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
 
 An edge length specifies a desired traversal cost or separation. It differs
 from a connection strength, and from the weight assigned to a distance error

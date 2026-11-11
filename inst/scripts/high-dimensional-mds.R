@@ -3,7 +3,8 @@
 source(system.file('scripts','metric-mds-comparison.R',package='grip'),local=TRUE)
 
 highdim.available <- function() {
-  isTRUE(getOption('grip.vignette.interactive',TRUE)) &&
+  isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
     requireNamespace('ivue',quietly=TRUE) && requireNamespace('rgl',quietly=TRUE) &&
     all(c('plot3D.groups','layer3D.callback','layer3D.axes','camera.zup') %in%
           getNamespaceExports('ivue')) &&
@@ -11,11 +12,6 @@ highdim.available <- function() {
 }
 
 highdim.view <- function(case) {
-  if (!highdim.available()) return(knitr::asis_output(paste(
-    '\n\nInteractive view unavailable: install ivue with plot3D.groups(),',
-    'layer3D.callback(), layer3D.axes(), camera.zup(), and limits support,',
-    'plus rgl, then rebuild with options(grip.vignette.interactive=TRUE).',
-    'The numerical tables remain available. No static substitute is drawn.\n\n')))
   z <- case$coords
   labels <- c(direct_3='Direct 3D MDS',classical_3='Classical MDS',
               classical_refined_3='Classical MDS + 3D refinement')
@@ -46,6 +42,32 @@ highdim.view <- function(case) {
   # no effect on the full-distance fits or exact stress tables.
   edges <- if(grepl('ambient$',case$id)) matrix(integer(),0,2) else case$edges
   if(nrow(edges)>2500L) edges <- edges[unique(round(seq(1,nrow(edges),length.out=2500L))),,drop=FALSE]
+  if (!highdim.available()) {
+    selected <- c('direct_3', 'classical_3', 'classical_refined_3',
+                  'pca_10', 'refined_10')
+    xy <- lapply(z[selected], grip::project.3d, azimuth=35, elevation=22)
+    reference <- grip::project.3d(target, azimuth=35, elevation=22)
+    bounds <- rbind(reference, do.call(rbind, xy))
+    old <- graphics::par(mfrow=c(2,3), mar=c(1,1,3,1))
+    on.exit(graphics::par(old), add=TRUE)
+    for (name in selected) {
+      q <- xy[[name]]
+      graphics::plot(bounds, type='n', asp=1, axes=FALSE, xlab='', ylab='',
+                     main=labels[[name]])
+      if (!is.null(case$reference)) graphics::points(reference,pch=16,cex=.25,col='gray70')
+      if(nrow(edges)) graphics::segments(q[edges[,1],1],q[edges[,1],2],
+        q[edges[,2],1],q[edges[,2],2],col='#1769AA55',lwd=.5)
+      graphics::points(q,pch=16,cex=.3,col='#1769AA')
+    }
+    graphics::plot.new()
+    graphics::text(.5,.6,'Same projection and display scale',cex=.9)
+    graphics::text(.5,.4,'All vertices retained; saved scores unchanged',cex=.8)
+    return(knitr::asis_output(paste(
+      '\n\nStatic panels compare the three direct routes with the 10D PCA routes.',
+      'Tables retain every evaluated dimension. Set',
+      '`options(grip.vignette.interactive = TRUE)` with ivue and rgl installed',
+      'to inspect all layouts interactively.\n\n')))
+  }
   colors <- setNames(ifelse(grepl('refined_',names(z)),'#009E73',
                     ifelse(grepl('pca_',names(z)),'#D66A19','#1769AA')),unname(labels))
   fits <- lapply(z,function(x) list(coords=x))

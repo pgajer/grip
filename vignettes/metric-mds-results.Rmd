@@ -25,7 +25,7 @@ table { width: 100%; }
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = '#>', fig.width = 9,
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse = TRUE, comment = '#>', fig.width = 9,
                      fig.height = 4, out.width = '100%')
 library(grip)
 recipe <- system.file('scripts', 'metric-mds-comparison.R', package = 'grip')
@@ -38,17 +38,25 @@ last <- rows[rows$budget == 100L & rows$status == 'ok', ]
 paired <- merge(last[last$backend == 'sgd', c('case','seed','error')],
                 last[last$backend == 'smacof', c('case','seed','error')],
                 by = c('case','seed'), suffixes = c('.sgd','.smacof'))
-have.ivue <- isTRUE(getOption('grip.vignette.interactive', TRUE)) &&
+have.ivue <- isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
   requireNamespace('ivue', quietly = TRUE) && requireNamespace('rgl', quietly = TRUE) &&
   all(c('plot3D.groups','color.scale.groups','layer3D.callback','layer3D.axes','camera.zup') %in% getNamespaceExports('ivue')) &&
   'limits' %in% names(formals(ivue::plot3D.plain))
 ```
 
+The installed benchmark bundle retains every attempted-fit summary, including
+failures, scores and timings, and the fixed seed-1 layouts shown here. Complete
+layouts and evaluation targets are retained in the source checkout under
+`tools/pkg/fixtures/documentation-data/` for independent recomputation.
+Static figures are used by default; set `options(grip.vignette.interactive = TRUE)`
+with ivue and rgl installed to render the interactive views.
+
 ## What is being compared?
 
 `metric.mds()` fits Euclidean coordinates to graph shortest-path distances.
 Its default `backend = "sgd"` uses native stochastic gradient descent (SGD),
-based on [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+based on [Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997),
 with the default learning-rate schedule following
 [Hangan, Kobourov and Miller (2026)](https://arxiv.org/abs/2605.00641).
 SGD visits pairs of points in a randomly shuffled order, moving each pair
@@ -69,7 +77,7 @@ S(Z) = \sum_{i<j} \bigl(\lVert z_i-z_j\rVert-d_{ij}\bigr)^2.
 \]
 
 Both also support `pair.weights = "inverse_squared"`, the graph-drawing
-weighting used by [Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+weighting used by [Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997).
 The [weighting comparison](#the-effect-of-stress-weighting) below shows how
 this changes the fitted layouts. The original 420-fit comparison uses uniform
 weighting throughout.
@@ -200,7 +208,7 @@ rotation and reflection only: scale, fitted distances and stress stay unchanged.
 A closer surface overlay therefore
 does not mean that corresponding vertices or the original geometry were recovered.
 
-Each 3D figure has a layout selector below it. Choose SGD, SMACOF, or both;
+In interactive rendering, each 3D figure has a layout selector below it. Choose SGD, SMACOF, or both;
 the gray generating reference stays visible. In the stress-weighting examples,
 choose one backend and weighting combination or all layouts. Changing the
 selection keeps the same camera, alignment and scale. Drag to rotate and scroll
@@ -227,7 +235,7 @@ comparison_view(case, fits, show = 'overlay', surface.alignments = surface$regis
 `plot3D.groups()`, `layer3D.callback()`, `layer3D.axes()`
 and `camera.zup()` methods
 build these views. It does not fit or modify the embeddings. Set
-`options(grip.vignette.interactive = FALSE)` before rendering to use saved
+`options(grip.vignette.interactive = FALSE)` (the default) before rendering to use saved
 images where available, even when ivue is installed. Overlapping colors may hide very close
 fits; use the selector to inspect them separately.
 
@@ -413,7 +421,7 @@ for (id in names(weighting.bundle$cases)) {
 
 `metric.mds(approximation = "sparse")` uses representative vertices (pivots) to approximate
 long-range interactions while retaining graph edges. It implements the sparse
-SGD method of [Zheng et al. (2018)](https://doi.org/10.1109/TVCG.2018.2859997),
+SGD method of [Zheng et al. (2019)](https://doi.org/10.1109/TVCG.2018.2859997),
 based on [Ortmann et al. (2017)](https://doi.org/10.7155/jgaa.00440), with
 inverse-squared weighting and no all-pairs distance preparation.
 
@@ -448,7 +456,7 @@ recreating the figures are in the
 
 ## References
 
-- Zheng, J. X., Pawar, S. and Goodman, D. F. (2018).
+- Zheng, J. X., Pawar, S. and Goodman, D. F. (2019).
   *Graph Drawing by Stochastic Gradient Descent*.
   [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
 - Hangan, D., Kobourov, S. and Miller, J. (2026).

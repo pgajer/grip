@@ -1,20 +1,33 @@
-#' grip: Graph dRawing with Intelligent Placement
+#' grip: Graph Embedding by Metric Multidimensional Scaling and GRIP
 #'
-#' Fast multiscale graph layouts in 2D and 3D.
+#' Embeds graphs in Euclidean space and helps assess how well the resulting
+#' coordinates preserve graph distances and local structure.
 #'
-#' Use \code{\link{grip}()} to draw a graph, then
-#' \code{\link{score.layout}()} to assess the result.
+#' The package offers two main ways to compute coordinates.
+#' \code{\link{metric.mds}()} fits the coordinates to shortest-path distances
+#' by metric multidimensional scaling, by default with stochastic gradient
+#' descent; its sparse mode avoids a full matrix of pairwise distances on
+#' larger graphs. This is the recommended starting point. As an alternative,
+#' \code{\link{grip}()} computes a multiscale GRIP (Graph dRawing with
+#' Intelligent Placement) layout in two or three dimensions. In both cases,
+#' use \code{\link{score.layout}()} to assess the result.
 #'
 #' @section Start here:
 #' Open \code{vignette("grip-examples", package = "grip")} for a small
 #' complete workflow, or \code{vignette("function-guide", package = "grip")}
-#' to choose functions by task. The example below draws a 20-vertex mesh and
-#' prints sampled graph-distance stress: zero means perfect agreement on the
-#' sampled pairs after fitting a common scale, not a certificate for every pair.
+#' to choose functions by task. For a first embedding of your own graph, call
+#' \code{metric.mds(edges = edges, n = n, dim = 3, backend = "sgd")}, and add
+#' \code{approximation = "sparse"} when the graph is too large for a full
+#' matrix of pairwise distances. The example below uses the alternative
+#' \code{grip()} to draw a 20-vertex mesh and prints its sampled
+#' graph-distance stress. A stress of
+#' zero means perfect agreement, after fitting a common scale, on the pairs
+#' of vertices that were sampled; it says nothing about the other pairs.
 #'
-#' Use \code{metric = "hop"} for connectivity or
-#' \code{metric = "edge_length"} when positive lengths define the graph
-#' metric. See \code{vignette("weighted-grip-intro", package = "grip")}.
+#' In \code{grip()}, use \code{metric = "hop"} to lay out a graph by its
+#' connectivity alone, or \code{metric = "edge_length"} when positive edge
+#' lengths define the distances. See
+#' \code{vignette("weighted-grip-intro", package = "grip")}.
 #'
 #' @section Find the next workflow:
 #' \describe{
@@ -31,18 +44,22 @@
 #' \code{packageVersion("grip")} when using development documentation.
 #'
 #' @section Advanced refinement:
-#' The public experimental edge-KK and geodesic-KK helpers provide
-#' weighted-layout evaluation and refinement. Choose these through the
-#' function guide after trying the main layout, scoring, and tracing workflows.
+#' The edge-KK and geodesic-KK functions evaluate and refine layouts of
+#' graphs with edge lengths. They are exported but experimental. Try the main
+#' layout, scoring, and tracing functions first, and consult the function
+#' guide before using them.
 #'
 #' @section Graph input validation:
-#' Vertex indices and counts must be finite integers within the R integer
-#' range. Adjacency must be reciprocal with matching lengths and multiplicity.
-#' Self-loops are rejected; remove them explicitly. Supply either \code{edges}/\code{edge.weights} or
-#' \code{adj.list}/\code{weight.list}, not both. Functions accepting a
-#' \code{prepared} graph reject additional raw graph inputs; an explicit
-#' \code{n} must match the stored vertex count. Rebuild the preparation when
-#' changing topology, vertex order, or edge lengths.
+#' Vertex indices and vertex counts must be finite integers within the range
+#' of R integers. In an adjacency list, every edge must be listed from both
+#' of its ends, with the same length and the same number of copies.
+#' Self-loops are not accepted; remove them before calling a function. Give
+#' a graph either as \code{edges} with \code{edge.weights} or as
+#' \code{adj.list} with \code{weight.list}, not both. A function that takes a
+#' \code{prepared} graph does not accept these inputs in addition, and an
+#' explicit \code{n} must equal the number of vertices in the prepared graph.
+#' If the edges, the order of the vertices, or the edge lengths change,
+#' prepare the graph again.
 #'
 #' @section GMDS thread control:
 #' The internal compiled GMDS optimizer, also used by the GMDS exploration

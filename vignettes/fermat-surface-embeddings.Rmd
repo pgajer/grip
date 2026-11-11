@@ -8,7 +8,7 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',fig.width=8,fig.height=5,warning=FALSE,message=FALSE)
+knitr::opts_chunk$set(fig.retina=1, dpi=72, collapse=TRUE,comment='#>',fig.width=8,fig.height=5,warning=FALSE,message=FALSE)
 available <- all(vapply(c('dgraphs','igraph','plotly'),requireNamespace,logical(1),quietly=TRUE))
 available <- available && file.exists(system.file('examples','fermat-surfaces.R',package='dgraphs')) &&
   'return.graph' %in% names(formals(dgraphs::fermat.distances)) &&
@@ -19,7 +19,7 @@ knitr::opts_chunk$set(eval=available && run.experiment)
 ```
 
 ```{r dependencies,echo=FALSE,eval=TRUE,results='asis'}
-if(!available) cat('This executable example requires development versions of dgraphs and grip with the direct distance and supporting-graph APIs, plus igraph and plotly. Install these dependencies to render the calculated examples.\n')
+if(!available) cat('This executable example requires dgraphs 0.4.0 or later and grip 0.3.0 or later, plus igraph and plotly. Install these dependencies to render the calculated examples.\n')
 if(available && !run.experiment) cat('The reference-geodesic calculations are an explicit reproduction step. Set GRIP_RUN_FERMAT_EXPERIMENT=true to run them, or FERMAT_SURFACE_RESULTS to a directory containing the saved results. Routine package builds show the code without rerunning this experiment.\n')
 ```
 
@@ -36,7 +36,7 @@ disk. The existing dgraphs sampler draws uniformly with respect to **surface
 area**, using the area element of the graph surface; we do not replace it with
 uniform sampling of the two parameter coordinates.
 
-```{r dense-example}
+```{r dense-example,purl=FALSE}
 library(grip)
 s <- dgraphs::sample.synthetic.geometry(
   dgraphs::synthetic.quadform(2,3,forms=list(diag(c(1,-1)))),
@@ -67,7 +67,7 @@ component is embedded. All within-component graph shortest-path distances are
 supplied as a dense matrix; this isolates **graph restriction**, without adding
 a landmark approximation to this small example.
 
-```{r shared, include=FALSE}
+```{r shared, include=FALSE,purl=FALSE}
 source(Sys.getenv('FERMAT_SURFACE_HELPER',
   unset=system.file('examples','fermat-surfaces.R',package='dgraphs')))
 cache.root <- Sys.getenv('FERMAT_SURFACE_RESULTS')
@@ -102,7 +102,7 @@ on 1,000 sampled pairs using `best_of_six` for both surfaces, with
 `paraboloid_clairaut` on the same paraboloid pairs. Each of the six refinement
 searches receives 64 rounds; no global-optimality certificate is implied.
 
-```{r comparison-table, echo=FALSE}
+```{r comparison-table, echo=FALSE,purl=FALSE}
 knitr::kable(metrics[metrics$k==0,c('shape','p','distance_nrmse','embedding_nrmse',
  'embedded_geodesic_nrmse')],digits=3,col.names=c('Example','p',
  'Input vs geodesic','Embedding vs input','Embedding vs geodesic'))
@@ -112,7 +112,7 @@ Table 1. Dense-target fits. The two geodesic columns allow a global scale change
 the embedding-versus-input column does not. A good MDS fit can faithfully reproduce
 an inaccurate geodesic estimator, and these columns distinguish those cases.
 
-```{r k-comparison, echo=FALSE}
+```{r k-comparison, echo=FALSE,purl=FALSE}
 old<-par(mfrow=c(1,3),mar=c(4,4,2,1))
 for(shape in unique(metrics$shape)) {
  z<-metrics[metrics$shape==shape,]
@@ -128,7 +128,7 @@ intrinsic reference. The point at k=0 is the complete-target baseline; points at
 k=3--10 are restricted graphs. Connecting segments help follow powers and do not
 represent fits at untested k values. Disconnected results use fewer pairs:
 
-```{r coverage,echo=FALSE}
+```{r coverage,echo=FALSE,purl=FALSE}
 z<-metrics[metrics$components>1,]
 knitr::kable(aggregate(cbind(retained,components,reference_pairs)~shape+p,z,range))
 ```
@@ -149,21 +149,21 @@ residual per retained sample, in target-coordinate units (zero is exact overlap)
 Alignment
 changes only display coordinates; numerical errors above use the original fits.
 
-```{r paraboloid,echo=FALSE}
+```{r paraboloid,echo=FALSE,purl=FALSE}
 fermat.surface.overlay(results[[1]],p=2,k=0)
 ```
 
 **Figure 2.** Dense p=2 Fermat embedding on the paraboloid. Rotate the interactive
 view to inspect displacements from the gray surface.
 
-```{r saddle,echo=FALSE}
+```{r saddle,echo=FALSE,purl=FALSE}
 fermat.surface.overlay(results[[2]],p=2,k=0)
 ```
 
 **Figure 3.** Dense p=2 Fermat embedding on the saddle, with its supporting paths.
 An intrinsic metric need not have an exact three-dimensional Euclidean realization.
 
-```{r restricted,echo=FALSE}
+```{r restricted,echo=FALSE,purl=FALSE}
 fermat.surface.overlay(results[[2]],p=2,k=3)
 ```
 
@@ -181,14 +181,14 @@ one-dimensional realization. Fitting those distances in three coordinates should
 produce a nearly straight line, not reconstruct the coil. Three-dimensional
 metric MDS compares straight distances, not travel constrained to a curve.
 
-```{r helix,echo=FALSE}
+```{r helix,echo=FALSE,purl=FALSE}
 fermat.surface.overlay(results[[3]],p=2,k=0)
 ```
 
 **Figure 5.** Dense p=2 Fermat embedding over the original helix. Agreement with the
 coil is not the success criterion for intrinsic-distance reconstruction.
 
-```{r helix-baseline,echo=FALSE}
+```{r helix-baseline,echo=FALSE,purl=FALSE}
 h<-results[[3]]; b<-h$geodesic_baseline
 knitr::kable(data.frame(target='Exact helix arc length',
  embedding_error=fermat.surface.score(as.matrix(dist(b$coords))[lower.tri(b$target)],
@@ -225,7 +225,7 @@ ratio $g_r/c_r$. Errors are dimensionless and zero means agreement. The ratio
 is one for equal lengths; 1.3 means the geodesic is 30% longer than its chord.
 These are the 1,000 evaluated pairs for seed 4101, not all sample pairs.
 
-```{r chord-audit,echo=FALSE}
+```{r chord-audit,echo=FALSE,purl=FALSE}
 chord.audit <- do.call(rbind,lapply(results,function(r) {
  ij<-r$reference$pairs; g<-r$reference$distances
  c<-sqrt(rowSums((r$sample$predictors[ij[,1],]-r$sample$predictors[ij[,2],])^2))
@@ -246,7 +246,7 @@ Independent solver checks are attempts, not guaranteed successes. Candidate
 lengths and close agreement where both solvers succeed do not certify global
 minimality. The table below makes the successful comparison count explicit.
 
-```{r reference-success,echo=FALSE}
+```{r reference-success,echo=FALSE,purl=FALSE}
 knitr::kable(do.call(rbind,lapply(results,function(r) {
  v<-r$reference$check.distances
  data.frame(Example=r$sample$shape,Attempted=length(v),Finite=sum(is.finite(v)),
@@ -260,7 +260,7 @@ Best-of-six and Clairaut evaluate the same 1,000 pairs. Positive signed relative
 difference $(b_r-h_r)/h_r$ means the best-of-six candidate $b_r$ is longer than
 the Clairaut candidate $h_r$. Neither is assumed globally certified.
 
-```{r clairaut-comparison,echo=FALSE}
+```{r clairaut-comparison,echo=FALSE,purl=FALSE}
 r<-results[[1]]; b<-r$reference$distances; h<-r$reference$check.distances
 ok<-is.finite(b)&is.finite(h)&h>0; delta<-(b[ok]-h[ok])/h[ok]
 knitr::kable(data.frame(Pairs=sum(ok),Median.signed=median(delta),

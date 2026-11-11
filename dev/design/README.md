@@ -1,8 +1,7 @@
 # grip Design Documents
 
-Public technical design notes, benchmark specifications, and prototypes,
-organized by topic. Internal execution plans and task handoffs are not repository
-inputs and are maintained separately.
+Technical design notes, benchmark specifications, and prototypes, organized
+by topic. User-facing methods and examples are documented in the package guides.
 
 ## Topic directories
 

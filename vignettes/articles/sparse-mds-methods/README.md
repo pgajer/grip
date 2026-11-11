@@ -1,84 +1,86 @@
-# Sparse metric MDS: implementation and validation
+# Sparse metric MDS: methods and synthetic validation
 
-[Methods note PDF](methods.pdf) · [LaTeX source](methods.tex) · [Citation verification](citation_verification.html) · [Build manifest](build_manifest.json)
+[LaTeX source](methods.tex) · [Scores](results/fits.csv) · [Provenance](results/provenance.json)
 
-Implemented October 7, 2026 in the local `grip` and `dgraphs` source packages.
-The methods note has no abstract. It covers uniform landmarks, Euclidean regional
-sparse stress and graph-geodesic regional sparse stress, including internally
-selected pivots and regional weights. Component-MST repair streams distances
-without retaining a full distance matrix. Its worst-case distance work remains
-quadratic. Dense calculations occur only in the deliberately small references.
+This note describes uniform landmarks, Euclidean regional sparse stress and
+graph-geodesic regional sparse stress as implemented on October 7, 2026 in
+`grip` and `dgraphs`. It covers internally selected pivots, regional weights and
+component-MST repair. Repair streams distances without retaining a full distance
+matrix, but its worst-case distance work remains quadratic. Dense calculations
+occur only in the deliberately small references.
 
-The final validation completed 288/288 fits on four 120-point quadratic forms:
+The experiment completed 288/288 fits on four 120-point quadratic forms:
 latent dimensions 2 and 3, index 0 and 1, outputs 2 and 3, three seeds,
 16 pivots, q=5/10/20 and 100 SGD epochs with the published weight-based schedule.
-The report shows all cases and distinguishes Euclidean from geodesic targets.
-It does not establish convergence, large-data performance or V4 parameter adequacy.
+The note distinguishes Euclidean from geodesic targets. These results establish
+neither convergence nor large-data performance or V4 parameter adequacy.
 
 A [retinal relative-stress article](../retinal-relative-stress/README.md)
-examines a separate question: how the asymmetric regional update rule and its
-reported proxy differ from all-pairs relative stress. Its small-data comparison
-uses common starting coordinates, exact all-pairs evaluation, and 500-epoch
-SGD trajectories.
+examines how the asymmetric regional update rule and its reported proxy differ
+from all-pairs relative stress. Its small-data comparison uses common starting
+coordinates, exact all-pairs evaluation and 500-epoch SGD trajectories.
 
-## Evidence
+## Saved scientific results
 
-- [Final results and saved preparations](../../../output/sparse-mds-methods/validation_2026-10-07_final/validation.rds), [288 scores](../../../output/sparse-mds-methods/validation_2026-10-07_final/fits.csv), [source fingerprints](../../../output/sparse-mds-methods/validation_2026-10-07_final/source_manifest.csv), [session information](../../../output/sparse-mds-methods/validation_2026-10-07_final/session-info.txt).
-- [Figures 1–4: primary comparisons](../../../output/sparse-mds-methods/error-comparison.pdf) and [Figures 5–8: paired neighborhood sensitivity](../../../output/sparse-mds-methods/neighborhood-sensitivity.pdf). Seed ranges are descriptive, not confidence intervals.
-- [Full grip tests: 6,665 passed](../../../output/sparse-mds-methods/grip_full_tests_final.log); [dgraphs focused tests: 112 passed](../../../output/sparse-mds-methods/dgraphs_tests_final_corrected.log).
-- [Final execution log](../../../output/sparse-mds-methods/validation_dispatch_final.log): 41.12 s serial process wall time, 443,318,272 bytes maximum resident memory, including small dense references and saved outputs.
-- [Package check blocker](../../../output/sparse-mds-methods/check_fast.log): the existing `inst/extdata/hmp_u01_gc_coarse/weighted_layouts.rds` contains a personal path; repository hygiene stopped `make check-fast` before package build. That unrelated object was preserved. No CRAN-readiness claim is made.
+- [All 288 scores](results/fits.csv), [graph diagnostics](results/graphs.csv),
+  [PCA baselines](results/pca-baselines.csv), [paired comparisons](results/paired_comparisons.csv),
+  [summary statistics](results/summary.csv), and [neighbor agreement](results/neighbor-agreement.csv).
+- [Figures 1–4: primary comparisons](results/error-comparison.pdf) and
+  [Figures 5–8: paired neighborhood sensitivity](results/neighborhood-sensitivity.pdf).
+  Seed ranges are descriptive, not confidence intervals.
+- [Benchmark-era source fingerprints](results/source_manifest.csv) retain the
+  original MD5 identities with paths relative to a common parent of the package
+  checkouts. [Result provenance](results/provenance.json) records the generation
+  time and SHA-256 checksums of the bundled tables and figures.
 
-The first benchmark dispatch failed before fitting because exports were stale.
-An initial successful benchmark remains in `validation_2026-10-07_exported`.
-A projected-coincidence unit test later exposed an overly strict search-coordinate
-validator; after correction the final benchmark was repeated with source hashes.
-Test-harness failures and export-inventory updates are preserved in the logs.
-The final source/library hashes were checked both before and after fitting and
-are checked again by the note builder. The production data were not analyzed.
+At that benchmark revision, 6,665 grip checks and 112 focused dgraphs checks
+passed without failures, warnings or skips. The final run included corrected
+handling of coincident PCA scores for distinct original observations. Source
+and compiled-library hashes were stable throughout the run. These historical
+checks do not establish the status of subsequent package revisions.
 
-## Reproduce
+The final R process took 41.12 seconds of serial wall time and 443,318,272 bytes
+(422.8 MiB) of maximum resident memory. This includes loading, preparation,
+small dense references, fitting, scoring and result saving; it excludes native
+compilation and rendering. It is not a sparse-only memory benchmark.
 
-Use local source packages, with optimized native libraries compiled by
-`pkgbuild::compile_dll(debug=FALSE, force=TRUE)` in each package, then
-`pkgload::load_all(..., recompile=FALSE)`. Generate documentation with
-`make document` before loading the new exported interface. Installed older
-versions do not contain these extensions.
+## Render the frozen results
 
-From `~/current_projects/vaginal_microbiome`, the benchmark dispatch was:
-
-```sh
-python3 scripts/storage_retention_v4.py run --local-peak-gib 2 --external-peak-gib 0 -- \
-  /usr/bin/time -l Rscript ../grip/inst/scripts/sparse-mds-methods-validation.R \
-  ../grip ../grip/output/sparse-mds-methods/validation_2026-10-07_final
-```
-
-For a new scientific rerun, choose a new output directory; the runner refuses
-to overwrite an existing completed score table. Data seeds are
-`20261020 + 10*d + index`, preparation seeds `20261030 + 1:3`, fitting seeds
-`1:3`; initialization is matched across methods within each case, dimension and
-seed. All settings and input coordinates are saved.
-
-From the `grip` root, regenerate figures and render the note without rerunning fits:
+From this directory, with `NOTE_OUTPUT` set to a directory outside the source tree:
 
 ```sh
-Rscript --vanilla tools/pkg/summarize-sparse-methods.R \
-  output/sparse-mds-methods/validation_2026-10-07_final output/sparse-mds-methods
-python3 vignettes/articles/sparse-mds-methods/build_report.py --pdf
+python3 build_report.py --pdf --output-dir "$NOTE_OUTPUT"
 ```
 
-The builder regenerates result tables, refreshes the Eastern build timestamp,
-checks saved implementation fingerprints, compiles twice, runs the citation gate
-and writes SHA-256 fingerprints. Without `--pdf`, it refreshes the source for the
-built-in editor. The citation gate is also available through `make citation-check`
-in this note directory. Use the built-in `.tex` editor for source and live preview.
-The linked figure supplements are separate PDFs so the main source remains
-standalone for the native compiler.
+The builder checks the saved result checksums, regenerates the numerical tables,
+and compiles the note twice. It copies the supplements beside the exported PDF
+and writes build records to the requested output directory. Rendering does not
+run fits or test the current implementation against the historical results.
+Python 3.9 or later and a LaTeX installation with the packages named in
+`methods.tex` are required. Omit `--pdf` to refresh only the source and supporting
+files. A citation check can be run with an independently maintained evidence file:
 
-The later schedule-documentation clarification changed comments in
-`R/metric_mds.R` without changing its parsed R expressions. The exact benchmark-era
-source is preserved in `output/sparse-mds-methods/documentation_revision_2026-10-07/`.
-The builder accepts this documented difference only after checking the archived
-file against the original run hash and independently verifying identical parsed
-expressions; the build manifest records both hashes. Other implementation
-changes still fail the source check.
+```sh
+make citation-check CITATION_EVIDENCE="$CITATION_EVIDENCE" BUILD_DIR="$NOTE_OUTPUT"
+```
+
+## Run a new scientific experiment
+
+Use the `grip` and `dgraphs` source checkouts. Compile optimized native libraries
+with `pkgbuild::compile_dll(debug=FALSE, force=TRUE)`, then load them with
+`pkgload::load_all(..., recompile=FALSE)`. From the grip root, with `RESULT_DIR`
+set to a new output directory:
+
+```sh
+Rscript --vanilla inst/scripts/sparse-mds-methods-validation.R "$PWD" "$RESULT_DIR"
+Rscript --vanilla tools/pkg/summarize-sparse-methods.R "$RESULT_DIR" "$RESULT_DIR"
+```
+
+The runner refuses to overwrite an existing completed score table. Data seeds
+are `20261020 + 10*d + index`, preparation seeds `20261030 + 1:3`, and fitting
+seeds `1:3`; initialization is matched across methods within each case,
+dimension and seed. Settings, input coordinates, preparations, layouts, source
+identities and session information are saved by the runner. Compare a new run
+with the frozen results separately: current source versions can differ from
+the benchmark-era implementation, and the frozen tables must not be silently
+replaced with new measurements.

@@ -14,7 +14,7 @@ test_that("public functions and parameters use the package naming convention", {
   expect_true(is.function(getS3method("print", "grip_misf")))
 })
 
-test_that("obsolete public names are rejected rather than aliased", {
+test_that("obsolete names outside the transition interfaces remain rejected", {
   old.functions <- c("gripui_app", "gripui_family_app", "gripui_graph_family_catalog",
     "gripui_project", "gripui_project_from_compare", "gripui_project_from_dir",
     "gripui_validate_project", "run_gripui", "run_gripui_family")
@@ -22,7 +22,7 @@ test_that("obsolete public names are rejected rather than aliased", {
   expect_true(all(gsub("_", ".", old.functions, fixed = TRUE) %in% getNamespaceExports("grip")))
   expect_error(metric.mds(max_iter = 1), "unused argument")
   expect_error(metric.mds(pair_weights = "uniform"), "unused argument")
-  expect_error(grip(edge_weights = 1), "unused argument")
+  expect_error(grip(edge_weight = 1), "unused argument")
   expect_error(gripui.app(layout_source = "x"), "unused argument")
   expect_error(metric.mds(edges = edges.path(4), sgd.control = list(learning_rate = .5)),
     "documented controls")
@@ -33,7 +33,7 @@ test_that("obsolete public names are rejected rather than aliased", {
   expect_error(compare.layouts(edges = edges.path(4), search = list(final_rounds = 2)),
     "unsupported layout arguments")
   expect_error(edge.kk(edges = edges.path(4), init = "weighted_grip",
-    weighted.grip.args = list(final_rounds = 2)), "unknown arguments")
+    weighted.grip.args = list(final_round = 2)), "unknown arguments")
 })
 
 test_that("new controls work and saved graph fields keep their schema", {

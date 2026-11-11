@@ -26,8 +26,12 @@ Figure alignment permits translation and orthogonal rotation/reflection, not sca
 Timing is platform-specific; these small examples do not establish large-data scaling.
 
 The published measurements use a clean optimized (`-O2`) installation. The
-previous unoptimized attempt remains a separate private diagnostic record and
-is disclosed in the saved protocol; it is not mixed into these results.
+earlier unoptimized attempt is identified in the saved protocol and excluded
+from these results.
 Execution-time source fingerprints are retained. The protocol also stores the
 exact fitting/fixture function source; subsequent script changes improve plots
 and dependency preflight checks without changing those numerical functions.
+
+The installed bundle retains all summary records and seed-1, budget-100 display
+layouts. Complete frozen fits are retained in the source checkout at
+`tools/pkg/fixtures/documentation-data/metric-mds-comparison/benchmark.rds`.

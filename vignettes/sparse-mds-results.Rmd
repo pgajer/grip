@@ -26,20 +26,28 @@ table { width: 100%; }
 
 ```{r setup, include=FALSE}
 library(grip)
-knitr::opts_chunk$set(collapse=TRUE,comment='#>',out.width='100%')
+knitr::opts_chunk$set(dev="jpeg", dev.args=list(quality=90), fig.retina=1, dpi=72, collapse=TRUE,comment='#>',out.width='100%')
 source(system.file('scripts','vignette-views.R',package='grip'),local=TRUE)
 source(system.file('scripts','metric-mds-surface-alignment.R',package='grip'),local=TRUE)
 source(system.file('scripts','sparse-mds-comparison.R',package='grip'),local=TRUE)
 bundle <- readRDS(system.file('extdata','sparse-mds-comparison','benchmark.rds',package='grip'))
 rows <- sparse_comparison_rows(bundle)
 summary <- sparse_comparison_summary(bundle)
-have.ivue <- isTRUE(getOption('grip.vignette.interactive',TRUE)) &&
+have.ivue <- isTRUE(getOption('grip.vignette.interactive',
+    identical(Sys.getenv("IN_PKGDOWN"), "true"))) &&
   requireNamespace('ivue',quietly=TRUE) && requireNamespace('rgl',quietly=TRUE) &&
   'layer3D.callback' %in% getNamespaceExports('ivue') &&
   'limits' %in% names(formals(ivue::plot3D.plain))
 method_label <- function(x) ifelse(x=='full','Full SGD',ifelse(x=='grip','Weighted GRIP',
   paste('Sparse SGD:',sub('sparse','',x),'pivots')))
 ```
+
+The installed benchmark bundle retains every attempted-fit summary, including
+failures, scores and timings, and the fixed seed-1 layouts shown here. Complete
+layouts and evaluation targets are retained in the source checkout under
+`tools/pkg/fixtures/documentation-data/` for independent recomputation.
+Static figures are used by default; set `options(grip.vignette.interactive = TRUE)`
+with ivue and rgl installed to render the interactive views.
 
 ## From all pairs to representative vertices
 
@@ -50,7 +58,7 @@ vertices, called **pivots**. A pivot's contribution depends on the nearby
 vertices it represents. This is the sparse model of
 [Ortmann, Klimenta and Brandes (2017)](https://doi.org/10.7155/jgaa.00440),
 with the SGD updates of
-[Zheng, Pawar and Goodman (2018)](https://doi.org/10.1109/TVCG.2018.2859997).
+[Zheng, Pawar and Goodman (2019)](https://doi.org/10.1109/TVCG.2018.2859997).
 
 With `n` vertices, `m` edges and `h` pivots, storage and work per fitting pass
 are proportional to roughly `m + n*h`, rather than all `n*(n-1)/2` pairs.
@@ -123,7 +131,7 @@ nine area-weighted samples per triangle. For the 4,096-vertex saddle, the origin
 registration. All vertices and edges remain in the display. The original and
 scale-adjusted error tables are unchanged by this alignment.
 
-Use the **Layout** selector below each 3D figure to show one method or all
+In interactive rendering, use the **Layout** selector to show one method or all
 layouts together. Generating coordinates remain visible where available.
 Drag to rotate and scroll to zoom; switching layouts preserves the camera and
 scale.
@@ -179,7 +187,7 @@ for rendering the saved 3D views.
 - Ortmann, M., Klimenta, M., and Brandes, U. (2017). *A Sparse Stress Model*.
   Journal of Graph Algorithms and Applications, 21(5), 791–821.
   [doi:10.7155/jgaa.00440](https://doi.org/10.7155/jgaa.00440).
-- Zheng, J. X., Pawar, S., and Goodman, D. F. M. (2018).
+- Zheng, J. X., Pawar, S., and Goodman, D. F. M. (2019).
   *Graph Drawing by Stochastic Gradient Descent*.
   [doi:10.1109/TVCG.2018.2859997](https://doi.org/10.1109/TVCG.2018.2859997).
 - Hangan, D., Kobourov, S., and Miller, J. (2026).

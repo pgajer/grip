@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-10-07 12:47:48 EDT",
+  "scope": "Frozen synthetic benchmark results; not a validation of later package revisions.",
+  "source_manifest": "Benchmark-era paths are relative to a common parent of the grip and dgraphs checkouts; original MD5 values are retained.",
+  "files": {
+    "error-comparison.pdf": "b35023d1c11dc671679a1746a94cacbc63525e17cff5ca3e7c303bf3a06121c1",
+    "fits.csv": "bb8612f1013a1ebf4a1fefe5dabba571f5af6e63b5ec8cce15e5d3c533affb8e",
+    "graphs.csv": "319d7b483578d507c318e568d3245a21d862fe4f1ce53f0978a4976c5b2fef58",
+    "neighbor-agreement.csv": "62213bc86bc7ccfeca1753a5728544d5172b38078460709c9c9cc5ab59b1e013",
+    "neighborhood-sensitivity.pdf": "6b0be1f26f9373f24a8a0f2ecfb1fd57fde11301fb553722b589bd9d51aeea33",
+    "paired_comparisons.csv": "61f97f9047106eff4cb09a6d86932010ddc4c647af8e0d6743574fc52ee27234",
+    "pca-baselines.csv": "572d6126f102edd0acf4749f7fb60d07f9abe00aa153eca0e10083b69cc190ce",
+    "source_manifest.csv": "b80fce883e9c0bd784e00c7bbd3c6bc4892c77cb572b471c5348180a7a07552b",
+    "summary.csv": "65522f49310bbe24086ac0c69969b181cb828a22e67fc1f39c2450c60f3f67c3"
+  }
+}

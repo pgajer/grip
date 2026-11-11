@@ -116,7 +116,12 @@ test_that("classical MDS skips full path cache for cold no-diagnostic calls", {
   expect_s3_class(fast$prepared, "grip_metric_mds_prepared")
   expect_equal(fast$prepared$pair_mode, "distance_matrix_only")
   expect_equal(length(fast$prepared$path_edges), 0L)
-  expect_equal(fast$coords, full$coords, tolerance = 1e-10)
+  expect_equal(fast$prepared$distance_matrix, prepared$distance_matrix,
+               tolerance = 0)
+  # The square mesh has repeated leading eigenvalues. BLAS/LAPACK may choose
+  # different orthonormal axes in that eigenspace; compare the fitted geometry.
+  expect_equal(as.numeric(dist(fast$coords)), as.numeric(dist(full$coords)),
+               tolerance = 1e-10)
   expect_null(fast$diagnostics)
 })
 

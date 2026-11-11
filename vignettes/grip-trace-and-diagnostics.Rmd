@@ -17,13 +17,22 @@ pre { overflow-x: auto; }
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
+knitr::opts_chunk$set(fig.retina=1, dpi=72,
   collapse = TRUE,
   comment = "#>",
   fig.width = 8.8,
   fig.height = 5.2
 )
 ```
+
+Installed figures use static projections. To enable 3D rotation and layout
+selection, render with `options(grip.vignette.interactive = TRUE)` and
+**ivue** and **rgl** installed.
+
+
+This guide is about tracing multiscale GRIP layouts, the alternative layout
+method of the package. To record the updates of the recommended SGD metric
+MDS instead, see [Animating metric MDS](metric-mds-animation.html).
 
 ## Why trace a layout?
 
@@ -99,11 +108,12 @@ if (!documentation.interactive()) {
 }))
 ```
 
-Each recorded stage has an ivue viewer showing its active vertices and edges.
+With interactive rendering enabled, each recorded stage has an ivue viewer
+showing its active vertices and edges.
 Drag to rotate or scroll to zoom. Original planar coordinates are retained at
 z = 0; each viewer fits its own bounds, so apparent size across stages is not
 a measure of expansion.
-When `ivue` is unavailable, a planar stage selector shows the same recorded
+By default, a planar stage selector shows the same recorded
 vertices and edges with common bounds across stages.
 
 
